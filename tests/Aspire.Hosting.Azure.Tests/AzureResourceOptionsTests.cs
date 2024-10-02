@@ -47,7 +47,7 @@ public class AzureResourceOptionsTests(ITestOutputHelper output)
 
                 param principalType string
 
-                resource sb 'Microsoft.ServiceBus/namespaces@2017-04-01' = {
+                resource sb 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
                   name: toLower(take('sb${uniqueString(resourceGroup().id)}', 24))
                   location: location
                   properties: {

@@ -51,7 +51,7 @@ public static class AzureLogAnalyticsWorkspaceExtensions
             };
             construct.Add(workspace);
 
-            construct.Add(new BicepOutput("logAnalyticsWorkspaceId", typeof(string))
+            construct.Add(new ProvisioningOutput("logAnalyticsWorkspaceId", typeof(string))
             {
                 Value = workspace.Id
             });

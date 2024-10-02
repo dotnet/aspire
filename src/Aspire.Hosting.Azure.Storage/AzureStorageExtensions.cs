@@ -6,8 +6,11 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Storage;
 using Aspire.Hosting.Utils;
+using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;
+using Azure.Storage.Blobs;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -75,9 +78,9 @@ public static class AzureStorageExtensions
             construct.Add(storageAccount.AssignRole(StorageBuiltInRole.StorageTableDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
             construct.Add(storageAccount.AssignRole(StorageBuiltInRole.StorageQueueDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
-            construct.Add(new BicepOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.BlobUri });
-            construct.Add(new BicepOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.QueueUri });
-            construct.Add(new BicepOutput("tableEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.TableUri });
+            construct.Add(new ProvisioningOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.BlobUri });
+            construct.Add(new ProvisioningOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.QueueUri });
+            construct.Add(new ProvisioningOutput("tableEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.TableUri });
 
             var resource = (AzureStorageResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);
@@ -115,6 +118,29 @@ public static class AzureStorageExtensions
                    Tag = StorageEmulatorContainerImageTags.Tag
                });
 
+        BlobServiceClient? blobServiceClient = null;
+
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (@event, ct) =>
+        {
+            var connectionString = await builder.Resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
+            }
+
+            blobServiceClient = CreateBlobServiceClient(connectionString);
+        });
+
+        var healthCheckKey = $"{builder.Resource.Name}_check";
+
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureBlobStorage(sp =>
+        {
+            return blobServiceClient ?? throw new InvalidOperationException("BlobServiceClient is not initialized.");
+        }, name: healthCheckKey);
+
+        builder.WithHealthCheck(healthCheckKey);
+
         if (configureContainer != null)
         {
             var surrogate = new AzureStorageEmulatorResource(builder.Resource);
@@ -123,6 +149,18 @@ public static class AzureStorageExtensions
         }
 
         return builder;
+
+        static BlobServiceClient CreateBlobServiceClient(string connectionString)
+        {
+            if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+            {
+                return new BlobServiceClient(uri, new DefaultAzureCredential());
+            }
+            else
+            {
+                return new BlobServiceClient(connectionString);
+            }
+        }
     }
 
     /// <summary>
@@ -196,7 +234,6 @@ public static class AzureStorageExtensions
     public static IResourceBuilder<AzureBlobStorageResource> AddBlobs(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
         var resource = new AzureBlobStorageResource(name, builder.Resource);
-
         return builder.ApplicationBuilder.AddResource(resource);
     }
 
@@ -209,7 +246,6 @@ public static class AzureStorageExtensions
     public static IResourceBuilder<AzureTableStorageResource> AddTables(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
         var resource = new AzureTableStorageResource(name, builder.Resource);
-
         return builder.ApplicationBuilder.AddResource(resource);
     }
 
@@ -222,7 +258,6 @@ public static class AzureStorageExtensions
     public static IResourceBuilder<AzureQueueStorageResource> AddQueues(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
         var resource = new AzureQueueStorageResource(name, builder.Resource);
-
         return builder.ApplicationBuilder.AddResource(resource);
     }
 }

@@ -113,6 +113,9 @@ public static class AspireServiceBusExtensions
         protected override TokenCredential? GetTokenCredential(AzureMessagingServiceBusSettings settings)
             => settings.Credential;
 
+        protected override bool GetMetricsEnabled(AzureMessagingServiceBusSettings settings)
+            => false;
+
         protected override bool GetTracingEnabled(AzureMessagingServiceBusSettings settings)
             => !settings.DisableTracing;
     }

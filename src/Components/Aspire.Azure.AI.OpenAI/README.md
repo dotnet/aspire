@@ -1,6 +1,6 @@
 # Aspire.Azure.AI.OpenAI library
 
-Registers [OpenAIClient](https://learn.microsoft.com/dotnet/api/azure.ai.openai.openaiclient) as a singleton in the DI container for connecting to Azure OpenAI or OpenAI. Enables corresponding logging and telemetry.
+Registers [OpenAIClient](https://learn.microsoft.com/dotnet/api/azure.ai.openai.openaiclient) as a singleton in the DI container for connecting to Azure OpenAI or OpenAI. Enables corresponding metrics, logging and telemetry.
 
 ## Getting started
 
@@ -147,6 +147,17 @@ The `AddAzureOpenAI` method adds an Azure OpenAI resource to the builder. Or `Ad
 ```csharp
 builder.AddAzureOpenAIClient("openai");
 ```
+
+## Experimental Telemetry
+
+Azure AI OpenAI telemetry support is experimental, the shape of traces may change in the future without notice.
+It can be enabled by invoking
+
+```c#
+AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
+```
+
+or by setting the "OPENAI_EXPERIMENTAL_ENABLE_OPEN_TELEMETRY" environment variable to "true".
 
 ## Additional documentation
 

@@ -52,7 +52,7 @@ public static class AzureRedisExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var kvNameParam = new BicepParameter("keyVaultName", typeof(string));
+            var kvNameParam = new ProvisioningParameter("keyVaultName", typeof(string));
             construct.Add(kvNameParam);
 
             var keyVault = KeyVaultService.FromExisting("keyVault");
@@ -167,7 +167,7 @@ public static class AzureRedisExtensions
             var disableAccessKeys = BicepValue<string>.DefineProperty(redis, "DisableAccessKeyAuthentication", ["properties", "disableAccessKeyAuthentication"], isOutput: false, isRequired: false);
             disableAccessKeys.Assign("true");
 
-            construct.Add(new RedisCacheAccessPolicyAssignment($"{redis.ResourceName}_contributor", redis.ResourceVersion)
+            construct.Add(new RedisCacheAccessPolicyAssignment($"{redis.ResourceName}_contributor")
             {
                 Parent = redis,
                 AccessPolicyName = "Data Contributor",
@@ -175,7 +175,7 @@ public static class AzureRedisExtensions
                 ObjectIdAlias = construct.PrincipalNameParameter
             });
 
-            construct.Add(new BicepOutput("connectionString", typeof(string))
+            construct.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
                 Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true")
             });
@@ -267,7 +267,7 @@ public static class AzureRedisExtensions
                var redis = construct.GetResources().OfType<CdkRedisResource>().FirstOrDefault(r => r.ResourceName == builder.Resource.Name)
                    ?? throw new InvalidOperationException($"Could not find a RedisResource with name {builder.Resource.Name}.");
 
-               var kvNameParam = new BicepParameter("keyVaultName", typeof(string));
+               var kvNameParam = new ProvisioningParameter("keyVaultName", typeof(string));
                construct.Add(kvNameParam);
 
                var keyVault = KeyVaultService.FromExisting("keyVault");
@@ -295,7 +295,7 @@ public static class AzureRedisExtensions
 
     private static CdkRedisResource CreateRedisResource(ResourceModuleConstruct construct)
     {
-        var redisCache = new CdkRedisResource(construct.Resource.Name, "2024-03-01") // TODO: resource version should come from CDK
+        var redisCache = new CdkRedisResource(construct.Resource.Name)
         {
             Sku = new RedisSku()
             {
@@ -330,7 +330,7 @@ public static class AzureRedisExtensions
             {
                 resourcesToRemove.Add(resource);
             }
-            else if (resource is BicepOutput output && output.ResourceName == "connectionString")
+            else if (resource is ProvisioningOutput output && output.ResourceName == "connectionString")
             {
                 resourcesToRemove.Add(resource);
             }

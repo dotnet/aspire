@@ -112,6 +112,17 @@ The `AddConnectionString` can be used to read connection information from the Ap
 builder.AddOpenAIClient("openai");
 ```
 
+## Experimental Telemetry
+
+OpenAI telemetry support is experimental, the shape of traces may change in the future without notice.
+It can be enabled by invoking
+
+```c#
+AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
+```
+
+or by setting the "OPENAI_EXPERIMENTAL_ENABLE_OPEN_TELEMETRY" environment variable to "true".
+
 ## Additional documentation
 
 * https://github.com/openai/openai-dotnet
