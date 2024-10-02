@@ -7,6 +7,7 @@ using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
 using Metrics = Aspire.Dashboard.Components.Pages.Metrics;
 
 namespace Aspire.Dashboard.Components;
