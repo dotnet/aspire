@@ -136,6 +136,9 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                             ? content[..LogMaxBatchCharacters]
                             : content;
 
+                        // Count number of characters to figure out if batch exceeds the limit.
+                        // We could calculate byte size here with UTF8 encoding, but that would add overhead.
+                        // Character count plus a conservative limit should be fine.
                         currentChars += resolvedContent.Length;
 
                         if (currentChars <= LogMaxBatchCharacters)
