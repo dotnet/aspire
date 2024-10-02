@@ -24,17 +24,20 @@ public class DashboardServiceTests
     public async Task WatchResourceConsoleLogs_LargePendingData_BatchResults()
     {
         // Arrange
+        const int LongLineCharacters = DashboardService.LogMaxBatchCharacters / 3;
         var resourceLoggerService = new ResourceLoggerService();
         var resourceNotificationService = new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, new TestHostApplicationLifetime(), new ServiceCollection().BuildServiceProvider(), resourceLoggerService);
         await using var dashboardServiceData = new DashboardServiceData(resourceNotificationService, resourceLoggerService, NullLogger<DashboardServiceData>.Instance, new DashboardCommandExecutor(new ServiceCollection().BuildServiceProvider()));
         var dashboardService = new DashboardService(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), NullLogger<DashboardService>.Instance);
 
         var logger = resourceLoggerService.GetLogger("test-resource");
-        var totalLogs = DashboardService.LogMaxBatchSize * 5;
-        for (var i = 0; i < totalLogs; i++)
-        {
-            logger.LogInformation("Log message {Count}", i + 1);
-        }
+
+        // Exceed limit line
+        logger.LogInformation(new string('1', DashboardService.LogMaxBatchCharacters));
+        // Three long lines
+        logger.LogInformation(new string('2', LongLineCharacters));
+        logger.LogInformation(new string('3', LongLineCharacters));
+        logger.LogInformation(new string('4', LongLineCharacters));
 
         var context = TestServerCallContext.Create();
         var writer = new TestServerStreamWriter<WatchResourceConsoleLogsUpdate>(context);
@@ -46,12 +49,18 @@ public class DashboardServiceTests
             context);
 
         // Assert
-        var logsCollection = new List<WatchResourceConsoleLogsUpdate>();
-        for (var i = 0; i < 5; i++)
-        {
-            logsCollection.Add(await writer.ReadNextAsync());
-            Assert.Equal(DashboardService.LogMaxBatchSize, logsCollection[i].LogLines.Count);
-        }
+        var exceedLimitUpdate = await writer.ReadNextAsync();
+        Assert.Collection(exceedLimitUpdate.LogLines,
+            l => Assert.Equal(DashboardService.LogMaxBatchCharacters, l.Text.Length));
+
+        var longLinesUpdate1 = await writer.ReadNextAsync();
+        Assert.Collection(longLinesUpdate1.LogLines,
+            l => Assert.Equal(LongLineCharacters, l.Text.Split(' ')[1].Length),
+            l => Assert.Equal(LongLineCharacters, l.Text.Split(' ')[1].Length));
+
+        var longLinesUpdate2 = await writer.ReadNextAsync();
+        Assert.Collection(longLinesUpdate2.LogLines,
+            l => Assert.Equal(LongLineCharacters, l.Text.Split(' ')[1].Length));
 
         resourceLoggerService.Complete("test-resource");
         await task;
