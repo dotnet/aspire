@@ -41,7 +41,7 @@ public static class AzureFunctionsProjectResourceExtensions
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                     var storageAccount = construct.GetResources().OfType<StorageAccount>().FirstOrDefault(r => r.ResourceName == DefaultAzureFunctionsHostStorageName)
                         ?? throw new InvalidOperationException($"Could not find storage account with '{DefaultAzureFunctionsHostStorageName}' name.");
-                    construct.Add(storageAccount.AssignRole(StorageBuiltInRole.StorageAccountContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+                    construct.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageAccountContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 #pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                 };
                 storage = builder.AddAzureStorage(DefaultAzureFunctionsHostStorageName).ConfigureConstruct(configureConstruct).RunAsEmulator().Resource;
