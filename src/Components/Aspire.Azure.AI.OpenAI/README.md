@@ -102,6 +102,9 @@ The .NET Aspire Azure OpenAI library supports [Microsoft.Extensions.Configuratio
       "AI": {
         "OpenAI": {
           "DisableTracing": false,
+          "ClientOptions": {
+            "UserAgentApplicationId": "myapp"
+          }
         }
       }
     }
