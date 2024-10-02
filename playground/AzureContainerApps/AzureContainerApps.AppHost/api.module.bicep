@@ -20,11 +20,11 @@ param outputs_azure_container_registry_endpoint string
 
 param api_containerimage string
 
-resource account_secretoutputs_kv 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
+resource account_secretoutputs_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
   name: account_secretoutputs
 }
 
-resource account_secretoutputs_kv_connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' existing = {
+resource account_secretoutputs_kv_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
   name: 'connectionString'
   parent: account_secretoutputs_kv
 }

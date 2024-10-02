@@ -75,9 +75,9 @@ public static class AzureStorageExtensions
             construct.Add(storageAccount.AssignRole(StorageBuiltInRole.StorageTableDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
             construct.Add(storageAccount.AssignRole(StorageBuiltInRole.StorageQueueDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
-            construct.Add(new BicepOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.BlobUri });
-            construct.Add(new BicepOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.QueueUri });
-            construct.Add(new BicepOutput("tableEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.TableUri });
+            construct.Add(new ProvisioningOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.BlobUri });
+            construct.Add(new ProvisioningOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.QueueUri });
+            construct.Add(new ProvisioningOutput("tableEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.TableUri });
 
             var resource = (AzureStorageResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);

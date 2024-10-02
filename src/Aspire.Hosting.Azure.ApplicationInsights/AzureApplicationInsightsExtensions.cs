@@ -71,13 +71,13 @@ public static class AzureApplicationInsightsExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var appTypeParameter = new BicepParameter("applicationType", typeof(string))
+            var appTypeParameter = new ProvisioningParameter("applicationType", typeof(string))
             {
                 Value = new StringLiteral("web")
             };
             construct.Add(appTypeParameter);
 
-            var kindParameter = new BicepParameter("kind", typeof(string))
+            var kindParameter = new ProvisioningParameter("kind", typeof(string))
             {
                 Value = new StringLiteral("web")
             };
@@ -94,7 +94,7 @@ public static class AzureApplicationInsightsExtensions
             if (logAnalyticsWorkspace != null)
             {
                 // If someone provides a workspace via the extension method we should use it.
-                appInsights.WorkspaceResourceId = logAnalyticsWorkspace.Resource.WorkspaceId.AsBicepParameter(construct, AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId);
+                appInsights.WorkspaceResourceId = logAnalyticsWorkspace.Resource.WorkspaceId.AsProvisioningParameter(construct, AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId);
             }
             else if (builder.ExecutionContext.IsRunMode)
             {
@@ -119,7 +119,7 @@ public static class AzureApplicationInsightsExtensions
                 // If the user does not supply a log analytics workspace of their own, and we are in publish mode
                 // then we want AZD to provide one to us.
                 construct.Resource.Parameters.TryAdd(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, null);
-                var logAnalyticsWorkspaceParameter = new BicepParameter(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, typeof(string))
+                var logAnalyticsWorkspaceParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, typeof(string))
                 {
                     Value = new StringLiteral("web")
                 };
@@ -127,7 +127,7 @@ public static class AzureApplicationInsightsExtensions
                 appInsights.WorkspaceResourceId = logAnalyticsWorkspaceParameter;
             }
 
-            construct.Add(new BicepOutput("appInsightsConnectionString", typeof(string)) { Value = appInsights.ConnectionString });
+            construct.Add(new ProvisioningOutput("appInsightsConnectionString", typeof(string)) { Value = appInsights.ConnectionString });
 
             if (configureResource != null)
             {
