@@ -57,7 +57,7 @@ public static class AzureKeyVaultResourceExtensions
             };
             construct.Add(keyVault);
 
-            construct.Add(new BicepOutput("vaultUri", typeof(string))
+            construct.Add(new ProvisioningOutput("vaultUri", typeof(string))
             {
                 Value =
                     new MemberExpression(

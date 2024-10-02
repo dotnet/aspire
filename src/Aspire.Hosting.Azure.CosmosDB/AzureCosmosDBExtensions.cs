@@ -48,7 +48,7 @@ public static class AzureCosmosExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var kvNameParam = new BicepParameter("keyVaultName", typeof(string));
+            var kvNameParam = new ProvisioningParameter("keyVaultName", typeof(string));
             construct.Add(kvNameParam);
 
             var keyVault = KeyVaultService.FromExisting("keyVault");
@@ -80,7 +80,7 @@ public static class AzureCosmosExtensions
             List<CosmosDBSqlDatabase> cosmosSqlDatabases = new List<CosmosDBSqlDatabase>();
             foreach (var databaseName in azureResource.Databases)
             {
-                var cosmosSqlDatabase = new CosmosDBSqlDatabase(databaseName, cosmosAccount.ResourceVersion)
+                var cosmosSqlDatabase = new CosmosDBSqlDatabase(databaseName)
                 {
                     Parent = cosmosAccount,
                     Name = databaseName,

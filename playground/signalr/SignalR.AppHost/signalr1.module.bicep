@@ -5,7 +5,7 @@ param principalId string
 
 param principalType string
 
-resource signalr1 'Microsoft.SignalRService/signalR@2022-02-01' = {
+resource signalr1 'Microsoft.SignalRService/signalR@2024-03-01' = {
   name: take('signalr1-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
