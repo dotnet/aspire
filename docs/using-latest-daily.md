@@ -40,6 +40,8 @@ To be able to create aspire projects, you will need to install the latest Aspire
 dotnet new install Aspire.ProjectTemplates::9.0.0-preview.* --force
 ```
 
+> **Note:** The `--force` parameter is required if you also have the legacy .NET Aspire Workload installed. The new templates have the same name as the old ones, so this command would override those.
+
 ## Create a new Project
 
 Create an empty .NET Aspire project on the command line:
