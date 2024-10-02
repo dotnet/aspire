@@ -7,32 +7,35 @@ namespace Aspire.Hosting.Tests;
 public class ExpressionResolverTests
 {
     [Theory]
-    [InlineData(typeof(TestContainerResource), false, false, "TestEndpoint=http://127.0.0.1:12345/stuff;")]
-    [InlineData(typeof(TestContainerResource), false, true, "TestEndpoint=http://127.0.0.1:12345/stuff;")]
-    [InlineData(typeof(TestContainerResource), true, false, "TestEndpoint=http://ContainerHostName:12345/stuff;")]
-    [InlineData(typeof(TestContainerResource), true, true, "TestEndpoint=http://testresource:10000/stuff;")]
-    [InlineData(typeof(TestContainerResourceWithUrlExpression), false, false, "Url=http://localhost:12345;")]
-    [InlineData(typeof(TestContainerResourceWithUrlExpression), false, true, "Url=http://localhost:12345;")]
-    [InlineData(typeof(TestContainerResourceWithUrlExpression), true, false, "Url=http://ContainerHostName:12345;")]
-    [InlineData(typeof(TestContainerResourceWithUrlExpression), true, true, "Url=http://testresource:10000;")]
-    [InlineData(typeof(TestContainerResourceWithOnlyHost), true, false, "Host=ContainerHostName;")]
-    [InlineData(typeof(TestContainerResourceWithOnlyHost), true, true, "Host=testresource;")]
-    [InlineData(typeof(TestContainerResourceWithOnlyPort), true, false, "Port=12345;")]
-    [InlineData(typeof(TestContainerResourceWithOnlyPort), true, true, "Port=12345;")]
-    [InlineData(typeof(TestContainerResourceWithPortBeforeHost), true, false, "Port=12345;Host=ContainerHostName;")]
-    //[InlineData(typeof(TestContainerResourceWithPortBeforeHost), true, true, "Port=10000;Host=testresource;")]    //TODO: enable when fixed
-    public async Task ExpressionResolverGeneratesCorrectStrings(Type t, bool sourceIsContainer, bool targetIsContainer, string expectedConnectionString)
+    [InlineData("TwoFullEndpoints", false, false, "Test1=http://127.0.0.1:12345/;Test2=https://localhost:12346/;")]
+    [InlineData("TwoFullEndpoints", false, true, "Test1=http://127.0.0.1:12345/;Test2=https://localhost:12346/;")]
+    [InlineData("TwoFullEndpoints", true, false, "Test1=http://ContainerHostName:12345/;Test2=https://ContainerHostName:12346/;")]
+    [InlineData("TwoFullEndpoints", true, true, "Test1=http://testresource:10000/;Test2=https://testresource:10001/;")]
+    [InlineData("Url", false, false, "Url=http://localhost:12345;")]
+    [InlineData("Url", false, true, "Url=http://localhost:12345;")]
+    [InlineData("Url", true, false, "Url=http://ContainerHostName:12345;")]
+    [InlineData("Url", true, true, "Url=http://testresource:10000;")]
+    [InlineData("OnlyHost", true, false, "Host=ContainerHostName;")]
+    [InlineData("OnlyHost", true, true, "Host=testresource;")]
+    [InlineData("OnlyPort", true, false, "Port=12345;")]
+    [InlineData("OnlyPort", true, true, "Port=12345;")]
+    [InlineData("PortBeforeHost", true, false, "Port=12345;Host=ContainerHostName;")]
+    //[InlineData("PortBeforeHost", true, true, "Port=10000;Host=testresource;")]
+    public async Task ExpressionResolverGeneratesCorrectStrings(string exprName, bool sourceIsContainer, bool targetIsContainer, string expectedConnectionString)
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var r = (BaseTestContainerResource)Activator.CreateInstance(t)!;
-
-        var test = builder.AddResource(r)
-            .WithEndpoint("endpoint", e =>
+        var test = builder.AddResource(new TestExpressionResolverResource(exprName))
+            .WithEndpoint("endpoint1", e =>
             {
                 e.UriScheme = "http";
                 e.AllocatedEndpoint = new(e, "localhost", 12345, containerHostAddress: "ContainerHostName", targetPortExpression: "10000");
-            });
+            })
+            .WithEndpoint("endpoint2", e =>
+             {
+                 e.UriScheme = "https";
+                 e.AllocatedEndpoint = new(e, "localhost", 12346, containerHostAddress: "ContainerHostName", targetPortExpression: "10001");
+             });
 
         if (targetIsContainer)
         {
@@ -45,39 +48,27 @@ public class ExpressionResolverTests
     }
 }
 
-abstract class BaseTestContainerResource : ContainerResource, IResourceWithEndpoints, IResourceWithConnectionString
+sealed class TestExpressionResolverResource : ContainerResource, IResourceWithEndpoints, IResourceWithConnectionString
 {
-protected EndpointReference MyEndpoint { get; }
-    public BaseTestContainerResource() : base("testresource")
+    readonly string _exprName;
+    EndpointReference Endpoint1 { get; }
+    EndpointReference Endpoint2 { get; }
+    Dictionary<string, ReferenceExpression> Expressions { get; }
+    public TestExpressionResolverResource(string exprName) : base("testresource")
     {
-        MyEndpoint = new(this, "endpoint");
+        _exprName = exprName;
+        Endpoint1 = new(this, "endpoint1");
+        Endpoint2 = new(this, "endpoint2");
+
+        Expressions = new()
+        {
+            { "TwoFullEndpoints", ReferenceExpression.Create($"Test1={Endpoint1.Property(EndpointProperty.Scheme)}://{Endpoint1.Property(EndpointProperty.IPV4Host)}:{Endpoint1.Property(EndpointProperty.Port)}/;Test2={Endpoint2.Property(EndpointProperty.Scheme)}://{Endpoint2.Property(EndpointProperty.Host)}:{Endpoint2.Property(EndpointProperty.Port)}/;") },
+            { "Url", ReferenceExpression.Create($"Url={Endpoint1.Property(EndpointProperty.Url)};") },
+            { "OnlyHost", ReferenceExpression.Create($"Host={Endpoint1.Property(EndpointProperty.Host)};") },
+            { "OnlyPort", ReferenceExpression.Create($"Port={Endpoint1.Property(EndpointProperty.Port)};") },
+            { "PortBeforeHost", ReferenceExpression.Create($"Port={Endpoint1.Property(EndpointProperty.Port)};Host={Endpoint1.Property(EndpointProperty.Host)};") }
+        };
     }
 
-    public abstract ReferenceExpression ConnectionStringExpression { get; }
+    public ReferenceExpression ConnectionStringExpression => Expressions[_exprName];
 }
-
-sealed class TestContainerResource : BaseTestContainerResource
-{
-    public override ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"TestEndpoint=http://{MyEndpoint.Property(EndpointProperty.IPV4Host)}:{MyEndpoint.Property(EndpointProperty.Port)}/stuff;");
-}
-
-sealed class TestContainerResourceWithUrlExpression : BaseTestContainerResource
-{
-    public override ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"Url={MyEndpoint.Property(EndpointProperty.Url)};");
-}
-
-sealed class TestContainerResourceWithOnlyHost : BaseTestContainerResource
-{
-    public override ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"Host={MyEndpoint.Property(EndpointProperty.Host)};");
-}
-
-sealed class TestContainerResourceWithOnlyPort : BaseTestContainerResource
-{
-    public override ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"Port={MyEndpoint.Property(EndpointProperty.Port)};");
-}
-
-sealed class TestContainerResourceWithPortBeforeHost : BaseTestContainerResource
-{
-    public override ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"Port={MyEndpoint.Property(EndpointProperty.Port)};Host={MyEndpoint.Property(EndpointProperty.Host)};");
-}
-
