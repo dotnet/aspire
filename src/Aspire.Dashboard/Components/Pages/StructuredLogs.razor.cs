@@ -37,7 +37,6 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private Subscription? _applicationsSubscription;
     private Subscription? _logsSubscription;
     private bool _applicationChanged;
-    private CancellationTokenSource? _filterCts;
     private string? _elementIdBeforeDetailsViewOpened;
     private AspirePageContentLayout? _contentLayout;
     private string _filter = string.Empty;
@@ -99,7 +98,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "filters")]
-    public string? SerializedLogFilters { get; set; }
+    public string? SerializedFilters { get; set; }
 
     public StructureLogsDetailsViewModel? SelectedLogEntry { get; set; }
 
@@ -305,50 +304,24 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             else if (filterResult.Add)
             {
                 ViewModel.AddFilter(filter);
+                await ClearSelectedLogEntryAsync();
             }
-
-            await ClearSelectedLogEntryAsync();
         }
 
         await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
-    private void HandleFilter(ChangeEventArgs args)
-    {
-        if (args.Value is string newFilter)
-        {
-            _filterCts?.Cancel();
-
-            // Debouncing logic. Apply the filter after a delay.
-            var cts = _filterCts = new CancellationTokenSource();
-            _ = Task.Run(async () =>
-            {
-                await ClearSelectedLogEntryAsync();
-
-                await Task.Delay(400, cts.Token);
-                ViewModel.FilterText = newFilter;
-                await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
-            });
-        }
-    }
-
     private async Task HandleAfterFilterBindAsync()
     {
-        if (!string.IsNullOrEmpty(_filter))
+        ViewModel.FilterText = _filter;
+        await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
+
+        if (string.IsNullOrEmpty(_filter))
         {
             return;
         }
 
-        if (_filterCts is not null)
-        {
-            await _filterCts.CancelAsync();
-        }
-
-        ViewModel.FilterText = string.Empty;
-
         await ClearSelectedLogEntryAsync();
-        await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
-        await this.AfterViewModelChangedAsync(_contentLayout, true);
     }
 
     private string GetResourceName(OtlpApplicationView app) => OtlpApplication.GetResourceName(app.Application, _applications);
@@ -392,13 +365,12 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         _applicationsSubscription?.Dispose();
         _logsSubscription?.Dispose();
-        _filterCts?.Dispose();
         DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
     }
 
     public string GetUrlFromSerializableViewModel(StructuredLogsPageState serializable)
     {
-        var filters = (serializable.Filters.Count > 0) ? LogFilterFormatter.SerializeLogFiltersToString(serializable.Filters) : null;
+        var filters = (serializable.Filters.Count > 0) ? TelemetryFilterFormatter.SerializeFiltersToString(serializable.Filters) : null;
 
         var url = DashboardUrls.StructuredLogsUrl(
             resource: serializable.SelectedApplication,
@@ -434,9 +406,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
         ViewModel.LogLevel = PageViewModel.SelectedLogLevel.Id;
 
-        if (SerializedLogFilters is not null)
+        if (SerializedFilters is not null)
         {
-            var filters = LogFilterFormatter.DeserializeLogFiltersFromString(SerializedLogFilters);
+            var filters = TelemetryFilterFormatter.DeserializeFiltersFromString(SerializedFilters);
 
             if (filters.Count > 0)
             {

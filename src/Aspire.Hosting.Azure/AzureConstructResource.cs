@@ -54,7 +54,7 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
             }
 
             var isSecure = aspireParameter.Value is ParameterResource { Secret: true } || aspireParameter.Value is BicepSecretOutputReference;
-            var constructParameter = new BicepParameter(aspireParameter.Key, typeof(string)) { IsSecure = isSecure };
+            var constructParameter = new ProvisioningParameter(aspireParameter.Key, typeof(string)) { IsSecure = isSecure };
             resourceModuleConstruct.Add(constructParameter);
         }
 
@@ -127,24 +127,24 @@ public static class AzureConstructResourceExtensions
     }
 
     /// <summary>
-    /// Creates a new <see cref="BicepParameter"/> in <paramref name="construct"/>, or reuses an existing bicep parameter if one with
+    /// Creates a new <see cref="ProvisioningParameter"/> in <paramref name="construct"/>, or reuses an existing bicep parameter if one with
     /// the same name already exists, that corresponds to <paramref name="parameterResourceBuilder"/>.
     /// </summary>
     /// <param name="parameterResourceBuilder">
     /// The <see cref="IResourceBuilder{ParameterResource}"/> that represents a parameter in the <see cref="Aspire.Hosting.ApplicationModel" />
-    /// to get or create a corresponding <see cref="BicepParameter"/>.
+    /// to get or create a corresponding <see cref="ProvisioningParameter"/>.
     /// </param>
-    /// <param name="construct">The <see cref="ResourceModuleConstruct"/> that contains the <see cref="BicepParameter"/>.</param>
+    /// <param name="construct">The <see cref="ResourceModuleConstruct"/> that contains the <see cref="ProvisioningParameter"/>.</param>
     /// <param name="parameterName">The name of the parameter to be assigned.</param>
     /// <returns>
-    /// The corresponding <see cref="BicepParameter"/> that was found or newly created.
+    /// The corresponding <see cref="ProvisioningParameter"/> that was found or newly created.
     /// </returns>
     /// <remarks>
     /// This is useful when assigning a <see cref="BicepValue"/> to the value of an Aspire <see cref="ParameterResource"/>.
     /// </remarks>
     [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
         Justification = "The 'this' arguments are mutually exclusive")]
-    public static BicepParameter AsBicepParameter(this IResourceBuilder<ParameterResource> parameterResourceBuilder, ResourceModuleConstruct construct, string? parameterName = null)
+    public static ProvisioningParameter AsProvisioningParameter(this IResourceBuilder<ParameterResource> parameterResourceBuilder, ResourceModuleConstruct construct, string? parameterName = null)
     {
         ArgumentNullException.ThrowIfNull(parameterResourceBuilder);
         ArgumentNullException.ThrowIfNull(construct);
@@ -156,7 +156,7 @@ public static class AzureConstructResourceExtensions
         var parameter = construct.GetParameters().FirstOrDefault(p => p.ResourceName == parameterName);
         if (parameter is null)
         {
-            parameter = new BicepParameter(parameterName, typeof(string))
+            parameter = new ProvisioningParameter(parameterName, typeof(string))
             {
                 IsSecure = parameterResourceBuilder.Resource.Secret
             };
@@ -167,23 +167,23 @@ public static class AzureConstructResourceExtensions
     }
 
     /// <summary>
-    /// Creates a new <see cref="BicepParameter"/> in <paramref name="construct"/>, or reuses an existing bicep parameter if one with
+    /// Creates a new <see cref="ProvisioningParameter"/> in <paramref name="construct"/>, or reuses an existing bicep parameter if one with
     /// the same name already exists, that corresponds to <paramref name="outputReference"/>.
     /// </summary>
     /// <param name="outputReference">
-    /// The <see cref="BicepOutputReference"/> that contains the value to use for the <see cref="BicepParameter"/>.
+    /// The <see cref="BicepOutputReference"/> that contains the value to use for the <see cref="ProvisioningParameter"/>.
     /// </param>
-    /// <param name="construct">The <see cref="ResourceModuleConstruct"/> that contains the <see cref="BicepParameter"/>.</param>
+    /// <param name="construct">The <see cref="ResourceModuleConstruct"/> that contains the <see cref="ProvisioningParameter"/>.</param>
     /// <param name="parameterName">The name of the parameter to be assigned.</param>
     /// <returns>
-    /// The corresponding <see cref="BicepParameter"/> that was found or newly created.
+    /// The corresponding <see cref="ProvisioningParameter"/> that was found or newly created.
     /// </returns>
     /// <remarks>
     /// This is useful when assigning a <see cref="BicepValue"/> to the value of an Aspire <see cref="BicepOutputReference"/>.
     /// </remarks>
     [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
         Justification = "The 'this' arguments are mutually exclusive")]
-    public static BicepParameter AsBicepParameter(this BicepOutputReference outputReference, ResourceModuleConstruct construct, string? parameterName = null)
+    public static ProvisioningParameter AsProvisioningParameter(this BicepOutputReference outputReference, ResourceModuleConstruct construct, string? parameterName = null)
     {
         ArgumentNullException.ThrowIfNull(outputReference);
         ArgumentNullException.ThrowIfNull(construct);
@@ -195,7 +195,7 @@ public static class AzureConstructResourceExtensions
         var parameter = construct.GetParameters().FirstOrDefault(p => p.ResourceName == parameterName);
         if (parameter is null)
         {
-            parameter = new BicepParameter(parameterName, typeof(string));
+            parameter = new ProvisioningParameter(parameterName, typeof(string));
             construct.Add(parameter);
         }
 
@@ -215,7 +215,7 @@ public class ResourceModuleConstruct : Infrastructure
         // Always add a default location parameter.
         // azd assumes there will be a location parameter for every module.
         // The Infrastructure location resolver will resolve unset Location properties to this parameter.
-        Add(new BicepParameter("location", typeof(string))
+        Add(new ProvisioningParameter("location", typeof(string))
         {
             Description = "The location for the resource(s) to be deployed.",
             Value = BicepFunction.GetResourceGroup().Location
@@ -230,17 +230,17 @@ public class ResourceModuleConstruct : Infrastructure
     /// <summary>
     /// The common principalId parameter injected into most Aspire-based Bicep files.
     /// </summary>
-    public BicepParameter PrincipalIdParameter => new BicepParameter("principalId", typeof(string));
+    public ProvisioningParameter PrincipalIdParameter => new ProvisioningParameter("principalId", typeof(string));
 
     /// <summary>
     /// The common principalType parameter injected into most Aspire-based Bicep files.
     /// </summary>
-    public BicepParameter PrincipalTypeParameter => new BicepParameter("principalType", typeof(string));
+    public ProvisioningParameter PrincipalTypeParameter => new ProvisioningParameter("principalType", typeof(string));
 
     /// <summary>
     /// The common principalName parameter injected into some Aspire-based Bicep files.
     /// </summary>
-    public BicepParameter PrincipalNameParameter => new BicepParameter("principalName", typeof(string));
+    public ProvisioningParameter PrincipalNameParameter => new ProvisioningParameter("principalName", typeof(string));
 
-    internal IEnumerable<BicepParameter> GetParameters() => GetResources().OfType<BicepParameter>();
+    internal IEnumerable<ProvisioningParameter> GetParameters() => GetResources().OfType<ProvisioningParameter>();
 }

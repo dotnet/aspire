@@ -3,11 +3,11 @@ param location string = resourceGroup().location
 
 param keyVaultName string
 
-resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
+resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
   name: keyVaultName
 }
 
-resource account 'Microsoft.DocumentDB/databaseAccounts@2024-05-15-preview' = {
+resource account 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
   name: take('account-${uniqueString(resourceGroup().id)}', 44)
   location: location
   properties: {
@@ -28,7 +28,7 @@ resource account 'Microsoft.DocumentDB/databaseAccounts@2024-05-15-preview' = {
   }
 }
 
-resource db 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15-preview' = {
+resource db 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
   name: 'db'
   location: location
   properties: {
@@ -39,7 +39,7 @@ resource db 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15-previ
   parent: account
 }
 
-resource connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
+resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   name: 'connectionString'
   properties: {
     value: 'AccountEndpoint=${account.properties.documentEndpoint};AccountKey=${account.listKeys().primaryMasterKey}'

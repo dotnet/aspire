@@ -41,7 +41,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         {
             allowAllIpsFirewall = """
 
-                resource postgreSqlFirewallRule_AllowAllIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2022-12-01' = {
+                resource postgreSqlFirewallRule_AllowAllIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
                   name: 'AllowAllIps'
                   properties: {
                     endIpAddress: '255.255.255.255'
@@ -68,7 +68,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
 
             param principalName string
 
-            resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
+            resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
               name: take('postgres${uniqueString(resourceGroup().id)}', 24)
               location: location
               properties: {
@@ -98,7 +98,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
               }
             }
 
-            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2022-12-01' = {
+            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
               name: 'AllowAllAzureIps'
               properties: {
                 endIpAddress: '0.0.0.0'
@@ -107,7 +107,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
               parent: postgres
             }
             {{allowAllIpsFirewall}}
-            resource postgres_admin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2022-12-01' = {
+            resource postgres_admin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = {
               name: principalId
               properties: {
                 principalName: principalName
@@ -168,7 +168,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
 
             param keyVaultName string
 
-            resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
+            resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
               name: take('postgres${uniqueString(resourceGroup().id)}', 24)
               location: location
               properties: {
@@ -200,7 +200,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
               }
             }
 
-            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2022-12-01' = {
+            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
               name: 'AllowAllAzureIps'
               properties: {
                 endIpAddress: '0.0.0.0'
@@ -209,7 +209,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
               parent: postgres
             }
 
-            resource postgreSqlFirewallRule_AllowAllIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2022-12-01' = {
+            resource postgreSqlFirewallRule_AllowAllIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
               name: 'AllowAllIps'
               properties: {
                 endIpAddress: '255.255.255.255'
@@ -218,11 +218,11 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
               parent: postgres
             }
 
-            resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
+            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
 
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
+            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
               name: 'connectionString'
               properties: {
                 value: 'Host=${postgres.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'

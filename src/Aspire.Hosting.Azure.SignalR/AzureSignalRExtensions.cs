@@ -41,7 +41,7 @@ public static class AzureSignalRExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var service = new SignalRService(name, "2022-02-01") // TODO: resource version should come from CDK
+            var service = new SignalRService(name)
             {
                 Kind = SignalRServiceKind.SignalR,
                 Sku = new SignalRResourceSku()
@@ -62,7 +62,7 @@ public static class AzureSignalRExtensions
             };
             construct.Add(service);
 
-            construct.Add(new BicepOutput("hostName", typeof(string)) { Value = service.HostName });
+            construct.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = service.HostName });
 
             construct.Add(service.AssignRole(SignalRBuiltInRole.SignalRAppServer, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 

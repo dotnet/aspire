@@ -109,6 +109,9 @@ public static class AspireAzureSearchExtensions
         protected override TokenCredential? GetTokenCredential(AzureSearchSettings settings)
             => settings.Credential;
 
+        protected override bool GetMetricsEnabled(AzureSearchSettings settings)
+            => false;
+
         protected override bool GetTracingEnabled(AzureSearchSettings settings)
             => !settings.DisableTracing;
     }
