@@ -146,5 +146,8 @@ node_modules/
 /playground/**/next-steps.md
 *.svclog
 
+# Ignore mono files on linux
+.mono/
+
 # Python virtual environments
 .venv
