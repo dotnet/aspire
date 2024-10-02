@@ -12,7 +12,7 @@ internal static class MilvusContainerImageTags
     public const string Image = "milvusdb/milvus";
 
     /// <summary>v2.4.10</summary>
-    public const string Tag = "v2.4.10";
+    public const string Tag = "v2.4.12";
 
     /// <summary>zilliz/attu</summary>
     public const string AttuImage = "zilliz/attu";

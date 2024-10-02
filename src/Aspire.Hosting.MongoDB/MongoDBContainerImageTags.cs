@@ -12,7 +12,7 @@ internal static class MongoDBContainerImageTags
     public const string Image = "library/mongo";
 
     /// <summary>7.0</summary>
-    public const string Tag = "7.0";
+    public const string Tag = "8.0";
 
     /// <summary>docker.io</summary>
     public const string MongoExpressRegistry = "docker.io";

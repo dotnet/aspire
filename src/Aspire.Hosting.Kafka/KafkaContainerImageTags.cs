@@ -12,7 +12,7 @@ internal static class KafkaContainerImageTags
     public const string Image = "confluentinc/confluent-local";
 
     /// <summary>7.7.0</summary>
-    public const string Tag = "7.7.0";
+    public const string Tag = "7.7.1";
 
     /// <summary>provectuslabs/kafka-ui</summary>
     public const string KafkaUiImage = "provectuslabs/kafka-ui";
