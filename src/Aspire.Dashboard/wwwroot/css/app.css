@@ -515,7 +515,7 @@ fluent-data-grid-cell.no-ellipsis {
 }
 
 .telemetry-filter-button::part(content) {
-    max-width: 400px;
+    max-width: 350px;
     overflow: hidden;
     text-overflow: ellipsis
 }
