@@ -32,7 +32,7 @@ public static class AspireAzureOpenAIExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureOpenAISettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{AzureOpenAIClient, OpenAIClientOptions}"/>.</param>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{AzureOpenAIClient, AzureOpenAIClientOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire.Azure.AI.OpenAI" section.</remarks>
     public static void AddAzureOpenAIClient(
         this IHostApplicationBuilder builder,
@@ -72,6 +72,10 @@ public static class AspireAzureOpenAIExtensions
 
     private sealed class OpenAIComponent : AzureComponent<AzureOpenAISettings, AzureOpenAIClient, AzureOpenAIClientOptions>
     {
+        protected override string[] ActivitySourceNames => ["OpenAI.*"];
+
+        protected override string[] MetricSourceNames => ["OpenAI.*"];
+
         protected override IAzureClientBuilder<AzureOpenAIClient, AzureOpenAIClientOptions> AddClient(
             AzureClientFactoryBuilder azureFactoryBuilder, AzureOpenAISettings settings, string connectionName,
             string configurationSectionName)
@@ -123,6 +127,9 @@ public static class AspireAzureOpenAIExtensions
 
         protected override TokenCredential? GetTokenCredential(AzureOpenAISettings settings)
             => settings.Credential;
+
+        protected override bool GetMetricsEnabled(AzureOpenAISettings settings)
+            => !settings.DisableMetrics;
 
         protected override bool GetTracingEnabled(AzureOpenAISettings settings)
             => !settings.DisableTracing;

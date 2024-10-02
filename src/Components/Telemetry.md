@@ -5,9 +5,9 @@ Aspire.Azure.AI.OpenAI:
   - "Azure.Core"
   - "Azure.Identity"
 - Activity source names:
-  - "Azure.AI.OpenAI.*"
+  - "OpenAI.*"
 - Metric names:
-  - none (currently not supported by the Azure SDK)
+  - "OpenAI.*"
 
 Aspire.Azure.Data.Tables:
 - Log categories:
@@ -261,7 +261,7 @@ Aspire.OpenAI:
 - Log categories:
   - none  
 - Activity source names:
-  - "OpenAI.*":
+  - "OpenAI.*"
 - Metric names:
   - "OpenAI.*"
 
