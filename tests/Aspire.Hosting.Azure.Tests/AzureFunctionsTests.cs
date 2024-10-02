@@ -124,7 +124,8 @@ public class AzureFunctionsTests
         var model = host.Services.GetRequiredService<DistributedApplicationModel>();
         Assert.DoesNotContain(model.Resources.OfType<AzureStorageResource>(),
             r => r.Name.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName));
-        Assert.Contains(model.Resources.OfType<AzureStorageResource>(), r => r.Name == "my-own-storage");
+        var storageResource = Assert.Single(model.Resources.OfType<AzureStorageResource>());
+        Assert.Equal("my-own-storage", storageResource.Name);
 
         await host.StopAsync();
     }

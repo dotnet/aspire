@@ -27,7 +27,7 @@ public static class AzureFunctionsProjectResourceExtensions
         var resource = new AzureFunctionsProjectResource(name);
 
         // Add the default storage resource if it doesn't already exist.
-        var storageResourceName = builder.CreateStorageName();
+        var storageResourceName = builder.CreateDefaultStorageName();
         AzureStorageResource storage;
 
         // Azure Functions blob triggers require StorageAccountContributor access to the host storage
@@ -93,7 +93,7 @@ public static class AzureFunctionsProjectResourceExtensions
                 }
 
                 // Set the storage connection string.
-                ((IResourceWithAzureFunctionsConfig)resource.HostStorage).ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, "Storage");
+                ((IResourceWithAzureFunctionsConfig)resource.HostStorage).ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, "AzureWebJobsStorage");
             })
             .WithArgs(context =>
             {
@@ -192,7 +192,7 @@ public static class AzureFunctionsProjectResourceExtensions
         });
     }
 
-    private static string CreateStorageName(this IDistributedApplicationBuilder builder)
+    private static string CreateDefaultStorageName(this IDistributedApplicationBuilder builder)
     {
         var applicationHash = builder.Configuration["AppHost:Sha256"]![..5].ToLowerInvariant();
         return $"{DefaultAzureFunctionsHostStorageName}{applicationHash}";
