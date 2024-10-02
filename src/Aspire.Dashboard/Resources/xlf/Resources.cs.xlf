@@ -7,11 +7,6 @@
         <target state="translated">Protokoly konzoly</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceActionViewDetailsText">
-        <source>View details</source>
-        <target state="translated">Zobrazit podrobnosti</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceCommandFailed">
         <source>{0} "{1}" failed</source>
         <target state="new">{0} "{1}" failed</target>

@@ -70,15 +70,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to View details.
-        /// </summary>
-        public static string ResourceActionViewDetailsText {
-            get {
-                return ResourceManager.GetString("ResourceActionViewDetailsText", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to {0} &quot;{1}&quot; failed.
         /// </summary>
         public static string ResourceCommandFailed {

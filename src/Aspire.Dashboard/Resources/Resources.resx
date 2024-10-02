@@ -226,9 +226,6 @@
   <data name="ResourceActionConsoleLogsText" xml:space="preserve">
     <value>Console logs</value>
   </data>
-  <data name="ResourceActionViewDetailsText" xml:space="preserve">
-    <value>View details</value>
-  </data>
   <data name="ResourceDetailsViewConsoleLogs" xml:space="preserve">
     <value>View console logs</value>
   </data>
