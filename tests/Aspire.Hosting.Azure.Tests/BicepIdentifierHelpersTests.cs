@@ -21,8 +21,25 @@ public class BicepIdentifierHelpersTests
     [InlineData("my_variable9", "my_variable9")]
     [InlineData("my_variable_", "my_variable@")]
     [InlineData("my_variable_", "my_variable-")]
+    [InlineData("my___variable_", "my_\u212A_variable-")] // tests the Kelvin sign
     public void TestNormalize(string expected, string value)
     {
         Assert.Equal(expected, BicepIdentifierHelpers.Normalize(value));
+    }
+
+    [Theory]
+    [InlineData("my-variable")]
+    [InlineData("my variable")]
+    [InlineData("_my-variable")]
+    [InlineData("_my variable")]
+    [InlineData("1my_variable")]
+    [InlineData("1my-variable")]
+    [InlineData("1my variable")]
+    [InlineData("my_variable@")]
+    [InlineData("my_variable-")]
+    [InlineData("my_\u212A_variable")] // tests the Kelvin sign
+    public void TestThrowIfInvalid(string value)
+    {
+        Assert.Throws<ArgumentException>(() => BicepIdentifierHelpers.ThrowIfInvalid(value));
     }
 }

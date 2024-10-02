@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Buffers;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -11,7 +10,7 @@ internal static partial class BicepIdentifierHelpers
 {
     // See rules from Bicep's highlightjs implementation:
     // https://github.com/Azure/bicep/blob/a992bdf2d4d7c5c7dec684b7d0de4db9cb260f8a/src/highlightjs/src/bicep.ts#L12
-    [GeneratedRegex("^[a-z_][a-z0-9_]*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex("^[A-Za-z_][A-Za-z0-9_]*$")]
     private static partial Regex GetBicepIdentifierExpression();
 
     internal static void ThrowIfInvalid(string bicepParameterName)
@@ -27,8 +26,6 @@ internal static partial class BicepIdentifierHelpers
         }
     }
 
-    private static readonly SearchValues<char> s_validChars = SearchValues.Create("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_");
-
     /// <summary>
     /// Normalizes the given variable name to make it a valid Bicep identifier name.
     /// </summary>
@@ -36,31 +33,29 @@ internal static partial class BicepIdentifierHelpers
     /// <returns>The normalized variable name.</returns>
     internal static string Normalize(string name)
     {
-        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
+        var regex = GetBicepIdentifierExpression();
+        if (regex.IsMatch(name))
+        {
+            return name;
+        }
 
         var builder = new StringBuilder(name.Length);
-        var nameSpan = name.AsSpan();
-        // If the name starts with a digit, we need to prefix it with an underscore to make it a valid Bicep variable name.
-        if (char.IsAsciiDigit(nameSpan[0]))
+        var span = name.AsSpan();
+        if (!char.IsLetter(span[0]) && span[0] != '_')
         {
             builder.Append('_');
         }
-
-        // Replace all invalid characters with underscores.
-        while (!nameSpan.IsEmpty)
+        foreach (var c in span)
         {
-            var nextInvalidChar = nameSpan.IndexOfAnyExcept(s_validChars);
-            if (nextInvalidChar == -1)
+            if (char.IsAsciiLetterOrDigit(c) || c == '_')
             {
-                builder.Append(nameSpan);
-                break;
+                builder.Append(c);
             }
-
-            builder.Append(nameSpan[..nextInvalidChar]);
-            builder.Append('_');
-            nameSpan = nameSpan[(nextInvalidChar + 1)..];
+            else
+            {
+                builder.Append('_');
+            }
         }
-
         return builder.ToString();
     }
 }
