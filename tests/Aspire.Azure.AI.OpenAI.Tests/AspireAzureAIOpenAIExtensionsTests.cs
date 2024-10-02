@@ -164,7 +164,7 @@ public class AspireAzureAIOpenAIExtensionsTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:openai", ConnectionString),
-            new KeyValuePair<string, string?>($"Aspire:Azure:AI:OpenAI{key}:ClientOptions:ApplicationId", applicationId),
+            new KeyValuePair<string, string?>($"Aspire:Azure:AI:OpenAI{key}:ClientOptions:UserAgentApplicationId", applicationId),
             // Ensure the callback wins over configuration
             new KeyValuePair<string, string?>($"Aspire:Azure:AI:OpenAI{key}:ClientOptions:NetworkTimeout", "00:00:02")
         ]);
@@ -191,7 +191,7 @@ public class AspireAzureAIOpenAIExtensionsTests
         var options = host.Services.GetRequiredService<IOptionsMonitor<AzureOpenAIClientOptions>>().Get(useKeyed ? "openai" : "Default");
 
         Assert.NotNull(options);
-        Assert.Equal(applicationId, options.ApplicationId);
+        Assert.Equal(applicationId, options.UserAgentApplicationId);
         Assert.Equal(networkTimeout, options.NetworkTimeout);
     }
 }
