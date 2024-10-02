@@ -68,6 +68,8 @@ internal sealed class AzureProvisioner(
         return azureResources;
     }
 
+    private ILookup<IResource, IResourceWithParent>? _parentChildLookup;
+
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
         var azureResources = GetAzureResourcesFromAppModel(appModel);
@@ -92,8 +94,15 @@ internal sealed class AzureProvisioner(
             return;
         }
 
-        // Create a map of parents to their children used to propagate state changes later.
-        var parentChildLookup = appModel.Resources.OfType<IResourceWithParent>().ToLookup(r => r.Parent);
+        static IResource? SelectParentResource(IResource resource) => resource switch
+        {
+            IAzureResource ar => ar,
+            IResourceWithParent rp => SelectParentResource(rp.Parent),
+            _ => null
+        };
+
+        // Create a map of parents to their children used to propogate state changes later.
+        _parentChildLookup = appModel.Resources.OfType<IResourceWithParent>().ToLookup(r => r.Parent);
 
         // Sets the state of the resource and all of its children
         async Task UpdateStateAsync((IResource Resource, IAzureResource AzureResource) resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
@@ -110,7 +119,7 @@ internal sealed class AzureProvisioner(
 
             // We basically want child resources to be moved into the same state as their parent resources whenever
             // there is a state update. This is done for us in DCP so we replicate the behavior here in the Azure Provisioner.
-            var childResources = parentChildLookup[resource.Resource];
+            var childResources = _parentChildLookup[resource.Resource];
             foreach (var child in childResources)
             {
                 await notificationService.PublishUpdateAsync(child, stateFactory).ConfigureAwait(false);
@@ -327,6 +336,15 @@ internal sealed class AzureProvisioner(
         {
             var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(resource.Resource, serviceProvider);
             await eventing.PublishAsync(connectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+
+            if (_parentChildLookup![resource.Resource] is { } children)
+            {
+                foreach (var child in children.OfType<IResourceWithConnectionString>())
+                {
+                    var childConnectionStringAvailableEvent = new ConnectionStringAvailableEvent(child, serviceProvider);
+                    await eventing.PublishAsync(childConnectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+                }
+            }
         }
     }
 
