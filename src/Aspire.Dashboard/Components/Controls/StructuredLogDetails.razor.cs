@@ -3,7 +3,6 @@
 
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
-using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Controls;
 
@@ -28,13 +27,11 @@ public partial class StructuredLogDetails
             .Where(ApplyFilter).AsQueryable();
 
     private IQueryable<LogEntryPropertyViewModel> FilteredResourceItems =>
-        ViewModel.LogEntry.Application.AllProperties().Select(p => new LogEntryPropertyViewModel { Name = p.Key, Value = p.Value })
+        ViewModel.LogEntry.ApplicationView.AllProperties().Select(p => new LogEntryPropertyViewModel { Name = p.Key, Value = p.Value })
             .Where(ApplyFilter).AsQueryable();
 
     private string _filter = "";
 
-    private readonly GridSort<LogEntryPropertyViewModel> _nameSort = GridSort<LogEntryPropertyViewModel>.ByAscending(vm => vm.Name);
-    private readonly GridSort<LogEntryPropertyViewModel> _valueSort = GridSort<LogEntryPropertyViewModel>.ByAscending(vm => vm.Value);
     private List<KeyValuePair<string, string>> _logEntryAttributes = null!;
     private List<KeyValuePair<string, string>> _contextAttributes = null!;
     private List<KeyValuePair<string, string>> _exceptionAttributes = null!;

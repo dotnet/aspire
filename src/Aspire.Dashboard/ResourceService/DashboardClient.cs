@@ -47,6 +47,8 @@ internal sealed class DashboardClient : IDashboardClient
     private readonly object _lock = new();
 
     private readonly ILoggerFactory _loggerFactory;
+    private readonly BrowserTimeProvider _timeProvider;
+    private readonly IKnownPropertyLookup _knownPropertyLookup;
     private readonly DashboardOptions _dashboardOptions;
     private readonly ILogger<DashboardClient> _logger;
 
@@ -65,9 +67,17 @@ internal sealed class DashboardClient : IDashboardClient
 
     private Task? _connection;
 
-    public DashboardClient(ILoggerFactory loggerFactory, IConfiguration configuration, IOptions<DashboardOptions> dashboardOptions, Action<SocketsHttpHandler>? configureHttpHandler = null)
+    public DashboardClient(
+        ILoggerFactory loggerFactory,
+        IConfiguration configuration,
+        IOptions<DashboardOptions> dashboardOptions,
+        BrowserTimeProvider timeProvider,
+        IKnownPropertyLookup knownPropertyLookup,
+        Action<SocketsHttpHandler>? configureHttpHandler = null)
     {
         _loggerFactory = loggerFactory;
+        _timeProvider = timeProvider;
+        _knownPropertyLookup = knownPropertyLookup;
         _dashboardOptions = dashboardOptions.Value;
 
         // Take a copy of the token and always use it to avoid race between disposal of CTS and usage of token.
@@ -329,7 +339,7 @@ internal sealed class DashboardClient : IDashboardClient
                                 foreach (var resource in response.InitialData.Resources)
                                 {
                                     // Add to map.
-                                    var viewModel = resource.ToViewModel();
+                                    var viewModel = resource.ToViewModel(_timeProvider, _knownPropertyLookup);
                                     _resourceByName[resource.Name] = viewModel;
 
                                     // Send this update to any subscribers too.
@@ -349,7 +359,7 @@ internal sealed class DashboardClient : IDashboardClient
                                     if (change.KindCase == WatchResourcesChange.KindOneofCase.Upsert)
                                     {
                                         // Upsert (i.e. add or replace)
-                                        var viewModel = change.Upsert.ToViewModel();
+                                        var viewModel = change.Upsert.ToViewModel(_timeProvider, _knownPropertyLookup);
                                         _resourceByName[change.Upsert.Name] = viewModel;
                                         changes.Add(new(ResourceViewModelChangeType.Upsert, viewModel));
                                     }
@@ -458,7 +468,7 @@ internal sealed class DashboardClient : IDashboardClient
         }
     }
 
-    async IAsyncEnumerable<IReadOnlyList<ResourceLogLine>>? IDashboardClient.SubscribeConsoleLogs(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
+    async IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> IDashboardClient.SubscribeConsoleLogs(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         EnsureInitialized();
 
@@ -572,7 +582,7 @@ internal sealed class DashboardClient : IDashboardClient
             {
                 foreach (var data in initialData)
                 {
-                    _resourceByName[data.Name] = data.ToViewModel();
+                    _resourceByName[data.Name] = data.ToViewModel(_timeProvider, _knownPropertyLookup);
                 }
             }
         }

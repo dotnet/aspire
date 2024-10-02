@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Model.Otlp;
 using OpenTelemetry.Proto.Logs.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
@@ -19,11 +20,11 @@ public class OtlpLogEntry
     public string TraceId { get; }
     public string ParentId { get; }
     public string? OriginalFormat { get; }
-    public OtlpApplication Application { get; }
+    public OtlpApplicationView ApplicationView { get; }
     public OtlpScope Scope { get; }
     public Guid InternalId { get; }
 
-    public OtlpLogEntry(LogRecord record, OtlpApplication logApp, OtlpScope scope, TelemetryLimitOptions options)
+    public OtlpLogEntry(LogRecord record, OtlpApplicationView logApp, OtlpScope scope, TelemetryLimitOptions options)
     {
         string? originalFormat = null;
         string? parentId = null;
@@ -55,7 +56,7 @@ public class OtlpLogEntry
         SpanId = record.SpanId.ToHexString();
         TraceId = record.TraceId.ToHexString();
         ParentId = parentId ?? string.Empty;
-        Application = logApp;
+        ApplicationView = logApp;
         Scope = scope;
         InternalId = Guid.NewGuid();
     }
@@ -88,4 +89,18 @@ public class OtlpLogEntry
         SeverityNumber.Fatal4 => LogLevel.Critical,
         _ => LogLevel.None
     };
+
+    public static string? GetFieldValue(OtlpLogEntry log, string field)
+    {
+        return field switch
+        {
+            KnownStructuredLogFields.MessageField => log.Message,
+            KnownStructuredLogFields.ApplicationField => log.ApplicationView.Application.ApplicationName,
+            KnownStructuredLogFields.TraceIdField => log.TraceId,
+            KnownStructuredLogFields.SpanIdField => log.SpanId,
+            KnownStructuredLogFields.OriginalFormatField => log.OriginalFormat,
+            KnownStructuredLogFields.CategoryField => log.Scope.ScopeName,
+            _ => log.Attributes.GetValue(field)
+        };
+    }
 }

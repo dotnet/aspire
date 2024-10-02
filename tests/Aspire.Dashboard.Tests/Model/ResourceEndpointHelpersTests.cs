@@ -1,10 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Frozen;
-using System.Collections.Immutable;
 using Aspire.Dashboard.Model;
-using Google.Protobuf.WellKnownTypes;
+using Aspire.Tests.Shared.DashboardModel;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Model;
@@ -19,7 +17,7 @@ public sealed class ResourceEndpointHelpersTests
     [Fact]
     public void GetEndpoints_Empty_NoResults()
     {
-        var endpoints = GetEndpoints(CreateResource([]));
+        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: []));
 
         Assert.Empty(endpoints);
     }
@@ -27,7 +25,7 @@ public sealed class ResourceEndpointHelpersTests
     [Fact]
     public void GetEndpoints_HasServices_Results()
     {
-        var endpoints = GetEndpoints(CreateResource([new("Test", new("http://localhost:8080"), isInternal: false)]));
+        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [new("Test", new("http://localhost:8080"), isInternal: false)]));
 
         Assert.Collection(endpoints,
             e =>
@@ -43,7 +41,7 @@ public sealed class ResourceEndpointHelpersTests
     [Fact]
     public void GetEndpoints_HasEndpointAndService_Results()
     {
-        var endpoints = GetEndpoints(CreateResource([
+        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
             new("Test", new("http://localhost:8080"), isInternal: false),
             new("Test2", new("http://localhost:8081"), isInternal: false)])
         );
@@ -70,7 +68,7 @@ public sealed class ResourceEndpointHelpersTests
     [Fact]
     public void GetEndpoints_OnlyHttpAndHttpsEndpointsSetTheUrl()
     {
-        var endpoints = GetEndpoints(CreateResource([
+        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
             new("Test", new("http://localhost:8080"), isInternal: false),
             new("Test2", new("tcp://localhost:8081"), isInternal: false)])
         );
@@ -97,7 +95,7 @@ public sealed class ResourceEndpointHelpersTests
     [Fact]
     public void GetEndpoints_IncludeEndpointUrl_HasEndpointAndService_Results()
     {
-        var endpoints = GetEndpoints(CreateResource([
+        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
             new("First", new("https://localhost:8080/test"), isInternal:false),
             new("Test", new("https://localhost:8081/test2"), isInternal:false)
         ]));
@@ -122,9 +120,9 @@ public sealed class ResourceEndpointHelpersTests
     }
 
     [Fact]
-    public void GetEndpoints_ExlcudesIncludeInternalUrls()
+    public void GetEndpoints_ExcludesIncludeInternalUrls()
     {
-        var endpoints = GetEndpoints(CreateResource([
+        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
             new("First", new("https://localhost:8080/test"), isInternal:true),
             new("Test", new("https://localhost:8081/test2"), isInternal:false)
         ]));
@@ -143,7 +141,7 @@ public sealed class ResourceEndpointHelpersTests
     [Fact]
     public void GetEndpoints_IncludesIncludeInternalUrls()
     {
-        var endpoints = GetEndpoints(CreateResource([
+        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
             new("First", new("https://localhost:8080/test"), isInternal:true),
             new("Test", new("https://localhost:8081/test2"), isInternal:false)
         ]),
@@ -171,7 +169,7 @@ public sealed class ResourceEndpointHelpersTests
     [Fact]
     public void GetEndpoints_OrderByName()
     {
-        var endpoints = GetEndpoints(CreateResource([
+        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
             new("a", new("http://localhost:8080"), isInternal: false),
             new("C", new("http://localhost:8080"), isInternal: false),
             new("D", new("tcp://localhost:8080"), isInternal: false),
@@ -185,24 +183,5 @@ public sealed class ResourceEndpointHelpersTests
             e => Assert.Equal("C", e.Name),
             e => Assert.Equal("B", e.Name),
             e => Assert.Equal("D", e.Name));
-    }
-
-    private static ResourceViewModel CreateResource(ImmutableArray<UrlViewModel> urls)
-    {
-        return new ResourceViewModel
-        {
-            Name = "Name!",
-            ResourceType = "Container",
-            DisplayName = "Display name!",
-            Uid = Guid.NewGuid().ToString(),
-            CreationTimeStamp = DateTime.UtcNow,
-            Environment = [],
-            Urls = urls,
-            Properties = FrozenDictionary<string, Value>.Empty,
-            State = null,
-            KnownState = null,
-            StateStyle = null,
-            Commands = []
-        };
     }
 }

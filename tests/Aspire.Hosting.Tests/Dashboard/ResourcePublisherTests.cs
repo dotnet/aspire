@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Tests.Dashboard;
 
 public class ResourcePublisherTests
 {
-    [Fact(Skip = "Passes locally but fails in CI. https://github.com/dotnet/aspire/issues/1410")]
+    [Fact]
     public async Task ProducesExpectedSnapshotAndUpdates()
     {
         CancellationTokenSource cts = new();
@@ -19,8 +19,8 @@ public class ResourcePublisherTests
         var b = CreateResourceSnapshot("B");
         var c = CreateResourceSnapshot("C");
 
-        await publisher.IntegrateAsync(a, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
-        await publisher.IntegrateAsync(b, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
+        await publisher.IntegrateAsync(new TestResource("A"), a, ResourceSnapshotChangeType.Upsert);
+        await publisher.IntegrateAsync(new TestResource("B"), b, ResourceSnapshotChangeType.Upsert);
 
         Assert.Equal(0, publisher.OutgoingSubscriberCount);
 
@@ -32,29 +32,32 @@ public class ResourcePublisherTests
         Assert.Single(snapshot.Where(s => s.Name == "A"));
         Assert.Single(snapshot.Where(s => s.Name == "B"));
 
-        using AutoResetEvent sync = new(initialState: false);
-        List<IReadOnlyList<ResourceSnapshotChange>> changeBatches = [];
+        var tcs = new TaskCompletionSource<IReadOnlyList<ResourceSnapshotChange>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var task = Task.Run(async () =>
         {
             await foreach (var change in subscription)
             {
-                changeBatches.Add(change);
-                sync.Set();
+                tcs.TrySetResult(change);
             }
         });
 
-        await publisher.IntegrateAsync(c, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
+        await publisher.IntegrateAsync(new TestResource("C"), c, ResourceSnapshotChangeType.Upsert);
 
-        Assert.True(sync.WaitOne(TimeSpan.FromSeconds(1)));
-
-        var change = Assert.Single(changeBatches.SelectMany(o => o));
+        var change = Assert.Single(await tcs.Task);
         Assert.Equal(ResourceSnapshotChangeType.Upsert, change.ChangeType);
         Assert.Equal("C", change.Resource.Name);
 
         await cts.CancelAsync();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(() => task);
+        try
+        {
+            await task;
+        }
+        catch (OperationCanceledException)
+        {
+            // Ignore possible cancellation error.
+        }
 
         Assert.Equal(0, publisher.OutgoingSubscriberCount);
     }
@@ -69,8 +72,8 @@ public class ResourcePublisherTests
         var b = CreateResourceSnapshot("B");
         var c = CreateResourceSnapshot("C");
 
-        await publisher.IntegrateAsync(a, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
-        await publisher.IntegrateAsync(b, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
+        await publisher.IntegrateAsync(new TestResource("A"), a, ResourceSnapshotChangeType.Upsert);
+        await publisher.IntegrateAsync(new TestResource("B"), b, ResourceSnapshotChangeType.Upsert);
 
         Assert.Equal(0, publisher.OutgoingSubscriberCount);
 
@@ -82,7 +85,7 @@ public class ResourcePublisherTests
         Assert.Equal(2, snapshot1.Length);
         Assert.Equal(2, snapshot2.Length);
 
-        await publisher.IntegrateAsync(c, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
+        await publisher.IntegrateAsync(new TestResource("C"), c, ResourceSnapshotChangeType.Upsert);
 
         var enumerator1 = subscription1.GetAsyncEnumerator(cts.Token);
         var enumerator2 = subscription2.GetAsyncEnumerator(cts.Token);
@@ -116,9 +119,9 @@ public class ResourcePublisherTests
         var a2 = CreateResourceSnapshot("A");
         var a3 = CreateResourceSnapshot("A");
 
-        await publisher.IntegrateAsync(a1, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
-        await publisher.IntegrateAsync(a2, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
-        await publisher.IntegrateAsync(a3, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
+        await publisher.IntegrateAsync(new TestResource("A"), a1, ResourceSnapshotChangeType.Upsert);
+        await publisher.IntegrateAsync(new TestResource("A"), a2, ResourceSnapshotChangeType.Upsert);
+        await publisher.IntegrateAsync(new TestResource("A"), a3, ResourceSnapshotChangeType.Upsert);
 
         var (snapshot, _) = publisher.Subscribe();
 
@@ -136,9 +139,9 @@ public class ResourcePublisherTests
         var a = CreateResourceSnapshot("A");
         var b = CreateResourceSnapshot("B");
 
-        await publisher.IntegrateAsync(a, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
-        await publisher.IntegrateAsync(b, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
-        await publisher.IntegrateAsync(a, ResourceSnapshotChangeType.Delete).ConfigureAwait(false);
+        await publisher.IntegrateAsync(new TestResource("A"), a, ResourceSnapshotChangeType.Upsert);
+        await publisher.IntegrateAsync(new TestResource("B"), b, ResourceSnapshotChangeType.Upsert);
+        await publisher.IntegrateAsync(new TestResource("A"), a, ResourceSnapshotChangeType.Delete);
 
         var (snapshot, _) = publisher.Subscribe();
 
@@ -170,7 +173,7 @@ public class ResourcePublisherTests
         });
 
         // Push through an update.
-        await publisher.IntegrateAsync(CreateResourceSnapshot("A"), ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
+        await publisher.IntegrateAsync(new TestResource("A"), CreateResourceSnapshot("A"), ResourceSnapshotChangeType.Upsert);
 
         // Let the subscriber exit.
         await task;
@@ -190,9 +193,18 @@ public class ResourcePublisherTests
             StateStyle = null,
             ExitCode = null,
             CreationTimeStamp = null,
+            StartTimeStamp = null,
+            StopTimeStamp = null,
             DisplayName = "",
             Urls = [],
-            Environment = []
+            Volumes = [],
+            Environment = [],
+            HealthState = null,
+            Commands = []
         };
+    }
+
+    private sealed class TestResource(string name) : Resource(name)
+    {
     }
 }

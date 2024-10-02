@@ -5,7 +5,7 @@ using System.Collections;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace Aspire.Dashboard.Otlp.Storage;
+namespace Aspire;
 
 /// <summary>
 /// The circular buffer starts with an empty list and grows to a maximum size.

@@ -1,24 +1,16 @@
-targetScope = 'resourceGroup'
-
-@description('')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-@description('')
-param principalId string
-
-@description('')
-param principalType string
-
-@description('')
+@secure()
 param signaturesecret string
 
+param principalId string
 
-resource keyVault_aMZbuK3Sy 'Microsoft.KeyVault/vaults@2022-07-01' = {
-  name: toLower(take('mykv${uniqueString(resourceGroup().id)}', 24))
+param principalType string
+
+resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' = {
+  name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
   location: location
-  tags: {
-    'aspire-resource-name': 'mykv'
-  }
   properties: {
     tenantId: tenant().tenantId
     sku: {
@@ -27,25 +19,27 @@ resource keyVault_aMZbuK3Sy 'Microsoft.KeyVault/vaults@2022-07-01' = {
     }
     enableRbacAuthorization: true
   }
-}
-
-resource roleAssignment_hVU9zjQV1 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: keyVault_aMZbuK3Sy
-  name: guid(keyVault_aMZbuK3Sy.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483'))
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483')
-    principalId: principalId
-    principalType: principalType
+  tags: {
+    'aspire-resource-name': 'mykv'
   }
 }
 
-resource keyVaultSecret_mW5tlkNij 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
-  parent: keyVault_aMZbuK3Sy
+resource mykv_KeyVaultAdministrator 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(mykv.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483'))
+  properties: {
+    principalId: principalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483')
+    principalType: principalType
+  }
+  scope: mykv
+}
+
+resource mysecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   name: 'mysecret'
-  location: location
   properties: {
     value: signaturesecret
   }
+  parent: mykv
 }
 
-output vaultUri string = keyVault_aMZbuK3Sy.properties.vaultUri
+output vaultUri string = mykv.properties.vaultUri

@@ -31,7 +31,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <param name="targetPort">This is the port the resource is listening on. If the endpoint is used for the container, it is the container port.</param>
     /// <param name="isExternal">Indicates that this endpoint should be exposed externally at publish time.</param>
     /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
-    public EndpointAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? targetPort = null, bool? isExternal = null, bool isProxied = true)
+    public EndpointAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, [EndpointName] string? name = null, int? port = null, int? targetPort = null, bool? isExternal = null, bool isProxied = true)
     {
         // If the URI scheme is null, we'll adopt either udp:// or tcp:// based on the
         // protocol. If the name is null, we'll use the URI scheme as the default. This
@@ -66,7 +66,8 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <summary>
     /// Desired port for the service
     /// </summary>
-    public int? Port {
+    public int? Port
+    {
         // For proxy-less Endpoints the client port and target port should be the same.
         // Note that this is just a "sensible default"--the consumer of the EndpointAnnotation is free
         // to change Port and TargetPort after the annotation is created, but if the final values are inconsistent,
@@ -103,6 +104,11 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// If a service is URI-addressable, this property will contain the URI scheme to use for constructing service URI.
     /// </summary>
     public string UriScheme { get; set; }
+
+    /// <summary>
+    /// This is the address the resource is listening on. By default it is localhost.
+    /// </summary>
+    public string TargetHost { get; set; } = "localhost";
 
     /// <summary>
     /// Transport that is being used (e.g. http, http2, http3 etc).

@@ -153,8 +153,6 @@ public class SchemaTests
     [MemberData(nameof(ApplicationSamples))]
     public void ValidateApplicationSamples(string testCaseName, Action<IDistributedApplicationBuilder> configurator)
     {
-        _ = testCaseName;
-
         string manifestDir = Directory.CreateTempSubdirectory(testCaseName).FullName;
         var builder = TestDistributedApplicationBuilder.Create(["--publisher", "manifest", "--output-path", Path.Combine(manifestDir, "not-used.json")]);
         builder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
@@ -320,6 +318,50 @@ public class SchemaTests
     }
 
     [Fact]
+    public void ManifestWithDockerfileV0ResourceAndBuildFieldAndArgsIsAccepted()
+    {
+        var manifestText = """
+            {
+              "resources": {
+                "mycontainer": {
+                  "type": "dockerfile.v0",
+                  "context": "relativepath",
+                  "path": "relativepath/Dockerfile",
+                  "buildArgs": {
+                    "ARG1": "an arg"
+                  }
+                }
+              }
+            }
+            """;
+
+        AssertValid(manifestText);
+    }
+
+    [Fact]
+    public void ManifestWithContainerV1ResourceAndBuildFieldAndArgsIsAccepted()
+    {
+        var manifestText = """
+            {
+              "resources": {
+                "mycontainer": {
+                  "type": "container.v1",
+                  "build": {
+                    "context": "relativepath",
+                    "dockerfile": "relativepath/Dockerfile",
+                    "args": {
+                      "ARG1": "an arg"
+                    }
+                  }
+                }
+              }
+            }
+            """;
+
+        AssertValid(manifestText);
+    }
+
+    [Fact]
     public void ManifestWithContainerV1ResourceAndImageFieldIsAccepted()
     {
         var manifestText = """
@@ -374,11 +416,37 @@ public class SchemaTests
                   "inputs": {
                     "value": {
                       "secret": true,
-                      "type": "string"
+                      "type": "string",
+                      "default": {
+                        "generate": {
+                          "minLength": 16,
+                          "lower": false,
+                          "upper": false,
+                          "numeric": false,
+                          "special": false,
+                          "minLower": 1,
+                          "minUpper": 2,
+                          "minNumeric": 3,
+                          "minSpecial": 4
+                        }
+                      }
                     }
                   },
                   "type": "parameter.v0",
                   "value": "{administratorLoginPassword.inputs.value}"
+                },
+                "administratorName": {
+                  "inputs": {
+                    "value": {
+                      "secret": true,
+                      "type": "string",
+                      "default": {
+                        "value": "David"
+                      }
+                    }
+                  },
+                  "type": "parameter.v0",
+                  "value": "{administratorName.inputs.value}"
                 },
                 "ai": {
                   "connectionString": "{ai.outputs.appInsightsConnectionString}",
@@ -569,6 +637,37 @@ public class SchemaTests
         AssertValid(manifestText);
     }
 
+    [Fact]
+    public void BothDefaultGenerateAndValueAreMutuallyExclusive()
+    {
+        // Trying to us both 'generate' and 'value' in the same parameter should be rejected.
+        var manifestText = """
+            {
+              "resources": {
+                "foo": {
+                  "inputs": {
+                    "value": {
+                      "secret": true,
+                      "type": "string",
+                      "default": {
+                        "generate": {
+                          "minLength": 16
+                        },
+                        "value": "some value"
+                      }
+                    }
+                  },
+                  "type": "parameter.v0",
+                  "value": "{foo.inputs.value}"
+                }
+              }
+            }
+
+            """;
+
+        AssertInvalid(manifestText);
+    }
+
     private static void AssertValid(string manifestText)
     {
         var manifestJson = JsonNode.Parse(manifestText);
@@ -580,5 +679,14 @@ public class SchemaTests
             var errorMessages = results.Details.Where(x => x.HasErrors).SelectMany(e => e.Errors!).Select(e => e.Value);
             Assert.True(results.IsValid, string.Join(Environment.NewLine, errorMessages ?? ["Schema failed validation with no errors"]));
         }
+    }
+
+    private static void AssertInvalid(string manifestText)
+    {
+        var manifestJson = JsonNode.Parse(manifestText);
+        var schema = GetSchema();
+        var results = schema.Evaluate(manifestJson);
+
+        Assert.False(results.IsValid);
     }
 }

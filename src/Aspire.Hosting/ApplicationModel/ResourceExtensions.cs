@@ -55,6 +55,47 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Attempts to retrieve all annotations of the specified type from the given resource including from parents.
+    /// </summary>
+    /// <typeparam name="T">The type of annotation to retrieve.</typeparam>
+    /// <param name="resource">The resource to retrieve annotations from.</param>
+    /// <param name="result">When this method returns, contains the annotations of the specified type, if found; otherwise, null.</param>
+    /// <returns>true if annotations of the specified type were found; otherwise, false.</returns>
+    public static bool TryGetAnnotationsIncludingAncestorsOfType<T>(this IResource resource, [NotNullWhen(true)] out IEnumerable<T>? result) where T : IResourceAnnotation
+    {
+        var matchingTypeAnnotations = resource.Annotations.OfType<T>();
+
+        if (resource is IResourceWithParent resourceWithParent)
+        {
+            if (resourceWithParent.Parent.TryGetAnnotationsIncludingAncestorsOfType<T>(out var ancestorMatchingTypeAnnotations))
+            {
+                result = matchingTypeAnnotations.Concat(ancestorMatchingTypeAnnotations);
+                return true;
+            }
+            else if (matchingTypeAnnotations.Any())
+            {
+                result = matchingTypeAnnotations;
+                return true;
+            }
+            else
+            {
+                result = null;
+                return false;
+            }
+        }
+        else if (matchingTypeAnnotations.Any())
+        {
+            result = matchingTypeAnnotations.ToArray();
+            return true;
+        }
+        else
+        {
+            result = null;
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Attempts to get the environment variables from the given resource.
     /// </summary>
     /// <param name="resource">The resource to get the environment variables from.</param>
@@ -235,18 +276,18 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Gets the lifetime type of the container for the specified resoruce. Defaults to <see cref="ContainerLifetimeType.Default"/> if
+    /// Gets the lifetime type of the container for the specified resoruce. Defaults to <see cref="ContainerLifetime.Default"/> if
     /// no <see cref="ContainerLifetimeAnnotation"/> is found.
     /// </summary>
     /// <param name="resource">The resource to the get the ContainerLifetimeType for.</param>
-    /// <returns>The <see cref="ContainerLifetimeType"/> from the <see cref="ContainerLifetimeAnnotation"/> for the resource (if the annotation exists). Defaults to <see cref="ContainerLifetimeType.Default"/> if the annotation is not set.</returns>
-    internal static ContainerLifetimeType GetContainerLifetimeType(this IResource resource)
+    /// <returns>The <see cref="ContainerLifetime"/> from the <see cref="ContainerLifetimeAnnotation"/> for the resource (if the annotation exists). Defaults to <see cref="ContainerLifetime.Default"/> if the annotation is not set.</returns>
+    internal static ContainerLifetime GetContainerLifetimeType(this IResource resource)
     {
         if (resource.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
         {
-            return lifetimeAnnotation.LifetimeType;
+            return lifetimeAnnotation.Lifetime;
         }
 
-        return ContainerLifetimeType.Default;
+        return ContainerLifetime.Default;
     }
 }

@@ -10,7 +10,7 @@ partial class Resource
 {
     public static Resource FromSnapshot(ResourceSnapshot snapshot)
     {
-        Resource resource = new()
+        var resource = new Resource
         {
             Name = snapshot.Name,
             ResourceType = snapshot.ResourceType,
@@ -20,9 +20,24 @@ partial class Resource
             StateStyle = snapshot.StateStyle ?? "",
         };
 
+        if (snapshot.HealthState is HealthStateKind healthState)
+        {
+            resource.HealthState = healthState;
+        }
+
         if (snapshot.CreationTimeStamp.HasValue)
         {
             resource.CreatedAt = Timestamp.FromDateTime(snapshot.CreationTimeStamp.Value.ToUniversalTime());
+        }
+
+        if (snapshot.StartTimeStamp.HasValue)
+        {
+            resource.StartedAt = Timestamp.FromDateTime(snapshot.StartTimeStamp.Value.ToUniversalTime());
+        }
+
+        if (snapshot.StopTimeStamp.HasValue)
+        {
+            resource.StoppedAt = Timestamp.FromDateTime(snapshot.StopTimeStamp.Value.ToUniversalTime());
         }
 
         foreach (var env in snapshot.Environment)
@@ -37,50 +52,48 @@ partial class Resource
 
         foreach (var property in snapshot.Properties)
         {
-            resource.Properties.Add(new ResourceProperty { Name = property.Name, Value = property.Value });
+            resource.Properties.Add(new ResourceProperty { Name = property.Name, Value = property.Value, IsSensitive = property.IsSensitive });
         }
 
-        // Disable start/stop/restart commands until host/DCP infrastructure is ready.
-        /*
-        if (snapshot.ResourceType is KnownResourceTypes.Project or KnownResourceTypes.Container or KnownResourceTypes.Executable)
+        foreach (var volume in snapshot.Volumes)
         {
-            if (snapshot.State is "Exited" or "Finished" or "FailedToStart")
+            resource.Volumes.Add(new Volume
             {
-                resource.Commands.Add(new ResourceCommand
-                {
-                    CommandType = "Start",
-                    ConfirmationMessage = "ConfirmationMessage!",
-                    DisplayName = "Start",
-                    DisplayDescription = "Start resource",
-                    IsHighlighted = true,
-                    IconName = "Play"
-                });
-            }
-            else
-            {
-                resource.Commands.Add(new ResourceCommand
-                {
-                    CommandType = "Stop",
-                    ConfirmationMessage = "ConfirmationMessage!",
-                    DisplayName = "Stop",
-                    DisplayDescription = "Stop resource",
-                    IsHighlighted = true,
-                    IconName = "Stop"
-                });
-            }
-
-            resource.Commands.Add(new ResourceCommand
-            {
-                CommandType = "Restart",
-                ConfirmationMessage = "ConfirmationMessage!",
-                DisplayName = "Restart",
-                DisplayDescription = "Restart resource",
-                IsHighlighted = false,
-                IconName = "ArrowCounterclockwise"
+                Source = volume.Source,
+                Target = volume.Target,
+                MountType = volume.MountType,
+                IsReadOnly = volume.IsReadOnly
             });
         }
-        */
+
+        foreach (var command in snapshot.Commands)
+        {
+            resource.Commands.Add(new ResourceCommand { CommandType = command.Type, DisplayName = command.DisplayName, DisplayDescription = command.DisplayDescription ?? string.Empty, Parameter = ResourceSnapshot.ConvertToValue(command.Parameter), ConfirmationMessage = command.ConfirmationMessage ?? string.Empty, IconName = command.IconName ?? string.Empty, IconVariant = MapIconVariant(command.IconVariant), IsHighlighted = command.IsHighlighted, State = MapCommandState(command.State) });
+        }
 
         return resource;
     }
+
+    private static IconVariant MapIconVariant(Hosting.ApplicationModel.IconVariant? iconVariant)
+    {
+        return iconVariant switch
+        {
+            Hosting.ApplicationModel.IconVariant.Regular => IconVariant.Regular,
+            Hosting.ApplicationModel.IconVariant.Filled => IconVariant.Filled,
+            null => IconVariant.Regular,
+            _ => throw new InvalidOperationException("Unexpected icon variant: " + iconVariant)
+        };
+    }
+
+    private static ResourceCommandState MapCommandState(Hosting.ApplicationModel.ResourceCommandState state)
+    {
+        return state switch
+        {
+            Hosting.ApplicationModel.ResourceCommandState.Enabled => ResourceCommandState.Enabled,
+            Hosting.ApplicationModel.ResourceCommandState.Disabled => ResourceCommandState.Disabled,
+            Hosting.ApplicationModel.ResourceCommandState.Hidden => ResourceCommandState.Hidden,
+            _ => throw new InvalidOperationException("Unexpected state: " + state)
+        };
+    }
+
 }

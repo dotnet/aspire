@@ -58,7 +58,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name) where TProject : IProjectMetadata, new()
+    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name) where TProject : IProjectMetadata, new()
     {
         return builder.AddProject<TProject>(name, _ => { });
     }
@@ -88,7 +88,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath)
+    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath)
     {
         return builder.AddProject(name, projectPath, _ => { });
     }
@@ -131,7 +131,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name, string? launchProfileName) where TProject : IProjectMetadata, new()
+    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name, string? launchProfileName) where TProject : IProjectMetadata, new()
     {
         return builder.AddProject<TProject>(name, options =>
         {
@@ -166,7 +166,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath, string? launchProfileName)
+    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath, string? launchProfileName)
     {
         return builder.AddProject(name, projectPath, options =>
         {
@@ -211,7 +211,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name, Action<ProjectResourceOptions> configure) where TProject : IProjectMetadata, new()
+    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<ProjectResourceOptions> configure) where TProject : IProjectMetadata, new()
     {
         var options = new ProjectResourceOptions();
         configure(options);
@@ -247,7 +247,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath, Action<ProjectResourceOptions> configure)
+    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath, Action<ProjectResourceOptions> configure)
     {
         var options = new ProjectResourceOptions();
         configure(options);
@@ -371,6 +371,8 @@ public static class ProjectResourceBuilderExtensions
                         e.Port = endpoint.BindingAddress.Port;
                     }
                     e.UriScheme = endpoint.BindingAddress.Scheme;
+                    e.TargetHost = endpoint.BindingAddress.Host;
+
                     adjustTransport(e, endpoint.Protocols);
                     // Keep track of the host separately since EndpointAnnotation doesn't have a host property
                     builder.Resource.KestrelEndpointAnnotationHosts[e] = endpoint.BindingAddress.Host;
@@ -405,27 +407,28 @@ public static class ProjectResourceBuilderExtensions
                 Dictionary<string, int> endpointCountByScheme = [];
                 foreach (var url in urlsFromApplicationUrl)
                 {
-                    var uri = new Uri(url);
+                    var bindingAddress = BindingAddress.Parse(url);
 
                     // Keep track of how many endpoints we have for each scheme
-                    endpointCountByScheme.TryGetValue(uri.Scheme, out var count);
-                    endpointCountByScheme[uri.Scheme] = count + 1;
+                    endpointCountByScheme.TryGetValue(bindingAddress.Scheme, out var count);
+                    endpointCountByScheme[bindingAddress.Scheme] = count + 1;
 
                     // If we have multiple for the same scheme, we differentiate them by appending a number.
                     // We only do this starting with the second endpoint, so that the first stays just http/https.
                     // This allows us to keep the same behavior as "dotnet run".
                     // Also, note that we only do this in Run mode, as in Publish mode those extra endpoints
                     // with generic names would not be easily usable.
-                    var endpointName = uri.Scheme;
-                    if (endpointCountByScheme[uri.Scheme] > 1)
+                    var endpointName = bindingAddress.Scheme;
+                    if (endpointCountByScheme[bindingAddress.Scheme] > 1)
                     {
-                        endpointName += endpointCountByScheme[uri.Scheme];
+                        endpointName += endpointCountByScheme[bindingAddress.Scheme];
                     }
 
                     builder.WithEndpoint(endpointName, e =>
                     {
-                        e.Port = uri.Port;
-                        e.UriScheme = uri.Scheme;
+                        e.Port = bindingAddress.Port;
+                        e.TargetHost = bindingAddress.Host;
+                        e.UriScheme = bindingAddress.Scheme;
                         e.FromLaunchProfile = true;
                         adjustTransport(e);
                     },
@@ -640,7 +643,10 @@ public static class ProjectResourceBuilderExtensions
                     processedHttpsPort = true;
                 }
 
-                aspnetCoreUrls.Append($"{e.Property(EndpointProperty.Scheme)}://localhost:{e.Property(EndpointProperty.TargetPort)}");
+                // If the endpoint is proxied, we will use localhost as the target host since DCP will be forwarding the traffic
+                var targetHost = e.EndpointAnnotation.IsProxied ? "localhost" : e.EndpointAnnotation.TargetHost;
+
+                aspnetCoreUrls.Append($"{e.Property(EndpointProperty.Scheme)}://{targetHost}:{e.Property(EndpointProperty.TargetPort)}");
                 first = false;
             }
 

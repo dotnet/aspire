@@ -16,8 +16,20 @@ namespace Aspire.Hosting.Azure;
 public class AzureEventHubsResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
     AzureConstructResource(name, configureConstruct),
     IResourceWithConnectionString,
-    IResourceWithEndpoints
+    IResourceWithEndpoints,
+    IResourceWithAzureFunctionsConfig
 {
+    private static readonly string[] s_eventHubClientNames =
+    [
+        "EventHubProducerClient",
+        "EventHubConsumerClient",
+        "EventProcessorClient",
+        "PartitionReceiver",
+        "EventHubBufferedProducerClient"
+    ];
+
+    private const string ConnectionKeyPrefix = "Aspire__Azure__Messaging__EventHubs";
+
     internal List<(string Name, Action<IResourceBuilder<AzureEventHubsResource>, ResourceModuleConstruct, EventHub>? Configure)> Hubs { get; } = [];
 
     /// <summary>
@@ -39,4 +51,28 @@ public class AzureEventHubsResource(string name, Action<ResourceModuleConstruct>
         IsEmulator
         ? ReferenceExpression.Create($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.Host)}:{EmulatorEndpoint.Property(EndpointProperty.Port)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;")
         : ReferenceExpression.Create($"{EventHubsEndpoint}");
+
+    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
+    {
+        if (IsEmulator)
+        {
+            // Injected to support Azure Functions listener initialization.
+            target[connectionName] = ConnectionStringExpression;
+            // Injected to support Aspire client integration for each EventHubs client in Azure Functions projects.
+            foreach (var clientName in s_eventHubClientNames)
+            {
+                target[$"{ConnectionKeyPrefix}__{clientName}__{connectionName}__ConnectionString"] = ConnectionStringExpression;
+            }
+        }
+        else
+        {
+            // Injected to support Azure Functions listener initialization.
+            target[$"{connectionName}__fullyQualifiedNamespace"] = EventHubsEndpoint;
+            // Injected to support Aspire client integration for each EventHubs client in Azure Functions projects.
+            foreach (var clientName in s_eventHubClientNames)
+            {
+                target[$"{ConnectionKeyPrefix}__{clientName}__{connectionName}__FullyQualifiedNamespace"] = EventHubsEndpoint;
+            }
+        }
+    }
 }

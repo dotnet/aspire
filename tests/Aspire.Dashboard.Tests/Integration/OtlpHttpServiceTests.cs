@@ -194,7 +194,7 @@ public class OtlpHttpServiceTests
         });
         await app.StartAsync();
 
-        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"https://{app.FrontendEndPointAccessor().EndPoint}",
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"https://{app.FrontendSingleEndPointAccessor().EndPoint}",
             validationCallback: cert =>
             {
                 clientCallbackCert = cert;

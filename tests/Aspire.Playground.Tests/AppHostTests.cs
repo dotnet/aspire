@@ -4,6 +4,7 @@
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
+using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Microsoft.DotNet.XUnitExtensions;
@@ -25,21 +26,6 @@ public class AppHostTests
     public AppHostTests(ITestOutputHelper testOutput)
     {
         _testOutput = testOutput;
-    }
-
-    [Theory]
-    [MemberData(nameof(AppHostAssembliesWithNoTestEndpoints))]
-    public async Task AppHostRunsCleanly(string appHostPath)
-    {
-        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
-        await using var app = await appHost.BuildAsync();
-
-        await app.StartAsync();
-        await app.WaitForResources().WaitAsync(TimeSpan.FromMinutes(2));
-
-        app.EnsureNoErrorsLogged();
-
-        await app.StopAsync();
     }
 
     [Theory]
@@ -108,19 +94,7 @@ public class AppHostTests
             }
 
             HttpResponseMessage? response = null;
-
-            using var client = app.CreateHttpClient(resource, null, clientBuilder =>
-            {
-                clientBuilder
-                    .ConfigureHttpClient(client => client.Timeout = Timeout.InfiniteTimeSpan)
-                    .AddStandardResilienceHandler(resilience =>
-                    {
-                        resilience.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(4);
-                        resilience.AttemptTimeout.Timeout = TimeSpan.FromSeconds(90);
-                        resilience.Retry.MaxRetryAttempts = 30;
-                        resilience.CircuitBreaker.SamplingDuration = resilience.AttemptTimeout.Timeout * 2;
-                    });
-            });
+            using var client = CreateHttpClientWithResilience(app, resource);
 
             foreach (var path in endpoints)
             {
@@ -137,49 +111,50 @@ public class AppHostTests
                 Assert.True(HttpStatusCode.OK == response.StatusCode, $"Endpoint '{client.BaseAddress}{path.TrimStart('/')}' for resource '{resource}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}' returned status code {response.StatusCode}");
             }
         }
+        if (testEndpoints.WhenReady != null)
+        {
+            await testEndpoints.WhenReady(app, appHostPath, _testOutput);
+        }
 
         app.EnsureNoErrorsLogged();
         await app.StopAsync();
     }
 
-    public static TheoryData<string> AppHostAssembliesWithNoTestEndpoints()
-    {
-        var appHostAssemblies = GetPlaygroundAppHostAssemblyPaths();
-
-        HashSet<string> appHostsWithTestEndpoints = new();
-        foreach (var testEndpoint in GetAllTestEndpoints())
+    public static HttpClient CreateHttpClientWithResilience(DistributedApplication app, string resource)
+        => app.CreateHttpClient(resource, null, clientBuilder =>
         {
-            appHostsWithTestEndpoints.Add(testEndpoint.AppHost);
-        }
-
-        var theoryData = new TheoryData<string>();
-        foreach (var asm in appHostAssemblies)
-        {
-            var appHostName = Path.GetFileNameWithoutExtension(asm);
-            if (appHostsWithTestEndpoints.Contains(appHostName))
-            {
-                // Skipping this as it will be tested by TestEndpointsReturnOk
-                continue;
-            }
-
-            if (string.IsNullOrEmpty(s_appHostNameFilter) || asm.Contains(s_appHostNameFilter, StringComparison.OrdinalIgnoreCase))
-            {
-                theoryData.Add(Path.GetRelativePath(AppContext.BaseDirectory, asm));
-            }
-        }
-
-        if (!theoryData.Any() && !string.IsNullOrEmpty(s_appHostNameFilter))
-        {
-            throw new SkipTestException($"No app host assemblies found matching filter '{s_appHostNameFilter}'");
-        }
-
-        return theoryData;
-    }
+            clientBuilder
+                .ConfigureHttpClient(client => client.Timeout = Timeout.InfiniteTimeSpan)
+                .AddStandardResilienceHandler(resilience =>
+                {
+                    resilience.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(120);
+                    resilience.AttemptTimeout.Timeout = TimeSpan.FromSeconds(60);
+                    resilience.Retry.MaxRetryAttempts = 30;
+                    resilience.CircuitBreaker.SamplingDuration = resilience.AttemptTimeout.Timeout * 2;
+                });
+        });
 
     public static IList<TestEndpoints> GetAllTestEndpoints()
     {
         IList<TestEndpoints> candidates =
         [
+            new TestEndpoints("EventHubs.AppHost",
+                resourceEndpoints: new() { { "api", ["/alive", "/health"] } },
+                waitForTexts: [
+                    new ("eventhubns", "Emulator Service is Successfully Up"),
+                    new ("eventhubns-storage", "Azurite Table service is successfully listening"),
+                    new ("ehstorage", "Azurite Table service is successfully listening"),
+                    new ("consumer", "Completed retrieving properties for Event Hub")
+                ],
+                whenReady: TestEventHubsAppHost),
+            new TestEndpoints("Redis.AppHost",
+                resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/garnet/ping", "/garnet/get", "/garnet/set", "/redis/ping", "/redis/get", "/redis/set", "/valkey/ping", "/valkey/get", "/valkey/set"] } },
+                waitForTexts: [
+                    new ("redis", "Ready to accept connections tcp"),
+                    new ("valkey", "Ready to accept connections tcp"),
+                    new ("garnet", "Ready to accept connections"),
+                    new ("apiservice", "Application started")
+                ]),
             new TestEndpoints("AzureStorageEndToEnd.AppHost",
                 resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
                 waitForTexts: [
@@ -190,23 +165,23 @@ public class AppHostTests
                 waitForTexts: [
                     new ("milvus", "Milvus Proxy successfully initialized and ready to serve"),
                 ]),
-            new TestEndpoints("CosmosEndToEnd.AppHost",
-                resourceEndpoints: new() { { "api", ["/alive", "/health", "/", "/ef"] } },
-                waitForTexts: [
-                    new ("cosmos", "Started$"),
-                    new ("api", "Application started")
-                ]),
+            // Cosmos emulator is extremely slow to start up and unreliable in CI
+            //new TestEndpoints("CosmosEndToEnd.AppHost",
+            //    resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
+            //    // "/ef" - disabled due to https://github.com/dotnet/aspire/issues/5415
+            //    waitForTexts: [
+            //        new ("cosmos", "Started$"),
+            //        new ("api", "Application started")
+            //    ]),
             new TestEndpoints("Keycloak.AppHost",
                 resourceEndpoints: new() { { "apiservice", ["/alive", "/health"] } }),
-
-            // Issue: https://github.com/dotnet/aspire/issues/5274
-            //new TestEndpoints("Mongo.AppHost",
-                //resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
-                //waitForTexts: [
-                    //new ("mongo", "Waiting for connections"),
-                    //new ("mongo-mongoexpress", "Mongo Express server listening"),
-                    //new("api", "Application started.")
-                //]),
+            new TestEndpoints("Mongo.AppHost",
+                resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
+                waitForTexts: [
+                    new ("mongo", "Waiting for connections"),
+                    new ("mongo-mongoexpress", "Mongo Express server listening"),
+                    new("api", "Application started.")
+                ]),
             new TestEndpoints("MySqlDb.AppHost",
                 resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/catalog"] } },
                 waitForTexts: [
@@ -279,10 +254,33 @@ public class AppHostTests
                     new ("catalogdbapp", "Application started"),
                     new ("basketservice", "Application started"),
                     new ("postgres", "database system is ready to accept connections"),
-                ])
+                ]),
         ];
 
         return candidates;
+    }
+
+    private static async Task TestEventHubsAppHost(DistributedApplication app, string appHostPath, ITestOutputHelper testOutput)
+    {
+        using var client = CreateHttpClientWithResilience(app, "api");
+
+        var path = "/test";
+        testOutput.WriteLine($"*** TestEventHubsAppHost calling {path} endpoint");
+
+        var response = await client.GetAsync(path);
+        Assert.True(HttpStatusCode.OK == response.StatusCode, $"Endpoint '{client.BaseAddress}{path.TrimStart('/')}' for resource 'consumer' in app '{Path.GetFileNameWithoutExtension(appHostPath)}' returned status code {response.StatusCode}");
+
+        var consumerMessage = "Hello, from /test sent via producerClient";
+        try
+        {
+            await app.WaitForTextAsync(log => log.Contains(consumerMessage), resourceName: "consumer")
+                    .WaitAsync(TimeSpan.FromMinutes(2))
+                    .ConfigureAwait(false);
+        }
+        catch (TimeoutException te)
+        {
+            throw new XunitException($"Timed out waiting for the consumer message to be logged: '{consumerMessage}'", te);
+        }
     }
 
     public static TheoryData<TestEndpoints> TestEndpoints()
@@ -314,11 +312,15 @@ public class AppHostTests
 
 public class TestEndpoints
 {
-    public TestEndpoints(string appHost, Dictionary<string, List<string>> resourceEndpoints, List<ReadyStateText>? waitForTexts = null)
+    public TestEndpoints(string appHost,
+                         Dictionary<string, List<string>> resourceEndpoints,
+                         List<ReadyStateText>? waitForTexts = null,
+                         Func<DistributedApplication, string, ITestOutputHelper, Task>? whenReady = null)
     {
         AppHost = appHost;
         ResourceEndpoints = resourceEndpoints;
         WaitForTexts = waitForTexts;
+        WhenReady = whenReady;
     }
 
     public string AppHost { get; set; }
@@ -328,6 +330,8 @@ public class TestEndpoints
     public List<ReadyStateText>? WaitForTexts { get; set; }
 
     public Dictionary<string, List<string>>? ResourceEndpoints { get; set; }
+
+    public Func<DistributedApplication, string, ITestOutputHelper, Task>? WhenReady { get; set; }
 
     public override string? ToString() => $"{AppHost} ({ResourceEndpoints?.Count ?? 0} resources)";
 

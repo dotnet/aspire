@@ -10,9 +10,13 @@ var basketCache = builder.AddRedis("basketcache")
 
 #if !SKIP_DASHBOARD_REFERENCE
 basketCache.WithRedisCommander(c =>
-                     {
-                         c.WithHostPort(33801);
-                     });
+            {
+                c.WithHostPort(33801);
+            })
+           .WithRedisInsight(c =>
+            {
+                c.WithHostPort(33802);
+            });
 #endif
 
 var catalogDbApp = builder.AddProject<Projects.CatalogDb>("catalogdbapp")
@@ -29,7 +33,7 @@ var messaging = builder.AddRabbitMQ("messaging")
 
 var basketService = builder.AddProject("basketservice", @"..\BasketService\BasketService.csproj")
                            .WithReference(basketCache)
-                           .WithReference(messaging);
+                           .WithReference(messaging).WaitFor(messaging);
 
 builder.AddProject<Projects.MyFrontend>("frontend")
        .WithExternalHttpEndpoints()
@@ -37,7 +41,7 @@ builder.AddProject<Projects.MyFrontend>("frontend")
        .WithReference(catalogService);
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor", launchProfileName: "OrderProcessor")
-       .WithReference(messaging);
+       .WithReference(messaging).WaitFor(messaging);
 
 builder.AddProject<Projects.ApiGateway>("apigateway")
        .WithReference(basketService)

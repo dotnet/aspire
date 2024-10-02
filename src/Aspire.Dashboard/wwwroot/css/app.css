@@ -12,6 +12,16 @@ fluent-toolbar p {
 
 fluent-toolbar[orientation=horizontal] {
     width: 100%;
+    padding-right: calc(var(--design-unit)* 2px);
+}
+
+fluent-toolbar::part(positioning-region) {
+    row-gap: calc(var(--design-unit) * 1.5px);
+}
+
+fluent-toolbar::part(end) {
+    flex-wrap: wrap;
+    row-gap: calc(var(--design-unit) * 1.5px);
 }
 
 /* Hide any web components that haven't been */
@@ -614,9 +624,14 @@ fluent-data-grid-cell.no-ellipsis {
 }
 
 .filter-input-container {
-    width: 75%;
+    width: 85%;
 }
 
 .layout fluent-toolbar > .fluent-input-label {
     margin-bottom: 0;
+}
+
+.action-divider {
+    display: inline;
+    vertical-align: sub;
 }

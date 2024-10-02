@@ -1,10 +1,7 @@
 <Project>
   <PropertyGroup>
-    <GetWorkloadInputsDependsOn>_GetWorkloadsToInstall;$(GetWorkloadInputsDependsOn)</GetWorkloadInputsDependsOn>
     <GetNuGetsToBuildForWorkloadTestingDependsOn>_ValidateExpectedSetOfPackagesExist;_GetNuGetsToBuild;$(GetNuGetsToBuildForWorkloadTestingDependsOn)</GetNuGetsToBuildForWorkloadTestingDependsOn>
-
-    <!-- this will cause the output for `dotnet workload install` to be visible to the user -->
-    <WorkloadInstallCommandOutputImportance>High</WorkloadInstallCommandOutputImportance>
+    
     <NuGetConfigPackageSourceMappingsForWorkloadTesting>*Aspire*</NuGetConfigPackageSourceMappingsForWorkloadTesting>
 
     <_ShippingPackagesDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'packages', $(Configuration), 'Shipping'))</_ShippingPackagesDir>
@@ -19,16 +16,14 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Runtime.WorkloadTesting.Internal" />
+
+    <AdditionalSharedFrameworkToInstallArguments Include="-Runtime dotnet -Version $(DotNetRuntimeVersionForTesting)" />
+    <AdditionalSharedFrameworkToInstallArguments Include="-Runtime aspnetcore -Version $(DotNetRuntimeVersionForTesting)" />
   </ItemGroup>
 
   <Target Name="_GetNuGetsToBuild" Returns="@(NuGetsToBuildForWorkloadTesting)">
     <Error Condition="'$(VersionBandForManifestPackages)' == '' or '$(VersionBandForManifestPackages)' == ''"
            Text="Both properties need to be set: %24(VersionBandForSdkManifestsDir)=$(VersionBandForSdkManifestsDir), and %24(VersionBandForManifestPackages)=$(VersionBandForManifestPackages)" />
-
-    <ItemGroup>
-      <_ManifestPackage Include="$(_ShippingPackagesDir)Microsoft.NET.Sdk.Aspire.Manifest*nupkg" />
-    </ItemGroup>
-    <Error Condition="@(_ManifestPackage->Count()) == 0" Text="No manifest packages found in $(_ShippingPackagesDir). Make sure build packages with './build.sh -pack'" />
 
     <Error Condition="'$(NETCoreSdkRuntimeIdentifier)' == ''" Text="%24(NETCoreSdkRuntimeIdentifier) is unset. This is needed to build the Aspire.Hosting.Orchestration nuget" />
 
@@ -65,22 +60,14 @@
               Targets="Restore;Build" />
   </Target>
 
-  <Target Name="_GetWorkloadsToInstall" DependsOnTargets="_SetPackageVersionForWorkloadsTesting" Returns="@(WorkloadIdForTesting);@(WorkloadCombinationsToInstall)">
-    <ItemGroup>
-      <WorkloadIdForTesting Include="aspire"
-                            ManifestName="Microsoft.NET.Sdk.Aspire"
-                            Variant="latest"
-                            Version="$(PackageVersionForWorkloadManifests)" />
+  <Target Name="_InstallSharedFrameworksForWorkloadTesting" AfterTargets="ProvisionDotNetForWorkloadTesting">
+    <Exec Condition="'%(AdditionalSharedFrameworkToInstallArguments.Identity)' != '' and !$([MSBuild]::IsOSPlatform('windows'))"
+          IgnoreStandardErrorWarningFormat="true"
+          Command="$(_DotNetInstallScriptPath) -InstallDir $(_SdkWithNoWorkloadPath) -SkipNonVersionedFiles %(AdditionalSharedFrameworkToInstallArguments.Identity)" />
 
-      <WorkloadCombinationsToInstall Include="latest" Variants="latest" />
-    </ItemGroup>
-  </Target>
-
-  <Target Name="CheckForWorkloadInstalled" BeforeTargets="VSTest" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
-    <Error Condition="'$(SdkWithWorkloadForTestingPath)' == '' or !Exists($(SdkWithWorkloadForTestingPath))"
-      Text="Could not find %24(SdkWithWorkloadForTestingPath)=$(SdkWithWorkloadForTestingPath) . Prepare it by following:
-      1. .\build.cmd -pack (or ./build.sh on unix)
-      2. dotnet build tests/workloads.proj /p:Configuration=$(Configuration)" />
+    <Exec Condition="'%(AdditionalSharedFrameworkToInstallArguments.Identity)' != '' and $([MSBuild]::IsOSPlatform('windows'))"
+          IgnoreStandardErrorWarningFormat="true"
+          Command='powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; $(_DotNetInstallScriptPath) -InstallDir $(_SdkWithNoWorkloadPath) -SkipNonVersionedFiles %(AdditionalSharedFrameworkToInstallArguments.Identity)"' />
   </Target>
 
   <Target Name="_ValidateExpectedSetOfPackagesExist" Condition="'$(SkipPackageCheckForWorkloadTesting)' != 'true'">
@@ -111,8 +98,8 @@
       <UnexpectedPackages Include="@(AllPackages)" Exclude="@(ExpectedPackagePaths)" />
 
       <!-- Ignore these packages which are part of the workload. Existence of these would get checked
-           by the workload installation targets. -->
-      <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Aspire.Hosting.Sdk.'))" />
+           by the workload installation targets. And their names don't correspond to project names. -->
+      <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Aspire.AppHost.Sdk.'))" />
       <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Aspire.ProjectTemplates.'))" />
       <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Microsoft.NET.Sdk.Aspire.Manifest-'))" />
 

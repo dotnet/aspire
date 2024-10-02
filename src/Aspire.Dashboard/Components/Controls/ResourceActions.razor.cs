@@ -10,8 +10,8 @@ namespace Aspire.Dashboard.Components;
 
 public partial class ResourceActions : ComponentBase
 {
-    private static readonly Icon s_viewDetailsIcon = new Icons.Regular.Size20.Info();
-    private static readonly Icon s_consoleLogsIcon = new Icons.Regular.Size20.SlideText();
+    private static readonly Icon s_viewDetailsIcon = new Icons.Regular.Size16.Info();
+    private static readonly Icon s_consoleLogsIcon = new Icons.Regular.Size16.SlideText();
 
     private AspireMenuButton? _menuButton;
 
@@ -30,11 +30,19 @@ public partial class ResourceActions : ComponentBase
     [Parameter]
     public required EventCallback OnConsoleLogs { get; set; }
 
+    [Parameter]
+    public required int MaxHighlightedCount { get; set; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+
+    private readonly List<CommandViewModel> _highlightedCommands = new();
     private readonly List<MenuButtonItem> _menuItems = new();
 
     protected override void OnParametersSet()
     {
         _menuItems.Clear();
+        _highlightedCommands.Clear();
 
         _menuItems.Add(new MenuButtonItem
         {
@@ -49,21 +57,27 @@ public partial class ResourceActions : ComponentBase
             OnClick = OnConsoleLogs.InvokeAsync
         });
 
-        var menuCommands = Commands.Where(c => !c.IsHighlighted).ToList();
+        if (ViewportInformation.IsDesktop)
+        {
+            _highlightedCommands.AddRange(Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden).Take(MaxHighlightedCount));
+        }
+
+        var menuCommands = Commands.Where(c => !_highlightedCommands.Contains(c) && c.State != CommandViewModelState.Hidden).ToList();
         if (menuCommands.Count > 0)
         {
             _menuItems.Add(new MenuButtonItem { IsDivider = true });
 
             foreach (var command in menuCommands)
             {
-                var icon = (!string.IsNullOrEmpty(command.IconName) && CommandViewModel.ResolveIconName(command.IconName) is { } i) ? i : null;
+                var icon = (!string.IsNullOrEmpty(command.IconName) && CommandViewModel.ResolveIconName(command.IconName, command.IconVariant) is { } i) ? i : null;
 
                 _menuItems.Add(new MenuButtonItem
                 {
                     Text = command.DisplayName,
                     Tooltip = command.DisplayDescription,
                     Icon = icon,
-                    OnClick = () => CommandSelected.InvokeAsync(command)
+                    OnClick = () => CommandSelected.InvokeAsync(command),
+                    IsDisabled = command.State == CommandViewModelState.Disabled
                 });
             }
         }

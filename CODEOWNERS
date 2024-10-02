@@ -3,7 +3,6 @@
 /dogfood.sh @radical @eerhardt
 /src/Aspire.Hosting.Testing @reubenbond
 /src/Components @radical @eerhardt @sebastienros
-/src/Microsoft.NET.Sdk.Aspire @joperezr @radical
 
 # tests
 

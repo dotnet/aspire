@@ -45,6 +45,7 @@ orleans
 otel
 otlp
 pgadmin
+plotly
 postgre
 postgres
 protoc
@@ -63,3 +64,4 @@ uris
 urls
 kubernetes
 Pgweb
+elasticsearch

@@ -2,7 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Aspire.Hosting.Dcp.Model;
+using HealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -25,6 +26,16 @@ public sealed record CustomResourceSnapshot
     /// The creation timestamp of the resource.
     /// </summary>
     public DateTime? CreationTimeStamp { get; init; }
+
+    /// <summary>
+    /// The start timestamp of the resource.
+    /// </summary>
+    public DateTime? StartTimeStamp { get; init; }
+
+    /// <summary>
+    /// The stop timestamp of the resource.
+    /// </summary>
+    public DateTime? StopTimeStamp { get; init; }
 
     /// <summary>
     /// Represents the state of the resource.
@@ -50,6 +61,16 @@ public sealed record CustomResourceSnapshot
     /// The URLs that should show up in the dashboard for this resource.
     /// </summary>
     public ImmutableArray<UrlSnapshot> Urls { get; init; } = [];
+
+    /// <summary>
+    /// The volumes that should show up in the dashboard for this resource.
+    /// </summary>
+    public ImmutableArray<VolumeSnapshot> Volumes { get; init; } = [];
+
+    /// <summary>
+    /// The commands available in the dashboard for this resource.
+    /// </summary>
+    public ImmutableArray<ResourceCommandSnapshot> Commands { get; init; } = [];
 }
 
 /// <summary>
@@ -84,11 +105,78 @@ public sealed record EnvironmentVariableSnapshot(string Name, string? Value, boo
 public sealed record UrlSnapshot(string Name, string Url, bool IsInternal);
 
 /// <summary>
+/// A snapshot of a volume, mounted to a container.
+/// </summary>
+/// <param name="Source">The name of the volume. Can be <c>null</c> if the mount is an anonymous volume.</param>
+/// <param name="Target">The target of the mount.</param>
+/// <param name="MountType">Gets the mount type, such as <see cref="VolumeMountType.Bind"/> or <see cref="VolumeMountType.Volume"/></param>
+/// <param name="IsReadOnly">Whether the volume mount is read-only or not.</param>
+public sealed record VolumeSnapshot(string? Source, string Target, string MountType, bool IsReadOnly);
+
+/// <summary>
 /// A snapshot of the resource property.
 /// </summary>
 /// <param name="Name">The name of the property.</param>
 /// <param name="Value">The value of the property.</param>
-public sealed record ResourcePropertySnapshot(string Name, object? Value);
+public sealed record ResourcePropertySnapshot(string Name, object? Value)
+{
+    /// <summary>
+    /// Whether this property is considered sensitive or not.
+    /// </summary>
+    /// <remarks>
+    /// Sensitive properties are masked when displayed in UI and require an explicit user action to reveal.
+    /// </remarks>
+    public bool IsSensitive { get; init; }
+
+    internal void Deconstruct(out string name, out object? value, out bool isSensitive)
+    {
+        name = Name;
+        value = Value;
+        isSensitive = IsSensitive;
+    }
+}
+
+/// <summary>
+/// A snapshot of a resource command.
+/// </summary>
+/// <param name="Type">The type of command. The type uniquely identifies the command.</param>
+/// <param name="State">The state of the command.</param>
+/// <param name="DisplayName">The display name visible in UI for the command.</param>
+/// <param name="DisplayDescription">
+/// Optional description of the command, to be shown in the UI.
+/// Could be used as a tooltip. May be localized.
+/// </param>
+/// <param name="Parameter">
+/// Optional parameter that configures the command in some way.
+/// Clients must return any value provided by the server when invoking the command.
+/// </param>
+/// <param name="ConfirmationMessage">
+/// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
+/// and the confirmation message before starting the command.
+/// </param>
+/// <param name="IconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
+/// <param name="IconVariant">The icon variant.</param>
+/// <param name="IsHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
+public sealed record ResourceCommandSnapshot(string Type, ResourceCommandState State, string DisplayName, string? DisplayDescription, object? Parameter, string? ConfirmationMessage, string? IconName, IconVariant? IconVariant, bool IsHighlighted);
+
+/// <summary>
+/// The state of a resource command.
+/// </summary>
+public enum ResourceCommandState
+{
+    /// <summary>
+    /// Command is visible and enabled for use.
+    /// </summary>
+    Enabled,
+    /// <summary>
+    /// Command is visible and disabled for use.
+    /// </summary>
+    Disabled,
+    /// <summary>
+    /// Command is hidden.
+    /// </summary>
+    Hidden
+}
 
 /// <summary>
 /// The set of well known resource states.

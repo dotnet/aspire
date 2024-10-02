@@ -1,11 +1,12 @@
 ﻿@using Aspire.Dashboard.Components.Controls.Grid
 @using Aspire.Dashboard.Resources
-@typeparam TItem
+@typeparam TItem where TItem : IPropertyGridItem
 @inject IStringLocalizer<ControlsStrings> Loc
 
 <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
                 ResizeType="DataGridResizeType.Discrete"
                 Items="@Items"
+                ItemKey="@ItemKey"
                 ResizableColumns="true"
                 Style="width:100%"
                 GenerateHeader="@GenerateHeader"
@@ -14,16 +15,19 @@
     <AspireTemplateColumn Title="@(NameColumnTitle ?? Loc[nameof(ControlsStrings.NameColumnHeader)])" Class="nameColumn" SortBy="@NameSort" Sortable="@IsNameSortable">
         <GridValue
             ValueDescription="@(NameColumnTitle ?? Loc[nameof(ControlsStrings.NameColumnHeader)])"
-            Value="@NameColumnValue(context)"
+            Value="@context.Name"
             HighlightText="@HighlightText" />
     </AspireTemplateColumn>
     <AspireTemplateColumn Title="@(ValueColumnTitle ?? Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)])" Class="valueColumn" SortBy="@ValueSort" Sortable="@IsValueSortable">
         <GridValue
             ValueDescription="@(ValueColumnTitle ?? Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)])"
-            Value="@ValueColumnValue(context)" HighlightText="@HighlightText"
-            EnableMasking="@EnableValueMasking" IsMasked="@GetIsItemMasked(context)"
-            IsMaskedChanged="(newValue) => OnIsMaskedChanged(context, newValue)"
-            TextVisualizerTitle="@NameColumnValue(context)"/>
+            Value="@context.Value"
+            ContentAfterValue="@ContentAfterValue(context)"
+            HighlightText="@HighlightText"
+            EnableMasking="@context.IsValueSensitive"
+            IsMasked="@context.IsValueMasked"
+            IsMaskedChanged="(isMasked) => OnIsValueMaskedChanged(context, isMasked)"
+            TextVisualizerTitle="@context.Name"/>
         @ExtraValueContent(context)
     </AspireTemplateColumn>
 </FluentDataGrid>

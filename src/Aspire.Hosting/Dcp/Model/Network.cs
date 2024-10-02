@@ -84,7 +84,7 @@ internal sealed class ContainerNetwork : CustomResource<ContainerNetworkSpec, Co
 
     public static ContainerNetwork Create(string name, bool useIpV6 = false)
     {
-        var c = new ContainerNetwork(new ContainerNetworkSpec { NetworkName = name, IPV6 = useIpV6 });
+        var c = new ContainerNetwork(new ContainerNetworkSpec { IPV6 = useIpV6 });
 
         c.Kind = Dcp.ContainerNetworkKind;
         c.ApiVersion = Dcp.GroupVersion.ToString();

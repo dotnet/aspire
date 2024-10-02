@@ -160,12 +160,6 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
    }, 1500);
 };
 
-window.updateFluentSelectDisplayValue = function (fluentSelect) {
-    if (fluentSelect) {
-        fluentSelect.updateDisplayValue();
-    }
-}
-
 function isActiveElementInput() {
     const currentElement = document.activeElement;
     // fluent components may have shadow roots that contain inputs

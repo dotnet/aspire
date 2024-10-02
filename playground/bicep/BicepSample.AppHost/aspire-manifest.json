@@ -141,10 +141,11 @@
     },
     "redis": {
       "type": "azure.bicep.v0",
-      "connectionString": "{redis.secretOutputs.connectionString}",
+      "connectionString": "{redis.outputs.connectionString}",
       "path": "redis.module.bicep",
       "params": {
-        "keyVaultName": ""
+        "principalId": "",
+        "principalName": ""
       }
     },
     "sb": {
