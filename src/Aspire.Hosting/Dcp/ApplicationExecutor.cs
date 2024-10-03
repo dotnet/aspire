@@ -397,11 +397,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     {
                         _logger.LogTrace("Deleting application model resource {ResourceName} with {ResourceKind} resource {ResourceName}", appModelResource.Name, resourceKind, resource.Metadata.Name);
                     }
-
-                    if (appModelResource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
-                    {
-                        replicaAnnotation.Instances.TryRemove(resource.Metadata.Name, out _);
-                    }
                 }
                 else
                 {
@@ -1033,24 +1028,15 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         foreach (var executable in modelExecutableResources)
         {
-            EnsureRequiredAnnotations(executable);
-
-            var nameSuffix = GetRandomNameSuffix();
-            var exeName = GetObjectNameForResource(executable, nameSuffix);
-
-            if (executable.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
-            {
-                replicaAnnotation.Instances.TryAdd(exeName, 0);
-            }
-
+            var exeInstance = GetInstance(executable, instanceIndex: 0);
             var exePath = executable.Command;
-            var exe = Executable.Create(exeName, exePath);
+            var exe = Executable.Create(exeInstance.Name, exePath);
 
             // The working directory is always relative to the app host project directory (if it exists).
             exe.Spec.WorkingDirectory = executable.WorkingDirectory;
             exe.Spec.ExecutionType = ExecutionType.Process;
             exe.Annotate(CustomResource.OtelServiceNameAnnotation, executable.Name);
-            exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, nameSuffix);
+            exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
             exe.Annotate(CustomResource.ResourceNameAnnotation, executable.Name);
             SetInitialResourceState(executable, exe);
 
@@ -1071,25 +1057,16 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new InvalidOperationException("A project resource is missing required metadata"); // Should never happen.
             }
 
-            EnsureRequiredAnnotations(project);
-
             var replicas = project.GetReplicaCount();
 
             for (var i = 0; i < replicas; i++)
             {
-                var nameSuffix = GetRandomNameSuffix();
-                var exeName = GetObjectNameForResource(project, nameSuffix);
-
-                if (project.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
-                {
-                    replicaAnnotation.Instances.TryAdd(exeName, i);
-                }
-
-                var exeSpec = Executable.Create(exeName, "dotnet");
+                var exeInstance = GetInstance(project, instanceIndex: i);
+                var exeSpec = Executable.Create(exeInstance.Name, "dotnet");
                 exeSpec.Spec.WorkingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
 
                 exeSpec.Annotate(CustomResource.OtelServiceNameAnnotation, project.Name);
-                exeSpec.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, nameSuffix);
+                exeSpec.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
                 exeSpec.Annotate(CustomResource.ResourceNameAnnotation, project.Name);
                 exeSpec.Annotate(CustomResource.ResourceReplicaCount, replicas.ToString(CultureInfo.InvariantCulture));
                 exeSpec.Annotate(CustomResource.ResourceReplicaIndex, i.ToString(CultureInfo.InvariantCulture));
@@ -1164,19 +1141,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 AddServicesProducedInfo(project, exeSpec, exeAppResource);
                 _appResources.Add(exeAppResource);
             }
-        }
-    }
-
-    private static void EnsureRequiredAnnotations(IResource resource)
-    {
-        // Add the default lifecycle commands (start/stop/restart)
-        resource.AddLifeCycleCommands();
-
-        // Make sure we have a replica annotation on the resource.
-        // this is so that we can populate the running instance ids
-        if (!resource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out _))
-        {
-            resource.Annotations.Add(new ReplicaInstancesAnnotation());
         }
     }
 
@@ -1436,25 +1400,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new InvalidOperationException();
             }
 
-            EnsureRequiredAnnotations(container);
+            var containerObjectInstance = GetInstance(container, instanceIndex: 0);
+            var ctr = Container.Create(containerObjectInstance.Name, containerImageName);
 
-            var nameSuffix = container.GetContainerLifetimeType() switch
-            {
-                ContainerLifetime.Default => GetRandomNameSuffix(),
-                // Compute a short hash of the content root path to differentiate between multiple AppHost projects with similar resource names
-                _ => configuration["AppHost:Sha256"]!.Substring(0, RandomNameSuffixLength).ToLowerInvariant(),
-            };
-
-            var containerObjectName = GetObjectNameForResource(container, nameSuffix);
-
-            if (container.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
-            {
-                replicaAnnotation.Instances.TryAdd(containerObjectName, 0);
-            }
-
-            var ctr = Container.Create(containerObjectName, containerImageName);
-
-            ctr.Spec.ContainerName = containerObjectName; // Use the same name for container orchestrator (Docker, Podman) resource and DCP object name.
+            ctr.Spec.ContainerName = containerObjectInstance.Name; // Use the same name for container orchestrator (Docker, Podman) resource and DCP object name.
 
             if (container.GetContainerLifetimeType() == ContainerLifetime.Persistent)
             {
@@ -1463,7 +1412,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             ctr.Annotate(CustomResource.ResourceNameAnnotation, container.Name);
             ctr.Annotate(CustomResource.OtelServiceNameAnnotation, container.Name);
-            ctr.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, nameSuffix);
+            ctr.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, containerObjectInstance.Suffix);
             SetInitialResourceState(container, ctr);
 
             if (container.TryGetContainerMounts(out var containerMounts))
@@ -1497,6 +1446,24 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             AddServicesProducedInfo(container, ctr, containerAppResource);
             _appResources.Add(containerAppResource);
         }
+    }
+
+    private static Instance GetInstance(IResource resource, int instanceIndex)
+    {
+        if (!resource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
+        {
+            throw new DistributedApplicationException($"Couldn't find required {nameof(ReplicaInstancesAnnotation)} annotation on resource {resource.Name}.");
+        }
+
+        foreach (var (id, instance) in replicaAnnotation.Instances)
+        {
+            if (instance.Index == instanceIndex)
+            {
+                return instance;
+            }
+        }
+
+        throw new DistributedApplicationException($"Couldn't find required instance ID for index {instanceIndex} on resource {resource.Name}.");
     }
 
     private Task CreateContainersAsync(IEnumerable<AppResource> containerResources, CancellationToken cancellationToken)

@@ -217,8 +217,8 @@ public class ResourceLoggerServiceTests
         {
             Instances =
             {
-                ["instance1"] = 0,
-                ["instance2"] = 1,
+                ["instance0"] = new Instance("instance0", "0", 0),
+                ["instance1"] = new Instance("instance1", "1", 1),
             }
         });
 
@@ -237,8 +237,8 @@ public class ResourceLoggerServiceTests
         logger.LogInformation("Hello, world!");
         logger.LogError("Hello, error!");
 
+        Assert.True(service.Loggers.ContainsKey("instance0"));
         Assert.True(service.Loggers.ContainsKey("instance1"));
-        Assert.True(service.Loggers.ContainsKey("instance2"));
 
         // Wait for logs to be read
         var allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
