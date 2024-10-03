@@ -634,6 +634,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureContainerApps.AppHost"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureContainerApps.ApiService", "playground\AzureContainerApps\AzureContainerApps.ApiService\AzureContainerApps.ApiService.csproj", "{683D8264-2755-4455-A6D4-14F7A6AC7B54}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaitFor.Frontend", "playground\waitfor\WaitFor.Frontend\WaitFor.Frontend.csproj", "{C88BBF0B-7566-48BD-A2BC-05374B1A2B22}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1668,6 +1670,10 @@ Global
 		{683D8264-2755-4455-A6D4-14F7A6AC7B54}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{683D8264-2755-4455-A6D4-14F7A6AC7B54}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{683D8264-2755-4455-A6D4-14F7A6AC7B54}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C88BBF0B-7566-48BD-A2BC-05374B1A2B22}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C88BBF0B-7566-48BD-A2BC-05374B1A2B22}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C88BBF0B-7566-48BD-A2BC-05374B1A2B22}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C88BBF0B-7566-48BD-A2BC-05374B1A2B22}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1973,6 +1979,7 @@ Global
 		{D47C77F3-49F4-4741-9786-6F68FC50587E} = {D173887B-AF42-4576-B9C1-96B9E9B3D9C0}
 		{96A5B854-2C72-49C8-A91B-2643B814DB2A} = {D47C77F3-49F4-4741-9786-6F68FC50587E}
 		{683D8264-2755-4455-A6D4-14F7A6AC7B54} = {D47C77F3-49F4-4741-9786-6F68FC50587E}
+		{C88BBF0B-7566-48BD-A2BC-05374B1A2B22} = {3FF3F00C-95C0-46FC-B2BE-A3920C71E393}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
