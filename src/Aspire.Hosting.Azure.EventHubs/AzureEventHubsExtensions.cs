@@ -7,9 +7,11 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.EventHubs;
 using Aspire.Hosting.Utils;
+using Azure.Messaging.EventHubs.Producer;
 using Azure.Provisioning;
 using Azure.Provisioning.EventHubs;
 using Azure.Provisioning.Expressions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -186,6 +188,35 @@ public static class AzureEventHubsExtensions
             context.EnvironmentVariables.Add("BLOB_SERVER", $"{blobEndpoint.Resource.Name}:{blobEndpoint.TargetPort}");
             context.EnvironmentVariables.Add("METADATA_SERVER", $"{tableEndpoint.Resource.Name}:{tableEndpoint.TargetPort}");
         }));
+
+        EventHubProducerClient? client = null;
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(builder.Resource, async (@event, ct) =>
+        {
+            var connectionString = await builder.Resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false)
+                        ?? throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
+
+            // For the purposes of the health check we only need to know a hub name. If we don't have a hub
+            // name we can't configure a valid producer client connection so we should throw. What good is
+            // an event hub namespace without an event hub? :)
+            if (builder.Resource.Hubs is { Count: > 0 } && builder.Resource.Hubs[0] is { } hub)
+            {
+                var healthCheckConnectionString = $"{connectionString};EntityPath={hub.Name};";
+                client = new EventHubProducerClient(healthCheckConnectionString);
+            }
+            else
+            {
+                throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource does not have any Event Hubs.");
+            }
+        });
+
+        var healthCheckKey = $"{builder.Resource.Name}_check";
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureEventHub(
+            sp => client ?? throw new DistributedApplicationException("EventHubProducerClient is not initialized"),
+            healthCheckKey
+            );
+
+        builder.WithHealthCheck(healthCheckKey);
 
         if (configureContainer != null)
         {

@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.ClientModel;
 using System.Data.Common;
 using Aspire.Azure.Common;
-using Azure;
 using Azure.Core;
 
 namespace Aspire.Azure.AI.OpenAI;
@@ -38,7 +38,7 @@ public sealed class AzureOpenAISettings : IConnectionStringSettings
     /// Gets or sets the key to use to authenticate to the Azure OpenAI endpoint.
     /// </summary>
     /// <remarks>
-    /// When defined it will use an <see cref="AzureKeyCredential"/> instance instead of <see cref="Credential"/>.
+    /// When defined it will use an <see cref="ApiKeyCredential"/> instance instead of <see cref="Credential"/>.
     /// </remarks>
     public string? Key { get; set; }
 

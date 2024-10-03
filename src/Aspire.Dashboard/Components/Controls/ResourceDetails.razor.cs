@@ -32,7 +32,7 @@ public partial class ResourceDetails
 
     private IQueryable<EnvironmentVariableViewModel> FilteredEnvironmentVariables =>
         Resource.Environment
-            .Where(vm => (_showAll || vm.FromSpec) && vm.MatchesFilter(_filter))
+            .Where(vm => (_showAll || vm.FromSpec) && ((IPropertyGridItem)vm).MatchesFilter(_filter))
             .AsQueryable();
 
     private IQueryable<DisplayedEndpoint> FilteredEndpoints =>
@@ -41,10 +41,9 @@ public partial class ResourceDetails
             .AsQueryable();
 
     private IQueryable<VolumeViewModel> FilteredVolumes =>
-        Resource.Volumes.Where(vm =>
-            vm.Source?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true ||
-            vm.Target?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true
-        ).AsQueryable();
+        Resource.Volumes
+            .Where(vm => vm.MatchesFilter(_filter))
+            .AsQueryable();
 
     private IQueryable<ResourcePropertyViewModel> FilteredResourceProperties =>
         GetResourceProperties(ordered: true)

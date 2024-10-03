@@ -114,12 +114,13 @@
                                                             DisplayedEndpoints="@GetDisplayedEndpoints(context, out var additionalMessage)"
                                                             AdditionalMessage="@additionalMessage" />
                                 </AspireTemplateColumn>
-                                <AspireTemplateColumn ColumnId="@ActionsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesActionsColumnHeader)]">
-                                    <div class="resource-action-container" @onclick:stopPropagation="true">
+                                <AspireTemplateColumn ColumnId="@ActionsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesActionsColumnHeader)]" Class="no-ellipsis">
+                                    <div class="grid-action-container" @onclick:stopPropagation="true">
                                         <ResourceActions Commands="@context.Commands"
                                                          CommandSelected="async (command) => await ExecuteResourceCommandAsync(context, command)"
                                                          OnViewDetails="@((buttonId) => ShowResourceDetailsAsync(context, buttonId))"
-                                                         OnConsoleLogs="@(() => NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: context.Name)))"
+                                                         Resource="context"
+                                                         GetResourceName="GetResourceName"
                                                          MaxHighlightedCount="_maxHighlightedCount" />
                                     </div>
                                 </AspireTemplateColumn>
