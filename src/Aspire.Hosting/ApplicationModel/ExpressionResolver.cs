@@ -15,7 +15,7 @@ internal class ExpressionResolver
     /// <param name="endpointUsage">For each endpoint, store two bools, to track if the host and port are in use</param>
     /// <param name="preprocess">When true, we just prescan to determine if the host and port properties are both used</param>
     /// <param name="cancellationToken"></param>
-    static async ValueTask<string?> ResolveWithContainerSourceAsync(object? value, Dictionary<EndpointReference, bool[]> endpointUsage, bool preprocess, CancellationToken cancellationToken)
+    static async ValueTask<string?> ResolveWithContainerSourceAsync(object? value, Dictionary<string, bool[]> endpointUsage, bool preprocess, CancellationToken cancellationToken)
     {
         async Task<string?> EvalEndpointAsync(EndpointReference endpointReference, EndpointProperty property)
         {
@@ -23,10 +23,10 @@ internal class ExpressionResolver
             // for each endpoint.
             if (preprocess)
             {
-                if (!endpointUsage.TryGetValue(endpointReference, out var hostAndPortPresence))
+                if (!endpointUsage.TryGetValue(endpointReference.EndpointName, out var hostAndPortPresence))
                 {
                     hostAndPortPresence = new bool[2];
-                    endpointUsage[endpointReference] = hostAndPortPresence;
+                    endpointUsage[endpointReference.EndpointName] = hostAndPortPresence;
                 }
 
                 if (property is EndpointProperty.Host or EndpointProperty.IPV4Host)
@@ -49,7 +49,7 @@ internal class ExpressionResolver
             // Otherwise, we get the wrong values for IsContainer and Name
             var target = endpointReference.Resource.GetRootResource();
 
-            bool HasBothHostAndPort() => endpointUsage[endpointReference][0] && endpointUsage[endpointReference][1];
+            bool HasBothHostAndPort() => endpointUsage[endpointReference.EndpointName][0] && endpointUsage[endpointReference.EndpointName][1];
 
             return (property, target.IsContainer()) switch
             {
@@ -97,7 +97,7 @@ internal class ExpressionResolver
     internal static async ValueTask<string?> ResolveAsync(bool sourceIsContainer, IValueProvider valueProvider, CancellationToken cancellationToken)
     {
         // For each endpoint, store two bools, to track if the host and port are in use
-        var endpointUsage = new Dictionary<EndpointReference, bool[]>();
+        var endpointUsage = new Dictionary<string, bool[]>();
 
         // Run the processing phase to know if the host and port properties are both used for each endpoint.
         await ResolveWithContainerSourceAsync(valueProvider, endpointUsage, preprocess: true, cancellationToken).ConfigureAwait(false);
