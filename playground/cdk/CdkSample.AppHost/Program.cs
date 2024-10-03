@@ -17,8 +17,8 @@ var sku = builder.AddParameter("storagesku");
 var locationOverride = builder.AddParameter("locationOverride");
 var storage = builder.AddAzureStorage("storage", (_, construct, account) =>
 {
-    account.Sku = new StorageSku() { Name = sku.AsBicepParameter(construct) };
-    account.Location = locationOverride.AsBicepParameter(construct);
+    account.Sku = new StorageSku() { Name = sku.AsProvisioningParameter(construct) };
+    account.Location = locationOverride.AsProvisioningParameter(construct);
 });
 
 var blobs = storage.AddBlobs("blobs");
@@ -32,7 +32,7 @@ var keyvault = builder.AddAzureKeyVault("mykv", (_, construct, keyVault) =>
     {
         Parent = keyVault,
         Name = "mysecret",
-        Properties = new SecretProperties { Value = signaturesecret.AsBicepParameter(construct) }
+        Properties = new SecretProperties { Value = signaturesecret.AsProvisioningParameter(construct) }
     };
     construct.Add(secret);
 });
@@ -45,7 +45,8 @@ var pgsqldb = builder.AddAzurePostgresFlexibleServer("pgsql")
                    .WithPasswordAuthentication(pgsqlAdministratorLogin, pgsqlAdministratorLoginPassword)
                    .AddDatabase("pgsqldb");
 
-var pgsql2 = builder.AddAzurePostgresFlexibleServer("pgsql2");
+var pgsql2 = builder.AddAzurePostgresFlexibleServer("pgsql2")
+    .AddDatabase("pgsql2db");
 
 var sb = builder.AddAzureServiceBus("servicebus")
     .AddQueue("queue1",
@@ -106,6 +107,7 @@ builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithReference(cache)
     .WithReference(cosmosdb)
     .WithReference(pgsqldb)
+    .WithReference(pgsql2)
     .WithReference(sb)
     .WithReference(appConfig)
     .WithReference(search)

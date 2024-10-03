@@ -26,7 +26,8 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              DistributedApplicationExecutionContext executionContext,
                                              ResourceNotificationService resourceNotificationService,
                                              ResourceLoggerService resourceLoggerService,
-                                             ILoggerFactory loggerFactory) : IDistributedApplicationLifecycleHook, IAsyncDisposable
+                                             ILoggerFactory loggerFactory,
+                                             DcpNameGenerator nameGenerator) : IDistributedApplicationLifecycleHook, IAsyncDisposable
 {
     private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _dashboardLogsTask;
@@ -101,6 +102,8 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             // Assume the dashboard path is directly executable
             dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, fullyQualifiedDashboardPath, dashboardWorkingDirectory ?? "");
         }
+
+        nameGenerator.EnsureDcpInstancesPopulated(dashboardResource);
 
         ConfigureAspireDashboardResource(dashboardResource);
 

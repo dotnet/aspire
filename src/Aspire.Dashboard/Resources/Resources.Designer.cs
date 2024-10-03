@@ -70,11 +70,29 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to View details.
+        ///   Looks up a localized string similar to Metrics.
         /// </summary>
-        public static string ResourceActionViewDetailsText {
+        public static string ResourceActionMetricsText {
             get {
-                return ResourceManager.GetString("ResourceActionViewDetailsText", resourceCulture);
+                return ResourceManager.GetString("ResourceActionMetricsText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Structured logs.
+        /// </summary>
+        public static string ResourceActionStructuredLogsText {
+            get {
+                return ResourceManager.GetString("ResourceActionStructuredLogsText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Traces.
+        /// </summary>
+        public static string ResourceActionTracesText {
+            get {
+                return ResourceManager.GetString("ResourceActionTracesText", resourceCulture);
             }
         }
         
@@ -138,15 +156,6 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourceDetailsViewConsoleLogs {
             get {
                 return ResourceManager.GetString("ResourceDetailsViewConsoleLogs", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Resource actions.
-        /// </summary>
-        public static string ResourceResourceActions {
-            get {
-                return ResourceManager.GetString("ResourceResourceActions", resourceCulture);
             }
         }
         

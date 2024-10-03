@@ -166,7 +166,7 @@ public class AspireOpenAIExtensionsTests
 
         builder.AddOpenAIClient("openai", configureOptions: options =>
         {
-            options.ApplicationId = "myapplication";
+            options.UserAgentApplicationId = "myapplication";
         });
 
         using var host = builder.Build();
@@ -175,6 +175,6 @@ public class AspireOpenAIExtensionsTests
 
         Assert.NotNull(options);
         Assert.Equal("myproject", options.ProjectId);
-        Assert.Equal("myapplication", options.ApplicationId);
+        Assert.Equal("myapplication", options.UserAgentApplicationId);
     }
 }

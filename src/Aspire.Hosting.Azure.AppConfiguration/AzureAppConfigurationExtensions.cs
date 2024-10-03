@@ -49,7 +49,7 @@ public static class AzureAppConfigurationExtensions
             };
             construct.Add(store);
 
-            construct.Add(new BicepOutput("appConfigEndpoint", typeof(string)) { Value = store.Endpoint });
+            construct.Add(new ProvisioningOutput("appConfigEndpoint", typeof(string)) { Value = store.Endpoint });
 
             construct.Add(store.AssignRole(AppConfigurationBuiltInRole.AppConfigurationDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 

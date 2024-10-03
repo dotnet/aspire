@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml;
 using Microsoft.Playwright;
 using Xunit;
 using Xunit.Abstractions;
@@ -9,9 +11,16 @@ using static Aspire.Workload.Tests.TestExtensions;
 
 namespace Aspire.Workload.Tests;
 
-public class WorkloadTestsBase
+public partial class WorkloadTestsBase
 {
+    [GeneratedRegex(@"^\s*//")]
+    private static partial Regex CommentLineRegex();
+
+    // Regex is from src/Aspire.Hosting.AppHost/build/Aspire.Hosting.AppHost.targets - _GeneratedClassNameFixupRegex
+    [GeneratedRegex(@"(((?<=\.)|^)(?=\d)|\W)")]
+    private static partial Regex GeneratedClassNameFixupRegex();
     private static Lazy<IBrowser> Browser => new(CreateBrowser);
+    private static readonly XmlWriterSettings s_xmlWriterSettings = new() { ConformanceLevel = ConformanceLevel.Fragment };
     protected readonly TestOutputWrapper _testOutput;
 
     public static readonly string[] TestFrameworkTypes = ["none", "mstest", "nunit", "xunit.net"];
@@ -33,6 +42,96 @@ public class WorkloadTestsBase
         }
 
         return t.Result;
+    }
+
+    public async Task<string> CreateAndAddTestTemplateProjectAsync(
+        string id,
+        string testTemplateName,
+        AspireProject project,
+        TestTargetFramework? tfm = null,
+        BuildEnvironment? buildEnvironment = null,
+        TemplatesCustomHive? templateHive = null,
+        Func<AspireProject, Task>? onBuildAspireProject = null)
+    {
+        buildEnvironment ??= BuildEnvironment.ForDefaultFramework;
+        var tmfArg = tfm is not null ? $"-f {tfm.Value.ToTFMString()}" : "";
+
+        // Add test project
+        var testProjectName = $"{id}.{testTemplateName}Tests";
+        using var newTestCmd = new DotNetNewCommand(
+                                    _testOutput,
+                                    label: $"new-test-{testTemplateName}",
+                                    buildEnv: buildEnvironment,
+                                    hiveDirectory: templateHive?.CustomHiveDirectory)
+                                .WithWorkingDirectory(project.RootDir);
+        var res = await newTestCmd.ExecuteAsync($"{testTemplateName} {tmfArg} -o \"{testProjectName}\"");
+        res.EnsureSuccessful();
+
+        var testProjectDir = Path.Combine(project.RootDir, testProjectName);
+        Assert.True(Directory.Exists(testProjectDir), $"Expected tests project at {testProjectDir}");
+
+        var testProjectPath = Path.Combine(testProjectDir, testProjectName + ".csproj");
+        Assert.True(File.Exists(testProjectPath), $"Expected tests project file at {testProjectPath}");
+
+        PrepareTestCsFile(project.Id, testProjectDir, testTemplateName);
+        PrepareTestProject(project, testProjectPath);
+
+        return testProjectDir;
+
+        static void PrepareTestProject(AspireProject project, string projectPath)
+        {
+            // Insert <ProjectReference Include="$(MSBuildThisFileDirectory)..\aspire-starter0.AppHost\aspire-starter0.AppHost.csproj" /> in the project file
+
+            // taken from https://raw.githubusercontent.com/dotnet/templating/a325ffa18edd1590f9b340cf83d51d8eb567ebdc/src/Microsoft.TemplateEngine.Orchestrator.RunnableProjects/ValueForms/XmlEncodeValueFormFactory.cs
+            StringBuilder output = new();
+            using (var w = XmlWriter.Create(output, s_xmlWriterSettings))
+            {
+                w.WriteString(project.Id);
+            }
+            var xmlEncodedId = output.ToString();
+
+            var projectReference = $@"<ProjectReference Include=""$(MSBuildThisFileDirectory)..\{xmlEncodedId}.AppHost\{xmlEncodedId}.AppHost.csproj"" />";
+
+            var newContents = File.ReadAllText(projectPath)
+                                    .Replace("</Project>", $"<ItemGroup>{projectReference}</ItemGroup>\n</Project>");
+            File.WriteAllText(projectPath, newContents);
+        }
+
+        static void PrepareTestCsFile(string id, string projectDir, string testTemplateName)
+        {
+            var testCsPath = Path.Combine(projectDir, "IntegrationTest1.cs");
+            var sb = new StringBuilder();
+
+            // Uncomment everything after the marker line
+            var inTest = false;
+            var marker = testTemplateName switch
+            {
+                "aspire-nunit" => "// [Test]",
+                "aspire-mstest" => "// [TestMethod]",
+                "aspire-xunit" => "// [Fact]",
+                _ => throw new NotImplementedException($"Unknown test template: {testTemplateName}")
+            };
+
+            foreach (var line in File.ReadAllLines(testCsPath))
+            {
+                if (!inTest && line.Contains(marker))
+                {
+                    inTest = true;
+                }
+
+                if (inTest && CommentLineRegex().IsMatch(line))
+                {
+                    sb.AppendLine(CommentLineRegex().Replace(line, "    "));
+                    continue;
+                }
+
+                sb.AppendLine(line);
+            }
+
+            var classNameFromId = GeneratedClassNameFixupRegex().Replace(id, "_");
+            sb.Replace("Projects.MyAspireApp_AppHost", $"Projects.{classNameFromId}_AppHost");
+            File.WriteAllText(testCsPath, sb.ToString());
+        }
     }
 
     public static Task<IBrowserContext> CreateNewBrowserContextAsync()
@@ -218,15 +317,55 @@ public class WorkloadTestsBase
         else
         {
             Assert.True(Directory.Exists(testProjectDirectory), $"Expected tests project at {testProjectDirectory}");
-            using var cmd = new DotNetCommand(testOutput, label: $"test-{testType}")
+
+            // Build first, because `dotnet test` does not show test results if all the tests pass
+            using var buildCmd = new DotNetCommand(testOutput, label: $"test-{testType}")
                                     .WithWorkingDirectory(testProjectDirectory)
                                     .WithTimeout(TimeSpan.FromSeconds(testRunTimeoutSecs));
 
-            var res = (await cmd.ExecuteAsync($"test -c {config}"))
+            (await buildCmd.ExecuteAsync($"test -c {config}")).EnsureSuccessful();
+
+            // .. then test with --no-build
+            using var testCmd = new DotNetCommand(testOutput, label: $"test-{testType}")
+                                    .WithWorkingDirectory(testProjectDirectory)
+                                    .WithTimeout(TimeSpan.FromSeconds(testRunTimeoutSecs));
+
+            var testRes = (await testCmd.ExecuteAsync($"test -c {config} --no-build"))
                                 .EnsureSuccessful();
 
-            Assert.Matches("Passed! * - Failed: *0, Passed: *1, Skipped: *0, Total: *1", res.Output);
-            return res;
+            Assert.Matches("Passed! * - Failed: *0, Passed: *1, Skipped: *0, Total: *1", testRes.Output);
+            return testRes;
         }
     }
+
+    public static TheoryData<string, TestSdk, TestTargetFramework, TestTemplatesInstall, string?> TestDataForNewAndBuildTemplateTests(string templateName) => new()
+        {
+            // Previous Sdk
+            { templateName, TestSdk.Previous, TestTargetFramework.Previous, TestTemplatesInstall.Net8, null },
+            { templateName, TestSdk.Previous, TestTargetFramework.Previous, TestTemplatesInstall.Net9, "'net8.0' is not a valid value for -f" },
+            { templateName, TestSdk.Previous, TestTargetFramework.Previous, TestTemplatesInstall.Net9AndNet8, null },
+
+            { templateName, TestSdk.Previous, TestTargetFramework.Current, TestTemplatesInstall.Net8, "'net9.0' is not a valid value for -f" },
+            { templateName, TestSdk.Previous, TestTargetFramework.Current, TestTemplatesInstall.Net9, "The current .NET SDK does not support targeting .NET 9.0" },
+            { templateName, TestSdk.Previous, TestTargetFramework.Current, TestTemplatesInstall.Net9AndNet8, "The current .NET SDK does not support targeting .NET 9.0" },
+
+            // Current SDK
+            { templateName, TestSdk.Current, TestTargetFramework.Previous, TestTemplatesInstall.Net8, null },
+            { templateName, TestSdk.Current, TestTargetFramework.Previous, TestTemplatesInstall.Net9, "'net8.0' is not a valid value for -f" },
+            { templateName, TestSdk.Current, TestTargetFramework.Previous, TestTemplatesInstall.Net9AndNet8, null },
+
+            { templateName, TestSdk.Current, TestTargetFramework.Current, TestTemplatesInstall.Net8, "'net9.0' is not a valid value for -f" },
+            { templateName, TestSdk.Current, TestTargetFramework.Current, TestTemplatesInstall.Net9, null },
+            { templateName, TestSdk.Current, TestTargetFramework.Current, TestTemplatesInstall.Net9AndNet8, null },
+
+            // Current SDK + previous runtime
+            { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Previous, TestTemplatesInstall.Net8, null },
+            { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Previous, TestTemplatesInstall.Net9, "'net8.0' is not a valid value for -f" },
+            { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Previous, TestTemplatesInstall.Net9AndNet8, null },
+
+            { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, TestTemplatesInstall.Net8, "'net9.0' is not a valid value for -f" },
+            { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, TestTemplatesInstall.Net9, null },
+            { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, TestTemplatesInstall.Net9AndNet8, null },
+        };
+
 }

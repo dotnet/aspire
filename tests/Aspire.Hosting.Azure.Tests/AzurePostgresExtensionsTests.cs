@@ -41,7 +41,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         {
             allowAllIpsFirewall = """
 
-                resource postgreSqlFirewallRule_AllowAllIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2022-12-01' = {
+                resource postgreSqlFirewallRule_AllowAllIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
                   name: 'AllowAllIps'
                   properties: {
                     endIpAddress: '255.255.255.255'
@@ -68,7 +68,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
 
             param principalName string
 
-            resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
+            resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
               name: take('postgres${uniqueString(resourceGroup().id)}', 24)
               location: location
               properties: {
@@ -98,7 +98,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
               }
             }
 
-            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2022-12-01' = {
+            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
               name: 'AllowAllAzureIps'
               properties: {
                 endIpAddress: '0.0.0.0'
@@ -107,7 +107,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
               parent: postgres
             }
             {{allowAllIpsFirewall}}
-            resource postgres_admin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2022-12-01' = {
+            resource postgres_admin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = {
               name: principalId
               properties: {
                 principalName: principalName
@@ -141,6 +141,8 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         var postgres = builder.AddAzurePostgresFlexibleServer("postgres")
             .WithPasswordAuthentication(userName, password);
 
+        postgres.AddDatabase("db1", "db1Name");
+
         var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
 
         var expectedManifest = $$"""
@@ -168,7 +170,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
 
             param keyVaultName string
 
-            resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
+            resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
               name: take('postgres${uniqueString(resourceGroup().id)}', 24)
               location: location
               properties: {
@@ -200,7 +202,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
               }
             }
 
-            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2022-12-01' = {
+            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
               name: 'AllowAllAzureIps'
               properties: {
                 endIpAddress: '0.0.0.0'
@@ -209,7 +211,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
               parent: postgres
             }
 
-            resource postgreSqlFirewallRule_AllowAllIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2022-12-01' = {
+            resource postgreSqlFirewallRule_AllowAllIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
               name: 'AllowAllIps'
               properties: {
                 endIpAddress: '255.255.255.255'
@@ -218,14 +220,27 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
               parent: postgres
             }
 
-            resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
+            resource db1 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
+              name: 'db1Name'
+              parent: postgres
+            }
+
+            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
 
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
+            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
               name: 'connectionString'
               properties: {
                 value: 'Host=${postgres.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
+              }
+              parent: keyVault
+            }
+
+            resource db1_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'db1-connectionString'
+              properties: {
+                value: 'Host=${postgres.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword};Database=db1Name'
               }
               parent: keyVault
             }
@@ -305,5 +320,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         var db2 = postgres.AddDatabase("db2", "db2Name");
 
         Assert.Equal("Host=localhost;Port=12455;Username=user;Password=p@ssw0rd1", await postgres.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+        Assert.Equal("Host=localhost;Port=12455;Username=user;Password=p@ssw0rd1;Database=db1", await db1.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+        Assert.Equal("Host=localhost;Port=12455;Username=user;Password=p@ssw0rd1;Database=db2Name", await db2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
     }
 }

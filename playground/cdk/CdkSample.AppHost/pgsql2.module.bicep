@@ -7,7 +7,7 @@ param principalType string
 
 param principalName string
 
-resource pgsql2 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
+resource pgsql2 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   name: take('pgsql${uniqueString(resourceGroup().id)}', 24)
   location: location
   properties: {
@@ -37,7 +37,7 @@ resource pgsql2 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
   }
 }
 
-resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2022-12-01' = {
+resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
   name: 'AllowAllAzureIps'
   properties: {
     endIpAddress: '0.0.0.0'
@@ -46,7 +46,12 @@ resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flex
   parent: pgsql2
 }
 
-resource pgsql2_admin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2022-12-01' = {
+resource pgsql2db 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
+  name: 'pgsql2db'
+  parent: pgsql2
+}
+
+resource pgsql2_admin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = {
   name: principalId
   properties: {
     principalName: principalName

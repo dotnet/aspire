@@ -40,7 +40,7 @@ public static class AzureSqlExtensions
             };
             construct.Add(sqlServer);
 
-            construct.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllAzureIps", sqlServer.ResourceVersion)
+            construct.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllAzureIps")
             {
                 Parent = sqlServer,
                 Name = "AllowAllAzureIps",
@@ -54,7 +54,7 @@ public static class AzureSqlExtensions
                 // the principalType.
                 sqlServer.Administrators.Value!.PrincipalType = construct.PrincipalTypeParameter;
 
-                construct.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps", sqlServer.ResourceVersion)
+                construct.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps")
                 {
                     Parent = sqlServer,
                     Name = "AllowAllIps",
@@ -68,7 +68,7 @@ public static class AzureSqlExtensions
             {
                 var resourceName = databaseNames.Key;
                 var databaseName = databaseNames.Value;
-                var sqlDatabase = new SqlDatabase(resourceName, sqlServer.ResourceVersion)
+                var sqlDatabase = new SqlDatabase(resourceName)
                 {
                     Parent = sqlServer,
                     Name = databaseName
@@ -77,7 +77,7 @@ public static class AzureSqlExtensions
                 sqlDatabases.Add(sqlDatabase);
             }
 
-            construct.Add(new BicepOutput("sqlServerFqdn", typeof(string)) { Value = sqlServer.FullyQualifiedDomainName });
+            construct.Add(new ProvisioningOutput("sqlServerFqdn", typeof(string)) { Value = sqlServer.FullyQualifiedDomainName });
 
             var resource = (AzureSqlServerResource)construct.Resource;
             var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource);

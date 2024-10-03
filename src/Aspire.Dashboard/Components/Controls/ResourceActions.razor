@@ -29,7 +29,7 @@
         }
     }
 
-    <FluentButton Appearance="Appearance.Lightweight" Title="@Loc[nameof(Resources.Resources.ResourceActionConsoleLogsText)]" OnClick="@(() => OnConsoleLogs.InvokeAsync())">
+    <FluentButton Appearance="Appearance.Lightweight" Title="@Loc[nameof(Resources.Resources.ResourceActionConsoleLogsText)]" OnClick="@(() => NavigationManager.NavigateTo(Aspire.Dashboard.Utils.DashboardUrls.ConsoleLogsUrl(resource: Resource.Name)))">
         <FluentIcon Value="@s_consoleLogsIcon" />
     </FluentButton>
 
@@ -40,4 +40,4 @@
                   Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
                   Items="@_menuItems"
                   @ref="_menuButton"
-                  Title="@Loc[nameof(Resources.Resources.ResourceResourceActions)]" />
+                  Title="@ControlLoc[nameof(Resources.ControlsStrings.ActionsButtonText)]" />

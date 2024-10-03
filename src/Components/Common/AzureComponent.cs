@@ -19,9 +19,13 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
 {
     protected virtual string[] ActivitySourceNames => new[] { $"{typeof(TClient).Namespace}.*" };
 
+    protected virtual string[] MetricSourceNames => new[] { $"{typeof(TClient).Namespace}.*" };
+
     // There would be no need for Get* methods if TSettings had a common base type or if it was implementing a shared interface.
     // TSettings is a public type and we don't have a shared package yet, but we may reconsider the approach in near future.
     protected abstract bool GetHealthCheckEnabled(TSettings settings);
+
+    protected abstract bool GetMetricsEnabled(TSettings settings);
 
     protected abstract bool GetTracingEnabled(TSettings settings);
 
@@ -127,6 +131,12 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
                 failureStatus: default,
                 tags: default,
                 timeout: default));
+        }
+
+        if (GetMetricsEnabled(settings))
+        {
+            builder.Services.AddOpenTelemetry()
+                .WithMetrics(meterBuilder => meterBuilder.AddMeter(MetricSourceNames));
         }
 
         if (GetTracingEnabled(settings))

@@ -10,11 +10,11 @@ var eventHub = builder.AddAzureEventHubs("eventhubns")
     .AddEventHub("hub");
 
 builder.AddProject<Projects.EventHubsConsumer>("consumer")
-    .WithReference(eventHub)
+    .WithReference(eventHub).WaitFor(eventHub)
     .WithReference(blob);
 
 builder.AddProject<Projects.EventHubsApi>("api")
     .WithExternalHttpEndpoints()
-    .WithReference(eventHub);
+    .WithReference(eventHub).WaitFor(eventHub);
 
 builder.Build().Run();

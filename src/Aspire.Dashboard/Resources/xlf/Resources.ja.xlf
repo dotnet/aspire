@@ -7,9 +7,19 @@
         <target state="translated">コンソール ログ</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceActionViewDetailsText">
-        <source>View details</source>
-        <target state="translated">詳細の表示</target>
+      <trans-unit id="ResourceActionMetricsText">
+        <source>Metrics</source>
+        <target state="new">Metrics</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionStructuredLogsText">
+        <source>Structured logs</source>
+        <target state="new">Structured logs</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionTracesText">
+        <source>Traces</source>
+        <target state="new">Traces</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceCommandFailed">
@@ -45,11 +55,6 @@
       <trans-unit id="ResourceDetailsViewConsoleLogs">
         <source>View console logs</source>
         <target state="translated">コンソール ログの表示</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceResourceActions">
-        <source>Resource actions</source>
-        <target state="new">Resource actions</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesActionsColumnHeader">

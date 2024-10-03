@@ -147,6 +147,7 @@ public static class PostgresBuilderExtensions
                                                  .WithHttpEndpoint(targetPort: 80, name: "http")
                                                  .WithEnvironment(SetPgAdminEnvironmentVariables)
                                                  .WithBindMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
+                                                 .WithHttpHealthCheck("/browser")
                                                  .ExcludeFromManifest();
 
             builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>

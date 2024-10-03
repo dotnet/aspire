@@ -32,7 +32,3 @@
 ::deep fluent-data-grid {
     overflow-x: clip;
 }
-
-::deep resource-action-container {
-    display: inline-block;
-}

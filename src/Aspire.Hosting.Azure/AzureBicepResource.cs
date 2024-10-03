@@ -237,14 +237,14 @@ public readonly struct BicepTemplateFile(string path, bool deleteFileOnDispose) 
 }
 
 /// <summary>
-/// A reference to a secret output from a bicep template.
+/// A reference to a KeyVault secret from a bicep template.
 /// </summary>
-/// <param name="name">The name of the secret output.</param>
+/// <param name="name">The name of the KeyVault secret.</param>
 /// <param name="resource">The <see cref="AzureBicepResource"/>.</param>
 public class BicepSecretOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>
-    /// Name of the output.
+    /// Name of the KeyVault secret.
     /// </summary>
     public string Name { get; } = name;
 

@@ -4,9 +4,35 @@
 using Aspire;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dcp;
+using Microsoft.Extensions.DependencyInjection;
 
 internal static class BuiltInDistributedApplicationEventSubscriptionHandlers
 {
+    public static Task InitializeDcpAnnotations(BeforeStartEvent beforeStartEvent, CancellationToken _)
+    {
+        // DCP names need to be calculated before any user code runs so that using IResource with
+        // ResourceNotificationService and ResourceLoggerService overloads uses the right resource instance names.
+        var nameGenerator = beforeStartEvent.Services.GetRequiredService<DcpNameGenerator>();
+
+        foreach (var container in beforeStartEvent.Model.GetContainerResources())
+        {
+            nameGenerator.EnsureDcpInstancesPopulated(container);
+        }
+
+        foreach (var executable in beforeStartEvent.Model.GetExecutableResources())
+        {
+            nameGenerator.EnsureDcpInstancesPopulated(executable);
+        }
+
+        foreach (var project in beforeStartEvent.Model.GetProjectResources())
+        {
+            nameGenerator.EnsureDcpInstancesPopulated(project);
+        }
+
+        return Task.CompletedTask;
+    }
+
     public static Task ExcludeDashboardFromManifestAsync(BeforeStartEvent beforeStartEvent, CancellationToken _)
     {
         // When developing locally, exclude the dashboard from the manifest. This only affects our playground projects in practice.

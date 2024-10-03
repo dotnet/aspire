@@ -8,7 +8,7 @@ param administratorLoginPassword string
 
 param keyVaultName string
 
-resource pg 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
+resource pg 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   name: take('pg${uniqueString(resourceGroup().id)}', 24)
   location: location
   properties: {
@@ -40,7 +40,7 @@ resource pg 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
   }
 }
 
-resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2022-12-01' = {
+resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
   name: 'AllowAllAzureIps'
   properties: {
     endIpAddress: '0.0.0.0'
@@ -49,19 +49,27 @@ resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flex
   parent: pg
 }
 
-resource db 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2022-12-01' = {
+resource db 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
   name: 'db'
   parent: pg
 }
 
-resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
+resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
   name: keyVaultName
 }
 
-resource connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
+resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   name: 'connectionString'
   properties: {
     value: 'Host=${pg.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
+  }
+  parent: keyVault
+}
+
+resource db_connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
+  name: 'db-connectionString'
+  properties: {
+    value: 'Host=${pg.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword};Database=db'
   }
   parent: keyVault
 }

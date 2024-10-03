@@ -14,9 +14,9 @@
     <BaselineVersionForPackageValidation>8.0.1</BaselineVersionForPackageValidation>
     <DefaultTargetFramework>net8.0</DefaultTargetFramework>
     <!-- dotnet 8.0 versions for running tests -->
-    <DotNetRuntimeVersionForTesting>8.0.8</DotNetRuntimeVersionForTesting>
+    <DotNetRuntimePreviousVersionForTesting>8.0.8</DotNetRuntimePreviousVersionForTesting>
     <!-- dotnet 8.0 versions for running tests - used for workload tests -->
-    <DotNetSdkVersionForTesting>8.0.401</DotNetSdkVersionForTesting>
+    <DotNetSdkPreviousVersionForTesting>8.0.401</DotNetSdkPreviousVersionForTesting>
     <UseVSTestRunner>true</UseVSTestRunner>
     <!-- Enable to remove prerelease label. -->
     <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">false</StabilizePackageVersion>
@@ -26,13 +26,13 @@
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
     <MicrosoftDotnetSdkInternalPackageVersion>8.0.100-rtm.23512.16</MicrosoftDotnetSdkInternalPackageVersion>
     <!-- DCP -->
-    <MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>0.8.4</MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>0.8.4</MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>
-    <MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>0.8.4</MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>0.8.4</MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>
-    <MicrosoftDeveloperControlPlanewindows386PackageVersion>0.8.4</MicrosoftDeveloperControlPlanewindows386PackageVersion>
-    <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.8.4</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.8.4</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>0.8.7</MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>0.8.7</MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>0.8.7</MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>0.8.7</MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanewindows386PackageVersion>0.8.7</MicrosoftDeveloperControlPlanewindows386PackageVersion>
+    <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.8.7</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.8.7</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
     <!-- Other -->
     <MicrosoftDotNetRemoteExecutorPackageVersion>9.0.0-beta.24473.1</MicrosoftDotNetRemoteExecutorPackageVersion>
     <MicrosoftDotNetXUnitExtensionsPackageVersion>9.0.0-beta.24473.1</MicrosoftDotNetXUnitExtensionsPackageVersion>
@@ -66,5 +66,8 @@
     <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>8.0.8</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
     <MicrosoftEntityFrameworkCoreToolsPackageVersion>8.0.8</MicrosoftEntityFrameworkCoreToolsPackageVersion>
     <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.0-preview.5.24272.3</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
+    <!-- for templates -->
+    <MicrosoftExtensionsHttpResiliencePackageVersionForNet8>$(MicrosoftExtensionsHttpResiliencePackageVersion)</MicrosoftExtensionsHttpResiliencePackageVersionForNet8>
+    <MicrosoftExtensionsHttpResiliencePackageVersionForNet9>$(MicrosoftExtensionsHttpResiliencePackageVersion)</MicrosoftExtensionsHttpResiliencePackageVersionForNet9>
   </PropertyGroup>
 </Project>
