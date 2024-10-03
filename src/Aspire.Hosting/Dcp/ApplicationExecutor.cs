@@ -109,7 +109,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private readonly ConcurrentDictionary<string, Endpoint> _endpointsMap = [];
     private readonly ConcurrentDictionary<(string, string), List<string>> _resourceAssociatedServicesMap = [];
     private readonly ConcurrentDictionary<string, (CancellationTokenSource Cancellation, Task Task)> _logStreams = new();
-    private readonly ConcurrentDictionary<IResource, bool> _hiddenResources = new();
     private DcpInfo? _dcpInfo;
     private Task? _resourceWatchTask;
 
@@ -409,12 +408,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     if (_logger.IsEnabled(LogLevel.Trace))
                     {
                         _logger.LogTrace("Updating application model resource {ResourceName} with {ResourceKind} resource {ResourceName}", appModelResource.Name, resourceKind, resource.Metadata.Name);
-                    }
-
-                    if (_hiddenResources.TryAdd(appModelResource, true))
-                    {
-                        // Hide the application model resource because we have the DCP resource
-                        await notificationService.PublishUpdateAsync(appModelResource, s => s with { State = "Hidden" }).ConfigureAwait(false);
                     }
 
                     // Notifications are associated with the application model resource, so we need to update with that context

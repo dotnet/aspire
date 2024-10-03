@@ -139,11 +139,39 @@ public class ResourceLoggerService
     /// </summary>
     /// <param name="resource">The resource to watch for logs.</param>
     /// <returns>An async enumerable that returns the logs as they are written.</returns>
-    public IAsyncEnumerable<IReadOnlyList<LogLine>> WatchAsync(IResource resource)
+    public async IAsyncEnumerable<IReadOnlyList<LogLine>> WatchAsync(IResource resource)
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        return WatchAsync(resource.Name);
+        var resourceNames = ResourceNotificationService.ResolveResourceNames(resource);
+
+        var channel = Channel.CreateUnbounded<IReadOnlyList<LogLine>>();
+        var readTasks = resourceNames.Select(async (name) =>
+        {
+            await foreach (var logLines in WatchAsync(name).ConfigureAwait(false))
+            {
+                channel.Writer.TryWrite(logLines);
+            }
+        });
+
+        var completionTask = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.WhenAll(readTasks).ConfigureAwait(false);
+            }
+            finally
+            {
+                channel.Writer.Complete();
+            }
+        });
+
+        await foreach (var item in channel.Reader.ReadAllAsync().ConfigureAwait(false))
+        {
+            yield return item;
+        }
+
+        await completionTask.ConfigureAwait(false);
     }
 
     /// <summary>
@@ -248,6 +276,7 @@ public class ResourceLoggerService
             return state;
         },
         this);
+    internal Dictionary<string, ResourceLoggerState> Loggers => _loggers.ToDictionary();
 
     /// <summary>
     /// A logger for the resource to write to.
