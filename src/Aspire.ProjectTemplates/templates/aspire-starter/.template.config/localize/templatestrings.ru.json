@@ -25,6 +25,7 @@
   "symbols/skipRestore/description": "Если установлено, автоматическое восстановление проекта при создании пропускается.",
   "symbols/NoHttps/description": "Следует ли отключить HTTPS.",
   "postActions/set-startup-project/description": "Устанавливает проект запуска в решении",
+  "postActions/set-startup-project/manualInstructions/default/text": "Set the startup project in the solution",
   "postActions/restore/description": "Восстановление пакетов NuGet, необходимых для этого проекта.",
   "postActions/restore/manualInstructions/default/text": "Выполнить команду \"dotnet restore\""
 }

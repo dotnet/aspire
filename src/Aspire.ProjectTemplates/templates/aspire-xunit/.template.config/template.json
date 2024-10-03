@@ -13,6 +13,7 @@
   ],
   "name": ".NET Aspire Test Project (xUnit)",
   "defaultName": "Tests",
+  "generatorVersions": "[1.0.0.0-*)",
   "description": "A project that contains xUnit.net integration tests of a .NET Aspire AppHost project.",
   "shortName": "aspire-xunit",
   "sourceName": "Aspire.Tests.1",

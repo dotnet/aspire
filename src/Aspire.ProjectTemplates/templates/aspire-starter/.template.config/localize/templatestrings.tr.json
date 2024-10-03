@@ -25,6 +25,7 @@
   "symbols/skipRestore/description": "Belirtilirse, oluşturma sırasında projenin otomatik geri yüklenmesini atlar.",
   "symbols/NoHttps/description": "HTTPS'nin kapatılıp kapatılmayacağı.",
   "postActions/set-startup-project/description": "Çözümdeki başlangıç projesini ayarlar",
+  "postActions/set-startup-project/manualInstructions/default/text": "Set the startup project in the solution",
   "postActions/restore/description": "Bu projenin gerektirdiği NuGet paketlerini geri yükleyin.",
   "postActions/restore/manualInstructions/default/text": "'dotnet restore' çalıştır"
 }
