@@ -42,7 +42,7 @@ public static class AzureServiceBusExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var skuParameter = new BicepParameter("sku", typeof(string))
+            var skuParameter = new ProvisioningParameter("sku", typeof(string))
             {
                 Value = new StringLiteral("Standard")
             };
@@ -61,7 +61,7 @@ public static class AzureServiceBusExtensions
 
             construct.Add(serviceBusNamespace.AssignRole(ServiceBusBuiltInRole.AzureServiceBusDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
-            construct.Add(new BicepOutput("serviceBusEndpoint", typeof(string)) { Value = serviceBusNamespace.ServiceBusEndpoint });
+            construct.Add(new ProvisioningOutput("serviceBusEndpoint", typeof(string)) { Value = serviceBusNamespace.ServiceBusEndpoint });
 
             var azureResource = (AzureServiceBusResource)construct.Resource;
             var azureResourceBuilder = builder.CreateResourceBuilder(azureResource);

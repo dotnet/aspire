@@ -7,7 +7,7 @@ param principalId string
 
 param principalType string
 
-resource eventhubns 'Microsoft.EventHub/namespaces@2017-04-01' = {
+resource eventhubns 'Microsoft.EventHub/namespaces@2024-01-01' = {
   name: take('eventhubns-${uniqueString(resourceGroup().id)}', 256)
   location: location
   sku: {

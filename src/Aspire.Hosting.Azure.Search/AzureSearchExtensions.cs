@@ -67,7 +67,7 @@ public static class AzureSearchExtensions
             // TODO: The endpoint format should move into the CDK so we can maintain this
             // logic in a single location and have a better chance at supporting more than
             // just public Azure in the future.  https://github.com/Azure/azure-sdk-for-net/issues/42640
-            construct.Add(new BicepOutput("connectionString", typeof(string))
+            construct.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
                 Value = BicepFunction.Interpolate($"Endpoint=https://{search.Name}.search.windows.net")
             });

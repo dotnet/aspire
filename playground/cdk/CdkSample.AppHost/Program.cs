@@ -17,8 +17,8 @@ var sku = builder.AddParameter("storagesku");
 var locationOverride = builder.AddParameter("locationOverride");
 var storage = builder.AddAzureStorage("storage", (_, construct, account) =>
 {
-    account.Sku = new StorageSku() { Name = sku.AsBicepParameter(construct) };
-    account.Location = locationOverride.AsBicepParameter(construct);
+    account.Sku = new StorageSku() { Name = sku.AsProvisioningParameter(construct) };
+    account.Location = locationOverride.AsProvisioningParameter(construct);
 });
 
 var blobs = storage.AddBlobs("blobs");
@@ -32,7 +32,7 @@ var keyvault = builder.AddAzureKeyVault("mykv", (_, construct, keyVault) =>
     {
         Parent = keyVault,
         Name = "mysecret",
-        Properties = new SecretProperties { Value = signaturesecret.AsBicepParameter(construct) }
+        Properties = new SecretProperties { Value = signaturesecret.AsProvisioningParameter(construct) }
     };
     construct.Add(secret);
 });

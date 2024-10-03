@@ -116,6 +116,9 @@ public static class AspireWebPubSubExtensions
         protected override TokenCredential? GetTokenCredential(AzureMessagingWebPubSubSettings settings)
             => settings.Credential;
 
+        protected override bool GetMetricsEnabled(AzureMessagingWebPubSubSettings settings)
+            => false;
+
         protected override bool GetTracingEnabled(AzureMessagingWebPubSubSettings settings)
             => !settings.DisableTracing;
 

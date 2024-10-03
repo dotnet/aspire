@@ -68,11 +68,11 @@ public partial class FilterDialog
             _parameters = knownFields;
         }
 
-        if (Content.Filter is { } logFilter)
+        if (Content.Filter is { } filter)
         {
-            _formModel.Parameter = _parameters.SingleOrDefault(c => c.Id == logFilter.Field);
-            _formModel.Condition = _filterConditions.Single(c => c.Id == logFilter.Condition);
-            _formModel.Value = logFilter.Value;
+            _formModel.Parameter = _parameters.SingleOrDefault(c => c.Id == filter.Field);
+            _formModel.Condition = _filterConditions.Single(c => c.Id == filter.Condition);
+            _formModel.Value = filter.Value;
         }
         else
         {
@@ -124,9 +124,9 @@ public partial class FilterDialog
         if (_allValues != null)
         {
             IEnumerable<SelectViewModel<FieldValue>> newValues = _allValues;
-            if (!string.IsNullOrEmpty(_formModel.Value))
+            if (_formModel.Value is { Length: > 0 } value)
             {
-                newValues = newValues.Where(vm => vm.Name.Contains(_formModel.Value!));
+                newValues = newValues.Where(vm => vm.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
             }
 
             // Limit to 1000 items to avoid the combo box have too many items and impacting UI perf.
@@ -150,17 +150,17 @@ public partial class FilterDialog
 
     private void Apply()
     {
-        if (Content.Filter is { } logFilter)
+        if (Content.Filter is { } filter)
         {
-            logFilter.Field = _formModel.Parameter!.Id!;
-            logFilter.Condition = _formModel.Condition!.Id;
-            logFilter.Value = _formModel.Value!;
+            filter.Field = _formModel.Parameter!.Id!;
+            filter.Condition = _formModel.Condition!.Id;
+            filter.Value = _formModel.Value!;
 
-            Dialog!.CloseAsync(DialogResult.Ok(new FilterDialogResult() { Filter = logFilter, Delete = false }));
+            Dialog!.CloseAsync(DialogResult.Ok(new FilterDialogResult() { Filter = filter, Delete = false }));
         }
         else
         {
-            var filter = new TelemetryFilter
+            filter = new TelemetryFilter
             {
                 Field = _formModel.Parameter!.Id!,
                 Condition = _formModel.Condition!.Id,

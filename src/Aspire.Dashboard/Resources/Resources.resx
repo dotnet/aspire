@@ -226,9 +226,6 @@
   <data name="ResourceActionConsoleLogsText" xml:space="preserve">
     <value>Console logs</value>
   </data>
-  <data name="ResourceActionViewDetailsText" xml:space="preserve">
-    <value>View details</value>
-  </data>
   <data name="ResourceDetailsViewConsoleLogs" xml:space="preserve">
     <value>View console logs</value>
   </data>
@@ -241,8 +238,5 @@
   <data name="ResourceCommandStarting" xml:space="preserve">
     <value>{0} "{1}" starting</value>
     <comment>{0} is the resource. {1} is the display name of the command.</comment>
-  </data>
-  <data name="ResourceResourceActions" xml:space="preserve">
-    <value>Resource actions</value>
   </data>
 </root>

@@ -1,13 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Web;
 using Aspire.Dashboard.Model.Otlp;
 
 namespace Aspire.Dashboard.Extensions;
 
-public static class LogFilterFormatter
+public static class TelemetryFilterFormatter
 {
-    private static string SerializeLogFilterToString(TelemetryFilter filter)
+    private static string SerializeFilterToString(TelemetryFilter filter)
     {
         var condition = filter.Condition switch
         {
@@ -22,16 +23,15 @@ public static class LogFilterFormatter
             _ => null
         };
 
-        return $"{filter.Field}:{condition}:{Uri.EscapeDataString(filter.Value)}";
+        return $"{Escape(filter.Field)}:{condition}:{Escape(filter.Value)}";
     }
 
-    public static string SerializeLogFiltersToString(IEnumerable<TelemetryFilter> filters)
+    public static string SerializeFiltersToString(IEnumerable<TelemetryFilter> filters)
     {
-        // "%2B" is the escaped form of +
-        return string.Join("%2B", filters.Select(SerializeLogFilterToString));
+        return string.Join(" ", filters.Select(SerializeFilterToString));
     }
 
-    private static TelemetryFilter? DeserializeLogFilterFromString(string filterString)
+    private static TelemetryFilter? DeserializeFilterFromString(string filterString)
     {
         var parts = filterString.Split(':');
         if (parts.Length != 3)
@@ -39,7 +39,7 @@ public static class LogFilterFormatter
             return null;
         }
 
-        var field = parts[0];
+        var field = Unescape(parts[0]);
 
         FilterCondition? condition = parts[1] switch
         {
@@ -59,16 +59,31 @@ public static class LogFilterFormatter
             return null;
         }
 
-        var value = Uri.UnescapeDataString(parts[2]);
+        var value = Unescape(parts[2]);
 
-        return new TelemetryFilter { Condition = condition.Value, Field = field, Value = value };
+        return new TelemetryFilter
+        {
+            Condition = condition.Value,
+            Field = field,
+            Value = value
+        };
     }
 
-    public static List<TelemetryFilter> DeserializeLogFiltersFromString(string filtersString)
+    private static string Escape(string value)
+    {
+        return HttpUtility.UrlEncode(value);
+    }
+
+    private static string Unescape(string value)
+    {
+        return HttpUtility.UrlDecode(value);
+    }
+
+    public static List<TelemetryFilter> DeserializeFiltersFromString(string filtersString)
     {
         return filtersString
-            .Split('+') // + turns into space from query parameter (' ')
-            .Select(DeserializeLogFilterFromString)
+            .Split(' ')
+            .Select(DeserializeFilterFromString)
             .Where(filter => filter is not null)
             .Cast<TelemetryFilter>()
             .ToList();

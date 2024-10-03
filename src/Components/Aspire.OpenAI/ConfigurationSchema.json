@@ -10,10 +10,6 @@
             "ClientOptions": {
               "type": "object",
               "properties": {
-                "ApplicationId": {
-                  "type": "string",
-                  "description": "An optional application ID to use as part of the request User-Agent header."
-                },
                 "Endpoint": {
                   "type": "string",
                   "format": "uri",
@@ -31,19 +27,21 @@
                 "ProjectId": {
                   "type": "string",
                   "description": "The value to use for the OpenAI-Project request header. Users who are accessing their projects through their legacy user API key can set this value to specify which project is used for an API request. Usage from these API requests will count as usage for the specified project. If not set, the header will be omitted, and the default project will be accessed."
+                },
+                "UserAgentApplicationId": {
+                  "type": "string",
+                  "description": "An optional application ID to use as part of the request User-Agent header."
                 }
               },
               "description": "The options to configure the client."
             },
             "DisableMetrics": {
               "type": "boolean",
-              "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
-              "default": false
+              "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not."
             },
             "DisableTracing": {
               "type": "boolean",
-              "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
-              "default": false
+              "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not."
             },
             "Endpoint": {
               "type": "string",
