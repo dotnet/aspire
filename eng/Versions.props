@@ -14,9 +14,9 @@
     <BaselineVersionForPackageValidation>8.0.1</BaselineVersionForPackageValidation>
     <DefaultTargetFramework>net8.0</DefaultTargetFramework>
     <!-- dotnet 8.0 versions for running tests -->
-    <DotNetRuntimeVersionForTesting>8.0.8</DotNetRuntimeVersionForTesting>
+    <DotNetRuntimePreviousVersionForTesting>8.0.8</DotNetRuntimePreviousVersionForTesting>
     <!-- dotnet 8.0 versions for running tests - used for workload tests -->
-    <DotNetSdkVersionForTesting>8.0.401</DotNetSdkVersionForTesting>
+    <DotNetSdkPreviousVersionForTesting>8.0.401</DotNetSdkPreviousVersionForTesting>
     <UseVSTestRunner>true</UseVSTestRunner>
     <!-- Enable to remove prerelease label. -->
     <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">false</StabilizePackageVersion>
@@ -66,5 +66,8 @@
     <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>8.0.8</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
     <MicrosoftEntityFrameworkCoreToolsPackageVersion>8.0.8</MicrosoftEntityFrameworkCoreToolsPackageVersion>
     <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.0-preview.5.24272.3</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
+    <!-- for templates -->
+    <MicrosoftExtensionsHttpResiliencePackageVersionForNet8>$(MicrosoftExtensionsHttpResiliencePackageVersion)</MicrosoftExtensionsHttpResiliencePackageVersionForNet8>
+    <MicrosoftExtensionsHttpResiliencePackageVersionForNet9>$(MicrosoftExtensionsHttpResiliencePackageVersion)</MicrosoftExtensionsHttpResiliencePackageVersionForNet9>
   </PropertyGroup>
 </Project>
