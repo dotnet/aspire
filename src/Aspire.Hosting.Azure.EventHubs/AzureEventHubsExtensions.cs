@@ -12,7 +12,6 @@ using Azure.Provisioning;
 using Azure.Provisioning.EventHubs;
 using Azure.Provisioning.Expressions;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting;
 
@@ -212,23 +211,10 @@ public static class AzureEventHubsExtensions
         });
 
         var healthCheckKey = $"{builder.Resource.Name}_check";
-        builder.ApplicationBuilder.Services.AddHealthChecks().AddAsyncCheck(healthCheckKey, async () =>
-        {
-            if (client is null)
-            {
-                return HealthCheckResult.Unhealthy("EventHubProducerClient is not initialized.");
-            }
-
-            try
-            {
-                _ = await client.GetEventHubPropertiesAsync().ConfigureAwait(false);
-                return HealthCheckResult.Healthy();
-            }
-            catch (Exception ex)
-            {
-                return HealthCheckResult.Unhealthy("Cannot connect to the Event Hubs emulator.", ex);
-            }
-        });
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureEventHub(
+            sp => client ?? throw new DistributedApplicationException("EventHubProducerClient is not initialized"),
+            healthCheckKey
+            );
 
         builder.WithHealthCheck(healthCheckKey);
 
