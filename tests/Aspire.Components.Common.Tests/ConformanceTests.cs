@@ -40,7 +40,7 @@ public abstract class ConformanceTests<TService, TOptions>
 
     protected virtual bool CanConnectToServer => false;
 
-    protected virtual bool SupportsNamedConfig => false;
+    protected virtual bool SupportsNamedConfig => true;
     protected virtual string? ConfigurationSectionName => null;
 
     protected virtual bool SupportsKeyedRegistrations => false;

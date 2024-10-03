@@ -34,7 +34,6 @@ public class ConformanceTests : ConformanceTests<QueueServiceClient, AzureStorag
 
     protected override bool CanConnectToServer => s_canConnectToServer.Value;
 
-    protected override bool SupportsNamedConfig => true;
     protected override string? ConfigurationSectionName => "Aspire:Azure:Storage:Queues";
 
     protected override string ValidJsonConfig => """

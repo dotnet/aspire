@@ -35,8 +35,6 @@ public class ConformanceTests : ConformanceTests<MilvusClient, MilvusClientSetti
 
     protected override string ActivitySourceName => "";
 
-    protected override bool SupportsNamedConfig => true;
-
     protected override string? ConfigurationSectionName => "Aspire:Milvus:Client";
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<MilvusClientSettings>? configure = null, string? key = null)

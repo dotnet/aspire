@@ -34,8 +34,6 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
 
     protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
-    protected override bool SupportsNamedConfig => true;
-
     protected override string? ConfigurationSectionName => "Aspire:MySqlConnector";
 
     protected override string ValidJsonConfig => """

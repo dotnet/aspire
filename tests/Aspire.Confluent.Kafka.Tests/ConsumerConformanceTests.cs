@@ -19,7 +19,6 @@ public class ConsumerConformanceTests : ConformanceTests<IConsumer<string, strin
         "Aspire.Confluent.Kafka"
         ];
 
-    protected override bool SupportsNamedConfig => true;
     protected override string? ConfigurationSectionName => "Aspire:Confluent:Kafka:Consumer";
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)

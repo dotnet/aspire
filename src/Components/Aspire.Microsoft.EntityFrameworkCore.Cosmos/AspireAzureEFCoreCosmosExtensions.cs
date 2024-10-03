@@ -48,12 +48,7 @@ public static class AspireAzureEFCoreCosmosExtensions
 
         var settings = builder.GetDbContextSettings<TContext, EntityFrameworkCoreCosmosSettings>(
             DefaultConfigSectionName,
-            (settings, section) =>
-            {
-                var namedConfigSection = section.GetSection(connectionName);
-                section.Bind(settings);
-                namedConfigSection.Bind(settings);
-            }
+            (settings, section) => section.Bind(settings)
         );
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
