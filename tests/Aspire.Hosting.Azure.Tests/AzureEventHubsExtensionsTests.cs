@@ -5,11 +5,57 @@ using Aspire.Hosting.Utils;
 using Aspire.Hosting.Azure.EventHubs;
 using Xunit;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Aspire.Components.Common.Tests;
+using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureEventHubsExtensionsTests
+public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
 {
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWaitForOnEventHubsEmulatorBlocksDependentResources()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
+        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
+        {
+            return healthCheckTcs.Task;
+        });
+
+        var resource = builder.AddAzureEventHubs("resource")
+                              .AddEventHub("hubx")
+                              .RunAsEmulator()
+                              .WithHealthCheck("blocking_check");
+
+        var dependentResource = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
+                                       .WaitFor(resource);
+
+        using var app = builder.Build();
+
+        var pendingStart = app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+
+        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
+
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await pendingStart;
+
+        await app.StopAsync();
+    }
+
     [Fact]
     public void AzureEventHubsUseEmulatorCallbackWithWithDataBindMountResultsInBindMountAnnotationWithDefaultPath()
     {
