@@ -4,7 +4,10 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using HealthChecks.Uris;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -704,6 +707,67 @@ public static class ResourceBuilderExtensions
         builder.WithAnnotation(new HealthCheckAnnotation(key));
 
         return builder;
+    }
+
+    /// <summary>
+    /// Adds a health check to the resource which is mapped to a specific endpoint.
+    /// </summary>
+    /// <typeparam name="T">A resource type that implements <see cref="IResourceWithEndpoints" />.</typeparam>
+    /// <param name="builder">A resource builder.</param>
+    /// <param name="path">The relative path to test.</param>
+    /// <param name="statusCode">The result code to interpret as healthy.</param>
+    /// <param name="endpointName">The name of the endpoint to derive the base address from.</param>
+    /// <returns>A resource builder.</returns>
+    public static IResourceBuilder<T> WithHttpHealthCheck<T>(this IResourceBuilder<T> builder, string? path = null, int? statusCode = null, string? endpointName = null) where T : IResourceWithEndpoints
+    {
+        path = path ?? "/";
+        endpointName = endpointName ?? "http";
+        statusCode = statusCode ?? 200;
+
+        Uri? uri = null;
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, (@event, ct) =>
+        {
+            var endpoint = builder.Resource.GetEndpoint(endpointName);
+            var uriString = $"{endpoint.AllocatedEndpoint.UriString}{path}";
+            uri = new Uri(uriString, UriKind.Absolute);
+            return Task.CompletedTask;
+        });
+
+        var healthCheckKey = $"{builder.Resource.Name}_{endpointName}_{path}_{statusCode}_check";
+        builder.ApplicationBuilder.Services.AddLogging(configure =>
+        {
+            // The AddUrlGroup health check makes use of http client factory.
+            configure.AddFilter($"System.Net.Http.HttpClient.{healthCheckKey}.LogicalHandler", LogLevel.None);
+            configure.AddFilter($"System.Net.Http.HttpClient.{healthCheckKey}.ClientHandler", LogLevel.None);
+        });
+
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddUrlGroup((UriHealthCheckOptions options) =>
+        {
+            if (uri is null)
+            {
+                throw new DistributedApplicationException($"The URI for the health check is not set. Ensure that the resource has been allocated before the health check is executed.");
+            }
+
+            options.AddUri(uri, setup => setup.ExpectHttpCode(statusCode ?? 200));
+        }, healthCheckKey);
+
+        builder.WithHealthCheck(healthCheckKey);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a health check to the resource which is mapped to a specific endpoint.
+    /// </summary>
+    /// <typeparam name="T">A resource type that implements <see cref="IResourceWithEndpoints" />.</typeparam>
+    /// <param name="builder">A resource builder.</param>
+    /// <param name="path">The relative path to test.</param>
+    /// <param name="statusCode">The result code to interpret as healthy.</param>
+    /// <param name="endpointName">The name of the endpoint to derive the base address from.</param>
+    /// <returns>A resource builder.</returns>
+    public static IResourceBuilder<T> WithHttpsHealthCheck<T>(this IResourceBuilder<T> builder, string? path = null, int? statusCode = null, string? endpointName = null) where T : IResourceWithEndpoints
+    {
+        return builder.WithHttpHealthCheck(path, statusCode, endpointName ?? "https");
     }
 
     /// <summary>
