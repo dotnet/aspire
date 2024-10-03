@@ -740,23 +740,40 @@ public static class ResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<T> WithHttpHealthCheck<T>(this IResourceBuilder<T> builder, string? path = null, int? statusCode = null, string? endpointName = null) where T : IResourceWithEndpoints
     {
-        path = path ?? "/";
         endpointName = endpointName ?? "http";
+        return builder.WithHttpHealthCheckInternal(
+            path: path,
+            desiredScheme: "http",
+            endpointName: endpointName,
+            statusCode: statusCode
+            );
+    }
+
+    internal static IResourceBuilder<T> WithHttpHealthCheckInternal<T>(this IResourceBuilder<T> builder, string desiredScheme, string endpointName, string? path = null, int? statusCode = null) where T : IResourceWithEndpoints
+    {
+        path = path ?? "/";
         statusCode = statusCode ?? 200;
 
-        if (builder.Resource.GetEndpoint(endpointName) is not { Scheme: "http" })
-        {
-            throw new DistributedApplicationException($"The endpoint '{endpointName}' on resource '{builder.Resource.Name}' was not using the 'http' scheme.");
-        }
+        var endpoint = builder.Resource.GetEndpoint(endpointName);
 
-        Uri? uri = null;
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, (@event, ct) =>
+        builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((@event, ct) =>
         {
-            if (builder.Resource.GetEndpoint(endpointName) is not { } endpoint)
+            if (!endpoint.Exists)
             {
                 throw new DistributedApplicationException($"The endpoint '{endpointName}' does not exist on the resource '{builder.Resource.Name}'.");
             }
 
+            if (endpoint.Scheme != desiredScheme)
+            {
+                throw new DistributedApplicationException($"The endpoint '{endpointName}' on resource '{builder.Resource.Name}' was not using the '{desiredScheme}' scheme.");
+            }
+
+            return Task.CompletedTask;
+        });
+
+        Uri? uri = null;
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, (@event, ct) =>
+        {
             var baseUri = new Uri(endpoint.Url, UriKind.Absolute);
             uri = new Uri(baseUri, path);
             return Task.CompletedTask;
@@ -817,13 +834,11 @@ public static class ResourceBuilderExtensions
     public static IResourceBuilder<T> WithHttpsHealthCheck<T>(this IResourceBuilder<T> builder, string? path = null, int? statusCode = null, string? endpointName = null) where T : IResourceWithEndpoints
     {
         endpointName = endpointName ?? "https";
-
-        if (builder.Resource.GetEndpoint(endpointName) is not { Scheme: "https" })
-        {
-            throw new DistributedApplicationException($"The endpoint '{endpointName}' on resource '{builder.Resource.Name}' was not using the 'https' scheme.");
-        }
-
-        return builder.WithHttpHealthCheck(path, statusCode, endpointName);
+        return builder.WithHttpHealthCheckInternal(
+            path: path,
+            desiredScheme: "https",
+            endpointName: endpointName,
+            statusCode: statusCode);
     }
 
     /// <summary>

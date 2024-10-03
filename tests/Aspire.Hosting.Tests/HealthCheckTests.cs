@@ -15,15 +15,18 @@ namespace Aspire.Hosting.Tests;
 public class HealthCheckTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    public void WithHttpHealthCheckThrowsIfReferencingEndpointThatIsNotHttpScheme()
+    public async Task WithHttpHealthCheckThrowsIfReferencingEndpointThatIsNotHttpScheme()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
+        builder.AddContainer("resource", "dummycontainer")
+                .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp")
+                .WithHttpHealthCheck(endpointName: "nonhttp");
 
-        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        using var app = builder.Build();
+
+        var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
         {
-            builder.AddContainer("resource", "dummycontainer")
-                   .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp")
-                   .WithHttpHealthCheck(endpointName: "nonhttp");
+            await app.StartAsync();
         });
 
         Assert.Equal(
@@ -33,15 +36,18 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public void WithHttpsHealthCheckThrowsIfReferencingEndpointThatIsNotHttpsScheme()
+    public async Task WithHttpsHealthCheckThrowsIfReferencingEndpointThatIsNotHttpsScheme()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
+        builder.AddContainer("resource", "dummycontainer")
+                .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp")
+                .WithHttpsHealthCheck(endpointName: "nonhttp");
 
-        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        using var app = builder.Build();
+
+        var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
         {
-            builder.AddContainer("resource", "dummycontainer")
-                   .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp")
-                   .WithHttpsHealthCheck(endpointName: "nonhttp");
+            await app.StartAsync();
         });
 
         Assert.Equal(
