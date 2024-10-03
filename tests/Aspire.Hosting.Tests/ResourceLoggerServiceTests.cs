@@ -213,14 +213,7 @@ public class ResourceLoggerServiceTests
     public async Task MultipleInstancesLogsToAll()
     {
         var testResource = new TestResource("myResource");
-        testResource.Annotations.Add(new ReplicaInstancesAnnotation
-        {
-            Instances =
-            {
-                ["instance0"] = new Instance("instance0", "0", 0),
-                ["instance1"] = new Instance("instance1", "1", 1),
-            }
-        });
+        testResource.Annotations.Add(new DcpInstancesAnnotation([new DcpInstance("instance0", "0", 0), new DcpInstance("instance1", "1", 1)]));
 
         var service = ConsoleLoggingTestHelpers.GetResourceLoggerService();
         var logger = service.GetLogger(testResource);

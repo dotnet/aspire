@@ -470,22 +470,10 @@ public class ResourceNotificationService
     /// <param name="stateFactory">A factory that creates the new state based on the previous state.</param>
     public async Task PublishUpdateAsync(IResource resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
     {
-        var resourceNames = ResolveResourceNames(resource);
+        var resourceNames = resource.GetResolvedResourceNames();
         foreach (var resourceName in resourceNames)
         {
             await PublishUpdateAsync(resource, resourceName, stateFactory).ConfigureAwait(false);
-        }
-    }
-
-    internal static string[] ResolveResourceNames(IResource resource)
-    {
-        if (resource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation) && !replicaAnnotation.Instances.IsEmpty)
-        {
-            return [.. replicaAnnotation.Instances.Keys];
-        }
-        else
-        {
-            return [resource.Name];
         }
     }
 

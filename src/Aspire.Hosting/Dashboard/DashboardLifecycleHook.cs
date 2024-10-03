@@ -26,7 +26,8 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              DistributedApplicationExecutionContext executionContext,
                                              ResourceNotificationService resourceNotificationService,
                                              ResourceLoggerService resourceLoggerService,
-                                             ILoggerFactory loggerFactory) : IDistributedApplicationLifecycleHook, IAsyncDisposable
+                                             ILoggerFactory loggerFactory,
+                                             DcpNameGenerator nameGenerator) : IDistributedApplicationLifecycleHook, IAsyncDisposable
 {
     private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _dashboardLogsTask;
@@ -102,6 +103,9 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, fullyQualifiedDashboardPath, dashboardWorkingDirectory ?? "");
         }
 
+        var (name, suffix) = nameGenerator.GetContainerName(dashboardResource);
+        dashboardResource.Annotations.Add(new DcpInstancesAnnotation([new DcpInstance(name, suffix, 0)]));
+
         ConfigureAspireDashboardResource(dashboardResource);
 
         // Make the dashboard first in the list so it starts as fast as possible.
@@ -110,6 +114,10 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
     private void ConfigureAspireDashboardResource(IResource dashboardResource)
     {
+        // The dashboard resource can be visible during development. We don't want people to be able to stop the dashboard from inside the dashboard.
+        // Exclude the lifecycle commands from the dashboard resource so they're not accidently clicked during development.
+        dashboardResource.Annotations.Add(new ExcludeLifecycleCommandsAnnotation());
+
         // Remove endpoint annotations because we are directly configuring
         // the dashboard app (it doesn't go through the proxy!).
         var endpointAnnotations = dashboardResource.Annotations.OfType<EndpointAnnotation>().ToList();

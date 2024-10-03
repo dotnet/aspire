@@ -1028,7 +1028,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         foreach (var executable in modelExecutableResources)
         {
-            var exeInstance = GetInstance(executable, instanceIndex: 0);
+            EnsureRequiredAnnotations(executable);
+
+            var exeInstance = GetDcpInstance(executable, instanceIndex: 0);
             var exePath = executable.Command;
             var exe = Executable.Create(exeInstance.Name, exePath);
 
@@ -1057,11 +1059,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new InvalidOperationException("A project resource is missing required metadata"); // Should never happen.
             }
 
+            EnsureRequiredAnnotations(project);
+
             var replicas = project.GetReplicaCount();
 
             for (var i = 0; i < replicas; i++)
             {
-                var exeInstance = GetInstance(project, instanceIndex: i);
+                var exeInstance = GetDcpInstance(project, instanceIndex: i);
                 var exeSpec = Executable.Create(exeInstance.Name, "dotnet");
                 exeSpec.Spec.WorkingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
 
@@ -1142,6 +1146,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 _appResources.Add(exeAppResource);
             }
         }
+    }
+
+    private static void EnsureRequiredAnnotations(IResource resource)
+    {
+        // Add the default lifecycle commands (start/stop/restart)
+        resource.AddLifeCycleCommands();
     }
 
     private static void SetInitialResourceState(IResource resource, IAnnotationHolder annotationHolder)
@@ -1400,7 +1410,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new InvalidOperationException();
             }
 
-            var containerObjectInstance = GetInstance(container, instanceIndex: 0);
+            EnsureRequiredAnnotations(container);
+
+            var containerObjectInstance = GetDcpInstance(container, instanceIndex: 0);
             var ctr = Container.Create(containerObjectInstance.Name, containerImageName);
 
             ctr.Spec.ContainerName = containerObjectInstance.Name; // Use the same name for container orchestrator (Docker, Podman) resource and DCP object name.
@@ -1449,17 +1461,16 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     }
 
     /// <summary>
-    /// Gets information about the resource's DCP instance.
-    /// ReplicaInstancesAnnotation info is calculated in BeforeStartEvent when the app starts up.
+    /// Gets information about the resource's DCP instance. ReplicaInstancesAnnotation is added in BeforeStartEvent.
     /// </summary>
-    private static Instance GetInstance(IResource resource, int instanceIndex)
+    private static DcpInstance GetDcpInstance(IResource resource, int instanceIndex)
     {
-        if (!resource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
+        if (!resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var replicaAnnotation))
         {
-            throw new DistributedApplicationException($"Couldn't find required {nameof(ReplicaInstancesAnnotation)} annotation on resource {resource.Name}.");
+            throw new DistributedApplicationException($"Couldn't find required {nameof(DcpInstancesAnnotation)} annotation on resource {resource.Name}.");
         }
 
-        foreach (var (id, instance) in replicaAnnotation.Instances)
+        foreach (var instance in replicaAnnotation.Instances)
         {
             if (instance.Index == instanceIndex)
             {

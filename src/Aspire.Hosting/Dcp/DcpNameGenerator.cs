@@ -16,12 +16,12 @@ internal sealed class DcpNameGenerator
     // The second purpose of the suffix is to play a role of a unique OpenTelemetry service instance ID.
     private const int RandomNameSuffixLength = 8;
     private readonly IConfiguration _configuration;
-    private readonly IOptions<DcpOptions> _options;
+    private readonly DcpOptions _options;
 
     public DcpNameGenerator(IConfiguration configuration, IOptions<DcpOptions> options)
     {
         _configuration = configuration;
-        _options = options;
+        _options = options.Value;
     }
 
     public (string Name, string Suffix) GetContainerName(IResource container)
@@ -33,13 +33,13 @@ internal sealed class DcpNameGenerator
             _ => _configuration["AppHost:Sha256"]!.Substring(0, RandomNameSuffixLength).ToLowerInvariant(),
         };
 
-        return (GetObjectNameForResource(container, _options.Value, nameSuffix), nameSuffix);
+        return (GetObjectNameForResource(container, _options, nameSuffix), nameSuffix);
     }
 
     public (string Name, string Suffix) GetExecutableName(IResource project)
     {
         var nameSuffix = GetRandomNameSuffix();
-        return (GetObjectNameForResource(project, _options.Value, nameSuffix), nameSuffix);
+        return (GetObjectNameForResource(project, _options, nameSuffix), nameSuffix);
     }
 
     private static string GetRandomNameSuffix()

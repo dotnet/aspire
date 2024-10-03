@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
+using System.Diagnostics;
 using Aspire;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
@@ -17,37 +19,34 @@ internal static class BuiltInDistributedApplicationEventSubscriptionHandlers
 
         foreach (var container in beforeStartEvent.Model.GetContainerResources())
         {
-            AddInstance(container, nameGenerator.GetContainerName(container), 0);
-            container.AddLifeCycleCommands();
+            var (name, suffix) = nameGenerator.GetContainerName(container);
+            AddInstance(container, [new DcpInstance(name, suffix, 0)]);
         }
 
         foreach (var executable in beforeStartEvent.Model.GetExecutableResources())
         {
-            AddInstance(executable, nameGenerator.GetExecutableName(executable), 0);
-            executable.AddLifeCycleCommands();
+            var (name, suffix) = nameGenerator.GetExecutableName(executable);
+            AddInstance(executable, [new DcpInstance(name, suffix, 0)]);
         }
 
         foreach (var project in beforeStartEvent.Model.GetProjectResources())
         {
             var replicas = project.GetReplicaCount();
+            var builder = ImmutableArray.CreateBuilder<DcpInstance>(replicas);
             for (var i = 0; i < replicas; i++)
             {
-                AddInstance(project, nameGenerator.GetExecutableName(project), i);
+                var (name, suffix) = nameGenerator.GetExecutableName(project);
+                builder.Add(new DcpInstance(name, suffix, i));
             }
-            project.AddLifeCycleCommands();
         }
 
         return Task.CompletedTask;
 
-        static void AddInstance(IResource resource, (string Name, string Suffix) instanceName, int index)
+        static void AddInstance(IResource resource, ImmutableArray<DcpInstance> instances)
         {
-            if (!resource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
-            {
-                replicaAnnotation = new ReplicaInstancesAnnotation();
-                resource.Annotations.Add(replicaAnnotation);
-            }
+            Debug.Assert(!resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var _), "Should only have one annotation.");
 
-            replicaAnnotation.Instances[instanceName.Name] = new Instance(instanceName.Name, instanceName.Suffix, index);
+            resource.Annotations.Add(new DcpInstancesAnnotation(instances));
         }
     }
 
@@ -57,18 +56,6 @@ internal static class BuiltInDistributedApplicationEventSubscriptionHandlers
         if (beforeStartEvent.Model.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is { } dashboardResource)
         {
             dashboardResource.Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
-        }
-
-        return Task.CompletedTask;
-    }
-
-    public static Task ExcludeDashboardFromLifecycleCommands(BeforeStartEvent beforeStartEvent, CancellationToken _)
-    {
-        // The dashboard resource can be visible during development. We don't want people to be able to stop the dashboard from inside the dashboard.
-        // Exclude the lifecycle commands from the dashboard resource so they're not accidently clicked during development.
-        if (beforeStartEvent.Model.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is { } dashboardResource)
-        {
-            dashboardResource.Annotations.Add(new ExcludeLifecycleCommandsAnnotation());
         }
 
         return Task.CompletedTask;

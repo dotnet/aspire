@@ -47,7 +47,7 @@ public class ResourceLoggerService
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        var resourceNames = ResourceNotificationService.ResolveResourceNames(resource);
+        var resourceNames = resource.GetResolvedResourceNames();
         if (resourceNames.Length > 1)
         {
             // If a resource has multiple replicas then return a composite logger that writes to multiple.
@@ -155,7 +155,7 @@ public class ResourceLoggerService
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        var resourceNames = ResourceNotificationService.ResolveResourceNames(resource);
+        var resourceNames = resource.GetResolvedResourceNames();
         if (resourceNames.Length > 1)
         {
             return WatchMultipleAsync(resourceNames, WatchAsync);
@@ -253,7 +253,7 @@ public class ResourceLoggerService
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        var resourceNames = ResourceNotificationService.ResolveResourceNames(resource);
+        var resourceNames = resource.GetResolvedResourceNames();
         foreach (var resourceName in resourceNames)
         {
             if (_loggers.TryGetValue(resourceName, out var logger))
