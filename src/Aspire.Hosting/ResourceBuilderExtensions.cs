@@ -728,7 +728,7 @@ public static class ResourceBuilderExtensions
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, (@event, ct) =>
         {
             var endpoint = builder.Resource.GetEndpoint(endpointName);
-            uri = new Uri(endpoint.Url, path, UriKind.Absolute);
+            uri = new Uri(new Uri(endpoint.Url), path);
             return Task.CompletedTask;
         });
 
