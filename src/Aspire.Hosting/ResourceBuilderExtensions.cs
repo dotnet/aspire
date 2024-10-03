@@ -718,6 +718,26 @@ public static class ResourceBuilderExtensions
     /// <param name="statusCode">The result code to interpret as healthy.</param>
     /// <param name="endpointName">The name of the endpoint to derive the base address from.</param>
     /// <returns>A resource builder.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method adds a health check to the health check service which polls the specified endpoint on the resource
+    /// on a periodic basis. The base address is dynamically determined based on the endpoint that was selected. By
+    /// default the path is set to "/" and the status code is set to 200.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// This example shows add a HTTP health check to a backend project
+    /// to make sure that the front end does not start until the backend is
+    /// reporting a healthy status based on the return code returned from the
+    /// "/health" path on the backend server.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var backend = builder.AddProject&lt;Projects.Backend&gt;("backend")
+    ///                      .WithHttpHealthCheck("/health");
+    /// builder.AddProject&lt;Projects.Backend&gt;("backend")
+    ///        .WithReference(backend).WaitFor(backend);
+    /// </code>
+    /// </example>
     public static IResourceBuilder<T> WithHttpHealthCheck<T>(this IResourceBuilder<T> builder, string? path = null, int? statusCode = null, string? endpointName = null) where T : IResourceWithEndpoints
     {
         path = path ?? "/";
@@ -727,8 +747,13 @@ public static class ResourceBuilderExtensions
         Uri? uri = null;
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, (@event, ct) =>
         {
-            var endpoint = builder.Resource.GetEndpoint(endpointName);
-            uri = new Uri(endpoint.Url, path, UriKind.Absolute);
+            if (builder.Resource.GetEndpoint(endpointName) is not { } endpoint)
+            {
+                throw new DistributedApplicationException($"The endpoint '{endpointName}' does not exist on the resource '{builder.Resource.Name}'.");
+            }
+
+            var baseUri = new Uri(endpoint.Url, UriKind.Absolute);
+            uri = new Uri(baseUri, path);
             return Task.CompletedTask;
         });
 
@@ -764,6 +789,26 @@ public static class ResourceBuilderExtensions
     /// <param name="statusCode">The result code to interpret as healthy.</param>
     /// <param name="endpointName">The name of the endpoint to derive the base address from.</param>
     /// <returns>A resource builder.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method adds a health check to the health check service which polls the specified endpoint on the resource
+    /// on a periodic basis. The base address is dynamically determined based on the endpoint that was selected. By
+    /// default the path is set to "/" and the status code is set to 200.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// This example shows add a HTTPS health check to a backend project
+    /// to make sure that the front end does not start until the backend is
+    /// reporting a healthy status based on the return code returned from the
+    /// "/health" path on the backend server.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var backend = builder.AddProject&lt;Projects.Backend&gt;("backend")
+    ///                      .WithHttpsHealthCheck("/health");
+    /// builder.AddProject&lt;Projects.Backend&gt;("backend")
+    ///        .WithReference(backend).WaitFor(backend);
+    /// </code>
+    /// </example>
     public static IResourceBuilder<T> WithHttpsHealthCheck<T>(this IResourceBuilder<T> builder, string? path = null, int? statusCode = null, string? endpointName = null) where T : IResourceWithEndpoints
     {
         return builder.WithHttpHealthCheck(path, statusCode, endpointName ?? "https");
