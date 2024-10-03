@@ -11,7 +11,7 @@ internal static class PostgresContainerImageTags
     /// <summary>library/postgres</summary>
     public const string Image = "library/postgres";
 
-    /// <summary>16.4</summary>
+    /// <summary>17.0</summary>
     public const string Tag = "17.0";
 
     /// <summary>docker.io</summary>
