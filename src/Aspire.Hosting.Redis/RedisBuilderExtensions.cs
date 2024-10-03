@@ -145,7 +145,6 @@ public static class RedisBuilderExtensions
         }
         else
         {
-            builder.ApplicationBuilder.Services.AddHttpClient();
             containerName ??= $"{builder.Resource.Name}-insight";
 
             var resource = new RedisInsightResource(containerName);
@@ -165,12 +164,10 @@ public static class RedisBuilderExtensions
                     return;
                 }
 
-                var httpClientFactory = e.Services.GetRequiredService<IHttpClientFactory>();
-
                 var redisInsightResource = builder.ApplicationBuilder.Resources.OfType<RedisInsightResource>().Single();
                 var insightEndpoint = redisInsightResource.PrimaryEndpoint;
 
-                var client = httpClientFactory.CreateClient();
+                using var client = new HttpClient();
                 client.BaseAddress = new Uri($"{insightEndpoint.Scheme}://{insightEndpoint.Host}:{insightEndpoint.Port}");
 
                 var rls = e.Services.GetRequiredService<ResourceLoggerService>();

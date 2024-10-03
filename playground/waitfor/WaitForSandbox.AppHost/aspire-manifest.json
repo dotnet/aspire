@@ -13,7 +13,7 @@
     },
     "db": {
       "type": "value.v0",
-      "connectionString": "{pg.connectionString};Database=db"
+      "connectionString": "{pg.secretOutputs.db-connectionString}"
     },
     "dbsetup": {
       "type": "project.v0",

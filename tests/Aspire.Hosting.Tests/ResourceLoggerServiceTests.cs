@@ -209,6 +209,47 @@ public class ResourceLoggerServiceTests
         Assert.Equal("2000-12-29T20:59:59.0000000Z While watching again!", allLogs[3].Content);
     }
 
+    [Fact]
+    public async Task MultipleInstancesLogsToAll()
+    {
+        var testResource = new TestResource("myResource");
+        testResource.Annotations.Add(new DcpInstancesAnnotation([new DcpInstance("instance0", "0", 0), new DcpInstance("instance1", "1", 1)]));
+
+        var service = ConsoleLoggingTestHelpers.GetResourceLoggerService();
+        var logger = service.GetLogger(testResource);
+
+        var subsLoop = WatchForSubscribers(service);
+
+        var logsEnumerator = service.WatchAsync(testResource).GetAsyncEnumerator();
+        var logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator, 4);
+
+        // Wait for subscriber to be added
+        await subsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+
+        // Log
+        logger.LogInformation("Hello, world!");
+        logger.LogError("Hello, error!");
+
+        Assert.True(service.Loggers.ContainsKey("instance0"));
+        Assert.True(service.Loggers.ContainsKey("instance1"));
+
+        // Wait for logs to be read
+        var allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+
+        var sortedLogs = allLogs.OrderBy(l => l.LineNumber).ToList();
+
+        Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, world!", sortedLogs[0].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, world!", sortedLogs[1].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, error!", sortedLogs[2].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, error!", sortedLogs[3].Content);
+
+        service.Complete(testResource);
+
+        Assert.False(await logsEnumerator.MoveNextAsync());
+
+        await logsEnumerator.DisposeAsync();
+    }
+
     private sealed class TestResource(string name) : Resource(name)
     {
 

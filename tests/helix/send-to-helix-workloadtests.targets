@@ -10,8 +10,10 @@
 
   <ItemGroup>
     <HelixPreCommand Include="$(_EnvVarSetKeyword) TEST_NAME=$(TestProjectName)" />
-    <!-- xunit diagnostic output doesn't show up on windows, so use SHOW_BUILD_OUTPUT=true -->
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="$(_EnvVarSetKeyword) SHOW_BUILD_OUTPUT=true" />
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) SHOW_BUILD_OUTPUT=true" />
+
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="rm ~/.templateengine/packages/Aspire*" />
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="del %USERPROFILE%\.templateengine\Aspire*" />
 
     <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="mv $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/$(TestProjectName)-${TEST_NAME_SUFFIX}.trx" />
     <HelixPostCommand Condition="'$(OS)' == 'Windows_NT'" Include="move &quot;$(_HelixLogsPath)\TestResults.trx&quot; &quot;$(_HelixLogsPath)\$(TestProjectName)-%TEST_NAME_SUFFIX%.trx&quot;" />
@@ -36,6 +38,10 @@
            Text="No workload test class names found" />
 
     <ItemGroup>
+      <!-- the default dotnet-tests sdk is added by inner.proj . Add the rest here -->
+      <HelixCorrelationPayload Include="$(ArtifactsBinDir)dotnet-8" Destination="dotnet-8" />
+      <HelixCorrelationPayload Include="$(ArtifactsBinDir)dotnet-9" Destination="dotnet-9" />
+
       <!-- PreCommands="" needed for batching below -->
       <_WorkloadTestsClassNames TestNameSuffix="$([System.String]::Copy('%(Identity)').Replace('Aspire.Workload.Tests.', ''))" PreCommands="" />
 

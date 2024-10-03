@@ -94,17 +94,6 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                     HealthStatus = report.Status
                 }).ConfigureAwait(false);
 
-                if (resource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
-                {
-                    foreach (var (id, _) in replicaAnnotation.Instances)
-                    {
-                        await resourceNotificationService.PublishUpdateAsync(resource, id, s => s with
-                        {
-                            HealthStatus = report.Status
-                        }).ConfigureAwait(false);
-                    }
-                }
-
                 var lastEvent = _latestEvents[resource.Name];
                 await SlowDownMonitoringAsync(lastEvent, cancellationToken).ConfigureAwait(false);
 
