@@ -33,7 +33,7 @@ public class AzureCosmosDBResource(string name, Action<ResourceModuleConstruct> 
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         IsEmulator
-        ? AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint)
+        ? ReferenceExpression.Create($"{AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint.Port)}")
         : ReferenceExpression.Create($"{ConnectionString}");
 }
 
