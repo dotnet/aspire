@@ -103,8 +103,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, fullyQualifiedDashboardPath, dashboardWorkingDirectory ?? "");
         }
 
-        var (name, suffix) = nameGenerator.GetContainerName(dashboardResource);
-        dashboardResource.Annotations.Add(new DcpInstancesAnnotation([new DcpInstance(name, suffix, 0)]));
+        nameGenerator.EnsureDcpInstancesPopulated(dashboardResource);
 
         ConfigureAspireDashboardResource(dashboardResource);
 

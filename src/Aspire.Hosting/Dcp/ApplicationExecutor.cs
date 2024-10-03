@@ -79,7 +79,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           ResourceLoggerService loggerService,
                                           IDcpDependencyCheckService dcpDependencyCheckService,
                                           IDistributedApplicationEventing eventing,
-                                          IServiceProvider serviceProvider
+                                          IServiceProvider serviceProvider,
+                                          DcpNameGenerator nameGenerator
                                           )
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
@@ -1148,10 +1149,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private static void EnsureRequiredAnnotations(IResource resource)
+    private void EnsureRequiredAnnotations(IResource resource)
     {
         // Add the default lifecycle commands (start/stop/restart)
         resource.AddLifeCycleCommands();
+
+        nameGenerator.EnsureDcpInstancesPopulated(resource);
     }
 
     private static void SetInitialResourceState(IResource resource, IAnnotationHolder annotationHolder)

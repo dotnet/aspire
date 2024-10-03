@@ -1023,6 +1023,7 @@ public class ApplicationExecutorTests
         eventing ??= new DistributedApplicationEventing();
         resourceLoggerService ??= new ResourceLoggerService();
         resourceNotificationService ??= ResourceNotificationServiceTestHelpers.Create(resourceLoggerService: resourceLoggerService);
+        dcpOptions ??= new DcpOptions { DashboardPath = "./dashboard" };
 
         return new ApplicationExecutor(
             NullLogger<ApplicationExecutor>.Instance,
@@ -1032,7 +1033,7 @@ public class ApplicationExecutorTests
             Array.Empty<IDistributedApplicationLifecycleHook>(),
             configuration,
             new DistributedApplicationOptions(),
-            Options.Create(dcpOptions ?? new DcpOptions { DashboardPath = "./dashboard" }),
+            Options.Create(dcpOptions),
             new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
             {
                 ServiceProvider = TestServiceProvider.Instance
@@ -1041,7 +1042,8 @@ public class ApplicationExecutorTests
             resourceLoggerService,
             new TestDcpDependencyCheckService(),
             eventing,
-            serviceProvider
+            serviceProvider,
+            new DcpNameGenerator(configuration, Options.Create(dcpOptions))
         );
     }
 

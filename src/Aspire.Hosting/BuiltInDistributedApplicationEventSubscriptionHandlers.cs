@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Immutable;
-using System.Diagnostics;
 using Aspire;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
@@ -19,35 +17,20 @@ internal static class BuiltInDistributedApplicationEventSubscriptionHandlers
 
         foreach (var container in beforeStartEvent.Model.GetContainerResources())
         {
-            var (name, suffix) = nameGenerator.GetContainerName(container);
-            AddInstance(container, [new DcpInstance(name, suffix, 0)]);
+            nameGenerator.EnsureDcpInstancesPopulated(container);
         }
 
         foreach (var executable in beforeStartEvent.Model.GetExecutableResources())
         {
-            var (name, suffix) = nameGenerator.GetExecutableName(executable);
-            AddInstance(executable, [new DcpInstance(name, suffix, 0)]);
+            nameGenerator.EnsureDcpInstancesPopulated(executable);
         }
 
         foreach (var project in beforeStartEvent.Model.GetProjectResources())
         {
-            var replicas = project.GetReplicaCount();
-            var builder = ImmutableArray.CreateBuilder<DcpInstance>(replicas);
-            for (var i = 0; i < replicas; i++)
-            {
-                var (name, suffix) = nameGenerator.GetExecutableName(project);
-                builder.Add(new DcpInstance(name, suffix, i));
-            }
+            nameGenerator.EnsureDcpInstancesPopulated(project);
         }
 
         return Task.CompletedTask;
-
-        static void AddInstance(IResource resource, ImmutableArray<DcpInstance> instances)
-        {
-            Debug.Assert(!resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var _), "Should only have one annotation.");
-
-            resource.Annotations.Add(new DcpInstancesAnnotation(instances));
-        }
     }
 
     public static Task ExcludeDashboardFromManifestAsync(BeforeStartEvent beforeStartEvent, CancellationToken _)
