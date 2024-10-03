@@ -10,5 +10,5 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 internal class ReplicaInstancesAnnotation : IResourceAnnotation
 {
-    public ConcurrentDictionary<string, string> Instances { get; } = [];
+    public ConcurrentDictionary<string, int> Instances { get; } = [];
 }

@@ -47,7 +47,67 @@ public class ResourceLoggerService
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        return GetResourceLoggerState(resource.Name).Logger;
+        var resourceNames = ResourceNotificationService.ResolveResourceNames(resource);
+        var loggers = new List<ILogger>();
+        foreach (var resourceName in resourceNames)
+        {
+            loggers.Add(GetResourceLoggerState(resourceName).Logger);
+        }
+
+        return new CompositeLogger(loggers);
+    }
+
+    private sealed class CompositeLogger(List<ILogger> innerLoggers) : ILogger
+    {
+        private readonly List<ILogger> _innerLoggers = innerLoggers;
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull
+        {
+            var scopes = new List<IDisposable>();
+            foreach (var logger in _innerLoggers)
+            {
+                if (logger.BeginScope(state) is { } scope)
+                {
+                    scopes.Add(scope);
+                }
+            }
+
+            if (scopes.Count == 0)
+            {
+                return null;
+            }
+            else
+            {
+                return new CompositeDisposable(scopes);
+            }
+        }
+
+        private sealed class CompositeDisposable(List<IDisposable> disposables) : IDisposable
+        {
+            private readonly List<IDisposable> _disposables = disposables;
+
+            public void Dispose()
+            {
+                foreach (var disposable in _disposables)
+                {
+                    disposable.Dispose();
+                }
+            }
+        }
+
+        public bool IsEnabled(LogLevel logLevel)
+        {
+            // All loggers have the same log level.
+            return _innerLoggers[0].IsEnabled(logLevel);
+        }
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            foreach (var logger in _innerLoggers)
+            {
+                logger.Log(logLevel, eventId, state, exception, formatter);
+            }
+        }
     }
 
     /// <summary>
@@ -142,9 +202,13 @@ public class ResourceLoggerService
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        if (_loggers.TryGetValue(resource.Name, out var logger))
+        var resourceNames = ResourceNotificationService.ResolveResourceNames(resource);
+        foreach (var resourceName in resourceNames)
         {
-            logger.Complete();
+            if (_loggers.TryGetValue(resourceName, out var logger))
+            {
+                logger.Complete();
+            }
         }
     }
 

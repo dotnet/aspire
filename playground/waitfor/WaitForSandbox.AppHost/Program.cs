@@ -18,7 +18,8 @@ var backend = builder.AddProject<Projects.WaitForSandbox_ApiService>("api")
                      .WithExternalHttpEndpoints()
                      .WithHttpHealthCheck("/health")
                      .WithReference(db).WaitFor(db)
-                     .WaitForCompletion(dbsetup);
+                     .WaitForCompletion(dbsetup)
+                     .WithReplicas(2);
 
 builder.AddProject<Projects.WaitFor_Frontend>("frontend")
        .WithReference(backend).WaitFor(backend);

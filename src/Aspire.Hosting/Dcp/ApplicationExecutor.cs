@@ -599,15 +599,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private CustomResourceSnapshot ToSnapshot(Container container, CustomResourceSnapshot previous)
     {
-        if (container.AppModelResourceName is not null &&
-            _applicationModel.TryGetValue(container.AppModelResourceName, out var appModelResource))
-        {
-            if (appModelResource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
-            {
-                replicaAnnotation.Instances.TryAdd(container.Metadata.Name, container.Metadata.Name);
-            }
-        }
-
         var containerId = container.Status?.ContainerId;
         var urls = GetUrls(container);
         var volumes = GetVolumes(container);
@@ -663,11 +654,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             _applicationModel.TryGetValue(executable.AppModelResourceName, out var appModelResource))
         {
             projectPath = appModelResource is ProjectResource p ? p.GetProjectMetadata().ProjectPath : null;
-
-            if (appModelResource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
-            {
-                replicaAnnotation.Instances.TryAdd(executable.Metadata.Name, executable.Metadata.Name);
-            }
         }
 
         var state = executable.AppModelInitialState is "Hidden" ? "Hidden" : executable.Status?.State;
@@ -1058,6 +1044,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             var nameSuffix = GetRandomNameSuffix();
             var exeName = GetObjectNameForResource(executable, nameSuffix);
+
+            if (executable.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
+            {
+                replicaAnnotation.Instances.TryAdd(exeName, 0);
+            }
+
             var exePath = executable.Command;
             var exe = Executable.Create(exeName, exePath);
 
@@ -1094,6 +1086,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 var nameSuffix = GetRandomNameSuffix();
                 var exeName = GetObjectNameForResource(project, nameSuffix);
+
+                if (project.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
+                {
+                    replicaAnnotation.Instances.TryAdd(exeName, i);
+                }
 
                 var exeSpec = Executable.Create(exeName, "dotnet");
                 exeSpec.Spec.WorkingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
@@ -1206,41 +1203,49 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             AspireEventSource.Instance.DcpExecutablesCreateStart();
 
-            async Task CreateExecutableAsyncCore(AppResource cr, CancellationToken cancellationToken)
+            async Task CreateResourceExecutablesAsyncCore(IResource resource, IEnumerable<AppResource> executables, CancellationToken cancellationToken)
             {
-                var logger = loggerService.GetLogger(cr.ModelResource);
+                var logger = loggerService.GetLogger(resource);
 
-                await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with
+                await notificationService.PublishUpdateAsync(resource, s => s with
                 {
-                    ResourceType = cr.ModelResource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable,
+                    ResourceType = resource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable,
                     Properties = [],
                     State = "Starting"
                 })
                 .ConfigureAwait(false);
 
-                try
-                {
-                    await CreateExecutableAsync(cr, logger, cancellationToken).ConfigureAwait(false);
-                }
-                catch (FailedToApplyEnvironmentException)
-                {
-                    // For this exception we don't want the noise of the stack trace, we've already
-                    // provided more detail where we detected the issue (e.g. envvar name). To get
-                    // more diagnostic information reduce logging level for DCP log category to Debug.
-                    await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Failed to create resource {ResourceName}", cr.ModelResource.Name);
+                await PublishConnectionStringAvailableEvent(resource, cancellationToken).ConfigureAwait(false);
 
-                    await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+                var beforeResourceStartedEvent = new BeforeResourceStartedEvent(resource, serviceProvider);
+                await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
+
+                foreach (var cr in executables)
+                {
+                    try
+                    {
+                        await CreateExecutableAsync(cr, logger, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (FailedToApplyEnvironmentException)
+                    {
+                        // For this exception we don't want the noise of the stack trace, we've already
+                        // provided more detail where we detected the issue (e.g. envvar name). To get
+                        // more diagnostic information reduce logging level for DCP log category to Debug.
+                        await notificationService.PublishUpdateAsync(cr.ModelResource, cr.DcpResource.Metadata.Name, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Failed to create resource {ResourceName}", cr.ModelResource.Name);
+
+                        await notificationService.PublishUpdateAsync(cr.ModelResource, cr.DcpResource.Metadata.Name, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+                    }
                 }
             }
 
             var tasks = new List<Task>();
-            foreach (var er in executableResources)
+            foreach (var group in executableResources.GroupBy(e => e.ModelResource))
             {
-                tasks.Add(CreateExecutableAsyncCore(er, cancellationToken));
+                tasks.Add(CreateResourceExecutablesAsyncCore(group.Key, group, cancellationToken));
             }
 
             return Task.WhenAll(tasks);
@@ -1274,11 +1279,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
     {
-        await PublishConnectionStringAvailableEvent(er.ModelResource, cancellationToken).ConfigureAwait(false);
-
-        var beforeResourceStartedEvent = new BeforeResourceStartedEvent(er.ModelResource, serviceProvider);
-        await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
-
         ExecutableSpec spec;
         Func<Task<CustomResource>> createResource;
 
@@ -1453,6 +1453,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             };
 
             var containerObjectName = GetObjectNameForResource(container, nameSuffix);
+
+            if (container.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
+            {
+                replicaAnnotation.Instances.TryAdd(containerObjectName, 0);
+            }
+
             var ctr = Container.Create(containerObjectName, containerImageName);
 
             ctr.Spec.ContainerName = containerObjectName; // Use the same name for container orchestrator (Docker, Podman) resource and DCP object name.
