@@ -744,6 +744,11 @@ public static class ResourceBuilderExtensions
         endpointName = endpointName ?? "http";
         statusCode = statusCode ?? 200;
 
+        if (builder.Resource.GetEndpoint(endpointName) is not { Scheme: "http" })
+        {
+            throw new DistributedApplicationException($"The endpoint '{endpointName}' on resource '{builder.Resource.Name}' was not using the 'http' scheme.");
+        }
+
         Uri? uri = null;
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, (@event, ct) =>
         {
@@ -811,7 +816,14 @@ public static class ResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<T> WithHttpsHealthCheck<T>(this IResourceBuilder<T> builder, string? path = null, int? statusCode = null, string? endpointName = null) where T : IResourceWithEndpoints
     {
-        return builder.WithHttpHealthCheck(path, statusCode, endpointName ?? "https");
+        endpointName = endpointName ?? "https";
+
+        if (builder.Resource.GetEndpoint(endpointName) is not { Scheme: "https" })
+        {
+            throw new DistributedApplicationException($"The endpoint '{endpointName}' on resource '{builder.Resource.Name}' was not using the 'https' scheme.");
+        }
+
+        return builder.WithHttpHealthCheck(path, statusCode, endpointName);
     }
 
     /// <summary>
