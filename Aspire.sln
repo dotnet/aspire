@@ -624,7 +624,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Analyzers.Te
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Sdk.Tests", "tests\Aspire.Hosting.Sdk.Tests\Aspire.Hosting.Sdk.Tests.csproj", "{AEF07BC6-76D8-4A45-89D5-54FC4483863F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.ContainerApps", "src\Aspire.Hosting.Azure.ContainerApps\Aspire.Hosting.Azure.ContainerApps.csproj", "{21FBDB19-0B8B-4F0F-8ED6-98560AD5DDA7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.AppContainers", "src\Aspire.Hosting.Azure.AppContainers\Aspire.Hosting.Azure.AppContainers.csproj", "{21FBDB19-0B8B-4F0F-8ED6-98560AD5DDA7}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AzureContainerApps", "AzureContainerApps", "{D47C77F3-49F4-4741-9786-6F68FC50587E}"
 EndProject
@@ -635,6 +635,7 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.ProjectTemplates.9.0.net9", "src\Aspire.ProjectTemplates.9.0.net9\Aspire.ProjectTemplates.9.0.net9.csproj", "{D07A8344-C61A-478A-92F0-E9B2DA00D647}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.ProjectTemplates.9.0.net8", "src\Aspire.ProjectTemplates.9.0.net8\Aspire.ProjectTemplates.9.0.net8.csproj", "{C75E1CE5-58E6-4D21-9422-7C9E17D71D67}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaitFor.Frontend", "playground\waitfor\WaitFor.Frontend\WaitFor.Frontend.csproj", "{C88BBF0B-7566-48BD-A2BC-05374B1A2B22}"
 EndProject
 Global
