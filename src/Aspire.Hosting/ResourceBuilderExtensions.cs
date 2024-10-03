@@ -4,7 +4,10 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using HealthChecks.Uris;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -704,6 +707,138 @@ public static class ResourceBuilderExtensions
         builder.WithAnnotation(new HealthCheckAnnotation(key));
 
         return builder;
+    }
+
+    /// <summary>
+    /// Adds a health check to the resource which is mapped to a specific endpoint.
+    /// </summary>
+    /// <typeparam name="T">A resource type that implements <see cref="IResourceWithEndpoints" />.</typeparam>
+    /// <param name="builder">A resource builder.</param>
+    /// <param name="path">The relative path to test.</param>
+    /// <param name="statusCode">The result code to interpret as healthy.</param>
+    /// <param name="endpointName">The name of the endpoint to derive the base address from.</param>
+    /// <returns>A resource builder.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method adds a health check to the health check service which polls the specified endpoint on the resource
+    /// on a periodic basis. The base address is dynamically determined based on the endpoint that was selected. By
+    /// default the path is set to "/" and the status code is set to 200.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// This example shows add a HTTP health check to a backend project
+    /// to make sure that the front end does not start until the backend is
+    /// reporting a healthy status based on the return code returned from the
+    /// "/health" path on the backend server.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var backend = builder.AddProject&lt;Projects.Backend&gt;("backend")
+    ///                      .WithHttpHealthCheck("/health");
+    /// builder.AddProject&lt;Projects.Backend&gt;("backend")
+    ///        .WithReference(backend).WaitFor(backend);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithHttpHealthCheck<T>(this IResourceBuilder<T> builder, string? path = null, int? statusCode = null, string? endpointName = null) where T : IResourceWithEndpoints
+    {
+        endpointName = endpointName ?? "http";
+        return builder.WithHttpHealthCheckInternal(
+            path: path,
+            desiredScheme: "http",
+            endpointName: endpointName,
+            statusCode: statusCode
+            );
+    }
+
+    internal static IResourceBuilder<T> WithHttpHealthCheckInternal<T>(this IResourceBuilder<T> builder, string desiredScheme, string endpointName, string? path = null, int? statusCode = null) where T : IResourceWithEndpoints
+    {
+        path = path ?? "/";
+        statusCode = statusCode ?? 200;
+
+        var endpoint = builder.Resource.GetEndpoint(endpointName);
+
+        builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((@event, ct) =>
+        {
+            if (!endpoint.Exists)
+            {
+                throw new DistributedApplicationException($"The endpoint '{endpointName}' does not exist on the resource '{builder.Resource.Name}'.");
+            }
+
+            if (endpoint.Scheme != desiredScheme)
+            {
+                throw new DistributedApplicationException($"The endpoint '{endpointName}' on resource '{builder.Resource.Name}' was not using the '{desiredScheme}' scheme.");
+            }
+
+            return Task.CompletedTask;
+        });
+
+        Uri? uri = null;
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, (@event, ct) =>
+        {
+            var baseUri = new Uri(endpoint.Url, UriKind.Absolute);
+            uri = new Uri(baseUri, path);
+            return Task.CompletedTask;
+        });
+
+        var healthCheckKey = $"{builder.Resource.Name}_{endpointName}_{path}_{statusCode}_check";
+        builder.ApplicationBuilder.Services.AddLogging(configure =>
+        {
+            // The AddUrlGroup health check makes use of http client factory.
+            configure.AddFilter($"System.Net.Http.HttpClient.{healthCheckKey}.LogicalHandler", LogLevel.None);
+            configure.AddFilter($"System.Net.Http.HttpClient.{healthCheckKey}.ClientHandler", LogLevel.None);
+        });
+
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddUrlGroup((UriHealthCheckOptions options) =>
+        {
+            if (uri is null)
+            {
+                throw new DistributedApplicationException($"The URI for the health check is not set. Ensure that the resource has been allocated before the health check is executed.");
+            }
+
+            options.AddUri(uri, setup => setup.ExpectHttpCode(statusCode ?? 200));
+        }, healthCheckKey);
+
+        builder.WithHealthCheck(healthCheckKey);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a health check to the resource which is mapped to a specific endpoint.
+    /// </summary>
+    /// <typeparam name="T">A resource type that implements <see cref="IResourceWithEndpoints" />.</typeparam>
+    /// <param name="builder">A resource builder.</param>
+    /// <param name="path">The relative path to test.</param>
+    /// <param name="statusCode">The result code to interpret as healthy.</param>
+    /// <param name="endpointName">The name of the endpoint to derive the base address from.</param>
+    /// <returns>A resource builder.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method adds a health check to the health check service which polls the specified endpoint on the resource
+    /// on a periodic basis. The base address is dynamically determined based on the endpoint that was selected. By
+    /// default the path is set to "/" and the status code is set to 200.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// This example shows add a HTTPS health check to a backend project
+    /// to make sure that the front end does not start until the backend is
+    /// reporting a healthy status based on the return code returned from the
+    /// "/health" path on the backend server.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var backend = builder.AddProject&lt;Projects.Backend&gt;("backend")
+    ///                      .WithHttpsHealthCheck("/health");
+    /// builder.AddProject&lt;Projects.Backend&gt;("backend")
+    ///        .WithReference(backend).WaitFor(backend);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithHttpsHealthCheck<T>(this IResourceBuilder<T> builder, string? path = null, int? statusCode = null, string? endpointName = null) where T : IResourceWithEndpoints
+    {
+        endpointName = endpointName ?? "https";
+        return builder.WithHttpHealthCheckInternal(
+            path: path,
+            desiredScheme: "https",
+            endpointName: endpointName,
+            statusCode: statusCode);
     }
 
     /// <summary>

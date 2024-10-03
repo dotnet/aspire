@@ -1,0 +1,18 @@
+﻿@page "/"
+@inject ApiClient client
+@rendermode InteractiveServer
+
+<PageTitle>Home</PageTitle>
+
+<button @onclick="SendRequest">Fetch data</button>
+<textarea>@getResponse</textarea>
+
+@code
+{
+    private string? getResponse = "";
+
+    private async Task SendRequest()
+    {
+        getResponse = await client.GetDataAsync();
+    }
+}
