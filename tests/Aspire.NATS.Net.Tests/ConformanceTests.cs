@@ -33,6 +33,9 @@ public class ConformanceTests : ConformanceTests<INatsConnection, NatsClientSett
         "NATS.Client.Core.NatsSubBase",
         "NATS.Client.Core.NatsConnection",
     ];
+
+    protected override string? ConfigurationSectionName => "Aspire:NATS:Net";
+
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NatsClientSettings>? configure = null, string? key = null)
     {
         if (key is null)
