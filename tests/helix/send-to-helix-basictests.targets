@@ -21,6 +21,8 @@
     <ItemGroup>
       <!-- needed for Aspire.Hosting.Container.Tests -->
       <HelixPreCommand Include="$(_EnvVarSetKeyword) DOCKER_BUILDKIT=1" />
+      <!-- FIXME: debugging failures on ci -->
+      <HelixPreCommand Include="dotnet --info" />
 
       <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="-- RunConfiguration.TestSessionTimeout=$TEST_TIMEOUT" />
       <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="-- RunConfiguration.TestSessionTimeout=%TEST_TIMEOUT%" />
