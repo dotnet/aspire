@@ -7,7 +7,7 @@ using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add service defaults & Aspire components.
+// Add service defaults & Aspire integrations.
 builder.AddServiceDefaults();
 
 // Add services to the container.
