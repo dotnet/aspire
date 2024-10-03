@@ -11,6 +11,8 @@ internal static class BuiltInDistributedApplicationEventSubscriptionHandlers
 {
     public static Task InitializeDcpAnnotations(BeforeStartEvent beforeStartEvent, CancellationToken _)
     {
+        // DCP names need to be calculated before any user code runs so that using IResource with
+        // ResourceNotificationService and ResourceLoggerService overloads uses the right resource instance names.
         var nameGenerator = beforeStartEvent.Services.GetRequiredService<DcpNameGenerator>();
 
         foreach (var container in beforeStartEvent.Model.GetContainerResources())

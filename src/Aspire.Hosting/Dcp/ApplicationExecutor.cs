@@ -1448,6 +1448,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
+    /// <summary>
+    /// Gets information about the resource's DCP instance.
+    /// ReplicaInstancesAnnotation info is calculated in BeforeStartEvent when the app starts up.
+    /// </summary>
     private static Instance GetInstance(IResource resource, int instanceIndex)
     {
         if (!resource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
