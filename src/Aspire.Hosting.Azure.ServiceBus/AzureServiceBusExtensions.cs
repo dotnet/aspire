@@ -59,7 +59,7 @@ public static class AzureServiceBusExtensions
             };
             construct.Add(serviceBusNamespace);
 
-            construct.Add(serviceBusNamespace.AssignRole(ServiceBusBuiltInRole.AzureServiceBusDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(serviceBusNamespace.CreateRoleAssignment(ServiceBusBuiltInRole.AzureServiceBusDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             construct.Add(new ProvisioningOutput("serviceBusEndpoint", typeof(string)) { Value = serviceBusNamespace.ServiceBusEndpoint });
 
