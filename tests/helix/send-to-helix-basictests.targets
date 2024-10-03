@@ -6,6 +6,8 @@
     <NeedsDcpPathOverride>true</NeedsDcpPathOverride>
     <!-- needed to run 9.0 tests on helix -->
     <NeedsWorkload>true</NeedsWorkload>
+    <!-- .. and skip the default cli from arcade -->
+    <IncludeDotNetCli>false</IncludeDotNetCli>
 
     <TargetFrameworkSuffixRegex>^(.*?)(-net[\d.]+)?$</TargetFrameworkSuffixRegex>
   </PropertyGroup>
