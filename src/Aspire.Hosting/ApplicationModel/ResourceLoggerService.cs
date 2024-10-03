@@ -48,13 +48,21 @@ public class ResourceLoggerService
         ArgumentNullException.ThrowIfNull(resource);
 
         var resourceNames = ResourceNotificationService.ResolveResourceNames(resource);
-        var loggers = new List<ILogger>();
-        foreach (var resourceName in resourceNames)
+        if (resourceNames.Length > 1)
         {
-            loggers.Add(GetResourceLoggerState(resourceName).Logger);
-        }
+            // If a resource has multiple replicas then return a composite logger that writes to multiple.
+            var loggers = new List<ILogger>();
+            foreach (var resourceName in resourceNames)
+            {
+                loggers.Add(GetResourceLoggerState(resourceName).Logger);
+            }
 
-        return new CompositeLogger(loggers);
+            return new CompositeLogger(loggers);
+        }
+        else
+        {
+            return GetResourceLoggerState(resourceNames[0]).Logger;
+        }
     }
 
     private sealed class CompositeLogger(List<ILogger> innerLoggers) : ILogger
@@ -75,6 +83,10 @@ public class ResourceLoggerService
             if (scopes.Count == 0)
             {
                 return null;
+            }
+            else if (scopes.Count == 1)
+            {
+                return scopes[0];
             }
             else
             {
@@ -139,39 +151,50 @@ public class ResourceLoggerService
     /// </summary>
     /// <param name="resource">The resource to watch for logs.</param>
     /// <returns>An async enumerable that returns the logs as they are written.</returns>
-    public async IAsyncEnumerable<IReadOnlyList<LogLine>> WatchAsync(IResource resource)
+    public IAsyncEnumerable<IReadOnlyList<LogLine>> WatchAsync(IResource resource)
     {
         ArgumentNullException.ThrowIfNull(resource);
 
         var resourceNames = ResourceNotificationService.ResolveResourceNames(resource);
-
-        var channel = Channel.CreateUnbounded<IReadOnlyList<LogLine>>();
-        var readTasks = resourceNames.Select(async (name) =>
+        if (resourceNames.Length > 1)
         {
-            await foreach (var logLines in WatchAsync(name).ConfigureAwait(false))
-            {
-                channel.Writer.TryWrite(logLines);
-            }
-        });
-
-        var completionTask = Task.Run(async () =>
+            return WatchMultipleAsync(resourceNames, WatchAsync);
+        }
+        else
         {
-            try
-            {
-                await Task.WhenAll(readTasks).ConfigureAwait(false);
-            }
-            finally
-            {
-                channel.Writer.Complete();
-            }
-        });
-
-        await foreach (var item in channel.Reader.ReadAllAsync().ConfigureAwait(false))
-        {
-            yield return item;
+            return WatchAsync(resourceNames[0]);
         }
 
-        await completionTask.ConfigureAwait(false);
+        static async IAsyncEnumerable<IReadOnlyList<LogLine>> WatchMultipleAsync(string[] resourceNames, Func<string, IAsyncEnumerable<IReadOnlyList<LogLine>>> watch)
+        {
+            var channel = Channel.CreateUnbounded<IReadOnlyList<LogLine>>();
+            var readTasks = resourceNames.Select(async (name) =>
+            {
+                await foreach (var logLines in watch(name).ConfigureAwait(false))
+                {
+                    channel.Writer.TryWrite(logLines);
+                }
+            });
+
+            var completionTask = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.WhenAll(readTasks).ConfigureAwait(false);
+                }
+                finally
+                {
+                    channel.Writer.Complete();
+                }
+            });
+
+            await foreach (var item in channel.Reader.ReadAllAsync().ConfigureAwait(false))
+            {
+                yield return item;
+            }
+
+            await completionTask.ConfigureAwait(false);
+        }
     }
 
     /// <summary>
