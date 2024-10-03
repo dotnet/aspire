@@ -79,7 +79,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           ResourceLoggerService loggerService,
                                           IDcpDependencyCheckService dcpDependencyCheckService,
                                           IDistributedApplicationEventing eventing,
-                                          IServiceProvider serviceProvider
+                                          IServiceProvider serviceProvider,
+                                          DcpNameGenerator nameGenerator
                                           )
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
@@ -109,7 +110,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private readonly ConcurrentDictionary<string, Endpoint> _endpointsMap = [];
     private readonly ConcurrentDictionary<(string, string), List<string>> _resourceAssociatedServicesMap = [];
     private readonly ConcurrentDictionary<string, (CancellationTokenSource Cancellation, Task Task)> _logStreams = new();
-    private readonly ConcurrentDictionary<IResource, bool> _hiddenResources = new();
     private DcpInfo? _dcpInfo;
     private Task? _resourceWatchTask;
 
@@ -398,23 +398,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     {
                         _logger.LogTrace("Deleting application model resource {ResourceName} with {ResourceKind} resource {ResourceName}", appModelResource.Name, resourceKind, resource.Metadata.Name);
                     }
-
-                    if (appModelResource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
-                    {
-                        replicaAnnotation.Instances.TryRemove(resource.Metadata.Name, out _);
-                    }
                 }
                 else
                 {
                     if (_logger.IsEnabled(LogLevel.Trace))
                     {
                         _logger.LogTrace("Updating application model resource {ResourceName} with {ResourceKind} resource {ResourceName}", appModelResource.Name, resourceKind, resource.Metadata.Name);
-                    }
-
-                    if (_hiddenResources.TryAdd(appModelResource, true))
-                    {
-                        // Hide the application model resource because we have the DCP resource
-                        await notificationService.PublishUpdateAsync(appModelResource, s => s with { State = "Hidden" }).ConfigureAwait(false);
                     }
 
                     // Notifications are associated with the application model resource, so we need to update with that context
@@ -599,15 +588,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private CustomResourceSnapshot ToSnapshot(Container container, CustomResourceSnapshot previous)
     {
-        if (container.AppModelResourceName is not null &&
-            _applicationModel.TryGetValue(container.AppModelResourceName, out var appModelResource))
-        {
-            if (appModelResource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
-            {
-                replicaAnnotation.Instances.TryAdd(container.Metadata.Name, container.Metadata.Name);
-            }
-        }
-
         var containerId = container.Status?.ContainerId;
         var urls = GetUrls(container);
         var volumes = GetVolumes(container);
@@ -663,11 +643,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             _applicationModel.TryGetValue(executable.AppModelResourceName, out var appModelResource))
         {
             projectPath = appModelResource is ProjectResource p ? p.GetProjectMetadata().ProjectPath : null;
-
-            if (appModelResource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
-            {
-                replicaAnnotation.Instances.TryAdd(executable.Metadata.Name, executable.Metadata.Name);
-            }
         }
 
         var state = executable.AppModelInitialState is "Hidden" ? "Hidden" : executable.Status?.State;
@@ -1056,16 +1031,15 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             EnsureRequiredAnnotations(executable);
 
-            var nameSuffix = GetRandomNameSuffix();
-            var exeName = GetObjectNameForResource(executable, nameSuffix);
+            var exeInstance = GetDcpInstance(executable, instanceIndex: 0);
             var exePath = executable.Command;
-            var exe = Executable.Create(exeName, exePath);
+            var exe = Executable.Create(exeInstance.Name, exePath);
 
             // The working directory is always relative to the app host project directory (if it exists).
             exe.Spec.WorkingDirectory = executable.WorkingDirectory;
             exe.Spec.ExecutionType = ExecutionType.Process;
             exe.Annotate(CustomResource.OtelServiceNameAnnotation, executable.Name);
-            exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, nameSuffix);
+            exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
             exe.Annotate(CustomResource.ResourceNameAnnotation, executable.Name);
             SetInitialResourceState(executable, exe);
 
@@ -1092,14 +1066,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             for (var i = 0; i < replicas; i++)
             {
-                var nameSuffix = GetRandomNameSuffix();
-                var exeName = GetObjectNameForResource(project, nameSuffix);
-
-                var exeSpec = Executable.Create(exeName, "dotnet");
+                var exeInstance = GetDcpInstance(project, instanceIndex: i);
+                var exeSpec = Executable.Create(exeInstance.Name, "dotnet");
                 exeSpec.Spec.WorkingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
 
                 exeSpec.Annotate(CustomResource.OtelServiceNameAnnotation, project.Name);
-                exeSpec.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, nameSuffix);
+                exeSpec.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
                 exeSpec.Annotate(CustomResource.ResourceNameAnnotation, project.Name);
                 exeSpec.Annotate(CustomResource.ResourceReplicaCount, replicas.ToString(CultureInfo.InvariantCulture));
                 exeSpec.Annotate(CustomResource.ResourceReplicaIndex, i.ToString(CultureInfo.InvariantCulture));
@@ -1177,17 +1149,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private static void EnsureRequiredAnnotations(IResource resource)
+    private void EnsureRequiredAnnotations(IResource resource)
     {
         // Add the default lifecycle commands (start/stop/restart)
         resource.AddLifeCycleCommands();
 
-        // Make sure we have a replica annotation on the resource.
-        // this is so that we can populate the running instance ids
-        if (!resource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out _))
-        {
-            resource.Annotations.Add(new ReplicaInstancesAnnotation());
-        }
+        nameGenerator.EnsureDcpInstancesPopulated(resource);
     }
 
     private static void SetInitialResourceState(IResource resource, IAnnotationHolder annotationHolder)
@@ -1206,41 +1173,49 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             AspireEventSource.Instance.DcpExecutablesCreateStart();
 
-            async Task CreateExecutableAsyncCore(AppResource cr, CancellationToken cancellationToken)
+            async Task CreateResourceExecutablesAsyncCore(IResource resource, IEnumerable<AppResource> executables, CancellationToken cancellationToken)
             {
-                var logger = loggerService.GetLogger(cr.ModelResource);
+                var logger = loggerService.GetLogger(resource);
 
-                await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with
+                await notificationService.PublishUpdateAsync(resource, s => s with
                 {
-                    ResourceType = cr.ModelResource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable,
+                    ResourceType = resource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable,
                     Properties = [],
                     State = "Starting"
                 })
                 .ConfigureAwait(false);
 
-                try
-                {
-                    await CreateExecutableAsync(cr, logger, cancellationToken).ConfigureAwait(false);
-                }
-                catch (FailedToApplyEnvironmentException)
-                {
-                    // For this exception we don't want the noise of the stack trace, we've already
-                    // provided more detail where we detected the issue (e.g. envvar name). To get
-                    // more diagnostic information reduce logging level for DCP log category to Debug.
-                    await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Failed to create resource {ResourceName}", cr.ModelResource.Name);
+                await PublishConnectionStringAvailableEvent(resource, cancellationToken).ConfigureAwait(false);
 
-                    await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+                var beforeResourceStartedEvent = new BeforeResourceStartedEvent(resource, serviceProvider);
+                await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
+
+                foreach (var cr in executables)
+                {
+                    try
+                    {
+                        await CreateExecutableAsync(cr, logger, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (FailedToApplyEnvironmentException)
+                    {
+                        // For this exception we don't want the noise of the stack trace, we've already
+                        // provided more detail where we detected the issue (e.g. envvar name). To get
+                        // more diagnostic information reduce logging level for DCP log category to Debug.
+                        await notificationService.PublishUpdateAsync(cr.ModelResource, cr.DcpResource.Metadata.Name, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Failed to create resource {ResourceName}", cr.ModelResource.Name);
+
+                        await notificationService.PublishUpdateAsync(cr.ModelResource, cr.DcpResource.Metadata.Name, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+                    }
                 }
             }
 
             var tasks = new List<Task>();
-            foreach (var er in executableResources)
+            foreach (var group in executableResources.GroupBy(e => e.ModelResource))
             {
-                tasks.Add(CreateExecutableAsyncCore(er, cancellationToken));
+                tasks.Add(CreateResourceExecutablesAsyncCore(group.Key, group, cancellationToken));
             }
 
             return Task.WhenAll(tasks);
@@ -1274,11 +1249,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
     {
-        await PublishConnectionStringAvailableEvent(er.ModelResource, cancellationToken).ConfigureAwait(false);
-
-        var beforeResourceStartedEvent = new BeforeResourceStartedEvent(er.ModelResource, serviceProvider);
-        await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
-
         ExecutableSpec spec;
         Func<Task<CustomResource>> createResource;
 
@@ -1445,17 +1415,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             EnsureRequiredAnnotations(container);
 
-            var nameSuffix = container.GetContainerLifetimeType() switch
-            {
-                ContainerLifetime.Default => GetRandomNameSuffix(),
-                // Compute a short hash of the content root path to differentiate between multiple AppHost projects with similar resource names
-                _ => configuration["AppHost:Sha256"]!.Substring(0, RandomNameSuffixLength).ToLowerInvariant(),
-            };
+            var containerObjectInstance = GetDcpInstance(container, instanceIndex: 0);
+            var ctr = Container.Create(containerObjectInstance.Name, containerImageName);
 
-            var containerObjectName = GetObjectNameForResource(container, nameSuffix);
-            var ctr = Container.Create(containerObjectName, containerImageName);
-
-            ctr.Spec.ContainerName = containerObjectName; // Use the same name for container orchestrator (Docker, Podman) resource and DCP object name.
+            ctr.Spec.ContainerName = containerObjectInstance.Name; // Use the same name for container orchestrator (Docker, Podman) resource and DCP object name.
 
             if (container.GetContainerLifetimeType() == ContainerLifetime.Persistent)
             {
@@ -1464,7 +1427,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             ctr.Annotate(CustomResource.ResourceNameAnnotation, container.Name);
             ctr.Annotate(CustomResource.OtelServiceNameAnnotation, container.Name);
-            ctr.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, nameSuffix);
+            ctr.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, containerObjectInstance.Suffix);
             SetInitialResourceState(container, ctr);
 
             if (container.TryGetContainerMounts(out var containerMounts))
@@ -1498,6 +1461,27 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             AddServicesProducedInfo(container, ctr, containerAppResource);
             _appResources.Add(containerAppResource);
         }
+    }
+
+    /// <summary>
+    /// Gets information about the resource's DCP instance. ReplicaInstancesAnnotation is added in BeforeStartEvent.
+    /// </summary>
+    private static DcpInstance GetDcpInstance(IResource resource, int instanceIndex)
+    {
+        if (!resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var replicaAnnotation))
+        {
+            throw new DistributedApplicationException($"Couldn't find required {nameof(DcpInstancesAnnotation)} annotation on resource {resource.Name}.");
+        }
+
+        foreach (var instance in replicaAnnotation.Instances)
+        {
+            if (instance.Index == instanceIndex)
+            {
+                return instance;
+            }
+        }
+
+        throw new DistributedApplicationException($"Couldn't find required instance ID for index {instanceIndex} on resource {resource.Name}.");
     }
 
     private Task CreateContainersAsync(IEnumerable<AppResource> containerResources, CancellationToken cancellationToken)

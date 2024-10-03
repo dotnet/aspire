@@ -46,6 +46,11 @@ resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flex
   parent: pgsql2
 }
 
+resource pgsql2db 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
+  name: 'pgsql2db'
+  parent: pgsql2
+}
+
 resource pgsql2_admin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = {
   name: principalId
   properties: {

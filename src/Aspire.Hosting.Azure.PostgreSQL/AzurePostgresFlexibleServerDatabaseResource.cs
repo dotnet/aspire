@@ -24,8 +24,7 @@ public class AzurePostgresFlexibleServerDatabaseResource(string name, string dat
     /// <summary>
     /// Gets the connection string expression for the Postgres database.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression =>
-       ReferenceExpression.Create($"{Parent};Database={DatabaseName}");
+    public ReferenceExpression ConnectionStringExpression => Parent.GetDatabaseConnectionString(Name, databaseName);
 
     /// <summary>
     /// Gets the database name.

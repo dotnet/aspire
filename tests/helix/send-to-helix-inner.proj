@@ -13,7 +13,7 @@
     <!-- Disable playwright tests on helix/linux. Issue: https://github.com/dotnet/aspire/issues/4623 -->
     <DisablePlaywrightTests Condition="'$(OS)' != 'Windows_NT'">true</DisablePlaywrightTests>
 
-    <DotNetCliVersion>$(DotNetSdkVersionForTesting)</DotNetCliVersion>
+    <DotNetCliVersion>$(DotNetSdkPreviousVersionForTesting)</DotNetCliVersion>
 
     <!-- dotnet-coverage tool version -->
     <_DotNetToolJsonPath>$(RepoRoot).config/dotnet-tools.json</_DotNetToolJsonPath>
@@ -27,6 +27,8 @@
 
     <_AzureFunctionsCliUrl Condition="'$(OS)' == 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.6280/Azure.Functions.Cli.min.win-x64_net8.4.0.6280.zip</_AzureFunctionsCliUrl>
     <_AzureFunctionsCliUrl Condition="'$(OS)' != 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.6280/Azure.Functions.Cli.linux-x64_net8.4.0.6280.zip</_AzureFunctionsCliUrl>
+
+    <_DefaultSdkDirNameForTests>dotnet-tests</_DefaultSdkDirNameForTests>
 
     <PrepareDependenciesDependsOn>_StageDotNetCoverageTool;_StageCreateDotNetDevCertScripts</PrepareDependenciesDependsOn>
   </PropertyGroup>
@@ -56,8 +58,8 @@
     <_ShutdownDockerContainersCommand Condition="'$(OS)' != 'Windows_NT'">for f in `docker ps -aq`%3B do docker stop $f%3B docker rm $f%3B done</_ShutdownDockerContainersCommand>
     <_DeleteDockerVolumesCommand Condition="'$(OS)' != 'Windows_NT'">for f in `docker volume ls -q`%3B do docker volume rm $f%3B done</_DeleteDockerVolumesCommand>
 
-    <_CleanupProcessesCommand Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; get-ciminstance win32_process | where-object ExecutablePath -Match 'dotnet-latest|dcp.exe|dcpctrl.exe' | foreach-object { echo $_.ProcessId $_.ExecutablePath %3B stop-process -id $_.ProcessId -force -ErrorAction SilentlyContinue }"</_CleanupProcessesCommand>
-    <_CleanupProcessesCommand Condition="'$(OS)' != 'Windows_NT'">pgrep -lf "dotnet-latest|dcp.exe|dcpctrl.exe" | awk '{print %3B system("kill -9 "$1)}'</_CleanupProcessesCommand>
+    <_CleanupProcessesCommand Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; get-ciminstance win32_process | where-object ExecutablePath -Match 'dotnet-tests|dcp.exe|dcpctrl.exe' | foreach-object { echo $_.ProcessId $_.ExecutablePath %3B stop-process -id $_.ProcessId -force -ErrorAction SilentlyContinue }"</_CleanupProcessesCommand>
+    <_CleanupProcessesCommand Condition="'$(OS)' != 'Windows_NT'">pgrep -lf "dotnet-tests|dcp.exe|dcpctrl.exe" | awk '{print %3B system("kill -9 "$1)}'</_CleanupProcessesCommand>
   </PropertyGroup>
 
   <ItemGroup>
@@ -71,7 +73,7 @@
     <_TestBlameArguments Include="--blame-crash" />
     <_TestBlameArguments Include="--blame-crash-dump-type full" />
 
-    <_TestRunCommandArguments Include="dotnet test -s .runsettings $(_TestNameEnvVar).dll --ResultsDirectory:$(_HelixLogsPath)" />
+    <_TestRunCommandArguments Include="dotnet test -s .runsettings $(_TestNameEnvVar).dll --ResultsDirectory:$(_HelixLogsPath) -v:n" />
     <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
   </ItemGroup>
 
@@ -92,14 +94,11 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(NeedsWorkload)' == 'true'">
-    <!--<HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\dotnet-latest%3B%PATH%" />-->
-    <!--<HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/dotnet-latest:$PATH" />-->
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\$(_DefaultSdkDirNameForTests)%3B%PATH%" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/$(_DefaultSdkDirNameForTests):$PATH" />
 
-    <!--<HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SDK_DIR_NAME=dotnet-latest" />-->
-    <!--<HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SDK_DIR_NAME=dotnet-latest" />-->
-
-    <!--<HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SDK_FOR_WORKLOAD_TESTING_PATH=%HELIX_CORRELATION_PAYLOAD%\%SDK_DIR_NAME%" />-->
-    <!--<HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SDK_FOR_WORKLOAD_TESTING_PATH=$HELIX_CORRELATION_PAYLOAD/$SDK_DIR_NAME" />-->
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SDK_FOR_WORKLOAD_TESTING_PATH=%HELIX_CORRELATION_PAYLOAD%\$(_DefaultSdkDirNameForTests)" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SDK_FOR_WORKLOAD_TESTING_PATH=$HELIX_CORRELATION_PAYLOAD/$(_DefaultSdkDirNameForTests)" />
 
     <!-- needed till the 9.0 sdk drops the aspire manifest -->
     <HelixPreCommand Include="$(_EnvVarSetKeyword) SkipAspireWorkloadManifest=true" />
@@ -142,7 +141,7 @@
     <!-- Disable playwright tests on helix/linux. Issue: https://github.com/dotnet/aspire/issues/4623 -->
     <HelixPreCommand Condition="'$(DisablePlaywrightTests)' == 'true'" Include="$(_EnvVarSetKeyword) DISABLE_PLAYWRIGHT_TESTS=true" />
 
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="%HELIX_CORRELATION_PAYLOAD%\dotnet-cli\dotnet.exe dev-certs https --trust" />
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="dotnet dev-certs https --trust" />
 
     <HelixPostCommand Include="$(_CleanupProcessesCommand)" />
   </ItemGroup>
@@ -196,7 +195,7 @@
     </ItemGroup>
 
     <ItemGroup Condition="'$(NeedsWorkload)' == 'true'">
-      <!--<HelixCorrelationPayload Include="$(ArtifactsBinDir)dotnet-latest" Destination="dotnet-latest" />-->
+      <HelixCorrelationPayload Include="$(ArtifactsBinDir)$(_DefaultSdkDirNameForTests)" Destination="$(_DefaultSdkDirNameForTests)" />
       <HelixCorrelationPayload Include="$(ArtifactsShippingPackagesDir)" Destination="built-nugets" />
     </ItemGroup>
 

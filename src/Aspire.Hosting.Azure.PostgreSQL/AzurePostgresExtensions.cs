@@ -232,7 +232,7 @@ public static class AzurePostgresExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource> AddDatabase(this IResourceBuilder<AzurePostgresFlexibleServerResource> builder, string name, string? databaseName = null)
+    public static IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource> AddDatabase(this IResourceBuilder<AzurePostgresFlexibleServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
@@ -243,10 +243,10 @@ public static class AzurePostgresExtensions
         var azureResource = builder.Resource;
         var azurePostgresDatabase = new AzurePostgresFlexibleServerDatabaseResource(name, databaseName, azureResource);
 
+        builder.Resource.AddDatabase(name, databaseName);
+
         if (azureResource.InnerResource is null)
         {
-            builder.Resource.AddDatabase(name, databaseName);
-
             return builder.ApplicationBuilder.AddResource(azurePostgresDatabase);
         }
         else
@@ -383,8 +383,8 @@ public static class AzurePostgresExtensions
             {
                 RemoveActiveDirectoryAuthResources(construct);
 
-                var postgres = construct.GetResources().OfType<PostgreSqlFlexibleServer>().FirstOrDefault(r => r.ResourceName == builder.Resource.Name)
-                    ?? throw new InvalidOperationException($"Could not find a PostgreSqlFlexibleServer with name {builder.Resource.Name}.");
+                var postgres = construct.GetResources().OfType<PostgreSqlFlexibleServer>().FirstOrDefault(r => r.ResourceName == azureResource.Name)
+                    ?? throw new InvalidOperationException($"Could not find a PostgreSqlFlexibleServer with name {azureResource.Name}.");
 
                 var administratorLogin = new ProvisioningParameter("administratorLogin", typeof(string));
                 construct.Add(administratorLogin);
@@ -418,6 +418,20 @@ public static class AzurePostgresExtensions
                     }
                 };
                 construct.Add(secret);
+
+                foreach (var database in azureResource.Databases)
+                {
+                    var dbSecret = new KeyVaultSecret(database.Key + "_connectionString")
+                    {
+                        Parent = keyVault,
+                        Name = AzurePostgresFlexibleServerResource.GetDatabaseKeyVaultSecretName(database.Key),
+                        Properties = new SecretProperties
+                        {
+                            Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName};Username={administratorLogin};Password={administratorLoginPassword};Database={database.Value}")
+                        }
+                    };
+                    construct.Add(dbSecret);
+                }
             });
     }
 

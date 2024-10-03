@@ -37,31 +37,25 @@ public class DashboardLifecycleHookTests
         var resourceLoggerService = new ResourceLoggerService();
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
         var configuration = new ConfigurationBuilder().Build();
-        var hook = new DashboardLifecycleHook(
-            configuration,
-            Options.Create(new DashboardOptions { DashboardPath = "test.dll" }),
-            NullLogger<DistributedApplication>.Instance,
-            new TestDashboardEndpointProvider(),
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
-            resourceNotificationService,
-            resourceLoggerService,
-            factory);
+        var hook = CreateHook(resourceLoggerService, resourceNotificationService, configuration, loggerFactory: factory);
 
         var model = new DistributedApplicationModel(new ResourceCollection());
         await hook.BeforeStartAsync(model, CancellationToken.None);
 
         await resourceNotificationService.PublishUpdateAsync(model.Resources.Single(), s => s);
 
+        string resourceId = default!;
         await foreach (var item in resourceLoggerService.WatchAnySubscribersAsync())
         {
-            if (item.Name == KnownResourceNames.AspireDashboard && item.AnySubscribers)
+            if (item.Name.StartsWith(KnownResourceNames.AspireDashboard) && item.AnySubscribers)
             {
+                resourceId = item.Name;
                 break;
             }
         }
 
         // Act
-        var dashboardLoggerState = resourceLoggerService.GetResourceLoggerState(KnownResourceNames.AspireDashboard);
+        var dashboardLoggerState = resourceLoggerService.GetResourceLoggerState(resourceId);
         dashboardLoggerState.AddLog(LogEntry.Create(timestamp, logMessage, isErrorMessage: false), inMemorySource: true);
 
         // Assert
@@ -78,15 +72,7 @@ public class DashboardLifecycleHookTests
         var resourceLoggerService = new ResourceLoggerService();
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
         var configuration = new ConfigurationBuilder().Build();
-        var hook = new DashboardLifecycleHook(
-            configuration,
-            Options.Create(new DashboardOptions { DashboardPath = "test.dll" }),
-            NullLogger<DistributedApplication>.Instance,
-            new TestDashboardEndpointProvider(),
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
-            resourceNotificationService,
-            resourceLoggerService,
-            NullLoggerFactory.Instance);
+        var hook = CreateHook(resourceLoggerService, resourceNotificationService, configuration);
 
         var model = new DistributedApplicationModel(new ResourceCollection());
 
@@ -98,6 +84,24 @@ public class DashboardLifecycleHookTests
         // Assert
         Assert.Single(dashboardResource.Annotations.OfType<ExcludeLifecycleCommandsAnnotation>());
         Assert.Empty(dashboardResource.Annotations.OfType<ResourceCommandAnnotation>());
+    }
+
+    private static DashboardLifecycleHook CreateHook(
+        ResourceLoggerService resourceLoggerService,
+        ResourceNotificationService resourceNotificationService,
+        IConfiguration configuration,
+        ILoggerFactory? loggerFactory = null)
+    {
+        return new DashboardLifecycleHook(
+            configuration,
+            Options.Create(new DashboardOptions { DashboardPath = "test.dll" }),
+            NullLogger<DistributedApplication>.Instance,
+            new TestDashboardEndpointProvider(),
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            resourceNotificationService,
+            resourceLoggerService,
+            loggerFactory ?? NullLoggerFactory.Instance,
+            new DcpNameGenerator(configuration, Options.Create(new DcpOptions())));
     }
 
     public static IEnumerable<object?[]> Data()

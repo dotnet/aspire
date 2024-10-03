@@ -65,3 +65,11 @@ resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   }
   parent: keyVault
 }
+
+resource db2_connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
+  name: 'db2-connectionString'
+  properties: {
+    value: 'Host=${postgres2.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword};Database=db2'
+  }
+  parent: keyVault
+}

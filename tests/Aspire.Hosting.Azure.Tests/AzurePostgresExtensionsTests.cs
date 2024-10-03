@@ -141,6 +141,8 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         var postgres = builder.AddAzurePostgresFlexibleServer("postgres")
             .WithPasswordAuthentication(userName, password);
 
+        postgres.AddDatabase("db1", "db1Name");
+
         var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
 
         var expectedManifest = $$"""
@@ -218,6 +220,11 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
               parent: postgres
             }
 
+            resource db1 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
+              name: 'db1Name'
+              parent: postgres
+            }
+
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
@@ -226,6 +233,14 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
               name: 'connectionString'
               properties: {
                 value: 'Host=${postgres.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
+              }
+              parent: keyVault
+            }
+
+            resource db1_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'db1-connectionString'
+              properties: {
+                value: 'Host=${postgres.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword};Database=db1Name'
               }
               parent: keyVault
             }
@@ -305,5 +320,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         var db2 = postgres.AddDatabase("db2", "db2Name");
 
         Assert.Equal("Host=localhost;Port=12455;Username=user;Password=p@ssw0rd1", await postgres.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+        Assert.Equal("Host=localhost;Port=12455;Username=user;Password=p@ssw0rd1;Database=db1", await db1.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+        Assert.Equal("Host=localhost;Port=12455;Username=user;Password=p@ssw0rd1;Database=db2Name", await db2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
     }
 }

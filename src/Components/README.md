@@ -75,6 +75,7 @@ Where the component represents some client technology that has a widely recogniz
 - When a new instance of the settings type is created, its properties should return the recommended/default values (so when they are bound to an empty config they still return the right values).
 - Settings should be bound to a section of `IConfiguration` exposed by `IHostApplicationBuilder.Configuration`.
 - Each component should determine a constant configuration section name for its settings under the `Aspire` config section.
+- Each component should support binding arguments from the configuration section and from named configuration as defined below. Settings bound from named configuration should override those bound from integration-specific configuration.
 - All configuration knobs exposed by the settings type should be public and mutable, so they can be changed in the config and applied without a need for re-compiling the application.
 - Each component should expose an optional lambda that accepts an instance of given settings type. By doing that, we provide the users with a possibility to override the bound config values (make final changes).
 - When a mandatory config property is missing, an exception should be thrown, and it should contain information about the config path that was used to read it.

@@ -55,7 +55,7 @@ public static class AspireOpenAIExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddOpenAIClient(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureOptions, connectionName: name, serviceKey: name);
+        AddOpenAIClient(builder, DefaultConfigSectionName, configureSettings, configureOptions, connectionName: name, serviceKey: name);
     }
 
     private static void AddOpenAIClient(
@@ -69,9 +69,11 @@ public static class AspireOpenAIExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         var configSection = builder.Configuration.GetSection(configurationSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
 
         OpenAISettings settings = new();
         configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -87,6 +89,7 @@ public static class AspireOpenAIExtensions
             options =>
             {
                 configSection.GetSection("ClientOptions").Bind(options);
+                namedConfigSection.GetSection("ClientOptions").Bind(options);
 
                 if (settings.Endpoint is not null)
                 {
