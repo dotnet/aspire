@@ -276,11 +276,14 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Gets the lifetime type of the container for the specified resoruce. Defaults to <see cref="ContainerLifetime.Default"/> if
-    /// no <see cref="ContainerLifetimeAnnotation"/> is found.
+    /// Gets the lifetime type of the container for the specified resource.
+    /// Defaults to <see cref="ContainerLifetime.Default"/> if no <see cref="ContainerLifetimeAnnotation"/> is found.
     /// </summary>
     /// <param name="resource">The resource to the get the ContainerLifetimeType for.</param>
-    /// <returns>The <see cref="ContainerLifetime"/> from the <see cref="ContainerLifetimeAnnotation"/> for the resource (if the annotation exists). Defaults to <see cref="ContainerLifetime.Default"/> if the annotation is not set.</returns>
+    /// <returns>
+    /// The <see cref="ContainerLifetime"/> from the <see cref="ContainerLifetimeAnnotation"/> for the resource (if the annotation exists).
+    /// Defaults to <see cref="ContainerLifetime.Default"/> if the annotation is not set.
+    /// </returns>
     internal static ContainerLifetime GetContainerLifetimeType(this IResource resource)
     {
         if (resource.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
@@ -289,5 +292,22 @@ public static class ResourceExtensions
         }
 
         return ContainerLifetime.Default;
+    }
+
+    /// <summary>
+    /// Gets resolved names for the specified resource.
+    /// DCP resources are given a unique suffix as part of the complete name. We want to use that value.
+    /// Also, a DCP resource could have multiple instances. All instance names are returned for a resource.
+    /// </summary>
+    internal static string[] GetResolvedResourceNames(this IResource resource)
+    {
+        if (resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var replicaAnnotation) && !replicaAnnotation.Instances.IsEmpty)
+        {
+            return replicaAnnotation.Instances.Select(i => i.Name).ToArray();
+        }
+        else
+        {
+            return [resource.Name];
+        }
     }
 }

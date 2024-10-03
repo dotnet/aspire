@@ -77,8 +77,8 @@ public class ResourceNotificationService
     /// will throw <see cref="OperationCanceledException"/>.
     /// </remarks>
     /// <param name="resourceName">The name of the resource.</param>
-    /// <param name="targetState"></param>
-    /// <param name="cancellationToken">A <see cref="CancellationToken"/> </param>
+    /// <param name="targetState">The state to wait for the resource to transition to. See <see cref="KnownResourceStates"/> for common states.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="Task"/> representing the wait operation.</returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "targetState(s) parameters are mutually exclusive.")]
@@ -468,9 +468,13 @@ public class ResourceNotificationService
     /// </summary>
     /// <param name="resource">The resource to update</param>
     /// <param name="stateFactory">A factory that creates the new state based on the previous state.</param>
-    public Task PublishUpdateAsync(IResource resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
+    public async Task PublishUpdateAsync(IResource resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
     {
-        return PublishUpdateAsync(resource, resource.Name, stateFactory);
+        var resourceNames = resource.GetResolvedResourceNames();
+        foreach (var resourceName in resourceNames)
+        {
+            await PublishUpdateAsync(resource, resourceName, stateFactory).ConfigureAwait(false);
+        }
     }
 
     private static CustomResourceSnapshot GetCurrentSnapshot(IResource resource, ResourceNotificationState notificationState)
