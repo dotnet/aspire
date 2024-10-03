@@ -15,6 +15,42 @@ namespace Aspire.Hosting.Tests;
 public class HealthCheckTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
+    public void WithHttpHealthCheckThrowsIfReferencingEndpointThatIsNotHttpScheme()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            builder.AddContainer("resource", "dummycontainer")
+                   .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp")
+                   .WithHttpHealthCheck(endpointName: "nonhttp");
+        });
+
+        Assert.Equal(
+            "The endpoint 'nonhttp' on resource 'resource' was not using the 'http' scheme.",
+            ex.Message
+            );
+    }
+
+    [Fact]
+    public void WithHttpsHealthCheckThrowsIfReferencingEndpointThatIsNotHttpsScheme()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            builder.AddContainer("resource", "dummycontainer")
+                   .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp")
+                   .WithHttpsHealthCheck(endpointName: "nonhttp");
+        });
+
+        Assert.Equal(
+            "The endpoint 'nonhttp' on resource 'resource' was not using the 'https' scheme.",
+            ex.Message
+            );
+    }
+
+    [Fact]
     [RequiresDocker]
     public async Task VerifyWithHttpHealthCheckBlocksDependentResources()
     {
