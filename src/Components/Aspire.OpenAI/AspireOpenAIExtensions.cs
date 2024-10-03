@@ -89,6 +89,7 @@ public static class AspireOpenAIExtensions
             options =>
             {
                 configSection.GetSection("ClientOptions").Bind(options);
+                namedConfigSection.GetSection("ClientOptions").Bind(options);
 
                 if (settings.Endpoint is not null)
                 {
