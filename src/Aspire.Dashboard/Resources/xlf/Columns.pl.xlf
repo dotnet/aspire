@@ -17,11 +17,6 @@
         <target state="translated">Trwa uruchamianie...</target>
         <note />
       </trans-unit>
-      <trans-unit id="LogMessageColumnExceptionDetailsTitle">
-        <source>Exception details</source>
-        <target state="translated">Szczegóły wyjątku</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceNameDisplayContainerIdText">
         <source>Container ID: {0}</source>
         <target state="translated">Identyfikator kontenera: {0}</target>
@@ -36,6 +31,11 @@
         <source>Process ID: {0}</source>
         <target state="translated">Identyfikator procesu: {0}</target>
         <note>{0} is a numeric id</note>
+      </trans-unit>
+      <trans-unit id="RunningAndUnhealthyResourceStateToolTip">
+        <source>Resource is running but not in a healthy state. Click for details.</source>
+        <target state="new">Resource is running but not in a healthy state. Click for details.</target>
+        <note>Tool tip text explaining that the resource is running but not yet ready to receive requests.</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerArgsTitle">
         <source>Container args</source>

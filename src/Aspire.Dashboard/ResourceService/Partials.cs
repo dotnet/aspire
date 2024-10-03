@@ -48,17 +48,29 @@ partial class Resource
                 State = HasState ? State : null,
                 KnownState = HasState ? Enum.TryParse(State, out KnownResourceState knownState) ? knownState : null : null,
                 StateStyle = HasStateStyle ? StateStyle : null,
-                ReadinessState = HasHealthState ? HealthState switch
-                {
-                    HealthStateKind.Healthy => ReadinessState.Ready,
-                    _ => ReadinessState.NotReady,
-                } : ReadinessState.Unknown,
-                Commands = GetCommands()
+                Commands = GetCommands(),
+                HealthReports = HealthReports.Select(ToHealthReportViewModel).ToImmutableArray(),
             };
         }
         catch (Exception ex)
         {
             throw new InvalidOperationException($@"Error converting resource ""{Name}"" to {nameof(ResourceViewModel)}.", ex);
+        }
+
+        HealthReportViewModel ToHealthReportViewModel(HealthReport healthReport)
+        {
+            return new HealthReportViewModel(healthReport.Key, Convert(healthReport.Status), healthReport.Description, healthReport.Exception);
+
+            static Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus Convert(HealthStatus healthStatus)
+            {
+                return healthStatus switch
+                {
+                    HealthStatus.Unknown or HealthStatus.Healthy => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy,
+                    HealthStatus.Degraded => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded,
+                    HealthStatus.Unhealthy => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
+                    _ => throw new InvalidOperationException("Unknown health status: " + healthStatus),
+                };
+            }
         }
 
         ImmutableArray<EnvironmentVariableViewModel> GetEnvironment()

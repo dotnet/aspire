@@ -29,7 +29,9 @@
             EnableMasking="@context.IsValueSensitive"
             IsMasked="@context.IsValueMasked"
             IsMaskedChanged="(isMasked) => OnIsValueMaskedChanged(context, isMasked)"
-            TextVisualizerTitle="@context.Name"/>
+            TextVisualizerTitle="@context.Name"
+            ValueToCopy="@(context.ValueToCopy ?? context.Value)"
+            ValueToVisualize="@(context.ValueToVisualize ?? context.Value)" />
         @ExtraValueContent(context)
     </AspireTemplateColumn>
 </FluentDataGrid>

@@ -88,15 +88,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Exception details.
-        /// </summary>
-        public static string LogMessageColumnExceptionDetailsTitle {
-            get {
-                return ResourceManager.GetString("LogMessageColumnExceptionDetailsTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Container ID: {0}.
         /// </summary>
         public static string ResourceNameDisplayContainerIdText {
@@ -120,6 +111,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourceNameDisplayProcessIdText {
             get {
                 return ResourceManager.GetString("ResourceNameDisplayProcessIdText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resource is running but not in a healthy state. Click for details..
+        /// </summary>
+        public static string RunningAndUnhealthyResourceStateToolTip {
+            get {
+                return ResourceManager.GetString("RunningAndUnhealthyResourceStateToolTip", resourceCulture);
             }
         }
         

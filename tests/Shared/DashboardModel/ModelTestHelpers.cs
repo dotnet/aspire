@@ -4,6 +4,7 @@
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using Aspire.Dashboard.Model;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Tests.Shared.DashboardModel;
 
@@ -33,7 +34,7 @@ public static class ModelTestHelpers
             State = state?.ToString(),
             KnownState = state,
             StateStyle = null,
-            ReadinessState = ReadinessState.Ready,
+            HealthReports = [],
             Commands = []
         };
     }

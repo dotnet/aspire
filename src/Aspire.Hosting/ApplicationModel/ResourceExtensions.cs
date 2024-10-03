@@ -276,7 +276,7 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Gets the lifetime type of the container for the specified resoruce. Defaults to <see cref="ContainerLifetime.Default"/> if
+    /// Gets the lifetime type of the container for the specified resource. Defaults to <see cref="ContainerLifetime.Default"/> if
     /// no <see cref="ContainerLifetimeAnnotation"/> is found.
     /// </summary>
     /// <param name="resource">The resource to the get the ContainerLifetimeType for.</param>

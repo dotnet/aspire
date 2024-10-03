@@ -48,9 +48,12 @@ public sealed record CustomResourceSnapshot
     public int? ExitCode { get; init; }
 
     /// <summary>
-    /// The health status of the resource.
+    /// The health reports for this resource.
     /// </summary>
-    public HealthStatus? HealthStatus { get; init; }
+    /// <remarks>
+    /// May be zero or more. If there are no health reports, the resource is considered healthy.
+    /// </remarks>
+    public ImmutableArray<HealthReportSnapshot> HealthReports { get; init; } = [];
 
     /// <summary>
     /// The environment variables that should show up in the dashboard for this resource.
@@ -71,12 +74,22 @@ public sealed record CustomResourceSnapshot
     /// The commands available in the dashboard for this resource.
     /// </summary>
     public ImmutableArray<ResourceCommandSnapshot> Commands { get; init; } = [];
+
+    /// <summary>
+    /// Gets the aggregate health status of the resource.
+    /// </summary>
+    /// <remarks>
+    /// This property's value is derived from <see cref="HealthReports"/>.
+    /// If no health reports are present, the resource is considered <see cref="HealthStatus.Healthy"/>.
+    /// </remarks>
+    // Uses the same logic as ASP.NET Core's private HealthReport.CalculateAggregateStatus
+    public HealthStatus HealthStatus => HealthReports.MinBy(r => r.Status)?.Status ?? HealthStatus.Healthy;
 }
 
 /// <summary>
 /// A snapshot of the resource state
 /// </summary>
-/// <param name="Text">The text for the state update.</param>
+/// <param name="Text">The text for the state update. See <see cref="KnownResourceStates"/> for expected values.</param>
 /// <param name="Style">The style for the state update. Use <seealso cref="KnownResourceStateStyles"/> for the supported styles.</param>
 public sealed record ResourceStateSnapshot(string Text, string? Style)
 {
@@ -107,7 +120,7 @@ public sealed record UrlSnapshot(string Name, string Url, bool IsInternal);
 /// <summary>
 /// A snapshot of a volume, mounted to a container.
 /// </summary>
-/// <param name="Source">The name of the volume. Can be <c>null</c> if the mount is an anonymous volume.</param>
+/// <param name="Source">The name of the volume. Can be <see langword="null"/> if the mount is an anonymous volume.</param>
 /// <param name="Target">The target of the mount.</param>
 /// <param name="MountType">Gets the mount type, such as <see cref="VolumeMountType.Bind"/> or <see cref="VolumeMountType.Volume"/></param>
 /// <param name="IsReadOnly">Whether the volume mount is read-only or not.</param>
@@ -158,6 +171,15 @@ public sealed record ResourcePropertySnapshot(string Name, object? Value)
 /// <param name="IconVariant">The icon variant.</param>
 /// <param name="IsHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
 public sealed record ResourceCommandSnapshot(string Type, ResourceCommandState State, string DisplayName, string? DisplayDescription, object? Parameter, string? ConfirmationMessage, string? IconName, IconVariant? IconVariant, bool IsHighlighted);
+
+/// <summary>
+/// A report produced by a health check about a resource.
+/// </summary>
+/// <param name="Name">The name of the health check that produced this report.</param>
+/// <param name="Status">The state of the resource, according to the report.</param>
+/// <param name="Description">An optional description of the report, for display.</param>
+/// <param name="Exception">An optional string containing exception details.</param>
+public sealed record HealthReportSnapshot(string Name, HealthStatus Status, string? Description, string? Exception);
 
 /// <summary>
 /// The state of a resource command.

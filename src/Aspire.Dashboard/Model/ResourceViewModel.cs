@@ -6,10 +6,12 @@ using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
+using System.Text;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Model;
@@ -23,7 +25,6 @@ public sealed class ResourceViewModel
     public required string Uid { get; init; }
     public required string? State { get; init; }
     public required string? StateStyle { get; init; }
-    public required ReadinessState ReadinessState { get; init; }
     public required DateTime? CreationTimeStamp { get; init; }
     public required DateTime? StartTimeStamp { get; init; }
     public required DateTime? StopTimeStamp { get; init; }
@@ -32,7 +33,13 @@ public sealed class ResourceViewModel
     public required ImmutableArray<VolumeViewModel> Volumes { get; init; }
     public required FrozenDictionary<string, ResourcePropertyViewModel> Properties { get; init; }
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
+    public required ImmutableArray<HealthReportViewModel> HealthReports { get; init; }
     public KnownResourceState? KnownState { get; init; }
+
+    // Uses the same logic as ASP.NET Core's private HealthReport.CalculateAggregateStatus
+    internal HealthStatus HealthStatus => HealthReports.MinBy(r => r.HealthStatus)?.HealthStatus ?? HealthStatus.Healthy;
+
+    internal bool IsHealthy => HealthReports.All(report => report.HealthStatus == HealthStatus.Healthy);
 
     internal bool MatchesFilter(string filter)
     {
@@ -64,13 +71,6 @@ public sealed class ResourceViewModel
 
         return resource.DisplayName;
     }
-}
-
-public enum ReadinessState
-{
-    Unknown,
-    NotReady,
-    Ready
 }
 
 [DebuggerDisplay("CommandType = {CommandType}, DisplayName = {DisplayName}")]
@@ -251,4 +251,52 @@ public sealed record class VolumeViewModel(string? Source, string Target, string
     public bool MatchesFilter(string filter) =>
         Source?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
         Target?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
+}
+
+public sealed record class HealthReportViewModel(string Name, HealthStatus HealthStatus, string? Description, string? Exception) : IPropertyGridItem
+{
+    /// <summary>
+    /// A single string that contains all information about this health report,
+    /// for copying and visualizing.
+    /// </summary>
+    private readonly string _compositeValue = GetCompositeValue(HealthStatus, Description, Exception);
+
+    string? IPropertyGridItem.Name => Name;
+
+    string? IPropertyGridItem.Value => HealthStatus.ToString();
+
+    string? IPropertyGridItem.ValueToCopy => _compositeValue;
+
+    string? IPropertyGridItem.ValueToVisualize => _compositeValue;
+
+    private static string GetCompositeValue(HealthStatus HealthStatus, string? Description, string? Exception)
+    {
+        StringBuilder builder = new();
+
+        builder.Append(HealthStatus.ToString());
+
+        if (!string.IsNullOrWhiteSpace(Description))
+        {
+            builder.AppendLine();
+            builder.AppendLine();
+            builder.Append(Description);
+        }
+
+        if (!string.IsNullOrWhiteSpace(Exception))
+        {
+            builder.AppendLine();
+            builder.AppendLine();
+            builder.Append(Exception);
+        }
+
+        return builder.ToString();
+    }
+
+    public bool MatchesFilter(string filter)
+    {
+        return
+            Name?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
+            Description?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
+            Exception?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
+    }
 }

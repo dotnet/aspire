@@ -5,7 +5,6 @@ using System.Collections.Immutable;
 using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.ResourceService.Proto.V1;
 using Google.Protobuf.WellKnownTypes;
 
 namespace Aspire.Hosting.Dashboard;
@@ -26,7 +25,7 @@ internal abstract class ResourceSnapshot
     public required ImmutableArray<EnvironmentVariableSnapshot> Environment { get; init; }
     public required ImmutableArray<VolumeSnapshot> Volumes { get; init; }
     public required ImmutableArray<UrlSnapshot> Urls { get; init; }
-    public required HealthStateKind? HealthState { get; set; }
+    public required ImmutableArray<HealthReportSnapshot> HealthReports { get; init; }
     public required ImmutableArray<ResourceCommandSnapshot> Commands { get; init; }
 
     protected abstract IEnumerable<(string Key, Value Value, bool IsSensitive)> GetProperties();
@@ -44,7 +43,7 @@ internal abstract class ResourceSnapshot
             yield return (KnownProperties.Resource.CreateTime, CreationTimeStamp is null ? Value.ForNull() : Value.ForString(CreationTimeStamp.Value.ToString("O")), IsSensitive: false);
             yield return (KnownProperties.Resource.StartTime, StartTimeStamp is null ? Value.ForNull() : Value.ForString(StartTimeStamp.Value.ToString("O")), IsSensitive: false);
             yield return (KnownProperties.Resource.StopTime, StopTimeStamp is null ? Value.ForNull() : Value.ForString(StopTimeStamp.Value.ToString("O")), IsSensitive: false);
-            yield return (KnownProperties.Resource.HealthState, HealthState is null ? Value.ForNull() : Value.ForString(HealthState.ToString()), IsSensitive: false);
+            yield return (KnownProperties.Resource.HealthState, HealthReports.MinBy(r => r.Status)?.Status is { } state ? Value.ForString(state.ToString()) : Value.ForNull(), IsSensitive: false);
 
             foreach (var property in GetProperties())
             {

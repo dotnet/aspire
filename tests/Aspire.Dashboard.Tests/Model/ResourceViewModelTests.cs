@@ -103,4 +103,60 @@ public sealed class ResourceViewModelTests
                 Assert.True(p.Value.IsValueSensitive);
             });
     }
+
+    [Fact]
+    public void ToViewModel_IsHealthy_EmptyHealthChecks()
+    {
+        // Arrange
+        var resource = new Resource
+        {
+            Name = "TestName",
+            DisplayName = "TestName",
+            CreatedAt = Timestamp.FromDateTime(s_dateTime),
+        };
+
+        // Act
+        var vm = resource.ToViewModel(s_timeProvider, new MockKnownPropertyLookup());
+
+        // Assert
+        Assert.True(vm.IsHealthy);
+    }
+
+    [Fact]
+    public void ToViewModel_IsHealthy_DegradedHealthCheck()
+    {
+        // Arrange
+        var resource = new Resource
+        {
+            Name = "TestName",
+            DisplayName = "TestName",
+            CreatedAt = Timestamp.FromDateTime(s_dateTime),
+            HealthReports = { new HealthReport { Status = HealthStatus.Degraded } }
+        };
+
+        // Act
+        var vm = resource.ToViewModel(s_timeProvider, new MockKnownPropertyLookup());
+
+        // Assert
+        Assert.False(vm.IsHealthy);
+    }
+
+    [Fact]
+    public void ToViewModel_IsHealthy_UnhealthyHealthCheck()
+    {
+        // Arrange
+        var resource = new Resource
+        {
+            Name = "TestName",
+            DisplayName = "TestName",
+            CreatedAt = Timestamp.FromDateTime(s_dateTime),
+            HealthReports = { new HealthReport { Status = HealthStatus.Unhealthy } }
+        };
+
+        // Act
+        var vm = resource.ToViewModel(s_timeProvider, new MockKnownPropertyLookup());
+
+        // Assert
+        Assert.False(vm.IsHealthy);
+    }
 }

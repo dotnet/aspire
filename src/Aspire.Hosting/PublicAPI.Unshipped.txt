@@ -1,6 +1,16 @@
 #nullable enable
 Aspire.Hosting.ApplicationModel.EndpointNameAttribute
 Aspire.Hosting.ApplicationModel.EndpointNameAttribute.EndpointNameAttribute() -> void
+Aspire.Hosting.ApplicationModel.HealthReportSnapshot
+Aspire.Hosting.ApplicationModel.HealthReportSnapshot.Description.get -> string?
+Aspire.Hosting.ApplicationModel.HealthReportSnapshot.Description.init -> void
+Aspire.Hosting.ApplicationModel.HealthReportSnapshot.Exception.get -> string?
+Aspire.Hosting.ApplicationModel.HealthReportSnapshot.Exception.init -> void
+Aspire.Hosting.ApplicationModel.HealthReportSnapshot.HealthReportSnapshot(string! Name, Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus Status, string? Description, string? Exception) -> void
+Aspire.Hosting.ApplicationModel.HealthReportSnapshot.Name.get -> string!
+Aspire.Hosting.ApplicationModel.HealthReportSnapshot.Name.init -> void
+Aspire.Hosting.ApplicationModel.HealthReportSnapshot.Status.get -> Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus
+Aspire.Hosting.ApplicationModel.HealthReportSnapshot.Status.init -> void
 Aspire.Hosting.ApplicationModel.IModelNameParameter
 Aspire.Hosting.ApplicationModel.AfterEndpointsAllocatedEvent
 Aspire.Hosting.ApplicationModel.AfterEndpointsAllocatedEvent.AfterEndpointsAllocatedEvent(System.IServiceProvider! services, Aspire.Hosting.ApplicationModel.DistributedApplicationModel! model) -> void
@@ -38,8 +48,9 @@ Aspire.Hosting.ApplicationModel.ContainerNameAnnotation.Name.get -> string!
 Aspire.Hosting.ApplicationModel.ContainerNameAnnotation.Name.set -> void
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Commands.get -> System.Collections.Immutable.ImmutableArray<Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot!>
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Commands.init -> void
-Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.get -> Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus?
-Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.init -> void
+Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.get -> Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus
+Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthReports.get -> System.Collections.Immutable.ImmutableArray<Aspire.Hosting.ApplicationModel.HealthReportSnapshot!>
+Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthReports.init -> void
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.StartTimeStamp.get -> System.DateTime?
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.StartTimeStamp.init -> void
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.StopTimeStamp.get -> System.DateTime?
