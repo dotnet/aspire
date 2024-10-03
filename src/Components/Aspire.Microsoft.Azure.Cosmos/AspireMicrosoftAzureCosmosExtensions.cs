@@ -32,9 +32,7 @@ public static class AspireMicrosoftAzureCosmosExtensions
         string connectionName,
         Action<MicrosoftAzureCosmosSettings>? configureSettings = null,
         Action<CosmosClientOptions>? configureClientOptions = null)
-    {
-        AddAzureCosmosClient(builder, DefaultConfigSectionName, configureSettings, configureClientOptions, connectionName, serviceKey: null);
-    }
+        => AddAzureCosmosClient(builder, DefaultConfigSectionName, configureSettings, configureClientOptions, connectionName, serviceKey: null);
 
     /// <summary>
     /// Registers <see cref="CosmosClient" /> as a singleton for given <paramref name="name" /> in the services provided by the <paramref name="builder"/>.
@@ -52,6 +50,8 @@ public static class AspireMicrosoftAzureCosmosExtensions
         Action<MicrosoftAzureCosmosSettings>? configureSettings = null,
         Action<CosmosClientOptions>? configureClientOptions = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddAzureCosmosClient(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureClientOptions, connectionName: name, serviceKey: name);
     }
 
@@ -64,6 +64,7 @@ public static class AspireMicrosoftAzureCosmosExtensions
         string? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         var settings = new MicrosoftAzureCosmosSettings();
         builder.Configuration.GetSection(configurationSectionName).Bind(settings);

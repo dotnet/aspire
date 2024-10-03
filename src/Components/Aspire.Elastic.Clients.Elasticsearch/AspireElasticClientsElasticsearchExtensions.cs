@@ -30,14 +30,8 @@ public static class AspireElasticClientsElasticsearchExtensions
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<ElasticClientsElasticsearchSettings>? configureSettings = null,
-        Action<ElasticsearchClientSettings>? configureClientSettings = null
-        )
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(connectionName);
-
-        builder.AddElasticsearchClient(DefaultConfigSectionName, configureSettings, configureClientSettings, connectionName, serviceKey: null);
-    }
+        Action<ElasticsearchClientSettings>? configureClientSettings = null)
+        => AddElasticsearchClient(builder, DefaultConfigSectionName, configureSettings, configureClientSettings, connectionName, serviceKey: null);
 
     /// <summary>
     /// Registers <see cref="ElasticsearchClient"/> instance for connecting to Elasticsearch with Elastic.Clients.Elasticsearch client.
@@ -53,10 +47,10 @@ public static class AspireElasticClientsElasticsearchExtensions
         Action<ElasticClientsElasticsearchSettings>? configureSettings = null,
         Action<ElasticsearchClientSettings>? configureClientSettings = null)
     {
-        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        builder.AddElasticsearchClient(
+        AddElasticsearchClient(
+            builder,
             $"{DefaultConfigSectionName}:{name}",
             configureSettings,
             configureClientSettings,
@@ -65,7 +59,7 @@ public static class AspireElasticClientsElasticsearchExtensions
     }
 
     private static void AddElasticsearchClient(
-        this IHostApplicationBuilder builder,
+        IHostApplicationBuilder builder,
         string configurationSectionName,
         Action<ElasticClientsElasticsearchSettings>? configureSettings,
         Action<ElasticsearchClientSettings>? configureClientSettings,
@@ -73,6 +67,7 @@ public static class AspireElasticClientsElasticsearchExtensions
         object? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         var configSection = builder.Configuration.GetSection(configurationSectionName);
 

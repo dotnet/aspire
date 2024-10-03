@@ -109,6 +109,8 @@ public static class AspireKafkaConsumerExtensions
         string? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(configurationSectionName);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         var settings = BuildConsumerSettings(builder, configurationSectionName, configureSettings, connectionName);
 
