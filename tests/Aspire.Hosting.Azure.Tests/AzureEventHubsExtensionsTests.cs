@@ -18,7 +18,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyWaitForOnEventHubsEmulatorBlocksDependentResources()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
@@ -28,9 +28,9 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         });
 
         var resource = builder.AddAzureEventHubs("resource")
-                              .AddEventHub("hubx")
-                              .RunAsEmulator()
-                              .WithHealthCheck("blocking_check");
+            .RunAsEmulator()
+            .AddEventHub("hubx")
+            .WithHealthCheck("blocking_check");
 
         var dependentResource = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                                        .WaitFor(resource);
