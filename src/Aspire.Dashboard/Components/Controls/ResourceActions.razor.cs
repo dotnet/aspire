@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -12,6 +14,9 @@ public partial class ResourceActions : ComponentBase
 {
     private static readonly Icon s_viewDetailsIcon = new Icons.Regular.Size16.Info();
     private static readonly Icon s_consoleLogsIcon = new Icons.Regular.Size16.SlideText();
+    private static readonly Icon s_structuredLogsIcon = new Icons.Regular.Size16.SlideTextSparkle();
+    private static readonly Icon s_tracesIcon = new Icons.Regular.Size16.GanttChart();
+    private static readonly Icon s_metricsIcon = new Icons.Regular.Size16.ChartMultiple();
 
     private AspireMenuButton? _menuButton;
 
@@ -20,6 +25,12 @@ public partial class ResourceActions : ComponentBase
 
     [Inject]
     public required IStringLocalizer<Resources.ControlsStrings> ControlLoc { get; set; }
+
+    [Inject]
+    public required NavigationManager NavigationManager { get; set; }
+
+    [Inject]
+    public required TelemetryRepository TelemetryRepository { get; set; }
 
     [Parameter]
     public required IList<CommandViewModel> Commands { get; set; }
@@ -31,7 +42,10 @@ public partial class ResourceActions : ComponentBase
     public required EventCallback<string> OnViewDetails { get; set; }
 
     [Parameter]
-    public required EventCallback OnConsoleLogs { get; set; }
+    public required ResourceViewModel Resource { get; set; }
+
+    [Parameter]
+    public required Func<ResourceViewModel, string> GetResourceName { get; set; }
 
     [Parameter]
     public required int MaxHighlightedCount { get; set; }
@@ -53,12 +67,54 @@ public partial class ResourceActions : ComponentBase
             Icon = s_viewDetailsIcon,
             OnClick = () => OnViewDetails.InvokeAsync(_menuButton?.MenuButtonId)
         });
+ 
         _menuItems.Add(new MenuButtonItem
         {
             Text = Loc[nameof(Resources.Resources.ResourceActionConsoleLogsText)],
             Icon = s_consoleLogsIcon,
-            OnClick = OnConsoleLogs.InvokeAsync
+            OnClick = () =>
+            {
+                NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: Resource.Name));
+                return Task.CompletedTask;
+            }
         });
+
+        // Show telemetry menu items if there is telemetry for the resource.
+        var hasTelemetryApplication = TelemetryRepository.GetApplicationByCompositeName(Resource.Name) != null;
+        if (hasTelemetryApplication)
+        {
+            _menuItems.Add(new MenuButtonItem { IsDivider = true });
+            _menuItems.Add(new MenuButtonItem
+            {
+                Text = Loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
+                Icon = s_structuredLogsIcon,
+                OnClick = () =>
+                {
+                    NavigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(resource: GetResourceName(Resource)));
+                    return Task.CompletedTask;
+                }
+            });
+            _menuItems.Add(new MenuButtonItem
+            {
+                Text = Loc[nameof(Resources.Resources.ResourceActionTracesText)],
+                Icon = s_tracesIcon,
+                OnClick = () =>
+                {
+                    NavigationManager.NavigateTo(DashboardUrls.TracesUrl(resource: GetResourceName(Resource)));
+                    return Task.CompletedTask;
+                }
+            });
+            _menuItems.Add(new MenuButtonItem
+            {
+                Text = Loc[nameof(Resources.Resources.ResourceActionMetricsText)],
+                Icon = s_metricsIcon,
+                OnClick = () =>
+                {
+                    NavigationManager.NavigateTo(DashboardUrls.MetricsUrl(resource: GetResourceName(Resource)));
+                    return Task.CompletedTask;
+                }
+            });
+        }
 
         if (ViewportInformation.IsDesktop)
         {

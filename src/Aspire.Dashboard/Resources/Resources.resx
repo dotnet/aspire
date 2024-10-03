@@ -239,4 +239,13 @@
     <value>{0} "{1}" starting</value>
     <comment>{0} is the resource. {1} is the display name of the command.</comment>
   </data>
+  <data name="ResourceActionTracesText" xml:space="preserve">
+    <value>Traces</value>
+  </data>
+  <data name="ResourceActionStructuredLogsText" xml:space="preserve">
+    <value>Structured logs</value>
+  </data>
+  <data name="ResourceActionMetricsText" xml:space="preserve">
+    <value>Metrics</value>
+  </data>
 </root>

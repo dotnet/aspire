@@ -29,7 +29,7 @@
         }
     }
 
-    <FluentButton Appearance="Appearance.Lightweight" Title="@Loc[nameof(Resources.Resources.ResourceActionConsoleLogsText)]" OnClick="@(() => OnConsoleLogs.InvokeAsync())">
+    <FluentButton Appearance="Appearance.Lightweight" Title="@Loc[nameof(Resources.Resources.ResourceActionConsoleLogsText)]" OnClick="@(() => NavigationManager.NavigateTo(Aspire.Dashboard.Utils.DashboardUrls.ConsoleLogsUrl(resource: Resource.Name)))">
         <FluentIcon Value="@s_consoleLogsIcon" />
     </FluentButton>
 

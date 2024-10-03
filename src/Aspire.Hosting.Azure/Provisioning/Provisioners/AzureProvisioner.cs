@@ -52,12 +52,16 @@ internal sealed class AzureProvisioner(
         var azureResources = new List<(IResource, IAzureResource)>();
         foreach (var resource in appModel.Resources)
         {
-            if (resource is IAzureResource azureResource)
+            if (resource.IsContainer())
+            {
+                continue;
+            }
+            else if (resource is IAzureResource azureResource)
             {
                 // If we are dealing with an Azure resource then we just return it.
                 azureResources.Add((resource, azureResource));
             }
-            if (resource.Annotations.OfType<AzureBicepResourceAnnotation>().SingleOrDefault() is { } annotation)
+            else if (resource.Annotations.OfType<AzureBicepResourceAnnotation>().SingleOrDefault() is { } annotation)
             {
                 // If we aren't an Azure resource and there is no surrogate, return null for
                 // the Azure resource in the tuple (we'll filter it out later.

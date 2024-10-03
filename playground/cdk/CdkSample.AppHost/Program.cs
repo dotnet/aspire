@@ -45,7 +45,8 @@ var pgsqldb = builder.AddAzurePostgresFlexibleServer("pgsql")
                    .WithPasswordAuthentication(pgsqlAdministratorLogin, pgsqlAdministratorLoginPassword)
                    .AddDatabase("pgsqldb");
 
-var pgsql2 = builder.AddAzurePostgresFlexibleServer("pgsql2");
+var pgsql2 = builder.AddAzurePostgresFlexibleServer("pgsql2")
+    .AddDatabase("pgsql2db");
 
 var sb = builder.AddAzureServiceBus("servicebus")
     .AddQueue("queue1",
@@ -106,6 +107,7 @@ builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithReference(cache)
     .WithReference(cosmosdb)
     .WithReference(pgsqldb)
+    .WithReference(pgsql2)
     .WithReference(sb)
     .WithReference(appConfig)
     .WithReference(search)

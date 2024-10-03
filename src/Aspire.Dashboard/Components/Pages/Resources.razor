@@ -119,7 +119,8 @@
                                         <ResourceActions Commands="@context.Commands"
                                                          CommandSelected="async (command) => await ExecuteResourceCommandAsync(context, command)"
                                                          OnViewDetails="@((buttonId) => ShowResourceDetailsAsync(context, buttonId))"
-                                                         OnConsoleLogs="@(() => NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: context.Name)))"
+                                                         Resource="context"
+                                                         GetResourceName="GetResourceName"
                                                          MaxHighlightedCount="_maxHighlightedCount" />
                                     </div>
                                 </AspireTemplateColumn>

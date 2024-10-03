@@ -8,16 +8,16 @@
     "dotnet": "9.0.100-rc.1.24452.12",
     "runtimes": {
       "dotnet/x64": [
-        "$(DotNetRuntimeVersionForTesting)"
+        "$(DotNetRuntimePreviousVersionForTesting)"
       ],
       "dotnet/arm64": [
-        "$(DotNetRuntimeVersionForTesting)"
+        "$(DotNetRuntimePreviousVersionForTesting)"
       ],
       "aspnetcore/x64": [
-        "$(DotNetRuntimeVersionForTesting)"
+        "$(DotNetRuntimePreviousVersionForTesting)"
       ],
       "aspnetcore/arm64": [
-        "$(DotNetRuntimeVersionForTesting)"
+        "$(DotNetRuntimePreviousVersionForTesting)"
       ]
     }
   },

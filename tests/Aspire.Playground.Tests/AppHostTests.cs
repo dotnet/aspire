@@ -138,15 +138,16 @@ public class AppHostTests
     {
         IList<TestEndpoints> candidates =
         [
-            new TestEndpoints("EventHubs.AppHost",
-                resourceEndpoints: new() { { "api", ["/alive", "/health"] } },
-                waitForTexts: [
-                    new ("eventhubns", "Emulator Service is Successfully Up"),
-                    new ("eventhubns-storage", "Azurite Table service is successfully listening"),
-                    new ("ehstorage", "Azurite Table service is successfully listening"),
-                    new ("consumer", "Completed retrieving properties for Event Hub")
-                ],
-                whenReady: TestEventHubsAppHost),
+            // Disable due to https://github.com/dotnet/aspire/issues/5959
+            //new TestEndpoints("EventHubs.AppHost",
+            //    resourceEndpoints: new() { { "api", ["/alive", "/health"] } },
+            //    waitForTexts: [
+            //        new ("eventhubns", "Emulator Service is Successfully Up"),
+            //        new ("eventhubns-storage", "Azurite Table service is successfully listening"),
+            //        new ("ehstorage", "Azurite Table service is successfully listening"),
+            //        new ("consumer", "Completed retrieving properties for Event Hub")
+            //    ],
+            //    whenReady: TestEventHubsAppHost),
             new TestEndpoints("Redis.AppHost",
                 resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/garnet/ping", "/garnet/get", "/garnet/set", "/redis/ping", "/redis/get", "/redis/set", "/valkey/ping", "/valkey/get", "/valkey/set"] } },
                 waitForTexts: [

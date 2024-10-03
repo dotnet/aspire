@@ -311,7 +311,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             "mydb_secretoutputs": "{mydb.secretOutputs}",
             "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
-            "pg_secretoutputs_connectionstring": "{pg.secretOutputs.connectionString}",
+            "pg_secretoutputs": "{pg.secretOutputs}",
             "value0_value": "{value0.value}",
             "value1_value": "{value1.value}",
             "outputs_azure_container_apps_environment_default_domain": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
@@ -338,8 +338,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         param storage_outputs_blobendpoint string
 
-        @secure()
-        param pg_secretoutputs_connectionstring string
+        param pg_secretoutputs string
 
         @secure()
         param value0_value string
@@ -360,9 +359,18 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           name: mydb_secretoutputs
         }
 
+        resource pg_secretoutputs_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+          name: pg_secretoutputs
+        }
+
         resource mydb_secretoutputs_kv_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
           name: 'connectionString'
           parent: mydb_secretoutputs_kv
+        }
+
+        resource pg_secretoutputs_kv_db_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
+          name: 'db-connectionString'
+          parent: pg_secretoutputs_kv
         }
 
         resource api 'Microsoft.App/containerApps@2024-03-01' = {
@@ -378,7 +386,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                 }
                 {
                   name: 'connectionstrings--db'
-                  value: '${pg_secretoutputs_connectionstring};Database=db'
+                  identity: outputs_azure_container_registry_managed_identity_id
+                  keyVaultUrl: pg_secretoutputs_kv_db_connectionString.properties.secretUri
                 }
                 {
                   name: 'secretval'
