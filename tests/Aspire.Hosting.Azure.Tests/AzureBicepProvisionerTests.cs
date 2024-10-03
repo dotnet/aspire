@@ -113,7 +113,7 @@ public class AzureBicepProvisionerTests
                    .WithParameter(bicepParameterName);
         });
 
-        Assert.Equal("Bicep parameter names must only contain alpha, numeric, and _ characters and must start with an alpha or _ characters. (Parameter 'bicepParameterName')", ex.Message);
+        Assert.Equal("Bicep identifiers must only contain alpha, numeric, and _ characters and must start with an alpha or _ character. (Parameter 'name')", ex.Message);
     }
 
     [Theory]
