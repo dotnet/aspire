@@ -13,7 +13,7 @@
   "name": ".NET Aspire Service Defaults",
   "defaultName": "ServiceDefaults",
   "description": "A project template for creating a .NET Aspire service defaults project.",
-  "shortName": "aspire-servicedefaults",
+  "shortName": ["aspire-servicedefaults", "aspire-servicedefaults-9"],
   "sourceName": "Aspire.ServiceDefaults1",
   "preferNameDirectory": true,
   "tags": {

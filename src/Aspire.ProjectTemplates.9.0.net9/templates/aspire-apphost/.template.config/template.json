@@ -9,7 +9,7 @@
   "name": ".NET Aspire App Host",
   "defaultName": "AppHost",
   "description": "A project template for creating a .NET Aspire app host (orchestrator) project.",
-  "shortName": "aspire-apphost",
+  "shortName": ["aspire-apphost", "aspire-apphost-9"],
   "sourceName": "Aspire.AppHost1",
   "preferNameDirectory": true,
   "tags": {

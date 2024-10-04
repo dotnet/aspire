@@ -14,7 +14,7 @@
   "name": ".NET Aspire Test Project (MSTest)",
   "defaultName": "Tests",
   "description": "A project that contains MSTest integration tests of a .NET Aspire AppHost project.",
-  "shortName": "aspire-mstest",
+  "shortName": ["aspire-mstest", "aspire-mstest-9"],
   "sourceName": "Aspire.Tests.1",
   "preferNameDirectory": true,
   "tags": {

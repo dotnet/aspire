@@ -13,7 +13,7 @@
   "name": ".NET Aspire Empty App",
   "defaultName": "AspireApp",
   "description": "A project template for creating an empty .NET Aspire app.",
-  "shortName": "aspire",
+  "shortName": ["aspire", "aspire-9"],
   "sourceName": "AspireApplication.1",
   "preferNameDirectory": true,
   "tags": {
