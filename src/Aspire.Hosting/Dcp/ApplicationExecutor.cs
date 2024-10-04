@@ -1376,7 +1376,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task<string?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, bool isContainer, CancellationToken cancellationToken)
     {
-        var task = valueProvider.GetValueAsync(cancellationToken);
+        var task = ExpressionResolver.ResolveAsync(isContainer, valueProvider, DefaultContainerHostName, cancellationToken);
 
         if (!task.IsCompleted)
         {
@@ -1408,15 +1408,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
         }
 
-        var value = await task.ConfigureAwait(false);
-
-        if (value is not null && isContainer && valueProvider is ConnectionStringReference or EndpointReference or HostUrl)
-        {
-            // If the value is a connection string or endpoint reference, we need to replace localhost with the container host.
-            return ReplaceLocalhostWithContainerHost(value);
-        }
-
-        return value;
+        return await task.ConfigureAwait(false);
     }
 
     private void PrepareContainers()
@@ -1992,18 +1984,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 _logger.LogInformation(ex, "Could not stop {ResourceType} '{ResourceName}'.", resourceType, res.Metadata.Name);
             }
         }
-    }
-
-    private string ReplaceLocalhostWithContainerHost(string value)
-    {
-        // https://stackoverflow.com/a/43541732/45091
-
-        // This configuration value is a workaround for the fact that host.docker.internal is not available on Linux by default.
-        var hostName = DefaultContainerHostName;
-
-        return value.Replace("localhost", hostName, StringComparison.OrdinalIgnoreCase)
-                    .Replace("127.0.0.1", hostName)
-                    .Replace("[::1]", hostName);
     }
 
     /// <summary>

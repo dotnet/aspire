@@ -295,6 +295,17 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Get the top resource in the resource hierarchy.
+    /// e.g. for a AzureBlobStorageResource, the top resource is the AzureStorageResource.
+    /// </summary>
+    internal static IResource GetRootResource(this IResource resource) =>
+        resource switch
+        {
+            IResourceWithParent resWithParent => resWithParent.Parent.GetRootResource(),
+            _ => resource
+        };
+
+    /// <summary>
     /// Gets resolved names for the specified resource.
     /// DCP resources are given a unique suffix as part of the complete name. We want to use that value.
     /// Also, a DCP resource could have multiple instances. All instance names are returned for a resource.
