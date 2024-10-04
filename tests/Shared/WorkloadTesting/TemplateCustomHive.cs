@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.RegularExpressions;
+
 namespace Aspire.Workload.Tests;
 
 public class TemplatesCustomHive
@@ -88,14 +90,17 @@ public class TemplatesCustomHive
 
     public static string GetPackagePath(string builtNuGetsPath, string templatePackageId)
     {
-        var packages = Directory.EnumerateFiles(builtNuGetsPath, $"{templatePackageId}*.nupkg");
+        var packageNameRegex = new Regex($@"{templatePackageId}\.\d+\.\d+\.\d+(-[A-z]*\.*\d*)?\.nupkg");
+        var packages = Directory.EnumerateFiles(builtNuGetsPath, $"{templatePackageId}*.nupkg")
+                        .Where(p => packageNameRegex.IsMatch(Path.GetFileName(p)));
+
         if (!packages.Any())
         {
-            throw new ArgumentException($"Cannot find {templatePackageId}*.nupkg in {builtNuGetsPath}. Found packages: {string.Join(", ", Directory.EnumerateFiles(builtNuGetsPath))}");
+            throw new ArgumentException($"Cannot find {templatePackageId}*.nupkg in {builtNuGetsPath}. Packages found in {builtNuGetsPath}: {string.Join(", ", Directory.EnumerateFiles(builtNuGetsPath).Select(Path.GetFileName))}");
         }
         if (packages.Count() > 1)
         {
-            throw new ArgumentException($"Found more than one {templatePackageId}*.nupkg in {builtNuGetsPath}: {string.Join(", ", packages)}");
+            throw new ArgumentException($"Found more than one {templatePackageId}*.nupkg in {builtNuGetsPath}: {string.Join(", ", packages.Select(Path.GetFileName))}");
         }
         return packages.Single();
     }
