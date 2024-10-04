@@ -8,6 +8,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver.Tests;
 
 public class ResolvConfTests
 {
+    [Fact]
     public void GetOptions()
     {
         var contents = @"

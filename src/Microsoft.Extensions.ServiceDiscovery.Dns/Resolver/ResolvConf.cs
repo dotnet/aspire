@@ -15,54 +15,35 @@ internal static class ResolvConf
 
     public static ResolverOptions GetOptions(TextReader reader)
     {
-        int serverCount = 0;
-        int domainCount = 0;
+        List<IPEndPoint> serverList = new();
+        List<string> searchDomains = new();
 
-        string[] lines = reader.ReadToEnd().Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        foreach (string line in lines)
+        while (reader.ReadLine() is string line)
         {
+            string[] tokens = line.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
             if (line.StartsWith("nameserver"))
             {
-                serverCount++;
+                if (tokens.Length >= 2 && IPAddress.TryParse(tokens[1], out IPAddress? address))
+                {
+                    serverList.Add(new IPEndPoint(address, 53));
+                }
             }
             else if (line.StartsWith("search"))
             {
-                domainCount++;
+                searchDomains.AddRange(tokens.Skip(1));
             }
         }
 
-        if (serverCount == 0)
+        if (serverList.Count == 0)
         {
             throw new SocketException((int)SocketError.AddressNotAvailable);
         }
 
-        IPEndPoint[] serverList = new IPEndPoint[serverCount];
-        var options = new ResolverOptions(serverList);
-        if (domainCount > 0)
+        var options = new ResolverOptions(serverList.ToArray())
         {
-            options.SearchDomains = new string[domainCount];
-        }
-
-        serverCount = 0;
-        domainCount = 0;
-        foreach (string line in lines)
-        {
-            string[] tokens = line.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (tokens[0].Equals("nameserver"))
-            {
-                options.Servers[serverCount] = new IPEndPoint(IPAddress.Parse(tokens[1]), 53);
-                serverCount++;
-            }
-            else if (tokens[0].Equals("search"))
-            {
-                options.SearchDomains![domainCount] = tokens[1];
-                domainCount++;
-            }
-            else if (tokens[0].Equals("domain"))
-            {
-                options.DefaultDomain = tokens[1];
-            }
-        }
+            SearchDomains = searchDomains.Count > 0 ? searchDomains.ToArray() : default
+        };
 
         return options;
     }
