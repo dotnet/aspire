@@ -195,7 +195,7 @@ public static class AzureRedisExtensions
     /// <param name="configureContainer">Callback that exposes underlying container to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureRedisCacheResource}"/> builder.</returns>
     /// <example>
-    /// The following example creates an Azure Cache for Redis resource that runs locally is a
+    /// The following example creates an Azure Cache for Redis resource that runs locally in a
     /// Redis container and referencing that resource in a .NET project.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
