@@ -8,7 +8,10 @@ namespace Aspire.Hosting.ApplicationModel;
 internal class ExpressionResolver(string containerHostName)
 {
     // For each endpoint, store two bools, to track if the host and port are in use
+    // The key is the unique name of the endpoint, which is the resource name and endpoint name
     readonly Dictionary<string, bool[]> _endpointUsage = [];
+
+    static string EndpointUniqueName(EndpointReference endpointReference) => $"{endpointReference.Resource.Name}/{endpointReference.EndpointName}";
 
     /// <summary>
     /// Resolve an expression when it is being used from inside a container.
@@ -25,10 +28,10 @@ internal class ExpressionResolver(string containerHostName)
             // for each endpoint.
             if (preprocess)
             {
-                if (!_endpointUsage.TryGetValue(endpointReference.EndpointName, out var hostAndPortPresence))
+                if (!_endpointUsage.TryGetValue(EndpointUniqueName(endpointReference), out var hostAndPortPresence))
                 {
                     hostAndPortPresence = new bool[2];
-                    _endpointUsage[endpointReference.EndpointName] = hostAndPortPresence;
+                    _endpointUsage[EndpointUniqueName(endpointReference)] = hostAndPortPresence;
                 }
 
                 if (property is EndpointProperty.Host or EndpointProperty.IPV4Host)
@@ -51,7 +54,7 @@ internal class ExpressionResolver(string containerHostName)
             // Otherwise, we get the wrong values for IsContainer and Name
             var target = endpointReference.Resource.GetRootResource();
 
-            bool HasBothHostAndPort() => _endpointUsage[endpointReference.EndpointName][0] && _endpointUsage[endpointReference.EndpointName][1];
+            bool HasBothHostAndPort() => _endpointUsage[EndpointUniqueName(endpointReference)][0] && _endpointUsage[EndpointUniqueName(endpointReference)][1];
 
             return (property, target.IsContainer()) switch
             {
