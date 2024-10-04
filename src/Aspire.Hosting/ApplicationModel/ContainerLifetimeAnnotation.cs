@@ -11,9 +11,9 @@ namespace Aspire.Hosting.ApplicationModel;
 public enum ContainerLifetime
 {
     /// <summary>
-    /// The default lifetime behavior should apply. This will create the resource when the AppHost starts and dispose of it when the AppHost shuts down.
+    /// This will create the resource when the app session starts and dispose of it when the app session shuts down.
     /// </summary>
-    Default,
+    Session,
     /// <summary>
     /// Attempt to re-use a previously created resource (based on the container name) if one exists. Do not destroy the container on AppHost shutdown.
     /// </summary>
