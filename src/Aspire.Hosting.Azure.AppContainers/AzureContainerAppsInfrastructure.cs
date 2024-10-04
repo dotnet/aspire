@@ -721,7 +721,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 {
                     // We resolve the keyvault that represents the storage for secret outputs
                     var parameter = AllocateParameter(SecretOutputExpression.GetSecretOutputKeyVault(secretOutputReference.Resource));
-                    kv = KeyVaultService.FromExisting($"{parameter.ResourceName}_kv");
+                    kv = KeyVaultService.FromExisting($"{parameter.IdentifierName}_kv");
                     kv.Name = parameter;
 
                     KeyVaultRefs[secretOutputReference.Resource.Name] = kv;
@@ -741,7 +741,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 // TODO: There should be a better way to do this?
                 return new MemberExpression(
                             new MemberExpression(
-                               new IdentifierExpression(secret.ResourceName), "properties"),
+                               new IdentifierExpression(secret.IdentifierName), "properties"),
                             "secretUri");
             }
 

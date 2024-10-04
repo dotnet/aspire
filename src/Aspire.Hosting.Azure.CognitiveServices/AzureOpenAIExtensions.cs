@@ -68,7 +68,7 @@ public static class AzureOpenAIExtensions
                         [
                             new MemberExpression(
                                 new MemberExpression(
-                                    new IdentifierExpression(cogServicesAccount.ResourceName),
+                                    new IdentifierExpression(cogServicesAccount.IdentifierName),
                                     "properties"),
                                 "endpoint")
                         ])
