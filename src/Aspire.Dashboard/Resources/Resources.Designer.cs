@@ -205,6 +205,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Lifetime.
+        /// </summary>
+        public static string ResourcesDetailsContainerLifetimeProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsContainerLifetimeProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Container ports.
         /// </summary>
         public static string ResourcesDetailsContainerPortsProperty {

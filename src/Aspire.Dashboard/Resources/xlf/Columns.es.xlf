@@ -22,6 +22,11 @@
         <target state="translated">Detalles de la excepción</target>
         <note />
       </trans-unit>
+      <trans-unit id="PersistentContainerIconTooltip">
+        <source>This resource is persistent and won't be stopped when the app host is shutdown.</source>
+        <target state="new">This resource is persistent and won't be stopped when the app host is shutdown.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceNameDisplayContainerIdText">
         <source>Container ID: {0}</source>
         <target state="translated">Id. de contenedor: {0}</target>

@@ -3,17 +3,37 @@
 @using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
+
 @inject IStringLocalizer<Columns> Loc
+
+@if (Resource.Properties.TryGetValue(KnownProperties.Container.Lifetime, out var value) &&
+    value.Value.HasStringValue &&
+    StringComparer.Ordinal.Equals(value.Value.StringValue, KnownContainerLifetimes.Persistent))
+{
+    <FluentIcon
+        Icon="Icons.Regular.Size16.Shield"
+        Title="@Loc[nameof(Columns.PersistentContainerIconTooltip)]"
+        Color="Color.Neutral"
+        Class="severity-icon" />
+}
 
 <span title="@FormatName(Resource)"><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)"/></span>
 
 @code {
     [Parameter, EditorRequired]
-    public required ResourceViewModel Resource { get; set; }
+    public required ResourceViewModel Resource { get; init; }
 
     [Parameter, EditorRequired]
-    public required Func<ResourceViewModel, string> FormatName { get; set; }
+    public required Func<ResourceViewModel, string> FormatName { get; init; }
 
     [Parameter, EditorRequired]
-    public required string FilterText { get; set; }
+    public required string FilterText { get; init; }
+
+    private static class KnownContainerLifetimes
+    {
+        // Matches members from Aspire.Hosting.ApplicationModel.ContainerLifetime
+
+        public const string Default = nameof(Default);
+        public const string Persistent = nameof(Persistent);
+    }
 }

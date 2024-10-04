@@ -189,4 +189,7 @@
   <data name="EndpointsColumnDisplayOverflowTitle" xml:space="preserve">
     <value>Endpoints</value>
   </data>
+  <data name="PersistentContainerIconTooltip" xml:space="preserve">
+    <value>This resource is persistent and won't be stopped when the app host is shutdown.</value>
+  </data>
 </root>
