@@ -65,7 +65,7 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
             // If Container -> Container, we go directly to the container name and target port, bypassing the host
             // But only do this if we have processed both the host and port properties for that same endpoint.
             // This allows the host and port to be handled in a unified way.
-            (EndpointProperty.Host or EndpointProperty.IPV4Host, true, _) when HasBothHostAndPort() => target.Name,
+            (EndpointProperty.Host or EndpointProperty.IPV4Host, true, true) => target.Name,
             (EndpointProperty.Port, true, true) => await endpointReference.Property(EndpointProperty.TargetPort).GetValueAsync(cancellationToken).ConfigureAwait(false),
             // If Container -> Exe, we need to go through the container host
             (EndpointProperty.Host or EndpointProperty.IPV4Host, false, _) => containerHostName,
