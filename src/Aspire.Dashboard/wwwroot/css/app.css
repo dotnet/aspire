@@ -345,11 +345,16 @@ fluent-data-grid-cell .long-inner-content {
     margin-right: 3px;
 }
 
+.persistent-container-icon {
+    vertical-align: text-bottom;
+    margin-left: 3px;
+}
+
 .align-text-bottom {
     vertical-align: text-bottom;
 }
 
- .visually-hidden {
+.visually-hidden {
      top: 0;
      left: -2px;
      width: 1px;
@@ -639,9 +644,11 @@ fluent-data-grid-cell.no-ellipsis {
 
 .action-divider {
     display: inline;
-    vertical-align: sub;
+    height: 20px;
 }
 
 .grid-action-container {
-    display: inline-block;
+    display: inline-flex;
+    column-gap: 4px;
+    align-items: center;
 }

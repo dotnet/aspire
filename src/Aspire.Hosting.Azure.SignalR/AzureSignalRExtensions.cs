@@ -64,7 +64,7 @@ public static class AzureSignalRExtensions
 
             construct.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = service.HostName });
 
-            construct.Add(service.AssignRole(SignalRBuiltInRole.SignalRAppServer, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(service.CreateRoleAssignment(SignalRBuiltInRole.SignalRAppServer, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             var resource = (AzureSignalRResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -13,26 +14,27 @@ internal static partial class BicepIdentifierHelpers
     [GeneratedRegex("^[A-Za-z_][A-Za-z0-9_]*$")]
     private static partial Regex GetBicepIdentifierExpression();
 
-    internal static void ThrowIfInvalid(string bicepParameterName)
+    internal static void ThrowIfInvalid(string name, [CallerArgumentExpression(nameof(name))] string? paramName = null)
     {
         var regex = GetBicepIdentifierExpression();
 
-        if (!regex.IsMatch(bicepParameterName))
+        if (!regex.IsMatch(name))
         {
             throw new ArgumentException(
-                "Bicep parameter names must only contain alpha, numeric, and _ characters and must start with an alpha or _ characters.",
-                nameof(bicepParameterName)
-                );
+                "Bicep identifiers must only contain alpha, numeric, and _ characters and must start with an alpha or _ character.",
+                paramName);
         }
     }
 
     /// <summary>
-    /// Normalizes the given variable name to make it a valid Bicep identifier name.
+    /// Normalizes the given identifier name to make it a valid Bicep identifier name.
     /// </summary>
-    /// <param name="name">The variable name to normalize.</param>
-    /// <returns>The normalized variable name.</returns>
+    /// <param name="name">The identifier name to normalize.</param>
+    /// <returns>The normalized identifier name.</returns>
     internal static string Normalize(string name)
     {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         var regex = GetBicepIdentifierExpression();
         if (regex.IsMatch(name))
         {
@@ -40,12 +42,12 @@ internal static partial class BicepIdentifierHelpers
         }
 
         var builder = new StringBuilder(name.Length);
-        var span = name.AsSpan();
-        if (!char.IsLetter(span[0]) && span[0] != '_')
+        // digits are not allowed as the first character, so prepend an underscore if the name starts with a digit
+        if (char.IsAsciiDigit(name[0]))
         {
             builder.Append('_');
         }
-        foreach (var c in span)
+        foreach (var c in name)
         {
             if (char.IsAsciiLetterOrDigit(c) || c == '_')
             {

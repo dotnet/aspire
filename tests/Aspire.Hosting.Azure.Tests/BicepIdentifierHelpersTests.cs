@@ -22,6 +22,7 @@ public class BicepIdentifierHelpersTests
     [InlineData("my_variable_", "my_variable@")]
     [InlineData("my_variable_", "my_variable-")]
     [InlineData("my___variable_", "my_\u212A_variable-")] // tests the Kelvin sign
+    [InlineData("_my_variable_", "\u0130my_variable-")] // non-ASCII letter
     public void TestNormalize(string expected, string value)
     {
         Assert.Equal(expected, BicepIdentifierHelpers.Normalize(value));
@@ -38,8 +39,12 @@ public class BicepIdentifierHelpersTests
     [InlineData("my_variable@")]
     [InlineData("my_variable-")]
     [InlineData("my_\u212A_variable")] // tests the Kelvin sign
+    [InlineData("my_\u0130_variable")] // non-ASCII letter
     public void TestThrowIfInvalid(string value)
     {
-        Assert.Throws<ArgumentException>(() => BicepIdentifierHelpers.ThrowIfInvalid(value));
+        var e = Assert.Throws<ArgumentException>(() => BicepIdentifierHelpers.ThrowIfInvalid(value));
+
+        // Verify the parameter name is from the caller member name. In this case, the "value" parameter above
+        Assert.Equal(nameof(value), e.ParamName); 
     }
 }

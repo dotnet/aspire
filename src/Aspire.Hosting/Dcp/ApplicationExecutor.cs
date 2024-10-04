@@ -607,6 +607,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 new(KnownProperties.Container.Command, container.Spec.Command),
                 new(KnownProperties.Container.Args, container.Status?.EffectiveArgs ?? []) { IsSensitive = true },
                 new(KnownProperties.Container.Ports, GetPorts()),
+                new(KnownProperties.Container.Lifetime, GetContainerLifetime()),
             ],
             EnvironmentVariables = environment,
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToUniversalTime(),
@@ -632,6 +633,18 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
             }
             return ports.ToImmutable();
+        }
+
+        ContainerLifetime GetContainerLifetime()
+        {
+            if (container.AppModelResourceName is string resourceName &&
+                _applicationModel.TryGetValue(resourceName, out var appModelResource) &&
+                appModelResource.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
+            {
+                return lifetimeAnnotation.Lifetime;
+            }
+
+            return ContainerLifetime.Default;
         }
     }
 

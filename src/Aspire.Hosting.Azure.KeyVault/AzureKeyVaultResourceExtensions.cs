@@ -71,7 +71,7 @@ public static class AzureKeyVaultResourceExtensions
 
             keyVault.Tags["aspire-resource-name"] = construct.Resource.Name;
 
-            construct.Add(keyVault.AssignRole(KeyVaultBuiltInRole.KeyVaultAdministrator, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(keyVault.CreateRoleAssignment(KeyVaultBuiltInRole.KeyVaultAdministrator, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             var resource = (AzureKeyVaultResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);

@@ -23,7 +23,7 @@ namespace Aspire.Hosting.Azure;
 /// Represents the infrastructure for Azure Container Apps within the Aspire Hosting environment.
 /// Implements the <see cref="IDistributedApplicationLifecycleHook"/> interface to provide lifecycle hooks for distributed applications.
 /// </summary>
-internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerAppsInfastructure> logger, DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
+internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerAppsInfrastructure> logger, DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
 {
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
@@ -32,7 +32,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
             return;
         }
 
-        var containerAppEnviromentContext = new ContainerAppEnviromentContext(
+        var containerAppEnvironmentContext = new ContainerAppEnvironmentContext(
             logger,
             AzureContainerAppsEnvironment.AZURE_CONTAINER_APPS_ENVIRONMENT_ID,
             AzureContainerAppsEnvironment.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN,
@@ -53,13 +53,13 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                 continue;
             }
 
-            var containerApp = await containerAppEnviromentContext.CreateContainerAppAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
+            var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
 
             r.Annotations.Add(new DeploymentTargetAnnotation(containerApp));
         }
     }
 
-    private sealed class ContainerAppEnviromentContext(
+    private sealed class ContainerAppEnvironmentContext(
         ILogger logger,
         IManifestExpressionProvider containerAppEnvironmentId,
         IManifestExpressionProvider containerAppDomain,
@@ -101,11 +101,11 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
             return context;
         }
 
-        private sealed class ContainerAppContext(IResource resource, ContainerAppEnviromentContext containerAppEnviromentContext)
+        private sealed class ContainerAppContext(IResource resource, ContainerAppEnvironmentContext containerAppEnvironmentContext)
         {
             private readonly Dictionary<object, string> _allocatedParameters = [];
             private readonly Dictionary<string, ProvisioningParameter> _provisioningParameters = [];
-            private readonly ContainerAppEnviromentContext _containerAppEnviromentContext = containerAppEnviromentContext;
+            private readonly ContainerAppEnvironmentContext _containerAppEnvironmentContext = containerAppEnvironmentContext;
 
             record struct EndpointMapping(string Scheme, string Host, int Port, int? TargetPort, bool IsHttpIngress, bool External);
 
@@ -159,7 +159,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
 
             public void BuildContainerApp(ResourceModuleConstruct c)
             {
-                var containerAppIdParam = AllocateParameter(_containerAppEnviromentContext.ContainerAppEnvironmentId);
+                var containerAppIdParam = AllocateParameter(_containerAppEnvironmentContext.ContainerAppEnvironmentId);
 
                 ProvisioningParameter? containerImageParam = null;
 
@@ -170,7 +170,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                     containerImageParam = AllocateContainerImageParameter();
                 }
 
-                var containerAppResource = new ContainerApp(resource.Name, "2024-03-01")
+                var containerAppResource = new ContainerApp(resource.Name)
                 {
                     Name = resource.Name.ToLowerInvariant()
                 };
@@ -434,7 +434,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
 
                 if (endpointsByTargetPort.Count > 5)
                 {
-                    _containerAppEnviromentContext.Logger.LogWarning("More than 5 additional ports are not supported. See https://learn.microsoft.com/en-us/azure/container-apps/ingress-overview#tcp for more details.");
+                    _containerAppEnvironmentContext.Logger.LogWarning("More than 5 additional ports are not supported. See https://learn.microsoft.com/en-us/azure/container-apps/ingress-overview#tcp for more details.");
                 }
 
                 foreach (var g in endpointsByTargetPort)
@@ -529,7 +529,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
 
                 // TODO: Add managed identity only if needed
                 AllocateManagedIdentityIdParameter();
-                var clientIdParameter = AllocateParameter(_containerAppEnviromentContext.ClientId);
+                var clientIdParameter = AllocateParameter(_containerAppEnvironmentContext.ClientId);
                 EnvironmentVariables.Add(new ContainerAppEnvironmentVariable { Name = "AZURE_CLIENT_ID", Value = clientIdParameter });
             }
 
@@ -598,7 +598,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                 {
                     if (isHttpIngress)
                     {
-                        var domain = AllocateParameter(_containerAppEnviromentContext.ContainerAppDomain);
+                        var domain = AllocateParameter(_containerAppEnvironmentContext.ContainerAppDomain);
 
                         return external ? BicepFunction.Interpolate($$"""{{prefix}}{{host}}.{{domain}}{{suffix}}""") : BicepFunction.Interpolate($$"""{{prefix}}{{host}}.internal.{{domain}}{{suffix}}""");
                     }
@@ -628,7 +628,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                 {
                     var context = ep.Resource == resource
                         ? this
-                        : await _containerAppEnviromentContext.ProcessResourceAsync(ep.Resource, executionContext, cancellationToken).ConfigureAwait(false);
+                        : await _containerAppEnvironmentContext.ProcessResourceAsync(ep.Resource, executionContext, cancellationToken).ConfigureAwait(false);
 
                     var mapping = context._endpointMapping[ep.EndpointName];
 
@@ -673,7 +673,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                 {
                     var context = epExpr.Endpoint.Resource == resource
                         ? this
-                        : await _containerAppEnviromentContext.ProcessResourceAsync(epExpr.Endpoint.Resource, executionContext, cancellationToken).ConfigureAwait(false);
+                        : await _containerAppEnvironmentContext.ProcessResourceAsync(epExpr.Endpoint.Resource, executionContext, cancellationToken).ConfigureAwait(false);
 
                     var mapping = context._endpointMapping[epExpr.Endpoint.EndpointName];
 
@@ -721,7 +721,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                 if (!KeyVaultRefs.TryGetValue(secretOutputReference.Resource.Name, out var kv))
                 {
                     // We resolve the keyvault that represents the storage for secret outputs
-                    var parameter = AllocateParameter(SecretOutputExpression.GetSecretOuputKeyVault(secretOutputReference.Resource));
+                    var parameter = AllocateParameter(SecretOutputExpression.GetSecretOutputKeyVault(secretOutputReference.Resource));
                     kv = KeyVaultService.FromExisting($"{parameter.ResourceName}_kv");
                     kv.Name = parameter;
 
@@ -753,12 +753,12 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                 => AllocateParameter(ProjectResourceExpression.GetContainerPortExpression((ProjectResource)resource));
 
             private ProvisioningParameter AllocateManagedIdentityIdParameter()
-                => _managedIdentityIdParameter ??= AllocateParameter(_containerAppEnviromentContext.ManagedIdentityId);
+                => _managedIdentityIdParameter ??= AllocateParameter(_containerAppEnvironmentContext.ManagedIdentityId);
 
             private void AllocateContainerRegistryParameters()
             {
-                _containerRegistryUrlParameter ??= AllocateParameter(_containerAppEnviromentContext.ContainerRegistryUrl);
-                _containerRegistryManagedIdentityIdParameter ??= AllocateParameter(_containerAppEnviromentContext.ContainerRegistryManagedIdentityId);
+                _containerRegistryUrlParameter ??= AllocateParameter(_containerAppEnvironmentContext.ContainerRegistryUrl);
+                _containerRegistryManagedIdentityIdParameter ??= AllocateParameter(_containerAppEnvironmentContext.ContainerRegistryManagedIdentityId);
             }
 
             private ProvisioningParameter AllocateParameter(IManifestExpressionProvider parameter, Type? type = null, SecretType secretType = SecretType.None)
@@ -791,7 +791,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                     return;
                 }
 
-                // Now we map the remainig endpoints. These should be internal only tcp/http based endpoints
+                // Now we map the remaining endpoints. These should be internal only tcp/http based endpoints
                 var skipAdditionalPort = 0;
 
                 var caIngress = new ContainerAppIngressConfiguration();
@@ -1003,7 +1003,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
     private sealed class SecretOutputExpression(AzureBicepResource resource) : IManifestExpressionProvider
     {
         public string ValueExpression => $"{{{resource.Name}.secretOutputs}}";
-        public static IManifestExpressionProvider GetSecretOuputKeyVault(AzureBicepResource resource) =>
+        public static IManifestExpressionProvider GetSecretOutputKeyVault(AzureBicepResource resource) =>
             new SecretOutputExpression(resource);
     }
 
