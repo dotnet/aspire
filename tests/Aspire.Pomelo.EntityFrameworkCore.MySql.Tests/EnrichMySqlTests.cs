@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MySqlConnector.Logging;
+using OpenTelemetry.Trace;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure.Internal;
 using Xunit;
 
@@ -344,5 +345,27 @@ public class EnrichMySqlTests : ConformanceTests
         Assert.IsType<CustomRetryExecutionStrategy>(executionStrategy);
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
+    [Fact]
+    public void EnrichWithNamedAndNonNamedUsesBoth()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:DisableTracing", "false"),
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:TestDbContext:DisableTracing", "true")
+        ]);
+
+        builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
+        {
+            optionsBuilder.UseMySql(ConnectionString, DefaultVersion);
+        });
+
+        builder.EnrichMySqlDbContext<TestDbContext>();
+
+        using var host = builder.Build();
+
+        var tracerProvider = host.Services.GetService<TracerProvider>();
+        Assert.Null(tracerProvider);
     }
 }

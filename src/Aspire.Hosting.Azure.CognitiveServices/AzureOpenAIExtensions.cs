@@ -76,7 +76,7 @@ public static class AzureOpenAIExtensions
                 // Value = BicepFunction.Interpolate($"Endpoint={cogServicesAccount.Endpoint}")
             });
 
-            construct.Add(cogServicesAccount.AssignRole(CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(cogServicesAccount.CreateRoleAssignment(CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             var resource = (AzureOpenAIResource)construct.Resource;
 

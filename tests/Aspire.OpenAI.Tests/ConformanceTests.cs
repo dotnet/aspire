@@ -44,6 +44,8 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, OpenAISettings>
 
     protected override string[] RequiredLogCategories => [];
 
+    protected override string? ConfigurationSectionName => "Aspire:OpenAI";
+
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {

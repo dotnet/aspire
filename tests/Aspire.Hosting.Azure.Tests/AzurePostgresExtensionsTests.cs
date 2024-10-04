@@ -69,7 +69,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
             param principalName string
 
             resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
-              name: take('postgres${uniqueString(resourceGroup().id)}', 24)
+              name: take('postgres-${uniqueString(resourceGroup().id)}', 63)
               location: location
               properties: {
                 authConfig: {
@@ -171,7 +171,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
             param keyVaultName string
 
             resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
-              name: take('postgres${uniqueString(resourceGroup().id)}', 24)
+              name: take('postgres-${uniqueString(resourceGroup().id)}', 63)
               location: location
               properties: {
                 administratorLogin: administratorLogin

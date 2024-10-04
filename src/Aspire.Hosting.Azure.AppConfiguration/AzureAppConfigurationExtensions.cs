@@ -51,7 +51,7 @@ public static class AzureAppConfigurationExtensions
 
             construct.Add(new ProvisioningOutput("appConfigEndpoint", typeof(string)) { Value = store.Endpoint });
 
-            construct.Add(store.AssignRole(AppConfigurationBuiltInRole.AppConfigurationDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(store.CreateRoleAssignment(AppConfigurationBuiltInRole.AppConfigurationDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             var resource = (AzureAppConfigurationResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);

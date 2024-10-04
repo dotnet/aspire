@@ -185,6 +185,9 @@
   <data name="ResourcesDetailsContainerPortsProperty" xml:space="preserve">
     <value>Container ports</value>
   </data>
+  <data name="ResourcesDetailsContainerLifetimeProperty" xml:space="preserve">
+    <value>Container lifetime</value>
+  </data>
   <data name="ResourcesDetailsDisplayNameProperty" xml:space="preserve">
     <value>Display name</value>
   </data>

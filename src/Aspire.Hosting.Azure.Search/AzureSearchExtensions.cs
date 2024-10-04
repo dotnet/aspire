@@ -61,8 +61,8 @@ public static class AzureSearchExtensions
             };
             construct.Add(search);
 
-            construct.Add(search.AssignRole(SearchBuiltInRole.SearchIndexDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
-            construct.Add(search.AssignRole(SearchBuiltInRole.SearchServiceContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(search.CreateRoleAssignment(SearchBuiltInRole.SearchIndexDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(search.CreateRoleAssignment(SearchBuiltInRole.SearchServiceContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             // TODO: The endpoint format should move into the CDK so we can maintain this
             // logic in a single location and have a better chance at supporting more than

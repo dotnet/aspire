@@ -65,7 +65,7 @@ public static class AzureEventHubsExtensions
             };
             construct.Add(eventHubsNamespace);
 
-            construct.Add(eventHubsNamespace.AssignRole(EventHubsBuiltInRole.AzureEventHubsDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(eventHubsNamespace.CreateRoleAssignment(EventHubsBuiltInRole.AzureEventHubsDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             construct.Add(new ProvisioningOutput("eventHubsEndpoint", typeof(string)) { Value = eventHubsNamespace.ServiceBusEndpoint });
 
