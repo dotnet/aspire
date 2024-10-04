@@ -33,7 +33,7 @@ var blobs = storage.AddBlobs("blob");
 var tables = storage.AddTables("table");
 var queues = storage.AddQueues("queue");
 
-var sqlServer = builder.AddSqlServer("sql").AsAzureSqlDatabase().AddDatabase("db");
+var sqlServer = builder.AddAzureSqlServer("sql").AddDatabase("db");
 
 var administratorLogin = builder.AddParameter("administratorLogin");
 var administratorLoginPassword = builder.AddParameter("administratorLoginPassword", secret: true);

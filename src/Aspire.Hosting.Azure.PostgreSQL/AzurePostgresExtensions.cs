@@ -226,9 +226,9 @@ public static class AzurePostgresExtensions
     }
 
     /// <summary>
-    /// Adds an Azure PostgreSQLQL database to the application model.
+    /// Adds an Azure PostgreSQL database to the application model.
     /// </summary>
-    /// <param name="builder">The Azure PostgreSQLQL server resource builder.</param>
+    /// <param name="builder">The Azure PostgreSQL server resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
@@ -263,11 +263,11 @@ public static class AzurePostgresExtensions
     /// <summary>
     /// Configures an Azure PostgreSQL Flexible Server resource to run locally in a container.
     /// </summary>
-    /// <param name="builder">The Azure PostgreSQLQL server resource builder.</param>
+    /// <param name="builder">The Azure PostgreSQL server resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzurePostgresFlexibleServerResource}"/> builder.</returns>
     /// <example>
-    /// The following example creates an Azure PostgreSQL Flexible Server resource that runs locally is a
+    /// The following example creates an Azure PostgreSQL Flexible Server resource that runs locally in a
     /// PostgreSQL container and referencing that resource in a .NET project.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
@@ -331,7 +331,7 @@ public static class AzurePostgresExtensions
     /// <summary>
     /// Configures the resource to use password authentication for Azure PostgreSQL Flexible Server.
     /// </summary>
-    /// <param name="builder">The Azure PostgreSQLQL server resource builder.</param>
+    /// <param name="builder">The Azure PostgreSQL server resource builder.</param>
     /// <param name="userName">The parameter used to provide the user name for the PostgreSQL resource. If <see langword="null"/> a default value will be used.</param>
     /// <param name="password">The parameter used to provide the administrator password for the PostgreSQL resource. If <see langword="null"/> a random password will be generated.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzurePostgresFlexibleServerResource}"/> builder.</returns>

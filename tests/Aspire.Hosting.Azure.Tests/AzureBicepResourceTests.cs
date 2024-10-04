@@ -66,13 +66,14 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 #pragma warning disable CS0618 // Type or member is obsolete
                 { builder => builder.AddPostgres("x").AsAzurePostgresFlexibleServer() },
                 { builder => builder.AddRedis("x").AsAzureRedis() },
+                { builder => builder.AddSqlServer("x").AsAzureSqlDatabase() },
 #pragma warning restore CS0618 // Type or member is obsolete
                 { builder => builder.AddAzurePostgresFlexibleServer("x") },
                 { builder => builder.AddAzureRedis("x") },
                 { builder => builder.AddAzureSearch("x") },
                 { builder => builder.AddAzureServiceBus("x") },
                 { builder => builder.AddAzureSignalR("x") },
-                { builder => builder.AddSqlServer("x").AsAzureSqlDatabase() },
+                { builder => builder.AddAzureSqlServer("x") },
                 { builder => builder.AddAzureStorage("x") },
             };
         }
@@ -1078,6 +1079,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, sql, _) =>
         {
             azureSqlBuilder.Resource.Outputs["sqlServerFqdn"] = "myserver";
@@ -1087,6 +1089,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 sql.MinTlsVersion = SqlMinimalTlsVersion.Tls1_3;
             }
         });
+#pragma warning restore CS0618 // Type or member is obsolete
         sql.AddDatabase("db", "dbName");
 
         var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource);
@@ -1176,6 +1179,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, sql, _) =>
         {
             azureSqlBuilder.Resource.Outputs["sqlServerFqdn"] = "myserver";
@@ -1185,6 +1189,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 sql.MinTlsVersion = SqlMinimalTlsVersion.Tls1_3;
             }
         });
+#pragma warning restore CS0618 // Type or member is obsolete
         sql.AddDatabase("db", "dbName");
 
         var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource);

@@ -158,7 +158,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                         // so if there is no selected resource when we
                         // receive an added resource, and that added resource name == ResourceName,
                         // we should mark it as selected
-                        if (ResourceName is not null && PageViewModel.SelectedResource is null && changeType == ResourceViewModelChangeType.Upsert && string.Equals(ResourceName, resource.Name))
+                        if (ResourceName is not null && PageViewModel.SelectedResource is null && changeType == ResourceViewModelChangeType.Upsert && string.Equals(ResourceName, resource.Name, StringComparisons.ResourceName))
                         {
                             SetSelectedResourceOption(resource);
                         }
@@ -241,7 +241,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         foreach (var grouping in resourcesByName
             .Where(r => !r.Value.IsHiddenState())
-            .OrderBy(c => c.Value.Name, StringComparers.ResourceName)
+            .OrderBy(c => c.Value, ResourceViewModelNameComparer.Instance)
             .GroupBy(r => r.Value.DisplayName, StringComparers.ResourceName))
         {
             string applicationName;
@@ -261,7 +261,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 applicationName = grouping.First().Value.DisplayName;
             }
 
-            foreach (var resource in grouping.Select(g => g.Value).OrderBy(r => r.Name, StringComparers.ResourceName))
+            foreach (var resource in grouping.Select(g => g.Value).OrderBy(r => r, ResourceViewModelNameComparer.Instance))
             {
                 builder.Add(ToOption(resource, grouping.Count() > 1, applicationName));
             }
@@ -372,7 +372,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             _resourceByName[resource.Name] = resource;
             UpdateResourcesList();
 
-            if (string.Equals(PageViewModel.SelectedResource?.Name, resource.Name, StringComparison.Ordinal))
+            if (string.Equals(PageViewModel.SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
             {
                 PageViewModel.SelectedResource = resource;
             }
@@ -382,7 +382,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             var removed = _resourceByName.TryRemove(resource.Name, out _);
             Debug.Assert(removed, "Cannot remove unknown resource.");
 
-            if (string.Equals(PageViewModel.SelectedResource?.Name, resource.Name, StringComparison.Ordinal))
+            if (string.Equals(PageViewModel.SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
             {
                 // The selected resource was deleted
                 PageViewModel.SelectedOption = _noSelection;
