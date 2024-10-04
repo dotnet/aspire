@@ -637,9 +637,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         ContainerLifetime GetContainerLifetime()
         {
-            return (container.Spec.Persistent ?? false)
-                ? ContainerLifetime.Persistent
-                : ContainerLifetime.Session;
+            return (container.Spec.Persistent ?? false) ? ContainerLifetime.Persistent : ContainerLifetime.Session;
         }
     }
 
