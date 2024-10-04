@@ -6,6 +6,7 @@
     <NeedsDcpPathOverride>true</NeedsDcpPathOverride>
     <!-- needed to run 9.0 tests on helix -->
     <NeedsWorkload>true</NeedsWorkload>
+    <IncludeDotNetCli>false</IncludeDotNetCli>
 
     <TargetFrameworkSuffixRegex>^(.*?)(-net[\d.]+)?$</TargetFrameworkSuffixRegex>
   </PropertyGroup>
