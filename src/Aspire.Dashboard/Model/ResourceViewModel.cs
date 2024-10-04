@@ -51,7 +51,7 @@ public sealed class ResourceViewModel
                 continue;
             }
 
-            if (item.DisplayName == resource.DisplayName)
+            if (string.Equals(item.DisplayName, resource.DisplayName, StringComparisons.ResourceName))
             {
                 count++;
                 if (count >= 2)

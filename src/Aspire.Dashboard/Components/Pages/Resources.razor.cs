@@ -310,7 +310,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 continue;
             }
 
-            if (item.DisplayName == resource.DisplayName)
+            if (string.Equals(item.DisplayName, resource.DisplayName, StringComparisons.ResourceName))
             {
                 count++;
                 if (count >= 2)
