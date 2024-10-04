@@ -16,6 +16,9 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
     // For each endpoint, store two bools, to track if the host and port are in use
     // The key is the unique name of the endpoint, which is the resource name and endpoint name
     readonly Dictionary<string, HostAndPortPresence> _endpointUsage = [];
+
+    // This marks whether we are in the preprocess phase or not
+    // Not thread-safe, but we doesn't matter, since this class is never used concurrently
     bool Preprocess { get; set; }
 
     static string EndpointUniqueName(EndpointReference endpointReference) => $"{endpointReference.Resource.Name}/{endpointReference.EndpointName}";
