@@ -35,6 +35,7 @@ internal static class KnownProperties
         public const string Ports = "container.ports";
         public const string Command = "container.command";
         public const string Args = "container.args";
+        public const string Lifetime = "container.lifetime";
     }
 
     public static class Executable
