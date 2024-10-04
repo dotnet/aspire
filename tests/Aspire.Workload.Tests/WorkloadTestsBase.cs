@@ -196,7 +196,7 @@ public partial class WorkloadTestsBase
                     testOutput.WriteLine($"[{expectedRow.Name}] expected state: '{expectedRow.State}', actual state: '{actualState}'");
                     continue;
                 }
-                AssertEqual(expectedRow.State, await cellLocs[2].InnerTextAsync(), $"State for {resourceName}");
+                AssertEqual(expectedRow.State, (await cellLocs[2].InnerTextAsync()).Trim(), $"State for {resourceName}");
 
                 // Match endpoints
 

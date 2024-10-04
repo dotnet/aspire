@@ -11,6 +11,8 @@ using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
+using Humanizer;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Model;
@@ -24,7 +26,6 @@ public sealed class ResourceViewModel
     public required string Uid { get; init; }
     public required string? State { get; init; }
     public required string? StateStyle { get; init; }
-    public required ReadinessState ReadinessState { get; init; }
     public required DateTime? CreationTimeStamp { get; init; }
     public required DateTime? StartTimeStamp { get; init; }
     public required DateTime? StopTimeStamp { get; init; }
@@ -33,6 +34,9 @@ public sealed class ResourceViewModel
     public required ImmutableArray<VolumeViewModel> Volumes { get; init; }
     public required FrozenDictionary<string, ResourcePropertyViewModel> Properties { get; init; }
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
+    /// <summary>The health status of the resource. <see langword="null"/> indicates that health status is expected but not yet available.</summary>
+    public required HealthStatus? HealthStatus { get; init; }
+    public required ImmutableArray<HealthReportViewModel> HealthReports { get; init; }
     public KnownResourceState? KnownState { get; init; }
 
     internal bool MatchesFilter(string filter)
@@ -65,13 +69,6 @@ public sealed class ResourceViewModel
 
         return resource.DisplayName;
     }
-}
-
-public enum ReadinessState
-{
-    Unknown,
-    NotReady,
-    Ready
 }
 
 public sealed class ResourceViewModelNameComparer : IComparer<ResourceViewModel>
@@ -293,4 +290,36 @@ public sealed record class VolumeViewModel(string? Source, string Target, string
     public bool MatchesFilter(string filter) =>
         Source?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
         Target?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
+}
+
+public sealed record class HealthReportViewModel(string Name, HealthStatus HealthStatus, string? Description, string? ExceptionText)
+{
+    private readonly string _humanizedHealthStatus = HealthStatus.Humanize();
+
+    public string? DisplayedDescription
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(Description))
+            {
+                return Description;
+            }
+
+            if (!string.IsNullOrWhiteSpace(ExceptionText))
+            {
+                var newLineIndex = ExceptionText.IndexOfAny(['\n', '\r']);
+                return newLineIndex > 0 ? ExceptionText[..newLineIndex] : ExceptionText;
+            }
+
+            return null;
+        }
+    }
+
+    public bool MatchesFilter(string filter)
+    {
+        return
+            Name?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
+            Description?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
+            _humanizedHealthStatus.Contains(filter, StringComparison.OrdinalIgnoreCase);
+    }
 }
