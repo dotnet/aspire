@@ -12,6 +12,7 @@ namespace Aspire.Hosting.Tests;
 public class WaitForTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
+    [RequiresDocker]
     public async Task ResourceThatFailsToStartDueToExceptionDoesNotCauseStartAsyncToThrow()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
