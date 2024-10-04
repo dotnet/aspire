@@ -10,6 +10,8 @@ internal class ExpressionResolver(string containerHostName)
     // For each endpoint, store two bools, to track if the host and port are in use
     // The key is the unique name of the endpoint, which is the resource name and endpoint name
     readonly Dictionary<string, bool[]> _endpointUsage = [];
+    const int HostIndex = 0;
+    const int PortIndex = 1;
 
     static string EndpointUniqueName(EndpointReference endpointReference) => $"{endpointReference.Resource.Name}/{endpointReference.EndpointName}";
 
@@ -36,15 +38,15 @@ internal class ExpressionResolver(string containerHostName)
 
                 if (property is EndpointProperty.Host or EndpointProperty.IPV4Host)
                 {
-                    hostAndPortPresence[0] = true;
+                    hostAndPortPresence[HostIndex] = true;
                 }
                 else if (property == EndpointProperty.Port)
                 {
-                    hostAndPortPresence[1] = true;
+                    hostAndPortPresence[PortIndex] = true;
                 }
                 else if (property == EndpointProperty.Url)
                 {
-                    hostAndPortPresence[0] = hostAndPortPresence[1] = true;
+                    hostAndPortPresence[HostIndex] = hostAndPortPresence[PortIndex] = true;
                 }
 
                 return string.Empty;
@@ -54,7 +56,9 @@ internal class ExpressionResolver(string containerHostName)
             // Otherwise, we get the wrong values for IsContainer and Name
             var target = endpointReference.Resource.GetRootResource();
 
-            bool HasBothHostAndPort() => _endpointUsage[EndpointUniqueName(endpointReference)][0] && _endpointUsage[EndpointUniqueName(endpointReference)][1];
+            bool HasBothHostAndPort() =>
+                _endpointUsage[EndpointUniqueName(endpointReference)][HostIndex] &&
+                _endpointUsage[EndpointUniqueName(endpointReference)][PortIndex];
 
             return (property, target.IsContainer()) switch
             {
