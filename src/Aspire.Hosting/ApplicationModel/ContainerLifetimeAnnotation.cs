@@ -6,7 +6,7 @@ using System.Diagnostics;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Lifetime modes for container resources
+/// Lifetime modes for container resources.
 /// </summary>
 public enum ContainerLifetime
 {
@@ -15,7 +15,7 @@ public enum ContainerLifetime
     /// </summary>
     Session,
     /// <summary>
-    /// Attempt to re-use a previously created resource (based on the container name) if one exists. Do not destroy the container on AppHost shutdown.
+    /// Attempt to re-use a previously created resource (based on the container name) if one exists. Do not destroy the container on app session shutdown.
     /// </summary>
     /// <remarks>
     /// In the event that a container with the given name does not exist, a new container will always be created based on the
@@ -35,7 +35,7 @@ public enum ContainerLifetime
 }
 
 /// <summary>
-/// Annotation that controls the lifetime of a container resource (default behavior that matches the lifetime of the AppHost or a persistent lifetime across AppHost restarts)
+/// Annotation that controls the lifetime of a container resource.
 /// </summary>
 [DebuggerDisplay("Type = {GetType().Name,nq}")]
 public sealed class ContainerLifetimeAnnotation : IResourceAnnotation
