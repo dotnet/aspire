@@ -82,6 +82,11 @@
         <target state="translated">Image kontejneru</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsContainerLifetimeProperty">
+        <source>Lifetime</source>
+        <target state="new">Lifetime</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsContainerPortsProperty">
         <source>Container ports</source>
         <target state="translated">Porty kontejneru</target>
