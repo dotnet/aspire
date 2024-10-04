@@ -114,7 +114,7 @@
     },
     "pgsqldb": {
       "type": "value.v0",
-      "connectionString": "{pgsql.connectionString};Database=pgsqldb"
+      "connectionString": "{pgsql.secretOutputs.pgsqldb-connectionString}"
     },
     "pgsql2": {
       "type": "azure.bicep.v0",
@@ -125,6 +125,10 @@
         "principalType": "",
         "principalName": ""
       }
+    },
+    "pgsql2db": {
+      "type": "value.v0",
+      "connectionString": "{pgsql2.connectionString};Database=pgsql2db"
     },
     "servicebus": {
       "type": "azure.bicep.v0",
@@ -190,6 +194,7 @@
         "ConnectionStrings__cache": "{cache.connectionString}",
         "ConnectionStrings__cosmos": "{cosmos.connectionString}",
         "ConnectionStrings__pgsqldb": "{pgsqldb.connectionString}",
+        "ConnectionStrings__pgsql2db": "{pgsql2db.connectionString}",
         "ConnectionStrings__servicebus": "{servicebus.connectionString}",
         "ConnectionStrings__appConfig": "{appConfig.connectionString}",
         "ConnectionStrings__search": "{search.connectionString}",

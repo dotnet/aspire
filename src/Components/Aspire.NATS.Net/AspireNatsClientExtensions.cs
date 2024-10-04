@@ -35,8 +35,8 @@ public static class AspireNatsClientExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
-        
-        AddNatsClient(builder, configurationSectionName: DefaultConfigSectionName, connectionName: connectionName, serviceKey: null, configureSettings: configureSettings, configureOptions: configureOptions);
+
+        AddNatsClient(builder, connectionName: connectionName, serviceKey: null, configureSettings: configureSettings, configureOptions: configureOptions);
     }
 
     /// <summary>
@@ -55,15 +55,18 @@ public static class AspireNatsClientExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddNatsClient(builder, configurationSectionName: $"{DefaultConfigSectionName}:{name}", connectionName: name, serviceKey: name, configureSettings: configureSettings, configureOptions: configureOptions);
+        AddNatsClient(builder, connectionName: name, serviceKey: name, configureSettings: configureSettings, configureOptions: configureOptions);
     }
 
-    private static void AddNatsClient(this IHostApplicationBuilder builder, string configurationSectionName, string connectionName, object? serviceKey, Action<NatsClientSettings>? configureSettings, Func<NatsOpts, NatsOpts>? configureOptions)
+    private static void AddNatsClient(this IHostApplicationBuilder builder, string connectionName, object? serviceKey, Action<NatsClientSettings>? configureSettings, Func<NatsOpts, NatsOpts>? configureOptions)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         NatsClientSettings settings = new();
-        builder.Configuration.GetSection(configurationSectionName).Bind(settings);
+        var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
+        configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {

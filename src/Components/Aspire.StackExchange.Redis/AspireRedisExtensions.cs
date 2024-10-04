@@ -36,7 +36,7 @@ public static class AspireRedisExtensions
         string connectionName,
         Action<StackExchangeRedisSettings>? configureSettings = null,
         Action<ConfigurationOptions>? configureOptions = null)
-        => AddRedisClient(builder, DefaultConfigSectionName, configureSettings, configureOptions, connectionName, serviceKey: null);
+        => AddRedisClient(builder, configureSettings, configureOptions, connectionName, serviceKey: null);
 
     /// <summary>
     /// Registers <see cref="IConnectionMultiplexer"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
@@ -55,12 +55,11 @@ public static class AspireRedisExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddRedisClient(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureOptions, connectionName: name, serviceKey: name);
+        AddRedisClient(builder, configureSettings, configureOptions, connectionName: name, serviceKey: name);
     }
 
     private static void AddRedisClient(
         IHostApplicationBuilder builder,
-        string configurationSectionName,
         Action<StackExchangeRedisSettings>? configureSettings,
         Action<ConfigurationOptions>? configureOptions,
         string connectionName,
@@ -68,10 +67,12 @@ public static class AspireRedisExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var configSection = builder.Configuration.GetSection(configurationSectionName);
+        var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
 
         StackExchangeRedisSettings settings = new();
         configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -91,17 +92,18 @@ public static class AspireRedisExtensions
             configurationOptions =>
             {
                 BindToConfiguration(configurationOptions, configSection);
+                BindToConfiguration(configurationOptions, namedConfigSection);
 
                 configureOptions?.Invoke(configurationOptions);
             });
 
         if (serviceKey is null)
         {
-            builder.Services.AddSingleton<IConnectionMultiplexer>(sp => CreateConnection(sp, connectionName, configurationSectionName, optionsName));
+            builder.Services.AddSingleton<IConnectionMultiplexer>(sp => CreateConnection(sp, connectionName, DefaultConfigSectionName, optionsName));
         }
         else
         {
-            builder.Services.AddKeyedSingleton<IConnectionMultiplexer>(serviceKey, (sp, _) => CreateConnection(sp, connectionName, configurationSectionName, optionsName));
+            builder.Services.AddKeyedSingleton<IConnectionMultiplexer>(serviceKey, (sp, _) => CreateConnection(sp, connectionName, DefaultConfigSectionName, optionsName));
         }
 
         if (!settings.DisableTracing)

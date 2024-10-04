@@ -1312,7 +1312,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
-              name: take('postgres${uniqueString(resourceGroup().id)}', 24)
+              name: take('postgres-${uniqueString(resourceGroup().id)}', 63)
               location: location
               properties: {
                 administratorLogin: administratorLogin
@@ -1432,7 +1432,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
-              name: take('postgres${uniqueString(resourceGroup().id)}', 24)
+              name: take('postgres-${uniqueString(resourceGroup().id)}', 63)
               location: location
               properties: {
                 administratorLogin: administratorLogin
