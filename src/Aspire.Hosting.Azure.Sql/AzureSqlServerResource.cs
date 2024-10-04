@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Azure;
 public class AzureSqlServerResource : AzureConstructResource, IResourceWithConnectionString
 {
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
-    private readonly bool _useInnerResourceAnnotations;
+    private readonly bool _createdWithInnerResource;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureSqlServerResource"/> class.
@@ -31,7 +31,7 @@ public class AzureSqlServerResource : AzureConstructResource, IResourceWithConne
         : base(innerResource.Name, configureConstruct)
     {
         InnerResource = innerResource;
-        _useInnerResourceAnnotations = true;
+        _createdWithInnerResource = true;
     }
 
     /// <summary>
@@ -42,13 +42,26 @@ public class AzureSqlServerResource : AzureConstructResource, IResourceWithConne
     /// <summary>
     /// Gets the connection template for the manifest for the Azure SQL Server resource.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression =>
-        InnerResource?.ConnectionStringExpression ??
-            ReferenceExpression.Create(
-                $"Server=tcp:{FullyQualifiedDomainName},1433;Encrypt=True;Authentication=\"Active Directory Default\"");
+    public ReferenceExpression ConnectionStringExpression
+    {
+        get
+        {
+            // When the resource was created with an InnerResource (using AsAzure or PublishAsAzure extension methods)
+            // the InnerResource will have a ConnectionStringRedirectAnnotation back to this resource. In that case, don't
+            // use the InnerResource's ConnectionString, or else it will infinite loop and stack overflow.
+            ReferenceExpression? result = null;
+            if (!_createdWithInnerResource)
+            {
+                result = InnerResource?.ConnectionStringExpression;
+            }
+
+            return result ??
+                ReferenceExpression.Create($"Server=tcp:{FullyQualifiedDomainName},1433;Encrypt=True;Authentication=\"Active Directory Default\"");
+        }
+    }
 
     /// <inheritdoc />
-    public override ResourceAnnotationCollection Annotations => _useInnerResourceAnnotations ? InnerResource!.Annotations : base.Annotations;
+    public override ResourceAnnotationCollection Annotations => _createdWithInnerResource ? InnerResource!.Annotations : base.Annotations;
 
     /// <summary>
     /// A dictionary where the key is the resource name and the value is the database name.
