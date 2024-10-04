@@ -11,23 +11,19 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.ResourcesGridColumns;
 
 public partial class StateColumnDisplay
 {
     [Parameter, EditorRequired]
-    public required ResourceViewModel Resource { get; init; }
+    public required ResourceViewModel Resource { get; set; }
 
     [Parameter, EditorRequired]
-    public required Dictionary<ApplicationKey, int>? UnviewedErrorCounts { get; init; }
+    public required Dictionary<ApplicationKey, int>? UnviewedErrorCounts { get; set; }
 
     [Inject]
     public required IStringLocalizer<Columns> Loc { get; init; }
-
-    [Inject]
-    public required IJSRuntime JS { get; init; }
 
     /// <summary>
     /// Gets the tooltip for a cell in the state column of the resource grid.

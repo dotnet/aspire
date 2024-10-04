@@ -17,8 +17,8 @@
 
 @code {
     [Parameter, EditorRequired]
-    public required OtlpLogEntry LogEntry { get; init; }
+    public required OtlpLogEntry LogEntry { get; set; }
 
     [Parameter, EditorRequired]
-    public required string FilterText { get; init; }
+    public required string FilterText { get; set; }
 }
