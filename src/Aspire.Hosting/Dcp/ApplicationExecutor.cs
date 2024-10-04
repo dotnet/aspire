@@ -644,7 +644,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 return lifetimeAnnotation.Lifetime;
             }
 
-            return ContainerLifetime.Default;
+            return ContainerLifetime.Session;
         }
     }
 
