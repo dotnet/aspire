@@ -1,4 +1,5 @@
 #nullable enable
+Aspire.Hosting.ApplicationModel.ContainerLifetime.Session = 0 -> Aspire.Hosting.ApplicationModel.ContainerLifetime
 Aspire.Hosting.ApplicationModel.EndpointNameAttribute
 Aspire.Hosting.ApplicationModel.EndpointNameAttribute.EndpointNameAttribute() -> void
 Aspire.Hosting.ApplicationModel.IModelNameParameter
@@ -28,7 +29,6 @@ Aspire.Hosting.ApplicationModel.ContainerLifetimeAnnotation.ContainerLifetimeAnn
 Aspire.Hosting.ApplicationModel.ContainerLifetimeAnnotation.Lifetime.get -> Aspire.Hosting.ApplicationModel.ContainerLifetime
 Aspire.Hosting.ApplicationModel.ContainerLifetimeAnnotation.Lifetime.set -> void
 Aspire.Hosting.ApplicationModel.ContainerLifetime
-Aspire.Hosting.ApplicationModel.ContainerLifetime.Default = 0 -> Aspire.Hosting.ApplicationModel.ContainerLifetime
 Aspire.Hosting.ApplicationModel.ContainerLifetime.Persistent = 1 -> Aspire.Hosting.ApplicationModel.ContainerLifetime
 Aspire.Hosting.ApplicationModel.ConnectionStringReference.ConnectionName.get -> string?
 Aspire.Hosting.ApplicationModel.ConnectionStringReference.ConnectionName.set -> void

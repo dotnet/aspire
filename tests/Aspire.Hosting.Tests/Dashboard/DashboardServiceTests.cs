@@ -90,7 +90,14 @@ public class DashboardServiceTests
             iconVariant: ApplicationModel.IconVariant.Filled,
             isHighlighted: true);
 
-        await resourceNotificationService.PublishUpdateAsync(testResource, s => s);
+        await resourceNotificationService.PublishUpdateAsync(testResource, s =>
+        {
+            return s with { State = new ResourceStateSnapshot("Starting", null) };
+        });
+        await resourceNotificationService.WaitForResourceAsync(testResource.Name, r =>
+        {
+            return r.Snapshot.Commands.Length == 1;
+        });
 
         var cts = new CancellationTokenSource();
         var context = TestServerCallContext.Create(cancellationToken: cts.Token);
