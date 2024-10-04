@@ -69,7 +69,7 @@ public static class AzureWebPubSubExtensions
 
             construct.Add(new ProvisioningOutput("endpoint", typeof(string)) { Value = BicepFunction.Interpolate($"https://{service.HostName}") });
 
-            construct.Add(service.AssignRole(WebPubSubBuiltInRole.WebPubSubServiceOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(service.CreateRoleAssignment(WebPubSubBuiltInRole.WebPubSubServiceOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             var resource = (AzureWebPubSubResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);

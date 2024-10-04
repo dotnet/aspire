@@ -17,6 +17,11 @@
         <target state="translated">正在启动...</target>
         <note />
       </trans-unit>
+      <trans-unit id="PersistentContainerIconTooltip">
+        <source>This container is persistent and won't be stopped when the app host is shut down.</source>
+        <target state="new">This container is persistent and won't be stopped when the app host is shut down.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceNameDisplayContainerIdText">
         <source>Container ID: {0}</source>
         <target state="translated">容器 ID: {0}</target>

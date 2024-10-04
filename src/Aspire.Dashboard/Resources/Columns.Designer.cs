@@ -88,6 +88,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to This container is persistent and won&apos;t be stopped when the app host is shut down..
+        /// </summary>
+        public static string PersistentContainerIconTooltip {
+            get {
+                return ResourceManager.GetString("PersistentContainerIconTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Container ID: {0}.
         /// </summary>
         public static string ResourceNameDisplayContainerIdText {
