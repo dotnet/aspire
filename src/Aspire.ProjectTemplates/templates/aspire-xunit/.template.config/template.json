@@ -11,9 +11,9 @@
     "Service",
     "Test"
   ],
-  "name": ".NET Aspire Test Project (xUnit)",
+  "name": ".NET Aspire 9 Test Project (xUnit)",
   "defaultName": "Tests",
-  "description": "A project that contains xUnit.net integration tests of a .NET Aspire AppHost project.",
+  "description": "A project that contains xUnit.net integration tests of a .NET Aspire 9 AppHost project.",
   "shortName": ["aspire-xunit", "aspire-xunit-9"],
   "sourceName": "Aspire.Tests.1",
   "preferNameDirectory": true,
