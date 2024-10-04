@@ -10,7 +10,9 @@ builder.AddProject<Projects.GeneratedClassNamePrefix_Web>("webfrontend")
     .WithExternalHttpEndpoints()
 #if UseRedisCache
     .WithReference(cache)
+    .WaitFor(cache)
 #endif
-    .WithReference(apiService);
+    .WithReference(apiService)
+    .WaitFor(apiService);
 
 builder.Build().Run();
