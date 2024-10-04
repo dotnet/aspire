@@ -11,7 +11,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 internal sealed partial class DnsSrvServiceEndpointProviderFactory(
     IOptionsMonitor<DnsSrvServiceEndpointProviderOptions> options,
     ILogger<DnsSrvServiceEndpointProvider> logger,
-    DnsResolver resolver,
+    IDnsResolver resolver,
     TimeProvider timeProvider) : IServiceEndpointProviderFactory
 {
     private static readonly string s_serviceAccountPath = Path.Combine($"{Path.DirectorySeparatorChar}var", "run", "secrets", "kubernetes.io", "serviceaccount");

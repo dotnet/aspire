@@ -9,7 +9,7 @@ using System.Net.Sockets;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
-internal class DnsResolver : IDisposable
+internal class DnsResolver : IDnsResolver, IDisposable
 {
     private const int MaximumNameLength = 253;
     private const int IPv4Length = 4;
@@ -30,8 +30,9 @@ internal class DnsResolver : IDisposable
         _timeProvider = timeProvider;
     }
 
-    public DnsResolver() : this(OperatingSystem.IsWindows() ? NetworkInfo.GetOptions() : ResolvConf.GetOptions())
+    public DnsResolver(TimeProvider timeProvider) : this(OperatingSystem.IsWindows() ? NetworkInfo.GetOptions() : ResolvConf.GetOptions())
     {
+        _timeProvider = timeProvider;
     }
 
     internal DnsResolver(ResolverOptions options)

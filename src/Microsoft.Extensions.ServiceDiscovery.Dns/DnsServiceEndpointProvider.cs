@@ -14,7 +14,7 @@ internal sealed partial class DnsServiceEndpointProvider(
     string hostName,
     IOptionsMonitor<DnsServiceEndpointProviderOptions> options,
     ILogger<DnsServiceEndpointProvider> logger,
-    DnsResolver resolver,
+    IDnsResolver resolver,
     TimeProvider timeProvider) : DnsServiceEndpointProviderBase(query, logger, timeProvider), IHostNameFeature
 {
     protected override double RetryBackOffFactor => options.CurrentValue.RetryBackOffFactor;

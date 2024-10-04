@@ -11,7 +11,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 internal sealed partial class DnsServiceEndpointProviderFactory(
     IOptionsMonitor<DnsServiceEndpointProviderOptions> options,
     ILogger<DnsServiceEndpointProvider> logger,
-    DnsResolver resolver,
+    IDnsResolver resolver,
     TimeProvider timeProvider) : IServiceEndpointProviderFactory
 {
     /// <inheritdoc/>

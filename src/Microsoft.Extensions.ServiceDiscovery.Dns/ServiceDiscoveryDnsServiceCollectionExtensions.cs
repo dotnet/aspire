@@ -46,7 +46,7 @@ public static class ServiceDiscoveryDnsServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(configureOptions);
 
         services.AddServiceDiscoveryCore();
-        services.TryAddSingleton<DnsResolver>();
+        services.TryAddSingleton<IDnsResolver, DnsResolver>();
         services.AddSingleton<IServiceEndpointProviderFactory, DnsSrvServiceEndpointProviderFactory>();
         var options = services.AddOptions<DnsSrvServiceEndpointProviderOptions>();
         options.Configure(o => configureOptions?.Invoke(o));
