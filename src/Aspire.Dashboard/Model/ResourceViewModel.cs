@@ -7,7 +7,6 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Text;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Utils;
@@ -270,46 +269,9 @@ public sealed record class VolumeViewModel(string? Source, string Target, string
         Target?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
 }
 
-public sealed record class HealthReportViewModel(string Name, HealthStatus HealthStatus, string? Description, string? ExceptionText) : IPropertyGridItem
+public sealed record class HealthReportViewModel(string Name, HealthStatus HealthStatus, string? Description, string? ExceptionText)
 {
-    /// <summary>
-    /// A single string that contains all information about this health report,
-    /// for copying and visualizing.
-    /// </summary>
-    private readonly string _compositeValue = GetCompositeValue(HealthStatus, Description, ExceptionText);
-
     private readonly string _humanizedHealthStatus = HealthStatus.Humanize();
-
-    string? IPropertyGridItem.Name => Name;
-
-    string? IPropertyGridItem.Value => HealthStatus.ToString();
-
-    string? IPropertyGridItem.ValueToCopy => _compositeValue;
-
-    string? IPropertyGridItem.ValueToVisualize => _compositeValue;
-
-    private static string GetCompositeValue(HealthStatus HealthStatus, string? Description, string? Exception)
-    {
-        StringBuilder builder = new();
-
-        builder.Append(HealthStatus.Humanize());
-
-        if (!string.IsNullOrWhiteSpace(Description))
-        {
-            builder.AppendLine();
-            builder.AppendLine();
-            builder.Append(Description);
-        }
-
-        if (!string.IsNullOrWhiteSpace(Exception))
-        {
-            builder.AppendLine();
-            builder.AppendLine();
-            builder.Append(Exception);
-        }
-
-        return builder.ToString();
-    }
 
     public bool MatchesFilter(string filter)
     {
