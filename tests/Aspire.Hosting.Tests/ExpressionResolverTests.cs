@@ -31,7 +31,7 @@ public class ExpressionResolverTests
             .WithEndpoint("endpoint1", e =>
             {
                 e.UriScheme = "http";
-                e.AllocatedEndpoint = new(e, "localhost", 12345, containerHostAddress: "ContainerHostName", targetPortExpression: "10000");
+                e.AllocatedEndpoint = new(e, "localhost", 12345, containerHostAddress: targetIsContainer ? "ContainerHostName" : null, targetPortExpression: "10000");
             })
             .WithEndpoint("endpoint2", e =>
              {
@@ -45,7 +45,7 @@ public class ExpressionResolverTests
         }
 
         var csRef = new ConnectionStringReference(test.Resource, false);
-        var connectionString = await ExpressionResolver.ResolveAsync(sourceIsContainer, csRef, CancellationToken.None);
+        var connectionString = await ExpressionResolver.ResolveAsync(sourceIsContainer, csRef, "ContainerHostName", CancellationToken.None);
         Assert.Equal(expectedConnectionString, connectionString);
     }
 }
@@ -53,14 +53,12 @@ public class ExpressionResolverTests
 sealed class TestExpressionResolverResource : ContainerResource, IResourceWithEndpoints, IResourceWithConnectionString
 {
     readonly string _exprName;
-    EndpointReference Endpoint1 { get; }
-    EndpointReference Endpoint2 { get; }
+    EndpointReference Endpoint1 => new(this, "endpoint1");
+    EndpointReference Endpoint2 => new(this, "endpoint2");
     Dictionary<string, ReferenceExpression> Expressions { get; }
     public TestExpressionResolverResource(string exprName) : base("testresource")
     {
         _exprName = exprName;
-        Endpoint1 = new(this, "endpoint1");
-        Endpoint2 = new(this, "endpoint2");
 
         Expressions = new()
         {
