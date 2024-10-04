@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire Uygulama Ana Bilgisayarı",
-  "description": ".NET Aspire uygulama ana bilgisayarı (orchestrator) projesi oluşturmak için proje şablonu.",
+  "name": ".NET Aspire 9 Uygulama Ana Bilgisayarı",
+  "description": ".NET Aspire 9 uygulama ana bilgisayarı (orchestrator) projesi oluşturmak için proje şablonu.",
   "symbols/Framework/description": "Projenin hedef çerçevesi.",
   "symbols/Framework/choices/net9.0/description": "Target net9.0",
   "symbols/appHostHttpPort/description": "AppHost projesinin HTTP uç noktası launchSettings.json bağlantı noktası numarası.",
