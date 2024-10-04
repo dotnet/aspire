@@ -68,7 +68,7 @@ partial class Resource
 
         foreach (var report in snapshot.HealthReports)
         {
-            resource.HealthReports.Add(new HealthReport { Key = report.Name, Description = report.Description ?? "", Status = MapHealthStatus(report.Status), Exception = report.Exception ?? "" });
+            resource.HealthReports.Add(new HealthReport { Key = report.Name, Description = report.Description ?? "", Status = MapHealthStatus(report.Status), Exception = report.ExceptionText ?? "" });
         }
 
         return resource;
