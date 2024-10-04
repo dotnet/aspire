@@ -446,5 +446,14 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ResourcesTypeFiltered", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Waiting for health data....
+        /// </summary>
+        public static string WaitingForHealthDataMessage {
+            get {
+                return ResourceManager.GetString("WaitingForHealthDataMessage", resourceCulture);
+            }
+        }
     }
 }

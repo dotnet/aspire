@@ -75,7 +75,7 @@ public partial class ResourceDetails
             _isEndpointsExpanded = GetEndpoints().Any();
             _isEnvironmentVariablesExpanded = _resource.Environment.Any();
             _isVolumesExpanded = _resource.Volumes.Any();
-            _isHealthChecksExpanded = _resource.HealthReports.Any();
+            _isHealthChecksExpanded = _resource.HealthReports.Any() || _resource.HealthStatus is null; // null means we're waiting for health reports
 
             foreach (var item in SensitiveGridItems)
             {
