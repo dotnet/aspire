@@ -2,7 +2,7 @@ using Milvus.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add service defaults & Aspire components.
+// Add service defaults & Aspire client integrations.
 builder.AddServiceDefaults();
 
 builder.AddMilvusClient("milvus");

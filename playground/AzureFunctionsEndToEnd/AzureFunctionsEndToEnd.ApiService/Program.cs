@@ -10,7 +10,7 @@ using Azure.Storage.Queues;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add service defaults & Aspire components.
+// Add service defaults & Aspire client integrations.
 builder.AddServiceDefaults();
 builder.AddAzureQueueClient("queue");
 builder.AddAzureBlobClient("blob");
