@@ -39,44 +39,44 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal("value2", bicepResource.Resource.Parameters["param2"]);
     }
 
-    public static TheoryData<Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>>> AzureExtensions
+    public static TheoryData<Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>>> AzureExtensions =>
+        CreateAllAzureExtensions("x");
+
+    private static TheoryData<Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>>> CreateAllAzureExtensions(string resourceName)
     {
-
-        get
+        static void CreateConstruct(ResourceModuleConstruct construct)
         {
-            static void CreateConstruct(ResourceModuleConstruct construct)
-            {
-                var id = new UserAssignedIdentity("id");
-                construct.Add(id);
-                construct.Add(new ProvisioningOutput("cid", typeof(string)) { Value = id.ClientId });
-            }
-
-            return new()
-            {
-                { builder => builder.AddAzureAppConfiguration("x") },
-                { builder => builder.AddAzureApplicationInsights("x") },
-                { builder => builder.AddBicepTemplate("x", "template.bicep") },
-                { builder => builder.AddBicepTemplateString("x", "content") },
-                { builder => builder.AddAzureConstruct("x", CreateConstruct) },
-                { builder => builder.AddAzureOpenAI("x") },
-                { builder => builder.AddAzureCosmosDB("x") },
-                { builder => builder.AddAzureEventHubs("x") },
-                { builder => builder.AddAzureKeyVault("x") },
-                { builder => builder.AddAzureLogAnalyticsWorkspace("x") },
-#pragma warning disable CS0618 // Type or member is obsolete
-                { builder => builder.AddPostgres("x").AsAzurePostgresFlexibleServer() },
-                { builder => builder.AddRedis("x").AsAzureRedis() },
-                { builder => builder.AddSqlServer("x").AsAzureSqlDatabase() },
-#pragma warning restore CS0618 // Type or member is obsolete
-                { builder => builder.AddAzurePostgresFlexibleServer("x") },
-                { builder => builder.AddAzureRedis("x") },
-                { builder => builder.AddAzureSearch("x") },
-                { builder => builder.AddAzureServiceBus("x") },
-                { builder => builder.AddAzureSignalR("x") },
-                { builder => builder.AddAzureSqlServer("x") },
-                { builder => builder.AddAzureStorage("x") },
-            };
+            var id = new UserAssignedIdentity("id");
+            construct.Add(id);
+            construct.Add(new ProvisioningOutput("cid", typeof(string)) { Value = id.ClientId });
         }
+
+        return new()
+        {
+            { builder => builder.AddAzureAppConfiguration(resourceName) },
+            { builder => builder.AddAzureApplicationInsights(resourceName) },
+            { builder => builder.AddBicepTemplate(resourceName, "template.bicep") },
+            { builder => builder.AddBicepTemplateString(resourceName, "content") },
+            { builder => builder.AddAzureConstruct(resourceName, CreateConstruct) },
+            { builder => builder.AddAzureOpenAI(resourceName) },
+            { builder => builder.AddAzureCosmosDB(resourceName) },
+            { builder => builder.AddAzureEventHubs(resourceName) },
+            { builder => builder.AddAzureKeyVault(resourceName) },
+            { builder => builder.AddAzureLogAnalyticsWorkspace(resourceName) },
+#pragma warning disable CS0618 // Type or member is obsolete
+            { builder => builder.AddPostgres(resourceName).AsAzurePostgresFlexibleServer() },
+            { builder => builder.AddRedis(resourceName).AsAzureRedis() },
+            { builder => builder.AddSqlServer(resourceName).AsAzureSqlDatabase() },
+#pragma warning restore CS0618 // Type or member is obsolete
+            { builder => builder.AddAzurePostgresFlexibleServer(resourceName) },
+            { builder => builder.AddAzureRedis(resourceName) },
+            { builder => builder.AddAzureSearch(resourceName) },
+            { builder => builder.AddAzureServiceBus(resourceName) },
+            { builder => builder.AddAzureSignalR(resourceName) },
+            { builder => builder.AddAzureSqlServer(resourceName) },
+            { builder => builder.AddAzureStorage(resourceName) },
+            { builder => builder.AddAzureWebPubSub(resourceName) },
+        };
     }
 
     [Theory]
@@ -107,6 +107,27 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         // This makes sure that these don't throw
         bicepResource.GetBicepTemplateFile();
         bicepResource.GetBicepTemplateFile();
+    }
+
+    public static TheoryData<Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>>> AzureExtensionsWithHyphen =>
+        CreateAllAzureExtensions("x-y");
+
+    [Theory]
+    [MemberData(nameof(AzureExtensionsWithHyphen))]
+    public void AzureResourcesProduceValidBicep(Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>> addAzureResource)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var azureResourceBuilder = addAzureResource(builder);
+
+        if (azureResourceBuilder.Resource is not AzureConstructResource bicepResource)
+        {
+            // Skip
+            return;
+        }
+
+        var bicep = bicepResource.GetBicepTemplateString();
+
+        Assert.DoesNotContain("resource x-y", bicep);
     }
 
     [Fact]

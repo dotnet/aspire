@@ -195,7 +195,7 @@ public static class AzurePostgresExtensions
                 PasswordAuth = PostgreSqlFlexibleServerPasswordAuthEnum.Disabled
             };
 
-            var admin = new PostgreSqlFlexibleServerActiveDirectoryAdministrator($"{azureResource.Name}_admin")
+            var admin = new PostgreSqlFlexibleServerActiveDirectoryAdministrator($"{postgres.ResourceName}_admin")
             {
                 Parent = postgres,
                 Name = construct.PrincipalIdParameter,
