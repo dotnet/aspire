@@ -610,7 +610,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Health Checks.
+        ///   Looks up a localized string similar to Health checks.
         /// </summary>
         public static string ResourceHealthChecksHeader {
             get {

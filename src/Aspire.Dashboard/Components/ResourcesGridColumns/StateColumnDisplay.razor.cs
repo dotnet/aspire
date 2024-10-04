@@ -63,6 +63,8 @@ public partial class StateColumnDisplay
     /// </summary>
     private ResourceStateViewModel GetStateViewModel()
     {
+        // Browse the icon library at: https://aka.ms/fluentui-system-icons
+
         Icon icon;
         Color color;
 
@@ -89,7 +91,7 @@ public partial class StateColumnDisplay
         }
         else if (Resource.IsUnusableTransitoryState() || Resource.IsUnknownState())
         {
-            icon = new Icons.Filled.Size16.CircleHint();
+            icon = new Icons.Filled.Size16.CircleHint(); // A dashed, hollow circle.
             color = Color.Info;
         }
         else if (Resource.HasNoState())

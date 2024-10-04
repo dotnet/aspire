@@ -140,12 +140,13 @@
                                    TextVisualizerTitle="@context.Name">
                             <ContentBeforeValue>
                                 @{
+                                    // Browse the icon library at: https://aka.ms/fluentui-system-icons
                                     (Icon icon, Color color) = context.HealthStatus switch
                                     {
                                         HealthStatus.Healthy => ((Icon)new Icons.Filled.Size16.Heart(), Color.Success),
                                         HealthStatus.Degraded => (new Icons.Filled.Size16.HeartBroken(), Color.Warning),
                                         HealthStatus.Unhealthy => (new Icons.Filled.Size16.HeartBroken(), Color.Error),
-                                        _ => (new Icons.Regular.Size16.Heart(), Color.Success)
+                                        _ => (new Icons.Regular.Size16.CircleHint(), Color.Info)
                                     };
                                 }
                                 <FluentIcon Value="@icon" Color="@color" Class="severity-icon" />
@@ -159,7 +160,7 @@
                                    HighlightText="@_filter"
                                    TextVisualizerTitle="@context.Name">
                             <ContentBeforeValue>
-                                <ExceptionDetails ExceptionText="@context.Exception" />
+                                <ExceptionDetails ExceptionText="@context.ExceptionText" />
                             </ContentBeforeValue>
                         </GridValue>
                     </AspireTemplateColumn>

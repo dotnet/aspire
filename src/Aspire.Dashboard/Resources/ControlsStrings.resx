@@ -306,7 +306,7 @@
     <value>Volumes</value>
   </data>
   <data name="ResourceHealthChecksHeader" xml:space="preserve">
-    <value>Health Checks</value>
+    <value>Health checks</value>
   </data>
   <data name="ResourceDetailsResourceHeader" xml:space="preserve">
     <value>Resource</value>

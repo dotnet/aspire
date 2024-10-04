@@ -11,6 +11,7 @@ using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
+using Humanizer;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -253,13 +254,15 @@ public sealed record class VolumeViewModel(string? Source, string Target, string
         Target?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
 }
 
-public sealed record class HealthReportViewModel(string Name, HealthStatus HealthStatus, string? Description, string? Exception) : IPropertyGridItem
+public sealed record class HealthReportViewModel(string Name, HealthStatus HealthStatus, string? Description, string? ExceptionText) : IPropertyGridItem
 {
     /// <summary>
     /// A single string that contains all information about this health report,
     /// for copying and visualizing.
     /// </summary>
-    private readonly string _compositeValue = GetCompositeValue(HealthStatus, Description, Exception);
+    private readonly string _compositeValue = GetCompositeValue(HealthStatus, Description, ExceptionText);
+
+    private readonly string _humanizedHealthStatus = HealthStatus.Humanize();
 
     string? IPropertyGridItem.Name => Name;
 
@@ -273,7 +276,7 @@ public sealed record class HealthReportViewModel(string Name, HealthStatus Healt
     {
         StringBuilder builder = new();
 
-        builder.Append(HealthStatus.ToString());
+        builder.Append(HealthStatus.Humanize());
 
         if (!string.IsNullOrWhiteSpace(Description))
         {
@@ -297,6 +300,6 @@ public sealed record class HealthReportViewModel(string Name, HealthStatus Healt
         return
             Name?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
             Description?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
-            Exception?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
+            _humanizedHealthStatus.Contains(filter, StringComparison.OrdinalIgnoreCase);
     }
 }

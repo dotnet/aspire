@@ -59,16 +59,18 @@ partial class Resource
 
         HealthReportViewModel ToHealthReportViewModel(HealthReport healthReport)
         {
-            return new HealthReportViewModel(healthReport.Key, Convert(healthReport.Status), healthReport.Description, healthReport.Exception);
+            return new HealthReportViewModel(healthReport.Key, GetStatus(), healthReport.Description, healthReport.Exception);
 
-            static Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus Convert(HealthStatus healthStatus)
+            Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus GetStatus()
             {
-                return healthStatus switch
+                return healthReport.Status switch
                 {
+                    // Unknown status is considered healthy (innocent until proven guilty) unless we have exception details.
+                    HealthStatus.Unknown when !string.IsNullOrEmpty(healthReport.Exception) => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
                     HealthStatus.Unknown or HealthStatus.Healthy => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy,
                     HealthStatus.Degraded => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded,
                     HealthStatus.Unhealthy => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
-                    _ => throw new InvalidOperationException("Unknown health status: " + healthStatus),
+                    _ => throw new InvalidOperationException("Unknown health status: " + healthReport.Status),
                 };
             }
         }

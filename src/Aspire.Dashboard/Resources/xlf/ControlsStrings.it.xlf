@@ -308,8 +308,8 @@
         <note>{0} is a resource name, {1} is a replica set name</note>
       </trans-unit>
       <trans-unit id="ResourceHealthChecksHeader">
-        <source>Health Checks</source>
-        <target state="new">Health Checks</target>
+        <source>Health checks</source>
+        <target state="new">Health checks</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceLabel">
