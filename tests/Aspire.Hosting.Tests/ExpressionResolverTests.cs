@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Tests.Utils;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -44,9 +45,19 @@ public class ExpressionResolverTests
             test = test.WithImage("someimage");
         }
 
+        // First test ExpressionResolver directly
         var csRef = new ConnectionStringReference(test.Resource, false);
         var connectionString = await ExpressionResolver.ResolveAsync(sourceIsContainer, csRef, "ContainerHostName", CancellationToken.None);
         Assert.Equal(expectedConnectionString, connectionString);
+
+        // Then test it indirectly through EnvironmentVariableEvaluator, which exercises a more complete code path
+        test = test.WithEnvironment(context =>
+        {
+            context.EnvironmentVariables["myConnectionString"] = csRef;
+        });
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, sourceIsContainer, "ContainerHostName");
+        Assert.Equal(expectedConnectionString, config["myConnectionString"]);
     }
 }
 
