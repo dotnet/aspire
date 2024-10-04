@@ -637,14 +637,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         ContainerLifetime GetContainerLifetime()
         {
-            if (container.AppModelResourceName is string resourceName &&
-                _applicationModel.TryGetValue(resourceName, out var appModelResource) &&
-                appModelResource.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
-            {
-                return lifetimeAnnotation.Lifetime;
-            }
-
-            return ContainerLifetime.Session;
+            return (container.Spec.Persistent ?? false)
+                ? ContainerLifetime.Persistent
+                : ContainerLifetime.Session;
         }
     }
 
