@@ -28,7 +28,7 @@ public class ExpressionResolverTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var test = builder.AddResource(new TestExpressionResolverResource(exprName))
+        var target = builder.AddResource(new TestExpressionResolverResource(exprName))
             .WithEndpoint("endpoint1", e =>
             {
                 e.UriScheme = "http";
@@ -42,22 +42,24 @@ public class ExpressionResolverTests
 
         if (targetIsContainer)
         {
-            test = test.WithImage("someimage");
+            target = target.WithImage("someimage");
         }
 
         // First test ExpressionResolver directly
-        var csRef = new ConnectionStringReference(test.Resource, false);
+        var csRef = new ConnectionStringReference(target.Resource, false);
         var connectionString = await ExpressionResolver.ResolveAsync(sourceIsContainer, csRef, "ContainerHostName", CancellationToken.None);
         Assert.Equal(expectedConnectionString, connectionString);
 
-        // Then test it indirectly through EnvironmentVariableEvaluator, which exercises a more complete code path
-        test = test.WithEnvironment(context =>
+        // Then test it indirectly with a resource reference, which exercises a more complete code path
+        var source = builder.AddResource(new ContainerResource("testSource"))
+            .WithReference(target);
+        if (sourceIsContainer)
         {
-            context.EnvironmentVariables["myConnectionString"] = csRef;
-        });
+            source = source.WithImage("someimage");
+        }
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, sourceIsContainer, "ContainerHostName");
-        Assert.Equal(expectedConnectionString, config["myConnectionString"]);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(source.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName");
+        Assert.Equal(expectedConnectionString, config["ConnectionStrings__testresource"]);
     }
 }
 
