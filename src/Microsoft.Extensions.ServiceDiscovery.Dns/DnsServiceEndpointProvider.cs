@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
+using System.Net.Sockets;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 
@@ -12,6 +14,7 @@ internal sealed partial class DnsServiceEndpointProvider(
     string hostName,
     IOptionsMonitor<DnsServiceEndpointProviderOptions> options,
     ILogger<DnsServiceEndpointProvider> logger,
+    DnsResolver resolver,
     TimeProvider timeProvider) : DnsServiceEndpointProviderBase(query, logger, timeProvider), IHostNameFeature
 {
     protected override double RetryBackOffFactor => options.CurrentValue.RetryBackOffFactor;
@@ -29,17 +32,21 @@ internal sealed partial class DnsServiceEndpointProvider(
         var endpoints = new List<ServiceEndpoint>();
         var ttl = DefaultRefreshPeriod;
         Log.AddressQuery(logger, ServiceName, hostName);
-        var addresses = await System.Net.Dns.GetHostAddressesAsync(hostName, ShutdownToken).ConfigureAwait(false);
-        foreach (var address in addresses)
-        {
-            var serviceEndpoint = ServiceEndpoint.Create(new IPEndPoint(address, 0));
-            serviceEndpoint.Features.Set<IServiceEndpointProvider>(this);
-            if (options.CurrentValue.ShouldApplyHostNameMetadata(serviceEndpoint))
-            {
-                serviceEndpoint.Features.Set<IHostNameFeature>(this);
-            }
 
-            endpoints.Add(serviceEndpoint);
+        var now = _timeProvider.GetUtcNow().DateTime;
+        var ipv4Addresses = resolver.ResolveIPAddressesAsync(hostName, AddressFamily.InterNetwork, ShutdownToken).ConfigureAwait(false);
+        var ipv6Addresses = resolver.ResolveIPAddressesAsync(hostName, AddressFamily.InterNetworkV6, ShutdownToken).ConfigureAwait(false);
+
+        foreach (var address in await ipv4Addresses)
+        {
+            ttl = MinTtl(now, address.ExpiresAt, ttl);
+            endpoints.Add(CreateEndpoint(new IPEndPoint(address.Address, 0)));
+        }
+
+        foreach (var address in await ipv6Addresses)
+        {
+            ttl = MinTtl(now, address.ExpiresAt, ttl);
+            endpoints.Add(CreateEndpoint(new IPEndPoint(address.Address, 0)));
         }
 
         if (endpoints.Count == 0)
@@ -48,5 +55,23 @@ internal sealed partial class DnsServiceEndpointProvider(
         }
 
         SetResult(endpoints, ttl);
+
+        static TimeSpan MinTtl(DateTime now, DateTime expiresAt, TimeSpan existing)
+        {
+            var candidate = expiresAt - now;
+            return candidate < existing ? candidate : existing;
+        }
+
+        ServiceEndpoint CreateEndpoint(EndPoint endPoint)
+        {
+            var serviceEndpoint = ServiceEndpoint.Create(endPoint);
+            serviceEndpoint.Features.Set<IServiceEndpointProvider>(this);
+            if (options.CurrentValue.ShouldApplyHostNameMetadata(serviceEndpoint))
+            {
+                serviceEndpoint.Features.Set<IHostNameFeature>(this);
+            }
+
+            return serviceEndpoint;
+        }
     }
 }

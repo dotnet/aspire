@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Microsoft.Extensions.ServiceDiscovery.Dns.Tests"/>
+    <InternalsVisibleTo Include="Microsoft.Extensions.ServiceDiscovery.Dns.Tests" />
   </ItemGroup>
 
 </Project>
