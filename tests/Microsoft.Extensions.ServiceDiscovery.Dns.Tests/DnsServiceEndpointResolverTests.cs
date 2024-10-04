@@ -17,7 +17,7 @@ public class DnsServiceEndpointResolverTests
         var timeProvider = new FakeTimeProvider();
         var services = new ServiceCollection()
             .AddSingleton<TimeProvider>(timeProvider)
-            .AddSingleton<IDnsResolver, IDnsResolver>()
+            .AddSingleton<IDnsResolver, DnsResolver>()
             .AddServiceDiscoveryCore()
             .AddDnsServiceEndpointProvider(o => o.DefaultRefreshPeriod = TimeSpan.FromSeconds(30))
             .BuildServiceProvider();

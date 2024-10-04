@@ -8,5 +8,6 @@ namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 internal interface IDnsResolver
 {
     ValueTask<AddressResult[]> ResolveIPAddressesAsync(string name, AddressFamily addressFamily, CancellationToken cancellationToken = default);
+    ValueTask<AddressResult[]> ResolveIPAddressesAsync(string name, CancellationToken cancellationToken = default);
     ValueTask<ServiceResult[]> ResolveServiceAsync(string name, CancellationToken cancellationToken = default);
 }

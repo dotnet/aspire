@@ -91,6 +91,18 @@ internal class DnsResolver : IDnsResolver, IDisposable
                 List<AddressResult> addresses = new List<AddressResult>();
                 foreach (var additional in record.Additionals)
                 {
+                    // From RFC 2782:
+                    //
+                    //     Target
+                    //         The domain name of the target host.  There MUST be one or more
+                    //         address records for this name, the name MUST NOT be an alias (in
+                    //         the sense of RFC 1034 or RFC 2181).  Implementors are urged, but
+                    //         not required, to return the address record(s) in the Additional
+                    //         Data section.  Unless and until permitted by future standards
+                    //         action, name compression is not to be used for this field.
+                    //
+                    //         A Target of "." means that the service is decidedly not
+                    //         available at this domain.
                     if (additional.Name == target && (additional.Type == QueryType.A || additional.Type == QueryType.AAAA))
                     {
                         addresses.Add(new AddressResult(record.CreatedAt.AddSeconds(additional.Ttl), new IPAddress(additional.Data.Span)));
@@ -105,14 +117,60 @@ internal class DnsResolver : IDnsResolver, IDisposable
         return result;
     }
 
+    public async ValueTask<AddressResult[]> ResolveIPAddressesAsync(string name, CancellationToken cancellationToken = default)
+    {
+        if (name == "localhost")
+        {
+            // name localhost exists outside of DNS and can't be resolved by a DNS server
+            int len = (Socket.OSSupportsIPv4 ? 1 : 0) + (Socket.OSSupportsIPv6 ? 1 : 0);
+            AddressResult[] res = new AddressResult[len];
+
+            int index = 0;
+            if (Socket.OSSupportsIPv6) // prefer IPv6
+            {
+                res[index] = new AddressResult(DateTime.MaxValue, IPAddress.IPv6Loopback);
+            }
+            if (Socket.OSSupportsIPv4)
+            {
+                res[index++] = new AddressResult(DateTime.MaxValue, IPAddress.Loopback);
+            }
+        }
+
+        var ipv4AddressesTask = ResolveIPAddressesAsync(name, AddressFamily.InterNetwork, cancellationToken);
+        var ipv6AddressesTask = ResolveIPAddressesAsync(name, AddressFamily.InterNetworkV6, cancellationToken);
+
+        AddressResult[] ipv4Addresses = await ipv4AddressesTask.ConfigureAwait(false);
+        AddressResult[] ipv6Addresses = await ipv6AddressesTask.ConfigureAwait(false);
+
+        AddressResult[] results = new AddressResult[ipv4Addresses.Length + ipv6Addresses.Length];
+        ipv6Addresses.CopyTo(results, 0);
+        ipv4Addresses.CopyTo(results, ipv6Addresses.Length);
+        return results;
+    }
+
     public async ValueTask<AddressResult[]> ResolveIPAddressesAsync(string name, AddressFamily addressFamily, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (addressFamily != AddressFamily.InterNetwork && addressFamily != AddressFamily.InterNetworkV6 && addressFamily != AddressFamily.Unspecified)
+        if (addressFamily != AddressFamily.InterNetwork && addressFamily != AddressFamily.InterNetworkV6)
         {
             throw new ArgumentOutOfRangeException(nameof(addressFamily), addressFamily, "Invalid address family");
+        }
+
+        if (name == "localhost")
+        {
+            // name localhost exists outside of DNS and can't be resolved by a DNS server
+            if (addressFamily == AddressFamily.InterNetwork && Socket.OSSupportsIPv4)
+            {
+                return [new AddressResult(DateTime.MaxValue, IPAddress.Loopback)];
+            }
+            else if (addressFamily == AddressFamily.InterNetworkV6 && Socket.OSSupportsIPv6)
+            {
+                return [new AddressResult(DateTime.MaxValue, IPAddress.IPv6Loopback)];
+            }
+
+            return Array.Empty<AddressResult>();
         }
 
         if (name.Length > MaximumNameLength)
@@ -345,7 +403,7 @@ internal class DnsResolver : IDnsResolver, IDisposable
 
         try
         {
-            return await SendQueryAsyncSlow(name, queryType, cts.Token).ConfigureAwait(false);
+            return await SendQueryAsyncCore(name, queryType, cts.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException oce) when (
             !cancellationToken.IsCancellationRequested && // not cancelled by the caller
@@ -363,7 +421,7 @@ internal class DnsResolver : IDnsResolver, IDisposable
             }
         }
 
-        async ValueTask<DnsResponse> SendQueryAsyncSlow(string name, QueryType queryType, CancellationToken cancellationToken)
+        async ValueTask<DnsResponse> SendQueryAsyncCore(string name, QueryType queryType, CancellationToken cancellationToken)
         {
             DnsDataReader responseReader = default;
             DnsMessageHeader header = default;

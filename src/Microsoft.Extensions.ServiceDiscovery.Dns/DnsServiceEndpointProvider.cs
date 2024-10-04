@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
-using System.Net.Sockets;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
@@ -34,16 +33,9 @@ internal sealed partial class DnsServiceEndpointProvider(
         Log.AddressQuery(logger, ServiceName, hostName);
 
         var now = _timeProvider.GetUtcNow().DateTime;
-        var ipv4Addresses = resolver.ResolveIPAddressesAsync(hostName, AddressFamily.InterNetwork, ShutdownToken).ConfigureAwait(false);
-        var ipv6Addresses = resolver.ResolveIPAddressesAsync(hostName, AddressFamily.InterNetworkV6, ShutdownToken).ConfigureAwait(false);
+        var addresses = await resolver.ResolveIPAddressesAsync(hostName, ShutdownToken).ConfigureAwait(false);
 
-        foreach (var address in await ipv4Addresses)
-        {
-            ttl = MinTtl(now, address.ExpiresAt, ttl);
-            endpoints.Add(CreateEndpoint(new IPEndPoint(address.Address, 0)));
-        }
-
-        foreach (var address in await ipv6Addresses)
+        foreach (var address in addresses)
         {
             ttl = MinTtl(now, address.ExpiresAt, ttl);
             endpoints.Add(CreateEndpoint(new IPEndPoint(address.Address, 0)));

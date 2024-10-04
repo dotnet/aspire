@@ -112,4 +112,16 @@ public class ResolveAddressesTests : LoopbackDnsTestBase
     {
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () => await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.Unknown));
     }
+
+    [Theory]
+    [InlineData(AddressFamily.InterNetwork, "127.0.0.1")]
+    [InlineData(AddressFamily.InterNetworkV6, "::1")]
+    public async Task ResolveIP_Localhost_ReturnsLoopback(AddressFamily family, string addressAsString)
+    {
+        IPAddress address = IPAddress.Parse(addressAsString);
+        AddressResult[] results = await Resolver.ResolveIPAddressesAsync("localhost", family);
+        AddressResult result = Assert.Single(results);
+
+        Assert.Equal(address, result.Address);
+    }
 }

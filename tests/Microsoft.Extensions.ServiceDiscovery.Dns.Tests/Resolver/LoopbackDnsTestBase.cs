@@ -3,6 +3,7 @@
 
 using Xunit.Abstractions;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver.Tests;
 
@@ -12,7 +13,7 @@ public abstract class LoopbackDnsTestBase : IDisposable
 
     internal LoopbackDnsServer DnsServer { get; }
     internal DnsResolver Resolver { get; }
-    protected readonly TestTimeProvider TimeProvider;
+    protected readonly FakeTimeProvider TimeProvider;
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "SetTimeProvider")]
     static extern void MockTimeProvider(DnsResolver instance, TimeProvider provider);
@@ -21,9 +22,9 @@ public abstract class LoopbackDnsTestBase : IDisposable
     {
         Output = output;
         DnsServer = new();
+        TimeProvider = new();
         Resolver = new([DnsServer.DnsEndPoint]);
         Resolver.Timeout = TimeSpan.FromSeconds(5);
-        TimeProvider = new();
         MockTimeProvider(Resolver, TimeProvider);
     }
 
