@@ -22,7 +22,6 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
     // Not thread-safe, but we doesn't matter, since this class is never used concurrently
     bool Preprocess { get; set; }
 
-
     async Task<string?> EvalEndpointAsync(EndpointReference endpointReference, EndpointProperty property)
     {
         // In the preprocess phase, our only goal is to determine if the host and port properties are both used
