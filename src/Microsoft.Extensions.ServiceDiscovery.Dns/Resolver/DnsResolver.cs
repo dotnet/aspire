@@ -369,8 +369,10 @@ internal class DnsResolver : IDnsResolver, IDisposable
             DnsMessageHeader header = default;
             DateTime queryStartedTime = default;
 
-            foreach (IPEndPoint serverEndPoint in _options.Servers)
+            for (int index = 0; index < _options.Servers.Length; index++)
             {
+                IPEndPoint serverEndPoint = _options.Servers[index];
+
                 queryStartedTime = _timeProvider.GetUtcNow().DateTime;
                 (responseReader, header) = await SendDnsQueryCoreUdpAsync(serverEndPoint, name, queryType, cancellationToken).ConfigureAwait(false);
 
@@ -396,7 +398,11 @@ internal class DnsResolver : IDnsResolver, IDisposable
                     break;
                 }
 
-                responseReader.Dispose();
+                if (index < _options.Servers.Length - 1)
+                {
+                    // keep the reader open for processing
+                    responseReader.Dispose();
+                }
             }
 
             int ttl = int.MaxValue;
@@ -418,7 +424,7 @@ internal class DnsResolver : IDnsResolver, IDisposable
                     if (!reader.TryReadResourceRecord(out var record))
                     {
                         // TODO how to handle corrupted responses?
-                        throw new InvalidOperationException("Invalid response: Answer record");
+                        throw new InvalidOperationException("Invalid response: corrupted record");
                     }
 
                     ttl = Math.Min(ttl, record.Ttl);

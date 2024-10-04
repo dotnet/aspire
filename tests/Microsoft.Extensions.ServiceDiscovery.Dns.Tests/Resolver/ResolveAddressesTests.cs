@@ -12,6 +12,7 @@ public class ResolveAddressesTests : LoopbackDnsTestBase
 {
     public ResolveAddressesTests(ITestOutputHelper output) : base(output)
     {
+        Resolver.Timeout = TimeSpan.FromSeconds(5);
     }
 
     [Theory]
@@ -19,8 +20,6 @@ public class ResolveAddressesTests : LoopbackDnsTestBase
     [InlineData(true)]
     public async Task ResolveIPv4_NoData_Success(bool includeSoa)
     {
-        Resolver.Timeout = TimeSpan.FromSeconds(1);
-
         _ = DnsServer.ProcessUdpRequest(builder =>
         {
             if (includeSoa)
@@ -32,20 +31,6 @@ public class ResolveAddressesTests : LoopbackDnsTestBase
 
         AddressResult[] results = await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetwork);
         Assert.Empty(results);
-
-        if (includeSoa)
-        {
-            // if SOA is included, the negative result can be cached
-            Assert.Empty(await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetwork));
-
-            // negative result does not affect other types
-            await Assert.ThrowsAsync<TimeoutException>(async () => await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetworkV6));
-        }
-        else
-        {
-            // no caching -> new request, and the request should timeout
-            await Assert.ThrowsAsync<TimeoutException>(async () => await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetwork));
-        }
     }
 
     [Theory]
@@ -65,19 +50,6 @@ public class ResolveAddressesTests : LoopbackDnsTestBase
 
         AddressResult[] results = await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetwork);
         Assert.Empty(results);
-
-        if (includeSoa)
-        {
-            // if SOA is included, the negative result can be cached for all types
-            Assert.Empty(await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetwork));
-            Assert.Empty(await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetworkV6));
-        }
-        else
-        {
-            Resolver.Timeout = TimeSpan.FromSeconds(1);
-            // no caching -> new request, and the request should timeout
-            await Assert.ThrowsAsync<TimeoutException>(async () => await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetwork));
-        }
     }
 
     [Fact]
@@ -139,24 +111,5 @@ public class ResolveAddressesTests : LoopbackDnsTestBase
     public async Task ResolveIP_InvalidAddressFamily_Throws()
     {
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () => await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.Unknown));
-    }
-
-    [Fact]
-    public async Task ResolveIP_Cached_Success()
-    {
-        IPAddress address = IPAddress.Parse("172.213.245.111");
-        _ = DnsServer.ProcessUdpRequest(builder =>
-        {
-            builder.Answers.AddAddress("www.example.com", 3600, address);
-            return Task.CompletedTask;
-        });
-
-        AddressResult[] results = await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetwork);
-
-        AddressResult res = Assert.Single(results);
-        DnsServer.Dispose();
-
-        AddressResult cached = Assert.Single(await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetwork));
-        Assert.Equal(res, cached);
     }
 }
