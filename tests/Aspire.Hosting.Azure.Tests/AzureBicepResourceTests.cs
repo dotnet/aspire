@@ -566,15 +566,15 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               location: location
               properties: {
                 Application_Type: applicationType
-                WorkspaceResourceId: law-appInsights.id
+                WorkspaceResourceId: law_appInsights.id
               }
               tags: {
                 'aspire-resource-name': 'appInsights'
               }
             }
 
-            resource law-appInsights 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
-              name: take('law-appInsights-${uniqueString(resourceGroup().id)}', 63)
+            resource law_appInsights 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+              name: take('lawappInsights-${uniqueString(resourceGroup().id)}', 63)
               location: location
               properties: {
                 sku: {
@@ -582,7 +582,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 }
               }
               tags: {
-                'aspire-resource-name': 'law-appInsights'
+                'aspire-resource-name': 'law_appInsights'
               }
             }
 
@@ -2700,7 +2700,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               parent: openai
             }
 
-            resource embedding-model 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
+            resource embedding_model 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
               name: 'embedding-model'
               properties: {
                 model: {

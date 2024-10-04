@@ -7,7 +7,6 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure.Utils;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
@@ -170,7 +169,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                     containerImageParam = AllocateContainerImageParameter();
                 }
 
-                var containerAppResource = new ContainerApp(resource.Name)
+                var containerAppResource = new ContainerApp(AzureResourceExtensions.NormalizeBicepIdentifier(resource.Name))
                 {
                     Name = resource.Name.ToLowerInvariant()
                 };
@@ -731,7 +730,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 if (!KeyVaultSecretRefs.TryGetValue(secretOutputReference.ValueExpression, out var secret))
                 {
                     // Now we resolve the secret
-                    var secretIdentifierName = BicepIdentifierHelpers.Normalize($"{kv.ResourceName}_{secretOutputReference.Name}");
+                    var secretIdentifierName = AzureResourceExtensions.NormalizeBicepIdentifier($"{kv.ResourceName}_{secretOutputReference.Name}");
                     secret = KeyVaultSecret.FromExisting(secretIdentifierName);
                     secret.Name = secretOutputReference.Name;
                     secret.Parent = kv;

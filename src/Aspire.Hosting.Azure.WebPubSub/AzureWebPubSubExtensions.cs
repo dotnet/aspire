@@ -56,7 +56,7 @@ public static class AzureWebPubSubExtensions
             };
             construct.Add(capacityParameter);
 
-            var service = new WebPubSubService(name)
+            var service = new WebPubSubService(construct.Resource.GetBicepIdentifier())
             {
                 Sku = new BillingInfoSku()
                 {

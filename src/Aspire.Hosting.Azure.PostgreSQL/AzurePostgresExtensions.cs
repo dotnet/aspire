@@ -421,7 +421,7 @@ public static class AzurePostgresExtensions
 
                 foreach (var database in azureResource.Databases)
                 {
-                    var dbSecret = new KeyVaultSecret(database.Key + "_connectionString")
+                    var dbSecret = new KeyVaultSecret(AzureResourceExtensions.NormalizeBicepIdentifier(database.Key + "_connectionString"))
                     {
                         Parent = keyVault,
                         Name = AzurePostgresFlexibleServerResource.GetDatabaseKeyVaultSecretName(database.Key),
@@ -437,7 +437,7 @@ public static class AzurePostgresExtensions
 
     private static PostgreSqlFlexibleServer CreatePostgreSqlFlexibleServer(ResourceModuleConstruct construct, IDistributedApplicationBuilder distributedApplicationBuilder, IReadOnlyDictionary<string, string> databases)
     {
-        var postgres = new PostgreSqlFlexibleServer(construct.Resource.Name)
+        var postgres = new PostgreSqlFlexibleServer(construct.Resource.GetBicepIdentifier())
         {
             StorageSizeInGB = 32,
             Sku = new PostgreSqlFlexibleServerSku()
@@ -483,9 +483,9 @@ public static class AzurePostgresExtensions
 
         foreach (var databaseNames in databases)
         {
-            var resourceName = databaseNames.Key;
+            var identifierName = AzureResourceExtensions.NormalizeBicepIdentifier(databaseNames.Key);
             var databaseName = databaseNames.Value;
-            var pgsqlDatabase = new PostgreSqlFlexibleServerDatabase(resourceName)
+            var pgsqlDatabase = new PostgreSqlFlexibleServerDatabase(identifierName)
             {
                 Parent = postgres,
                 Name = databaseName

@@ -22,3 +22,5 @@ static Aspire.Hosting.AzureConstructResourceExtensions.ConfigureConstruct<T>(thi
 *REMOVED*Aspire.Hosting.ResourceModuleConstruct.PrincipalTypeParameter.get -> Azure.Provisioning.Parameter
 *REMOVED*static Aspire.Hosting.AzureConstructResourceExtensions.AssignProperty<T>(this Azure.Provisioning.Resource<T>! resource, System.Linq.Expressions.Expression<System.Func<T, object?>!>! propertySelector, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>! parameterResourceBuilder, string? parameterName = null) -> void
 *REMOVED*static Aspire.Hosting.AzureConstructResourceExtensions.AssignProperty<T>(this Azure.Provisioning.Resource<T>! resource, System.Linq.Expressions.Expression<System.Func<T, object?>!>! propertySelector, Aspire.Hosting.Azure.BicepOutputReference! outputReference, string? parameterName = null) -> void
+static Aspire.Hosting.AzureResourceExtensions.GetBicepIdentifier(this Aspire.Hosting.ApplicationModel.IAzureResource! resource) -> string!
+static Aspire.Hosting.AzureResourceExtensions.NormalizeBicepIdentifier(string! identifierName) -> string!

@@ -295,7 +295,7 @@ public static class AzureRedisExtensions
 
     private static CdkRedisResource CreateRedisResource(ResourceModuleConstruct construct)
     {
-        var redisCache = new CdkRedisResource(construct.Resource.Name)
+        var redisCache = new CdkRedisResource(construct.Resource.GetBicepIdentifier())
         {
             Sku = new RedisSku()
             {

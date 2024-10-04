@@ -236,7 +236,7 @@ public static class AzureSqlExtensions
         IDistributedApplicationBuilder distributedApplicationBuilder,
         IReadOnlyDictionary<string, string> databases)
     {
-        var sqlServer = new SqlServer(construct.Resource.Name)
+        var sqlServer = new SqlServer(construct.Resource.GetBicepIdentifier())
         {
             Administrators = new ServerExternalAdministrator()
             {
@@ -279,9 +279,9 @@ public static class AzureSqlExtensions
         var sqlDatabases = new List<SqlDatabase>();
         foreach (var databaseNames in databases)
         {
-            var resourceName = databaseNames.Key;
+            var identifierName = AzureResourceExtensions.NormalizeBicepIdentifier(databaseNames.Key);
             var databaseName = databaseNames.Value;
-            var sqlDatabase = new SqlDatabase(resourceName)
+            var sqlDatabase = new SqlDatabase(identifierName)
             {
                 Parent = sqlServer,
                 Name = databaseName

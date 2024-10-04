@@ -55,7 +55,7 @@ public static class AzureEventHubsExtensions
             };
             construct.Add(skuParameter);
 
-            var eventHubsNamespace = new EventHubsNamespace(name)
+            var eventHubsNamespace = new EventHubsNamespace(construct.Resource.GetBicepIdentifier())
             {
                 Sku = new EventHubsSku()
                 {
@@ -75,7 +75,7 @@ public static class AzureEventHubsExtensions
 
             foreach (var hub in azureResource.Hubs)
             {
-                var hubResource = new EventHub(hub.Name)
+                var hubResource = new EventHub(AzureResourceExtensions.NormalizeBicepIdentifier(hub.Name))
                 {
                     Parent = eventHubsNamespace,
                     Name = hub.Name
@@ -84,8 +84,8 @@ public static class AzureEventHubsExtensions
                 hub.Configure?.Invoke(azureResourceBuilder, construct, hubResource);
             }
         };
-        var resource = new AzureEventHubsResource(name, configureConstruct);
 
+        var resource = new AzureEventHubsResource(name, configureConstruct);
         return builder.AddResource(resource)
                       // These ambient parameters are only available in development time.
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)

@@ -42,7 +42,7 @@ public static class AzureKeyVaultResourceExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var keyVault = new KeyVaultService(construct.Resource.Name)
+            var keyVault = new KeyVaultService(construct.Resource.GetBicepIdentifier())
             {
                 Properties = new KeyVaultProperties()
                 {
