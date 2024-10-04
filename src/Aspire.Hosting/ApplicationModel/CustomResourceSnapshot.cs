@@ -65,7 +65,8 @@ public sealed record CustomResourceSnapshot
     /// The health reports for this resource.
     /// </summary>
     /// <remarks>
-    /// May be zero or more. If there are no health reports, the resource is considered healthy.
+    /// May be zero or more. If there are no health reports, the resource is considered healthy
+    /// so long as no heath checks are registered for the resource.
     /// </remarks>
     public ImmutableArray<HealthReportSnapshot> HealthReports { get; init; } = [];
 
