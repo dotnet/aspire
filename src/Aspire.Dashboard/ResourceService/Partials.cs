@@ -49,6 +49,7 @@ partial class Resource
                 KnownState = HasState ? Enum.TryParse(State, out KnownResourceState knownState) ? knownState : null : null,
                 StateStyle = HasStateStyle ? StateStyle : null,
                 Commands = GetCommands(),
+                HealthStatus = HasHealthStatus ? MapHealthStatus(HealthStatus) : null,
                 HealthReports = HealthReports.Select(ToHealthReportViewModel).OrderBy(vm => vm.Name).ToImmutableArray(),
             };
         }
@@ -59,20 +60,20 @@ partial class Resource
 
         HealthReportViewModel ToHealthReportViewModel(HealthReport healthReport)
         {
-            return new HealthReportViewModel(healthReport.Key, GetStatus(), healthReport.Description, healthReport.Exception);
+            return new HealthReportViewModel(healthReport.Key, MapHealthStatus(healthReport.Status, healthReport.Exception), healthReport.Description, healthReport.Exception);
+        }
 
-            Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus GetStatus()
+        Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus MapHealthStatus(HealthStatus healthStatus, string? exceptionText = null)
+        {
+            return healthStatus switch
             {
-                return healthReport.Status switch
-                {
-                    // Unknown status is considered healthy (innocent until proven guilty) unless we have exception details.
-                    HealthStatus.Unknown when !string.IsNullOrEmpty(healthReport.Exception) => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
-                    HealthStatus.Unknown or HealthStatus.Healthy => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy,
-                    HealthStatus.Degraded => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded,
-                    HealthStatus.Unhealthy => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
-                    _ => throw new InvalidOperationException("Unknown health status: " + healthReport.Status),
-                };
-            }
+                // Unknown status is considered healthy (innocent until proven guilty) unless we have exception details.
+                HealthStatus.Unknown when !string.IsNullOrEmpty(exceptionText) => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
+                HealthStatus.Unknown or HealthStatus.Healthy => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy,
+                HealthStatus.Degraded => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded,
+                HealthStatus.Unhealthy => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
+                _ => throw new InvalidOperationException("Unknown health status: " + healthStatus),
+            };
         }
 
         ImmutableArray<EnvironmentVariableViewModel> GetEnvironment()

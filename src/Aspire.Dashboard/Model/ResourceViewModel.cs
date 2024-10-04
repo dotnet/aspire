@@ -35,13 +35,10 @@ public sealed class ResourceViewModel
     public required ImmutableArray<VolumeViewModel> Volumes { get; init; }
     public required FrozenDictionary<string, ResourcePropertyViewModel> Properties { get; init; }
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
+    /// <summary>The health status of the resource. <see langword="null"/> indicates that health status is expected but not yet available.</summary>
+    public required HealthStatus? HealthStatus { get; init; }
     public required ImmutableArray<HealthReportViewModel> HealthReports { get; init; }
     public KnownResourceState? KnownState { get; init; }
-
-    // Uses the same logic as ASP.NET Core's private HealthReport.CalculateAggregateStatus
-    internal HealthStatus HealthStatus => HealthReports.MinBy(r => r.HealthStatus)?.HealthStatus ?? HealthStatus.Healthy;
-
-    internal bool IsHealthy => HealthReports.All(report => report.HealthStatus == HealthStatus.Healthy);
 
     internal bool MatchesFilter(string filter)
     {

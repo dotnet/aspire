@@ -66,6 +66,11 @@ partial class Resource
             resource.Commands.Add(new ResourceCommand { CommandType = command.Type, DisplayName = command.DisplayName, DisplayDescription = command.DisplayDescription ?? string.Empty, Parameter = ResourceSnapshot.ConvertToValue(command.Parameter), ConfirmationMessage = command.ConfirmationMessage ?? string.Empty, IconName = command.IconName ?? string.Empty, IconVariant = MapIconVariant(command.IconVariant), IsHighlighted = command.IsHighlighted, State = MapCommandState(command.State) });
         }
 
+        if (snapshot.HealthStatus is not null)
+        {
+            resource.HealthStatus = MapHealthStatus(snapshot.HealthStatus.Value);
+        }
+
         foreach (var report in snapshot.HealthReports)
         {
             resource.HealthReports.Add(new HealthReport { Key = report.Name, Description = report.Description ?? "", Status = MapHealthStatus(report.Status), Exception = report.ExceptionText ?? "" });

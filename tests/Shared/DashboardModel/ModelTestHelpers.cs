@@ -34,6 +34,7 @@ public static class ModelTestHelpers
             State = state?.ToString(),
             KnownState = state,
             StateStyle = null,
+            HealthStatus = HealthStatus.Healthy,
             HealthReports = [],
             Commands = []
         };

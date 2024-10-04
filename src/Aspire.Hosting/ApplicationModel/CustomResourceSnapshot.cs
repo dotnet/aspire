@@ -48,6 +48,20 @@ public sealed record CustomResourceSnapshot
     public int? ExitCode { get; init; }
 
     /// <summary>
+    /// Gets the health status of the resource.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This value is derived from <see cref="HealthReports"/>. However, if a resource
+    /// is known to have a health check and no reports exist, then this value is <see langword="null"/>.
+    /// </para>
+    /// <para>
+    /// Defaults to <see cref="HealthStatus.Healthy"/>.
+    /// </para>
+    /// </remarks>
+    public HealthStatus? HealthStatus { get; init; } = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy;
+
+    /// <summary>
     /// The health reports for this resource.
     /// </summary>
     /// <remarks>
@@ -74,16 +88,6 @@ public sealed record CustomResourceSnapshot
     /// The commands available in the dashboard for this resource.
     /// </summary>
     public ImmutableArray<ResourceCommandSnapshot> Commands { get; init; } = [];
-
-    /// <summary>
-    /// Gets the aggregate health status of the resource.
-    /// </summary>
-    /// <remarks>
-    /// This property's value is derived from <see cref="HealthReports"/>.
-    /// If no health reports are present, the resource is considered <see cref="HealthStatus.Healthy"/>.
-    /// </remarks>
-    // Uses the same logic as ASP.NET Core's private HealthReport.CalculateAggregateStatus
-    public HealthStatus HealthStatus => HealthReports.MinBy(r => r.Status)?.Status ?? HealthStatus.Healthy;
 }
 
 /// <summary>

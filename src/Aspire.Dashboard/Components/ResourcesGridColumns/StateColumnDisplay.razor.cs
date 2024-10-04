@@ -8,6 +8,7 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -49,7 +50,7 @@ public partial class StateColumnDisplay
                 return string.Format(CultureInfo.CurrentCulture, Loc[Columns.StateColumnResourceExited], resource.ResourceType);
             }
         }
-        else if (resource.KnownState is KnownResourceState.Running && !resource.IsHealthy)
+        else if (resource.KnownState is KnownResourceState.Running && resource.HealthStatus is not HealthStatus.Healthy)
         {
             // Resource is running but not healthy (initializing).
             return Loc[nameof(Columns.RunningAndUnhealthyResourceStateToolTip)];
@@ -99,7 +100,7 @@ public partial class StateColumnDisplay
             icon = new Icons.Filled.Size16.Circle();
             color = Color.Neutral;
         }
-        else if (!Resource.IsHealthy)
+        else if (Resource.HealthStatus is not HealthStatus.Healthy)
         {
             icon = new Icons.Filled.Size16.CheckmarkCircleWarning();
             color = Color.Neutral;
@@ -124,7 +125,7 @@ public partial class StateColumnDisplay
         var text = Resource switch
         {
             { State: null or "" } => Loc[Columns.UnknownStateLabel],
-            { KnownState: KnownResourceState.Running, IsHealthy: false } => $"{Resource.State.Humanize()} ({Resource.HealthStatus.Humanize()})",
+            { KnownState: KnownResourceState.Running, HealthStatus: not HealthStatus.Healthy } => $"{Resource.State.Humanize()} ({(Resource.HealthStatus ?? HealthStatus.Unhealthy).Humanize()})",
             _ => Resource.State.Humanize()
         };
 
