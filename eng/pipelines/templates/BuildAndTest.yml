@@ -86,7 +86,8 @@ steps:
     - template: /eng/pipelines/templates/send-to-helix.yml
       parameters:
         HelixProjectPath: '$(Build.SourcesDirectory)/tests/helix/send-to-helix-ci.proj'
-        HelixProjectArguments: /m /p:ContinuousIntegrationBuild=true /p:Configuration=${{ parameters.buildConfig }} /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
+        # Code coverage on windows is disabled: <issue>
+        HelixProjectArguments: /m /p:ContinuousIntegrationBuild=true /p:Configuration=${{ parameters.buildConfig }} /p:RunWithCodeCoverage=${{ ne(parameters.isWindows, 'true') }} /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
 
         ${{ if eq(parameters.isWindows, 'true') }}:
           ${{ if eq(variables['System.TeamProject'], 'public') }}:
