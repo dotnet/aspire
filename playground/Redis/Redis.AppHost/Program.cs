@@ -6,8 +6,7 @@ var redis = builder.AddRedis("redis")
     .WithRedisInsight(c => c.WithAcceptEula());
 
 var garnet = builder.AddGarnet("garnet")
-    .WithDataVolume()
-    .WithEnvironment(ctx => throw new InvalidOperationException("foo"));
+    .WithDataVolume();
 
 var valkey = builder.AddValkey("valkey")
     .WithDataVolume("valkey-data");
