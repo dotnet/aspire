@@ -1,7 +1,7 @@
 {
   "author": "Microsoft",
-  "name": ".NET Aspire Service Defaults",
-  "description": "A project template for creating a .NET Aspire service defaults project.",
+  "name": ".NET Aspire 9 Service Defaults",
+  "description": "A project template for creating a .NET Aspire 9 service defaults project.",
   "symbols/Framework/description": "The target framework for the project.",
   "symbols/Framework/choices/net8.0/description": "Target net8.0",
   "symbols/skipRestore/description": "If specified, skips the automatic restore of the project on create.",

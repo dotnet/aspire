@@ -11,9 +11,9 @@
     "Service",
     "Cloud"
   ],
-  "name": ".NET Aspire Starter App",
+  "name": ".NET Aspire 9 Starter App",
   "defaultName": "AspireApp",
-  "description": "A project template for creating a .NET Aspire app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
+  "description": "A project template for creating a .NET Aspire 9 app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
   "shortName": ["aspire-starter", "aspire-starter-9"],
   "sourceName": "Aspire-StarterApplication.1",
   "preferNameDirectory": false,

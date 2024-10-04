@@ -10,9 +10,9 @@
     "API",
     "Service"
   ],
-  "name": ".NET Aspire Service Defaults",
+  "name": ".NET Aspire 9 Service Defaults",
   "defaultName": "ServiceDefaults",
-  "description": "A project template for creating a .NET Aspire service defaults project.",
+  "description": "A project template for creating a .NET Aspire 9 service defaults project.",
   "shortName": ["aspire-servicedefaults", "aspire-servicedefaults-9"],
   "sourceName": "Aspire.ServiceDefaults1",
   "preferNameDirectory": true,

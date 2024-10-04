@@ -6,9 +6,9 @@
     ".NET Aspire",
     "Cloud"
   ],
-  "name": ".NET Aspire App Host",
+  "name": ".NET Aspire 9 App Host",
   "defaultName": "AppHost",
-  "description": "A project template for creating a .NET Aspire app host (orchestrator) project.",
+  "description": "A project template for creating a .NET Aspire 9 app host (orchestrator) project.",
   "shortName": ["aspire-apphost", "aspire-apphost-9"],
   "sourceName": "Aspire.AppHost1",
   "preferNameDirectory": true,
