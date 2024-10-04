@@ -95,7 +95,7 @@ public static class AspireQdrantExtensions
                          throw new InvalidOperationException(
                                  $"A QdrantClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
                                  $"{nameof(settings.Endpoint)} must be provided " +
-                                 $"in the '{configurationSectionName}' configuration section.");
+                                 $"in the '{DefaultConfigSectionName}' or '{DefaultConfigSectionName}:{connectionName}' configuration section.");
                      }
 
                      client.BaseAddress = settings.Endpoint;
