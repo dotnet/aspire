@@ -74,6 +74,29 @@ public enum ReadinessState
     Ready
 }
 
+public sealed class ResourceViewModelNameComparer : IComparer<ResourceViewModel>
+{
+    public static readonly ResourceViewModelNameComparer Instance = new();
+
+    public int Compare(ResourceViewModel? x, ResourceViewModel? y)
+    {
+        Debug.Assert(x != null);
+        Debug.Assert(y != null);
+
+        // Use display name by itself first.
+        // This is to avoid the problem of using the full name where one resource is called "database" and another is called "database-admin".
+        // The full names could end up "database-xyz" and "database-admin-xyz", which would put resources out of order.
+        var displayNameResult = StringComparers.ResourceName.Compare(x.DisplayName, y.DisplayName);
+        if (displayNameResult != 0)
+        {
+            return displayNameResult;
+        }
+
+        // Display names are the same so compare with full names.
+        return StringComparers.ResourceName.Compare(x.Name, y.Name);
+    }
+}
+
 [DebuggerDisplay("CommandType = {CommandType}, DisplayName = {DisplayName}")]
 public sealed class CommandViewModel
 {
