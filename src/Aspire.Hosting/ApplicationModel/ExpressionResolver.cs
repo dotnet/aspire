@@ -7,11 +7,15 @@ namespace Aspire.Hosting.ApplicationModel;
 
 internal class ExpressionResolver(string containerHostName, CancellationToken cancellationToken)
 {
+    class HostAndPortPresence
+    {
+        public bool HasHost { get; set; }
+        public bool HasPort { get; set; }
+    }
+
     // For each endpoint, store two bools, to track if the host and port are in use
     // The key is the unique name of the endpoint, which is the resource name and endpoint name
-    readonly Dictionary<string, bool[]> _endpointUsage = [];
-    const int HostIndex = 0;
-    const int PortIndex = 1;
+    readonly Dictionary<string, HostAndPortPresence> _endpointUsage = [];
     bool Preprocess { get; set; }
 
     static string EndpointUniqueName(EndpointReference endpointReference) => $"{endpointReference.Resource.Name}/{endpointReference.EndpointName}";
@@ -24,21 +28,21 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
         {
             if (!_endpointUsage.TryGetValue(EndpointUniqueName(endpointReference), out var hostAndPortPresence))
             {
-                hostAndPortPresence = new bool[2];
+                hostAndPortPresence = new HostAndPortPresence();
                 _endpointUsage[EndpointUniqueName(endpointReference)] = hostAndPortPresence;
             }
 
             if (property is EndpointProperty.Host or EndpointProperty.IPV4Host)
             {
-                hostAndPortPresence[HostIndex] = true;
+                hostAndPortPresence.HasHost = true;
             }
             else if (property == EndpointProperty.Port)
             {
-                hostAndPortPresence[PortIndex] = true;
+                hostAndPortPresence.HasPort = true;
             }
             else if (property == EndpointProperty.Url)
             {
-                hostAndPortPresence[HostIndex] = hostAndPortPresence[PortIndex] = true;
+                hostAndPortPresence.HasHost = hostAndPortPresence.HasPort = true;
             }
 
             return string.Empty;
@@ -49,8 +53,8 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
         var target = endpointReference.Resource.GetRootResource();
 
         bool HasBothHostAndPort() =>
-            _endpointUsage[EndpointUniqueName(endpointReference)][HostIndex] &&
-            _endpointUsage[EndpointUniqueName(endpointReference)][PortIndex];
+            _endpointUsage[EndpointUniqueName(endpointReference)].HasHost &&
+            _endpointUsage[EndpointUniqueName(endpointReference)].HasPort;
 
         return (property, target.IsContainer()) switch
         {
