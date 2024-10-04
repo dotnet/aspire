@@ -12,6 +12,29 @@ namespace Aspire.Hosting.Tests;
 public class WaitForTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
+    public async Task ResourceThatFailsToStartDueToExceptionDoesNotCauseStartAsyncToThrow()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+        var throwingResource = builder.AddContainer("throwingresource", "doesnotmatter")
+                              .WithEnvironment(ctx => throw new InvalidOperationException("BOOM!"));
+        var dependingContainerResource = builder.AddContainer("dependingcontainerresource", "doesnotmatter")
+                                       .WaitFor(throwingResource);
+        var dependingExecutableResource = builder.AddExecutable("dependingexecutableresource", "doesnotmatter", "alsodoesntmatter")
+                                       .WaitFor(throwingResource);
+
+        var abortCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        using var app = builder.Build();
+        await app.StartAsync(abortCts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceAsync(throwingResource.Resource.Name, KnownResourceStates.FailedToStart, abortCts.Token);
+        await rns.WaitForResourceAsync(dependingContainerResource.Resource.Name, KnownResourceStates.FailedToStart, abortCts.Token);
+        await rns.WaitForResourceAsync(dependingExecutableResource.Resource.Name, KnownResourceStates.FailedToStart, abortCts.Token);
+
+        await app.StopAsync(abortCts.Token);
+    }
+
+    [Fact]
     public void ResourceCannotWaitForItself()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
