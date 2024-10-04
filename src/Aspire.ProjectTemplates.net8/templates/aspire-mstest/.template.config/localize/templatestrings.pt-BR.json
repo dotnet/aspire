@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": "Projeto de teste do .NET Aspire (MSTest)",
-  "description": "Um projeto que contém testes de integração do MSTest de um projeto AppHost do .NET Aspire.",
+  "name": "Projeto de teste do .NET Aspire 9 (MSTest)",
+  "description": "Um projeto que contém testes de integração do MSTest de um projeto AppHost do .NET Aspire 9.",
   "symbols/Framework/description": "A estrutura de destino do projeto.",
   "symbols/Framework/choices/net8.0/description": "Destino net8.0",
   "symbols/skipRestore/description": "Se especificado, ignora a restauração automática do projeto sendo criado.",
