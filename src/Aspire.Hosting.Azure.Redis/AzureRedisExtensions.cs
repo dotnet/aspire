@@ -264,7 +264,7 @@ public static class AzureRedisExtensions
            {
                RemoveActiveDirectoryAuthResources(construct);
 
-               var redis = construct.GetResources().OfType<CdkRedisResource>().FirstOrDefault(r => r.ResourceName == builder.Resource.Name)
+               var redis = construct.GetResources().OfType<CdkRedisResource>().FirstOrDefault(r => r.ResourceName == builder.Resource.GetBicepIdentifier())
                    ?? throw new InvalidOperationException($"Could not find a RedisResource with name {builder.Resource.Name}.");
 
                var kvNameParam = new ProvisioningParameter("keyVaultName", typeof(string));
@@ -326,7 +326,7 @@ public static class AzureRedisExtensions
         foreach (var resource in construct.GetResources())
         {
             if (resource is RedisCacheAccessPolicyAssignment accessPolicy &&
-                accessPolicy.ResourceName == $"{construct.Resource.Name}_contributor")
+                accessPolicy.ResourceName == $"{construct.Resource.GetBicepIdentifier()}_contributor")
             {
                 resourcesToRemove.Add(resource);
             }

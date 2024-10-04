@@ -383,7 +383,7 @@ public static class AzurePostgresExtensions
             {
                 RemoveActiveDirectoryAuthResources(construct);
 
-                var postgres = construct.GetResources().OfType<PostgreSqlFlexibleServer>().FirstOrDefault(r => r.ResourceName == azureResource.Name)
+                var postgres = construct.GetResources().OfType<PostgreSqlFlexibleServer>().FirstOrDefault(r => r.ResourceName == azureResource.GetBicepIdentifier())
                     ?? throw new InvalidOperationException($"Could not find a PostgreSqlFlexibleServer with name {azureResource.Name}.");
 
                 var administratorLogin = new ProvisioningParameter("administratorLogin", typeof(string));
