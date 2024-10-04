@@ -639,9 +639,11 @@ fluent-data-grid-cell.no-ellipsis {
 
 .action-divider {
     display: inline;
-    vertical-align: sub;
+    height: 20px;
 }
 
 .grid-action-container {
-    display: inline-block;
+    display: inline-flex;
+    column-gap: 4px;
+    align-items: center;
 }

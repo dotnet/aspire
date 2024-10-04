@@ -154,7 +154,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             new GridColumn(Name: StartTimeColumn, DesktopWidth: "1.5fr"),
             new GridColumn(Name: SourceColumn, DesktopWidth: "2.5fr"),
             new GridColumn(Name: EndpointsColumn, DesktopWidth: "2.5fr", MobileWidth: "2fr"),
-            new GridColumn(Name: ActionsColumn, DesktopWidth: "minmax(125px, 1.5fr)", MobileWidth: "1fr")
+            new GridColumn(Name: ActionsColumn, DesktopWidth: "minmax(150px, 1.5fr)", MobileWidth: "1fr")
         ];
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 

@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Extensions;
@@ -110,21 +111,39 @@ public sealed class CommandViewModel
         // Icons.GetInstance isn't efficient. Cache icon lookup.
         return s_iconCache.GetOrAdd(new IconKey(iconName, iconVariant ?? IconVariant.Regular), static key =>
         {
-            try
+            // We display 16px icons in the UI. Some icons aren't available in 16px size so fall back to 20px.
+            CustomIcon? icon;
+            if (TryGetIcon(key, IconSize.Size16, out icon))
             {
-                return Icons.GetInstance(new IconInfo
-                {
-                    Name = key.IconName,
-                    Variant = key.IconVariant,
-                    Size = IconSize.Size16
-                });
+                return icon;
             }
-            catch
+            if (TryGetIcon(key, IconSize.Size20, out icon))
             {
-                // Icon name couldn't be found.
-                return null;
+                return icon;
             }
+
+            return null;
         });
+    }
+
+    private static bool TryGetIcon(IconKey key, IconSize size, [NotNullWhen(true)] out CustomIcon? icon)
+    {
+        try
+        {
+            icon = Icons.GetInstance(new IconInfo
+            {
+                Name = key.IconName,
+                Variant = key.IconVariant,
+                Size = size
+            });
+            return true;
+        }
+        catch
+        {
+            // Icon name or size couldn't be found.
+            icon = null;
+            return false;
+        }
     }
 }
 
