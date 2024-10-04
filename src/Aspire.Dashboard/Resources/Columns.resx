@@ -190,6 +190,6 @@
     <value>Endpoints</value>
   </data>
   <data name="PersistentContainerIconTooltip" xml:space="preserve">
-    <value>This resource is persistent and won't be stopped when the app host is shutdown.</value>
+    <value>This container is persistent and won't be stopped when the app host is shut down.</value>
   </data>
 </root>
