@@ -67,9 +67,7 @@ partial class Resource
         {
             return healthStatus switch
             {
-                // Unknown status is considered healthy (innocent until proven guilty) unless we have exception details.
-                HealthStatus.Unknown when !string.IsNullOrEmpty(exceptionText) => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
-                HealthStatus.Unknown or HealthStatus.Healthy => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy,
+                HealthStatus.Healthy => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy,
                 HealthStatus.Degraded => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded,
                 HealthStatus.Unhealthy => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
                 _ => throw new InvalidOperationException("Unknown health status: " + healthStatus),

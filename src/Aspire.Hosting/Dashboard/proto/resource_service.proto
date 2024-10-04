@@ -157,10 +157,9 @@ message HealthReport {
 }
 
 enum HealthStatus {
-    UNKNOWN = 0;
-    HEALTHY = 1;
-    UNHEALTHY = 2;
-    DEGRADED = 3;
+    HEALTHY = 0;
+    UNHEALTHY = 1;
+    DEGRADED = 2;
 }
 
 message ResourceProperty {
