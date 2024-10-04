@@ -1175,40 +1175,54 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             async Task CreateResourceExecutablesAsyncCore(IResource resource, IEnumerable<AppResource> executables, CancellationToken cancellationToken)
             {
-                var logger = loggerService.GetLogger(resource);
+                var resourceLogger = loggerService.GetLogger(resource);
 
-                await notificationService.PublishUpdateAsync(resource, s => s with
+                try
                 {
-                    ResourceType = resource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable,
-                    Properties = [],
-                    State = "Starting"
-                })
-                .ConfigureAwait(false);
+                    await notificationService.PublishUpdateAsync(resource, s => s with
+                    {
+                        ResourceType = resource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable,
+                        Properties = [],
+                        State = "Starting"
+                    })
+                    .ConfigureAwait(false);
 
-                await PublishConnectionStringAvailableEvent(resource, cancellationToken).ConfigureAwait(false);
+                    await PublishConnectionStringAvailableEvent(resource, cancellationToken).ConfigureAwait(false);
 
-                var beforeResourceStartedEvent = new BeforeResourceStartedEvent(resource, serviceProvider);
-                await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
+                    var beforeResourceStartedEvent = new BeforeResourceStartedEvent(resource, serviceProvider);
+                    await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
 
-                foreach (var cr in executables)
+                    foreach (var er in executables)
+                    {
+                        try
+                        {
+                            await CreateExecutableAsync(er, resourceLogger, cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (FailedToApplyEnvironmentException)
+                        {
+                            // For this exception we don't want the noise of the stack trace, we've already
+                            // provided more detail where we detected the issue (e.g. envvar name). To get
+                            // more diagnostic information reduce logging level for DCP log category to Debug.
+                            await notificationService.PublishUpdateAsync(er.ModelResource, er.DcpResource.Metadata.Name, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            // The purpose of this catch block is to ensure that if an individual executable resource fails
+                            // to start that it doesn't tear down the entire app host AND that we route the error to the
+                            // appropriate replica.
+                            resourceLogger.LogError(ex, "Failed to create resource {ResourceName}", er.ModelResource.Name);
+                            await notificationService.PublishUpdateAsync(er.ModelResource, er.DcpResource.Metadata.Name, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+                        }
+                    }
+                }
+                catch (Exception ex)
                 {
-                    try
-                    {
-                        await CreateExecutableAsync(cr, logger, cancellationToken).ConfigureAwait(false);
-                    }
-                    catch (FailedToApplyEnvironmentException)
-                    {
-                        // For this exception we don't want the noise of the stack trace, we've already
-                        // provided more detail where we detected the issue (e.g. envvar name). To get
-                        // more diagnostic information reduce logging level for DCP log category to Debug.
-                        await notificationService.PublishUpdateAsync(cr.ModelResource, cr.DcpResource.Metadata.Name, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "Failed to create resource {ResourceName}", cr.ModelResource.Name);
-
-                        await notificationService.PublishUpdateAsync(cr.ModelResource, cr.DcpResource.Metadata.Name, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
-                    }
+                    // The purpose of this catch block is to ensure that if an error processing the overall
+                    // configuration of the executable resource files. This is different to the exception handling
+                    // block above because at this tage of processing we don't necessarily have any replicas
+                    // yet. For example if a dependency fails to start.
+                    resourceLogger.LogError(ex, "Failed to create resource {ResourceName}", resource.Name);
+                    await notificationService.PublishUpdateAsync(resource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
                 }
             }
 
