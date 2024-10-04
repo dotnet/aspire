@@ -3,7 +3,7 @@ using Aspire_StarterApplication._1.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add service defaults & Aspire integrations.
+// Add service defaults & Aspire client integrations.
 builder.AddServiceDefaults();
 #if (UseRedisCache)
 builder.AddRedisOutputCache("cache");
