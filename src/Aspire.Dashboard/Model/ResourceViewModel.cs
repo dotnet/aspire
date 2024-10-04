@@ -273,6 +273,25 @@ public sealed record class HealthReportViewModel(string Name, HealthStatus Healt
 {
     private readonly string _humanizedHealthStatus = HealthStatus.Humanize();
 
+    public string? DisplayedDescription
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(Description))
+            {
+                return Description;
+            }
+
+            if (!string.IsNullOrWhiteSpace(ExceptionText))
+            {
+                var newLineIndex = ExceptionText.IndexOfAny(['\n', '\r']);
+                return newLineIndex > 0 ? ExceptionText[..newLineIndex] : ExceptionText;
+            }
+
+            return null;
+        }
+    }
+
     public bool MatchesFilter(string filter)
     {
         return
