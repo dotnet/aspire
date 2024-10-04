@@ -7,13 +7,13 @@ public class TemplatesCustomHive
 {
     private static readonly string s_tmpDirSuffix = Guid.NewGuid().ToString()[..8];
 
-    public static TemplatesCustomHive With9_0_Net8 { get; } = new([TemplatePackageIdNames.AspireProjectTemplates_9_0_net8], "templates-with-9-net8");
+    public static TemplatesCustomHive With9_0_Net8 { get; } = new([TemplatePackageIdNames.AspireProjectTemplates_net8], "templates-with-9-net8");
 
-    public static TemplatesCustomHive With9_0_Net9 { get; } = new([TemplatePackageIdNames.AspireProjectTemplates_9_0_net9], "templates-with-9-net9");
+    public static TemplatesCustomHive With9_0_Net9 { get; } = new([TemplatePackageIdNames.AspireProjectTemplates], "templates-with-9-net9");
     public static TemplatesCustomHive With9_0_Net9_And_Net8 => new(
             [
-                TemplatePackageIdNames.AspireProjectTemplates_9_0_net9,
-                TemplatePackageIdNames.AspireProjectTemplates_9_0_net8
+                TemplatePackageIdNames.AspireProjectTemplates,
+                TemplatePackageIdNames.AspireProjectTemplates_net8
             ], "templates-with-9-net8-net9");
 
     private readonly string _stampFilePath;
