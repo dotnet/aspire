@@ -205,7 +205,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Lifetime.
+        ///   Looks up a localized string similar to Container lifetime.
         /// </summary>
         public static string ResourcesDetailsContainerLifetimeProperty {
             get {

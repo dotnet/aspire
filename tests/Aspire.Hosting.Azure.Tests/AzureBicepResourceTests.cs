@@ -19,6 +19,7 @@ using Azure.Provisioning.Expressions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Xunit.Abstractions;
+using System.Net.Sockets;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -65,13 +66,14 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 #pragma warning disable CS0618 // Type or member is obsolete
                 { builder => builder.AddPostgres("x").AsAzurePostgresFlexibleServer() },
                 { builder => builder.AddRedis("x").AsAzureRedis() },
+                { builder => builder.AddSqlServer("x").AsAzureSqlDatabase() },
 #pragma warning restore CS0618 // Type or member is obsolete
                 { builder => builder.AddAzurePostgresFlexibleServer("x") },
                 { builder => builder.AddAzureRedis("x") },
                 { builder => builder.AddAzureSearch("x") },
                 { builder => builder.AddAzureServiceBus("x") },
                 { builder => builder.AddAzureSignalR("x") },
-                { builder => builder.AddSqlServer("x").AsAzureSqlDatabase() },
+                { builder => builder.AddAzureSqlServer("x") },
                 { builder => builder.AddAzureStorage("x") },
             };
         }
@@ -207,9 +209,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         Assert.True(cosmos.Resource.IsContainer());
 
-        var cs = AzureCosmosDBEmulatorConnectionString.Create(10001);
+        var csExpr = cosmos.Resource.ConnectionStringExpression;
+        var cs = await csExpr.GetValueAsync(CancellationToken.None);
 
-        Assert.Equal(cs, cosmos.Resource.ConnectionStringExpression.ValueExpression);
+        var prefix = "AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;AccountEndpoint=";
+        Assert.Equal(prefix + "https://{cosmos.bindings.emulator.host}:{cosmos.bindings.emulator.port};DisableServerCertificateValidation=True;", csExpr.ValueExpression);
+        Assert.Equal(prefix + "https://127.0.0.1:10001;DisableServerCertificateValidation=True;", cs);
         Assert.Equal(cs, await ((IResourceWithConnectionString)cosmos.Resource).GetConnectionStringAsync());
     }
 
@@ -1074,6 +1079,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, sql, _) =>
         {
             azureSqlBuilder.Resource.Outputs["sqlServerFqdn"] = "myserver";
@@ -1083,6 +1089,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 sql.MinTlsVersion = SqlMinimalTlsVersion.Tls1_3;
             }
         });
+#pragma warning restore CS0618 // Type or member is obsolete
         sql.AddDatabase("db", "dbName");
 
         var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource);
@@ -1172,6 +1179,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, sql, _) =>
         {
             azureSqlBuilder.Resource.Outputs["sqlServerFqdn"] = "myserver";
@@ -1181,6 +1189,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 sql.MinTlsVersion = SqlMinimalTlsVersion.Tls1_3;
             }
         });
+#pragma warning restore CS0618 // Type or member is obsolete
         sql.AddDatabase("db", "dbName");
 
         var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource);
@@ -1836,17 +1845,24 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var queue = storage.AddQueues("queue");
         var table = storage.AddTables("table");
 
-        var blobqs = AzureStorageEmulatorConnectionString.Create(blobPort: 10000);
-        var queueqs = AzureStorageEmulatorConnectionString.Create(queuePort: 10001);
-        var tableqs = AzureStorageEmulatorConnectionString.Create(tablePort: 10002);
+        EndpointReference GetEndpointReference(string name, int port)
+            => new(storage.Resource, new EndpointAnnotation(ProtocolType.Tcp, name: name, targetPort: port));
+
+        var blobqs = AzureStorageEmulatorConnectionString.Create(blobEndpoint: GetEndpointReference("blob", 10000)).ValueExpression;
+        var queueqs = AzureStorageEmulatorConnectionString.Create(queueEndpoint: GetEndpointReference("queue", 10001)).ValueExpression;
+        var tableqs = AzureStorageEmulatorConnectionString.Create(tableEndpoint: GetEndpointReference("table", 10002)).ValueExpression;
 
         Assert.Equal(blobqs, blob.Resource.ConnectionStringExpression.ValueExpression);
         Assert.Equal(queueqs, queue.Resource.ConnectionStringExpression.ValueExpression);
         Assert.Equal(tableqs, table.Resource.ConnectionStringExpression.ValueExpression);
 
-        Assert.Equal(blobqs, await ((IResourceWithConnectionString)blob.Resource).GetConnectionStringAsync());
-        Assert.Equal(queueqs, await ((IResourceWithConnectionString)queue.Resource).GetConnectionStringAsync());
-        Assert.Equal(tableqs, await ((IResourceWithConnectionString)table.Resource).GetConnectionStringAsync());
+        string Resolve(string? qs, string name, int port) =>
+            qs!.Replace("{storage.bindings." + name + ".host}", "127.0.0.1")
+               .Replace("{storage.bindings." + name + ".port}", port.ToString());
+
+        Assert.Equal(Resolve(blobqs, "blob", 10000), await((IResourceWithConnectionString)blob.Resource).GetConnectionStringAsync());
+        Assert.Equal(Resolve(queueqs, "queue", 10001), await ((IResourceWithConnectionString)queue.Resource).GetConnectionStringAsync());
+        Assert.Equal(Resolve(tableqs, "table", 10002), await ((IResourceWithConnectionString)table.Resource).GetConnectionStringAsync());
     }
 
     [Fact]

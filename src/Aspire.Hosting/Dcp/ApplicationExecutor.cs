@@ -637,14 +637,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         ContainerLifetime GetContainerLifetime()
         {
-            if (container.AppModelResourceName is string resourceName &&
-                _applicationModel.TryGetValue(resourceName, out var appModelResource) &&
-                appModelResource.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
-            {
-                return lifetimeAnnotation.Lifetime;
-            }
-
-            return ContainerLifetime.Default;
+            return (container.Spec.Persistent ?? false) ? ContainerLifetime.Persistent : ContainerLifetime.Session;
         }
     }
 
@@ -1188,40 +1181,54 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             async Task CreateResourceExecutablesAsyncCore(IResource resource, IEnumerable<AppResource> executables, CancellationToken cancellationToken)
             {
-                var logger = loggerService.GetLogger(resource);
+                var resourceLogger = loggerService.GetLogger(resource);
 
-                await notificationService.PublishUpdateAsync(resource, s => s with
+                try
                 {
-                    ResourceType = resource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable,
-                    Properties = [],
-                    State = "Starting"
-                })
-                .ConfigureAwait(false);
+                    await notificationService.PublishUpdateAsync(resource, s => s with
+                    {
+                        ResourceType = resource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable,
+                        Properties = [],
+                        State = "Starting"
+                    })
+                    .ConfigureAwait(false);
 
-                await PublishConnectionStringAvailableEvent(resource, cancellationToken).ConfigureAwait(false);
+                    await PublishConnectionStringAvailableEvent(resource, cancellationToken).ConfigureAwait(false);
 
-                var beforeResourceStartedEvent = new BeforeResourceStartedEvent(resource, serviceProvider);
-                await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
+                    var beforeResourceStartedEvent = new BeforeResourceStartedEvent(resource, serviceProvider);
+                    await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
 
-                foreach (var cr in executables)
+                    foreach (var er in executables)
+                    {
+                        try
+                        {
+                            await CreateExecutableAsync(er, resourceLogger, cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (FailedToApplyEnvironmentException)
+                        {
+                            // For this exception we don't want the noise of the stack trace, we've already
+                            // provided more detail where we detected the issue (e.g. envvar name). To get
+                            // more diagnostic information reduce logging level for DCP log category to Debug.
+                            await notificationService.PublishUpdateAsync(er.ModelResource, er.DcpResource.Metadata.Name, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            // The purpose of this catch block is to ensure that if an individual executable resource fails
+                            // to start that it doesn't tear down the entire app host AND that we route the error to the
+                            // appropriate replica.
+                            resourceLogger.LogError(ex, "Failed to create resource {ResourceName}", er.ModelResource.Name);
+                            await notificationService.PublishUpdateAsync(er.ModelResource, er.DcpResource.Metadata.Name, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+                        }
+                    }
+                }
+                catch (Exception ex)
                 {
-                    try
-                    {
-                        await CreateExecutableAsync(cr, logger, cancellationToken).ConfigureAwait(false);
-                    }
-                    catch (FailedToApplyEnvironmentException)
-                    {
-                        // For this exception we don't want the noise of the stack trace, we've already
-                        // provided more detail where we detected the issue (e.g. envvar name). To get
-                        // more diagnostic information reduce logging level for DCP log category to Debug.
-                        await notificationService.PublishUpdateAsync(cr.ModelResource, cr.DcpResource.Metadata.Name, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "Failed to create resource {ResourceName}", cr.ModelResource.Name);
-
-                        await notificationService.PublishUpdateAsync(cr.ModelResource, cr.DcpResource.Metadata.Name, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
-                    }
+                    // The purpose of this catch block is to ensure that if an error processing the overall
+                    // configuration of the executable resource files. This is different to the exception handling
+                    // block above because at this tage of processing we don't necessarily have any replicas
+                    // yet. For example if a dependency fails to start.
+                    resourceLogger.LogError(ex, "Failed to create resource {ResourceName}", resource.Name);
+                    await notificationService.PublishUpdateAsync(resource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
                 }
             }
 
@@ -1369,7 +1376,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task<string?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, bool isContainer, CancellationToken cancellationToken)
     {
-        var task = valueProvider.GetValueAsync(cancellationToken);
+        var task = ExpressionResolver.ResolveAsync(isContainer, valueProvider, DefaultContainerHostName, cancellationToken);
 
         if (!task.IsCompleted)
         {
@@ -1401,15 +1408,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
         }
 
-        var value = await task.ConfigureAwait(false);
-
-        if (value is not null && isContainer && valueProvider is ConnectionStringReference or EndpointReference or HostUrl)
-        {
-            // If the value is a connection string or endpoint reference, we need to replace localhost with the container host.
-            return ReplaceLocalhostWithContainerHost(value);
-        }
-
-        return value;
+        return await task.ConfigureAwait(false);
     }
 
     private void PrepareContainers()
@@ -1985,18 +1984,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 _logger.LogInformation(ex, "Could not stop {ResourceType} '{ResourceName}'.", resourceType, res.Metadata.Name);
             }
         }
-    }
-
-    private string ReplaceLocalhostWithContainerHost(string value)
-    {
-        // https://stackoverflow.com/a/43541732/45091
-
-        // This configuration value is a workaround for the fact that host.docker.internal is not available on Linux by default.
-        var hostName = DefaultContainerHostName;
-
-        return value.Replace("localhost", hostName, StringComparison.OrdinalIgnoreCase)
-                    .Replace("127.0.0.1", hostName)
-                    .Replace("[::1]", hostName);
     }
 
     /// <summary>
