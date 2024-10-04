@@ -48,7 +48,8 @@
       <HelixWorkItem Include="@(_WorkloadTestsClassNames)">
         <PayloadArchive>$(TestArchiveTestsDirForWorkloadTests)\$(TestProjectName).zip</PayloadArchive>
 
-        <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <PreCommands Condition="'$(_HelixPerWorkItemPreCommandProperty)' != ''">$(_HelixPerWorkItemPreCommandProperty) $(_ShellCommandSeparator) </PreCommands>
+        <PreCommands>%(PreCommands) $(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(TestNameSuffix)&quot;</PreCommands>
         <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TEST_NAME_SUFFIX=%(TestNameSuffix)&quot;</PreCommands>
 

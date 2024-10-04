@@ -50,12 +50,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
+      <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" PreCommands="" />
 
       <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
         <PayloadArchive>%(Identity)</PayloadArchive>
 
-        <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;$(_SetPathEnvVar)&quot;</PreCommands>
+        <PreCommands Condition="'$(_HelixPerWorkItemPreCommandProperty)' != ''">$(_HelixPerWorkItemPreCommandProperty) $(_ShellCommandSeparator) </PreCommands>
+        <PreCommands>%(PreCommands) $(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;$(_SetPathEnvVar)&quot;</PreCommands>
 
         <Command>cd tests/%(FileName) %3B $(_TestRunCommand)</Command>
         <Timeout>00:15:00</Timeout>

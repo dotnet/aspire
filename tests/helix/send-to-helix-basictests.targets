@@ -6,8 +6,6 @@
     <NeedsDcpPathOverride>true</NeedsDcpPathOverride>
     <!-- needed to run 9.0 tests on helix -->
     <NeedsWorkload>true</NeedsWorkload>
-    <!-- .. and skip the default cli from arcade -->
-    <IncludeDotNetCli>false</IncludeDotNetCli>
 
     <TargetFrameworkSuffixRegex>^(.*?)(-net[\d.]+)?$</TargetFrameworkSuffixRegex>
   </PropertyGroup>
@@ -21,17 +19,14 @@
     <ItemGroup>
       <!-- needed for Aspire.Hosting.Container.Tests -->
       <HelixPreCommand Include="$(_EnvVarSetKeyword) DOCKER_BUILDKIT=1" />
-      <!-- FIXME: debugging failures on ci -->
-      <HelixPreCommand Include="dotnet --info" />
 
       <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="-- RunConfiguration.TestSessionTimeout=$TEST_TIMEOUT" />
       <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="-- RunConfiguration.TestSessionTimeout=%TEST_TIMEOUT%" />
     </ItemGroup>
 
     <PropertyGroup>
-      <HelixPreCommand>@(_TestCoverageCommand)</HelixPreCommand>
-      <!--<_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>-->
-      <_TestRunCommand>@(_TestRunCommandArguments, ' ')</_TestRunCommand>
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
 
       <HelixPreCommands>$(HelixPreCommands);@(HelixPreCommand)</HelixPreCommands>
     </PropertyGroup>
@@ -50,7 +45,8 @@
 
       <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
         <PayloadArchive>%(Identity)</PayloadArchive>
-        <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(TestName)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) TEST_TIMEOUT=%(TimeoutMs) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TEST_NAME_SUFFIX=%(TestNameSuffix)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=%(TestNameSuffix)&quot;</PreCommands>
+        <PreCommands Condition="'$(_HelixPerWorkItemPreCommandProperty)' != ''">$(_HelixPerWorkItemPreCommandProperty) $(_ShellCommandSeparator) </PreCommands>
+        <PreCommands>%(PreCommands) $(_EnvVarSetKeyword) &quot;TEST_NAME=%(TestName)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) TEST_TIMEOUT=%(TimeoutMs) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TEST_NAME_SUFFIX=%(TestNameSuffix)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=%(TestNameSuffix)&quot;</PreCommands>
 
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>
