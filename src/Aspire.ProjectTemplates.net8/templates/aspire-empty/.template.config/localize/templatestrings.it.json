@@ -1,7 +1,7 @@
-﻿{
+{
   "author": "Microsoft",
-  "name": "App vuota .NET Aspire",
-  "description": "Modello di progetto per la creazione di un'app .NET Aspire vuota.",
+  "name": "App vuota .NET Aspire 9",
+  "description": "Modello di progetto per la creazione di un'app .NET Aspire 9 vuota.",
   "symbols/Framework/description": "Il framework di destinazione per il progetto.",
   "symbols/Framework/choices/net8.0/description": "Destinazione net8.0",
   "symbols/appHostHttpPort/description": "Numero di porta da usare per l'endpoint HTTP in launchSettings.json. del progetto AppHost.",

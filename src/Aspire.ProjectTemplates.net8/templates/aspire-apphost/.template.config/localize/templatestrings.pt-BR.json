@@ -1,7 +1,7 @@
-﻿{
+{
   "author": "Microsoft",
-  "name": "Host de Aplicativos .NET Aspire",
-  "description": "Um modelo de projeto para criar um projeto de host de aplicativo (orquestrador) do .NET Aspire.",
+  "name": "Host de Aplicativos .NET Aspire 9",
+  "description": "Um modelo de projeto para criar um projeto de host de aplicativo (orquestrador) do .NET Aspire 9.",
   "symbols/Framework/description": "A estrutura de destino do projeto.",
   "symbols/Framework/choices/net8.0/description": "Destino net8.0",
   "symbols/appHostHttpPort/description": "Número da porta a ser usado para o ponto de extremidade HTTP launchSettings.json do projeto AppHost.",

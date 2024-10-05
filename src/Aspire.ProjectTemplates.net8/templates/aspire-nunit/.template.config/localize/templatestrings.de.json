@@ -1,6 +1,6 @@
-﻿{
+{
   "author": "Microsoft",
-  "name": ".NET Aspire-Testprojekt (NUnit)",
+  "name": ".NET Aspire 9-Testprojekt (NUnit)",
   "description": "Ein Projekt, das NUnit Integrationstests eines .NET AppHost-Projekts enthält.",
   "symbols/Framework/description": "Das Zielframework für das Projekt.",
   "symbols/Framework/choices/net8.0/description": "Ziel net8.0",

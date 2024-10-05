@@ -1,7 +1,7 @@
-﻿{
+{
   "author": "Майкрософт",
-  "name": "Начальное приложение .NET Aspire",
-  "description": "Шаблон проекта для создания приложения .NET Aspire с веб-интерфейсом Blazor и внутренней службой веб-API, при необходимости с использованием Redis для кэширования.",
+  "name": "Начальное приложение .NET Aspire 9",
+  "description": "Шаблон проекта для создания приложения .NET Aspire 9 с веб-интерфейсом Blazor и внутренней службой веб-API, при необходимости с использованием Redis для кэширования.",
   "symbols/Framework/description": "Целевая платформа для проекта.",
   "symbols/Framework/choices/net9.0/description": "Target net9.0",
   "symbols/UseRedisCache/displayName": "_Использовать Redis для кэширования (требуется поддерживаемая среда выполнения контейнера)",

@@ -1,7 +1,7 @@
-﻿{
+{
   "author": "Microsoft",
-  "name": "Leere .NET Aspire-App",
-  "description": "Eine Projektvorlage zum Erstellen einer leeren .NET Aspire-App.",
+  "name": "Leere .NET Aspire 9-App",
+  "description": "Eine Projektvorlage zum Erstellen einer leeren .NET Aspire 9-App.",
   "symbols/Framework/description": "Das Zielframework für das Projekt.",
   "symbols/Framework/choices/net9.0/description": "Target net9.0",
   "symbols/appHostHttpPort/description": "Portnummer, die für den HTTP-Endpunkt in launchSettings.json des AppHost-Projekts verwendet werden soll.",

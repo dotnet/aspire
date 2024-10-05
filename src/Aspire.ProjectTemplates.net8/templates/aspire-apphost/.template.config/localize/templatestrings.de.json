@@ -1,7 +1,7 @@
-﻿{
+{
   "author": "Microsoft",
-  "name": ".NET Aspire-App-Host",
-  "description": "Eine Projektvorlage zum Erstellen eines .NET Aspire-App-Hostprojekts (Orchestrator).",
+  "name": ".NET Aspire 9-App-Host",
+  "description": "Eine Projektvorlage zum Erstellen eines .NET Aspire 9-App-Hostprojekts (Orchestrator).",
   "symbols/Framework/description": "Das Zielframework für das Projekt.",
   "symbols/Framework/choices/net8.0/description": "Ziel net8.0",
   "symbols/appHostHttpPort/description": "Portnummer, die für den HTTP-Endpunkt in launchSettings.json des AppHost-Projekts verwendet werden soll.",

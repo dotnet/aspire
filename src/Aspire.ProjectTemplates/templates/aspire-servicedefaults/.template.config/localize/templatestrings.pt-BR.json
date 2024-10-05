@@ -1,7 +1,7 @@
-﻿{
+{
   "author": "Microsoft",
   "name": "Padrões do serviço .NET Server",
-  "description": "Um modelo de projeto para criar um projeto padrão do serviço .NET Aspire.",
+  "description": "Um modelo de projeto para criar um projeto padrão do serviço .NET Aspire 9.",
   "symbols/Framework/description": "A estrutura de destino do projeto.",
   "symbols/Framework/choices/net9.0/description": "Target net9.0",
   "symbols/skipRestore/description": "Se especificado, ignora a restauração automática do projeto sendo criado.",

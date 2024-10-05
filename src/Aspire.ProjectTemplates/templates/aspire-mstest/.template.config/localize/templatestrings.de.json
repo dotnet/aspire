@@ -1,6 +1,6 @@
-﻿{
+{
   "author": "Microsoft",
-  "name": ".NET Aspire-Testprojekt (MSTest)",
+  "name": ".NET Aspire 9-Testprojekt (MSTest)",
   "description": "Ein Projekt, das MSTest Integrationstests eines .NET AppHost-Projekts enthält.",
   "symbols/Framework/description": "Das Zielframework für das Projekt.",
   "symbols/Framework/choices/net9.0/description": "Target net9.0",
