@@ -88,15 +88,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Exception details.
-        /// </summary>
-        public static string LogMessageColumnExceptionDetailsTitle {
-            get {
-                return ResourceManager.GetString("LogMessageColumnExceptionDetailsTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to This container is persistent and won&apos;t be stopped when the app host is shut down..
         /// </summary>
         public static string PersistentContainerIconTooltip {
@@ -129,6 +120,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourceNameDisplayProcessIdText {
             get {
                 return ResourceManager.GetString("ResourceNameDisplayProcessIdText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resource is running but not in a healthy state. Click for details..
+        /// </summary>
+        public static string RunningAndUnhealthyResourceStateToolTip {
+            get {
+                return ResourceManager.GetString("RunningAndUnhealthyResourceStateToolTip", resourceCulture);
             }
         }
         

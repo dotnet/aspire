@@ -492,7 +492,10 @@ public class ResourceNotificationService
             previousState ??= new CustomResourceSnapshot()
             {
                 ResourceType = resource.GetType().Name,
-                Properties = []
+                Properties = [],
+                HealthStatus = resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out _)
+                    ? null // Indicates that the resource has health check annotations but the health status is unknown.
+                    : HealthStatus.Healthy
             };
         }
 

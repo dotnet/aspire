@@ -1,0 +1,4 @@
+.state-column-cell {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

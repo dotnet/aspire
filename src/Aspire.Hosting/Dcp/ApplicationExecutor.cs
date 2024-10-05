@@ -1511,7 +1511,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     State = "Starting",
                     Properties = [
                         new(KnownProperties.Container.Image, cr.ModelResource.TryGetContainerImageName(out var imageName) ? imageName : ""),
-                   ],
+                    ],
                     ResourceType = KnownResourceTypes.Container
                 })
                 .ConfigureAwait(false);
