@@ -421,7 +421,7 @@ public static class AzurePostgresExtensions
 
                 foreach (var database in azureResource.Databases)
                 {
-                    var dbSecret = new KeyVaultSecret(AzureResourceExtensions.NormalizeBicepIdentifier(database.Key + "_connectionString"))
+                    var dbSecret = new KeyVaultSecret(Infrastructure.NormalizeIdentifierName(database.Key + "_connectionString"))
                     {
                         Parent = keyVault,
                         Name = AzurePostgresFlexibleServerResource.GetDatabaseKeyVaultSecretName(database.Key),
@@ -483,7 +483,7 @@ public static class AzurePostgresExtensions
 
         foreach (var databaseNames in databases)
         {
-            var identifierName = AzureResourceExtensions.NormalizeBicepIdentifier(databaseNames.Key);
+            var identifierName = Infrastructure.NormalizeIdentifierName(databaseNames.Key);
             var databaseName = databaseNames.Value;
             var pgsqlDatabase = new PostgreSqlFlexibleServerDatabase(identifierName)
             {

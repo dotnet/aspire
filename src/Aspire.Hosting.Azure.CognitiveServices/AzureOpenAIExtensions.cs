@@ -85,7 +85,7 @@ public static class AzureOpenAIExtensions
             var cdkDeployments = new List<CognitiveServicesAccountDeployment>();
             foreach (var deployment in resource.Deployments)
             {
-                var cdkDeployment = new CognitiveServicesAccountDeployment(AzureResourceExtensions.NormalizeBicepIdentifier(deployment.Name))
+                var cdkDeployment = new CognitiveServicesAccountDeployment(Infrastructure.NormalizeIdentifierName(deployment.Name))
                 {
                     Name = deployment.Name,
                     Parent = cogServicesAccount,

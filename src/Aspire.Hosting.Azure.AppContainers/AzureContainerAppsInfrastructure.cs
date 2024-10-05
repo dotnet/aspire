@@ -169,7 +169,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                     containerImageParam = AllocateContainerImageParameter();
                 }
 
-                var containerAppResource = new ContainerApp(AzureResourceExtensions.NormalizeBicepIdentifier(resource.Name))
+                var containerAppResource = new ContainerApp(Infrastructure.NormalizeIdentifierName(resource.Name))
                 {
                     Name = resource.Name.ToLowerInvariant()
                 };
@@ -730,7 +730,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 if (!KeyVaultSecretRefs.TryGetValue(secretOutputReference.ValueExpression, out var secret))
                 {
                     // Now we resolve the secret
-                    var secretIdentifierName = AzureResourceExtensions.NormalizeBicepIdentifier($"{kv.IdentifierName}_{secretOutputReference.Name}");
+                    var secretIdentifierName = Infrastructure.NormalizeIdentifierName($"{kv.IdentifierName}_{secretOutputReference.Name}");
                     secret = KeyVaultSecret.FromExisting(secretIdentifierName);
                     secret.Name = secretOutputReference.Name;
                     secret.Parent = kv;

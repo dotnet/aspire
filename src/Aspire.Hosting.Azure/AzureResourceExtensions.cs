@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure.Utils;
+using Azure.Provisioning;
 
 namespace Aspire.Hosting;
 
@@ -30,14 +30,5 @@ public static class AzureResourceExtensions
     /// <param name="resource">The Azure resource.</param>
     /// <returns>A valid Bicep identifier.</returns>
     public static string GetBicepIdentifier(this IAzureResource resource) =>
-        NormalizeBicepIdentifier(resource.Name);
-
-    /// <summary>
-    /// Normalizes the given identifier name to make it a valid Bicep identifier name.
-    /// </summary>
-    /// <param name="identifierName">The identifier name to normalize.</param>
-    /// <returns>A valid Bicep identifier.</returns>
-    // TODO: This API should be deleted when we get the API from Azure.Provisioning
-    public static string NormalizeBicepIdentifier(string identifierName) =>
-        BicepIdentifierHelpers.Normalize(identifierName);
+        Infrastructure.NormalizeIdentifierName(resource.Name);
 }
