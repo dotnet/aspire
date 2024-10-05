@@ -6,12 +6,29 @@ using Xunit.Abstractions;
 
 namespace Aspire.Workload.Tests;
 
-public class NewAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) : WorkloadTestsBase(testOutput)
+public class NewUpTemplatesWithAlternateName(ITestOutputHelper testOutput) : WorkloadTestsBase(testOutput)
 {
+    public static TheoryData<string, TestSdk, TestTargetFramework, TestTemplatesInstall, string?> TestData(string templateName) => new()
+        {
+            // Previous Sdk
+            { templateName, TestSdk.Previous, TestTargetFramework.Previous, TestTemplatesInstall.Net8, null },
+            { templateName, TestSdk.Previous, TestTargetFramework.Previous, TestTemplatesInstall.Net9AndNet8, null },
+
+            // Current SDK
+            { templateName, TestSdk.Current, TestTargetFramework.Previous, TestTemplatesInstall.Net8, null },
+            { templateName, TestSdk.Current, TestTargetFramework.Previous, TestTemplatesInstall.Net9AndNet8, null },
+
+            { templateName, TestSdk.Current, TestTargetFramework.Current, TestTemplatesInstall.Net9, null },
+            { templateName, TestSdk.Current, TestTargetFramework.Current, TestTemplatesInstall.Net9AndNet8, null },
+        };
+
     [Theory]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire")]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-starter")]
-    public async Task CanNewAndBuild(string templateName, TestSdk sdk, TestTargetFramework tfm, TestTemplatesInstall templates, string? error)
+    [MemberData(nameof(TestData), parameters: "aspire-9")]
+    [MemberData(nameof(TestData), parameters: "aspire-starter-9")]
+    [MemberData(nameof(TestData), parameters: "aspire-mstest-9")]
+    [MemberData(nameof(TestData), parameters: "aspire-nunit-9")]
+    [MemberData(nameof(TestData), parameters: "aspire-xunit-9")]
+    public async Task CanNewWithAlternateName(string templateName, TestSdk sdk, TestTargetFramework tfm, TestTemplatesInstall templates, string? error)
     {
         var id = GetNewProjectId(prefix: $"new_build_{templateName}_{tfm.ToTFMString()}");
 
@@ -43,8 +60,6 @@ public class NewAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) : 
                 customHiveForTemplates: templateHive.CustomHiveDirectory);
 
             Assert.True(error is null, $"Expected to throw an exception with message: {error}");
-
-            await project.BuildAsync(extraBuildArgs: [$"-c Debug"]);
         }
         catch (ToolCommandException tce) when (error is not null)
         {

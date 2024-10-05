@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 
 namespace Aspire.Workload.Tests;
 
-public class NewAndBuildSupportProjectTemplates(ITestOutputHelper testOutput) : WorkloadTestsBase(testOutput)
+public class NewUpAndBuildSupportProjectTemplates(ITestOutputHelper testOutput) : WorkloadTestsBase(testOutput)
 {
     [Theory]
     // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-apphost")]
