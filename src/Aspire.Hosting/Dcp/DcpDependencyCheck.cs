@@ -5,7 +5,6 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Properties;
 using Microsoft.Extensions.Options;
@@ -17,17 +16,13 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
     [GeneratedRegex("[^\\d\\.].*$")]
     private static partial Regex VersionRegex();
 
-    private readonly DistributedApplicationModel _applicationModel;
     private readonly DcpOptions _dcpOptions;
     private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
     private DcpInfo? _dcpInfo;
     private bool _checkDone;
 
-    public DcpDependencyCheck(
-        DistributedApplicationModel applicationModel,
-        IOptions<DcpOptions> dcpOptions)
+    public DcpDependencyCheck(IOptions<DcpOptions> dcpOptions)
     {
-        _applicationModel = applicationModel;
         _dcpOptions = dcpOptions.Value;
     }
 
@@ -107,7 +102,6 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
                 }
 
                 EnsureDcpVersion(dcpInfo);
-                EnsureDcpContainerRuntime(dcpInfo);
                 _dcpInfo = dcpInfo;
                 return dcpInfo;
             }
@@ -174,56 +168,6 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
         finally
         {
             AspireEventSource.Instance.DcpVersionCheckStop();
-        }
-    }
-
-    private void EnsureDcpContainerRuntime(DcpInfo dcpInfo)
-    {
-        // If we don't have any resources that need a container then we
-        // don't need to check for a healthy container runtime.
-        if (!_applicationModel.Resources.Any(c => c.IsContainer()))
-        {
-            return;
-        }
-
-        AspireEventSource.Instance.ContainerRuntimeHealthCheckStart();
-
-        try
-        {
-            var containerRuntime = _dcpOptions.ContainerRuntime;
-            if (string.IsNullOrEmpty(containerRuntime))
-            {
-                // Default runtime is Docker
-                containerRuntime = "docker";
-            }
-            var installed = dcpInfo.Containers?.Installed ?? false;
-            var running = dcpInfo.Containers?.Running ?? false;
-            var error = dcpInfo.Containers?.Error;
-
-            if (!installed)
-            {
-                throw new DistributedApplicationException(string.Format(
-                    CultureInfo.InvariantCulture,
-                    Resources.ContainerRuntimePrerequisiteMissingExceptionMessage,
-                    containerRuntime,
-                    error
-                ));
-            }
-            else if (!running)
-            {
-                throw new DistributedApplicationException(string.Format(
-                    CultureInfo.InvariantCulture,
-                    Resources.ContainerRuntimeUnhealthyExceptionMessage,
-                    containerRuntime,
-                    error
-                ));
-            }
-
-            // If we get to here all is good!
-        }
-        finally
-        {
-            AspireEventSource.Instance?.ContainerRuntimeHealthCheckStop();
         }
     }
 }
