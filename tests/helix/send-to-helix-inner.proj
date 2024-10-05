@@ -152,6 +152,9 @@
     <!-- Set this here so if dotnet-cli is overriding the path, then dotnet-tests overrides that and gets precedence -->
     <HelixPerWorkItemPreCommand Condition="'$(OS)' == 'Windows_NT'">set PATH=%HELIX_CORRELATION_PAYLOAD%\$(_DefaultSdkDirNameForTests)%3B%PATH%</HelixPerWorkItemPreCommand>
     <HelixPerWorkItemPreCommand Condition="'$(OS)' != 'Windows_NT'">export PATH=$HELIX_CORRELATION_PAYLOAD/$(_DefaultSdkDirNameForTests):$PATH</HelixPerWorkItemPreCommand>
+
+    <HelixPerWorkItemPreCommand Condition="'$(OS)' == 'Windows_NT'">$(HelixPerWorkItemPreCommand) &amp; set DOTNET_ROOT=%HELIX_CORRELATION_PAYLOAD%\$(_DefaultSdkDirNameForTests)</HelixPerWorkItemPreCommand>
+    <HelixPerWorkItemPreCommand Condition="'$(OS)' != 'Windows_NT'">$(HelixPerWorkItemPreCommand) &amp;&amp; export DOTNET_ROOT=$HELIX_CORRELATION_PAYLOAD/$(_DefaultSdkDirNameForTests)</HelixPerWorkItemPreCommand>
   </PropertyGroup>
 
   <Target Name="PrepareDependencies" DependsOnTargets="$(PrepareDependenciesDependsOn)" />
