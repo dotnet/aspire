@@ -94,10 +94,9 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(NeedsWorkload)' == 'true'">
-    <!-- if dotnet-cli won't be included, then set path to dotnet-tests so
-         any dotnet commands can run -->
-    <HelixPreCommand Condition="'$(IncludeDotNetCli)' != 'true' and '$(OS)' == 'Windows_NT'" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\$(_DefaultSdkDirNameForTests)%3B%PATH%" />
-    <HelixPreCommand Condition="'$(IncludeDotNetCli)' != 'true' and '$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/$(_DefaultSdkDirNameForTests):$PATH" />
+    <!-- set path to dotnet-tests early, so any dotnet commands can run -->
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\$(_DefaultSdkDirNameForTests)%3B%PATH%" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/$(_DefaultSdkDirNameForTests):$PATH" />
 
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SDK_FOR_WORKLOAD_TESTING_PATH=%HELIX_CORRELATION_PAYLOAD%\$(_DefaultSdkDirNameForTests)" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SDK_FOR_WORKLOAD_TESTING_PATH=$HELIX_CORRELATION_PAYLOAD/$(_DefaultSdkDirNameForTests)" />
