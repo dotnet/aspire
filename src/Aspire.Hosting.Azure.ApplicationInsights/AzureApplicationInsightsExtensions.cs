@@ -83,7 +83,7 @@ public static class AzureApplicationInsightsExtensions
             };
             construct.Add(kindParameter);
 
-            var appInsights = new ApplicationInsightsComponent(name)
+            var appInsights = new ApplicationInsightsComponent(construct.Resource.GetBicepIdentifier())
             {
                 ApplicationType = appTypeParameter,
                 Kind = kindParameter,
@@ -99,7 +99,7 @@ public static class AzureApplicationInsightsExtensions
             else if (builder.ExecutionContext.IsRunMode)
             {
                 // ... otherwise if we are in run mode, the provisioner expects us to create one ourselves.
-                var autoInjectedLogAnalyticsWorkspaceName = $"law-{construct.Resource.Name}";
+                var autoInjectedLogAnalyticsWorkspaceName = $"law_{appInsights.ResourceName}";
                 var autoInjectedLogAnalyticsWorkspace = new OperationalInsightsWorkspace(autoInjectedLogAnalyticsWorkspaceName)
                 {
                     Sku = new OperationalInsightsWorkspaceSku()

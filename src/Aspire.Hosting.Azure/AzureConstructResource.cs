@@ -149,7 +149,7 @@ public static class AzureConstructResourceExtensions
         ArgumentNullException.ThrowIfNull(parameterResourceBuilder);
         ArgumentNullException.ThrowIfNull(construct);
 
-        parameterName ??= parameterResourceBuilder.Resource.Name;
+        parameterName ??= AzureResourceExtensions.NormalizeBicepIdentifier(parameterResourceBuilder.Resource.Name);
 
         construct.Resource.Parameters[parameterName] = parameterResourceBuilder.Resource;
 

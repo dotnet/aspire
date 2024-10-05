@@ -43,7 +43,7 @@ public static class AzureOpenAIExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var cogServicesAccount = new CognitiveServicesAccount(name)
+            var cogServicesAccount = new CognitiveServicesAccount(construct.Resource.GetBicepIdentifier())
             {
                 Kind = "OpenAI",
                 Sku = new CognitiveServicesSku()
@@ -52,7 +52,7 @@ public static class AzureOpenAIExtensions
                 },
                 Properties = new CognitiveServicesAccountProperties()
                 {
-                    CustomSubDomainName = ToLower(Take(Concat(name, GetUniqueString(GetResourceGroup().Id)), 24)),
+                    CustomSubDomainName = ToLower(Take(Concat(construct.Resource.Name, GetUniqueString(GetResourceGroup().Id)), 24)),
                     PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
                     // Disable local auth for AOAI since managed identity is used
                     DisableLocalAuth = true
@@ -85,7 +85,7 @@ public static class AzureOpenAIExtensions
             var cdkDeployments = new List<CognitiveServicesAccountDeployment>();
             foreach (var deployment in resource.Deployments)
             {
-                var cdkDeployment = new CognitiveServicesAccountDeployment(deployment.Name)
+                var cdkDeployment = new CognitiveServicesAccountDeployment(AzureResourceExtensions.NormalizeBicepIdentifier(deployment.Name))
                 {
                     Name = deployment.Name,
                     Parent = cogServicesAccount,

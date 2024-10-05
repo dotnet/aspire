@@ -14,7 +14,7 @@ internal static partial class BicepIdentifierHelpers
     [GeneratedRegex("^[A-Za-z_][A-Za-z0-9_]*$")]
     private static partial Regex GetBicepIdentifierExpression();
 
-    internal static void ThrowIfInvalid(string name, [CallerArgumentExpression(nameof(name))] string? paramName = null)
+    internal static string ThrowIfInvalid(string name, [CallerArgumentExpression(nameof(name))] string? paramName = null)
     {
         var regex = GetBicepIdentifierExpression();
 
@@ -24,6 +24,8 @@ internal static partial class BicepIdentifierHelpers
                 "Bicep identifiers must only contain alpha, numeric, and _ characters and must start with an alpha or _ character.",
                 paramName);
         }
+
+        return name;
     }
 
     /// <summary>

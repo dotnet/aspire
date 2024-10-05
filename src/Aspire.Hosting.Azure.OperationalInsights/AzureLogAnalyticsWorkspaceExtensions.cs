@@ -41,7 +41,7 @@ public static class AzureLogAnalyticsWorkspaceExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var workspace = new OperationalInsightsWorkspace(name)
+            var workspace = new OperationalInsightsWorkspace(construct.Resource.GetBicepIdentifier())
             {
                 Sku = new OperationalInsightsWorkspaceSku()
                 {
