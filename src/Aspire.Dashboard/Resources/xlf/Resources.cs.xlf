@@ -217,6 +217,11 @@
         <target state="translated">Filtr typů: Vyfiltrováno</target>
         <note />
       </trans-unit>
+      <trans-unit id="WaitingForHealthDataMessage">
+        <source>Waiting for health data...</source>
+        <target state="new">Waiting for health data...</target>
+        <note>A message shown in the UI as a placeholder to indicate that health checks are expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
+      </trans-unit>
     </body>
   </file>
 </xliff>
