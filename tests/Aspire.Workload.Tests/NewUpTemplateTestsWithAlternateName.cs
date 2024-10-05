@@ -71,7 +71,7 @@ public class NewUpTemplatesWithAlternateName(ITestOutputHelper testOutput) : Wor
     [MemberData(nameof(TestData), parameters: "aspire-mstest-9")]
     [MemberData(nameof(TestData), parameters: "aspire-nunit-9")]
     [MemberData(nameof(TestData), parameters: "aspire-xunit-9")]
-    public async Task CanNewSupportTemplatesWithAlternateName(string templateName, TestSdk sdk, TestTargetFramework tfm, TestTemplatesInstall templates, string? error)
+    public async Task CanNewTestFrameworkTemplatesWithAlternateName(string templateName, TestSdk sdk, TestTargetFramework tfm, TestTemplatesInstall templates, string? error)
     {
         var id = GetNewProjectId(prefix: $"new_build_{templateName}_{tfm.ToTFMString()}");
         string config = "Debug";
@@ -97,7 +97,7 @@ public class NewUpTemplatesWithAlternateName(ITestOutputHelper testOutput) : Wor
         {
             await using var project = await AspireProject.CreateNewTemplateProjectAsync(
                 id: id,
-                template: "aspire",
+                template: "aspire-9",
                 testOutput: _testOutput,
                 buildEnvironment: buildEnvToUse,
                 targetFramework: tfm,
