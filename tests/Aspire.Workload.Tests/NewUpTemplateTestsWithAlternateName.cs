@@ -25,10 +25,7 @@ public class NewUpTemplatesWithAlternateName(ITestOutputHelper testOutput) : Wor
     [Theory]
     [MemberData(nameof(TestData), parameters: "aspire-9")]
     [MemberData(nameof(TestData), parameters: "aspire-starter-9")]
-    [MemberData(nameof(TestData), parameters: "aspire-mstest-9")]
-    [MemberData(nameof(TestData), parameters: "aspire-nunit-9")]
-    [MemberData(nameof(TestData), parameters: "aspire-xunit-9")]
-    public async Task CanNewWithAlternateName(string templateName, TestSdk sdk, TestTargetFramework tfm, TestTemplatesInstall templates, string? error)
+    public async Task CanNewStandaloneTemplatesWithAlternateName(string templateName, TestSdk sdk, TestTargetFramework tfm, TestTemplatesInstall templates, string? error)
     {
         var id = GetNewProjectId(prefix: $"new_build_{templateName}_{tfm.ToTFMString()}");
 
@@ -60,6 +57,61 @@ public class NewUpTemplatesWithAlternateName(ITestOutputHelper testOutput) : Wor
                 customHiveForTemplates: templateHive.CustomHiveDirectory);
 
             Assert.True(error is null, $"Expected to throw an exception with message: {error}");
+        }
+        catch (ToolCommandException tce) when (error is not null)
+        {
+            Assert.NotNull(tce.Result);
+            Assert.Contains(error, tce.Result.Value.Output);
+        }
+    }
+
+    [Theory]
+    // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-apphost")]
+    // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-servicedefaults")]
+    [MemberData(nameof(TestData), parameters: "aspire-mstest-9")]
+    [MemberData(nameof(TestData), parameters: "aspire-nunit-9")]
+    [MemberData(nameof(TestData), parameters: "aspire-xunit-9")]
+    public async Task CanNewSupportTemplatesWithAlternateName(string templateName, TestSdk sdk, TestTargetFramework tfm, TestTemplatesInstall templates, string? error)
+    {
+        var id = GetNewProjectId(prefix: $"new_build_{templateName}_{tfm.ToTFMString()}");
+        string config = "Debug";
+
+        var buildEnvToUse = sdk switch
+        {
+            TestSdk.Current => BuildEnvironment.ForCurrentSdkOnly,
+            TestSdk.Previous => BuildEnvironment.ForPreviousSdkOnly,
+            TestSdk.CurrentSdkAndPreviousRuntime => BuildEnvironment.ForCurrentSdkAndPreviousRuntime,
+            _ => throw new ArgumentOutOfRangeException(nameof(sdk))
+        };
+
+        var templateHive = templates switch
+        {
+            TestTemplatesInstall.Net8 => TemplatesCustomHive.With9_0_Net8,
+            TestTemplatesInstall.Net9 => TemplatesCustomHive.With9_0_Net9,
+            TestTemplatesInstall.Net9AndNet8 => TemplatesCustomHive.With9_0_Net9_And_Net8,
+            _ => throw new ArgumentOutOfRangeException(nameof(templates))
+        };
+
+        await templateHive.EnsureInstalledAsync(buildEnvToUse);
+        try
+        {
+            await using var project = await AspireProject.CreateNewTemplateProjectAsync(
+                id: id,
+                template: "aspire",
+                testOutput: _testOutput,
+                buildEnvironment: buildEnvToUse,
+                targetFramework: tfm,
+                customHiveForTemplates: templateHive.CustomHiveDirectory);
+
+            var testProjectDir = await CreateAndAddTestTemplateProjectAsync(
+                                        id: id,
+                                        testTemplateName: templateName,
+                                        project: project,
+                                        tfm: tfm,
+                                        buildEnvironment: buildEnvToUse,
+                                        templateHive: templateHive);
+
+            await project.BuildAsync(extraBuildArgs: [$"-c {config}"], workingDirectory: testProjectDir);
         }
         catch (ToolCommandException tce) when (error is not null)
         {
