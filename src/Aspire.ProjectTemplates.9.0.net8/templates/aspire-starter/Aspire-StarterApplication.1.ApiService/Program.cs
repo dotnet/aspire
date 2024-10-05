@@ -11,10 +11,10 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 app.UseExceptionHandler();
 
-var summaries = new[]
-{
+string[] summaries =
+[
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+];
 
 app.MapGet("/weatherforecast", () =>
 {
