@@ -69,5 +69,6 @@
     <!-- for templates -->
     <MicrosoftExtensionsHttpResiliencePackageVersionForNet8>$(MicrosoftExtensionsHttpResiliencePackageVersion)</MicrosoftExtensionsHttpResiliencePackageVersionForNet8>
     <MicrosoftExtensionsHttpResiliencePackageVersionForNet9>$(MicrosoftExtensionsHttpResiliencePackageVersion)</MicrosoftExtensionsHttpResiliencePackageVersionForNet9>
+    <MicrosoftAspNetCorePackageVersionForNet9>9.0.0-rc.2.24470.14</MicrosoftAspNetCorePackageVersionForNet9>
   </PropertyGroup>
 </Project>
