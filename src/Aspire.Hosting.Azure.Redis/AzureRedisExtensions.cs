@@ -326,7 +326,7 @@ public static class AzureRedisExtensions
         foreach (var resource in construct.GetResources())
         {
             if (resource is RedisCacheAccessPolicyAssignment accessPolicy &&
-                accessPolicy.ResourceName == $"{construct.Resource.GetBicepIdentifier()}_contributor")
+                accessPolicy.IdentifierName == $"{construct.Resource.GetBicepIdentifier()}_contributor")
             {
                 resourcesToRemove.Add(resource);
             }

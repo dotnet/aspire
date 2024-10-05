@@ -99,7 +99,7 @@ public static class AzureApplicationInsightsExtensions
             else if (builder.ExecutionContext.IsRunMode)
             {
                 // ... otherwise if we are in run mode, the provisioner expects us to create one ourselves.
-                var autoInjectedLogAnalyticsWorkspaceName = $"law_{appInsights.ResourceName}";
+                var autoInjectedLogAnalyticsWorkspaceName = $"law_{appInsights.IdentifierName}";
                 var autoInjectedLogAnalyticsWorkspace = new OperationalInsightsWorkspace(autoInjectedLogAnalyticsWorkspaceName)
                 {
                     Sku = new OperationalInsightsWorkspaceSku()

@@ -730,7 +730,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 if (!KeyVaultSecretRefs.TryGetValue(secretOutputReference.ValueExpression, out var secret))
                 {
                     // Now we resolve the secret
-                    var secretIdentifierName = AzureResourceExtensions.NormalizeBicepIdentifier($"{kv.ResourceName}_{secretOutputReference.Name}");
+                    var secretIdentifierName = AzureResourceExtensions.NormalizeBicepIdentifier($"{kv.IdentifierName}_{secretOutputReference.Name}");
                     secret = KeyVaultSecret.FromExisting(secretIdentifierName);
                     secret.Name = secretOutputReference.Name;
                     secret.Parent = kv;
