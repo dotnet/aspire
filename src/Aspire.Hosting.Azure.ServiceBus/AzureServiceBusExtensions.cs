@@ -69,7 +69,7 @@ public static class AzureServiceBusExtensions
 
             foreach (var queue in azureResource.Queues)
             {
-                var queueResource = new ServiceBusQueue(AzureResourceExtensions.NormalizeBicepIdentifier(queue.Name))
+                var queueResource = new ServiceBusQueue(Infrastructure.NormalizeIdentifierName(queue.Name))
                 {
                     Parent = serviceBusNamespace,
                     Name = queue.Name
@@ -80,7 +80,7 @@ public static class AzureServiceBusExtensions
             var topicDictionary = new Dictionary<string, ServiceBusTopic>();
             foreach (var topic in azureResource.Topics)
             {
-                var topicResource = new ServiceBusTopic(AzureResourceExtensions.NormalizeBicepIdentifier(topic.Name))
+                var topicResource = new ServiceBusTopic(Infrastructure.NormalizeIdentifierName(topic.Name))
                 {
                     Parent = serviceBusNamespace,
                     Name = topic.Name
@@ -92,7 +92,7 @@ public static class AzureServiceBusExtensions
             foreach (var subscription in azureResource.Subscriptions)
             {
                 var topic = topicDictionary[subscription.TopicName];
-                var subscriptionResource = new ServiceBusSubscription(AzureResourceExtensions.NormalizeBicepIdentifier(subscription.Name))
+                var subscriptionResource = new ServiceBusSubscription(Infrastructure.NormalizeIdentifierName(subscription.Name))
                 {
                     Parent = topic,
                     Name = subscription.Name

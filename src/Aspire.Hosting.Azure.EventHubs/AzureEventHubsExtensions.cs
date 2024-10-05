@@ -75,7 +75,7 @@ public static class AzureEventHubsExtensions
 
             foreach (var hub in azureResource.Hubs)
             {
-                var hubResource = new EventHub(AzureResourceExtensions.NormalizeBicepIdentifier(hub.Name))
+                var hubResource = new EventHub(Infrastructure.NormalizeIdentifierName(hub.Name))
                 {
                     Parent = eventHubsNamespace,
                     Name = hub.Name

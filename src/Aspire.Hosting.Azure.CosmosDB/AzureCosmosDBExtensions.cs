@@ -80,7 +80,7 @@ public static class AzureCosmosExtensions
             List<CosmosDBSqlDatabase> cosmosSqlDatabases = new List<CosmosDBSqlDatabase>();
             foreach (var databaseName in azureResource.Databases)
             {
-                var cosmosSqlDatabase = new CosmosDBSqlDatabase(AzureResourceExtensions.NormalizeBicepIdentifier(databaseName))
+                var cosmosSqlDatabase = new CosmosDBSqlDatabase(Infrastructure.NormalizeIdentifierName(databaseName))
                 {
                     Parent = cosmosAccount,
                     Name = databaseName,

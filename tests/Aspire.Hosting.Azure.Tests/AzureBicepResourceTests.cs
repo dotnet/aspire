@@ -774,8 +774,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var manifest = await ManifestUtils.GetManifest(construct1.Resource);
 
         Assert.NotNull(moduleConstruct);
-        var constructParameters = moduleConstruct.GetParameters().DistinctBy(x => x.ResourceName);
-        var constructParametersLookup = constructParameters.ToDictionary(p => p.ResourceName);
+        var constructParameters = moduleConstruct.GetParameters().DistinctBy(x => x.IdentifierName);
+        var constructParametersLookup = constructParameters.ToDictionary(p => p.IdentifierName);
         Assert.True(constructParametersLookup.ContainsKey("skuName"));
 
         var expectedManifest = """
@@ -813,8 +813,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var manifest = await ManifestUtils.GetManifest(construct1.Resource);
 
         Assert.NotNull(moduleConstruct);
-        var constructParameters = moduleConstruct.GetParameters().DistinctBy(x => x.ResourceName);
-        var constructParametersLookup = constructParameters.ToDictionary(p => p.ResourceName);
+        var constructParameters = moduleConstruct.GetParameters().DistinctBy(x => x.IdentifierName);
+        var constructParametersLookup = constructParameters.ToDictionary(p => p.IdentifierName);
         Assert.True(constructParametersLookup.ContainsKey("sku"));
 
         var expectedManifest = """
@@ -2791,7 +2791,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 Value =
                     new MemberExpression(
                         new MemberExpression(
-                            new IdentifierExpression(vault.ResourceName),
+                            new IdentifierExpression(vault.IdentifierName),
                             "properties"),
                         "vaultUri")
                 // TODO: this should be

@@ -279,7 +279,7 @@ public static class AzureSqlExtensions
         var sqlDatabases = new List<SqlDatabase>();
         foreach (var databaseNames in databases)
         {
-            var identifierName = AzureResourceExtensions.NormalizeBicepIdentifier(databaseNames.Key);
+            var identifierName = Infrastructure.NormalizeIdentifierName(databaseNames.Key);
             var databaseName = databaseNames.Value;
             var sqlDatabase = new SqlDatabase(identifierName)
             {

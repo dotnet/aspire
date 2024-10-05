@@ -167,7 +167,7 @@ public static class AzureRedisExtensions
             var disableAccessKeys = BicepValue<string>.DefineProperty(redis, "DisableAccessKeyAuthentication", ["properties", "disableAccessKeyAuthentication"], isOutput: false, isRequired: false);
             disableAccessKeys.Assign("true");
 
-            construct.Add(new RedisCacheAccessPolicyAssignment($"{redis.ResourceName}_contributor")
+            construct.Add(new RedisCacheAccessPolicyAssignment($"{redis.IdentifierName}_contributor")
             {
                 Parent = redis,
                 AccessPolicyName = "Data Contributor",
@@ -264,7 +264,7 @@ public static class AzureRedisExtensions
            {
                RemoveActiveDirectoryAuthResources(construct);
 
-               var redis = construct.GetResources().OfType<CdkRedisResource>().FirstOrDefault(r => r.ResourceName == builder.Resource.GetBicepIdentifier())
+               var redis = construct.GetResources().OfType<CdkRedisResource>().FirstOrDefault(r => r.IdentifierName == builder.Resource.GetBicepIdentifier())
                    ?? throw new InvalidOperationException($"Could not find a RedisResource with name {builder.Resource.Name}.");
 
                var kvNameParam = new ProvisioningParameter("keyVaultName", typeof(string));
@@ -326,11 +326,11 @@ public static class AzureRedisExtensions
         foreach (var resource in construct.GetResources())
         {
             if (resource is RedisCacheAccessPolicyAssignment accessPolicy &&
-                accessPolicy.ResourceName == $"{construct.Resource.GetBicepIdentifier()}_contributor")
+                accessPolicy.IdentifierName == $"{construct.Resource.GetBicepIdentifier()}_contributor")
             {
                 resourcesToRemove.Add(resource);
             }
-            else if (resource is ProvisioningOutput output && output.ResourceName == "connectionString")
+            else if (resource is ProvisioningOutput output && output.IdentifierName == "connectionString")
             {
                 resourcesToRemove.Add(resource);
             }

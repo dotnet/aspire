@@ -195,7 +195,7 @@ public static class AzurePostgresExtensions
                 PasswordAuth = PostgreSqlFlexibleServerPasswordAuthEnum.Disabled
             };
 
-            var admin = new PostgreSqlFlexibleServerActiveDirectoryAdministrator($"{postgres.ResourceName}_admin")
+            var admin = new PostgreSqlFlexibleServerActiveDirectoryAdministrator($"{postgres.IdentifierName}_admin")
             {
                 Parent = postgres,
                 Name = construct.PrincipalIdParameter,
@@ -383,7 +383,7 @@ public static class AzurePostgresExtensions
             {
                 RemoveActiveDirectoryAuthResources(construct);
 
-                var postgres = construct.GetResources().OfType<PostgreSqlFlexibleServer>().FirstOrDefault(r => r.ResourceName == azureResource.GetBicepIdentifier())
+                var postgres = construct.GetResources().OfType<PostgreSqlFlexibleServer>().FirstOrDefault(r => r.IdentifierName == azureResource.GetBicepIdentifier())
                     ?? throw new InvalidOperationException($"Could not find a PostgreSqlFlexibleServer with name {azureResource.Name}.");
 
                 var administratorLogin = new ProvisioningParameter("administratorLogin", typeof(string));
@@ -421,7 +421,7 @@ public static class AzurePostgresExtensions
 
                 foreach (var database in azureResource.Databases)
                 {
-                    var dbSecret = new KeyVaultSecret(AzureResourceExtensions.NormalizeBicepIdentifier(database.Key + "_connectionString"))
+                    var dbSecret = new KeyVaultSecret(Infrastructure.NormalizeIdentifierName(database.Key + "_connectionString"))
                     {
                         Parent = keyVault,
                         Name = AzurePostgresFlexibleServerResource.GetDatabaseKeyVaultSecretName(database.Key),
@@ -483,7 +483,7 @@ public static class AzurePostgresExtensions
 
         foreach (var databaseNames in databases)
         {
-            var identifierName = AzureResourceExtensions.NormalizeBicepIdentifier(databaseNames.Key);
+            var identifierName = Infrastructure.NormalizeIdentifierName(databaseNames.Key);
             var databaseName = databaseNames.Value;
             var pgsqlDatabase = new PostgreSqlFlexibleServerDatabase(identifierName)
             {
@@ -514,7 +514,7 @@ public static class AzurePostgresExtensions
             {
                 resourcesToRemove.Add(resource);
             }
-            else if (resource is ProvisioningOutput output && output.ResourceName == "connectionString")
+            else if (resource is ProvisioningOutput output && output.IdentifierName == "connectionString")
             {
                 resourcesToRemove.Add(resource);
             }
