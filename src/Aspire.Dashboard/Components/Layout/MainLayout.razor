@@ -73,7 +73,7 @@
     <FluentDialogProvider/>
     <FluentTooltipProvider />
     @* Temporary work around for https://github.com/microsoft/fluentui-blazor/issues/2736 *@
-    <div style="position: fixed; bottom: 0;">
+    <div style="position: fixed; bottom: 0; z-index: 9900;">
         <FluentMenuProvider />
     </div>
     <div id="blazor-error-ui">
