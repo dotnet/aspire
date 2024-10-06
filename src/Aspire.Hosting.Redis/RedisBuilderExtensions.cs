@@ -153,7 +153,7 @@ public static class RedisBuilderExtensions
                                       .WithHttpEndpoint(targetPort: 5540, name: "http")
                                       .ExcludeFromManifest();
 
-            builder.ApplicationBuilder.Eventing.Subscribe<AfterResourcesCreatedEvent>(async (e, ct) =>
+            builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(resource, async (e, ct) =>
             {
                 var redisInstances = builder.ApplicationBuilder.Resources.OfType<RedisResource>();
 
