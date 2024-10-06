@@ -103,11 +103,12 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
             var uri = new UriBuilder(value);
             if (uri.Host is "localhost" or "127.0.0.1" or "[::1]")
             {
+                var hasEndingSlash = value.EndsWith('/');
                 uri.Host = containerHostName;
                 value = uri.ToString();
 
-                // Remove trailing slash if any
-                if (value.EndsWith('/'))
+                // Remove trailing slash if we didn't have one before (UriBuilder always adds one)
+                if (!hasEndingSlash && value.EndsWith('/'))
                 {
                     value = value[..^1];
                 }
