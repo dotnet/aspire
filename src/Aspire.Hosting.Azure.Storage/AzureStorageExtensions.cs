@@ -46,7 +46,7 @@ public static class AzureStorageExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var storageAccount = new StorageAccount(name)
+            var storageAccount = new StorageAccount(construct.Resource.GetBicepIdentifier())
             {
                 Kind = StorageKind.StorageV2,
                 AccessTier = StorageAccountAccessTier.Hot,
@@ -86,8 +86,8 @@ public static class AzureStorageExtensions
             var resourceBuilder = builder.CreateResourceBuilder(resource);
             configureResource?.Invoke(resourceBuilder, construct, storageAccount);
         };
-        var resource = new AzureStorageResource(name, configureConstruct);
 
+        var resource = new AzureStorageResource(name, configureConstruct);
         return builder.AddResource(resource)
                       // These ambient parameters are only available in development time.
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)

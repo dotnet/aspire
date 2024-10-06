@@ -205,7 +205,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Lifetime.
+        ///   Looks up a localized string similar to Container lifetime.
         /// </summary>
         public static string ResourcesDetailsContainerLifetimeProperty {
             get {
@@ -444,6 +444,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourcesTypeFiltered {
             get {
                 return ResourceManager.GetString("ResourcesTypeFiltered", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Waiting for health data....
+        /// </summary>
+        public static string WaitingForHealthDataMessage {
+            get {
+                return ResourceManager.GetString("WaitingForHealthDataMessage", resourceCulture);
             }
         }
     }

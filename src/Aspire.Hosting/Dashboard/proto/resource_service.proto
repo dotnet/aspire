@@ -145,6 +145,23 @@ message Volume {
     bool is_read_only = 4;
 }
 
+message HealthReport {
+    // The health status of the resource.
+    HealthStatus status = 1;
+    // Identifies the health check that produced this report.
+    string key = 2;
+    // The reason for the health status.
+    string description = 3;
+    // Any exception details.
+    string exception = 4;
+}
+
+enum HealthStatus {
+    HEALTHY = 0;
+    UNHEALTHY = 1;
+    DEGRADED = 2;
+}
+
 message ResourceProperty {
     // Name of the data item, e.g. "container.id", "executable.pid", "project.path", ...
     string name = 1;
@@ -191,20 +208,15 @@ message Resource {
     // The set of volumes mounted to the resource. Only applies to containers.
     repeated Volume volumes = 15;
 
-    // The aggregate health state of the resource
-    optional HealthStateKind HealthState = 16;
+    // The aggregate health state of the resource. Generally reflects data from health_reports, but may differ.
+    optional HealthStatus health_status = 16;
+    // Reports from health checks, about this resource.
+    repeated HealthReport health_reports = 17;
 
     // The resource start time.
-    optional google.protobuf.Timestamp started_at = 17;
+    optional google.protobuf.Timestamp started_at = 18;
     // The resource stop time.
-    optional google.protobuf.Timestamp stopped_at = 18;
-}
-
-enum HealthStateKind {
-    UNKNOWN = 0;
-    HEALTHY = 1;
-    UNHEALTHY = 2;
-    DEGRADED = 3;
+    optional google.protobuf.Timestamp stopped_at = 19;
 }
 
 ////////////////////////////////////////////

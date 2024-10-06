@@ -19,11 +19,8 @@ namespace Aspire.Hosting;
 public static class RedisBuilderExtensions
 {
     /// <summary>
-    /// Adds a Redis container to the application model.
+    /// Adds a Redis container to the application model. This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.Tag"/> tag of the <inheritdoc cref="RedisContainerImageTags.Image"/> container image.
     /// </summary>
-    /// <remarks>
-    /// The default image is "redis" and the tag is "7.2.4".
-    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port to bind the underlying container to.</param>
@@ -66,6 +63,7 @@ public static class RedisBuilderExtensions
 
     /// <summary>
     /// Configures a container resource for Redis Commander which is pre-configured to connect to the <see cref="RedisResource"/> that this method is used on.
+    /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.RedisCommanderTag"/> tag of the <inheritdoc cref="RedisContainerImageTags.RedisCommanderImage"/> container image.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the <see cref="RedisResource"/>.</param>
     /// <param name="configureContainer">Configuration callback for Redis Commander container resource.</param>
@@ -128,6 +126,7 @@ public static class RedisBuilderExtensions
 
     /// <summary>
     /// Configures a container resource for Redis Insight which is pre-configured to connect to the <see cref="RedisResource"/> that this method is used on.
+    /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.RedisInsightTag"/> tag of the <inheritdoc cref="RedisContainerImageTags.RedisInsightImage"/> container image.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the <see cref="RedisResource"/>.</param>
     /// <param name="configureContainer">Configuration callback for Redis Insight container resource.</param>

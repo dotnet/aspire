@@ -83,8 +83,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerLifetimeProperty">
-        <source>Lifetime</source>
-        <target state="new">Lifetime</target>
+        <source>Container lifetime</source>
+        <target state="new">Container lifetime</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerPortsProperty">
@@ -216,6 +216,11 @@
         <source>Type filter: Filtered</source>
         <target state="translated">Фильтр типов: отфильтрованный</target>
         <note />
+      </trans-unit>
+      <trans-unit id="WaitingForHealthDataMessage">
+        <source>Waiting for health data...</source>
+        <target state="new">Waiting for health data...</target>
+        <note>A message shown in the UI as a placeholder to indicate that health checks are expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
       </trans-unit>
     </body>
   </file>

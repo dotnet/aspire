@@ -186,7 +186,7 @@
     <value>Container ports</value>
   </data>
   <data name="ResourcesDetailsContainerLifetimeProperty" xml:space="preserve">
-    <value>Lifetime</value>
+    <value>Container lifetime</value>
   </data>
   <data name="ResourcesDetailsDisplayNameProperty" xml:space="preserve">
     <value>Display name</value>
@@ -250,5 +250,9 @@
   </data>
   <data name="ResourceActionMetricsText" xml:space="preserve">
     <value>Metrics</value>
+  </data>
+  <data name="WaitingForHealthDataMessage" xml:space="preserve">
+    <value>Waiting for health data...</value>
+    <comment>A message shown in the UI as a placeholder to indicate that health checks are expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</comment>
   </data>
 </root>

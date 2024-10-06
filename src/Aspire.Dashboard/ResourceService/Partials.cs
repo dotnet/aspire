@@ -48,17 +48,30 @@ partial class Resource
                 State = HasState ? State : null,
                 KnownState = HasState ? Enum.TryParse(State, out KnownResourceState knownState) ? knownState : null : null,
                 StateStyle = HasStateStyle ? StateStyle : null,
-                ReadinessState = HasHealthState ? HealthState switch
-                {
-                    HealthStateKind.Healthy => ReadinessState.Ready,
-                    _ => ReadinessState.NotReady,
-                } : ReadinessState.Unknown,
-                Commands = GetCommands()
+                Commands = GetCommands(),
+                HealthStatus = HasHealthStatus ? MapHealthStatus(HealthStatus) : null,
+                HealthReports = HealthReports.Select(ToHealthReportViewModel).OrderBy(vm => vm.Name).ToImmutableArray(),
             };
         }
         catch (Exception ex)
         {
             throw new InvalidOperationException($@"Error converting resource ""{Name}"" to {nameof(ResourceViewModel)}.", ex);
+        }
+
+        HealthReportViewModel ToHealthReportViewModel(HealthReport healthReport)
+        {
+            return new HealthReportViewModel(healthReport.Key, MapHealthStatus(healthReport.Status, healthReport.Exception), healthReport.Description, healthReport.Exception);
+        }
+
+        Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus MapHealthStatus(HealthStatus healthStatus, string? exceptionText = null)
+        {
+            return healthStatus switch
+            {
+                HealthStatus.Healthy => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy,
+                HealthStatus.Degraded => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded,
+                HealthStatus.Unhealthy => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
+                _ => throw new InvalidOperationException("Unknown health status: " + healthStatus),
+            };
         }
 
         ImmutableArray<EnvironmentVariableViewModel> GetEnvironment()

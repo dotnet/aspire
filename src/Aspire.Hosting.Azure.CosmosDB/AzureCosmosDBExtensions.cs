@@ -55,7 +55,7 @@ public static class AzureCosmosExtensions
             keyVault.Name = kvNameParam;
             construct.Add(keyVault);
 
-            var cosmosAccount = new CosmosDBAccount(name)
+            var cosmosAccount = new CosmosDBAccount(construct.Resource.GetBicepIdentifier())
             {
                 Kind = CosmosDBAccountKind.GlobalDocumentDB,
                 ConsistencyPolicy = new ConsistencyPolicy()
@@ -80,7 +80,7 @@ public static class AzureCosmosExtensions
             List<CosmosDBSqlDatabase> cosmosSqlDatabases = new List<CosmosDBSqlDatabase>();
             foreach (var databaseName in azureResource.Databases)
             {
-                var cosmosSqlDatabase = new CosmosDBSqlDatabase(databaseName)
+                var cosmosSqlDatabase = new CosmosDBSqlDatabase(Infrastructure.NormalizeIdentifierName(databaseName))
                 {
                     Parent = cosmosAccount,
                     Name = databaseName,

@@ -48,7 +48,7 @@ public static class AzureServiceBusExtensions
             };
             construct.Add(skuParameter);
 
-            var serviceBusNamespace = new ServiceBusNamespace(name)
+            var serviceBusNamespace = new ServiceBusNamespace(construct.Resource.GetBicepIdentifier())
             {
                 Sku = new ServiceBusSku()
                 {
@@ -69,7 +69,7 @@ public static class AzureServiceBusExtensions
 
             foreach (var queue in azureResource.Queues)
             {
-                var queueResource = new ServiceBusQueue(queue.Name)
+                var queueResource = new ServiceBusQueue(Infrastructure.NormalizeIdentifierName(queue.Name))
                 {
                     Parent = serviceBusNamespace,
                     Name = queue.Name
@@ -80,7 +80,7 @@ public static class AzureServiceBusExtensions
             var topicDictionary = new Dictionary<string, ServiceBusTopic>();
             foreach (var topic in azureResource.Topics)
             {
-                var topicResource = new ServiceBusTopic(topic.Name)
+                var topicResource = new ServiceBusTopic(Infrastructure.NormalizeIdentifierName(topic.Name))
                 {
                     Parent = serviceBusNamespace,
                     Name = topic.Name
@@ -92,7 +92,7 @@ public static class AzureServiceBusExtensions
             foreach (var subscription in azureResource.Subscriptions)
             {
                 var topic = topicDictionary[subscription.TopicName];
-                var subscriptionResource = new ServiceBusSubscription(subscription.Name)
+                var subscriptionResource = new ServiceBusSubscription(Infrastructure.NormalizeIdentifierName(subscription.Name))
                 {
                     Parent = topic,
                     Name = subscription.Name
@@ -101,8 +101,8 @@ public static class AzureServiceBusExtensions
                 subscription.Configure?.Invoke(azureResourceBuilder, construct, subscriptionResource);
             }
         };
-        var resource = new AzureServiceBusResource(name, configureConstruct);
 
+        var resource = new AzureServiceBusResource(name, configureConstruct);
         return builder.AddResource(resource)
                       // These ambient parameters are only available in development time.
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)

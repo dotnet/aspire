@@ -259,6 +259,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Exception details.
+        /// </summary>
+        public static string ExceptionDetailsTitle {
+            get {
+                return ResourceManager.GetString("ExceptionDetailsTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Filter....
         /// </summary>
         public static string FilterPlaceholder {
@@ -601,6 +610,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Health checks.
+        /// </summary>
+        public static string ResourceHealthChecksHeader {
+            get {
+                return ResourceManager.GetString("ResourceHealthChecksHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Resource.
         /// </summary>
         public static string ResourceLabel {
@@ -723,6 +741,15 @@ namespace Aspire.Dashboard.Resources {
         public static string SpanDetailsStartTime {
             get {
                 return ResourceManager.GetString("SpanDetailsStartTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to State.
+        /// </summary>
+        public static string StateColumnHeader {
+            get {
+                return ResourceManager.GetString("StateColumnHeader", resourceCulture);
             }
         }
         

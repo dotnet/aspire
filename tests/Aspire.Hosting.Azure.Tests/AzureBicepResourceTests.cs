@@ -19,6 +19,7 @@ using Azure.Provisioning.Expressions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Xunit.Abstractions;
+using System.Net.Sockets;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -38,43 +39,44 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal("value2", bicepResource.Resource.Parameters["param2"]);
     }
 
-    public static TheoryData<Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>>> AzureExtensions
+    public static TheoryData<Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>>> AzureExtensions =>
+        CreateAllAzureExtensions("x");
+
+    private static TheoryData<Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>>> CreateAllAzureExtensions(string resourceName)
     {
-
-        get
+        static void CreateConstruct(ResourceModuleConstruct construct)
         {
-            static void CreateConstruct(ResourceModuleConstruct construct)
-            {
-                var id = new UserAssignedIdentity("id");
-                construct.Add(id);
-                construct.Add(new ProvisioningOutput("cid", typeof(string)) { Value = id.ClientId });
-            }
-
-            return new()
-            {
-                { builder => builder.AddAzureAppConfiguration("x") },
-                { builder => builder.AddAzureApplicationInsights("x") },
-                { builder => builder.AddBicepTemplate("x", "template.bicep") },
-                { builder => builder.AddBicepTemplateString("x", "content") },
-                { builder => builder.AddAzureConstruct("x", CreateConstruct) },
-                { builder => builder.AddAzureOpenAI("x") },
-                { builder => builder.AddAzureCosmosDB("x") },
-                { builder => builder.AddAzureEventHubs("x") },
-                { builder => builder.AddAzureKeyVault("x") },
-                { builder => builder.AddAzureLogAnalyticsWorkspace("x") },
-#pragma warning disable CS0618 // Type or member is obsolete
-                { builder => builder.AddPostgres("x").AsAzurePostgresFlexibleServer() },
-                { builder => builder.AddRedis("x").AsAzureRedis() },
-#pragma warning restore CS0618 // Type or member is obsolete
-                { builder => builder.AddAzurePostgresFlexibleServer("x") },
-                { builder => builder.AddAzureRedis("x") },
-                { builder => builder.AddAzureSearch("x") },
-                { builder => builder.AddAzureServiceBus("x") },
-                { builder => builder.AddAzureSignalR("x") },
-                { builder => builder.AddSqlServer("x").AsAzureSqlDatabase() },
-                { builder => builder.AddAzureStorage("x") },
-            };
+            var id = new UserAssignedIdentity("id");
+            construct.Add(id);
+            construct.Add(new ProvisioningOutput("cid", typeof(string)) { Value = id.ClientId });
         }
+
+        return new()
+        {
+            { builder => builder.AddAzureAppConfiguration(resourceName) },
+            { builder => builder.AddAzureApplicationInsights(resourceName) },
+            { builder => builder.AddBicepTemplate(resourceName, "template.bicep") },
+            { builder => builder.AddBicepTemplateString(resourceName, "content") },
+            { builder => builder.AddAzureConstruct(resourceName, CreateConstruct) },
+            { builder => builder.AddAzureOpenAI(resourceName) },
+            { builder => builder.AddAzureCosmosDB(resourceName) },
+            { builder => builder.AddAzureEventHubs(resourceName) },
+            { builder => builder.AddAzureKeyVault(resourceName) },
+            { builder => builder.AddAzureLogAnalyticsWorkspace(resourceName) },
+#pragma warning disable CS0618 // Type or member is obsolete
+            { builder => builder.AddPostgres(resourceName).AsAzurePostgresFlexibleServer() },
+            { builder => builder.AddRedis(resourceName).AsAzureRedis() },
+            { builder => builder.AddSqlServer(resourceName).AsAzureSqlDatabase() },
+#pragma warning restore CS0618 // Type or member is obsolete
+            { builder => builder.AddAzurePostgresFlexibleServer(resourceName) },
+            { builder => builder.AddAzureRedis(resourceName) },
+            { builder => builder.AddAzureSearch(resourceName) },
+            { builder => builder.AddAzureServiceBus(resourceName) },
+            { builder => builder.AddAzureSignalR(resourceName) },
+            { builder => builder.AddAzureSqlServer(resourceName) },
+            { builder => builder.AddAzureStorage(resourceName) },
+            { builder => builder.AddAzureWebPubSub(resourceName) },
+        };
     }
 
     [Theory]
@@ -105,6 +107,27 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         // This makes sure that these don't throw
         bicepResource.GetBicepTemplateFile();
         bicepResource.GetBicepTemplateFile();
+    }
+
+    public static TheoryData<Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>>> AzureExtensionsWithHyphen =>
+        CreateAllAzureExtensions("x-y");
+
+    [Theory]
+    [MemberData(nameof(AzureExtensionsWithHyphen))]
+    public void AzureResourcesProduceValidBicep(Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>> addAzureResource)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var azureResourceBuilder = addAzureResource(builder);
+
+        if (azureResourceBuilder.Resource is not AzureConstructResource bicepResource)
+        {
+            // Skip
+            return;
+        }
+
+        var bicep = bicepResource.GetBicepTemplateString();
+
+        Assert.DoesNotContain("resource x-y", bicep);
     }
 
     [Fact]
@@ -207,9 +230,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         Assert.True(cosmos.Resource.IsContainer());
 
-        var cs = AzureCosmosDBEmulatorConnectionString.Create(10001);
+        var csExpr = cosmos.Resource.ConnectionStringExpression;
+        var cs = await csExpr.GetValueAsync(CancellationToken.None);
 
-        Assert.Equal(cs, cosmos.Resource.ConnectionStringExpression.ValueExpression);
+        var prefix = "AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;AccountEndpoint=";
+        Assert.Equal(prefix + "https://{cosmos.bindings.emulator.host}:{cosmos.bindings.emulator.port};DisableServerCertificateValidation=True;", csExpr.ValueExpression);
+        Assert.Equal(prefix + "https://127.0.0.1:10001;DisableServerCertificateValidation=True;", cs);
         Assert.Equal(cs, await ((IResourceWithConnectionString)cosmos.Resource).GetConnectionStringAsync());
     }
 
@@ -561,15 +587,15 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               location: location
               properties: {
                 Application_Type: applicationType
-                WorkspaceResourceId: law-appInsights.id
+                WorkspaceResourceId: law_appInsights.id
               }
               tags: {
                 'aspire-resource-name': 'appInsights'
               }
             }
 
-            resource law-appInsights 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
-              name: take('law-appInsights-${uniqueString(resourceGroup().id)}', 63)
+            resource law_appInsights 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+              name: take('lawappInsights-${uniqueString(resourceGroup().id)}', 63)
               location: location
               properties: {
                 sku: {
@@ -577,7 +603,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 }
               }
               tags: {
-                'aspire-resource-name': 'law-appInsights'
+                'aspire-resource-name': 'law_appInsights'
               }
             }
 
@@ -748,8 +774,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var manifest = await ManifestUtils.GetManifest(construct1.Resource);
 
         Assert.NotNull(moduleConstruct);
-        var constructParameters = moduleConstruct.GetParameters().DistinctBy(x => x.ResourceName);
-        var constructParametersLookup = constructParameters.ToDictionary(p => p.ResourceName);
+        var constructParameters = moduleConstruct.GetParameters().DistinctBy(x => x.IdentifierName);
+        var constructParametersLookup = constructParameters.ToDictionary(p => p.IdentifierName);
         Assert.True(constructParametersLookup.ContainsKey("skuName"));
 
         var expectedManifest = """
@@ -787,8 +813,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var manifest = await ManifestUtils.GetManifest(construct1.Resource);
 
         Assert.NotNull(moduleConstruct);
-        var constructParameters = moduleConstruct.GetParameters().DistinctBy(x => x.ResourceName);
-        var constructParametersLookup = constructParameters.ToDictionary(p => p.ResourceName);
+        var constructParameters = moduleConstruct.GetParameters().DistinctBy(x => x.IdentifierName);
+        var constructParametersLookup = constructParameters.ToDictionary(p => p.IdentifierName);
         Assert.True(constructParametersLookup.ContainsKey("sku"));
 
         var expectedManifest = """
@@ -1074,6 +1100,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, sql, _) =>
         {
             azureSqlBuilder.Resource.Outputs["sqlServerFqdn"] = "myserver";
@@ -1083,6 +1110,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 sql.MinTlsVersion = SqlMinimalTlsVersion.Tls1_3;
             }
         });
+#pragma warning restore CS0618 // Type or member is obsolete
         sql.AddDatabase("db", "dbName");
 
         var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource);
@@ -1172,6 +1200,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, sql, _) =>
         {
             azureSqlBuilder.Resource.Outputs["sqlServerFqdn"] = "myserver";
@@ -1181,6 +1210,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 sql.MinTlsVersion = SqlMinimalTlsVersion.Tls1_3;
             }
         });
+#pragma warning restore CS0618 // Type or member is obsolete
         sql.AddDatabase("db", "dbName");
 
         var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource);
@@ -1836,17 +1866,24 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var queue = storage.AddQueues("queue");
         var table = storage.AddTables("table");
 
-        var blobqs = AzureStorageEmulatorConnectionString.Create(blobPort: 10000);
-        var queueqs = AzureStorageEmulatorConnectionString.Create(queuePort: 10001);
-        var tableqs = AzureStorageEmulatorConnectionString.Create(tablePort: 10002);
+        EndpointReference GetEndpointReference(string name, int port)
+            => new(storage.Resource, new EndpointAnnotation(ProtocolType.Tcp, name: name, targetPort: port));
+
+        var blobqs = AzureStorageEmulatorConnectionString.Create(blobEndpoint: GetEndpointReference("blob", 10000)).ValueExpression;
+        var queueqs = AzureStorageEmulatorConnectionString.Create(queueEndpoint: GetEndpointReference("queue", 10001)).ValueExpression;
+        var tableqs = AzureStorageEmulatorConnectionString.Create(tableEndpoint: GetEndpointReference("table", 10002)).ValueExpression;
 
         Assert.Equal(blobqs, blob.Resource.ConnectionStringExpression.ValueExpression);
         Assert.Equal(queueqs, queue.Resource.ConnectionStringExpression.ValueExpression);
         Assert.Equal(tableqs, table.Resource.ConnectionStringExpression.ValueExpression);
 
-        Assert.Equal(blobqs, await ((IResourceWithConnectionString)blob.Resource).GetConnectionStringAsync());
-        Assert.Equal(queueqs, await ((IResourceWithConnectionString)queue.Resource).GetConnectionStringAsync());
-        Assert.Equal(tableqs, await ((IResourceWithConnectionString)table.Resource).GetConnectionStringAsync());
+        string Resolve(string? qs, string name, int port) =>
+            qs!.Replace("{storage.bindings." + name + ".host}", "127.0.0.1")
+               .Replace("{storage.bindings." + name + ".port}", port.ToString());
+
+        Assert.Equal(Resolve(blobqs, "blob", 10000), await((IResourceWithConnectionString)blob.Resource).GetConnectionStringAsync());
+        Assert.Equal(Resolve(queueqs, "queue", 10001), await ((IResourceWithConnectionString)queue.Resource).GetConnectionStringAsync());
+        Assert.Equal(Resolve(tableqs, "table", 10002), await ((IResourceWithConnectionString)table.Resource).GetConnectionStringAsync());
     }
 
     [Fact]
@@ -2684,7 +2721,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               parent: openai
             }
 
-            resource embedding-model 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
+            resource embedding_model 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
               name: 'embedding-model'
               properties: {
                 model: {
@@ -2754,7 +2791,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 Value =
                     new MemberExpression(
                         new MemberExpression(
-                            new IdentifierExpression(vault.ResourceName),
+                            new IdentifierExpression(vault.IdentifierName),
                             "properties"),
                         "vaultUri")
                 // TODO: this should be

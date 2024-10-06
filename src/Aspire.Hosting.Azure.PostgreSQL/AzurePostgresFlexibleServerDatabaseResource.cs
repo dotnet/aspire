@@ -8,7 +8,7 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// A resource that represents a PostgreSQL database. This is a child resource of a <see cref="AzurePostgresFlexibleServerResource"/>.
+/// A resource that represents an Azure PostgreSQL database. This is a child resource of an <see cref="AzurePostgresFlexibleServerResource"/>.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="databaseName">The database name.</param>
