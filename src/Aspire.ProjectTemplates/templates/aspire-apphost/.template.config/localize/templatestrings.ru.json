@@ -1,9 +1,9 @@
 ﻿{
   "author": "Майкрософт",
-  "name": "Узел приложений .NET Aspire",
-  "description": "Шаблон проекта для создания проекта узла приложения .NET Aspire (оркестратора).",
+  "name": ".NET Aspire 9 App Host",
+  "description": "A project template for creating a .NET Aspire 9 app host (orchestrator) project.",
   "symbols/Framework/description": "Целевая платформа для проекта.",
-  "symbols/Framework/choices/net8.0/description": "Целевая среда net8.0",
+  "symbols/Framework/choices/net9.0/description": "Target net9.0",
   "symbols/appHostHttpPort/description": "Номер порта, который будет использоваться для конечной точки HTTP в файле launchSettings.json проекта AppHost.",
   "symbols/appHostOtlpHttpPort/description": "Номер порта, который будет использоваться для конечной точки HTTP OTLP в файле launchSettings.json проекта AppHost.",
   "symbols/appHostResourceHttpPort/description": "Номер порта, который будет использоваться для конечной точки HTTP службы ресурсов в файле launchSettings.json проекта AppHost.",
