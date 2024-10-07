@@ -357,12 +357,12 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
             );
     }
 
-    private sealed class CustomChildResource(string name, CustomResource parent) : Resource(name), IResourceWithParent<CustomResource>
+    private sealed class CustomChildResource(string name, CustomResource parent) : Resource(name), IResourceWithParent<CustomResource>, IResourceWithWaitSupport
     {
         public CustomResource Parent => parent;
     }
 
-    private sealed class CustomResource(string name) : Resource(name), IResourceWithConnectionString
+    private sealed class CustomResource(string name) : Resource(name), IResourceWithConnectionString, IResourceWithWaitSupport
     {
         public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"foo");
     }

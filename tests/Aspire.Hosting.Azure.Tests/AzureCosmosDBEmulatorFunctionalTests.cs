@@ -35,8 +35,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
                               .RunAsEmulator()
                               .WithHealthCheck("blocking_check");
 
-        var dependentResource = builder.AddAzureCosmosDB("dependentresource")
-                                       .RunAsEmulator()
+        var dependentResource = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                                        .WaitFor(resource);
 
         using var app = builder.Build();
