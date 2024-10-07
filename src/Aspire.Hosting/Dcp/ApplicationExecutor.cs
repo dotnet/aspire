@@ -1724,6 +1724,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             throw new FailedToApplyEnvironmentException();
         }
 
+        if (_dcpInfo is not null)
+        {
+            DcpDependencyCheck.CheckDcpInfoAndLogErrors(resourceLogger, _options.Value, _dcpInfo);
+        }
+
         await kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
     }
 
