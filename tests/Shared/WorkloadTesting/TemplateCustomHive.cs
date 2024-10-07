@@ -90,7 +90,7 @@ public class TemplatesCustomHive
 
     public static string GetPackagePath(string builtNuGetsPath, string templatePackageId)
     {
-        var packageNameRegex = new Regex($@"{templatePackageId}\.\d+\.\d+\.\d+(-[A-z]*\.*\d*)?\.nupkg");
+        var packageNameRegex = new Regex($@"{templatePackageId}\.\d+\.\d+\.\d+(-[A-z\.\d]*\.*\d*)?\.nupkg");
         var packages = Directory.EnumerateFiles(builtNuGetsPath, $"{templatePackageId}*.nupkg")
                         .Where(p => packageNameRegex.IsMatch(Path.GetFileName(p)));
 
