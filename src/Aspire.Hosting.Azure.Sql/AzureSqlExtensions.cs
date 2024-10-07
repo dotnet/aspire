@@ -202,15 +202,26 @@ public static class AzureSqlExtensions
         }
 
         var azureResource = builder.Resource;
+        var azureDatabases = builder.ApplicationBuilder.Resources
+            .OfType<AzureSqlDatabaseResource>()
+            .Where(db => db.Parent == azureResource)
+            .ToDictionary(db => db.Name);
+
         RemoveAzureResources(builder.ApplicationBuilder, azureResource);
 
         var sqlContainer = builder.ApplicationBuilder.AddSqlServer(azureResource.Name);
 
-        azureResource.InnerResource = sqlContainer.Resource;
+        azureResource.SetInnerResource(sqlContainer.Resource);
 
         foreach (var database in azureResource.Databases)
         {
-            sqlContainer.AddDatabase(database.Key, database.Value);
+            if (!azureDatabases.TryGetValue(database.Key, out var existingDb))
+            {
+                throw new InvalidOperationException($"Could not find a {nameof(AzureSqlDatabaseResource)} with name {database.Key}.");
+            }
+
+            var innerDb = sqlContainer.AddDatabase(database.Key, database.Value);
+            existingDb.SetInnerResource(innerDb.Resource);
         }
 
         configureContainer?.Invoke(sqlContainer);
