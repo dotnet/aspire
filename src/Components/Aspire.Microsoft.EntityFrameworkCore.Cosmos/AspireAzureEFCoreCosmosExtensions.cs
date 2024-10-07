@@ -133,9 +133,9 @@ public static class AspireAzureEFCoreCosmosExtensions
 
         if (settings.RequestTimeout.HasValue)
         {
-#if NET9_0_OR_GREATER
             builder.CheckDbContextRegistered<TContext>();
 
+#if NET9_0_OR_GREATER
             builder.Services.ConfigureDbContext<TContext>(optionsBuilder =>
             {
                 ConfigureRequestTimeout<TContext>(optionsBuilder, settings);

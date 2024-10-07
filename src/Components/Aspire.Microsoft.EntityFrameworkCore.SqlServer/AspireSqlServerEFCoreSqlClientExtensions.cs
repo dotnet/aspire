@@ -113,44 +113,15 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
 #pragma warning disable EF1001 // Internal EF Core API usage.
             if (!settings.DisableRetry || settings.CommandTimeout.HasValue)
             {
-#if NET9_0_OR_GREATER
                 builder.CheckDbContextRegistered<TContext>();
 
+#if NET9_0_OR_GREATER
                 builder.Services.ConfigureDbContext<TContext>(optionsBuilder => optionsBuilder.ConfigureSqlEngine(options =>
                 {
-                    var extension = optionsBuilder.Options.FindExtension<SqlServerOptionsExtension>();
-
-                    if (!settings.DisableRetry)
-                    {
-                        var executionStrategy = extension?.ExecutionStrategyFactory?.Invoke(new ExecutionStrategyDependencies(null!, optionsBuilder.Options, null!));
-
-                        if (executionStrategy != null)
-                        {
-                            if (executionStrategy is SqlServerRetryingExecutionStrategy)
-                            {
-                                // Keep custom Retry strategy.
-                                // Any sub-class of SqlServerRetryingExecutionStrategy is a valid retry strategy
-                                // which shouldn't be replaced even with DisableRetry == false
-                            }
-                            else if (executionStrategy.GetType() != typeof(SqlServerExecutionStrategy))
-                            {
-                                // Check SqlServerExecutionStrategy specifically (no 'is'), any sub-class is treated as a custom strategy.
-
-                                throw new InvalidOperationException($"{nameof(MicrosoftEntityFrameworkCoreSqlServerSettings)}.{nameof(MicrosoftEntityFrameworkCoreSqlServerSettings.DisableRetry)} needs to be set when a custom Execution Strategy is configured.");
-                            }
-                            else
-                            {
-                                options.EnableRetryOnFailure();
-                            }
-                        }
-                        else
-                        {
-                            options.EnableRetryOnFailureByDefault();
-                        }
-                    }
 #else
                 builder.PatchServiceDescriptor<TContext>(optionsBuilder => optionsBuilder.UseSqlServer(options =>
                 {
+#endif
                     var extension = optionsBuilder.Options.FindExtension<SqlServerOptionsExtension>();
 
                     if (!settings.DisableRetry)
@@ -181,7 +152,6 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
                             options.EnableRetryOnFailure();
                         }
                     }
-#endif
 
                     if (settings.CommandTimeout.HasValue)
                     {
@@ -196,8 +166,8 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
                     }
                 }));
             }
-#pragma warning restore EF1001 // Internal EF Core API usage.
         }
+#pragma warning restore EF1001 // Internal EF Core API usage.
     }
 
     private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, MicrosoftEntityFrameworkCoreSqlServerSettings settings) where TContext : DbContext
