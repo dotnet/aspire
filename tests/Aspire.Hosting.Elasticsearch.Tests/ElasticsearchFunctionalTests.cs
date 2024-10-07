@@ -26,7 +26,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/5821")]
+    //[ActiveIssue("https://github.com/dotnet/aspire/issues/5821")]
     public async Task VerifyElasticsearchResource()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
@@ -204,7 +204,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/5844")]
+    //[ActiveIssue("https://github.com/dotnet/aspire/issues/5844")]
     public async Task VerifyWaitForOnElasticsearchBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
