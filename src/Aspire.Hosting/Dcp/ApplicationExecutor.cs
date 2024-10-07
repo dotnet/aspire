@@ -1724,19 +1724,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             throw new FailedToApplyEnvironmentException();
         }
 
-        var installed = _dcpInfo?.Containers?.Installed ?? false;
-        var running = _dcpInfo?.Containers?.Running ?? false;
-        var error = _dcpInfo?.Containers?.Error;
-
-        if (!installed)
+        if (_dcpInfo is not null)
         {
-            resourceLogger.LogError("Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.");
-            resourceLogger.LogError("The error from the container runtime check was: {error}", error);
-        }
-        else if (!running)
-        {
-            resourceLogger.LogError("Container runtime was found but appears to be unhealthy.");
-            resourceLogger.LogError("The error from the container runtime check was: {error}", error);
+            DcpDependencyCheck.CheckDcpInfoAndLogErrors(resourceLogger, _options.Value, _dcpInfo);
         }
 
         await kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
