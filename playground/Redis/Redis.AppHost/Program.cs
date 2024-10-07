@@ -3,7 +3,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 var redis = builder.AddRedis("redis")
     .WithDataVolume()
     .WithRedisCommander()
-    .WithRedisInsight(c => c.WithAcceptEula());
+    .WithRedisInsight();
 
 var garnet = builder.AddGarnet("garnet")
     .WithDataVolume();
