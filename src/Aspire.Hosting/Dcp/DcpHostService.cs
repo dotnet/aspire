@@ -93,28 +93,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
         try
         {
-            var containerRuntime = _dcpOptions.ContainerRuntime;
-            if (string.IsNullOrEmpty(containerRuntime))
-            {
-                // Default runtime is Docker
-                containerRuntime = "docker";
-            }
-            var installed = dcpInfo.Containers?.Installed ?? false;
-            var running = dcpInfo.Containers?.Running ?? false;
-            var error = dcpInfo.Containers?.Error;
-
-            if (!installed)
-            {
-                _logger.LogCritical("Container runtime '{runtime}' could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.", containerRuntime);
-
-                _logger.LogDebug("The error from the container runtime check was: {error}", error);
-            }
-            else if (!running)
-            {
-                _logger.LogCritical("Container runtime '{runtime}' was found but appears to be unhealthy.", containerRuntime);
-
-                _logger.LogDebug("The error from the container runtime check was: {error}", error);
-            }
+            DcpDependencyCheck.CheckDcpInfoAndLogErrors(_logger, _dcpOptions, dcpInfo);
         }
         finally
         {

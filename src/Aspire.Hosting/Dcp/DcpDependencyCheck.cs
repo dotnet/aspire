@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Properties;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dcp;
@@ -168,6 +169,49 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
         finally
         {
             AspireEventSource.Instance.DcpVersionCheckStop();
+        }
+    }
+
+    internal static void CheckDcpInfoAndLogErrors(ILogger logger, DcpOptions options, DcpInfo dcpInfo)
+    {
+        var containerRuntime = options.ContainerRuntime;
+        if (string.IsNullOrEmpty(containerRuntime))
+        {
+            // Default runtime is Docker
+            containerRuntime = "docker";
+        }
+        var installed = dcpInfo.Containers?.Installed ?? false;
+        var running = dcpInfo.Containers?.Running ?? false;
+        var error = dcpInfo.Containers?.Error;
+
+        if (!installed)
+        {
+            logger.LogCritical("Container runtime '{runtime}' could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.", containerRuntime);
+
+            logger.LogDebug("The error from the container runtime check was: {error}", error);
+        }
+        else if (!running)
+        {
+            var messageFormat = new StringBuilder();
+            messageFormat.Append("Container runtime '{runtime}' was found but appears to be unhealthy. ");
+
+            if (string.Equals(containerRuntime, "docker", StringComparison.OrdinalIgnoreCase))
+            {
+                messageFormat.Append("Ensure that Docker is running and that the Docker daemon is accessible. ");
+                messageFormat.Append("If Resource Saver mode is enabled, containers may not run. For more information, visit: https://docs.docker.com/desktop/use-desktop/resource-saver/");
+            }
+            else if (string.Equals(containerRuntime, "podman", StringComparison.OrdinalIgnoreCase))
+            {
+                messageFormat.Append("Ensure that Podman is running.");
+            }
+            else
+            {
+                messageFormat.Append("Ensure that the container runtime is running.");
+            }
+
+            logger.LogCritical(messageFormat.ToString(), containerRuntime);
+
+            logger.LogDebug("The error from the container runtime check was: {error}", error);
         }
     }
 }
