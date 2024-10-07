@@ -250,7 +250,7 @@ public partial class WorkloadTestsBase
 
     // Don't fixup the prefix so it can have characters meant for testing, like spaces
     public static string GetNewProjectId(string? prefix = null)
-        => (prefix is null ? "" : $"{prefix}_") + Path.GetRandomFileName();
+        => (prefix is null ? "" : $"{prefix}_") + FixupSymbolName(Path.GetRandomFileName());
 
     public static IEnumerable<string> GetProjectNamesForTest()
     {
@@ -367,5 +367,35 @@ public partial class WorkloadTestsBase
             { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, TestTemplatesInstall.Net9, null },
             { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, TestTemplatesInstall.Net9AndNet8, null },
         };
+
+    // Taken from dotnet/runtime src/tasks/Common/Utils.cs
+    private static readonly char[] s_charsToReplace = new[] { '.', '-', '+', '<', '>' };
+    public static string FixupSymbolName(string name)
+    {
+        UTF8Encoding utf8 = new();
+        byte[] bytes = utf8.GetBytes(name);
+        StringBuilder sb = new();
+
+        foreach (byte b in bytes)
+        {
+            if ((b >= (byte)'0' && b <= (byte)'9') ||
+                (b >= (byte)'a' && b <= (byte)'z') ||
+                (b >= (byte)'A' && b <= (byte)'Z') ||
+                (b == (byte)'_'))
+            {
+                sb.Append((char)b);
+            }
+            else if (s_charsToReplace.Contains((char)b))
+            {
+                sb.Append('_');
+            }
+            else
+            {
+                sb.Append($"_{b:X}_");
+            }
+        }
+
+        return sb.ToString();
+    }
 
 }

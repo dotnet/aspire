@@ -29,27 +29,32 @@ public static class AzureFunctionsProjectResourceExtensions
 
         // Add the default storage resource if it doesn't already exist.
         var storageResourceName = builder.CreateDefaultStorageName();
-        AzureStorageResource storage;
+        AzureStorageResource? storage = builder.Resources
+            .OfType<AzureStorageResource>()
+            .FirstOrDefault(r => r.Name == storageResourceName);
 
         // Azure Functions blob triggers require StorageAccountContributor access to the host storage
         // account when deployed. We assign this role to the host storage resource when running in publish mode.
-        if (builder.ExecutionContext.IsPublishMode)
+        if (storage is null)
         {
-            var configureConstruct = (ResourceModuleConstruct construct) =>
+            if (builder.ExecutionContext.IsPublishMode)
             {
+                var configureConstruct = (ResourceModuleConstruct construct) =>
+                {
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-                var storageAccount = construct.GetResources().OfType<StorageAccount>().FirstOrDefault(r => r.ResourceName == storageResourceName)
-                    ?? throw new InvalidOperationException($"Could not find storage account with '{storageResourceName}' name.");
-                construct.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageAccountContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+                    var storageAccount = construct.GetResources().OfType<StorageAccount>().FirstOrDefault(r => r.IdentifierName == storageResourceName)
+                        ?? throw new InvalidOperationException($"Could not find storage account with '{storageResourceName}' name.");
+                    construct.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageAccountContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 #pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-            };
-            storage = builder.AddAzureStorage(storageResourceName)
-                .ConfigureConstruct(configureConstruct)
-                .RunAsEmulator().Resource;
-        }
-        else
-        {
-            storage = builder.AddAzureStorage(storageResourceName).RunAsEmulator().Resource;
+                };
+                storage = builder.AddAzureStorage(storageResourceName)
+                    .ConfigureConstruct(configureConstruct)
+                    .RunAsEmulator().Resource;
+            }
+            else
+            {
+                storage = builder.AddAzureStorage(storageResourceName).RunAsEmulator().Resource;
+            }
         }
 
         builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
