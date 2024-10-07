@@ -289,6 +289,11 @@ public static class AzurePostgresExtensions
         }
 
         var azureResource = builder.Resource;
+        var azureDatabases = builder.ApplicationBuilder.Resources
+            .OfType<AzurePostgresFlexibleServerDatabaseResource>()
+            .Where(db => db.Parent == azureResource)
+            .ToDictionary(db => db.Name);
+
         RemoveAzureResources(builder.ApplicationBuilder, azureResource);
 
         var userNameParameterBuilder = azureResource.UserNameParameter is not null ?
@@ -303,11 +308,17 @@ public static class AzurePostgresExtensions
             userNameParameterBuilder,
             passwordParameterBuilder);
 
-        azureResource.InnerResource = postgresContainer.Resource;
+        azureResource.SetInnerResource(postgresContainer.Resource);
 
         foreach (var database in azureResource.Databases)
         {
-            postgresContainer.AddDatabase(database.Key, database.Value);
+            if (!azureDatabases.TryGetValue(database.Key, out var existingDb))
+            {
+                throw new InvalidOperationException($"Could not find a {nameof(AzurePostgresFlexibleServerDatabaseResource)} with name {database.Key}.");
+            }
+
+            var innerDb = postgresContainer.AddDatabase(database.Key, database.Value);
+            existingDb.SetInnerResource(innerDb.Resource);
         }
 
         configureContainer?.Invoke(postgresContainer);
