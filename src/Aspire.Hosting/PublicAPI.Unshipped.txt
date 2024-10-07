@@ -80,6 +80,7 @@ Aspire.Hosting.ApplicationModel.ExecuteCommandResult.Success.init -> void
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation.HealthCheckAnnotation(string! key) -> void
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation.Key.get -> string!
+Aspire.Hosting.ApplicationModel.IResourceWithWaitSupport
 Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.ConfirmationMessage.get -> string?
 Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.DisplayDescription.get -> string?
 Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.Parameter.get -> object?
