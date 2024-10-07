@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="ResourceCommandToastViewLogs">
         <source>View console logs</source>
-        <target state="needs-review-translation">ログの表示</target>
+        <target state="new">View console logs</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointUrl">
@@ -124,7 +124,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsHealthStateProperty">
         <source>Health State</source>
-        <target state="new">Health State</target>
+        <target state="translated">正常性状態</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
@@ -144,7 +144,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsStopTimeProperty">
         <source>Stop time</source>
-        <target state="new">Stop time</target>
+        <target state="translated">停止時刻</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesEndpointsColumnHeader">
