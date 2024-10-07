@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Utils;
 using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.Azure;
@@ -300,7 +301,7 @@ public class BicepOutputReference(string name, AzureBicepResource resource) : IM
     /// <summary>
     /// Name of the output.
     /// </summary>
-    public string Name { get; } = name;
+    public string Name { get; } = BicepIdentifierHelpers.ThrowIfInvalid(name);
 
     /// <summary>
     /// The instance of the bicep resource.

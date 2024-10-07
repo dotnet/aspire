@@ -39,43 +39,44 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal("value2", bicepResource.Resource.Parameters["param2"]);
     }
 
-    public static TheoryData<Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>>> AzureExtensions
+    public static TheoryData<Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>>> AzureExtensions =>
+        CreateAllAzureExtensions("x");
+
+    private static TheoryData<Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>>> CreateAllAzureExtensions(string resourceName)
     {
-
-        get
+        static void CreateConstruct(ResourceModuleConstruct construct)
         {
-            static void CreateConstruct(ResourceModuleConstruct construct)
-            {
-                var id = new UserAssignedIdentity("id");
-                construct.Add(id);
-                construct.Add(new ProvisioningOutput("cid", typeof(string)) { Value = id.ClientId });
-            }
-
-            return new()
-            {
-                { builder => builder.AddAzureAppConfiguration("x") },
-                { builder => builder.AddAzureApplicationInsights("x") },
-                { builder => builder.AddBicepTemplate("x", "template.bicep") },
-                { builder => builder.AddBicepTemplateString("x", "content") },
-                { builder => builder.AddAzureConstruct("x", CreateConstruct) },
-                { builder => builder.AddAzureOpenAI("x") },
-                { builder => builder.AddAzureCosmosDB("x") },
-                { builder => builder.AddAzureEventHubs("x") },
-                { builder => builder.AddAzureKeyVault("x") },
-                { builder => builder.AddAzureLogAnalyticsWorkspace("x") },
-#pragma warning disable CS0618 // Type or member is obsolete
-                { builder => builder.AddPostgres("x").AsAzurePostgresFlexibleServer() },
-                { builder => builder.AddRedis("x").AsAzureRedis() },
-#pragma warning restore CS0618 // Type or member is obsolete
-                { builder => builder.AddAzurePostgresFlexibleServer("x") },
-                { builder => builder.AddAzureRedis("x") },
-                { builder => builder.AddAzureSearch("x") },
-                { builder => builder.AddAzureServiceBus("x") },
-                { builder => builder.AddAzureSignalR("x") },
-                { builder => builder.AddSqlServer("x").AsAzureSqlDatabase() },
-                { builder => builder.AddAzureStorage("x") },
-            };
+            var id = new UserAssignedIdentity("id");
+            construct.Add(id);
+            construct.Add(new ProvisioningOutput("cid", typeof(string)) { Value = id.ClientId });
         }
+
+        return new()
+        {
+            { builder => builder.AddAzureAppConfiguration(resourceName) },
+            { builder => builder.AddAzureApplicationInsights(resourceName) },
+            { builder => builder.AddBicepTemplate(resourceName, "template.bicep") },
+            { builder => builder.AddBicepTemplateString(resourceName, "content") },
+            { builder => builder.AddAzureConstruct(resourceName, CreateConstruct) },
+            { builder => builder.AddAzureOpenAI(resourceName) },
+            { builder => builder.AddAzureCosmosDB(resourceName) },
+            { builder => builder.AddAzureEventHubs(resourceName) },
+            { builder => builder.AddAzureKeyVault(resourceName) },
+            { builder => builder.AddAzureLogAnalyticsWorkspace(resourceName) },
+#pragma warning disable CS0618 // Type or member is obsolete
+            { builder => builder.AddPostgres(resourceName).AsAzurePostgresFlexibleServer() },
+            { builder => builder.AddRedis(resourceName).AsAzureRedis() },
+            { builder => builder.AddSqlServer(resourceName).AsAzureSqlDatabase() },
+#pragma warning restore CS0618 // Type or member is obsolete
+            { builder => builder.AddAzurePostgresFlexibleServer(resourceName) },
+            { builder => builder.AddAzureRedis(resourceName) },
+            { builder => builder.AddAzureSearch(resourceName) },
+            { builder => builder.AddAzureServiceBus(resourceName) },
+            { builder => builder.AddAzureSignalR(resourceName) },
+            { builder => builder.AddAzureSqlServer(resourceName) },
+            { builder => builder.AddAzureStorage(resourceName) },
+            { builder => builder.AddAzureWebPubSub(resourceName) },
+        };
     }
 
     [Theory]
@@ -106,6 +107,27 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         // This makes sure that these don't throw
         bicepResource.GetBicepTemplateFile();
         bicepResource.GetBicepTemplateFile();
+    }
+
+    public static TheoryData<Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>>> AzureExtensionsWithHyphen =>
+        CreateAllAzureExtensions("x-y");
+
+    [Theory]
+    [MemberData(nameof(AzureExtensionsWithHyphen))]
+    public void AzureResourcesProduceValidBicep(Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>> addAzureResource)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var azureResourceBuilder = addAzureResource(builder);
+
+        if (azureResourceBuilder.Resource is not AzureConstructResource bicepResource)
+        {
+            // Skip
+            return;
+        }
+
+        var bicep = bicepResource.GetBicepTemplateString();
+
+        Assert.DoesNotContain("resource x-y", bicep);
     }
 
     [Fact]
@@ -565,15 +587,15 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               location: location
               properties: {
                 Application_Type: applicationType
-                WorkspaceResourceId: law-appInsights.id
+                WorkspaceResourceId: law_appInsights.id
               }
               tags: {
                 'aspire-resource-name': 'appInsights'
               }
             }
 
-            resource law-appInsights 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
-              name: take('law-appInsights-${uniqueString(resourceGroup().id)}', 63)
+            resource law_appInsights 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+              name: take('lawappInsights-${uniqueString(resourceGroup().id)}', 63)
               location: location
               properties: {
                 sku: {
@@ -581,7 +603,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 }
               }
               tags: {
-                'aspire-resource-name': 'law-appInsights'
+                'aspire-resource-name': 'law_appInsights'
               }
             }
 
@@ -752,8 +774,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var manifest = await ManifestUtils.GetManifest(construct1.Resource);
 
         Assert.NotNull(moduleConstruct);
-        var constructParameters = moduleConstruct.GetParameters().DistinctBy(x => x.ResourceName);
-        var constructParametersLookup = constructParameters.ToDictionary(p => p.ResourceName);
+        var constructParameters = moduleConstruct.GetParameters().DistinctBy(x => x.IdentifierName);
+        var constructParametersLookup = constructParameters.ToDictionary(p => p.IdentifierName);
         Assert.True(constructParametersLookup.ContainsKey("skuName"));
 
         var expectedManifest = """
@@ -791,8 +813,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var manifest = await ManifestUtils.GetManifest(construct1.Resource);
 
         Assert.NotNull(moduleConstruct);
-        var constructParameters = moduleConstruct.GetParameters().DistinctBy(x => x.ResourceName);
-        var constructParametersLookup = constructParameters.ToDictionary(p => p.ResourceName);
+        var constructParameters = moduleConstruct.GetParameters().DistinctBy(x => x.IdentifierName);
+        var constructParametersLookup = constructParameters.ToDictionary(p => p.IdentifierName);
         Assert.True(constructParametersLookup.ContainsKey("sku"));
 
         var expectedManifest = """
@@ -1078,6 +1100,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, sql, _) =>
         {
             azureSqlBuilder.Resource.Outputs["sqlServerFqdn"] = "myserver";
@@ -1087,6 +1110,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 sql.MinTlsVersion = SqlMinimalTlsVersion.Tls1_3;
             }
         });
+#pragma warning restore CS0618 // Type or member is obsolete
         sql.AddDatabase("db", "dbName");
 
         var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource);
@@ -1176,6 +1200,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, sql, _) =>
         {
             azureSqlBuilder.Resource.Outputs["sqlServerFqdn"] = "myserver";
@@ -1185,6 +1210,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 sql.MinTlsVersion = SqlMinimalTlsVersion.Tls1_3;
             }
         });
+#pragma warning restore CS0618 // Type or member is obsolete
         sql.AddDatabase("db", "dbName");
 
         var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource);
@@ -2695,7 +2721,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               parent: openai
             }
 
-            resource embedding-model 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
+            resource embedding_model 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
               name: 'embedding-model'
               properties: {
                 model: {
@@ -2765,7 +2791,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 Value =
                     new MemberExpression(
                         new MemberExpression(
-                            new IdentifierExpression(vault.ResourceName),
+                            new IdentifierExpression(vault.IdentifierName),
                             "properties"),
                         "vaultUri")
                 // TODO: this should be

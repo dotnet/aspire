@@ -420,7 +420,7 @@ public static class ContainerResourceBuilderExtensions
     /// <summary>
     /// Adds a build argument when the container is built from a Dockerfile.
     /// </summary>
-    /// <typeparam name="T">The type of container resoruce.</typeparam>
+    /// <typeparam name="T">The type of container resource.</typeparam>
     /// <param name="builder">The resource builder for the container resource.</param>
     /// <param name="name">The name of the build argument.</param>
     /// <param name="value">The resource builder for a parameter resource.</param>
@@ -459,7 +459,7 @@ public static class ContainerResourceBuilderExtensions
     /// <summary>
     /// Adds a secret build argument when the container is built from a Dockerfile.
     /// </summary>
-    /// <typeparam name="T">The type of container resoruce.</typeparam>
+    /// <typeparam name="T">The type of container resource.</typeparam>
     /// <param name="builder">The resource builder for the container resource.</param>
     /// <param name="name">The name of the secret build argument.</param>
     /// <param name="value">The resource builder for a parameter resource.</param>

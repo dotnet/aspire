@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Frozen;
+using System.Collections.Immutable;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -89,9 +90,18 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                     continue;
                 }
 
-                await resourceNotificationService.PublishUpdateAsync(resource, s => s with
+                await resourceNotificationService.PublishUpdateAsync(resource, s =>
                 {
-                    HealthStatus = report.Status
+                    var healthReports = MergeHealthReports(s.HealthReports, report);
+
+                    // Matches the logic in ASP.NET Core's private HealthReport.CalculateAggregateStatus
+                    var healthStatus = healthReports.MinBy(r => r.Status)?.Status ?? s.HealthStatus;
+
+                    return s with
+                    {
+                        HealthStatus = healthStatus,
+                        HealthReports = healthReports
+                    };
                 }).ConfigureAwait(false);
 
                 var lastEvent = _latestEvents[resource.Name];
@@ -121,6 +131,37 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
             {
                 await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
             }
+        }
+
+        ImmutableArray<HealthReportSnapshot> MergeHealthReports(ImmutableArray<HealthReportSnapshot> healthReports, HealthReport report)
+        {
+            var builder = healthReports.ToBuilder();
+
+            foreach (var (key, entry) in report.Entries)
+            {
+                var snapshot = new HealthReportSnapshot(key, entry.Status, entry.Description, entry.Exception?.ToString());
+
+                var found = false;
+                for (var i = 0; i < builder.Count; i++)
+                {
+                    var existing = builder[i];
+                    if (existing.Name == key)
+                    {
+                        // Replace the existing entry.
+                        builder[i] = snapshot;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    // Add a new entry.
+                    builder.Add(snapshot);
+                }
+            }
+
+            return builder.ToImmutable();
         }
     }
 }

@@ -17,8 +17,4 @@
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="..\Aspire.Hosting.Azure\Utils\BicepIdentifierHelpers.cs" />
-  </ItemGroup>
-
 </Project>

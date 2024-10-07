@@ -43,8 +43,8 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
         //          put them into a dictionary for quick lookup so we don't need to scan
         //          through the parameter enumerable each time.
         var constructParameters = resourceModuleConstruct.GetParameters();
-        var distinctConstructParameters = constructParameters.DistinctBy(p => p.ResourceName);
-        var distinctConstructParametersLookup = distinctConstructParameters.ToDictionary(p => p.ResourceName);
+        var distinctConstructParameters = constructParameters.DistinctBy(p => p.IdentifierName);
+        var distinctConstructParametersLookup = distinctConstructParameters.ToDictionary(p => p.IdentifierName);
 
         foreach (var aspireParameter in this.Parameters)
         {
@@ -149,11 +149,11 @@ public static class AzureConstructResourceExtensions
         ArgumentNullException.ThrowIfNull(parameterResourceBuilder);
         ArgumentNullException.ThrowIfNull(construct);
 
-        parameterName ??= parameterResourceBuilder.Resource.Name;
+        parameterName ??= Infrastructure.NormalizeIdentifierName(parameterResourceBuilder.Resource.Name);
 
         construct.Resource.Parameters[parameterName] = parameterResourceBuilder.Resource;
 
-        var parameter = construct.GetParameters().FirstOrDefault(p => p.ResourceName == parameterName);
+        var parameter = construct.GetParameters().FirstOrDefault(p => p.IdentifierName == parameterName);
         if (parameter is null)
         {
             parameter = new ProvisioningParameter(parameterName, typeof(string))
@@ -192,7 +192,7 @@ public static class AzureConstructResourceExtensions
 
         construct.Resource.Parameters[parameterName] = outputReference;
 
-        var parameter = construct.GetParameters().FirstOrDefault(p => p.ResourceName == parameterName);
+        var parameter = construct.GetParameters().FirstOrDefault(p => p.IdentifierName == parameterName);
         if (parameter is null)
         {
             parameter = new ProvisioningParameter(parameterName, typeof(string));

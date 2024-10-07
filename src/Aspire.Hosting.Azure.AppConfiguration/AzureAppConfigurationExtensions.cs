@@ -41,7 +41,7 @@ public static class AzureAppConfigurationExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var store = new AppConfigurationStore(name)
+            var store = new AppConfigurationStore(construct.Resource.GetBicepIdentifier())
             {
                 SkuName = "standard",
                 DisableLocalAuth = true,

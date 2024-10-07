@@ -20,6 +20,12 @@ public partial class GridValue
     public string? TextVisualizerTitle { get; set; }
 
     /// <summary>
+    /// Content to include, if any, before the Value string
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ContentBeforeValue { get; set; }
+
+    /// <summary>
     /// Content to include, if any, after the Value string
     /// </summary>
     [Parameter]
@@ -30,6 +36,12 @@ public partial class GridValue
     /// </summary>
     [Parameter]
     public string? ValueToCopy { get; set; }
+
+    /// <summary>
+    /// If set, this value is visualized rather than <see cref="Value"/>.
+    /// </summary>
+    [Parameter]
+    public string? ValueToVisualize { get; set; }
 
     /// <summary>
     /// Determines whether or not masking support is enabled for this value

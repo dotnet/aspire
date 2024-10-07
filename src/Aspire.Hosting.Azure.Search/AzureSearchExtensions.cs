@@ -50,7 +50,7 @@ public static class AzureSearchExtensions
 
         void ConfigureSearch(ResourceModuleConstruct construct)
         {
-            var search = new SearchService(name)
+            var search = new SearchService(construct.Resource.GetBicepIdentifier())
             {
                 SearchSkuName = SearchServiceSkuName.Basic,
                 ReplicaCount = 1,

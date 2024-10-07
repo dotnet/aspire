@@ -40,6 +40,8 @@ public static class AzureWebPubSubExtensions
     [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureWebPubSubResource> AddAzureWebPubSub(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<IResourceBuilder<AzureWebPubSubResource>, ResourceModuleConstruct, WebPubSubService>? configureResource)
     {
+        builder.AddAzureProvisioning();
+
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
             // Supported values are Free_F1 Standard_S1 Premium_P1
@@ -56,7 +58,7 @@ public static class AzureWebPubSubExtensions
             };
             construct.Add(capacityParameter);
 
-            var service = new WebPubSubService(name)
+            var service = new WebPubSubService(construct.Resource.GetBicepIdentifier())
             {
                 Sku = new BillingInfoSku()
                 {
@@ -77,7 +79,6 @@ public static class AzureWebPubSubExtensions
         };
 
         var resource = new AzureWebPubSubResource(name, configureConstruct);
-
         return builder.AddResource(resource)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)

@@ -41,7 +41,7 @@ public static class AzureSignalRExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var service = new SignalRService(name)
+            var service = new SignalRService(construct.Resource.GetBicepIdentifier())
             {
                 Kind = SignalRServiceKind.SignalR,
                 Sku = new SignalRResourceSku()

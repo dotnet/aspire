@@ -42,7 +42,7 @@ public static class AzureKeyVaultResourceExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var keyVault = new KeyVaultService(construct.Resource.Name)
+            var keyVault = new KeyVaultService(construct.Resource.GetBicepIdentifier())
             {
                 Properties = new KeyVaultProperties()
                 {
@@ -62,7 +62,7 @@ public static class AzureKeyVaultResourceExtensions
                 Value =
                     new MemberExpression(
                         new MemberExpression(
-                            new IdentifierExpression(keyVault.ResourceName),
+                            new IdentifierExpression(keyVault.IdentifierName),
                             "properties"),
                         "vaultUri")
                 // TODO: this should be
