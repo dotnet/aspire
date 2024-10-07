@@ -63,6 +63,25 @@ public class ExpressionResolverTests
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(source.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName");
         Assert.Equal(expectedConnectionString, config["ConnectionStrings__testresource"]);
     }
+
+    [Theory]
+    [InlineData(false, "http://localhost:18889")]
+    [InlineData(true, "http://ContainerHostName:18889")]
+    public async Task HostUrlPropertyGetsResolved(bool container, string expectedValue)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var test = builder.AddResource(new ContainerResource("testSource"))
+            .WithOtlpExporter();
+
+        if (container)
+        {
+            test = test.WithImage("someimage");
+        }
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName");
+        Assert.Equal(expectedValue, config["OTEL_EXPORTER_OTLP_ENDPOINT"]);
+    }
 }
 
 sealed class TestExpressionResolverResource : ContainerResource, IResourceWithEndpoints, IResourceWithConnectionString
