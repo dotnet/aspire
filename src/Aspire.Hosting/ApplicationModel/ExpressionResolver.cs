@@ -91,6 +91,33 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
         return string.Format(CultureInfo.InvariantCulture, expr.Format, args);
     }
 
+    async Task<string?> EvalValueProvider(IValueProvider vp)
+    {
+        var value = await vp.GetValueAsync(cancellationToken).ConfigureAwait(false);
+
+        if (vp is HostUrl && value != null)
+        {
+            // HostUrl is a bit of a hack that is not modeled as an expression
+            // So in this one case, we need to fix up the container host name 'manually'
+            // This is only used for OTEL_EXPORTER_OTLP_ENDPOINT
+            var uri = new UriBuilder(value);
+            if (uri.Host is "localhost" or "127.0.0.1" or "[::1]")
+            {
+                var hasEndingSlash = value.EndsWith('/');
+                uri.Host = containerHostName;
+                value = uri.ToString();
+
+                // Remove trailing slash if we didn't have one before (UriBuilder always adds one)
+                if (!hasEndingSlash && value.EndsWith('/'))
+                {
+                    value = value[..^1];
+                }
+            }
+        }
+
+        return value;
+    }
+
     /// <summary>
     /// Resolve an expression when it is being used from inside a container.
     /// So it's either a container-to-container or container-to-exe communication.
@@ -104,7 +131,7 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
             ReferenceExpression ex => await EvalExpressionAsync(ex).ConfigureAwait(false),
             EndpointReference endpointReference => await EvalEndpointAsync(endpointReference, EndpointProperty.Url).ConfigureAwait(false),
             EndpointReferenceExpression ep => await EvalEndpointAsync(ep.Endpoint, ep.Property).ConfigureAwait(false),
-            IValueProvider vp => await vp.GetValueAsync(cancellationToken).ConfigureAwait(false),
+            IValueProvider vp => await EvalValueProvider(vp).ConfigureAwait(false),
             _ => throw new NotImplementedException()
         };
     }
