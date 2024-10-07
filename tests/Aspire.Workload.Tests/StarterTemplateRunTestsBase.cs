@@ -147,8 +147,8 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
                 State: "Running",
                 Source: $"{project.Id}.ApiService.csproj",
                 Endpoints: BuildEnvironment.DefaultTargetFramework == TestTargetFramework.Current
-                    ? ["http://localhost:\\d+", "https://localhost:\\d+"]
-                    : ["http://localhost:\\d+/weatherforecast", "https://localhost:\\d+/weatherforecast"])
+                    ? ["^http://localhost:\\d+$", "^https://localhost:\\d+$"]
+                    : ["^http://localhost:\\d+/weatherforecast$", "^https://localhost:\\d+/weatherforecast$"])
         };
 
         if (hasRedisCache)
