@@ -86,7 +86,6 @@ steps:
     - template: /eng/pipelines/templates/send-to-helix.yml
       parameters:
         HelixProjectPath: '$(Build.SourcesDirectory)/tests/helix/send-to-helix-ci.proj'
-        # Code coverage on windows is disabled: https://github.com/dotnet/aspire/issues/6189
         HelixProjectArguments: /m /p:ContinuousIntegrationBuild=true /p:Configuration=${{ parameters.buildConfig }} /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
 
         ${{ if eq(parameters.isWindows, 'true') }}:
