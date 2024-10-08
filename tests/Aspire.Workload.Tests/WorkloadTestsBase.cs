@@ -106,9 +106,9 @@ public partial class WorkloadTestsBase
             var inTest = false;
             var marker = testTemplateName switch
             {
-                "aspire-nunit" => "// [Test]",
-                "aspire-mstest" => "// [TestMethod]",
-                "aspire-xunit" => "// [Fact]",
+                "aspire-nunit" or "aspire-nunit-9" => "// [Test]",
+                "aspire-mstest" or "aspire-mstest-9" => "// [TestMethod]",
+                "aspire-xunit" or "aspire-xunit-9" => "// [Fact]",
                 _ => throw new NotImplementedException($"Unknown test template: {testTemplateName}")
             };
 
