@@ -11,16 +11,26 @@ namespace Aspire.Hosting.Codespaces;
 
 internal class CodespacesUrlRewriter(ILogger<CodespacesUrlRewriter> logger, IConfiguration configuration, ResourceNotificationService resourceNotificationService) : BackgroundService
 {
+    private const string CodespacesEnvironmentVariable = "CODESPACES";
+    private const string CodespaceNameEnvironmentVariable = "CODESPACE_NAME";
+    private const string GitHubCodespacesPortForwardingDomain = "GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN";
+
+    private string GetRequiredCodespacesConfigurationValue(string key)
+    {
+        ArgumentNullException.ThrowIfNullOrEmpty(key);
+        return configuration.GetValue<string>(key) ?? throw new DistributedApplicationException($"Codespaces was detected but {key} environment missing.");
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!configuration.GetValue<bool>("CODESPACES", false))
+        if (!configuration.GetValue<bool>(CodespacesEnvironmentVariable, false))
         {
             logger.LogTrace("Not running in Codespaces, skipping URL rewriting.");
             return;
         }
 
-        var gitHubCodespacesPortForwardingDomain = configuration.GetValue<string>("GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN") ?? throw new DistributedApplicationException("Codespaces was detected but GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN environment missing.");
-        var codespaceName = configuration.GetValue<string>("CODESPACE_NAME") ?? throw new DistributedApplicationException("Codespaces was detected but CODESPACE_NAME environment missing.");
+        var gitHubCodespacesPortForwardingDomain = GetRequiredCodespacesConfigurationValue(GitHubCodespacesPortForwardingDomain);
+        var codespaceName = GetRequiredCodespacesConfigurationValue(CodespaceNameEnvironmentVariable);
 
         do
         {
