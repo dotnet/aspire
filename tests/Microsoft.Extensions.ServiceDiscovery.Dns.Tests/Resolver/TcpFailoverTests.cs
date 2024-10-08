@@ -12,7 +12,6 @@ public class TcpFailoverTests : LoopbackDnsTestBase
 {
     public TcpFailoverTests(ITestOutputHelper output) : base(output)
     {
-        Resolver.Timeout = TimeSpan.FromHours(5);
     }
 
     [Fact]

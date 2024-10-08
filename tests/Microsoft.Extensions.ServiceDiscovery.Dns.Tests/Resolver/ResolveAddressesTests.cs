@@ -12,7 +12,6 @@ public class ResolveAddressesTests : LoopbackDnsTestBase
 {
     public ResolveAddressesTests(ITestOutputHelper output) : base(output)
     {
-        Resolver.Timeout = TimeSpan.FromSeconds(5);
     }
 
     [Theory]
@@ -123,5 +122,13 @@ public class ResolveAddressesTests : LoopbackDnsTestBase
         AddressResult result = Assert.Single(results);
 
         Assert.Equal(address, result.Address);
+    }
+
+    [Fact]
+    public async Task Resolve_Timeout_ReturnsEmpty()
+    {
+        Options.Timeout = TimeSpan.FromSeconds(1);
+        AddressResult[] result = await Resolver.ResolveIPAddressesAsync("example.com", AddressFamily.InterNetwork);
+        Assert.Empty(result);
     }
 }

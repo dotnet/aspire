@@ -19,13 +19,25 @@ public class CancellationTests : LoopbackDnsTestBase
         CancellationTokenSource cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Resolver.ResolveIPAddressesAsync("example.com", AddressFamily.InterNetwork, cts.Token));
+        var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Resolver.ResolveIPAddressesAsync("example.com", AddressFamily.InterNetwork, cts.Token));
+
+        Assert.Equal(cts.Token, ex.CancellationToken);
     }
 
     [Fact]
-    public async Task Timeout_Throws()
+    public async Task CancellationInProgress_Throws()
     {
-        Resolver.Timeout = TimeSpan.FromSeconds(1);
-        await Assert.ThrowsAsync<TimeoutException>(async () => await Resolver.ResolveIPAddressesAsync("example.com", AddressFamily.InterNetwork));
+        CancellationTokenSource cts = new CancellationTokenSource();
+
+        var task = Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Resolver.ResolveIPAddressesAsync("example.com", AddressFamily.InterNetwork, cts.Token));
+
+        await DnsServer.ProcessUdpRequest(_ =>
+        {
+            cts.Cancel();
+            return Task.CompletedTask;
+        });
+
+        OperationCanceledException ex = await task;
+        Assert.Equal(cts.Token, ex.CancellationToken);
     }
 }

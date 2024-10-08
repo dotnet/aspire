@@ -12,6 +12,9 @@ internal class ResolverOptions
     public string[]? SearchDomains;
     public bool UseHostsFile;
 
+    public int Attempts = 2;
+    public TimeSpan Timeout = TimeSpan.FromSeconds(3);
+
     public ResolverOptions(IPEndPoint[] servers)
     {
         Servers = servers;

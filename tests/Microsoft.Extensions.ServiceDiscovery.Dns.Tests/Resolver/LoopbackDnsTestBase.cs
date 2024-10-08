@@ -12,7 +12,9 @@ public abstract class LoopbackDnsTestBase : IDisposable
     protected readonly ITestOutputHelper Output;
 
     internal LoopbackDnsServer DnsServer { get; }
-    internal DnsResolver Resolver { get; }
+    private readonly Lazy<DnsResolver> _resolverLazy;
+    internal DnsResolver Resolver => _resolverLazy.Value;
+    internal ResolverOptions Options { get; }
     protected readonly FakeTimeProvider TimeProvider;
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "SetTimeProvider")]
@@ -23,9 +25,19 @@ public abstract class LoopbackDnsTestBase : IDisposable
         Output = output;
         DnsServer = new();
         TimeProvider = new();
-        Resolver = new([DnsServer.DnsEndPoint]);
-        Resolver.Timeout = TimeSpan.FromSeconds(5);
-        MockTimeProvider(Resolver, TimeProvider);
+        Options = new([DnsServer.DnsEndPoint])
+        {
+            Timeout = TimeSpan.FromSeconds(5),
+            Attempts = 1,
+        };
+        _resolverLazy = new(InitializeResolver);
+    }
+
+    DnsResolver InitializeResolver()
+    {
+        var resolver = new DnsResolver(Options);
+        MockTimeProvider(resolver, TimeProvider);
+        return resolver;
     }
 
     public void Dispose()

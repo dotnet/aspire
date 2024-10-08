@@ -14,14 +14,13 @@ internal class DnsResolver : IDnsResolver, IDisposable
     private const int MaximumNameLength = 253;
     private const int IPv4Length = 4;
     private const int IPv6Length = 16;
-    private const int HeaderSize = 12;
 
     private static readonly TimeSpan s_maxTimeout = TimeSpan.FromMilliseconds(int.MaxValue);
 
     bool _disposed;
     private readonly ResolverOptions _options;
-    private TimeSpan _timeout = System.Threading.Timeout.InfiniteTimeSpan;
     private readonly CancellationTokenSource _pendingRequestsCts = new();
+    private int _maxRetries = 3;
 
     private TimeProvider _timeProvider = TimeProvider.System;
 
@@ -42,6 +41,12 @@ internal class DnsResolver : IDnsResolver, IDisposable
         {
             throw new ArgumentException("There are no DNS servers configured.", nameof(options));
         }
+
+        if (options.Timeout != Timeout.InfiniteTimeSpan)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(options.Timeout, TimeSpan.Zero);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(options.Timeout, s_maxTimeout);
+        }
     }
 
     internal DnsResolver(IEnumerable<IPEndPoint> servers) : this(new ResolverOptions(servers.ToArray()))
@@ -52,19 +57,14 @@ internal class DnsResolver : IDnsResolver, IDisposable
     {
     }
 
-    public TimeSpan Timeout
+    public int MaxRetries
     {
-        get => _timeout;
+        get => _maxRetries;
         set
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-
-            if (value != System.Threading.Timeout.InfiniteTimeSpan)
-            {
-                ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(value, TimeSpan.Zero);
-                ArgumentOutOfRangeException.ThrowIfGreaterThan(value, s_maxTimeout);
-            }
-            _timeout = value;
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, 0);
+            _maxRetries = value;
         }
     }
 
@@ -73,15 +73,17 @@ internal class DnsResolver : IDnsResolver, IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
 
-        DnsResponse record = await SendQueryAsync(name, QueryType.SRV, cancellationToken).ConfigureAwait(false);
-        if (!ValidateResponse(record))
+        SendQueryResult result = await SendQueryWithRetriesAsync(name, QueryType.SRV, cancellationToken).ConfigureAwait(false);
+        if (result.Error is not SendQueryError.NoError)
         {
             return Array.Empty<ServiceResult>();
         }
 
-        var results = new List<ServiceResult>(record.Answers.Count);
+        DnsResponse response = result.Response;
 
-        foreach (var answer in record.Answers)
+        var results = new List<ServiceResult>(response.Answers.Count);
+
+        foreach (var answer in response.Answers)
         {
             if (answer.Type == QueryType.SRV)
             {
@@ -89,7 +91,7 @@ internal class DnsResolver : IDnsResolver, IDisposable
                 Debug.Assert(success, "Failed to read SRV");
 
                 List<AddressResult> addresses = new List<AddressResult>();
-                foreach (var additional in record.Additionals)
+                foreach (var additional in response.Additionals)
                 {
                     // From RFC 2782:
                     //
@@ -105,16 +107,15 @@ internal class DnsResolver : IDnsResolver, IDisposable
                     //         available at this domain.
                     if (additional.Name == target && (additional.Type == QueryType.A || additional.Type == QueryType.AAAA))
                     {
-                        addresses.Add(new AddressResult(record.CreatedAt.AddSeconds(additional.Ttl), new IPAddress(additional.Data.Span)));
+                        addresses.Add(new AddressResult(response.CreatedAt.AddSeconds(additional.Ttl), new IPAddress(additional.Data.Span)));
                     }
                 }
 
-                results.Add(new ServiceResult(record.CreatedAt.AddSeconds(answer.Ttl), priority, weight, port, target!, addresses.ToArray()));
+                results.Add(new ServiceResult(response.CreatedAt.AddSeconds(answer.Ttl), priority, weight, port, target!, addresses.ToArray()));
             }
         }
 
-        var result = results.ToArray();
-        return result;
+        return results.ToArray();
     }
 
     public async ValueTask<AddressResult[]> ResolveIPAddressesAsync(string name, CancellationToken cancellationToken = default)
@@ -180,18 +181,19 @@ internal class DnsResolver : IDnsResolver, IDisposable
 
         var queryType = addressFamily == AddressFamily.InterNetwork ? QueryType.A : QueryType.AAAA;
 
-        DnsResponse record = await SendQueryAsync(name, queryType, cancellationToken).ConfigureAwait(false);
-        if (!ValidateResponse(record))
+        SendQueryResult result = await SendQueryWithRetriesAsync(name, queryType, cancellationToken).ConfigureAwait(false);
+        if (result.Error is not SendQueryError.NoError)
         {
             return Array.Empty<AddressResult>();
         }
 
-        var results = new List<AddressResult>(record.Answers.Count);
+        DnsResponse response = result.Response;
+        var results = new List<AddressResult>(response.Answers.Count);
 
         // servers send back CNAME records together with associated A/AAAA records
         string currentAlias = name;
 
-        foreach (var answer in record.Answers)
+        foreach (var answer in response.Answers)
         {
             if (answer.Name != currentAlias)
             {
@@ -208,12 +210,142 @@ internal class DnsResolver : IDnsResolver, IDisposable
             else if (answer.Type == queryType)
             {
                 Debug.Assert(answer.Data.Length == IPv4Length || answer.Data.Length == IPv6Length);
-                results.Add(new AddressResult(record.CreatedAt.AddSeconds(answer.Ttl), new IPAddress(answer.Data.Span)));
+                results.Add(new AddressResult(response.CreatedAt.AddSeconds(answer.Ttl), new IPAddress(answer.Data.Span)));
             }
         }
 
-        var result = results.ToArray();
+        return results.ToArray();
+    }
+
+    internal struct SendQueryResult
+    {
+        public DnsResponse Response;
+        public SendQueryError Error;
+    }
+
+    async ValueTask<SendQueryResult> SendQueryWithRetriesAsync(string name, QueryType queryType, CancellationToken cancellationToken)
+    {
+        SendQueryResult result = default;
+
+        for (int index = 0; index < _options.Servers.Length; index++)
+        {
+            for (int attempt = 0; attempt < _options.Attempts; attempt++)
+            {
+                result = await SendQueryToServerWithTimeoutAsync(_options.Servers[index], name, queryType, index == _options.Servers.Length - 1, cancellationToken).ConfigureAwait(false);
+
+                // TODO: we probably should skip to the next server in case of some errors
+                if (result.Error is SendQueryError.NoError)
+                {
+                    break;
+                }
+            }
+        }
+
+        // we have at least one server and we always keep the last received response.
         return result;
+    }
+
+    internal async ValueTask<SendQueryResult> SendQueryToServerWithTimeoutAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, bool isLastServer, CancellationToken cancellationToken)
+    {
+        (CancellationTokenSource cts, bool disposeTokenSource, CancellationTokenSource pendingRequestsCts) = PrepareCancellationTokenSource(cancellationToken);
+
+        try
+        {
+            return await SendQueryToServerAsync(serverEndPoint, name, queryType, isLastServer, cts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (
+            !cancellationToken.IsCancellationRequested && // not cancelled by the caller
+            !pendingRequestsCts.IsCancellationRequested) // not cancelled by the global token (dispose)
+                                                         // the only remaining token that could cancel this is the linked cts from the timeout.
+        {
+            Debug.Assert(cts.Token.IsCancellationRequested);
+            return new SendQueryResult { Error = SendQueryError.Timeout };
+        }
+        catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested && ex.CancellationToken != cancellationToken)
+        {
+            // cancellation was initiated by the caller, but exception was triggered by a linked token,
+            // rethrow the exception with the caller's token.
+            cancellationToken.ThrowIfCancellationRequested();
+            throw new UnreachableException();
+        }
+        finally
+        {
+            if (disposeTokenSource)
+            {
+                cts.Dispose();
+            }
+        }
+    }
+
+    async ValueTask<SendQueryResult> SendQueryToServerAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, bool isLastServer, CancellationToken cancellationToken)
+    {
+        DateTime queryStartedTime = _timeProvider.GetUtcNow().DateTime;
+        (DnsDataReader responseReader, DnsMessageHeader header) = await SendDnsQueryCoreUdpAsync(serverEndPoint, name, queryType, cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            if (header.IsResultTruncated)
+            {
+                responseReader.Dispose();
+                // TCP fallback
+                (responseReader, header) = await SendDnsQueryCoreTcpAsync(serverEndPoint, name, queryType, cancellationToken).ConfigureAwait(false);
+            }
+
+            if (header.QueryCount != 1 ||
+                !responseReader.TryReadQuestion(out var qName, out var qType, out var qClass) ||
+                qName != name || qType != queryType || qClass != QueryClass.Internet)
+            {
+                // TODO: do we care?
+                throw new InvalidOperationException("Invalid response: Query mismatch");
+                // return default;
+            }
+
+            if (header.ResponseCode != QueryResponseCode.NoError)
+            {
+                return new SendQueryResult { Error = SendQueryError.ServerError };
+            }
+
+            if (header.ResponseCode != QueryResponseCode.NoError && !isLastServer)
+            {
+                // we exhausted attempts on this server, try the next one
+                responseReader.Dispose();
+                return default;
+            }
+
+            int ttl = int.MaxValue;
+            List<DnsResourceRecord> answers = ReadRecords(header.AnswerCount, ref ttl, ref responseReader);
+            List<DnsResourceRecord> authorities = ReadRecords(header.AuthorityCount, ref ttl, ref responseReader);
+            List<DnsResourceRecord> additionals = ReadRecords(header.AdditionalRecordCount, ref ttl, ref responseReader);
+
+            DnsResponse response = new(header, queryStartedTime, queryStartedTime.AddSeconds(ttl), answers, authorities, additionals);
+            responseReader.Dispose();
+
+            return new SendQueryResult { Response = response, Error = ValidateResponse(response) };
+        }
+        finally
+        {
+            responseReader.Dispose();
+        }
+
+        static List<DnsResourceRecord> ReadRecords(int count, ref int ttl, ref DnsDataReader reader)
+        {
+            List<DnsResourceRecord> records = new(count);
+
+            for (int i = 0; i < count; i++)
+            {
+                if (!reader.TryReadResourceRecord(out var record))
+                {
+                    // TODO how to handle corrupted responses?
+                    throw new InvalidOperationException("Invalid response: corrupted record");
+                }
+
+                ttl = Math.Min(ttl, record.Ttl);
+                // copy the data to a new array since the underlying array is pooled
+                records.Add(new DnsResourceRecord(record.Name, record.Type, record.Class, record.Ttl, record.Data.ToArray()));
+            }
+
+            return records;
+        }
     }
 
     internal static bool GetNegativeCacheExpiration(in DnsResponse response, out DateTime expiration)
@@ -243,13 +375,13 @@ internal class DnsResolver : IDnsResolver, IDisposable
         return false;
     }
 
-    internal static bool ValidateResponse(in DnsResponse response)
+    internal static SendQueryError ValidateResponse(in DnsResponse response)
     {
         if (response.Header.ResponseCode == QueryResponseCode.NoError)
         {
             if (response.Answers.Count > 0)
             {
-                return true;
+                return SendQueryError.NoError;
             }
             //
             // RFC 2308 Section 2.2 - No Data
@@ -270,7 +402,7 @@ internal class DnsResolver : IDnsResolver, IDisposable
             {
                 // _cache.TryAdd(name, queryType, expiration, Array.Empty<T>());
             }
-            return false;
+            return SendQueryError.NoData;
         }
 
         if (response.Header.ResponseCode == QueryResponseCode.NameError)
@@ -288,10 +420,59 @@ internal class DnsResolver : IDnsResolver, IDisposable
                 // _cache.TryAddNonexistent(name, expiration);
             }
 
-            return false;
+            return SendQueryError.ServerError;
         }
 
-        return true;
+        return SendQueryError.ServerError;
+    }
+
+    internal static async ValueTask<(DnsDataReader reader, DnsMessageHeader header)> SendDnsQueryCoreUdpAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, CancellationToken cancellationToken)
+    {
+        var buffer = ArrayPool<byte>.Shared.Rent(512);
+        try
+        {
+            Memory<byte> memory = buffer;
+            (ushort transactionId, int length) = EncodeQuestion(memory, name, queryType);
+
+            using var socket = new Socket(serverEndPoint.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+            await socket.ConnectAsync(serverEndPoint, cancellationToken).ConfigureAwait(false);
+
+            await socket.SendAsync(memory.Slice(0, length), SocketFlags.None, cancellationToken).ConfigureAwait(false);
+
+            DnsDataReader responseReader;
+            DnsMessageHeader header;
+
+            while (true)
+            {
+                int readLength = await socket.ReceiveAsync(memory, SocketFlags.None, cancellationToken).ConfigureAwait(false);
+
+                if (readLength < DnsMessageHeader.HeaderLength)
+                {
+                    continue;
+                }
+
+                responseReader = new DnsDataReader(memory.Slice(0, readLength), buffer);
+                if (!responseReader.TryReadHeader(out header) ||
+                    header.TransactionId != transactionId ||
+                    !header.IsResponse)
+                {
+                    // the message is not a response for our query.
+                    // don't dispose reader, we will reuse the buffer
+                    continue;
+                }
+
+                // ownership of the buffer is transferred to the reader, caller will dispose.
+                buffer = null!;
+                return (responseReader, header);
+            }
+        }
+        finally
+        {
+            if (buffer != null)
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
     }
 
     internal static async ValueTask<(DnsDataReader reader, DnsMessageHeader header)> SendDnsQueryCoreTcpAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, CancellationToken cancellationToken)
@@ -348,153 +529,6 @@ internal class DnsResolver : IDnsResolver, IDisposable
         }
     }
 
-    internal static async ValueTask<(DnsDataReader reader, DnsMessageHeader header)> SendDnsQueryCoreUdpAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, CancellationToken cancellationToken)
-    {
-        var buffer = ArrayPool<byte>.Shared.Rent(512);
-        try
-        {
-            Memory<byte> memory = buffer;
-            (ushort transactionId, int length) = EncodeQuestion(memory, name, queryType);
-
-            using var socket = new Socket(serverEndPoint.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
-            await socket.ConnectAsync(serverEndPoint, cancellationToken).ConfigureAwait(false);
-
-            await socket.SendAsync(memory.Slice(0, length), SocketFlags.None, cancellationToken).ConfigureAwait(false);
-
-            DnsDataReader responseReader;
-            DnsMessageHeader header;
-
-            while (true)
-            {
-                int readLength = await socket.ReceiveAsync(memory, SocketFlags.None, cancellationToken).ConfigureAwait(false);
-
-                if (readLength < HeaderSize)
-                {
-                    continue;
-                }
-
-                responseReader = new DnsDataReader(memory.Slice(0, readLength), buffer);
-                if (!responseReader.TryReadHeader(out header) ||
-                    header.TransactionId != transactionId ||
-                    !header.IsResponse)
-                {
-                    // the message is not a response for our query.
-                    // don't dispose reader, we will reuse the buffer
-                    continue;
-                }
-
-                // ownership of the buffer is transferred to the reader, caller will dispose.
-                buffer = null!;
-                return (responseReader, header);
-            }
-        }
-        finally
-        {
-            if (buffer != null)
-            {
-                ArrayPool<byte>.Shared.Return(buffer);
-            }
-        }
-    }
-
-    internal async ValueTask<DnsResponse> SendQueryAsync(string name, QueryType queryType, CancellationToken cancellationToken)
-    {
-        (CancellationTokenSource cts, bool disposeTokenSource, CancellationTokenSource pendingRequestsCts) = PrepareCancellationTokenSource(cancellationToken);
-
-        try
-        {
-            return await SendQueryAsyncCore(name, queryType, cts.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException oce) when (
-            !cancellationToken.IsCancellationRequested && // not cancelled by the caller
-            !pendingRequestsCts.IsCancellationRequested) // not cancelled by the global token (dispose)
-                                                         // the only remaining token that could cancel this is the linked cts from the timeout.
-        {
-            Debug.Assert(cts.Token.IsCancellationRequested);
-            throw new TimeoutException("The operation has timed out.", oce);
-        }
-        finally
-        {
-            if (disposeTokenSource)
-            {
-                cts.Dispose();
-            }
-        }
-
-        async ValueTask<DnsResponse> SendQueryAsyncCore(string name, QueryType queryType, CancellationToken cancellationToken)
-        {
-            DnsDataReader responseReader = default;
-            DnsMessageHeader header = default;
-            DateTime queryStartedTime = default;
-
-            for (int index = 0; index < _options.Servers.Length; index++)
-            {
-                IPEndPoint serverEndPoint = _options.Servers[index];
-
-                queryStartedTime = _timeProvider.GetUtcNow().DateTime;
-                (responseReader, header) = await SendDnsQueryCoreUdpAsync(serverEndPoint, name, queryType, cancellationToken).ConfigureAwait(false);
-
-                if (header.IsResultTruncated)
-                {
-                    responseReader.Dispose();
-                    // TCP fallback
-                    (responseReader, header) = await SendDnsQueryCoreTcpAsync(serverEndPoint, name, queryType, cancellationToken).ConfigureAwait(false);
-                }
-
-                if (header.QueryCount != 1 ||
-                    !responseReader.TryReadQuestion(out var qName, out var qType, out var qClass) ||
-                    qName != name || qType != queryType || qClass != QueryClass.Internet)
-                {
-                    // TODO: do we care?
-                    throw new InvalidOperationException("Invalid response: Query mismatch");
-                    // return default;
-                }
-
-                // TODO: on which response codes should we retry?
-                if (header.ResponseCode == QueryResponseCode.NoError)
-                {
-                    break;
-                }
-
-                if (index < _options.Servers.Length - 1)
-                {
-                    // keep the reader open for processing
-                    responseReader.Dispose();
-                }
-            }
-
-            int ttl = int.MaxValue;
-            List<DnsResourceRecord> answers = ReadRecords(header.AnswerCount, ref ttl, ref responseReader);
-            List<DnsResourceRecord> authorities = ReadRecords(header.AuthorityCount, ref ttl, ref responseReader);
-            List<DnsResourceRecord> additionals = ReadRecords(header.AdditionalRecordCount, ref ttl, ref responseReader);
-
-            DnsResponse record = new(header, queryStartedTime, queryStartedTime.AddSeconds(ttl), answers, authorities, additionals);
-            responseReader.Dispose();
-
-            return record;
-
-            static List<DnsResourceRecord> ReadRecords(int count, ref int ttl, ref DnsDataReader reader)
-            {
-                List<DnsResourceRecord> records = new(count);
-
-                for (int i = 0; i < count; i++)
-                {
-                    if (!reader.TryReadResourceRecord(out var record))
-                    {
-                        // TODO how to handle corrupted responses?
-                        throw new InvalidOperationException("Invalid response: corrupted record");
-                    }
-
-                    ttl = Math.Min(ttl, record.Ttl);
-                    // copy the data to a new array since the underlying array is pooled
-                    records.Add(new DnsResourceRecord(record.Name, record.Type, record.Class, record.Ttl, record.Data.ToArray()));
-                }
-
-                return records;
-            }
-        }
-    }
-
     private static (ushort id, int length) EncodeQuestion(Memory<byte> buffer, string name, QueryType queryType)
     {
         DnsMessageHeader header = default;
@@ -536,14 +570,15 @@ internal class DnsResolver : IDnsResolver, IDisposable
         // it's either due to this source or due to the timeout, and checking whether this source is the culprit is reliable whereas
         // it's more approximate checking elapsed time.
         CancellationTokenSource pendingRequestsCts = _pendingRequestsCts;
+        TimeSpan timeout = _options.Timeout;
 
-        bool hasTimeout = _timeout != System.Threading.Timeout.InfiniteTimeSpan;
+        bool hasTimeout = timeout != System.Threading.Timeout.InfiniteTimeSpan;
         if (hasTimeout || cancellationToken.CanBeCanceled)
         {
             CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, pendingRequestsCts.Token);
             if (hasTimeout)
             {
-                cts.CancelAfter(_timeout);
+                cts.CancelAfter(timeout);
             }
 
             return (cts, DisposeTokenSource: true, pendingRequestsCts);
