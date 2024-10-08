@@ -169,7 +169,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             }
         }
 
-        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyChange: true);
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
         _treeMetricSelector?.OnResourceChanged();
     }
 
@@ -189,7 +189,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     private Task HandleSelectedDurationChangedAsync()
     {
-        return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyChange: true);
+        return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
     public sealed class MetricsViewModel
@@ -236,7 +236,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             PageViewModel.SelectedInstrument = null;
         }
 
-        return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyChange: false);
+        return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
     }
 
     public string GetUrlFromSerializableViewModel(MetricsPageState serializable)
@@ -254,7 +254,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     private async Task OnViewChangedAsync(MetricViewKind newView)
     {
         PageViewModel.SelectedViewKind = newView;
-        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyChange: false);
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
     }
 
     private void UpdateSubscription()
