@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using Aspire.Dashboard.Configuration;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Metrics.V1;
 
@@ -30,7 +29,7 @@ public class DimensionScope
         _values = new(capacity);
     }
 
-    public void AddPointValue(NumberDataPoint d, TelemetryLimitOptions options)
+    public void AddPointValue(NumberDataPoint d, OtlpContext context)
     {
         var start = OtlpHelpers.UnixNanoSecondsToDateTime(d.StartTimeUnixNano);
         var end = OtlpHelpers.UnixNanoSecondsToDateTime(d.TimeUnixNano);
@@ -42,7 +41,7 @@ public class DimensionScope
             if (lastLongValue is not null && lastLongValue.Value == value)
             {
                 lastLongValue.End = end;
-                AddExemplars(lastLongValue, d.Exemplars, options);
+                AddExemplars(lastLongValue, d.Exemplars, context);
                 Interlocked.Increment(ref lastLongValue.Count);
             }
             else
@@ -52,7 +51,7 @@ public class DimensionScope
                     start = lastLongValue.End;
                 }
                 _lastValue = new MetricValue<long>(d.AsInt, start, end);
-                AddExemplars(_lastValue, d.Exemplars, options);
+                AddExemplars(_lastValue, d.Exemplars, context);
                 _values.Add(_lastValue);
             }
         }
@@ -62,7 +61,7 @@ public class DimensionScope
             if (lastDoubleValue is not null && lastDoubleValue.Value == d.AsDouble)
             {
                 lastDoubleValue.End = end;
-                AddExemplars(lastDoubleValue, d.Exemplars, options);
+                AddExemplars(lastDoubleValue, d.Exemplars, context);
                 Interlocked.Increment(ref lastDoubleValue.Count);
             }
             else
@@ -72,13 +71,13 @@ public class DimensionScope
                     start = lastDoubleValue.End;
                 }
                 _lastValue = new MetricValue<double>(d.AsDouble, start, end);
-                AddExemplars(_lastValue, d.Exemplars, options);
+                AddExemplars(_lastValue, d.Exemplars, context);
                 _values.Add(_lastValue);
             }
         }
     }
 
-    public void AddHistogramValue(HistogramDataPoint h, TelemetryLimitOptions options)
+    public void AddHistogramValue(HistogramDataPoint h, OtlpContext context)
     {
         var start = OtlpHelpers.UnixNanoSecondsToDateTime(h.StartTimeUnixNano);
         var end = OtlpHelpers.UnixNanoSecondsToDateTime(h.TimeUnixNano);
@@ -87,7 +86,7 @@ public class DimensionScope
         if (lastHistogramValue is not null && lastHistogramValue.Count == h.Count)
         {
             lastHistogramValue.End = end;
-            AddExemplars(lastHistogramValue, h.Exemplars, options);
+            AddExemplars(lastHistogramValue, h.Exemplars, context);
         }
         else
         {
@@ -105,12 +104,12 @@ public class DimensionScope
                 explicitBounds = h.ExplicitBounds.ToArray();
             }
             _lastValue = new HistogramValue(h.BucketCounts.ToArray(), h.Sum, h.Count, start, end, explicitBounds);
-            AddExemplars(_lastValue, h.Exemplars, options);
+            AddExemplars(_lastValue, h.Exemplars, context);
             _values.Add(_lastValue);
         }
     }
 
-    private static void AddExemplars(MetricValueBase value, RepeatedField<Exemplar> exemplars, TelemetryLimitOptions options)
+    private static void AddExemplars(MetricValueBase value, RepeatedField<Exemplar> exemplars, OtlpContext context)
     {
         if (exemplars.Count > 0)
         {
@@ -143,7 +142,7 @@ public class DimensionScope
                 {
                     Start = start,
                     Value = exemplarValue,
-                    Attributes = exemplar.FilteredAttributes.ToKeyValuePairs(options),
+                    Attributes = exemplar.FilteredAttributes.ToKeyValuePairs(context),
                     SpanId = exemplar.SpanId.ToHexString(),
                     TraceId = exemplar.TraceId.ToHexString()
                 });
