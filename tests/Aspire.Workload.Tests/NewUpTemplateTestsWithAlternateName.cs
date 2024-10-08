@@ -65,7 +65,7 @@ public class NewUpTemplatesWithAlternateName(ITestOutputHelper testOutput) : Wor
         }
     }
 
-    [Theory]
+    [Theory(Skip = "https://github.com/dotnet/aspire/issues/6193")]
     // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-apphost")]
     // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), parameters: "aspire-servicedefaults")]
     [MemberData(nameof(TestData), parameters: "aspire-mstest-9")]
