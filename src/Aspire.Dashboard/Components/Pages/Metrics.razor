@@ -3,7 +3,6 @@
 @page "/metrics/resource/{applicationName}/meter/{meterName}"
 @page "/metrics/resource/{applicationName}/meter/{meterName}/instrument/{instrumentName}"
 
-@using Aspire.Dashboard.Components.Controls.Grid
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
@@ -46,6 +45,7 @@
                 // panels on a mobile viewport.
                 <FluentInputLabel Label="@Loc[Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader]" ForId="metric-selector" />
                 <TreeMetricSelector
+                    @ref="_treeMetricSelector"
                     PageViewModel="@PageViewModel"
                     HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync"/>
             }
@@ -63,9 +63,13 @@
                                     Panel2Size="8fr"
                                     BarSize="@(ViewportInformation.IsDesktop ? 5 : 0)">
                         <Panel1>
-                            <TreeMetricSelector
-                                PageViewModel="@PageViewModel"
-                                HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync" />
+                            @if (ViewportInformation.IsDesktop)
+                            {
+                                <TreeMetricSelector
+                                    @ref="_treeMetricSelector"
+                                    PageViewModel="@PageViewModel"
+                                    HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync"/>
+                            }
                         </Panel1>
                         <Panel2>
                             <div>
