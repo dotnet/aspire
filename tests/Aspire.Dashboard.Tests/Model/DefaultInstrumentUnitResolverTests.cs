@@ -1,12 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Resources;
+using Aspire.Tests.Shared.Telemetry;
 using Microsoft.Extensions.Localization;
-using Microsoft.Extensions.Logging.Abstractions;
 using OpenTelemetry.Proto.Common.V1;
 using Xunit;
 
@@ -31,7 +30,7 @@ public sealed class DefaultInstrumentUnitResolverTests
         {
             Description = "Description!",
             Name = name,
-            Parent = new OtlpMeter(new InstrumentationScope { Name = "meter_name" }, new TelemetryLimitOptions(), NullLogger.Instance),
+            Parent = new OtlpMeter(new InstrumentationScope { Name = "meter_name" }, TelemetryTestHelpers.CreateContext()),
             Type = OtlpInstrumentType.Gauge,
             Unit = unit
         };

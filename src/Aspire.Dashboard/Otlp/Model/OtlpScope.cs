@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Configuration;
 using OpenTelemetry.Proto.Common.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
@@ -25,11 +24,11 @@ public class OtlpScope
         Version = string.Empty;
     }
 
-    public OtlpScope(InstrumentationScope scope, TelemetryLimitOptions options, ILogger logger)
+    public OtlpScope(InstrumentationScope scope, OtlpContext context)
     {
         ScopeName = scope.Name;
 
-        Attributes = scope.Attributes.ToKeyValuePairs(options, logger);
+        Attributes = scope.Attributes.ToKeyValuePairs(context);
         Version = scope.Version;
     }
 }

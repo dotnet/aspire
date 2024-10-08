@@ -7,7 +7,6 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
@@ -169,15 +168,15 @@ public static class OtlpHelpers
         return (long)(nanoseconds / TimeSpan.NanosecondsPerTick);
     }
 
-    public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes, TelemetryLimitOptions options, ILogger logger)
+    public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes, OtlpContext context)
     {
         if (attributes.Count == 0)
         {
             return Array.Empty<KeyValuePair<string, string>>();
         }
 
-        var values = new KeyValuePair<string, string>[Math.Min(attributes.Count, options.MaxAttributeCount)];
-        CopyKeyValues(attributes, values, index: 0, options, logger, out var copyCount);
+        var values = new KeyValuePair<string, string>[Math.Min(attributes.Count, context.Options.MaxAttributeCount)];
+        CopyKeyValues(attributes, values, index: 0, context, out var copyCount);
 
         if (values.Length == copyCount)
         {
@@ -189,14 +188,14 @@ public static class OtlpHelpers
         }
     }
 
-    public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes, TelemetryLimitOptions options, ILogger logger, Func<KeyValue, bool> filter)
+    public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes, OtlpContext context, Func<KeyValue, bool> filter)
     {
         if (attributes.Count == 0)
         {
             return Array.Empty<KeyValuePair<string, string>>();
         }
 
-        var readLimit = Math.Min(attributes.Count, options.MaxAttributeCount);
+        var readLimit = Math.Min(attributes.Count, context.Options.MaxAttributeCount);
         var values = new List<KeyValuePair<string, string>>(readLimit);
         for (var i = 0; i < attributes.Count; i++)
         {
@@ -207,7 +206,7 @@ public static class OtlpHelpers
                 continue;
             }
 
-            var value = TruncateString(attribute.Value.GetString(), options.MaxAttributeLength);
+            var value = TruncateString(attribute.Value.GetString(), context.Options.MaxAttributeLength);
 
             // If there are duplicates then last value wins.
             var existingIndex = GetIndex(values, attribute.Key);
@@ -216,7 +215,7 @@ public static class OtlpHelpers
                 var existingAttribute = values[existingIndex];
                 if (existingAttribute.Value != value)
                 {
-                    logger.LogDebug("Duplicate attribute {Name} with different value. Last value wins.", attribute.Key);
+                    context.Logger.LogDebug("Duplicate attribute {Name} with different value. Last value wins.", attribute.Key);
                     values[existingIndex] = new KeyValuePair<string, string>(attribute.Key, value);
                 }
             }
@@ -244,9 +243,9 @@ public static class OtlpHelpers
         }
     }
 
-    public static void CopyKeyValuePairs(RepeatedField<KeyValue> attributes, KeyValuePair<string, string>[] parentAttributes, TelemetryLimitOptions options, ILogger logger, out int copyCount, [NotNull] ref KeyValuePair<string, string>[]? copiedAttributes)
+    public static void CopyKeyValuePairs(RepeatedField<KeyValue> attributes, KeyValuePair<string, string>[] parentAttributes, OtlpContext context, out int copyCount, [NotNull] ref KeyValuePair<string, string>[]? copiedAttributes)
     {
-        copyCount = Math.Min(parentAttributes.Length + attributes.Count, options.MaxAttributeCount);
+        copyCount = Math.Min(parentAttributes.Length + attributes.Count, context.Options.MaxAttributeCount);
 
         // Attribute limit already reached.
         if (copyCount == parentAttributes.Length)
@@ -268,13 +267,13 @@ public static class OtlpHelpers
 
         parentAttributes.AsSpan().CopyTo(copiedAttributes);
 
-        CopyKeyValues(attributes, copiedAttributes, parentAttributes.Length, options, logger, out var newCopyCount);
+        CopyKeyValues(attributes, copiedAttributes, parentAttributes.Length, context, out var newCopyCount);
         copyCount = parentAttributes.Length + newCopyCount;
     }
 
-    private static void CopyKeyValues(RepeatedField<KeyValue> attributes, KeyValuePair<string, string>[] copiedAttributes, int index, TelemetryLimitOptions options, ILogger logger, out int copyCount)
+    private static void CopyKeyValues(RepeatedField<KeyValue> attributes, KeyValuePair<string, string>[] copiedAttributes, int index, OtlpContext context, out int copyCount)
     {
-        var desiredCopyCount = Math.Min(attributes.Count + index, options.MaxAttributeCount);
+        var desiredCopyCount = Math.Min(attributes.Count + index, context.Options.MaxAttributeCount);
         desiredCopyCount -= index;
 
         // Don't immediately break out of loop when the limit is reached. The rules for attributes is last value wins.
@@ -284,7 +283,7 @@ public static class OtlpHelpers
         {
             var attribute = attributes[i];
 
-            var value = TruncateString(attribute.Value.GetString(), options.MaxAttributeLength);
+            var value = TruncateString(attribute.Value.GetString(), context.Options.MaxAttributeLength);
 
             // If there are duplicates then last value wins.
             var existingIndex = GetIndex(copiedAttributes, attribute.Key);
@@ -293,7 +292,7 @@ public static class OtlpHelpers
                 var existingAttribute = copiedAttributes[existingIndex];
                 if (existingAttribute.Value != value)
                 {
-                    logger.LogDebug("Duplicate attribute {Name} with different value. Last value wins.", attribute.Key);
+                    context.Logger.LogDebug("Duplicate attribute {Name} with different value. Last value wins.", attribute.Key);
                     copiedAttributes[existingIndex] = new KeyValuePair<string, string>(attribute.Key, value);
                 }
             }

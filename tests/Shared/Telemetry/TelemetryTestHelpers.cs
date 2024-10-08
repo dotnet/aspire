@@ -276,4 +276,13 @@ internal static class TelemetryTestHelpers
 
         return value.ToString();
     }
+
+    public static OtlpContext CreateContext(TelemetryLimitOptions? options = null, ILogger? logger = null)
+    {
+        return new OtlpContext
+        {
+            Options = options ?? new TelemetryLimitOptions(),
+            Logger = logger ?? NullLogger.Instance
+        };
+    }
 }

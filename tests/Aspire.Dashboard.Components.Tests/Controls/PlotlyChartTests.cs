@@ -54,6 +54,7 @@ public class PlotlyChartTests : TestContext
 
         var options = new TelemetryLimitOptions();
         var logger = NullLogger.Instance;
+        var context = new OtlpContext { Options = options, Logger = logger };
         var instrument = new OtlpInstrument
         {
             Summary = new OtlpInstrumentSummary
@@ -64,11 +65,10 @@ public class PlotlyChartTests : TestContext
                 Parent = new OtlpMeter(new InstrumentationScope
                 {
                     Name = "Parent-Name-<b>Bold</b>"
-                }, options, logger),
+                }, context),
                 Type = OtlpInstrumentType.Sum
             },
-            Options = options,
-            Logger = logger,
+            Context = context
         };
 
         var model = new InstrumentViewModel();
@@ -78,7 +78,7 @@ public class PlotlyChartTests : TestContext
             AsInt = 1,
             StartTimeUnixNano = 0,
             TimeUnixNano = long.MaxValue
-        }, options, logger);
+        }, context);
 
         await model.UpdateDataAsync(instrument.Summary, [dimension]);
 
