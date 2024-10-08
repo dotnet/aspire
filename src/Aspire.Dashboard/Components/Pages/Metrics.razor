@@ -39,14 +39,14 @@
                           @bind-SelectedOption:after="HandleSelectedDurationChangedAsync"
                           AriaLabel="@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectADuration)]"/>
 
-            @if (!ViewportInformation.IsDesktop && PageViewModel.Instruments?.Count > 0)
+            @if (!ViewportInformation.IsDesktop)
             {
                 // Show metric selector in the toolbar for mobile, since we don't have enough room to show both
                 // panels on a mobile viewport.
-                <FluentInputLabel Label="@Loc[Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader]" ForId="metric-selector" />
                 <TreeMetricSelector
                     @ref="_treeMetricSelector"
                     PageViewModel="@PageViewModel"
+                    IncludeLabel="true"
                     HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync"/>
             }
         </ToolbarSection>

@@ -1,12 +1,25 @@
 ﻿@using Aspire.Dashboard.Components.Pages
 @using Aspire.Dashboard.Otlp.Storage
 
+@inject IStringLocalizer<Metrics> Loc
+
 @{
     // instruments may be out of sync if we have updated the application but not yet closed the filter panel
     // this is because we have not updated the URL, which would close the details panel
     // because of this, we should always compute the instruments from the repository
     var selectedInstance = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
-    var instruments = selectedInstance != null ? TelemetryRepository.GetInstrumentsSummaries(selectedInstance.Value) : [];
+
+    if (selectedInstance is null)
+    {
+        return;
+    }
+
+    var instruments = TelemetryRepository.GetInstrumentsSummaries(selectedInstance.Value);
+}
+
+@if (IncludeLabel)
+{
+    <FluentInputLabel Label="@Loc[Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader]" ForId="metric-selector" />
 }
 
 <FluentTreeView Id="metric-selector" Class="metrics-tree" @bind-CurrentSelected="@PageViewModel.SelectedTreeItem" @bind-CurrentSelected:after="HandleSelectedTreeItemChangedAsync">
@@ -29,6 +42,9 @@
 
     [Parameter, EditorRequired]
     public required Metrics.MetricsViewModel PageViewModel { get; set; }
+
+    [Parameter]
+    public bool IncludeLabel { get; set; }
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
