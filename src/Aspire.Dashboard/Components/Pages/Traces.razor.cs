@@ -183,7 +183,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     private Task HandleSelectedApplicationChanged()
     {
         _applicationChanged = true;
-        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
+        return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyChange: true);
     }
 
     private void UpdateSubscription()
@@ -322,7 +322,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             }
         }
 
-        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyChange: true);
     }
 
     public class TracesPageViewModel

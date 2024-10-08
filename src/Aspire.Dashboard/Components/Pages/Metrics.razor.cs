@@ -170,7 +170,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         // On mobile, we actually *do* want to update the selected application immediately, since it will affect the tree of possible
         // metrics to select from. So, we must also immediately close the window since the closing behavior is necessary if the url has changed.
         var isChangeInToolbar = ViewportInformation.IsDesktop;
-        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: isChangeInToolbar);
+        return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyChange: isChangeInToolbar);
     }
 
     private bool ShouldClearSelectedMetrics(List<OtlpInstrumentSummary> instruments)
@@ -189,7 +189,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     private Task HandleSelectedDurationChangedAsync()
     {
-        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
+        return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyChange: true);
     }
 
     public sealed class MetricsViewModel
@@ -236,7 +236,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             PageViewModel.SelectedInstrument = null;
         }
 
-        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: !ViewportInformation.IsDesktop);
+        return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyChange: false);
     }
 
     public string GetUrlFromSerializableViewModel(MetricsPageState serializable)
@@ -254,7 +254,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     private async Task OnViewChangedAsync(MetricViewKind newView)
     {
         PageViewModel.SelectedViewKind = newView;
-        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: false);
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyChange: false);
     }
 
     private void UpdateSubscription()

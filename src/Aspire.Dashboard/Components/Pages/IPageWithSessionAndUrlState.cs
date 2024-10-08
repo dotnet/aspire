@@ -55,12 +55,17 @@ public static class PageExtensions
     /// <summary>
     /// Called after a change in the view model that will affect the url associated with new page state
     /// to navigate to the new url and save new state in localstorage.
+    ///
+    /// <param name="page"></param>
+    /// <param name="layout"></param>
+    /// <param name="waitToApplyChange">Whether we should avoid applying this change immediately, and instead
+    /// only once the toolbar has been closed.</param>
     /// </summary>
-    public static async Task AfterViewModelChangedAsync<TViewModel, TSerializableViewModel>(this IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel> page, AspirePageContentLayout? layout, bool isChangeInToolbar) where TSerializableViewModel : class
+    public static async Task AfterViewModelChangedAsync<TViewModel, TSerializableViewModel>(this IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel> page, AspirePageContentLayout? layout, bool waitToApplyChange) where TSerializableViewModel : class
     {
         // if the mobile filter dialog is open, we want to wait until the dialog is closed to apply all changes
         // we should only apply the last invocation, as TViewModel will be up-to-date
-        if (layout is not null && !layout.ViewportInformation.IsDesktop && isChangeInToolbar)
+        if (layout is not null && !layout.ViewportInformation.IsDesktop && waitToApplyChange)
         {
             layout.DialogCloseListeners[nameof(AfterViewModelChangedAsync)] = SetStateAndNavigateAsync;
             return;
