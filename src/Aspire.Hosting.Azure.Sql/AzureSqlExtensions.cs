@@ -166,7 +166,8 @@ public static class AzureSqlExtensions
         {
             // need to add the database to the InnerResource
             var innerBuilder = builder.ApplicationBuilder.CreateResourceBuilder(azureResource.InnerResource);
-            innerBuilder.AddDatabase(name, databaseName);
+            var innerDb = innerBuilder.AddDatabase(name, databaseName);
+            azureSqlDatabase.SetInnerResource(innerDb.Resource);
 
             // create a builder, but don't add the Azure database to the model because the InnerResource already has it
             return builder.ApplicationBuilder.CreateResourceBuilder(azureSqlDatabase);
@@ -202,15 +203,26 @@ public static class AzureSqlExtensions
         }
 
         var azureResource = builder.Resource;
-        RemoveAzureResources(builder.ApplicationBuilder, azureResource);
+        var azureDatabases = builder.ApplicationBuilder.Resources
+            .OfType<AzureSqlDatabaseResource>()
+            .Where(db => db.Parent == azureResource)
+            .ToDictionary(db => db.Name);
+
+        RemoveAzureResources(builder.ApplicationBuilder, azureResource, azureDatabases);
 
         var sqlContainer = builder.ApplicationBuilder.AddSqlServer(azureResource.Name);
 
-        azureResource.InnerResource = sqlContainer.Resource;
+        azureResource.SetInnerResource(sqlContainer.Resource);
 
         foreach (var database in azureResource.Databases)
         {
-            sqlContainer.AddDatabase(database.Key, database.Value);
+            if (!azureDatabases.TryGetValue(database.Key, out var existingDb))
+            {
+                throw new InvalidOperationException($"Could not find a {nameof(AzureSqlDatabaseResource)} with name {database.Key}.");
+            }
+
+            var innerDb = sqlContainer.AddDatabase(database.Key, database.Value);
+            existingDb.SetInnerResource(innerDb.Resource);
         }
 
         configureContainer?.Invoke(sqlContainer);
@@ -218,16 +230,12 @@ public static class AzureSqlExtensions
         return builder;
     }
 
-    private static void RemoveAzureResources(IDistributedApplicationBuilder appBuilder, AzureSqlServerResource azureResource)
+    private static void RemoveAzureResources(IDistributedApplicationBuilder appBuilder, AzureSqlServerResource azureResource, Dictionary<string, AzureSqlDatabaseResource> azureDatabases)
     {
-        List<IResource> resourcesToRemove = [azureResource];
-        resourcesToRemove.AddRange(
-            appBuilder.Resources.OfType<AzureSqlDatabaseResource>()
-                .Where(db => db.Parent == azureResource));
-
-        foreach (var resource in resourcesToRemove)
+        appBuilder.Resources.Remove(azureResource);
+        foreach (var database in azureDatabases)
         {
-            appBuilder.Resources.Remove(resource);
+            appBuilder.Resources.Remove(database.Value);
         }
     }
 

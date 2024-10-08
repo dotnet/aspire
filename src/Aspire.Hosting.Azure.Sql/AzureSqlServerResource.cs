@@ -60,8 +60,15 @@ public class AzureSqlServerResource : AzureConstructResource, IResourceWithConne
         }
     }
 
+    /// <summary>
+    /// Gets the inner SqlServerServerResource resource.
+    /// 
+    /// This is set when RunAsContainer is called on the AzureSqlServerResource resource to create a local SQL Server container.
+    /// </summary>
+    internal SqlServerServerResource? InnerResource { get; private set; }
+
     /// <inheritdoc />
-    public override ResourceAnnotationCollection Annotations => _createdWithInnerResource ? InnerResource!.Annotations : base.Annotations;
+    public override ResourceAnnotationCollection Annotations => InnerResource?.Annotations ?? base.Annotations;
 
     /// <summary>
     /// A dictionary where the key is the resource name and the value is the database name.
@@ -73,5 +80,14 @@ public class AzureSqlServerResource : AzureConstructResource, IResourceWithConne
         _databases.TryAdd(name, databaseName);
     }
 
-    internal SqlServerServerResource? InnerResource { get; set; }
+    internal void SetInnerResource(SqlServerServerResource innerResource)
+    {
+        // Copy the annotations to the inner resource before making it the inner resource
+        foreach (var annotation in Annotations)
+        {
+            innerResource.Annotations.Add(annotation);
+        }
+
+        InnerResource = innerResource;
+    }
 }
