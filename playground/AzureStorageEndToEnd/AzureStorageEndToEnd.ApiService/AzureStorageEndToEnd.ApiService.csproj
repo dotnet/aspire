@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Azure.Storage.Blobs" />
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Storage.Queues" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
 

@@ -160,6 +160,9 @@
   <data name="GridValueCopyToClipboard" xml:space="preserve">
     <value>Copy to clipboard</value>
   </data>
+  <data name="ExceptionDetailsTitle" xml:space="preserve">
+    <value>Exception details</value>
+  </data>
   <data name="GridValueCopied" xml:space="preserve">
     <value>Copied!</value>
   </data>
@@ -180,6 +183,9 @@
   </data>
   <data name="PropertyGridValueColumnHeader" xml:space="preserve">
     <value>Value</value>
+  </data>
+  <data name="StateColumnHeader" xml:space="preserve">
+    <value>State</value>
   </data>
   <data name="SpanDetailsResource" xml:space="preserve">
     <value>Resource &lt;strong&gt;{0}&lt;/strong&gt;</value>
@@ -215,7 +221,7 @@
   <data name="ViewAction" xml:space="preserve">
     <value>View</value>
   </data>
-  <data name="All" xml:space="preserve">
+  <data name="LabelAll" xml:space="preserve">
     <value>(All)</value>
   </data>
   <data name="ChartContainerAllTags" xml:space="preserve">
@@ -230,7 +236,7 @@
   <data name="ChartContainerShowCountLabel" xml:space="preserve">
     <value>Show count</value>
   </data>
-  <data name="None" xml:space="preserve">
+  <data name="LabelNone" xml:space="preserve">
     <value>(None)</value>
   </data>
   <data name="MetricTableStartColumnHeader" xml:space="preserve">
@@ -298,6 +304,9 @@
   </data>
   <data name="ResourceDetailsVolumesHeader" xml:space="preserve">
     <value>Volumes</value>
+  </data>
+  <data name="ResourceHealthChecksHeader" xml:space="preserve">
+    <value>Health checks</value>
   </data>
   <data name="ResourceDetailsResourceHeader" xml:space="preserve">
     <value>Resource</value>
@@ -385,5 +394,23 @@
   </data>
   <data name="StructuredFilteringAddFilter" xml:space="preserve">
     <value>Add filter</value>
+  </data>
+  <data name="LabelEmpty" xml:space="preserve">
+    <value>(Empty)</value>
+  </data>
+  <data name="LabelUnset" xml:space="preserve">
+    <value>(Unset)</value>
+  </data>
+  <data name="ActionsColumnHeader" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="ActionViewDetailsText" xml:space="preserve">
+    <value>View details</value>
+  </data>
+  <data name="ActionsButtonText" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="ActionStructuredLogsText" xml:space="preserve">
+    <value>Structured logs</value>
   </data>
 </root>

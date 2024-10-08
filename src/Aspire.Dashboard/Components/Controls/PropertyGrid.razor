@@ -16,6 +16,7 @@
         <GridValue
             ValueDescription="@(NameColumnTitle ?? Loc[nameof(ControlsStrings.NameColumnHeader)])"
             Value="@context.Name"
+            EnableHighlighting="@(!string.IsNullOrEmpty(HighlightText))"
             HighlightText="@HighlightText" />
     </AspireTemplateColumn>
     <AspireTemplateColumn Title="@(ValueColumnTitle ?? Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)])" Class="valueColumn" SortBy="@ValueSort" Sortable="@IsValueSortable">
@@ -23,11 +24,14 @@
             ValueDescription="@(ValueColumnTitle ?? Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)])"
             Value="@context.Value"
             ContentAfterValue="@ContentAfterValue(context)"
+            EnableHighlighting="@(!string.IsNullOrEmpty(HighlightText))"
             HighlightText="@HighlightText"
             EnableMasking="@context.IsValueSensitive"
             IsMasked="@context.IsValueMasked"
             IsMaskedChanged="(isMasked) => OnIsValueMaskedChanged(context, isMasked)"
-            TextVisualizerTitle="@context.Name"/>
+            TextVisualizerTitle="@context.Name"
+            ValueToCopy="@(context.ValueToCopy ?? context.Value)"
+            ValueToVisualize="@(context.ValueToVisualize ?? context.Value)" />
         @ExtraValueContent(context)
     </AspireTemplateColumn>
 </FluentDataGrid>

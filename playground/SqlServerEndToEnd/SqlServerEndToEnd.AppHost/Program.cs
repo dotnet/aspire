@@ -3,8 +3,8 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var sql1 = builder.AddSqlServer("sql1")
-                  .PublishAsAzureSqlDatabase();
+var sql1 = builder.AddAzureSqlServer("sql1")
+                  .RunAsContainer();
 
 var db1 = sql1.AddDatabase("db1");
 

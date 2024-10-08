@@ -269,7 +269,7 @@ public static class ContainerResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">Builder for the container resource.</param>
-    /// <param name="lifetime">The lifetime behavior of the container resource (defaults behavior is <see cref="ContainerLifetime.Default"/>)</param>
+    /// <param name="lifetime">The lifetime behavior of the container resource. The defaults behavior is <see cref="ContainerLifetime.Session"/>.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <example>
     /// Marking a container resource to have a <see cref="ContainerLifetime.Persistent"/> lifetime.
@@ -463,7 +463,7 @@ public static class ContainerResourceBuilderExtensions
     /// <summary>
     /// Adds a build argument when the container is built from a Dockerfile.
     /// </summary>
-    /// <typeparam name="T">The type of container resoruce.</typeparam>
+    /// <typeparam name="T">The type of container resource.</typeparam>
     /// <param name="builder">The resource builder for the container resource.</param>
     /// <param name="name">The name of the build argument.</param>
     /// <param name="value">The resource builder for a parameter resource.</param>
@@ -502,7 +502,7 @@ public static class ContainerResourceBuilderExtensions
     /// <summary>
     /// Adds a secret build argument when the container is built from a Dockerfile.
     /// </summary>
-    /// <typeparam name="T">The type of container resoruce.</typeparam>
+    /// <typeparam name="T">The type of container resource.</typeparam>
     /// <param name="builder">The resource builder for the container resource.</param>
     /// <param name="name">The name of the secret build argument.</param>
     /// <param name="value">The resource builder for a parameter resource.</param>

@@ -153,6 +153,9 @@ public static class AspireKeyVaultExtensions
         protected override TokenCredential? GetTokenCredential(AzureSecurityKeyVaultSettings settings)
             => settings.Credential;
 
+        protected override bool GetMetricsEnabled(AzureSecurityKeyVaultSettings settings)
+            => false;
+
         protected override bool GetTracingEnabled(AzureSecurityKeyVaultSettings settings)
             => !settings.DisableTracing;
     }

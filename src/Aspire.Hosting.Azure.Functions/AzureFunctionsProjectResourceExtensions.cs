@@ -4,16 +4,17 @@
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.Azure;
 using Azure.Provisioning.Storage;
 
-namespace Aspire.Hosting.Azure;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Extension methods for <see cref="AzureFunctionsProjectResource"/>.
 /// </summary>
 public static class AzureFunctionsProjectResourceExtensions
 {
-    internal const string DefaultAzureFunctionsHostStorageName = "azFuncHostStorage";
+    internal const string DefaultAzureFunctionsHostStorageName = "defaultazfuncstorage";
 
     /// <summary>
     /// Adds an Azure Functions project to the distributed application.
@@ -27,49 +28,55 @@ public static class AzureFunctionsProjectResourceExtensions
         var resource = new AzureFunctionsProjectResource(name);
 
         // Add the default storage resource if it doesn't already exist.
-        var storage = builder.Resources.OfType<AzureStorageResource>().FirstOrDefault(r => r.Name == DefaultAzureFunctionsHostStorageName);
+        var storageResourceName = builder.CreateDefaultStorageName();
+        AzureStorageResource? storage = builder.Resources
+            .OfType<AzureStorageResource>()
+            .FirstOrDefault(r => r.Name == storageResourceName);
 
+        // Azure Functions blob triggers require StorageAccountContributor access to the host storage
+        // account when deployed. We assign this role to the host storage resource when running in publish mode.
         if (storage is null)
         {
-            // Azure Functions blob triggers require StorageAccountContributor access to the host storage
-            // account when deployed. We assign this role to the host storage resource when running in publish mode.
             if (builder.ExecutionContext.IsPublishMode)
             {
                 var configureConstruct = (ResourceModuleConstruct construct) =>
                 {
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-                    var storageAccount = construct.GetResources().OfType<StorageAccount>().FirstOrDefault(r => r.ResourceName == DefaultAzureFunctionsHostStorageName)
-                        ?? throw new InvalidOperationException($"Could not find storage account with '{DefaultAzureFunctionsHostStorageName}' name.");
-                    construct.Add(storageAccount.AssignRole(StorageBuiltInRole.StorageAccountContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+                    var storageAccount = construct.GetResources().OfType<StorageAccount>().FirstOrDefault(r => r.IdentifierName == storageResourceName)
+                        ?? throw new InvalidOperationException($"Could not find storage account with '{storageResourceName}' name.");
+                    construct.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageAccountContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 #pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                 };
-                storage = builder.AddAzureStorage(DefaultAzureFunctionsHostStorageName).ConfigureConstruct(configureConstruct).RunAsEmulator().Resource;
+                storage = builder.AddAzureStorage(storageResourceName)
+                    .ConfigureConstruct(configureConstruct)
+                    .RunAsEmulator().Resource;
             }
             else
             {
-                storage = builder.AddAzureStorage(DefaultAzureFunctionsHostStorageName).RunAsEmulator().Resource;
+                storage = builder.AddAzureStorage(storageResourceName).RunAsEmulator().Resource;
             }
-            builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
-            {
-                var removeStorage = true;
-                // Look at all of the resources and if none of them use the default storage, then we can remove it.
-                // This is because we're unable to cleanly add a resource to the builder from within a callback.
-                foreach (var item in data.Model.Resources.OfType<AzureFunctionsProjectResource>())
-                {
-                    if (item.HostStorage == storage)
-                    {
-                        removeStorage = false;
-                    }
-                }
-
-                if (removeStorage)
-                {
-                    data.Model.Resources.Remove(storage);
-                }
-
-                return Task.CompletedTask;
-            });
         }
+
+        builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
+        {
+            var removeStorage = true;
+            // Look at all of the resources and if none of them use the default storage, then we can remove it.
+            // This is because we're unable to cleanly add a resource to the builder from within a callback.
+            foreach (var item in data.Model.Resources.OfType<AzureFunctionsProjectResource>())
+            {
+                if (item.HostStorage == storage)
+                {
+                    removeStorage = false;
+                }
+            }
+
+            if (removeStorage)
+            {
+                data.Model.Resources.Remove(storage);
+            }
+
+            return Task.CompletedTask;
+        });
 
         resource.HostStorage = storage;
 
@@ -92,7 +99,7 @@ public static class AzureFunctionsProjectResourceExtensions
                 }
 
                 // Set the storage connection string.
-                ((IResourceWithAzureFunctionsConfig)resource.HostStorage).ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, "Storage");
+                ((IResourceWithAzureFunctionsConfig)resource.HostStorage).ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, "AzureWebJobsStorage");
             })
             .WithArgs(context =>
             {
@@ -189,5 +196,11 @@ public static class AzureFunctionsProjectResourceExtensions
             connectionName ??= source.Resource.Name;
             source.Resource.ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, connectionName);
         });
+    }
+
+    private static string CreateDefaultStorageName(this IDistributedApplicationBuilder builder)
+    {
+        var applicationHash = builder.Configuration["AppHost:Sha256"]![..5].ToLowerInvariant();
+        return $"{DefaultAzureFunctionsHostStorageName}{applicationHash}";
     }
 }

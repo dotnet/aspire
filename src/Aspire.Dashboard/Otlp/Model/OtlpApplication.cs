@@ -4,7 +4,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
@@ -29,16 +28,14 @@ public class OtlpApplication
     private readonly Dictionary<OtlpInstrumentKey, OtlpInstrument> _instruments = new();
     private readonly ConcurrentDictionary<KeyValuePair<string, string>[], OtlpApplicationView> _applicationViews = new(ApplicationViewKeyComparer.Instance);
 
-    private readonly ILogger _logger;
-    private readonly TelemetryLimitOptions _options;
+    private readonly OtlpContext _context;
 
-    public OtlpApplication(string name, string instanceId, ILogger logger, TelemetryLimitOptions options)
+    public OtlpApplication(string name, string instanceId, OtlpContext context)
     {
         ApplicationName = name;
         InstanceId = instanceId;
 
-        _logger = logger;
-        _options = options;
+        _context = context;
     }
 
     public void AddMetrics(AddContext context, RepeatedField<ScopeMetrics> scopeMetrics)
@@ -69,7 +66,7 @@ public class OtlpApplication
                                     Type = MapMetricType(metric.DataCase),
                                     Parent = GetMeter(sm.Scope)
                                 },
-                                Options = _options
+                                Context = _context
                             });
                         }
 
@@ -78,7 +75,7 @@ public class OtlpApplication
                     catch (Exception ex)
                     {
                         context.FailureCount++;
-                        _logger.LogInformation(ex, "Error adding metric.");
+                        _context.Logger.LogInformation(ex, "Error adding metric.");
                     }
                 }
             }
@@ -104,7 +101,7 @@ public class OtlpApplication
     {
         if (!_meters.TryGetValue(scope.Name, out var meter))
         {
-            _meters.Add(scope.Name, meter = new OtlpMeter(scope, _options));
+            _meters.Add(scope.Name, meter = new OtlpMeter(scope, _context));
         }
         return meter;
     }

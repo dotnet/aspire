@@ -34,7 +34,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkC
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<EntityFrameworkCoreCosmosSettings>? configure = null, string? key = null)
-        => builder.AddCosmosDbContext<TestDbContext>("cosmosdb", "TestDatabase", configure);
+        => builder.AddCosmosDbContext<TestDbContext>(key ?? "cosmosdb", "TestDatabase", configure);
 
     protected override void SetHealthCheck(EntityFrameworkCoreCosmosSettings options, bool enabled)
         => throw new NotImplementedException();

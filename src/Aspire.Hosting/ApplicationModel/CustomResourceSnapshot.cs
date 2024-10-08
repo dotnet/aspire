@@ -48,9 +48,27 @@ public sealed record CustomResourceSnapshot
     public int? ExitCode { get; init; }
 
     /// <summary>
-    /// The health status of the resource.
+    /// Gets the health status of the resource.
     /// </summary>
-    public HealthStatus? HealthStatus { get; init; }
+    /// <remarks>
+    /// <para>
+    /// This value is derived from <see cref="HealthReports"/>. However, if a resource
+    /// is known to have a health check and no reports exist, then this value is <see langword="null"/>.
+    /// </para>
+    /// <para>
+    /// Defaults to <see cref="HealthStatus.Healthy"/>.
+    /// </para>
+    /// </remarks>
+    public HealthStatus? HealthStatus { get; init; } = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy;
+
+    /// <summary>
+    /// The health reports for this resource.
+    /// </summary>
+    /// <remarks>
+    /// May be zero or more. If there are no health reports, the resource is considered healthy
+    /// so long as no heath checks are registered for the resource.
+    /// </remarks>
+    public ImmutableArray<HealthReportSnapshot> HealthReports { get; init; } = [];
 
     /// <summary>
     /// The environment variables that should show up in the dashboard for this resource.
@@ -76,7 +94,7 @@ public sealed record CustomResourceSnapshot
 /// <summary>
 /// A snapshot of the resource state
 /// </summary>
-/// <param name="Text">The text for the state update.</param>
+/// <param name="Text">The text for the state update. See <see cref="KnownResourceStates"/> for expected values.</param>
 /// <param name="Style">The style for the state update. Use <seealso cref="KnownResourceStateStyles"/> for the supported styles.</param>
 public sealed record ResourceStateSnapshot(string Text, string? Style)
 {
@@ -107,7 +125,7 @@ public sealed record UrlSnapshot(string Name, string Url, bool IsInternal);
 /// <summary>
 /// A snapshot of a volume, mounted to a container.
 /// </summary>
-/// <param name="Source">The name of the volume. Can be <c>null</c> if the mount is an anonymous volume.</param>
+/// <param name="Source">The name of the volume. Can be <see langword="null"/> if the mount is an anonymous volume.</param>
 /// <param name="Target">The target of the mount.</param>
 /// <param name="MountType">Gets the mount type, such as <see cref="VolumeMountType.Bind"/> or <see cref="VolumeMountType.Volume"/></param>
 /// <param name="IsReadOnly">Whether the volume mount is read-only or not.</param>
@@ -142,10 +160,31 @@ public sealed record ResourcePropertySnapshot(string Name, object? Value)
 /// <param name="Type">The type of command. The type uniquely identifies the command.</param>
 /// <param name="State">The state of the command.</param>
 /// <param name="DisplayName">The display name visible in UI for the command.</param>
+/// <param name="DisplayDescription">
+/// Optional description of the command, to be shown in the UI.
+/// Could be used as a tooltip. May be localized.
+/// </param>
+/// <param name="Parameter">
+/// Optional parameter that configures the command in some way.
+/// Clients must return any value provided by the server when invoking the command.
+/// </param>
+/// <param name="ConfirmationMessage">
+/// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
+/// and the confirmation message before starting the command.
+/// </param>
 /// <param name="IconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
 /// <param name="IconVariant">The icon variant.</param>
 /// <param name="IsHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
-public sealed record ResourceCommandSnapshot(string Type, ResourceCommandState State, string DisplayName, string? IconName, IconVariant? IconVariant, bool IsHighlighted);
+public sealed record ResourceCommandSnapshot(string Type, ResourceCommandState State, string DisplayName, string? DisplayDescription, object? Parameter, string? ConfirmationMessage, string? IconName, IconVariant? IconVariant, bool IsHighlighted);
+
+/// <summary>
+/// A report produced by a health check about a resource.
+/// </summary>
+/// <param name="Name">The name of the health check that produced this report.</param>
+/// <param name="Status">The state of the resource, according to the report.</param>
+/// <param name="Description">An optional description of the report, for display.</param>
+/// <param name="ExceptionText">An optional string containing exception details.</param>
+public sealed record HealthReportSnapshot(string Name, HealthStatus Status, string? Description, string? ExceptionText);
 
 /// <summary>
 /// The state of a resource command.

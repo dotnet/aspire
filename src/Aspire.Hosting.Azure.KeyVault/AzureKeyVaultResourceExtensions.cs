@@ -42,7 +42,7 @@ public static class AzureKeyVaultResourceExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var keyVault = new KeyVaultService(construct.Resource.Name)
+            var keyVault = new KeyVaultService(construct.Resource.GetBicepIdentifier())
             {
                 Properties = new KeyVaultProperties()
                 {
@@ -57,12 +57,12 @@ public static class AzureKeyVaultResourceExtensions
             };
             construct.Add(keyVault);
 
-            construct.Add(new BicepOutput("vaultUri", typeof(string))
+            construct.Add(new ProvisioningOutput("vaultUri", typeof(string))
             {
                 Value =
                     new MemberExpression(
                         new MemberExpression(
-                            new IdentifierExpression(keyVault.ResourceName),
+                            new IdentifierExpression(keyVault.IdentifierName),
                             "properties"),
                         "vaultUri")
                 // TODO: this should be
@@ -71,7 +71,7 @@ public static class AzureKeyVaultResourceExtensions
 
             keyVault.Tags["aspire-resource-name"] = construct.Resource.Name;
 
-            construct.Add(keyVault.AssignRole(KeyVaultBuiltInRole.KeyVaultAdministrator, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(keyVault.CreateRoleAssignment(KeyVaultBuiltInRole.KeyVaultAdministrator, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             var resource = (AzureKeyVaultResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);

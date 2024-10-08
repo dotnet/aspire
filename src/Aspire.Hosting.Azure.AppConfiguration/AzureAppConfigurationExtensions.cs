@@ -41,7 +41,7 @@ public static class AzureAppConfigurationExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var store = new AppConfigurationStore(name)
+            var store = new AppConfigurationStore(construct.Resource.GetBicepIdentifier())
             {
                 SkuName = "standard",
                 DisableLocalAuth = true,
@@ -49,9 +49,9 @@ public static class AzureAppConfigurationExtensions
             };
             construct.Add(store);
 
-            construct.Add(new BicepOutput("appConfigEndpoint", typeof(string)) { Value = store.Endpoint });
+            construct.Add(new ProvisioningOutput("appConfigEndpoint", typeof(string)) { Value = store.Endpoint });
 
-            construct.Add(store.AssignRole(AppConfigurationBuiltInRole.AppConfigurationDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(store.CreateRoleAssignment(AppConfigurationBuiltInRole.AppConfigurationDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             var resource = (AzureAppConfigurationResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);

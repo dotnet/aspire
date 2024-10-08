@@ -2,9 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Azure.AI.OpenAI;
+using Azure.Core.Extensions;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using OpenAI;
 using Xunit;
 
@@ -146,5 +149,49 @@ public class AspireAzureAIOpenAIExtensionsTests
         //Assert.NotSame(client1, client2);
         //Assert.NotSame(client1, client3);
         Assert.NotSame(client2, client3);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void BindsOptionsAndInvokesCallback(bool useKeyed)
+    {
+        var networkTimeout = TimeSpan.FromSeconds(123);
+        var applicationId = "application_id";
+
+        var key = useKeyed ? ":openai" : "";
+
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:openai", ConnectionString),
+            new KeyValuePair<string, string?>($"Aspire:Azure:AI:OpenAI{key}:ClientOptions:UserAgentApplicationId", applicationId),
+            // Ensure the callback wins over configuration
+            new KeyValuePair<string, string?>($"Aspire:Azure:AI:OpenAI{key}:ClientOptions:NetworkTimeout", "00:00:02")
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddKeyedAzureOpenAIClient("openai", configureClientBuilder: BuildConfiguration);
+        }
+        else
+        {
+            builder.AddAzureOpenAIClient("openai", configureClientBuilder: BuildConfiguration);
+        }
+
+        void BuildConfiguration(IAzureClientBuilder<AzureOpenAIClient, AzureOpenAIClientOptions> builder)
+        {
+            builder.ConfigureOptions(options =>
+            {
+                options.NetworkTimeout = networkTimeout;
+            });
+        }
+
+        using var host = builder.Build();
+
+        var options = host.Services.GetRequiredService<IOptionsMonitor<AzureOpenAIClientOptions>>().Get(useKeyed ? "openai" : "Default");
+
+        Assert.NotNull(options);
+        Assert.Equal(applicationId, options.UserAgentApplicationId);
+        Assert.Equal(networkTimeout, options.NetworkTimeout);
     }
 }

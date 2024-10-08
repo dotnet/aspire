@@ -3,6 +3,8 @@ Aspire.Azure.AI.OpenAI.AzureOpenAISettings
 Aspire.Azure.AI.OpenAI.AzureOpenAISettings.AzureOpenAISettings() -> void
 Aspire.Azure.AI.OpenAI.AzureOpenAISettings.Credential.get -> Azure.Core.TokenCredential?
 Aspire.Azure.AI.OpenAI.AzureOpenAISettings.Credential.set -> void
+Aspire.Azure.AI.OpenAI.AzureOpenAISettings.DisableMetrics.get -> bool
+Aspire.Azure.AI.OpenAI.AzureOpenAISettings.DisableMetrics.set -> void
 Aspire.Azure.AI.OpenAI.AzureOpenAISettings.DisableTracing.get -> bool
 Aspire.Azure.AI.OpenAI.AzureOpenAISettings.DisableTracing.set -> void
 Aspire.Azure.AI.OpenAI.AzureOpenAISettings.Endpoint.get -> System.Uri?

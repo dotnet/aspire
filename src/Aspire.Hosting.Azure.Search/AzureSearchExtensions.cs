@@ -50,7 +50,7 @@ public static class AzureSearchExtensions
 
         void ConfigureSearch(ResourceModuleConstruct construct)
         {
-            var search = new SearchService(name)
+            var search = new SearchService(construct.Resource.GetBicepIdentifier())
             {
                 SearchSkuName = SearchServiceSkuName.Basic,
                 ReplicaCount = 1,
@@ -61,13 +61,13 @@ public static class AzureSearchExtensions
             };
             construct.Add(search);
 
-            construct.Add(search.AssignRole(SearchBuiltInRole.SearchIndexDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
-            construct.Add(search.AssignRole(SearchBuiltInRole.SearchServiceContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(search.CreateRoleAssignment(SearchBuiltInRole.SearchIndexDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(search.CreateRoleAssignment(SearchBuiltInRole.SearchServiceContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             // TODO: The endpoint format should move into the CDK so we can maintain this
             // logic in a single location and have a better chance at supporting more than
             // just public Azure in the future.  https://github.com/Azure/azure-sdk-for-net/issues/42640
-            construct.Add(new BicepOutput("connectionString", typeof(string))
+            construct.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
                 Value = BicepFunction.Interpolate($"Endpoint=https://{search.Name}.search.windows.net")
             });

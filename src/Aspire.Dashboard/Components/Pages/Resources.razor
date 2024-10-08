@@ -45,9 +45,10 @@
                         OnResourceTypeVisibilityChangedAsync="@OnResourceTypeVisibilityChangedAsync" />
                 </div>
             }
-
+            <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <FluentSearch Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
                           Immediate="true"
+                          ImmediateDelay="@FluentUIExtensions.InputDelay"
                           @bind-Value="_filter"
                           slot="end"
                           Label="@(ViewportInformation.IsDesktop ? null : ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)].Value)"
@@ -95,7 +96,7 @@
                                 <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort" Tooltip="true" TooltipText="@(c => GetResourceName(c))">
                                     <ResourceNameDisplay Resource="context" FilterText="@_filter" FormatName="GetResourceName" />
                                 </AspireTemplateColumn>
-                                <AspireTemplateColumn ColumnId="@StateColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStateColumnHeader)]" Sortable="true" SortBy="@_stateSort" Tooltip="true" TooltipText="@(c => GetResourceStateTooltip(c))">
+                                <AspireTemplateColumn ColumnId="@StateColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStateColumnHeader)]" Sortable="true" SortBy="@_stateSort" Tooltip="true" TooltipText="@(c => StateColumnDisplay.GetResourceStateTooltip(c, ColumnsLoc))">
                                     <StateColumnDisplay Resource="@context" UnviewedErrorCounts="@_applicationUnviewedErrorCounts" />
                                 </AspireTemplateColumn>
                                 <AspireTemplateColumn ColumnId="@StartTimeColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStartTimeColumnHeader)]" Sortable="true" SortBy="@_startTimeSort" TooltipText="@(context => context.CreationTimeStamp != null ? FormatHelpers.FormatDateTime(TimeProvider, context.CreationTimeStamp.Value, MillisecondsDisplay.None, CultureInfo.CurrentCulture) : null)" Tooltip="true">
@@ -113,12 +114,14 @@
                                                             DisplayedEndpoints="@GetDisplayedEndpoints(context, out var additionalMessage)"
                                                             AdditionalMessage="@additionalMessage" />
                                 </AspireTemplateColumn>
-                                <AspireTemplateColumn ColumnId="@ActionsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesActionsColumnHeader)]">
-                                    <div style="display: inline-block;" @onclick:stopPropagation="true">
+                                <AspireTemplateColumn ColumnId="@ActionsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesActionsColumnHeader)]" Class="no-ellipsis">
+                                    <div class="grid-action-container" @onclick:stopPropagation="true">
                                         <ResourceActions Commands="@context.Commands"
                                                          CommandSelected="async (command) => await ExecuteResourceCommandAsync(context, command)"
                                                          OnViewDetails="@((buttonId) => ShowResourceDetailsAsync(context, buttonId))"
-                                                         OnConsoleLogs="@(() => NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: context.Name)))" />
+                                                         Resource="context"
+                                                         GetResourceName="GetResourceName"
+                                                         MaxHighlightedCount="_maxHighlightedCount" />
                                     </div>
                                 </AspireTemplateColumn>
                             </ChildContent>

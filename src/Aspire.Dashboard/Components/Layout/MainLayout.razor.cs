@@ -268,21 +268,11 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     [JSInvokable]
     public async Task OpenTextVisualizerAsync(IJSStreamReference valueStream, string valueDescription)
     {
-        var width = ViewportInformation.IsDesktop ? "75vw" : "100vw";
-        var parameters = new DialogParameters
-        {
-            Title = valueDescription,
-            Width = $"min(1000px, {width})",
-            TrapFocus = true,
-            Modal = true,
-            PreventScroll = true,
-        };
-
         await using var referenceStream = await valueStream.OpenReadStreamAsync();
         using var reader = new StreamReader(referenceStream);
         var value = await reader.ReadToEndAsync();
 
-        await DialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(value, valueDescription), parameters);
+        await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, valueDescription, value);
     }
 
     public async ValueTask DisposeAsync()

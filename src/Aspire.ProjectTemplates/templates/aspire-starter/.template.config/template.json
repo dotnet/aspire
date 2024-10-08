@@ -11,10 +11,10 @@
     "Service",
     "Cloud"
   ],
-  "name": ".NET Aspire Starter App",
+  "name": ".NET Aspire 9 Starter App",
   "defaultName": "AspireApp",
-  "description": "A project template for creating a .NET Aspire app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
-  "shortName": "aspire-starter",
+  "description": "A project template for creating a .NET Aspire 9 app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
+  "shortName": ["aspire-starter", "aspire-starter-9"],
   "sourceName": "Aspire-StarterApplication.1",
   "preferNameDirectory": false,
   "tags": {
@@ -22,10 +22,10 @@
     "type": "solution",
     "editorTreatAs": "solution"
   },
-  "precedence": "8000",
-  "identity": "Aspire.Starter.CSharp.8.0",
+  "precedence": "9000",
+  "identity": "Aspire.Starter.CSharp.9.net9",
   "thirdPartyNotices": "https://aka.ms/dotnet/aspire/8.0-third-party-notices",
-  "groupIdentity": "Aspire.Starter",
+  "groupIdentity": "Aspire.Starter.9",
   "guids": [
     "80B24B1B-1E78-4FCB-BDC9-13678F1789F4",
     "DB7A3AC1-6E4F-4805-B710-2FCD1084E96E",
@@ -60,12 +60,12 @@
       "datatype": "choice",
       "choices": [
         {
-          "choice": "net8.0",
-          "description": "Target net8.0"
+          "choice": "net9.0",
+          "description": "Target net9.0"
         }
       ],
-      "replaces": "net8.0",
-      "defaultValue": "net8.0"
+      "replaces": "net9.0",
+      "defaultValue": "net9.0"
     },
     "hostIdentifier": {
       "type": "bind",

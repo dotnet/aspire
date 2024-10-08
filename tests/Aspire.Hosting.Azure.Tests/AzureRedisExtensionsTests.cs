@@ -15,15 +15,15 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var redis = builder.AddAzureRedis("cache");
+        var redis = builder.AddAzureRedis("redis-cache");
 
         var manifest = await ManifestUtils.GetManifestWithBicep(redis.Resource);
 
         var expectedManifest = """
             {
               "type": "azure.bicep.v0",
-              "connectionString": "{cache.outputs.connectionString}",
-              "path": "cache.module.bicep",
+              "connectionString": "{redis-cache.outputs.connectionString}",
+              "path": "redis-cache.module.bicep",
               "params": {
                 "principalId": "",
                 "principalName": ""
@@ -40,8 +40,8 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
 
             param principalName string
 
-            resource cache 'Microsoft.Cache/redis@2024-03-01' = {
-              name: take('cache-${uniqueString(resourceGroup().id)}', 63)
+            resource redis_cache 'Microsoft.Cache/redis@2024-03-01' = {
+              name: take('rediscache-${uniqueString(resourceGroup().id)}', 63)
               location: location
               properties: {
                 sku: {
@@ -57,41 +57,41 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
                 disableAccessKeyAuthentication: 'true'
               }
               tags: {
-                'aspire-resource-name': 'cache'
+                'aspire-resource-name': 'redis-cache'
               }
             }
 
-            resource cache_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
-              name: take('cachecontributor${uniqueString(resourceGroup().id)}', 24)
+            resource redis_cache_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
+              name: take('rediscachecontributor${uniqueString(resourceGroup().id)}', 24)
               properties: {
                 accessPolicyName: 'Data Contributor'
                 objectId: principalId
                 objectIdAlias: principalName
               }
-              parent: cache
+              parent: redis_cache
             }
 
-            output connectionString string = '${cache.properties.hostName},ssl=true'
+            output connectionString string = '${redis_cache.properties.hostName},ssl=true'
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
     [Fact]
-    public async Task AddAzureRedisWithAccessKeyAuth()
+    public async Task AddAzureRedisWithAccessKeyAuthentication()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var redis = builder.AddAzureRedis("cache")
-            .WithAccessKeyAuth();
+        var redis = builder.AddAzureRedis("redis-cache")
+            .WithAccessKeyAuthentication();
 
         var manifest = await ManifestUtils.GetManifestWithBicep(redis.Resource);
 
         var expectedManifest = """
             {
               "type": "azure.bicep.v0",
-              "connectionString": "{cache.secretOutputs.connectionString}",
-              "path": "cache.module.bicep",
+              "connectionString": "{redis-cache.secretOutputs.connectionString}",
+              "path": "redis-cache.module.bicep",
               "params": {
                 "keyVaultName": ""
               }
@@ -105,8 +105,8 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
 
             param keyVaultName string
 
-            resource cache 'Microsoft.Cache/redis@2024-03-01' = {
-              name: take('cache-${uniqueString(resourceGroup().id)}', 63)
+            resource redis_cache 'Microsoft.Cache/redis@2024-03-01' = {
+              name: take('rediscache-${uniqueString(resourceGroup().id)}', 63)
               location: location
               properties: {
                 sku: {
@@ -119,18 +119,18 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
                 redisConfiguration: { }
               }
               tags: {
-                'aspire-resource-name': 'cache'
+                'aspire-resource-name': 'redis-cache'
               }
             }
 
-            resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
+            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
             
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
+            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
               name: 'connectionString'
               properties: {
-                value: '${cache.properties.hostName},ssl=true,password=${cache.listKeys().primaryKey}'
+                value: '${redis_cache.properties.hostName},ssl=true,password=${redis_cache.listKeys().primaryKey}'
               }
               parent: keyVault
             }
