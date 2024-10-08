@@ -7,7 +7,7 @@ using static Aspire.Dashboard.Components.Pages.Metrics;
 
 namespace Aspire.Dashboard.Tests.Model;
 
-public sealed class DashpageJsonFilePersistenceTests
+public sealed class HighlightJsonFilePersistenceTests
 {
     [Fact]
     public void Deserialize()
@@ -16,7 +16,8 @@ public sealed class DashpageJsonFilePersistenceTests
             [
                 /* Comments are ignored */
                 {
-                    "name": ".NET",
+                    "displayName": ".NET",
+                    "id": ".NET",
                     "priority": 99,
                     "charts": [
                         {
@@ -39,7 +40,8 @@ public sealed class DashpageJsonFilePersistenceTests
                     ]
                 },
                 {
-                    "name": "Envoy",
+                    "displayName": "Envoy",
+                    "id": "Envoy",
                     "priority": 99,
                     "charts": [
                         {
@@ -53,12 +55,13 @@ public sealed class DashpageJsonFilePersistenceTests
             ]
             """;
 
-        var dashpages = DashpageJsonFilePersistence.Deserialize(json);
+        var dashpages = HighlightJsonFilePersistence.Deserialize(json);
 
         Assert.Collection(dashpages,
             dashpage =>
             {
-                Assert.Equal(".NET", dashpage.Name);
+                Assert.Equal(".NET", dashpage.Id);
+                Assert.Equal(".NET", dashpage.DisplayName);
                 Assert.Equal(99, dashpage.Priority);
                 Assert.Collection(dashpage.Charts,
                     chart =>
@@ -88,7 +91,8 @@ public sealed class DashpageJsonFilePersistenceTests
             },
             dashpage =>
             {
-                Assert.Equal("Envoy", dashpage.Name);
+                Assert.Equal("Envoy", dashpage.DisplayName);
+                Assert.Equal("Envoy", dashpage.Id);
                 Assert.Equal(99, dashpage.Priority);
                 Assert.Collection(dashpage.Charts,
                     chart =>

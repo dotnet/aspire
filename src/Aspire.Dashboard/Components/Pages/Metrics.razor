@@ -2,7 +2,8 @@
 @page "/metrics/resource/{applicationName}"
 @page "/metrics/resource/{applicationName}/meter/{meterName}"
 @page "/metrics/resource/{applicationName}/meter/{meterName}/instrument/{instrumentName}"
-@page "/metrics/resource/{applicationName}/dashpages"
+@page "/metrics/resource/{applicationName}/highlights"
+@page "/metrics/resource/{applicationName}/highlights/{highlightId}"
 
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Resources
@@ -27,12 +28,12 @@
                             @bind-SelectedResource="PageViewModel.SelectedApplication"
                             @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync"
                             CanSelectGrouping="true" />
-            @if (PageViewModel.SelectedDashpage is not null)
+            @if (PageViewModel.SelectedHighlight is not null)
             {
                 <div slot="end">
                     <FluentMenuButton ButtonAppearance="Appearance.Stealth"
                                       Text="@(ControlsStringsLoc[PageViewModel.SelectedViewKind is MetricViewKind.Table ? nameof(ControlsStrings.ChartContainerTableTab) : nameof(ControlsStrings.ChartContainerGraphTab)])"
-                                      OnMenuChanged="@HandleDashpageMetricViewKindChangedAsync"
+                                      OnMenuChanged="@HandleHighlightMetricViewKindChangedAsync"
                                       slot="end">
                         <FluentMenuItem Id="@MetricViewKind.Graph.ToString()">@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerGraphTab)]</FluentMenuItem>
                         <FluentMenuItem Id="@MetricViewKind.Table.ToString()">@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerTableTab)]</FluentMenuItem>
@@ -84,24 +85,24 @@
                         <Panel2>
                             <div>
                                 <div class="metrics-content">
-                                    @if (PageViewModel.SelectedDashpage is not null && PageViewModel.SelectedApplication.Id is not null)
+                                    @if (PageViewModel.SelectedHighlight is not null && PageViewModel.SelectedApplication.Id is not null)
                                     {
-                                        <DashpageCharts Applications="@_applications"
+                                        <HighlightCharts Applications="@_applications"
                                                         Instruments="@PageViewModel.Instruments"
                                                         SelectedApplication="@PageViewModel.SelectedApplication"
                                                         SelectedDuration="@PageViewModel.SelectedDuration"
-                                                        SelectedDashpage="@PageViewModel.SelectedDashpage"
+                                                        SelectedHighlight="@PageViewModel.SelectedHighlight"
                                                         SelectedMeter="@PageViewModel.SelectedMeter"
                                                         SelectedViewKind="@PageViewModel.SelectedViewKind"
                                                         OnViewChangedAsync="@OnViewChangedAsync"/>
                                     }
-                                    else if (PageViewModel.DashpagesHomeSelected)
+                                    else if (PageViewModel.HighlightsHomeSelected)
                                     {
-                                        var instrumentModels = PageViewModel.Dashpages
-                                            .Where(PageViewModel.IsDashpageAvailable)
-                                            .Select(i => new MetricInstrumentSelector.MetricInstrument(i.Name, DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedApplication.Name, duration: DurationMinutes, view: ViewKindName, dashpage: i.Name), null));
+                                        var instrumentModels = PageViewModel.Highlights
+                                            .Where(PageViewModel.IsHighlightAvailable)
+                                            .Select(i => new MetricInstrumentSelector.MetricInstrument(i.DisplayName, DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedApplication.Name, duration: DurationMinutes, view: ViewKindName, highlight: i.Id), null));
 
-                                        <MetricInstrumentSelector Title="@Loc[nameof(Dashboard.Resources.Metrics.DashpagesSectionName)]"
+                                        <MetricInstrumentSelector Title="@Loc[nameof(Dashboard.Resources.Metrics.HighlightsSectionName)]"
                                                                   PageViewModel="@PageViewModel"
                                                                   Instruments="@instrumentModels"
                                                                   ShowDescriptionColumn="false" />

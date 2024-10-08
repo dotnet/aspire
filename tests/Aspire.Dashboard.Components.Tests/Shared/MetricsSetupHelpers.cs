@@ -85,7 +85,7 @@ internal static class MetricsSetupHelpers
         context.Services.AddSingleton<LibraryConfiguration>();
         context.Services.AddSingleton<IKeyCodeService, KeyCodeService>();
         context.Services.AddSingleton<IEffectiveThemeResolver, TestEffectiveThemeResolver>();
-        context.Services.AddSingleton<IDashpagePersistence, TestDashpagePersistence>();
+        context.Services.AddSingleton<IHighlightPersistence, TestHighlightsPersistence>();
         context.Services.AddSingleton<ThemeManager>();
     }
 
