@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Codespaces;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
@@ -189,6 +190,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<IDistributedApplicationEventing>(Eventing);
         _innerBuilder.Services.AddHealthChecks();
 
+        ConfigureCodespacesUrlRewriter();
         ConfigureHealthChecks();
 
         if (ExecutionContext.IsRunMode)
@@ -277,6 +279,17 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Services.AddSingleton(ExecutionContext);
         LogBuilderConstructed(this);
+    }
+
+    private void ConfigureCodespacesUrlRewriter()
+    {
+        var isRunningInCodepaces = _innerBuilder.Configuration.GetBool("CODESPACES", false);
+        if (!ExecutionContext.IsRunMode || !isRunningInCodepaces)
+        {
+            return;
+        }
+
+        _innerBuilder.Services.AddHostedService<CodespacesUrlRewriter>();
     }
 
     private void ConfigureHealthChecks()
