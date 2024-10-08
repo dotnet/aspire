@@ -3,10 +3,10 @@
 
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Tests.Shared.Telemetry;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using OpenTelemetry.Proto.Common.V1;
 using Xunit;
@@ -156,8 +156,7 @@ public class OtlpHelpersTests
                 new KeyValue { Key = "key1", Value = new AnyValue { StringValue = "value1" } }
             },
             [],
-            new TelemetryLimitOptions { MaxAttributeCount = 3 },
-            NullLogger.Instance,
+            TelemetryTestHelpers.CreateContext(options: new TelemetryLimitOptions { MaxAttributeCount = 3 }),
             out var copyCount,
             ref copiedAttributes);
 
@@ -187,8 +186,7 @@ public class OtlpHelpersTests
                 new KeyValue { Key = "key4", Value = new AnyValue { StringValue = "value4" } }
             },
             [],
-            new TelemetryLimitOptions { MaxAttributeCount = 3 },
-            NullLogger.Instance,
+            TelemetryTestHelpers.CreateContext(options: new TelemetryLimitOptions { MaxAttributeCount = 3 }),
             out var copyCount,
             ref copiedAttributes);
 
@@ -232,8 +230,7 @@ public class OtlpHelpersTests
                 new KeyValue { Key = "key4", Value = new AnyValue { StringValue = "value4-2" } }
             },
             [],
-            new TelemetryLimitOptions { MaxAttributeCount = 3 },
-            NullLogger.Instance,
+            TelemetryTestHelpers.CreateContext(options: new TelemetryLimitOptions { MaxAttributeCount = 3 }),
             out var copyCount,
             ref copiedAttributes);
 
@@ -272,8 +269,7 @@ public class OtlpHelpersTests
             [
                 new KeyValuePair<string, string>("parentkey1", "parentvalue1")
             ],
-            new TelemetryLimitOptions { MaxAttributeCount = 3 },
-            NullLogger.Instance,
+            TelemetryTestHelpers.CreateContext(options: new TelemetryLimitOptions { MaxAttributeCount = 3 }),
             out var copyCount,
             ref copiedAttributes);
 
@@ -309,8 +305,7 @@ public class OtlpHelpersTests
             [
                 new KeyValuePair<string, string>("parentkey1", "parentvalue1")
             ],
-            new TelemetryLimitOptions { MaxAttributeCount = 3 },
-            NullLogger.Instance,
+            TelemetryTestHelpers.CreateContext(options: new TelemetryLimitOptions { MaxAttributeCount = 3 }),
             out var copyCount,
             ref copiedAttributes);
 
@@ -353,8 +348,7 @@ public class OtlpHelpersTests
                 new KeyValuePair<string, string>("parentkey2", "parentvalue2"),
                 new KeyValuePair<string, string>("parentkey3", "parentvalue3")
             ],
-            new TelemetryLimitOptions { MaxAttributeCount = 3 },
-            NullLogger.Instance,
+            TelemetryTestHelpers.CreateContext(options: new TelemetryLimitOptions { MaxAttributeCount = 3 }),
             out var copyCount,
             ref copiedAttributes);
 
@@ -390,7 +384,7 @@ public class OtlpHelpersTests
             };
 
         // Act
-        var results = attributes.ToKeyValuePairs(new TelemetryLimitOptions { MaxAttributeCount = 2 }, NullLogger.Instance);
+        var results = attributes.ToKeyValuePairs(TelemetryTestHelpers.CreateContext(options: new TelemetryLimitOptions { MaxAttributeCount = 2 }));
 
         // Act
         Assert.Collection(results,
@@ -425,7 +419,8 @@ public class OtlpHelpersTests
         });
 
         // Act
-        var results = attributes.ToKeyValuePairs(new TelemetryLimitOptions { MaxAttributeCount = 2 }, factory.CreateLogger<OtlpHelpersTests>());
+        var context = TelemetryTestHelpers.CreateContext(options: new TelemetryLimitOptions { MaxAttributeCount = 2 }, logger: factory.CreateLogger<OtlpHelpersTests>());
+        var results = attributes.ToKeyValuePairs(context);
 
         // Assert
         Assert.Collection(results,
@@ -469,7 +464,8 @@ public class OtlpHelpersTests
         });
 
         // Act
-        var results = attributes.ToKeyValuePairs(new TelemetryLimitOptions { MaxAttributeCount = 3 }, factory.CreateLogger<OtlpHelpersTests>(), kv =>
+        var context = TelemetryTestHelpers.CreateContext(options: new TelemetryLimitOptions { MaxAttributeCount = 3 }, logger: factory.CreateLogger<OtlpHelpersTests>());
+        var results = attributes.ToKeyValuePairs(context, kv =>
         {
             return !kv.Key.Contains('-');
         });
