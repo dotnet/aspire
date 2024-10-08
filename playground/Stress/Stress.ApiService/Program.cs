@@ -3,7 +3,9 @@
 
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Threading.Channels;
+using System.Xml.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Stress.ApiService;
 
@@ -184,6 +186,8 @@ app.MapGet("/log-formatting", (ILoggerFactory loggerFactory) =>
 
     var xmlWithComments = @"<hello><!-- world --></hello>";
 
+    var xmlWithUrl = new XElement(new XElement("url", "http://localhost:8080")).ToString();
+
     // From https://microsoftedge.github.io/Demos/json-dummy-data/
     var jsonLarge = File.ReadAllText(Path.Combine("content", "example.json"));
 
@@ -194,6 +198,11 @@ app.MapGet("/log-formatting", (ILoggerFactory loggerFactory) =>
     1
 ]";
 
+    var jsonWithUrl = new JsonObject
+    {
+        ["url"] = "http://localhost:8080"
+    }.ToString();
+
     var sb = new StringBuilder();
     for (int i = 0; i < 26; i++)
     {
@@ -203,9 +212,12 @@ app.MapGet("/log-formatting", (ILoggerFactory loggerFactory) =>
 
     logger.LogInformation(@"XML large content: {XmlLarge}
 XML comment content: {XmlComment}
+XML URL content: {XmlUrl}
 JSON large content: {JsonLarge}
 JSON comment content: {JsonComment}
-Long line content: {LongLines}", xmlLarge, xmlWithComments, jsonLarge, jsonWithComments, sb.ToString());
+JSON URL content: {JsonUrl}
+Long line content: {LongLines}
+URL content: {UrlContent}", xmlLarge, xmlWithComments, xmlWithUrl, jsonLarge, jsonWithComments, jsonWithUrl, sb.ToString(), "http://localhost:8080");
 
     return "Log with formatted data";
 });
