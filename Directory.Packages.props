@@ -195,7 +195,7 @@
     <PackageVersion Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
 
     <!-- Pinned versions for Component Governance - Remove when root dependencies are updated -->
-    <PackageVersion Include="System.Text.Json" Version="8.0.4" />
+    <PackageVersion Include="System.Text.Json" Version="8.0.5" />
     <PackageVersion Include="Azure.Core" Version="1.44.0" />
     <PackageVersion Include="Azure.Identity" Version="1.12.1" />
     <!-- https://github.com/Azure/azure-cosmos-dotnet-v3/pull/3313 -->
