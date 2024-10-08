@@ -24,43 +24,56 @@ internal class CodespacesUrlRewriter(ILogger<CodespacesUrlRewriter> logger, ICon
 
         do
         {
-            var resourceEvents = resourceNotificationService.WatchAsync(stoppingToken);
-
-            await foreach (var resourceEvent in resourceEvents.ConfigureAwait(false))
+            try
             {
-                Dictionary<UrlSnapshot, UrlSnapshot>? remappedUrls = null;
+                var resourceEvents = resourceNotificationService.WatchAsync(stoppingToken);
 
-                foreach (var originalUrlSnapshot in resourceEvent.Snapshot.Urls)
+                await foreach (var resourceEvent in resourceEvents.ConfigureAwait(false))
                 {
-                    var uri = new Uri(originalUrlSnapshot.Url);
+                    Dictionary<UrlSnapshot, UrlSnapshot>? remappedUrls = null;
 
-                    if (!originalUrlSnapshot.IsInternal && (uri.Scheme == "http" || uri.Scheme == "https") && uri.Host == "localhost")
+                    foreach (var originalUrlSnapshot in resourceEvent.Snapshot.Urls)
                     {
-                        remappedUrls ??= new();
+                        var uri = new Uri(originalUrlSnapshot.Url);
 
-                        var newUrlSnapshot = originalUrlSnapshot with
+                        if (!originalUrlSnapshot.IsInternal && (uri.Scheme == "http" || uri.Scheme == "https") && uri.Host == "localhost")
                         {
-                            Url = $"{uri.Scheme}://{codespaceName}-{uri.Port}.{gitHubCodespacesPortForwardingDomain}{uri.AbsolutePath}"
-                        };
+                            remappedUrls ??= new();
 
-                        remappedUrls.Add(originalUrlSnapshot, newUrlSnapshot);
+                            var newUrlSnapshot = originalUrlSnapshot with
+                            {
+                                // The format of GitHub Codespaces URLs comprises the codespace
+                                // name (from the CODESPACE_NAME environment variable, the port,
+                                // and the port forwarding domain (via GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN
+                                // which is typically ".app.github.dev". The VSCode instance is typically
+                                // hosted at codespacename.github.dev whereas the forwarded ports
+                                // would be at codespacename-port.app.github.dev.
+                                Url = $"{uri.Scheme}://{codespaceName}-{uri.Port}.{gitHubCodespacesPortForwardingDomain}{uri.AbsolutePath}"
+                            };
+
+                            remappedUrls.Add(originalUrlSnapshot, newUrlSnapshot);
+                        }
+                    }
+
+                    if (remappedUrls is not null)
+                    {
+                        var transformedUrls = from originalUrl in resourceEvent.Snapshot.Urls
+                                              select remappedUrls.TryGetValue(originalUrl, out var remappedUrl) ? remappedUrl : originalUrl;
+
+                        await resourceNotificationService.PublishUpdateAsync(resourceEvent.Resource, resourceEvent.ResourceId, s => s with
+                        {
+                            Urls = transformedUrls.ToImmutableArray()
+                        }).ConfigureAwait(false);
                     }
                 }
-
-                if (remappedUrls is not null)
-                {
-                    var transformedUrls = from originalUrl in resourceEvent.Snapshot.Urls
-                                          select remappedUrls.TryGetValue(originalUrl, out var remappedUrl) ? remappedUrl : originalUrl;
-
-                    await resourceNotificationService.PublishUpdateAsync(resourceEvent.Resource, resourceEvent.ResourceId, s => s with
-                    {
-                        Urls = transformedUrls.ToImmutableArray()
-                    }).ConfigureAwait(false);
-                }
             }
-
-            // Short delay if we crash just to avoid spinning CPU.
-            await Task.Delay(5000, stoppingToken).ConfigureAwait(false);
+            catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
+            {
+                // When debugging sometimes we'll get cancelled here but we don't want
+                // to tear down the loop. We only want to crash out when the service's
+                // cancellation token is signaled.
+                logger.LogTrace(ex, "Codespace URL rewriting loop threw an exception but was ignored.");
+            }
         } while (!stoppingToken.IsCancellationRequested);
     }
 }
