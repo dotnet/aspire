@@ -34,6 +34,8 @@ public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
 
     private async Task SettingChangedAsync()
     {
+        // The field is being transiently set to null when the value changes. Maybe a bug in FluentUI?
+        // This should never be set to null by the dashboard so we can ignore null values.
         if (_currentSetting != null)
         {
             // The theme isn't changed here. Instead, the MainLayout subscribes to the change event
