@@ -5,13 +5,20 @@ using System.Collections.Immutable;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Codespaces;
 
-internal class CodespacesUrlRewriter(IConfiguration configuration, ResourceNotificationService resourceNotificationService) : BackgroundService
+internal class CodespacesUrlRewriter(ILogger<CodespacesUrlRewriter> logger, IConfiguration configuration, ResourceNotificationService resourceNotificationService) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (!configuration.GetValue<bool>("CODESPACES", false))
+        {
+            logger.LogTrace("Not running in Codespaces, skipping URL rewriting.");
+            return;
+        }
+
         var gitHubCodespacesPortForwardingDomain = configuration.GetValue<string>("GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN") ?? throw new DistributedApplicationException("Codespaces was detected but GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN environment missing.");
         var codespaceName = configuration.GetValue<string>("CODESPACE_NAME") ?? throw new DistributedApplicationException("Codespaces was detected but CODESPACE_NAME environment missing.");
 

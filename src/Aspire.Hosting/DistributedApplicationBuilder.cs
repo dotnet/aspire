@@ -190,7 +190,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<IDistributedApplicationEventing>(Eventing);
         _innerBuilder.Services.AddHealthChecks();
 
-        ConfigureCodespacesUrlRewriter();
         ConfigureHealthChecks();
 
         if (ExecutionContext.IsRunMode)
@@ -262,6 +261,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.AddSingleton(new Locations());
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
 
+            // Codespaces
+            _innerBuilder.Services.AddHostedService<CodespacesUrlRewriter>();
+
             Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
         }
 
@@ -279,17 +281,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Services.AddSingleton(ExecutionContext);
         LogBuilderConstructed(this);
-    }
-
-    private void ConfigureCodespacesUrlRewriter()
-    {
-        var isRunningInCodepaces = _innerBuilder.Configuration.GetBool("CODESPACES", false);
-        if (!ExecutionContext.IsRunMode || !isRunningInCodepaces)
-        {
-            return;
-        }
-
-        _innerBuilder.Services.AddHostedService<CodespacesUrlRewriter>();
     }
 
     private void ConfigureHealthChecks()
