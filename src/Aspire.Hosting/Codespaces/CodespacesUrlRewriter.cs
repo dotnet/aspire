@@ -36,10 +36,7 @@ internal class CodespacesUrlRewriter(ILogger<CodespacesUrlRewriter> logger, ICon
 
                     if (!originalUrlSnapshot.IsInternal && (uri.Scheme == "http" || uri.Scheme == "https") && uri.Host == "localhost")
                     {
-                        if (remappedUrls is null)
-                        {
-                            remappedUrls = new();
-                        }
+                        remappedUrls ??= new();
 
                         var newUrlSnapshot = originalUrlSnapshot with
                         {
