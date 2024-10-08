@@ -17,6 +17,7 @@ public class ContainerReferenceParserTests
     }
 
     [Theory]
+    [InlineData("  ")]
     [InlineData(":justtag")]
     [InlineData("@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")]
     [InlineData("aa/asdf$$^/aa")]

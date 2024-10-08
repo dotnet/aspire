@@ -163,7 +163,10 @@ public static class ContainerResourceBuilderExtensions
             builder.Resource.Annotations.Add(imageAnnotation);
         }
 
-        imageAnnotation.Registry = parsedReference.Registry;
+        if (parsedReference.Registry is { })
+        {
+            imageAnnotation.Registry = parsedReference.Registry;
+        }
 
         if (parsedReference.Digest is { })
         {

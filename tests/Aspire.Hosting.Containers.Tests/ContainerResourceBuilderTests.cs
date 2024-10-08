@@ -112,21 +112,14 @@ public class ContainerResourceBuilderTests
     [InlineData("registry.io/image:tag", "registry.io", "image", "tag", null)]
     [InlineData("host.com/path/to/image@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "host.com", "path/to/image", null, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
     [InlineData("another.org/path/to/another/image:tag@sha256:9999999999999999999999999999999999999999999999999999999999999999", "another.org", "path/to/another/image", null, "9999999999999999999999999999999999999999999999999999999999999999")]
-    public void WithImageMutatesContainerImageAnnotation(string reference, string? expectedRegistry, string expectedImage, string? expectedTag, string? expectedDigest)
+    public void WithImageMutatesContainerImageAnnotation(string reference, string? expectedRegistry, string expectedImage, string? expectedTag, string? expectedSha256)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var container = builder.AddResource(new TestContainerResource("testcontainer"));
 
         container.WithImage(reference);
 
-        var containerImage = container.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
-        Assert.Multiple(() =>
-        {
-            Assert.Equal(expectedImage, containerImage.Image);
-            Assert.Equal(expectedRegistry, containerImage.Registry);
-            Assert.Equal(expectedTag, containerImage.Tag);
-            Assert.Equal(expectedDigest, containerImage.SHA256);
-        });
+        AssertImageComponents(container, expectedRegistry, expectedImage, expectedTag, expectedSha256);
     }
 
     [Fact]
@@ -148,20 +141,30 @@ public class ContainerResourceBuilderTests
     }
 
     [Fact]
-    public void WithImageShouldNotOverrideTag()
+    public void WithImageWithoutRegistryShouldKeepExistingRegistry()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder
+            .AddContainer("container", "foobar.io/image", "original-tag")
+            .WithImage("different-image");
+
+        var annotation = redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
+        AssertImageComponents(redis, "foobar.io", "different-image", "original-tag", null);
+    }
+
+    [Fact]
+    public void WithImageWithoutTagShouldKeepExistingTag()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder
             .AddContainer("container", "image", "original-tag")
             .WithImage("redis-stack");
 
-        var annotation = redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
-        Assert.Equal("original-tag", annotation.Tag);
-        Assert.Null(annotation.SHA256);
+        AssertImageComponents(redis, null, "redis-stack", "original-tag", null);
     }
 
     [Fact]
-    public void WithImageShouldNotOverrideDigest()
+    public void WithImageWithoutSha256ShouldKeepExistingSha256()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder
@@ -172,6 +175,19 @@ public class ContainerResourceBuilderTests
         var annotation = redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
         Assert.Equal("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", annotation.SHA256);
         Assert.Null(annotation.Tag);
+    }
+
+    private static void AssertImageComponents<T>(IResourceBuilder<T> builder, string? expectedRegistry, string expectedImage, string? expectedTag, string? expectedSha256)
+        where T: IResource
+    {
+        var containerImage = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
+        Assert.Multiple(() =>
+        {
+            Assert.Equal(expectedRegistry, containerImage.Registry);
+            Assert.Equal(expectedImage, containerImage.Image);
+            Assert.Equal(expectedTag, containerImage.Tag);
+            Assert.Equal(expectedSha256, containerImage.SHA256);
+        });
     }
 
     private sealed class TestContainerResource(string name) : ContainerResource(name)

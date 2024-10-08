@@ -163,7 +163,6 @@ public class AddRabbitMQTests
     }
 
     [Theory]
-    [InlineData(" ")]
     [InlineData("notrabbitmq")]
     [InlineData("not-supported")]
     public void WithManagementPluginThrowsForUnsupportedContainerImageName(string imageName)
