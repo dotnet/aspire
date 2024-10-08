@@ -2,28 +2,24 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
 {
-    private string _currentSetting = ThemeManager.ThemeSettingSystem;
+    private string? _currentSetting;
 
-    private IJSObjectReference? _jsModule;
     private IDisposable? _themeChangedSubscription;
-
-    [Inject]
-    public required IJSRuntime JS { get; init; }
 
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
 
     protected override void OnInitialized()
     {
+        _currentSetting = ThemeManager.EffectiveTheme;
+
         // Handle value being changed in a different browser window.
         _themeChangedSubscription = ThemeManager.OnThemeChanged(async () =>
         {
@@ -36,27 +32,19 @@ public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
         });
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private async Task SettingChangedAsync()
     {
-        if (firstRender)
+        if (_currentSetting != null)
         {
-            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/app-theme.js");
-            _currentSetting = await _jsModule.InvokeAsync<string>("getThemeCookieValue");
-            StateHasChanged();
+            // The theme isn't changed here. Instead, the MainLayout subscribes to the change event
+            // and applies the new theme to the browser window.
+            await ThemeManager.RaiseThemeChangedAsync(_currentSetting);
         }
     }
 
-    private async Task SettingChangedAsync(string newValue)
-    {
-        // The theme isn't changed here. Instead, the MainLayout subscribes to the change event
-        // and applies the new theme to the browser window.
-        _currentSetting = newValue;
-        await ThemeManager.RaiseThemeChangedAsync(newValue);
-    }
-
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         _themeChangedSubscription?.Dispose();
-        await JSInteropHelpers.SafeDisposeAsync(_jsModule);
+        return ValueTask.CompletedTask;
     }
 }
