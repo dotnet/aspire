@@ -7,9 +7,6 @@ namespace Aspire.Hosting.Utils;
 /// <summary>
 /// Class to parse container references (e.g. "mcr.microsoft.com/dotnet/sdk:8.0")
 /// </summary>
-/// <remarks>
-/// Based on grammar defined at https://github.com/distribution/reference/blob/8c942b0459dfdcc5b6685581dd0a5a470f615bff/reference.go
-/// </remarks>
 internal partial class ContainerReferenceParser
 {
     public static ContainerReference Parse(string input)

@@ -112,12 +112,12 @@ public class ContainerResourceBuilderTests
     [InlineData("registry.io/image:tag", "registry.io", "image", "tag", null)]
     [InlineData("host.com/path/to/image@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "host.com", "path/to/image", null, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
     [InlineData("another.org/path/to/another/image:tag@sha256:9999999999999999999999999999999999999999999999999999999999999999", "another.org", "path/to/another/image", null, "9999999999999999999999999999999999999999999999999999999999999999")]
-    public void WithImageReferenceMutatesContainerImageAnnotation(string reference, string? expectedRegistry, string expectedImage, string? expectedTag, string? expectedDigest)
+    public void WithImageMutatesContainerImageAnnotation(string reference, string? expectedRegistry, string expectedImage, string? expectedTag, string? expectedDigest)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var container = builder.AddResource(new TestContainerResource("testcontainer"));
 
-        container.WithImageReference(reference);
+        container.WithImage(reference);
 
         var containerImage = container.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
         Assert.Multiple(() =>
@@ -130,25 +130,48 @@ public class ContainerResourceBuilderTests
     }
 
     [Fact]
-    public void WithImageReferenceOverwritesExistingContainerImageAnnotationValues()
+    public void WithImageThrowsWithConflictingTag()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddResource(new TestContainerResource("testcontainer"));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => container.WithImage("image:tag", "anothertag"));
+    }
+
+    [Fact]
+    public void WithImageThrowsWithConflictingTagAndDigest()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddResource(new TestContainerResource("testcontainer"));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => container.WithImage("image@sha246:abcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcd", "tag"));
+    }
+
+    [Fact]
+    public void WithImageShouldNotOverrideTag()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder
-            .AddContainer("redis", "redis")
-            .WithImage("redis-stack")
-            .WithImageRegistry("registry")
-            .WithImageTag("tag");
+            .AddContainer("container", "image", "original-tag")
+            .WithImage("redis-stack");
 
-        redis.WithImageReference("whatever");
+        var annotation = redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
+        Assert.Equal("original-tag", annotation.Tag);
+        Assert.Null(annotation.SHA256);
+    }
 
-        var containerImage = redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
-        Assert.Multiple(() =>
-        {
-            Assert.Equal("whatever", containerImage.Image);
-            Assert.Null(containerImage.Registry);
-            Assert.Equal("latest", containerImage.Tag);
-            Assert.Null(containerImage.SHA256);
-        });
+    [Fact]
+    public void WithImageShouldNotOverrideDigest()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder
+            .AddContainer("redis", "image")
+            .WithImageSHA256("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+            .WithImage("redis-stack");
+
+        var annotation = redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
+        Assert.Equal("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", annotation.SHA256);
+        Assert.Null(annotation.Tag);
     }
 
     private sealed class TestContainerResource(string name) : ContainerResource(name)
