@@ -1,7 +1,7 @@
 <Project>
     <PropertyGroup>
       <!-- This needs to be set to true before importing parent Directory.Build.props -->
-       <!-- This library can't ship stable until Azure.AI.OpenAI ships stable. -->
+      <!-- This library can't ship stable until Azure.AI.OpenAI ships stable. -->
       <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     </PropertyGroup>
   
