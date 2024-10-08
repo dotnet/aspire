@@ -173,19 +173,26 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void RunAsContainerAppliesAnnotationsCorrectly(bool before)
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public void RunAsContainerAppliesAnnotationsCorrectly(bool annotationsBefore, bool addDatabaseBefore)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var sql = builder.AddAzureSqlServer("sql");
-        var db = sql.AddDatabase("db1");
+        IResourceBuilder<AzureSqlDatabaseResource>? db = null;
 
-        if (before)
+        if (addDatabaseBefore)
+        {
+            db = sql.AddDatabase("db1");
+        }
+
+        if (annotationsBefore)
         {
             sql.WithAnnotation(new Dummy1Annotation());
-            db.WithAnnotation(new Dummy1Annotation());
+            db?.WithAnnotation(new Dummy1Annotation());
         }
 
         sql.RunAsContainer(c =>
@@ -193,10 +200,21 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
             c.WithAnnotation(new Dummy2Annotation());
         });
 
-        if (!before)
+        if (!addDatabaseBefore)
+        {
+            db = sql.AddDatabase("db1");
+
+            if (annotationsBefore)
+            {
+                // need to add the annotation here in this case becuase it has to be added after the DB is created
+                db!.WithAnnotation(new Dummy1Annotation());
+            }
+        }
+
+        if (!annotationsBefore)
         {
             sql.WithAnnotation(new Dummy1Annotation());
-            db.WithAnnotation(new Dummy1Annotation());
+            db!.WithAnnotation(new Dummy1Annotation());
         }
 
         var sqlResourceInModel = builder.Resources.Single(r => r.Name == "sql");
