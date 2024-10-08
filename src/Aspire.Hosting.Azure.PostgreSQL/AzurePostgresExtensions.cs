@@ -253,7 +253,8 @@ public static class AzurePostgresExtensions
         {
             // need to add the database to the InnerResource
             var innerBuilder = builder.ApplicationBuilder.CreateResourceBuilder(azureResource.InnerResource);
-            innerBuilder.AddDatabase(name, databaseName);
+            var innerDb = innerBuilder.AddDatabase(name, databaseName);
+            azurePostgresDatabase.SetInnerResource(innerDb.Resource);
 
             // create a builder, but don't add the Azure database to the model because the InnerResource already has it
             return builder.ApplicationBuilder.CreateResourceBuilder(azurePostgresDatabase);
@@ -294,7 +295,7 @@ public static class AzurePostgresExtensions
             .Where(db => db.Parent == azureResource)
             .ToDictionary(db => db.Name);
 
-        RemoveAzureResources(builder.ApplicationBuilder, azureResource);
+        RemoveAzureResources(builder.ApplicationBuilder, azureResource, azureDatabases);
 
         var userNameParameterBuilder = azureResource.UserNameParameter is not null ?
             builder.ApplicationBuilder.CreateResourceBuilder(azureResource.UserNameParameter) :
@@ -326,16 +327,12 @@ public static class AzurePostgresExtensions
         return builder;
     }
 
-    private static void RemoveAzureResources(IDistributedApplicationBuilder appBuilder, AzurePostgresFlexibleServerResource azureResource)
+    private static void RemoveAzureResources(IDistributedApplicationBuilder appBuilder, AzurePostgresFlexibleServerResource azureResource, Dictionary<string, AzurePostgresFlexibleServerDatabaseResource> azureDatabases)
     {
-        List<IResource> resourcesToRemove = [azureResource];
-        resourcesToRemove.AddRange(
-            appBuilder.Resources.OfType<AzurePostgresFlexibleServerDatabaseResource>()
-                .Where(db => db.Parent == azureResource));
-
-        foreach (var resource in resourcesToRemove)
+        appBuilder.Resources.Remove(azureResource);
+        foreach (var database in azureDatabases)
         {
-            appBuilder.Resources.Remove(resource);
+            appBuilder.Resources.Remove(database.Value);
         }
     }
 

@@ -325,19 +325,26 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void RunAsContainerAppliesAnnotationsCorrectly(bool before)
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public void RunAsContainerAppliesAnnotationsCorrectly(bool annotationsBefore, bool addDatabaseBefore)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var postgres = builder.AddAzurePostgresFlexibleServer("postgres-data");
-        var db = postgres.AddDatabase("db1");
+        IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource>? db = null;
 
-        if (before)
+        if (addDatabaseBefore)
+        {
+            db = postgres.AddDatabase("db1");
+        }
+
+        if (annotationsBefore)
         {
             postgres.WithAnnotation(new Dummy1Annotation());
-            db.WithAnnotation(new Dummy1Annotation());
+            db?.WithAnnotation(new Dummy1Annotation());
         }
 
         postgres.RunAsContainer(c =>
@@ -345,10 +352,21 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
             c.WithAnnotation(new Dummy2Annotation());
         });
 
-        if (!before)
+        if (!addDatabaseBefore)
+        {
+            db = postgres.AddDatabase("db1");
+
+            if (annotationsBefore)
+            {
+                // need to add the annotation here in this case becuase it has to be added after the DB is created
+                db!.WithAnnotation(new Dummy1Annotation());
+            }
+        }
+
+        if (!annotationsBefore)
         {
             postgres.WithAnnotation(new Dummy1Annotation());
-            db.WithAnnotation(new Dummy1Annotation());
+            db!.WithAnnotation(new Dummy1Annotation());
         }
 
         var postgresResourceInModel = builder.Resources.Single(r => r.Name == "postgres-data");
