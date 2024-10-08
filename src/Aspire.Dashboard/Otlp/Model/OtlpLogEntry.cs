@@ -24,11 +24,14 @@ public class OtlpLogEntry
     public OtlpScope Scope { get; }
     public Guid InternalId { get; }
 
-    public OtlpLogEntry(LogRecord record, OtlpApplicationView logApp, OtlpScope scope, TelemetryLimitOptions options)
+    public OtlpLogEntry(LogRecord record, OtlpApplicationView logApp, OtlpScope scope, TelemetryLimitOptions options, ILogger logger)
     {
+        InternalId = Guid.NewGuid();
+        TimeStamp = OtlpHelpers.UnixNanoSecondsToDateTime(record.TimeUnixNano);
+
         string? originalFormat = null;
         string? parentId = null;
-        Attributes = record.Attributes.ToKeyValuePairs(options, filter: attribute =>
+        Attributes = record.Attributes.ToKeyValuePairs(options, logger, filter: attribute =>
         {
             switch (attribute.Key)
             {
@@ -47,7 +50,6 @@ public class OtlpLogEntry
             }
         });
 
-        TimeStamp = OtlpHelpers.UnixNanoSecondsToDateTime(record.TimeUnixNano);
         Flags = record.Flags;
         Severity = MapSeverity(record.SeverityNumber);
 
@@ -58,7 +60,6 @@ public class OtlpLogEntry
         ParentId = parentId ?? string.Empty;
         ApplicationView = logApp;
         Scope = scope;
-        InternalId = Guid.NewGuid();
     }
 
     private static LogLevel MapSeverity(SeverityNumber severityNumber) => severityNumber switch

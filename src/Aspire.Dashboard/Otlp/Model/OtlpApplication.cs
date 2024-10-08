@@ -69,7 +69,8 @@ public class OtlpApplication
                                     Type = MapMetricType(metric.DataCase),
                                     Parent = GetMeter(sm.Scope)
                                 },
-                                Options = _options
+                                Options = _options,
+                                Logger = _logger
                             });
                         }
 
@@ -104,7 +105,7 @@ public class OtlpApplication
     {
         if (!_meters.TryGetValue(scope.Name, out var meter))
         {
-            _meters.Add(scope.Name, meter = new OtlpMeter(scope, _options));
+            _meters.Add(scope.Name, meter = new OtlpMeter(scope, _options, _logger));
         }
         return meter;
     }
