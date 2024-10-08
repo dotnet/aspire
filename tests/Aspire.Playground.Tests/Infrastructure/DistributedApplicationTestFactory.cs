@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
@@ -46,9 +46,9 @@ internal static class DistributedApplicationTestFactory
             {
                 logging.AddXunit(testOutput);
             }
-            logging.SetMinimumLevel(LogLevel.Debug);
-            logging.AddFilter("Aspire", LogLevel.Debug);
-            logging.AddFilter(builder.Environment.ApplicationName, LogLevel.Debug);
+            logging.SetMinimumLevel(LogLevel.Trace);
+            logging.AddFilter("Aspire", LogLevel.Trace);
+            logging.AddFilter(builder.Environment.ApplicationName, LogLevel.Trace);
         });
 
         return builder;

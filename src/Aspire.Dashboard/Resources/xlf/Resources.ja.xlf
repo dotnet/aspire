@@ -4,27 +4,42 @@
     <body>
       <trans-unit id="ResourceActionConsoleLogsText">
         <source>Console logs</source>
-        <target state="new">Console logs</target>
+        <target state="translated">コンソール ログ</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceActionViewDetailsText">
-        <source>View details</source>
-        <target state="new">View details</target>
+      <trans-unit id="ResourceActionMetricsText">
+        <source>Metrics</source>
+        <target state="new">Metrics</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionStructuredLogsText">
+        <source>Structured logs</source>
+        <target state="new">Structured logs</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionTracesText">
+        <source>Traces</source>
+        <target state="new">Traces</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceCommandFailed">
-        <source>"{0}" command failed</source>
-        <target state="translated">"{0}" コマンドが失敗しました</target>
-        <note>{0} is the display name of the command that failed</note>
+        <source>{0} "{1}" failed</source>
+        <target state="new">{0} "{1}" failed</target>
+        <note>{0} is the resource. {1} is the display name of the command.</note>
+      </trans-unit>
+      <trans-unit id="ResourceCommandStarting">
+        <source>{0} "{1}" starting</source>
+        <target state="new">{0} "{1}" starting</target>
+        <note>{0} is the resource. {1} is the display name of the command.</note>
       </trans-unit>
       <trans-unit id="ResourceCommandSuccess">
-        <source>"{0}" command succeeded</source>
-        <target state="translated">"{0}" コマンドが成功しました</target>
-        <note>{0} is the display name of the command that succeeded</note>
+        <source>{0} "{1}" succeeded</source>
+        <target state="new">{0} "{1}" succeeded</target>
+        <note>{0} is the resource. {1} is the display name of the command.</note>
       </trans-unit>
       <trans-unit id="ResourceCommandToastViewLogs">
-        <source>View Logs</source>
-        <target state="translated">ログの表示</target>
+        <source>View console logs</source>
+        <target state="needs-review-translation">ログの表示</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointUrl">
@@ -39,12 +54,12 @@
       </trans-unit>
       <trans-unit id="ResourceDetailsViewConsoleLogs">
         <source>View console logs</source>
-        <target state="new">View console logs</target>
+        <target state="translated">コンソール ログの表示</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesActionsColumnHeader">
         <source>Actions</source>
-        <target state="new">Actions</target>
+        <target state="translated">アクション</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerArgumentsProperty">
@@ -65,6 +80,11 @@
       <trans-unit id="ResourcesDetailsContainerImageProperty">
         <source>Container image</source>
         <target state="translated">コンテナー イメージ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsContainerLifetimeProperty">
+        <source>Container lifetime</source>
+        <target state="new">Container lifetime</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerPortsProperty">
@@ -102,6 +122,11 @@
         <target state="translated">終了コード</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsHealthStateProperty">
+        <source>Health State</source>
+        <target state="new">Health State</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
         <source>Project path</source>
         <target state="translated">プロジェクト パス</target>
@@ -115,6 +140,11 @@
       <trans-unit id="ResourcesDetailsStateProperty">
         <source>State</source>
         <target state="translated">状態</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsStopTimeProperty">
+        <source>Stop time</source>
+        <target state="new">Stop time</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesEndpointsColumnHeader">
@@ -186,6 +216,11 @@
         <source>Type filter: Filtered</source>
         <target state="translated">型フィルター: フィルター処理済み</target>
         <note />
+      </trans-unit>
+      <trans-unit id="WaitingForHealthDataMessage">
+        <source>Waiting for health data...</source>
+        <target state="new">Waiting for health data...</target>
+        <note>A message shown in the UI as a placeholder to indicate that health checks are expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
       </trans-unit>
     </body>
   </file>

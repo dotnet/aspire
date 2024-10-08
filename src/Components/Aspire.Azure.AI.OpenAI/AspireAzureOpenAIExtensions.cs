@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.ClientModel;
 using Aspire.Azure.AI.OpenAI;
 using Aspire.Azure.Common;
-using Azure;
 using Azure.AI.OpenAI;
 using Azure.Core;
 using Azure.Core.Extensions;
@@ -32,7 +32,7 @@ public static class AspireAzureOpenAIExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureOpenAISettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{AzureOpenAIClient, OpenAIClientOptions}"/>.</param>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{AzureOpenAIClient, AzureOpenAIClientOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire.Azure.AI.OpenAI" section.</remarks>
     public static void AddAzureOpenAIClient(
         this IHostApplicationBuilder builder,
@@ -64,9 +64,7 @@ public static class AspireAzureOpenAIExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        var configurationSectionName = OpenAIComponent.GetKeyedConfigurationSectionName(name, DefaultConfigSectionName);
-
-        new OpenAIComponent().AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+        new OpenAIComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
 
         // Add the AzureOpenAIClient service as OpenAIClient. That way the service can be resolved by both service Types.
         builder.Services.TryAddKeyedSingleton(typeof(OpenAIClient), serviceKey: name, static (provider, key) => provider.GetRequiredKeyedService<AzureOpenAIClient>(key));
@@ -74,6 +72,10 @@ public static class AspireAzureOpenAIExtensions
 
     private sealed class OpenAIComponent : AzureComponent<AzureOpenAISettings, AzureOpenAIClient, AzureOpenAIClientOptions>
     {
+        protected override string[] ActivitySourceNames => ["OpenAI.*"];
+
+        protected override string[] MetricSourceNames => ["OpenAI.*"];
+
         protected override IAzureClientBuilder<AzureOpenAIClient, AzureOpenAIClientOptions> AddClient(
             AzureClientFactoryBuilder azureFactoryBuilder, AzureOpenAISettings settings, string connectionName,
             string configurationSectionName)
@@ -90,7 +92,7 @@ public static class AspireAzureOpenAIExtensions
 
                     if (!string.IsNullOrEmpty(settings.Key))
                     {
-                        var credential = new AzureKeyCredential(settings.Key);
+                        var credential = new ApiKeyCredential(settings.Key);
                         return new AzureOpenAIClient(settings.Endpoint, credential, options);
                     }
                     else
@@ -125,6 +127,9 @@ public static class AspireAzureOpenAIExtensions
 
         protected override TokenCredential? GetTokenCredential(AzureOpenAISettings settings)
             => settings.Credential;
+
+        protected override bool GetMetricsEnabled(AzureOpenAISettings settings)
+            => !settings.DisableMetrics;
 
         protected override bool GetTracingEnabled(AzureOpenAISettings settings)
             => !settings.DisableTracing;

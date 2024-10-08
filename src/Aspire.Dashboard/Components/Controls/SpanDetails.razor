@@ -10,7 +10,7 @@
 <div class="span-details-layout">
     <FluentToolbar Orientation="Orientation.Horizontal">
         <div>
-            @((MarkupString)string.Format(ControlsStrings.SpanDetailsResource, ViewModel.Span.Source.ApplicationName))
+            @((MarkupString)string.Format(ControlsStrings.SpanDetailsResource, ViewModel.Span.Source.Application.ApplicationName))
         </div>
         <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <div>
@@ -39,10 +39,6 @@
                 <PropertyGrid TItem="SpanPropertyViewModel"
                               Items="@FilteredItems"
                               GridTemplateColumns="1fr 2fr"
-                              NameColumnValue="(vm) => vm.Name"
-                              ValueColumnValue="(vm) => vm.Value"
-                              NameSort="_nameSort"
-                              ValueSort="_valueSort"
                               HighlightText="@_filter" />
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsContextHeader)]" Expanded="true">
@@ -54,10 +50,6 @@
                 <PropertyGrid TItem="SpanPropertyViewModel"
                               Items="@FilteredContextItems"
                               GridTemplateColumns="1fr 2fr"
-                              NameColumnValue="(vm) => vm.Name"
-                              ValueColumnValue="(vm) => vm.Value"
-                              NameSort="_nameSort"
-                              ValueSort="_valueSort"
                               HighlightText="@_filter" />
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsResourceHeader)]" Expanded="true">
@@ -69,13 +61,9 @@
                 <PropertyGrid TItem="SpanPropertyViewModel"
                               Items="@FilteredResourceItems"
                               GridTemplateColumns="1fr 2fr"
-                              NameColumnValue="(vm) => vm.Name"
-                              ValueColumnValue="(vm) => vm.Value"
-                              NameSort="_nameSort"
-                              ValueSort="_valueSort"
                               HighlightText="@_filter" />
             </FluentAccordionItem>
-            <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsEventsHeader)]" Expanded="true">
+            <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsEventsHeader)]" Expanded="@_isSpanEventsExpanded">
                 <div slot="end">
                     <FluentBadge Appearance="Appearance.Neutral" Circular="true">
                         @FilteredSpanEvents.Count()
@@ -83,10 +71,9 @@
                 </div>
                 <PropertyGrid TItem="OtlpSpanEvent"
                               Items="@FilteredSpanEvents"
+                              ItemKey="@((r) => r.InternalId)"
                               GridTemplateColumns="1fr 2fr"
-                              NameColumnValue="(vm) => DurationFormatter.FormatDuration(vm.TimeOffset(ViewModel.Span))"
                               NameColumnTitle="@(Loc[nameof(ControlsStrings.TimeOffsetColumnHeader)])"
-                              ValueColumnValue="(vm) => vm.Name"
                               ValueColumnTitle="@(Loc[nameof(ControlsStrings.EventColumnHeader)])"
                               IsNameSortable="false"
                               IsValueSortable="false"
@@ -94,15 +81,9 @@
                     <ExtraValueContent>
                         @if (context.Attributes.Length > 0)
                         {
-                            // There's a weird bug where trying to render a nested FluentDataGrid here with a non-primitive
-                            // TItem leads to the click event not being raised *only in the value (not header) rows*. A
-                            // workaround is to use the attribute index as the item and query the attributes list for its
-                            // name and value in the name/value producers.
-                            <PropertyGrid TItem="int"
-                                          Items="@context.Attributes.Select((_, i) => i).AsQueryable()"
+                            <PropertyGrid TItem="OtlpSpanAttributeItem"
+                                          Items="@context.Attributes.Select(pair => new OtlpSpanAttributeItem(pair.Key, pair.Value)).AsQueryable()"
                                           GridTemplateColumns="1fr 2fr"
-                                          NameColumnValue="(i) => context.Attributes[i].Key"
-                                          ValueColumnValue="(i) => context.Attributes[i].Value"
                                           IsNameSortable="false"
                                           IsValueSortable="false"
                                           GenerateHeader="GenerateHeaderOption.Default" />
@@ -110,48 +91,44 @@
                     </ExtraValueContent>
                 </PropertyGrid>
             </FluentAccordionItem>
-            <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsLinksHeader)]" Expanded="true">
+            <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsLinksHeader)]" Expanded="@_isSpanLinksExpanded">
                 <div slot="end">
                     <FluentBadge Appearance="Appearance.Neutral" Circular="true">
                         @FilteredSpanLinks.Count()
                     </FluentBadge>
                 </div>
-                <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
-                                ResizeType="DataGridResizeType.Discrete"
-                                TGridItem="SpanLinkViewModel"
+                <FluentDataGrid TGridItem="SpanLinkViewModel"
                                 Items="@FilteredSpanLinks"
                                 Style="width:100%"
                                 GenerateHeader="GenerateHeaderOption.Sticky"
                                 GridTemplateColumns="4fr 1fr"
                                 ShowHover="true">
-                    <AspireTemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
+                    <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
                         @WriteSpanLink(context)
-                    </AspireTemplateColumn>
-                    <AspireTemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsDetailsColumnHeader)]">
+                    </TemplateColumn>
+                    <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsDetailsColumnHeader)]">
                         <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewDetailsAsync(context))">@Loc[nameof(ControlsStrings.ViewAction)]</FluentButton>
-                    </AspireTemplateColumn>
+                    </TemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
-            <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsBacklinksHeader)]" Expanded="true">
+            <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsBacklinksHeader)]" Expanded="@_isSpanBacklinksExpanded">
                 <div slot="end">
                     <FluentBadge Appearance="Appearance.Neutral" Circular="true">
                         @FilteredSpanBacklinks.Count()
                     </FluentBadge>
                 </div>
-                <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
-                                ResizeType="DataGridResizeType.Discrete"
-                                TGridItem="SpanLinkViewModel"
+                <FluentDataGrid TGridItem="SpanLinkViewModel"
                                 Items="@FilteredSpanBacklinks"
                                 Style="width:100%"
                                 GenerateHeader="GenerateHeaderOption.Sticky"
                                 GridTemplateColumns="4fr 1fr"
                                 ShowHover="true">
-                    <AspireTemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
+                    <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
                         @WriteSpanLink(context)
-                    </AspireTemplateColumn>
-                    <AspireTemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsDetailsColumnHeader)]">
+                    </TemplateColumn>
+                    <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsDetailsColumnHeader)]">
                         <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewDetailsAsync(context))">@Loc[nameof(ControlsStrings.ViewAction)]</FluentButton>
-                    </AspireTemplateColumn>
+                    </TemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
         </FluentAccordion>
@@ -176,15 +153,9 @@
         </div>
         @if (context.Attributes.Length > 0)
         {
-            // There's a weird bug where trying to render a nested FluentDataGrid here with a non-primitive
-            // TItem leads to the click event not being raised *only in the value (not header) rows*. A
-            // workaround is to use the attribute index as the item and query the attributes list for its
-            // name and value in the name/value producers.
-            <PropertyGrid TItem="int"
-                          Items="@context.Attributes.Select((_, i) => i).AsQueryable()"
+            <PropertyGrid TItem="OtlpSpanAttributeItem"
+                          Items="@context.Attributes.Select(pair => new OtlpSpanAttributeItem(pair.Key, pair.Value)).AsQueryable()"
                           GridTemplateColumns="1fr 2fr"
-                          NameColumnValue="(i) => context.Attributes[i].Key"
-                          ValueColumnValue="(i) => context.Attributes[i].Value"
                           IsNameSortable="false"
                           IsValueSortable="false"
                           GenerateHeader="GenerateHeaderOption.Default" />

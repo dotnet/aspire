@@ -197,7 +197,7 @@ public class WithEnvironmentTests
         var manifestConfig = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerB.Resource, DistributedApplicationOperation.Publish);
 
         Assert.Equal(4, config.Count);
-        Assert.Equal($"http://localhost:90/foo", config["URL"]);
+        Assert.Equal($"http://container1:10005/foo", config["URL"]);
         Assert.Equal("90", config["PORT"]);
         Assert.Equal("10005", config["TARGET_PORT"]);
         Assert.Equal("connectionString;name=1", config["HOST"]);

@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
         <source>Settings</source>
-        <target state="needs-review-translation">시작 설정</target>
+        <target state="translated">설정</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutSettingsDialogClose">
@@ -89,7 +89,7 @@
       </trans-unit>
       <trans-unit id="PageLayoutViewFilters">
         <source>View filters</source>
-        <target state="new">View filters</target>
+        <target state="translated">필터 보기</target>
         <note />
       </trans-unit>
     </body>

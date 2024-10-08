@@ -1,10 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Http;
 using Aspire.Hosting;
 using Google.Protobuf;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
@@ -21,14 +25,69 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     public async Task EndPointAccessors_AppStarted_EndPointPortsAssigned()
     {
         // Arrange
-        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper);
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "https://127.0.0.1:0;http://127.0.0.1:0";
+                data[DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] = "http://127.0.0.1:0";
+                data[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://127.0.0.1:0";
+            });
 
         // Act
         await app.StartAsync();
 
         // Assert
-        AssertDynamicIPEndpoint(app.FrontendEndPointAccessor);
+        Assert.Collection(app.FrontendEndPointsAccessor,
+            a =>
+            {
+                Assert.True(a().IsHttps);
+                AssertDynamicIPEndpoint(a);
+            },
+            a =>
+            {
+                Assert.False(a().IsHttps);
+                AssertDynamicIPEndpoint(a);
+            });
+
         AssertDynamicIPEndpoint(app.OtlpServiceGrpcEndPointAccessor);
+        AssertDynamicIPEndpoint(app.OtlpServiceHttpEndPointAccessor);
+    }
+
+    [Fact]
+    public async Task EndPointAccessors_AppStarted_IPv4OrIPv6()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "https://+:0;http://+:0";
+                data[DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] = "http://+:0";
+                data[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://+:0";
+            });
+
+        // Act
+        await app.StartAsync();
+
+        // Assert,
+        Assert.Collection(app.FrontendEndPointsAccessor,
+            a =>
+            {
+                Assert.True(a().IsHttps);
+                AssertDynamicIPEndpoint(a);
+                AssertIPv4OrIPv6Endpoint(a);
+            },
+            a =>
+            {
+                Assert.False(a().IsHttps);
+                AssertDynamicIPEndpoint(a);
+                AssertIPv4OrIPv6Endpoint(a);
+            });
+
+        AssertDynamicIPEndpoint(app.OtlpServiceGrpcEndPointAccessor);
+        AssertIPv4OrIPv6Endpoint(app.OtlpServiceGrpcEndPointAccessor);
+
+        AssertDynamicIPEndpoint(app.OtlpServiceHttpEndPointAccessor);
+        AssertIPv4OrIPv6Endpoint(app.OtlpServiceGrpcEndPointAccessor);
     }
 
     [Fact]
@@ -82,6 +141,103 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public async Task Configuration_FileConfigDirectoryDoesExist_Success()
+    {
+        // Arrange
+        const string frontendBrowserToken = "SomeSecretContent";
+        var fileConfigDirectory = Directory.CreateTempSubdirectory();
+        var browserTokenConfigFile = await CreateBrowserTokenConfigFileAsync(fileConfigDirectory, frontendBrowserToken);
+        try
+        {
+            var config = new ConfigurationManager()
+                .AddInMemoryCollection(new Dictionary<string, string?> { [DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] = fileConfigDirectory.FullName })
+                .Build();
+            WebApplicationBuilder? localBuilder = null;
+
+            // Act
+            await using var dashboardWebApplication = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+                preConfigureBuilder: builder =>
+                {
+                    builder.Configuration.AddConfiguration(config);
+                    localBuilder = builder;
+                });
+
+            // Assert
+            Assert.NotNull(localBuilder);
+            Assert.Equal(frontendBrowserToken, localBuilder.Configuration[DashboardConfigNames.DashboardFrontendBrowserTokenName.ConfigKey]);
+        }
+        finally
+        {
+            File.Delete(browserTokenConfigFile);
+        }
+    }
+
+    [Fact]
+    public async Task Configuration_FileConfigDirectoryReloadsChanges_Success()
+    {
+        // Arrange
+        const string initialFrontendBrowserToken = "InitialSecretContent";
+        const string changedFrontendBrowserToken = "NewSecretContent";
+        var fileConfigDirectory = Directory.CreateTempSubdirectory();
+        var browserTokenConfigFile = await CreateBrowserTokenConfigFileAsync(fileConfigDirectory, initialFrontendBrowserToken);
+        try
+        {
+            var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(testOutputHelper);
+            var logger = loggerFactory.CreateLogger<StartupTests>();
+            var config = new ConfigurationManager()
+                .AddInMemoryCollection(new Dictionary<string, string?> { [DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] = fileConfigDirectory.FullName })
+                .Build();
+            WebApplicationBuilder? localBuilder = null;
+            await using var dashboardWebApplication = IntegrationTestHelpers.CreateDashboardWebApplication(loggerFactory,
+                preConfigureBuilder: builder =>
+                {
+                    builder.Configuration.AddConfiguration(config);
+                    localBuilder = builder;
+                });
+
+            // Act
+            // get the initial browser token to make sure nothing went wrong until here
+            var initialBrowserTokenProvidedByConfiguration = localBuilder?.Configuration[DashboardConfigNames.DashboardFrontendBrowserTokenName.ConfigKey];
+
+            // update the browser token's config file and get the new value
+            await File.WriteAllTextAsync(browserTokenConfigFile, changedFrontendBrowserToken);
+
+            // Assert
+            Assert.Equal(initialFrontendBrowserToken, initialBrowserTokenProvidedByConfiguration);
+
+            await AsyncTestHelpers.AssertIsTrueRetryAsync(
+                () =>
+                {
+                    var updatedBrowserTokenProvidedByConfiguration = localBuilder?.Configuration[DashboardConfigNames.DashboardFrontendBrowserTokenName.ConfigKey];
+                    return changedFrontendBrowserToken == updatedBrowserTokenProvidedByConfiguration;
+                },
+                "Wait for file change to be detected and propagated.", logger);
+        }
+        finally
+        {
+            File.Delete(browserTokenConfigFile);
+        }
+    }
+
+    [Fact]
+    public async Task Configuration_FileConfigDirectoryDoesntExist_Error()
+    {
+        // Arrange & Act
+        var fileConfigDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        var ex = await Assert.ThrowsAsync<DirectoryNotFoundException>(async () =>
+        {
+            await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+                data =>
+                {
+                    data[DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] = fileConfigDirectory;
+                });
+        });
+
+        // Assert
+        Assert.Contains(fileConfigDirectory, ex.Message);
+    }
+
+    [Fact]
     public async Task Configuration_OptionsMonitor_CanReadConfiguration()
     {
         // Arrange
@@ -123,7 +279,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
             // Assert
             Assert.NotNull(app);
-            Assert.Equal(app.FrontendEndPointAccessor().EndPoint.Port, app.OtlpServiceGrpcEndPointAccessor().EndPoint.Port);
+            Assert.Equal(app.FrontendSingleEndPointAccessor().EndPoint.Port, app.OtlpServiceGrpcEndPointAccessor().EndPoint.Port);
 
             // Check browser access
             using var httpClient = new HttpClient(new HttpClientHandler
@@ -134,14 +290,14 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 }
             })
             {
-                BaseAddress = new Uri($"https://{app.FrontendEndPointAccessor().EndPoint}")
+                BaseAddress = new Uri($"https://{app.FrontendSingleEndPointAccessor().EndPoint}")
             };
             var request = new HttpRequestMessage(HttpMethod.Get, "/");
             var response = await httpClient.SendAsync(request);
             response.EnsureSuccessStatusCode();
 
             // Check OTLP service
-            using var channel = IntegrationTestHelpers.CreateGrpcChannel($"https://{app.FrontendEndPointAccessor().EndPoint}", testOutputHelper);
+            using var channel = IntegrationTestHelpers.CreateGrpcChannel($"https://{app.FrontendSingleEndPointAccessor().EndPoint}", testOutputHelper);
             var client = new LogsService.LogsServiceClient(channel);
             var serviceResponse = await client.ExportAsync(new ExportLogsServiceRequest());
             Assert.Equal(0, serviceResponse.PartialSuccess.RejectedLogRecords);
@@ -230,12 +386,12 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
             // Assert
             Assert.NotNull(app);
-            Assert.Equal(app.FrontendEndPointAccessor().EndPoint.Port, app.OtlpServiceGrpcEndPointAccessor().EndPoint.Port);
+            Assert.Equal(app.FrontendSingleEndPointAccessor().EndPoint.Port, app.OtlpServiceGrpcEndPointAccessor().EndPoint.Port);
 
             // Check browser access
             using var httpClient = new HttpClient()
             {
-                BaseAddress = new Uri($"http://{app.FrontendEndPointAccessor().EndPoint}")
+                BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}")
             };
             var request = new HttpRequestMessage(HttpMethod.Get, "/");
             var responseMessage = await httpClient.SendAsync(request);
@@ -461,7 +617,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         // Act
         await app.StartAsync();
 
-        using var client = new HttpClient { BaseAddress = new Uri($"http://{app.FrontendEndPointAccessor().EndPoint}") };
+        using var client = new HttpClient { BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}") };
 
         // Act
         var response = await client.GetAsync("/");
@@ -487,10 +643,25 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             s => Assert.Contains(DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey, s));
     }
 
+    private static void AssertIPv4OrIPv6Endpoint(Func<EndpointInfo> endPointAccessor)
+    {
+        // Check that the address is IPv4 or IPv6 any.
+        var ipEndPoint = endPointAccessor().EndPoint;
+        Assert.True(ipEndPoint.Address.Equals(IPAddress.Any) || ipEndPoint.Address.Equals(IPAddress.IPv6Any), "Endpoint address should be IPv4 or IPv6.");
+    }
+
     private static void AssertDynamicIPEndpoint(Func<EndpointInfo> endPointAccessor)
     {
         // Check that the specified dynamic port of 0 is overridden with the actual port number.
         var ipEndPoint = endPointAccessor().EndPoint;
         Assert.NotEqual(0, ipEndPoint.Port);
+    }
+
+    private static async Task<string> CreateBrowserTokenConfigFileAsync(DirectoryInfo fileConfigDirectory, string browserToken)
+    {
+        var browserTokenConfigFile = Path.Combine(fileConfigDirectory.FullName, DashboardConfigNames.DashboardFrontendBrowserTokenName.EnvVarName);
+        await File.WriteAllTextAsync(browserTokenConfigFile, browserToken);
+
+        return browserTokenConfigFile;
     }
 }

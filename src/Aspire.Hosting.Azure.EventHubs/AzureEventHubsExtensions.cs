@@ -7,8 +7,11 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.EventHubs;
 using Aspire.Hosting.Utils;
+using Azure.Messaging.EventHubs.Producer;
 using Azure.Provisioning;
 using Azure.Provisioning.EventHubs;
+using Azure.Provisioning.Expressions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -24,7 +27,7 @@ public static class AzureEventHubsExtensions
     /// <param name="name">The name of the resource.</param>
     /// <returns></returns>
     public static IResourceBuilder<AzureEventHubsResource> AddAzureEventHubs(
-        this IDistributedApplicationBuilder builder, string name)
+        this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
 #pragma warning disable AZPROVISION001 // This API requires opting into experimental features
         return builder.AddAzureEventHubs(name, null);
@@ -39,23 +42,32 @@ public static class AzureEventHubsExtensions
     /// <param name="configureResource">Optional callback to configure the Event Hubs namespace.</param>
     /// <returns></returns>
     [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureEventHubsResource> AddAzureEventHubs(this IDistributedApplicationBuilder builder, string name,
+    public static IResourceBuilder<AzureEventHubsResource> AddAzureEventHubs(this IDistributedApplicationBuilder builder, [ResourceName] string name,
         Action<IResourceBuilder<AzureEventHubsResource>, ResourceModuleConstruct, EventHubsNamespace>? configureResource)
     {
         builder.AddAzureProvisioning();
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var eventHubsNamespace = new EventHubsNamespace(construct, name: name);
+            var skuParameter = new ProvisioningParameter("sku", typeof(string))
+            {
+                Value = new StringLiteral("Standard")
+            };
+            construct.Add(skuParameter);
 
-            eventHubsNamespace.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+            var eventHubsNamespace = new EventHubsNamespace(construct.Resource.GetBicepIdentifier())
+            {
+                Sku = new EventHubsSku()
+                {
+                    Name = skuParameter
+                },
+                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+            };
+            construct.Add(eventHubsNamespace);
 
-            eventHubsNamespace.AssignProperty(p => p.Sku.Name, new Parameter("sku", defaultValue: "Standard"));
+            construct.Add(eventHubsNamespace.CreateRoleAssignment(EventHubsBuiltInRole.AzureEventHubsDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
-            var eventHubsDataOwnerRole = eventHubsNamespace.AssignRole(RoleDefinition.EventHubsDataOwner);
-            eventHubsDataOwnerRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
-
-            eventHubsNamespace.AddOutput("eventHubsEndpoint", sa => sa.ServiceBusEndpoint);
+            construct.Add(new ProvisioningOutput("eventHubsEndpoint", typeof(string)) { Value = eventHubsNamespace.ServiceBusEndpoint });
 
             var azureResource = (AzureEventHubsResource)construct.Resource;
             var azureResourceBuilder = builder.CreateResourceBuilder(azureResource);
@@ -63,13 +75,17 @@ public static class AzureEventHubsExtensions
 
             foreach (var hub in azureResource.Hubs)
             {
-                var hubResource = new EventHub(construct, name: hub.Name, parent: eventHubsNamespace);
+                var hubResource = new EventHub(Infrastructure.NormalizeIdentifierName(hub.Name))
+                {
+                    Parent = eventHubsNamespace,
+                    Name = hub.Name
+                };
+                construct.Add(hubResource);
                 hub.Configure?.Invoke(azureResourceBuilder, construct, hubResource);
             }
-
         };
-        var resource = new AzureEventHubsResource(name, configureConstruct);
 
+        var resource = new AzureEventHubsResource(name, configureConstruct);
         return builder.AddResource(resource)
                       // These ambient parameters are only available in development time.
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
@@ -82,7 +98,7 @@ public static class AzureEventHubsExtensions
     /// </summary>
     /// <param name="builder">The Azure Event Hubs resource builder.</param>
     /// <param name="name">The name of the Event Hub.</param>
-    public static IResourceBuilder<AzureEventHubsResource> AddEventHub(this IResourceBuilder<AzureEventHubsResource> builder, string name)
+    public static IResourceBuilder<AzureEventHubsResource> AddEventHub(this IResourceBuilder<AzureEventHubsResource> builder, [ResourceName] string name)
     {
 #pragma warning disable AZPROVISION001 // This API requires opting into experimental features
         return builder.AddEventHub(name, null);
@@ -169,9 +185,38 @@ public static class AzureEventHubsExtensions
             var tableEndpoint = storage.GetEndpoint("table");
 
             context.EnvironmentVariables.Add("ACCEPT_EULA", "Y");
-            context.EnvironmentVariables.Add("BLOB_SERVER", $"{blobEndpoint.ContainerHost}:{blobEndpoint.Port}");
-            context.EnvironmentVariables.Add("METADATA_SERVER", $"{tableEndpoint.ContainerHost}:{tableEndpoint.Port}");
+            context.EnvironmentVariables.Add("BLOB_SERVER", $"{blobEndpoint.Resource.Name}:{blobEndpoint.TargetPort}");
+            context.EnvironmentVariables.Add("METADATA_SERVER", $"{tableEndpoint.Resource.Name}:{tableEndpoint.TargetPort}");
         }));
+
+        EventHubProducerClient? client = null;
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(builder.Resource, async (@event, ct) =>
+        {
+            var connectionString = await builder.Resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false)
+                        ?? throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
+
+            // For the purposes of the health check we only need to know a hub name. If we don't have a hub
+            // name we can't configure a valid producer client connection so we should throw. What good is
+            // an event hub namespace without an event hub? :)
+            if (builder.Resource.Hubs is { Count: > 0 } && builder.Resource.Hubs[0] is { } hub)
+            {
+                var healthCheckConnectionString = $"{connectionString};EntityPath={hub.Name};";
+                client = new EventHubProducerClient(healthCheckConnectionString);
+            }
+            else
+            {
+                throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource does not have any Event Hubs.");
+            }
+        });
+
+        var healthCheckKey = $"{builder.Resource.Name}_check";
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureEventHub(
+            sp => client ?? throw new DistributedApplicationException("EventHubProducerClient is not initialized"),
+            healthCheckKey
+            );
+
+        builder.WithHealthCheck(healthCheckKey);
 
         if (configureContainer != null)
         {

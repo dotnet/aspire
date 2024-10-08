@@ -1,8 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
-using System.Text;
+using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
 
@@ -10,27 +9,30 @@ internal static class AzureStorageEmulatorConnectionString
 {
     // Use defaults from https://learn.microsoft.com/azure/storage/common/storage-configure-connection-string#connect-to-the-emulator-account-using-the-shortcut
     private const string ConnectionStringHeader = "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;";
-    private const string BlobEndpointTemplate = "BlobEndpoint=http://127.0.0.1:{0}/devstoreaccount1;";
-    private const string QueueEndpointTemplate = "QueueEndpoint=http://127.0.0.1:{0}/devstoreaccount1;";
-    private const string TableEndpointTemplate = "TableEndpoint=http://127.0.0.1:{0}/devstoreaccount1;";
 
-    public static string Create(int? blobPort = null, int? queuePort = null, int? tablePort = null)
+    private static void AppendEndpointExpression(ReferenceExpressionBuilder builder, string key, EndpointReference endpoint)
     {
-        var builder = new StringBuilder(ConnectionStringHeader);
+        builder.Append($"{key}=http://{endpoint.Property(EndpointProperty.IPV4Host)}:{endpoint.Property(EndpointProperty.Port)}/devstoreaccount1;");
+    }
 
-        if (blobPort is not null)
+    public static ReferenceExpression Create(EndpointReference? blobEndpoint = null, EndpointReference? queueEndpoint = null, EndpointReference? tableEndpoint = null)
+    {
+        var builder = new ReferenceExpressionBuilder();
+        builder.AppendLiteral(ConnectionStringHeader);
+
+        if (blobEndpoint is not null)
         {
-            builder.AppendFormat(CultureInfo.InvariantCulture, BlobEndpointTemplate, blobPort);
+            AppendEndpointExpression(builder, "BlobEndpoint", blobEndpoint);
         }
-        if (queuePort is not null)
+        if (queueEndpoint is not null)
         {
-            builder.AppendFormat(CultureInfo.InvariantCulture, QueueEndpointTemplate, queuePort);
+            AppendEndpointExpression(builder, "QueueEndpoint", queueEndpoint);
         }
-        if (tablePort is not null)
+        if (tableEndpoint is not null)
         {
-            builder.AppendFormat(CultureInfo.InvariantCulture, TableEndpointTemplate, tablePort);
+            AppendEndpointExpression(builder, "TableEndpoint", tableEndpoint);
         }
 
-        return builder.ToString();
+        return builder.Build();
     }
 }

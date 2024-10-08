@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Tests.Utils;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using Xunit;
 
@@ -45,7 +45,7 @@ public class ResourceNotificationTests
     {
         var resource = new CustomResource("myResource");
 
-        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime());
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
 
         async Task<List<ResourceEvent>> GetValuesAsync(CancellationToken cancellationToken)
         {
@@ -96,7 +96,7 @@ public class ResourceNotificationTests
         var resource1 = new CustomResource("myResource1");
         var resource2 = new CustomResource("myResource2");
 
-        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime());
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
 
         async Task<List<ResourceEvent>> GetValuesAsync(CancellationToken cancellation)
         {
@@ -155,7 +155,7 @@ public class ResourceNotificationTests
     {
         var resource1 = new CustomResource("myResource1");
 
-        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime());
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState", cts.Token);
@@ -171,7 +171,7 @@ public class ResourceNotificationTests
     {
         var resource1 = new CustomResource("myResource1");
 
-        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime());
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var waitTask = notificationService.WaitForResourceAsync("MYreSouRCe1", "sOmeSTAtE", cts.Token);
@@ -187,7 +187,7 @@ public class ResourceNotificationTests
     {
         var resource1 = new CustomResource("myResource1");
 
-        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime());
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
 
         // Publish the state update first
         await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "SomeState" });
@@ -203,7 +203,7 @@ public class ResourceNotificationTests
     {
         var resource1 = new CustomResource("myResource1");
 
-        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime());
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var waitTask = notificationService.WaitForResourceAsync("myResource1", targetState: null, cancellationToken: cts.Token);
@@ -219,7 +219,7 @@ public class ResourceNotificationTests
     {
         var resource1 = new CustomResource("myResource1");
 
-        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime());
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var waitTask = notificationService.WaitForResourceAsync("myResource1", ["SomeState", "SomeOtherState"], cts.Token);
@@ -235,7 +235,7 @@ public class ResourceNotificationTests
     {
         var resource1 = new CustomResource("myResource1");
 
-        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime());
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
 
         var waitTask = notificationService.WaitForResourceAsync("myResource1", ["SomeState", "SomeOtherState"], default);
 
@@ -248,7 +248,7 @@ public class ResourceNotificationTests
     [Fact]
     public async Task WaitingOnResourceThrowsOperationCanceledExceptionIfResourceDoesntReachStateBeforeCancellationTokenSignaled()
     {
-        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime());
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
 
         using var cts = new CancellationTokenSource();
         var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState", cts.Token);
@@ -265,7 +265,7 @@ public class ResourceNotificationTests
     public async Task WaitingOnResourceThrowsOperationCanceledExceptionIfResourceDoesntReachStateBeforeApplicationStoppingCancellationTokenSignaled()
     {
         using var hostApplicationLifetime = new TestHostApplicationLifetime();
-        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), hostApplicationLifetime);
+        var notificationService = ResourceNotificationServiceTestHelpers.Create(hostApplicationLifetime: hostApplicationLifetime);
 
         var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState");
         hostApplicationLifetime.StopApplication();
@@ -280,7 +280,7 @@ public class ResourceNotificationTests
     public async Task WaitingOnResourceThrowsOperationCanceledExceptionIfResourceDoesntReachStateBeforeCancellationTokenSignalledWhenApplicationStoppingTokenExists()
     {
         using var hostApplicationLifetime = new TestHostApplicationLifetime();
-        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), hostApplicationLifetime);
+        var notificationService = ResourceNotificationServiceTestHelpers.Create(hostApplicationLifetime: hostApplicationLifetime);
 
         using var cts = new CancellationTokenSource();
         var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState", cts.Token);
@@ -298,7 +298,7 @@ public class ResourceNotificationTests
     {
         var resource1 = new CustomResource("resource1");
         var logger = new FakeLogger<ResourceNotificationService>();
-        var notificationService = new ResourceNotificationService(logger, new TestHostApplicationLifetime());
+        var notificationService = ResourceNotificationServiceTestHelpers.Create(logger: logger);
 
         await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "SomeState" });
 
@@ -315,7 +315,7 @@ public class ResourceNotificationTests
 
         logs = logger.Collector.GetSnapshot();
 
-        Assert.Empty(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.DoesNotContain(logs, l => l.Level == LogLevel.Debug);
         Assert.DoesNotContain(logs, l => l.Level == LogLevel.Debug && l.Message.Contains("Resource resource1/resource1 changed state: SomeState"));
 
         logger.Collector.Clear();
@@ -335,7 +335,7 @@ public class ResourceNotificationTests
 
         logs = logger.Collector.GetSnapshot();
 
-        Assert.Empty(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.DoesNotContain(logs, l => l.Level == LogLevel.Debug);
         Assert.DoesNotContain(logs, l => l.Level == LogLevel.Debug && l.Message.Contains("Resource resource1/resource1 changed state:"));
 
         logger.Collector.Clear();
@@ -345,7 +345,7 @@ public class ResourceNotificationTests
 
         logs = logger.Collector.GetSnapshot();
 
-        Assert.Empty(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.DoesNotContain(logs, l => l.Level == LogLevel.Debug);
         Assert.DoesNotContain(logs, l => l.Level == LogLevel.Debug && l.Message.Contains("Resource resource1/resource1 changed state:"));
 
         logger.Collector.Clear();
@@ -355,7 +355,7 @@ public class ResourceNotificationTests
 
         logs = logger.Collector.GetSnapshot();
 
-        Assert.Empty(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.DoesNotContain(logs, l => l.Level == LogLevel.Debug);
         Assert.DoesNotContain(logs, l => l.Level == LogLevel.Debug && l.Message.Contains("Resource resource1/resource1 changed state:"));
 
         logger.Collector.Clear();
@@ -366,7 +366,7 @@ public class ResourceNotificationTests
     {
         var resource1 = new CustomResource("resource1");
         var logger = new FakeLogger<ResourceNotificationService>();
-        var notificationService = new ResourceNotificationService(logger, new TestHostApplicationLifetime());
+        var notificationService = ResourceNotificationServiceTestHelpers.Create(logger: logger);
 
         var createdDate = DateTime.Now;
         await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { CreationTimeStamp = createdDate });

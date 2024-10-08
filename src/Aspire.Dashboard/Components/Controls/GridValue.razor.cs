@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -21,6 +20,12 @@ public partial class GridValue
     public string? TextVisualizerTitle { get; set; }
 
     /// <summary>
+    /// Content to include, if any, before the Value string
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ContentBeforeValue { get; set; }
+
+    /// <summary>
     /// Content to include, if any, after the Value string
     /// </summary>
     [Parameter]
@@ -31,6 +36,12 @@ public partial class GridValue
     /// </summary>
     [Parameter]
     public string? ValueToCopy { get; set; }
+
+    /// <summary>
+    /// If set, this value is visualized rather than <see cref="Value"/>.
+    /// </summary>
+    [Parameter]
+    public string? ValueToVisualize { get; set; }
 
     /// <summary>
     /// Determines whether or not masking support is enabled for this value
@@ -92,7 +103,11 @@ public partial class GridValue
     private string GetContainerClass() => EnableMasking ? "container masking-enabled" : "container";
 
     private async Task ToggleMaskStateAsync()
-        => await IsMaskedChanged.InvokeAsync(!IsMasked);
+    {
+        IsMasked = !IsMasked;
+
+        await IsMaskedChanged.InvokeAsync(IsMasked);
+    }
 
     private string TrimLength(string? text)
     {

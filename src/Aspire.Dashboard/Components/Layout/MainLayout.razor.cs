@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Dialogs;
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
@@ -269,33 +268,11 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     [JSInvokable]
     public async Task OpenTextVisualizerAsync(IJSStreamReference valueStream, string valueDescription)
     {
-        string width;
-        if (ViewportInformation.IsDesktop || !ViewportInformation.IsUltraLowWidth)
-        {
-            width = "85vw";
-        }
-        else
-        {
-            width = "100vw";
-        }
-
-        var height = ViewportInformation.IsUltraLowHeight ? "100vh" : null;
-
-        var parameters = new DialogParameters
-        {
-            Title = valueDescription,
-            Width = width,
-            Height = height,
-            TrapFocus = true,
-            Modal = true,
-            PreventScroll = true,
-        };
-
         await using var referenceStream = await valueStream.OpenReadStreamAsync();
         using var reader = new StreamReader(referenceStream);
         var value = await reader.ReadToEndAsync();
 
-        await DialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(value, valueDescription), parameters);
+        await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, valueDescription, value);
     }
 
     public async ValueTask DisposeAsync()

@@ -59,7 +59,6 @@ public static class AspireWebPubSubExtensions
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
         ArgumentException.ThrowIfNullOrEmpty(serviceKey);
 
-        string configurationSectionName = WebPubSubComponent.GetKeyedConfigurationSectionName($"{connectionName}:{serviceKey}", DefaultConfigSectionName);
         var configureWithServiceKeyAsDefaultHubName = (AzureMessagingWebPubSubSettings settings) =>
         {
             configureSettings?.Invoke(settings);
@@ -68,7 +67,7 @@ public static class AspireWebPubSubExtensions
                 settings.HubName = serviceKey;
             }
         };
-        new WebPubSubComponent().AddClient(builder, configurationSectionName, configureWithServiceKeyAsDefaultHubName, configureClientBuilder, connectionName: connectionName, serviceKey: serviceKey);
+        new WebPubSubComponent().AddClient(builder, DefaultConfigSectionName, configureWithServiceKeyAsDefaultHubName, configureClientBuilder, connectionName: connectionName, serviceKey: serviceKey);
     }
 
     private sealed class WebPubSubComponent : AzureComponent<AzureMessagingWebPubSubSettings, WebPubSubServiceClient, WebPubSubServiceClientOptions>
@@ -116,6 +115,9 @@ public static class AspireWebPubSubExtensions
 
         protected override TokenCredential? GetTokenCredential(AzureMessagingWebPubSubSettings settings)
             => settings.Credential;
+
+        protected override bool GetMetricsEnabled(AzureMessagingWebPubSubSettings settings)
+            => false;
 
         protected override bool GetTracingEnabled(AzureMessagingWebPubSubSettings settings)
             => !settings.DisableTracing;

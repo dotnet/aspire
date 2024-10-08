@@ -10,6 +10,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Utils;
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,17 +32,13 @@ public partial class StructuredLogsTests : TestContext
         SetupStructureLogsServices();
 
         var navigationManager = Services.GetRequiredService<NavigationManager>();
-        var uri = navigationManager.GetUriWithQueryParameters(new Dictionary<string, object?>
-        {
-            ["TraceId"] = "123",
-            ["SpanId"] = "456"
-        });
-        navigationManager.NavigateTo(uri);
+        var uri = navigationManager.ToAbsoluteUri(DashboardUrls.StructuredLogsUrl(traceId: "123", spanId: "456"));
+        navigationManager.NavigateTo(uri.OriginalString);
 
         var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
 
         var dimensionManager = Services.GetRequiredService<DimensionManager>();
-        dimensionManager.InvokeOnBrowserDimensionsChanged(viewport);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
 
         // Act
         var cut = RenderComponent<StructuredLogs>(builder =>
@@ -55,12 +52,12 @@ public partial class StructuredLogsTests : TestContext
         Assert.Collection(viewModel.Filters,
             f =>
             {
-                Assert.Equal(LogFilter.KnownTraceIdField, f.Field);
+                Assert.Equal(KnownStructuredLogFields.TraceIdField, f.Field);
                 Assert.Equal("123", f.Value);
             },
             f =>
             {
-                Assert.Equal(LogFilter.KnownSpanIdField, f.Field);
+                Assert.Equal(KnownStructuredLogFields.SpanIdField, f.Field);
                 Assert.Equal("456", f.Value);
             });
     }
@@ -71,20 +68,17 @@ public partial class StructuredLogsTests : TestContext
         // Arrange
         SetupStructureLogsServices();
 
-        var logFilter = new LogFilter { Field = "TestField", Condition = FilterCondition.Contains, Value = "TestValue" };
-        var serializedFilter = LogFilterFormatter.SerializeLogFiltersToString([logFilter]);
+        var filter = new TelemetryFilter { Field = "TestField", Condition = FilterCondition.Contains, Value = "TestValue" };
+        var serializedFilter = TelemetryFilterFormatter.SerializeFiltersToString([filter, filter]);
 
         var navigationManager = Services.GetRequiredService<NavigationManager>();
-        var uri = navigationManager.GetUriWithQueryParameters(new Dictionary<string, object?>
-        {
-            ["filters"] = serializedFilter + "+" + serializedFilter,
-        });
-        navigationManager.NavigateTo(uri);
+        var uri = navigationManager.ToAbsoluteUri(DashboardUrls.StructuredLogsUrl(filters: serializedFilter));
+        navigationManager.NavigateTo(uri.OriginalString);
 
         var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
 
         var dimensionManager = Services.GetRequiredService<DimensionManager>();
-        dimensionManager.InvokeOnBrowserDimensionsChanged(viewport);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
 
         // Act
         var cut = RenderComponent<StructuredLogs>(builder =>
@@ -98,9 +92,59 @@ public partial class StructuredLogsTests : TestContext
         Assert.Collection(viewModel.Filters,
             f =>
             {
-                Assert.Equal(logFilter.Field, f.Field);
-                Assert.Equal(logFilter.Condition, f.Condition);
-                Assert.Equal(logFilter.Value, f.Value);
+                Assert.Equal(filter.Field, f.Field);
+                Assert.Equal(filter.Condition, f.Condition);
+                Assert.Equal(filter.Value, f.Value);
+            });
+    }
+
+    [Fact]
+    public void Render_FiltersWithSpecialCharacters_SuccessfullyParsed()
+    {
+        // Arrange
+        SetupStructureLogsServices();
+
+        var filter1 = new TelemetryFilter { Field = "Test:Field", Condition = FilterCondition.Contains, Value = "Test Value" };
+        var filter2 = new TelemetryFilter { Field = "Test!@#", Condition = FilterCondition.Contains, Value = "http://localhost#fragment?hi=true" };
+        var filter3 = new TelemetryFilter { Field = "\u2764\uFE0F", Condition = FilterCondition.Contains, Value = "\u4F60" };
+        var serializedFilter = TelemetryFilterFormatter.SerializeFiltersToString([filter1, filter2, filter3]);
+
+        var navigationManager = Services.GetRequiredService<NavigationManager>();
+        var uri = navigationManager.ToAbsoluteUri(DashboardUrls.StructuredLogsUrl(filters: serializedFilter));
+        navigationManager.NavigateTo(uri.OriginalString);
+
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act
+        var cut = RenderComponent<StructuredLogs>(builder =>
+        {
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        // Assert
+        var viewModel = Services.GetRequiredService<StructuredLogsViewModel>();
+
+        Assert.Collection(viewModel.Filters,
+            f =>
+            {
+                Assert.Equal(filter1.Field, f.Field);
+                Assert.Equal(filter1.Condition, f.Condition);
+                Assert.Equal(filter1.Value, f.Value);
+            },
+            f =>
+            {
+                Assert.Equal(filter2.Field, f.Field);
+                Assert.Equal(filter2.Condition, f.Condition);
+                Assert.Equal(filter2.Value, f.Value);
+            },
+            f =>
+            {
+                Assert.Equal(filter3.Field, f.Field);
+                Assert.Equal(filter3.Condition, f.Condition);
+                Assert.Equal(filter3.Value, f.Value);
             });
     }
 

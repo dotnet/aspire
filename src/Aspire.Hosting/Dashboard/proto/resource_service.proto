@@ -43,9 +43,19 @@ message ResourceCommand {
     // Optional icon name. This name should be a valid FluentUI icon name.
     // https://aka.ms/fluentui-system-icons
     optional string icon_name = 6;
+    // Optional icon variant.
+    optional IconVariant icon_variant = 7;
     // Optional description of the command, to be shown in the UI.
     // Could be used as a tooltip. May be localized.
-    optional string display_description = 7;
+    optional string display_description = 8;
+    // The state of the command. Controls whether the command is enabled, disabled,
+    // or hidden in the UI.
+    ResourceCommandState state = 9;
+}
+
+enum IconVariant {
+    REGULAR = 0;
+    FILLED = 1;
 }
 
 // Represents a request to execute a command.
@@ -64,6 +74,12 @@ message ResourceCommandRequest {
     // An optional parameter to accompany the command.
     // Copied from the ResourceCommand that this request object is initialized from.
     optional google.protobuf.Value parameter = 4;
+}
+
+enum ResourceCommandState {
+    ENABLED = 0;
+    DISABLED = 1;
+    HIDDEN = 2;
 }
 
 enum ResourceCommandResponseKind {
@@ -129,14 +145,35 @@ message Volume {
     bool is_read_only = 4;
 }
 
+message HealthReport {
+    // The health status of the resource.
+    HealthStatus status = 1;
+    // Identifies the health check that produced this report.
+    string key = 2;
+    // The reason for the health status.
+    string description = 3;
+    // Any exception details.
+    string exception = 4;
+}
+
+enum HealthStatus {
+    HEALTHY = 0;
+    UNHEALTHY = 1;
+    DEGRADED = 2;
+}
+
 message ResourceProperty {
     // Name of the data item, e.g. "container.id", "executable.pid", "project.path", ...
     string name = 1;
-    // TODO move display_name to reference data, sent once when the connection starts
+    // TODO move display_name to reference data, sent once when the connection starts (https://github.com/dotnet/aspire/issues/1644)
     // Optional display name, may be localized
     optional string display_name = 2;
     // The data value. May be null, a number, a string, a boolean, a dictionary of values (Struct), or a list of values (ValueList).
     google.protobuf.Value value = 3;
+    // TODO move is_sensitive to reference data, sent once when the connection starts (https://github.com/dotnet/aspire/issues/1644)
+    // Whether the value is sensitive and should be masked in the UI by default.
+    // Defaults to false. When true, the user must explicitly unmask the value to view it.
+    optional bool is_sensitive = 4;
 }
 
 // Models the full state of an resource (container, executable, project, etc) at a particular point in time.
@@ -170,6 +207,16 @@ message Resource {
 
     // The set of volumes mounted to the resource. Only applies to containers.
     repeated Volume volumes = 15;
+
+    // The aggregate health state of the resource. Generally reflects data from health_reports, but may differ.
+    optional HealthStatus health_status = 16;
+    // Reports from health checks, about this resource.
+    repeated HealthReport health_reports = 17;
+
+    // The resource start time.
+    optional google.protobuf.Timestamp started_at = 18;
+    // The resource stop time.
+    optional google.protobuf.Timestamp stopped_at = 19;
 }
 
 ////////////////////////////////////////////

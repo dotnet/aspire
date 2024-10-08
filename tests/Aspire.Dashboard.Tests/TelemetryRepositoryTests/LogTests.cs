@@ -6,9 +6,12 @@ using System.Threading.Channels;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Tests.Integration;
 using Google.Protobuf.Collections;
+using Microsoft.Extensions.Logging;
 using OpenTelemetry.Proto.Logs.V1;
 using Xunit;
+using Xunit.Abstractions;
 using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
 
 namespace Aspire.Dashboard.Tests.TelemetryRepositoryTests;
@@ -16,6 +19,13 @@ namespace Aspire.Dashboard.Tests.TelemetryRepositoryTests;
 public class LogTests
 {
     private static readonly DateTime s_testTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+    private readonly ITestOutputHelper _testOutputHelper;
+
+    public LogTests(ITestOutputHelper testOutputHelper)
+    {
+        _testOutputHelper = testOutputHelper;
+    }
 
     [Fact]
     public void AddLogs()
@@ -194,27 +204,27 @@ public class LogTests
 
         var unviewedCounts1 = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.True(unviewedCounts1.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "1"))!, out var unviewedCount1));
+        Assert.True(unviewedCounts1.TryGetValue(new ApplicationKey("TestService", "1"), out var unviewedCount1));
         Assert.Equal(2, unviewedCount1);
 
-        Assert.True(unviewedCounts1.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "2"))!, out var unviewedCount2));
+        Assert.True(unviewedCounts1.TryGetValue(new ApplicationKey("TestService", "2"), out var unviewedCount2));
         Assert.Equal(1, unviewedCount2);
 
         repository.MarkViewedErrorLogs(new ApplicationKey("TestService", "1"));
 
         var unviewedCounts2 = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.False(unviewedCounts2.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "1"))!, out _));
+        Assert.False(unviewedCounts2.TryGetValue(new ApplicationKey("TestService", "1"), out _));
 
-        Assert.True(unviewedCounts2.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "2"))!, out unviewedCount2));
+        Assert.True(unviewedCounts2.TryGetValue(new ApplicationKey("TestService", "2"), out unviewedCount2));
         Assert.Equal(1, unviewedCount2);
 
         repository.MarkViewedErrorLogs(null);
 
         var unviewedCounts3 = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.False(unviewedCounts3.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "1"))!, out _));
-        Assert.False(unviewedCounts3.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "2"))!, out _));
+        Assert.False(unviewedCounts3.TryGetValue(new ApplicationKey("TestService", "1"), out _));
+        Assert.False(unviewedCounts3.TryGetValue(new ApplicationKey("TestService", "2"), out _));
     }
 
     [Fact]
@@ -265,8 +275,8 @@ public class LogTests
 
         var unviewedCounts = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.False(unviewedCounts.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "1"))!, out _));
-        Assert.False(unviewedCounts.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "2"))!, out _));
+        Assert.False(unviewedCounts.TryGetValue(new ApplicationKey("TestService", "1"), out _));
+        Assert.False(unviewedCounts.TryGetValue(new ApplicationKey("TestService", "2"), out _));
     }
 
     [Fact]
@@ -317,8 +327,8 @@ public class LogTests
 
         var unviewedCounts = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.False(unviewedCounts.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "1"))!, out _));
-        Assert.True(unviewedCounts.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "2"))!, out var unviewedCount));
+        Assert.False(unviewedCounts.TryGetValue(new ApplicationKey("TestService", "1"), out _));
+        Assert.True(unviewedCounts.TryGetValue(new ApplicationKey("TestService", "2"), out var unviewedCount));
         Assert.Equal(1, unviewedCount);
     }
 
@@ -355,7 +365,7 @@ public class LogTests
 
         var unviewedCounts = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.True(unviewedCounts.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "1"))!, out var unviewedCount));
+        Assert.True(unviewedCounts.TryGetValue(new ApplicationKey("TestService", "1"), out var unviewedCount));
         Assert.Equal(1, unviewedCount);
     }
 
@@ -652,20 +662,31 @@ public class LogTests
     {
         // Arrange
         var minExecuteInterval = TimeSpan.FromMilliseconds(500);
-        var repository = CreateRepository(subscriptionMinExecuteInterval: minExecuteInterval);
+        var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(_testOutputHelper);
+        var logger = loggerFactory.CreateLogger(nameof(LogTests));
+        var repository = CreateRepository(subscriptionMinExecuteInterval: minExecuteInterval, loggerFactory: loggerFactory);
+        var stopwatch = new Stopwatch();
 
         var callCount = 0;
         var resultChannel = Channel.CreateUnbounded<int>();
-        var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var subscription = repository.OnNewLogs(applicationKey: null, SubscriptionType.Read, () =>
+        var subscription = repository.OnNewLogs(applicationKey: null, SubscriptionType.Read, async () =>
         {
+            if (!stopwatch.IsRunning)
+            {
+                stopwatch.Start();
+            }
+            else
+            {
+                stopwatch.Stop();
+            }
             ++callCount;
             resultChannel.Writer.TryWrite(callCount);
-            return Task.CompletedTask;
+            await Task.Delay(20);
         });
 
         // Act
         var addContext = new AddContext();
+        logger.LogInformation("Writing log 1");
         repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
         {
             new ResourceLogs
@@ -683,10 +704,11 @@ public class LogTests
         });
 
         // Assert
-        var stopwatch = Stopwatch.StartNew();
         var read1 = await resultChannel.Reader.ReadAsync();
         Assert.Equal(1, read1);
+        logger.LogInformation("Received log 1 callback");
 
+        logger.LogInformation("Writing log 2");
         repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
         {
             new ResourceLogs
@@ -705,8 +727,10 @@ public class LogTests
 
         var read2 = await resultChannel.Reader.ReadAsync();
         Assert.Equal(2, read2);
+        logger.LogInformation("Received log 2 callback");
 
         var elapsed = stopwatch.Elapsed;
+        logger.LogInformation("Elapsed time: {Elapsed}", elapsed);
         CustomAssert.AssertExceedsMinInterval(elapsed, minExecuteInterval);
     }
 
@@ -745,7 +769,7 @@ public class LogTests
             ApplicationKey = applicationKey,
             StartIndex = 0,
             Count = 1,
-            Filters = [new LogFilter { Condition = FilterCondition.Contains, Field = nameof(OtlpLogEntry.Message), Value = "does_not_contain" }]
+            Filters = [new TelemetryFilter { Condition = FilterCondition.Contains, Field = nameof(OtlpLogEntry.Message), Value = "does_not_contain" }]
         }).Items);
 
         Assert.Single(repository.GetLogs(new GetLogsContext
@@ -753,7 +777,7 @@ public class LogTests
             ApplicationKey = applicationKey,
             StartIndex = 0,
             Count = 1,
-            Filters = [new LogFilter { Condition = FilterCondition.Contains, Field = nameof(OtlpLogEntry.Message), Value = "message" }]
+            Filters = [new TelemetryFilter { Condition = FilterCondition.Contains, Field = nameof(OtlpLogEntry.Message), Value = "message" }]
         }).Items);
     }
 

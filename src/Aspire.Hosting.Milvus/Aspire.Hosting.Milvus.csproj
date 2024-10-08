@@ -1,11 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire integration hosting milvus database vector search</PackageTags>
     <Description>Milvus vector database support for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)Milvus_256x.png</PackageIconFullPath>
+    <NoWarn>$(NoWarn);CS8002</NoWarn><!-- Milvus.Client packages are not signed -->
+    
     <!-- Disable package validation as this package hasn't shipped yet. -->
     <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
@@ -17,10 +19,18 @@
   <ItemGroup>
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
     <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
+    <Compile Include="$(ComponentsDir)Aspire.Milvus.Client\MilvusHealthCheck.cs" Link="MilvusHealthCheck.cs"></Compile>
   </ItemGroup>
-  
+
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Milvus.Tests"></InternalsVisibleTo>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="Milvus.Client" />
+  </ItemGroup>
 </Project>

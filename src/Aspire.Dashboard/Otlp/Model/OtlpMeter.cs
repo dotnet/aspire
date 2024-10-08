@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using Aspire.Dashboard.Configuration;
 using OpenTelemetry.Proto.Common.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
@@ -15,10 +14,10 @@ public class OtlpMeter
 
     public KeyValuePair<string, string>[] Attributes { get; }
 
-    public OtlpMeter(InstrumentationScope scope, TelemetryLimitOptions options)
+    public OtlpMeter(InstrumentationScope scope, OtlpContext context)
     {
         MeterName = scope.Name;
         Version = scope.Version;
-        Attributes = scope.Attributes.ToKeyValuePairs(options);
+        Attributes = scope.Attributes.ToKeyValuePairs(context);
     }
 }

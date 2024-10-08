@@ -12,6 +12,16 @@ fluent-toolbar p {
 
 fluent-toolbar[orientation=horizontal] {
     width: 100%;
+    padding-right: calc(var(--design-unit)* 2px);
+}
+
+fluent-toolbar::part(positioning-region) {
+    row-gap: calc(var(--design-unit) * 1.5px);
+}
+
+fluent-toolbar::part(end) {
+    flex-wrap: wrap;
+    row-gap: calc(var(--design-unit) * 1.5px);
 }
 
 /* Hide any web components that haven't been */
@@ -335,11 +345,16 @@ fluent-data-grid-cell .long-inner-content {
     margin-right: 3px;
 }
 
+.persistent-container-icon {
+    vertical-align: text-bottom;
+    margin-left: 4px;
+}
+
 .align-text-bottom {
     vertical-align: text-bottom;
 }
 
- .visually-hidden {
+.visually-hidden {
      top: 0;
      left: -2px;
      width: 1px;
@@ -504,6 +519,12 @@ fluent-data-grid-cell.no-ellipsis {
     padding: calc(((var(--design-unit) * 0.5) - var(--stroke-width)) * 1px) calc((var(--design-unit) - var(--stroke-width)) * 1px);
 }
 
+.telemetry-filter-button::part(content) {
+    max-width: 350px;
+    overflow: hidden;
+    text-overflow: ellipsis
+}
+
 .mobile-toolbar {
     width: 100%;
     height: max(5vh, 30px);
@@ -614,13 +635,20 @@ fluent-data-grid-cell.no-ellipsis {
 }
 
 .filter-input-container {
-    width: 75%;
+    width: 85%;
 }
 
 .layout fluent-toolbar > .fluent-input-label {
     margin-bottom: 0;
 }
 
-.page-content-container fluent-toolbar::part(end) {
-    flex-wrap: wrap;
+.action-divider {
+    display: inline;
+    height: 20px;
+}
+
+.grid-action-container {
+    display: inline-flex;
+    column-gap: 4px;
+    align-items: center;
 }

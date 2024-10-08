@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Text;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Model;
@@ -22,7 +23,6 @@ namespace Aspire.Dashboard.Otlp.Storage;
 public sealed class TelemetryRepository
 {
     private readonly object _lock = new();
-    internal readonly ILogger _logger;
     internal TimeSpan _subscriptionMinExecuteInterval = TimeSpan.FromMilliseconds(100);
 
     private readonly List<Subscription> _applicationSubscriptions = new();
@@ -36,13 +36,14 @@ public sealed class TelemetryRepository
     private readonly Dictionary<string, OtlpScope> _logScopes = new();
     private readonly CircularBuffer<OtlpLogEntry> _logs;
     private readonly HashSet<(OtlpApplication Application, string PropertyKey)> _logPropertyKeys = new();
-    private readonly Dictionary<OtlpApplication, int> _applicationUnviewedErrorLogs = new();
+    private readonly HashSet<(OtlpApplication Application, string PropertyKey)> _tracePropertyKeys = new();
+    private readonly Dictionary<ApplicationKey, int> _applicationUnviewedErrorLogs = new();
 
     private readonly ReaderWriterLockSlim _tracesLock = new();
     private readonly Dictionary<string, OtlpScope> _traceScopes = new();
     private readonly CircularBuffer<OtlpTrace> _traces;
     private readonly List<OtlpSpanLink> _spanLinks = new();
-    private readonly DashboardOptions _dashboardOptions;
+    internal readonly OtlpContext _otlpContext;
 
     public bool HasDisplayedMaxLogLimitMessage { get; set; }
     public bool HasDisplayedMaxTraceLimitMessage { get; set; }
@@ -52,11 +53,15 @@ public sealed class TelemetryRepository
 
     public TelemetryRepository(ILoggerFactory loggerFactory, IOptions<DashboardOptions> dashboardOptions)
     {
-        _logger = loggerFactory.CreateLogger(typeof(TelemetryRepository));
-        _dashboardOptions = dashboardOptions.Value;
+        var logger = loggerFactory.CreateLogger(typeof(TelemetryRepository));
+        _otlpContext = new OtlpContext
+        {
+            Logger = logger,
+            Options = dashboardOptions.Value.TelemetryLimits
+        };
 
-        _logs = new(_dashboardOptions.TelemetryLimits.MaxLogCount);
-        _traces = new(_dashboardOptions.TelemetryLimits.MaxTraceCount);
+        _logs = new(_otlpContext.Options.MaxLogCount);
+        _traces = new(_otlpContext.Options.MaxTraceCount);
         _traces.ItemRemovedForCapacity += TracesItemRemovedForCapacity;
     }
 
@@ -128,7 +133,7 @@ public sealed class TelemetryRepository
         return [GetApplication(key)];
     }
 
-    public Dictionary<OtlpApplication, int> GetApplicationUnviewedErrorLogsCount()
+    public Dictionary<ApplicationKey, int> GetApplicationUnviewedErrorLogsCount()
     {
         _logsLock.EnterReadLock();
 
@@ -162,7 +167,7 @@ public sealed class TelemetryRepository
             foreach (var application in applications)
             {
                 // Mark one application logs as viewed.
-                if (_applicationUnviewedErrorLogs.Remove(application))
+                if (_applicationUnviewedErrorLogs.Remove(application.ApplicationKey))
                 {
                     RaiseSubscriptionChanged(_logSubscriptions);
                 }
@@ -174,7 +179,7 @@ public sealed class TelemetryRepository
         }
     }
 
-    public OtlpApplication GetOrAddApplication(Resource resource)
+    private OtlpApplicationView GetOrAddApplicationView(Resource resource)
     {
         ArgumentNullException.ThrowIfNull(resource);
 
@@ -183,7 +188,7 @@ public sealed class TelemetryRepository
         // Fast path.
         if (_applications.TryGetValue(key, out var application))
         {
-            return application;
+            return application.GetView(resource.Attributes);
         }
 
         // Slower get or add path.
@@ -193,7 +198,7 @@ public sealed class TelemetryRepository
             RaiseSubscriptionChanged(_applicationSubscriptions);
         }
 
-        return application;
+        return application.GetView(resource.Attributes);
 
         (OtlpApplication, bool) GetOrAddApplication(ApplicationKey key, Resource resource)
         {
@@ -202,7 +207,7 @@ public sealed class TelemetryRepository
             var application = _applications.GetOrAdd(key, _ =>
             {
                 newApplication = true;
-                return new OtlpApplication(key.Name, key.InstanceId!, resource, _logger, _dashboardOptions.TelemetryLimits);
+                return new OtlpApplication(key.Name, key.InstanceId!, _otlpContext);
             });
             return (application, newApplication);
         }
@@ -262,25 +267,25 @@ public sealed class TelemetryRepository
     {
         foreach (var rl in resourceLogs)
         {
-            OtlpApplication application;
+            OtlpApplicationView applicationView;
             try
             {
-                application = GetOrAddApplication(rl.Resource);
+                applicationView = GetOrAddApplicationView(rl.Resource);
             }
             catch (Exception ex)
             {
                 context.FailureCount += rl.ScopeLogs.Count;
-                _logger.LogInformation(ex, "Error adding application.");
+                _otlpContext.Logger.LogInformation(ex, "Error adding application.");
                 continue;
             }
 
-            AddLogsCore(context, application, rl.ScopeLogs);
+            AddLogsCore(context, applicationView, rl.ScopeLogs);
         }
 
         RaiseSubscriptionChanged(_logSubscriptions);
     }
 
-    public void AddLogsCore(AddContext context, OtlpApplication application, RepeatedField<ScopeLogs> scopeLogs)
+    public void AddLogsCore(AddContext context, OtlpApplicationView applicationView, RepeatedField<ScopeLogs> scopeLogs)
     {
         _logsLock.EnterWriteLock();
 
@@ -297,14 +302,14 @@ public sealed class TelemetryRepository
                     var name = sl.Scope?.Name ?? string.Empty;
                     if (!_logScopes.TryGetValue(name, out scope))
                     {
-                        scope = (sl.Scope != null) ? new OtlpScope(sl.Scope, _dashboardOptions.TelemetryLimits) : OtlpScope.Empty;
+                        scope = (sl.Scope != null) ? new OtlpScope(sl.Scope, _otlpContext) : OtlpScope.Empty;
                         _logScopes.Add(name, scope);
                     }
                 }
                 catch (Exception ex)
                 {
                     context.FailureCount += sl.LogRecords.Count;
-                    _logger.LogInformation(ex, "Error adding scope.");
+                    _otlpContext.Logger.LogInformation(ex, "Error adding scope.");
                     continue;
                 }
 
@@ -312,7 +317,7 @@ public sealed class TelemetryRepository
                 {
                     try
                     {
-                        var logEntry = new OtlpLogEntry(record, application, scope, _dashboardOptions.TelemetryLimits);
+                        var logEntry = new OtlpLogEntry(record, applicationView, scope, _otlpContext);
 
                         // Insert log entry in the correct position based on timestamp.
                         // Logs can be added out of order by different services.
@@ -336,28 +341,28 @@ public sealed class TelemetryRepository
                         // Notifying the user there are errors and then immediately clearing the notification is confusing.
                         if (logEntry.Severity >= LogLevel.Error)
                         {
-                            if (!_logSubscriptions.Any(s => s.SubscriptionType == SubscriptionType.Read && (s.ApplicationKey == application.ApplicationKey || s.ApplicationKey == null)))
+                            if (!_logSubscriptions.Any(s => s.SubscriptionType == SubscriptionType.Read && (s.ApplicationKey == applicationView.ApplicationKey || s.ApplicationKey == null)))
                             {
-                                if (_applicationUnviewedErrorLogs.TryGetValue(application, out var count))
+                                if (_applicationUnviewedErrorLogs.TryGetValue(applicationView.ApplicationKey, out var count))
                                 {
-                                    _applicationUnviewedErrorLogs[application] = ++count;
+                                    _applicationUnviewedErrorLogs[applicationView.ApplicationKey] = ++count;
                                 }
                                 else
                                 {
-                                    _applicationUnviewedErrorLogs.Add(application, 1);
+                                    _applicationUnviewedErrorLogs.Add(applicationView.ApplicationKey, 1);
                                 }
                             }
                         }
 
                         foreach (var kvp in logEntry.Attributes)
                         {
-                            _logPropertyKeys.Add((application, kvp.Key));
+                            _logPropertyKeys.Add((applicationView.Application, kvp.Key));
                         }
                     }
                     catch (Exception ex)
                     {
                         context.FailureCount++;
-                        _logger.LogInformation(ex, "Error adding log entry.");
+                        _otlpContext.Logger.LogInformation(ex, "Error adding log entry.");
                     }
                 }
             }
@@ -388,7 +393,7 @@ public sealed class TelemetryRepository
             var results = _logs.AsEnumerable();
             if (applications?.Count > 0)
             {
-                results = results.Where(l => MatchApplications(l.Application, applications));
+                results = results.Where(l => MatchApplications(l.ApplicationView.Application, applications));
             }
 
             foreach (var filter in context.Filters)
@@ -443,6 +448,33 @@ public sealed class TelemetryRepository
         }
     }
 
+    public List<string> GetTracePropertyKeys(ApplicationKey? applicationKey)
+    {
+        List<OtlpApplication>? applications = null;
+        if (applicationKey != null)
+        {
+            applications = GetApplications(applicationKey.Value);
+        }
+
+        _tracesLock.EnterReadLock();
+
+        try
+        {
+            var applicationKeys = _tracePropertyKeys.AsEnumerable();
+            if (applications?.Count > 0)
+            {
+                applicationKeys = applicationKeys.Where(keys => MatchApplications(keys.Application, applications));
+            }
+
+            var keys = applicationKeys.Select(keys => keys.PropertyKey).Distinct();
+            return keys.OrderBy(k => k).ToList();
+        }
+        finally
+        {
+            _tracesLock.ExitReadLock();
+        }
+    }
+
     public GetTracesResponse GetTraces(GetTracesRequest context)
     {
         List<OtlpApplication>? applications = null;
@@ -484,6 +516,33 @@ public sealed class TelemetryRepository
                 results = results.Where(t => t.FullName.Contains(context.FilterText, StringComparison.OrdinalIgnoreCase));
             }
 
+            if (context.Filters.Count > 0)
+            {
+                results = results.Where(t =>
+                {
+                    // A trace matches when one of its span matches all filters.
+                    foreach (var span in t.Spans)
+                    {
+                        var match = true;
+                        foreach (var filter in context.Filters)
+                        {
+                            if (!filter.Apply(span))
+                            {
+                                match = false;
+                                break;
+                            }
+                        }
+
+                        if (match)
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                });
+            }
+
             // Traces can be modified as new spans are added. Copy traces before returning results to avoid concurrency issues.
             var copyFunc = static (OtlpTrace t) => OtlpTrace.Clone(t);
 
@@ -500,6 +559,61 @@ public sealed class TelemetryRepository
         {
             _tracesLock.ExitReadLock();
         }
+    }
+
+    public Dictionary<string, int> GetTraceFieldValues(string attributeName)
+    {
+        _tracesLock.EnterReadLock();
+
+        var attributesValues = new Dictionary<string, int>(StringComparers.OtlpAttribute);
+
+        try
+        {
+            foreach (var trace in _traces)
+            {
+                foreach (var span in trace.Spans)
+                {
+                    var value = OtlpSpan.GetFieldValue(span, attributeName);
+                    if (value != null)
+                    {
+                        ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(attributesValues, value, out _);
+                        count++;
+                    }
+                }
+            }
+        }
+        finally
+        {
+            _tracesLock.ExitReadLock();
+        }
+
+        return attributesValues;
+    }
+
+    public Dictionary<string, int> GetLogsFieldValues(string attributeName)
+    {
+        _logsLock.EnterReadLock();
+
+        var attributesValues = new Dictionary<string, int>(StringComparers.OtlpAttribute);
+
+        try
+        {
+            foreach (var log in _logs)
+            {
+                var value = OtlpLogEntry.GetFieldValue(log, attributeName);
+                if (value != null)
+                {
+                    ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(attributesValues, value, out _);
+                    count++;
+                }
+            }
+        }
+        finally
+        {
+            _logsLock.ExitReadLock();
+        }
+
+        return attributesValues;
     }
 
     public OtlpTrace? GetTrace(string traceId)
@@ -581,19 +695,19 @@ public sealed class TelemetryRepository
     {
         foreach (var rm in resourceMetrics)
         {
-            OtlpApplication application;
+            OtlpApplicationView applicationView;
             try
             {
-                application = GetOrAddApplication(rm.Resource);
+                applicationView = GetOrAddApplicationView(rm.Resource);
             }
             catch (Exception ex)
             {
                 context.FailureCount += rm.ScopeMetrics.Sum(s => s.Metrics.Count);
-                _logger.LogInformation(ex, "Error adding application.");
+                _otlpContext.Logger.LogInformation(ex, "Error adding application.");
                 continue;
             }
 
-            application.AddMetrics(context, rm.ScopeMetrics);
+            applicationView.Application.AddMetrics(context, rm.ScopeMetrics);
         }
 
         RaiseSubscriptionChanged(_metricsSubscriptions);
@@ -603,19 +717,19 @@ public sealed class TelemetryRepository
     {
         foreach (var rs in resourceSpans)
         {
-            OtlpApplication application;
+            OtlpApplicationView applicationView;
             try
             {
-                application = GetOrAddApplication(rs.Resource);
+                applicationView = GetOrAddApplicationView(rs.Resource);
             }
             catch (Exception ex)
             {
                 context.FailureCount += rs.ScopeSpans.Sum(s => s.Spans.Count);
-                _logger.LogInformation(ex, "Error adding application.");
+                _otlpContext.Logger.LogInformation(ex, "Error adding application.");
                 continue;
             }
 
-            AddTracesCore(context, application, rs.ScopeSpans);
+            AddTracesCore(context, applicationView, rs.ScopeSpans);
         }
 
         RaiseSubscriptionChanged(_tracesSubscriptions);
@@ -648,7 +762,7 @@ public sealed class TelemetryRepository
         };
     }
 
-    internal void AddTracesCore(AddContext context, OtlpApplication application, RepeatedField<ScopeSpans> scopeSpans)
+    internal void AddTracesCore(AddContext context, OtlpApplicationView applicationView, RepeatedField<ScopeSpans> scopeSpans)
     {
         _tracesLock.EnterWriteLock();
 
@@ -665,14 +779,14 @@ public sealed class TelemetryRepository
                     var name = scopeSpan.Scope?.Name ?? string.Empty;
                     if (!_traceScopes.TryGetValue(name, out scope))
                     {
-                        scope = (scopeSpan.Scope != null) ? new OtlpScope(scopeSpan.Scope, _dashboardOptions.TelemetryLimits) : OtlpScope.Empty;
+                        scope = (scopeSpan.Scope != null) ? new OtlpScope(scopeSpan.Scope, _otlpContext) : OtlpScope.Empty;
                         _traceScopes.Add(name, scope);
                     }
                 }
                 catch (Exception ex)
                 {
                     context.FailureCount += scopeSpan.Spans.Count;
-                    _logger.LogInformation(ex, "Error adding scope.");
+                    _otlpContext.Logger.LogInformation(ex, "Error adding scope.");
                     continue;
                 }
 
@@ -696,7 +810,7 @@ public sealed class TelemetryRepository
                             newTrace = true;
                         }
 
-                        var newSpan = CreateSpan(application, span, trace, scope, _dashboardOptions.TelemetryLimits);
+                        var newSpan = CreateSpan(applicationView, span, trace, scope, _otlpContext);
                         trace.AddSpan(newSpan);
 
                         // The new span might be linked to by an existing span.
@@ -773,12 +887,17 @@ public sealed class TelemetryRepository
                             }
                         }
 
+                        foreach (var kvp in newSpan.Attributes)
+                        {
+                            _tracePropertyKeys.Add((applicationView.Application, kvp.Key));
+                        }
+
                         lastTrace = trace;
                     }
                     catch (Exception ex)
                     {
                         context.FailureCount++;
-                        _logger.LogInformation(ex, "Error adding span.");
+                        _otlpContext.Logger.LogInformation(ex, "Error adding span.");
                     }
 
                     AssertTraceOrder();
@@ -861,7 +980,7 @@ public sealed class TelemetryRepository
         }
     }
 
-    private static OtlpSpan CreateSpan(OtlpApplication application, Span span, OtlpTrace trace, OtlpScope scope, TelemetryLimitOptions options)
+    private static OtlpSpan CreateSpan(OtlpApplicationView applicationView, Span span, OtlpTrace trace, OtlpScope scope, OtlpContext context)
     {
         var id = span.SpanId?.ToHexString();
         if (id is null)
@@ -870,20 +989,6 @@ public sealed class TelemetryRepository
         }
 
         var events = new List<OtlpSpanEvent>();
-        foreach (var e in span.Events.OrderBy(e => e.TimeUnixNano))
-        {
-            events.Add(new OtlpSpanEvent
-            {
-                Name = e.Name,
-                Time = OtlpHelpers.UnixNanoSecondsToDateTime(e.TimeUnixNano),
-                Attributes = e.Attributes.ToKeyValuePairs(options)
-            });
-
-            if (events.Count >= options.MaxSpanEventCount)
-            {
-                break;
-            }
-        }
 
         var links = new List<OtlpSpanLink>();
         foreach (var e in span.Links)
@@ -895,11 +1000,11 @@ public sealed class TelemetryRepository
                 TraceState = e.TraceState,
                 SpanId = e.SpanId.ToHexString(),
                 TraceId = e.TraceId.ToHexString(),
-                Attributes = e.Attributes.ToKeyValuePairs(options)
+                Attributes = e.Attributes.ToKeyValuePairs(context)
             });
         }
 
-        var newSpan = new OtlpSpan(application, trace, scope)
+        var newSpan = new OtlpSpan(applicationView, trace, scope)
         {
             SpanId = id,
             ParentSpanId = span.ParentSpanId?.ToHexString(),
@@ -909,12 +1014,28 @@ public sealed class TelemetryRepository
             EndTime = OtlpHelpers.UnixNanoSecondsToDateTime(span.EndTimeUnixNano),
             Status = ConvertStatus(span.Status),
             StatusMessage = span.Status?.Message,
-            Attributes = span.Attributes.ToKeyValuePairs(options),
+            Attributes = span.Attributes.ToKeyValuePairs(context),
             State = span.TraceState,
             Events = events,
             Links = links,
             BackLinks = new()
         };
+
+        foreach (var e in span.Events.OrderBy(e => e.TimeUnixNano))
+        {
+            events.Add(new OtlpSpanEvent(newSpan)
+            {
+                InternalId = Guid.NewGuid(),
+                Name = e.Name,
+                Time = OtlpHelpers.UnixNanoSecondsToDateTime(e.TimeUnixNano),
+                Attributes = e.Attributes.ToKeyValuePairs(context)
+            });
+
+            if (events.Count >= context.Options.MaxSpanEventCount)
+            {
+                break;
+            }
+        }
         return newSpan;
     }
 
@@ -966,7 +1087,7 @@ public sealed class TelemetryRepository
         else
         {
             var allDimensions = new List<DimensionScope>();
-            var allKnownAttributes = new Dictionary<string, List<string>>();
+            var allKnownAttributes = new Dictionary<string, List<string?>>();
 
             foreach (var instrument in instruments)
             {

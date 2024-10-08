@@ -3,9 +3,11 @@
 
 using System.Text;
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
@@ -16,7 +18,45 @@ namespace Aspire.Hosting.RabbitMQ.Tests;
 
 public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
 {
-    private const string RabbitMQReadyText = "Time to start RabbitMQ:";
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWaitForOnRabbitMQBlocksDependentResources()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
+        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
+        {
+            return healthCheckTcs.Task;
+        });
+
+        var resource = builder.AddRabbitMQ("resource")
+                              .WithHealthCheck("blocking_check");
+
+        var dependentResource = builder.AddRabbitMQ("dependentresource")
+                                       .WaitFor(resource);
+
+        using var app = builder.Build();
+
+        var pendingStart = app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+
+        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
+
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await pendingStart;
+
+        await app.StopAsync();
+    }
 
     [Fact]
     [RequiresDocker]
@@ -98,7 +138,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
-                        await app.WaitForTextAsync(RabbitMQReadyText, resourceName: rabbitMQ1.Resource.Name).WaitAsync(TimeSpan.FromMinutes(1));
+                        await app.WaitForHealthyAsync(rabbitMQ1).WaitAsync(TimeSpan.FromMinutes(1));
 
                         var connection = host.Services.GetRequiredService<IConnection>();
 
@@ -155,7 +195,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
-                        await app.WaitForTextAsync(RabbitMQReadyText, resourceName: rabbitMQ2.Resource.Name).WaitAsync(TimeSpan.FromMinutes(1));
+                        await app.WaitForHealthyAsync(rabbitMQ2).WaitAsync(TimeSpan.FromMinutes(1));
 
                         var connection = host.Services.GetRequiredService<IConnection>();
 

@@ -36,7 +36,7 @@ See https://aka.ms/dotnet/aspire/containers for more details on supported contai
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check returned an error: {0}</source>
-        <target state="needs-review-translation">应用程序业务流程协调程序依赖项检查遇到意外错误 {0}。</target>
+        <target state="translated">应用程序业务流程协调程序依赖项检查返回了错误: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">

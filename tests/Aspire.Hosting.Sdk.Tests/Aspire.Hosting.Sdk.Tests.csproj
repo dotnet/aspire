@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\src\Aspire.AppHost.Sdk\Aspire.RuntimeIdentifier.Tool\NuGetUtils.cs" Link="Product\NuGetUtils.cs" />
+    <None Include="$(BundledRuntimeIdentifierGraphFile)" Link="RuntimeIdentifierGraph.json" CopyToOutputDirectory="Always" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NuGet.ProjectModel" />
+  </ItemGroup>
+
+</Project>

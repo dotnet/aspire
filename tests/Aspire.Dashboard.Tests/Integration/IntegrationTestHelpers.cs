@@ -7,6 +7,7 @@ using Aspire.Hosting;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Configuration;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
@@ -38,16 +39,18 @@ public static class IntegrationTestHelpers
     public static DashboardWebApplication CreateDashboardWebApplication(
         ITestOutputHelper testOutputHelper,
         Action<Dictionary<string, string?>>? additionalConfiguration = null,
+        Action<WebApplicationBuilder>? preConfigureBuilder = null,
         ITestSink? testSink = null)
     {
         var loggerFactory = CreateLoggerFactory(testOutputHelper, testSink);
 
-        return CreateDashboardWebApplication(loggerFactory, additionalConfiguration);
+        return CreateDashboardWebApplication(loggerFactory, additionalConfiguration, preConfigureBuilder);
     }
 
     public static DashboardWebApplication CreateDashboardWebApplication(
         ILoggerFactory loggerFactory,
-        Action<Dictionary<string, string?>>? additionalConfiguration = null)
+        Action<Dictionary<string, string?>>? additionalConfiguration = null,
+        Action<WebApplicationBuilder>? preConfigureBuilder = null)
     {
         var initialData = new Dictionary<string, string?>
         {
@@ -67,6 +70,8 @@ public static class IntegrationTestHelpers
 
         var dashboardWebApplication = new DashboardWebApplication(builder =>
         {
+            preConfigureBuilder?.Invoke(builder);
+
             builder.Services.PostConfigure<LoggerFilterOptions>(o =>
             {
                 o.Rules.Clear();

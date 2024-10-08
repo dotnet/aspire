@@ -15,6 +15,7 @@ public class OtlpTrace
 
     public string FullName { get; private set; }
     public OtlpSpan FirstSpan => Spans[0]; // There should always be at least one span in a trace.
+    public DateTime TimeStamp => FirstSpan.StartTime;
     public OtlpSpan? RootSpan => _rootSpan;
     public TimeSpan Duration
     {
@@ -91,7 +92,7 @@ public class OtlpTrace
 
         static string BuildFullName(OtlpSpan existingSpan)
         {
-            return $"{existingSpan.Source.ApplicationName}: {existingSpan.Name}";
+            return $"{existingSpan.Source.Application.ApplicationName}: {existingSpan.Name}";
         }
     }
 

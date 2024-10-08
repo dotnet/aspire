@@ -31,25 +31,25 @@ public class DashboardUrlsTests
         var singleFilterUrl = DashboardUrls.StructuredLogsUrl(
             resource: $"resource{PlaceholderInput}",
             logLevel: "error",
-            filters: LogFilterFormatter.SerializeLogFiltersToString([
-                new LogFilter { Condition = FilterCondition.Contains, Field = "test", Value = "value" }
+            filters: TelemetryFilterFormatter.SerializeFiltersToString([
+                new TelemetryFilter { Condition = FilterCondition.Contains, Field = "test", Value = "value" }
             ]),
             traceId: PlaceholderInput,
             spanId: PlaceholderInput);
 
-        Assert.Equal($"/structuredlogs/resource/resource{PlaceholderAllCharactersEncoded}?logLevel=error&filters=test:contains:value&traceId={PlaceholderAllButExclamationMarkEncoded}&spanId={PlaceholderAllButExclamationMarkEncoded}", singleFilterUrl);
+        Assert.Equal($"/structuredlogs/resource/resource{PlaceholderAllCharactersEncoded}?logLevel=error&filters=test%3Acontains%3Avalue&traceId={PlaceholderAllButExclamationMarkEncoded}&spanId={PlaceholderAllButExclamationMarkEncoded}", singleFilterUrl);
 
         var multipleFiltersIncludingSpacesUrl = DashboardUrls.StructuredLogsUrl(
             resource: $"resource{PlaceholderInput}",
             logLevel: "error",
-            filters: LogFilterFormatter.SerializeLogFiltersToString([
-                new LogFilter { Condition = FilterCondition.Contains, Field = "test", Value = "value" },
-                new LogFilter { Condition = FilterCondition.GreaterThan, Field = "fieldWithSpacedValue", Value = "!! multiple words here !!" },
-                new LogFilter { Condition = FilterCondition.NotEqual, Field = "name", Value = "nameValue" },
+            filters: TelemetryFilterFormatter.SerializeFiltersToString([
+                new TelemetryFilter { Condition = FilterCondition.Contains, Field = "test", Value = "value" },
+                new TelemetryFilter { Condition = FilterCondition.GreaterThan, Field = "fieldWithSpacedValue", Value = "!! multiple words here !!" },
+                new TelemetryFilter { Condition = FilterCondition.NotEqual, Field = "name", Value = "nameValue" },
             ]),
             traceId: PlaceholderInput,
             spanId: PlaceholderInput);
-        Assert.Equal($"/structuredlogs/resource/resource{PlaceholderAllCharactersEncoded}?logLevel=error&filters=test:contains:value%2BfieldWithSpacedValue:gt:%21%21%20multiple%20words%20here%20%21%21%2Bname:!equals:nameValue&traceId={PlaceholderAllButExclamationMarkEncoded}&spanId={PlaceholderAllButExclamationMarkEncoded}", multipleFiltersIncludingSpacesUrl);
+        Assert.Equal($"/structuredlogs/resource/resource{PlaceholderAllCharactersEncoded}?logLevel=error&filters=test%3Acontains%3Avalue%20fieldWithSpacedValue%3Agt%3A!!%2Bmultiple%2Bwords%2Bhere%2B!!%20name%3A!equals%3AnameValue&traceId={PlaceholderAllButExclamationMarkEncoded}&spanId={PlaceholderAllButExclamationMarkEncoded}", multipleFiltersIncludingSpacesUrl);
     }
 
     [Fact]

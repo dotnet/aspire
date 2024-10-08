@@ -56,9 +56,7 @@ public static class AspireAzureSearchExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        var configurationSectionName = AzureSearchComponent.GetKeyedConfigurationSectionName(name, DefaultConfigSectionName);
-
-        new AzureSearchComponent().AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+        new AzureSearchComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
     }
 
     private sealed class AzureSearchComponent : AzureComponent<AzureSearchSettings, SearchIndexClient, SearchClientOptions>
@@ -110,6 +108,9 @@ public static class AspireAzureSearchExtensions
 
         protected override TokenCredential? GetTokenCredential(AzureSearchSettings settings)
             => settings.Credential;
+
+        protected override bool GetMetricsEnabled(AzureSearchSettings settings)
+            => false;
 
         protected override bool GetTracingEnabled(AzureSearchSettings settings)
             => !settings.DisableTracing;

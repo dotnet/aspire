@@ -15,6 +15,8 @@ namespace Aspire.Dashboard.Tests.Model;
 
 public sealed class DashboardClientTests
 {
+    private static readonly BrowserTimeProvider s_timeProvider = new(NullLoggerFactory.Instance);
+
     private readonly IConfiguration _configuration;
     private readonly IOptions<DashboardOptions> _dashboardOptions;
 
@@ -149,6 +151,6 @@ public sealed class DashboardClientTests
 
     private DashboardClient CreateResourceServiceClient()
     {
-        return new DashboardClient(NullLoggerFactory.Instance, _configuration, _dashboardOptions);
+        return new DashboardClient(NullLoggerFactory.Instance, _configuration, _dashboardOptions, s_timeProvider, new MockKnownPropertyLookup());
     }
 }

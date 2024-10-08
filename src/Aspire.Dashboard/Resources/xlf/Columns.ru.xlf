@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="EndpointsColumnDisplayOverflowTitle">
         <source>Endpoints</source>
-        <target state="new">Endpoints</target>
+        <target state="translated">Конечные точки</target>
         <note />
       </trans-unit>
       <trans-unit id="EndpointsColumnDisplayPlaceholder">
@@ -17,9 +17,9 @@
         <target state="translated">Производится запуск…</target>
         <note />
       </trans-unit>
-      <trans-unit id="LogMessageColumnExceptionDetailsTitle">
-        <source>Exception details</source>
-        <target state="translated">Подробности исключения</target>
+      <trans-unit id="PersistentContainerIconTooltip">
+        <source>This container is persistent and won't be stopped when the app host is shut down.</source>
+        <target state="new">This container is persistent and won't be stopped when the app host is shut down.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNameDisplayContainerIdText">
@@ -36,6 +36,11 @@
         <source>Process ID: {0}</source>
         <target state="translated">Идентификатор процесса: {0}</target>
         <note>{0} is a numeric id</note>
+      </trans-unit>
+      <trans-unit id="RunningAndUnhealthyResourceStateToolTip">
+        <source>Resource is running but not in a healthy state. Click for details.</source>
+        <target state="new">Resource is running but not in a healthy state. Click for details.</target>
+        <note>Tool tip text explaining that the resource is running but not yet ready to receive requests.</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerArgsTitle">
         <source>Container args</source>

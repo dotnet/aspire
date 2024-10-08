@@ -26,26 +26,27 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              DistributedApplicationExecutionContext executionContext,
                                              ResourceNotificationService resourceNotificationService,
                                              ResourceLoggerService resourceLoggerService,
-                                             ILoggerFactory loggerFactory) : IDistributedApplicationLifecycleHook, IAsyncDisposable
+                                             ILoggerFactory loggerFactory,
+                                             DcpNameGenerator nameGenerator) : IDistributedApplicationLifecycleHook, IAsyncDisposable
 {
     private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _dashboardLogsTask;
 
-    public Task BeforeStartAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
+    public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
         Debug.Assert(executionContext.IsRunMode, "Dashboard resource should only be added in run mode");
 
-        if (model.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is { } dashboardResource)
+        if (appModel.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is { } dashboardResource)
         {
             ConfigureAspireDashboardResource(dashboardResource);
 
             // Make the dashboard first in the list so it starts as fast as possible.
-            model.Resources.Remove(dashboardResource);
-            model.Resources.Insert(0, dashboardResource);
+            appModel.Resources.Remove(dashboardResource);
+            appModel.Resources.Insert(0, dashboardResource);
         }
         else
         {
-            AddDashboardResource(model);
+            AddDashboardResource(appModel);
         }
 
         _dashboardLogsTask = WatchDashboardLogsAsync(_shutdownCts.Token);
@@ -102,6 +103,8 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, fullyQualifiedDashboardPath, dashboardWorkingDirectory ?? "");
         }
 
+        nameGenerator.EnsureDcpInstancesPopulated(dashboardResource);
+
         ConfigureAspireDashboardResource(dashboardResource);
 
         // Make the dashboard first in the list so it starts as fast as possible.
@@ -110,6 +113,10 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
     private void ConfigureAspireDashboardResource(IResource dashboardResource)
     {
+        // The dashboard resource can be visible during development. We don't want people to be able to stop the dashboard from inside the dashboard.
+        // Exclude the lifecycle commands from the dashboard resource so they're not accidently clicked during development.
+        dashboardResource.Annotations.Add(new ExcludeLifecycleCommandsAnnotation());
+
         // Remove endpoint annotations because we are directly configuring
         // the dashboard app (it doesn't go through the proxy!).
         var endpointAnnotations = dashboardResource.Annotations.OfType<EndpointAnnotation>().ToList();
@@ -246,7 +253,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
             if (!string.IsNullOrEmpty(browserToken))
             {
-                LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrls, browserToken);
+                LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrls, browserToken, isContainer: false);
             }
         }));
     }
