@@ -200,6 +200,10 @@ h1 {
      .page-header {
          padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 2.5px);
      }
+
+     .settings-dialog-spacer {
+         height: 100%;
+     }
  }
 
 .datagrid-overflow-area,

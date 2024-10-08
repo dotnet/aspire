@@ -217,7 +217,14 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             await _openPageDialog.CloseAsync();
         }
 
-        _openPageDialog = await DialogService.ShowPanelAsync<SettingsDialog>(parameters).ConfigureAwait(true);
+        if (ViewportInformation.IsDesktop)
+        {
+            _openPageDialog = await DialogService.ShowPanelAsync<SettingsDialog>(parameters).ConfigureAwait(true);
+        }
+        else
+        {
+            _openPageDialog = await DialogService.ShowDialogAsync<SettingsDialog>(parameters).ConfigureAwait(true);
+        }
     }
 
     public IReadOnlySet<AspireKeyboardShortcut> SubscribedShortcuts { get; } = new HashSet<AspireKeyboardShortcut>
