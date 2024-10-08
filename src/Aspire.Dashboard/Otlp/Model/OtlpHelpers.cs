@@ -169,7 +169,7 @@ public static class OtlpHelpers
         return (long)(nanoseconds / TimeSpan.NanosecondsPerTick);
     }
 
-    public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes, TelemetryLimitOptions options)
+    public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes, TelemetryLimitOptions options, ILogger logger)
     {
         if (attributes.Count == 0)
         {
@@ -177,12 +177,19 @@ public static class OtlpHelpers
         }
 
         var values = new KeyValuePair<string, string>[Math.Min(attributes.Count, options.MaxAttributeCount)];
-        CopyKeyValues(attributes, values, index: 0, options);
+        CopyKeyValues(attributes, values, index: 0, options, logger, out var copyCount);
 
-        return values;
+        if (values.Length == copyCount)
+        {
+            return values;
+        }
+        else
+        {
+            return values[..copyCount];
+        }
     }
 
-    public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes, TelemetryLimitOptions options, Func<KeyValue, bool> filter)
+    public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes, TelemetryLimitOptions options, ILogger logger, Func<KeyValue, bool> filter)
     {
         if (attributes.Count == 0)
         {
@@ -202,59 +209,126 @@ public static class OtlpHelpers
 
             var value = TruncateString(attribute.Value.GetString(), options.MaxAttributeLength);
 
-            values.Add(new KeyValuePair<string, string>(attribute.Key, value));
-
-            if (values.Count >= readLimit)
+            // If there are duplicates then last value wins.
+            var existingIndex = GetIndex(values, attribute.Key);
+            if (existingIndex >= 0)
             {
-                break;
+                var existingAttribute = values[existingIndex];
+                if (existingAttribute.Value != value)
+                {
+                    logger.LogDebug("Duplicate attribute {Name} with different value. Last value wins.", attribute.Key);
+                    values[existingIndex] = new KeyValuePair<string, string>(attribute.Key, value);
+                }
+            }
+            else
+            {
+                if (values.Count < readLimit)
+                {
+                    values.Add(new KeyValuePair<string, string>(attribute.Key, value));
+                }
             }
         }
 
         return values.ToArray();
+
+        static int GetIndex(List<KeyValuePair<string, string>> values, string name)
+        {
+            for (var i = 0; i < values.Count; i++)
+            {
+                if (values[i].Key == name)
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
     }
 
-    public static void CopyKeyValuePairs(RepeatedField<KeyValue> attributes, KeyValuePair<string, string>[] parentAttributes, TelemetryLimitOptions options, out int copyCount, [NotNull] ref KeyValuePair<string, string>[]? copiedAttributes)
+    public static void CopyKeyValuePairs(RepeatedField<KeyValue> attributes, KeyValuePair<string, string>[] parentAttributes, TelemetryLimitOptions options, ILogger logger, out int copyCount, [NotNull] ref KeyValuePair<string, string>[]? copiedAttributes)
     {
         copyCount = Math.Min(parentAttributes.Length + attributes.Count, options.MaxAttributeCount);
 
+        // Attribute limit already reached.
+        if (copyCount == parentAttributes.Length)
+        {
+            copiedAttributes = parentAttributes;
+            return;
+        }
+
         if (copiedAttributes is null || copiedAttributes.Length < copyCount)
         {
+            // Existing array isn't big enough. Create new bigger array.
             copiedAttributes = new KeyValuePair<string, string>[copyCount];
         }
         else
         {
+            // Clear existing array before reuse.
             Array.Clear(copiedAttributes);
         }
 
         parentAttributes.AsSpan().CopyTo(copiedAttributes);
 
-        CopyKeyValues(attributes, copiedAttributes, parentAttributes.Length, options);
+        CopyKeyValues(attributes, copiedAttributes, parentAttributes.Length, options, logger, out var newCopyCount);
+        copyCount = parentAttributes.Length + newCopyCount;
     }
 
-    private static void CopyKeyValues(RepeatedField<KeyValue> attributes, KeyValuePair<string, string>[] copiedAttributes, int index, TelemetryLimitOptions options)
+    private static void CopyKeyValues(RepeatedField<KeyValue> attributes, KeyValuePair<string, string>[] copiedAttributes, int index, TelemetryLimitOptions options, ILogger logger, out int copyCount)
     {
-        var copyCount = Math.Min(attributes.Count + index, options.MaxAttributeCount);
+        var desiredCopyCount = Math.Min(attributes.Count + index, options.MaxAttributeCount);
+        desiredCopyCount -= index;
 
-        for (var i = 0; i < copyCount - index; i++)
+        // Don't immediately break out of loop when the limit is reached. The rules for attributes is last value wins.
+        // That means we want to loop through all attributes to check for new values to overwrite old.
+        copyCount = 0;
+        for (var i = 0; i < attributes.Count; i++)
         {
             var attribute = attributes[i];
 
             var value = TruncateString(attribute.Value.GetString(), options.MaxAttributeLength);
 
-            copiedAttributes[i + index] = new KeyValuePair<string, string>(attribute.Key, value);
+            // If there are duplicates then last value wins.
+            var existingIndex = GetIndex(copiedAttributes, attribute.Key);
+            if (existingIndex >= 0)
+            {
+                var existingAttribute = copiedAttributes[existingIndex];
+                if (existingAttribute.Value != value)
+                {
+                    logger.LogDebug("Duplicate attribute {Name} with different value. Last value wins.", attribute.Key);
+                    copiedAttributes[existingIndex] = new KeyValuePair<string, string>(attribute.Key, value);
+                }
+            }
+            else
+            {
+                if (copyCount < desiredCopyCount)
+                {
+                    copiedAttributes[index + copyCount] = new KeyValuePair<string, string>(attribute.Key, value);
+                    copyCount++;
+                }
+            }
         }
     }
 
     public static string? GetValue(this KeyValuePair<string, string>[] values, string name)
     {
+        var i = values.GetIndex(name);
+        if (i >= 0)
+        {
+            return values[i].Value;
+        }
+
+        return null;
+    }
+
+    public static int GetIndex(this KeyValuePair<string, string>[] values, string name)
+    {
         for (var i = 0; i < values.Length; i++)
         {
             if (values[i].Key == name)
             {
-                return values[i].Value;
+                return i;
             }
         }
-        return null;
+        return -1;
     }
 
     public static string? GetPeerAddress(this KeyValuePair<string, string>[] values)

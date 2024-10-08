@@ -6,6 +6,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Resources;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging.Abstractions;
 using OpenTelemetry.Proto.Common.V1;
 using Xunit;
 
@@ -30,7 +31,7 @@ public sealed class DefaultInstrumentUnitResolverTests
         {
             Description = "Description!",
             Name = name,
-            Parent = new OtlpMeter(new InstrumentationScope { Name = "meter_name" }, new TelemetryLimitOptions()),
+            Parent = new OtlpMeter(new InstrumentationScope { Name = "meter_name" }, new TelemetryLimitOptions(), NullLogger.Instance),
             Type = OtlpInstrumentType.Gauge,
             Unit = unit
         };

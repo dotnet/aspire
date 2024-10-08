@@ -30,7 +30,7 @@ public class DimensionScope
         _values = new(capacity);
     }
 
-    public void AddPointValue(NumberDataPoint d, TelemetryLimitOptions options)
+    public void AddPointValue(NumberDataPoint d, TelemetryLimitOptions options, ILogger logger)
     {
         var start = OtlpHelpers.UnixNanoSecondsToDateTime(d.StartTimeUnixNano);
         var end = OtlpHelpers.UnixNanoSecondsToDateTime(d.TimeUnixNano);
@@ -42,7 +42,7 @@ public class DimensionScope
             if (lastLongValue is not null && lastLongValue.Value == value)
             {
                 lastLongValue.End = end;
-                AddExemplars(lastLongValue, d.Exemplars, options);
+                AddExemplars(lastLongValue, d.Exemplars, options, logger);
                 Interlocked.Increment(ref lastLongValue.Count);
             }
             else
@@ -52,7 +52,7 @@ public class DimensionScope
                     start = lastLongValue.End;
                 }
                 _lastValue = new MetricValue<long>(d.AsInt, start, end);
-                AddExemplars(_lastValue, d.Exemplars, options);
+                AddExemplars(_lastValue, d.Exemplars, options, logger);
                 _values.Add(_lastValue);
             }
         }
@@ -62,7 +62,7 @@ public class DimensionScope
             if (lastDoubleValue is not null && lastDoubleValue.Value == d.AsDouble)
             {
                 lastDoubleValue.End = end;
-                AddExemplars(lastDoubleValue, d.Exemplars, options);
+                AddExemplars(lastDoubleValue, d.Exemplars, options, logger);
                 Interlocked.Increment(ref lastDoubleValue.Count);
             }
             else
@@ -72,13 +72,13 @@ public class DimensionScope
                     start = lastDoubleValue.End;
                 }
                 _lastValue = new MetricValue<double>(d.AsDouble, start, end);
-                AddExemplars(_lastValue, d.Exemplars, options);
+                AddExemplars(_lastValue, d.Exemplars, options, logger);
                 _values.Add(_lastValue);
             }
         }
     }
 
-    public void AddHistogramValue(HistogramDataPoint h, TelemetryLimitOptions options)
+    public void AddHistogramValue(HistogramDataPoint h, TelemetryLimitOptions options, ILogger logger)
     {
         var start = OtlpHelpers.UnixNanoSecondsToDateTime(h.StartTimeUnixNano);
         var end = OtlpHelpers.UnixNanoSecondsToDateTime(h.TimeUnixNano);
@@ -87,7 +87,7 @@ public class DimensionScope
         if (lastHistogramValue is not null && lastHistogramValue.Count == h.Count)
         {
             lastHistogramValue.End = end;
-            AddExemplars(lastHistogramValue, h.Exemplars, options);
+            AddExemplars(lastHistogramValue, h.Exemplars, options, logger);
         }
         else
         {
@@ -105,12 +105,12 @@ public class DimensionScope
                 explicitBounds = h.ExplicitBounds.ToArray();
             }
             _lastValue = new HistogramValue(h.BucketCounts.ToArray(), h.Sum, h.Count, start, end, explicitBounds);
-            AddExemplars(_lastValue, h.Exemplars, options);
+            AddExemplars(_lastValue, h.Exemplars, options, logger);
             _values.Add(_lastValue);
         }
     }
 
-    private static void AddExemplars(MetricValueBase value, RepeatedField<Exemplar> exemplars, TelemetryLimitOptions options)
+    private static void AddExemplars(MetricValueBase value, RepeatedField<Exemplar> exemplars, TelemetryLimitOptions options, ILogger logger)
     {
         if (exemplars.Count > 0)
         {
@@ -143,7 +143,7 @@ public class DimensionScope
                 {
                     Start = start,
                     Value = exemplarValue,
-                    Attributes = exemplar.FilteredAttributes.ToKeyValuePairs(options),
+                    Attributes = exemplar.FilteredAttributes.ToKeyValuePairs(options, logger),
                     SpanId = exemplar.SpanId.ToHexString(),
                     TraceId = exemplar.TraceId.ToHexString()
                 });

@@ -299,7 +299,7 @@ public sealed class TelemetryRepository
                     var name = sl.Scope?.Name ?? string.Empty;
                     if (!_logScopes.TryGetValue(name, out scope))
                     {
-                        scope = (sl.Scope != null) ? new OtlpScope(sl.Scope, _dashboardOptions.TelemetryLimits) : OtlpScope.Empty;
+                        scope = (sl.Scope != null) ? new OtlpScope(sl.Scope, _dashboardOptions.TelemetryLimits, _logger) : OtlpScope.Empty;
                         _logScopes.Add(name, scope);
                     }
                 }
@@ -314,7 +314,7 @@ public sealed class TelemetryRepository
                 {
                     try
                     {
-                        var logEntry = new OtlpLogEntry(record, applicationView, scope, _dashboardOptions.TelemetryLimits);
+                        var logEntry = new OtlpLogEntry(record, applicationView, scope, _dashboardOptions.TelemetryLimits, _logger);
 
                         // Insert log entry in the correct position based on timestamp.
                         // Logs can be added out of order by different services.
@@ -776,7 +776,7 @@ public sealed class TelemetryRepository
                     var name = scopeSpan.Scope?.Name ?? string.Empty;
                     if (!_traceScopes.TryGetValue(name, out scope))
                     {
-                        scope = (scopeSpan.Scope != null) ? new OtlpScope(scopeSpan.Scope, _dashboardOptions.TelemetryLimits) : OtlpScope.Empty;
+                        scope = (scopeSpan.Scope != null) ? new OtlpScope(scopeSpan.Scope, _dashboardOptions.TelemetryLimits, _logger) : OtlpScope.Empty;
                         _traceScopes.Add(name, scope);
                     }
                 }
@@ -807,7 +807,7 @@ public sealed class TelemetryRepository
                             newTrace = true;
                         }
 
-                        var newSpan = CreateSpan(applicationView, span, trace, scope, _dashboardOptions.TelemetryLimits);
+                        var newSpan = CreateSpan(applicationView, span, trace, scope, _dashboardOptions.TelemetryLimits, _logger);
                         trace.AddSpan(newSpan);
 
                         // The new span might be linked to by an existing span.
@@ -977,7 +977,7 @@ public sealed class TelemetryRepository
         }
     }
 
-    private static OtlpSpan CreateSpan(OtlpApplicationView applicationView, Span span, OtlpTrace trace, OtlpScope scope, TelemetryLimitOptions options)
+    private static OtlpSpan CreateSpan(OtlpApplicationView applicationView, Span span, OtlpTrace trace, OtlpScope scope, TelemetryLimitOptions options, ILogger logger)
     {
         var id = span.SpanId?.ToHexString();
         if (id is null)
@@ -997,7 +997,7 @@ public sealed class TelemetryRepository
                 TraceState = e.TraceState,
                 SpanId = e.SpanId.ToHexString(),
                 TraceId = e.TraceId.ToHexString(),
-                Attributes = e.Attributes.ToKeyValuePairs(options)
+                Attributes = e.Attributes.ToKeyValuePairs(options, logger)
             });
         }
 
@@ -1011,7 +1011,7 @@ public sealed class TelemetryRepository
             EndTime = OtlpHelpers.UnixNanoSecondsToDateTime(span.EndTimeUnixNano),
             Status = ConvertStatus(span.Status),
             StatusMessage = span.Status?.Message,
-            Attributes = span.Attributes.ToKeyValuePairs(options),
+            Attributes = span.Attributes.ToKeyValuePairs(options, logger),
             State = span.TraceState,
             Events = events,
             Links = links,
@@ -1025,7 +1025,7 @@ public sealed class TelemetryRepository
                 InternalId = Guid.NewGuid(),
                 Name = e.Name,
                 Time = OtlpHelpers.UnixNanoSecondsToDateTime(e.TimeUnixNano),
-                Attributes = e.Attributes.ToKeyValuePairs(options)
+                Attributes = e.Attributes.ToKeyValuePairs(options, logger)
             });
 
             if (events.Count >= options.MaxSpanEventCount)

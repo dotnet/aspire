@@ -25,11 +25,11 @@ public class OtlpScope
         Version = string.Empty;
     }
 
-    public OtlpScope(InstrumentationScope scope, TelemetryLimitOptions options)
+    public OtlpScope(InstrumentationScope scope, TelemetryLimitOptions options, ILogger logger)
     {
         ScopeName = scope.Name;
 
-        Attributes = scope.Attributes.ToKeyValuePairs(options);
+        Attributes = scope.Attributes.ToKeyValuePairs(options, logger);
         Version = scope.Version;
     }
 }

@@ -15,10 +15,10 @@ public class OtlpMeter
 
     public KeyValuePair<string, string>[] Attributes { get; }
 
-    public OtlpMeter(InstrumentationScope scope, TelemetryLimitOptions options)
+    public OtlpMeter(InstrumentationScope scope, TelemetryLimitOptions options, ILogger logger)
     {
         MeterName = scope.Name;
         Version = scope.Version;
-        Attributes = scope.Attributes.ToKeyValuePairs(options);
+        Attributes = scope.Attributes.ToKeyValuePairs(options, logger);
     }
 }
