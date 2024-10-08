@@ -47,7 +47,6 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public string? InstrumentName { get; set; }
 
     [Parameter]
-    [SupplyParameterFromQuery(Name = "highlight")]
     public string? HighlightId { get; set; }
 
     [Parameter]
@@ -375,7 +374,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             duration: serializable.DurationMinutes,
             view: serializable.ViewKind,
             highlight: serializable.HighlightId,
-            isHighlightsHome: serializable.HighlightsHomeSelected);
+            highlightOverviewUrl: serializable.HighlightsHomeSelected);
 
         return url;
     }
