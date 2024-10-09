@@ -95,6 +95,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
     public IReadOnlyList<string> ValidationFailures => _validationFailures;
 
+    public IServiceProvider Services { get; }
+
     // our localization list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
     internal static HashSet<string> LocalizedCultures { get; } = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -168,6 +170,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             _dashboardOptionsMonitor = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
             _validationFailures = failureMessages.ToList();
             _logger = GetLogger();
+            Services = _app.Services;
             WriteVersion(_logger);
             WriteValidationFailures(_logger, _validationFailures);
             return;
@@ -271,6 +274,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _dashboardOptionsMonitor = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
 
+        Services = _app.Services;
         _logger = GetLogger();
 
         var supportedCultures = GetSupportedCultures();
