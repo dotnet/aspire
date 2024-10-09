@@ -195,8 +195,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         DialogParameters parameters = new()
         {
             Title = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogTitle)],
-            PrimaryAction = ViewportInformation.IsDesktop ? Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)].Value : null,
-            PrimaryActionEnabled = ViewportInformation.IsDesktop,
+            PrimaryAction =  Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)].Value ,
             SecondaryAction = null,
             TrapFocus = true,
             Modal = true,

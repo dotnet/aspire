@@ -200,10 +200,6 @@ h1 {
      .page-header {
          padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 2.5px);
      }
-
-     .settings-dialog-spacer {
-         height: 100%;
-     }
  }
 
 .datagrid-overflow-area,
@@ -303,6 +299,13 @@ fluent-data-grid-cell .long-inner-content {
 .version {
     text-align: end;
     font-size: small;
+    width: 100%;
+    flex-grow: 1;
+
+    /* right/bottom align the inner version text */
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: flex-end;
 }
 
 .anchor-no-padding::part(control) {
