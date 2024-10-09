@@ -3,7 +3,7 @@
   "name": ".NET Aspire 9 Starter App",
   "description": "A project template for creating a .NET Aspire 9 app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
   "symbols/Framework/description": "Целевая платформа для проекта.",
-  "symbols/Framework/choices/net9.0/description": "Target net9.0",
+  "symbols/Framework/choices/net9.0/description": "Целевая среда net9.0",
   "symbols/UseRedisCache/displayName": "_Использовать Redis для кэширования (требуется поддерживаемая среда выполнения контейнера)",
   "symbols/UseRedisCache/description": "Определяет, следует ли настраивать приложение с целью использования Redis для кэширования. Для локального запуска требуется поддерживаемая среда выполнения контейнера. Дополнительные сведения см. на странице https://aka.ms/dotnet/aspire/containers.",
   "symbols/TestFramework/displayName": "Не создавать _тестовый проект.",
