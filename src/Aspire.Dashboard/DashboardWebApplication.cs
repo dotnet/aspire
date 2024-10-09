@@ -117,9 +117,14 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 #if !DEBUG
         builder.Logging.AddFilter("Default", LogLevel.Information);
         builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
-        builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
+        // Suppress TokenDeserializeException error log from anti-forgery.
+        // When dashboard is upgrade or run in a container the old anti-forgery cookie is no longer valid on first request.
+        // Silently ignore and allow anti-forgery to automatically create a new valid cookie.
+        builder.Logging.AddFilter("Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery", LogLevel.None);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
+        builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
 #else
+
         // Log more when running the dashboard as debug.
         builder.Logging.SetMinimumLevel(LogLevel.Debug);
         builder.Logging.AddFilter("Aspire.Dashboard", LogLevel.Debug);
