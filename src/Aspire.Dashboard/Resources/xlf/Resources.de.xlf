@@ -9,17 +9,17 @@
       </trans-unit>
       <trans-unit id="ResourceActionMetricsText">
         <source>Metrics</source>
-        <target state="new">Metrics</target>
+        <target state="translated">Metriken</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceActionStructuredLogsText">
         <source>Structured logs</source>
-        <target state="new">Structured logs</target>
+        <target state="translated">Strukturierte Protokolle</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceActionTracesText">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">Überwachungen</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceCommandFailed">
@@ -84,7 +84,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerLifetimeProperty">
         <source>Container lifetime</source>
-        <target state="new">Container lifetime</target>
+        <target state="translated">Containerlebensdauer</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerPortsProperty">
@@ -219,7 +219,7 @@
       </trans-unit>
       <trans-unit id="WaitingForHealthDataMessage">
         <source>Waiting for health data...</source>
-        <target state="new">Waiting for health data...</target>
+        <target state="translated">Auf Integritätsdaten wird gewartet...</target>
         <note>A message shown in the UI as a placeholder to indicate that health checks are expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
       </trans-unit>
     </body>

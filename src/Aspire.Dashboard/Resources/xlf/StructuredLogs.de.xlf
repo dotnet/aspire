@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ActionLogMessageText">
         <source>Log message</source>
-        <target state="new">Log message</target>
+        <target state="translated">Protokollmeldung</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageExceededLimitBody">
