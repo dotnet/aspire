@@ -132,7 +132,7 @@ public class BuildEnvironment
         }
 
         sdkForWorkloadPath = Path.GetFullPath(sdkForWorkloadPath);
-        DefaultBuildArgs = string.Empty;
+        DefaultBuildArgs = "-nr:false";
         NuGetPackagesPath = UsesCustomDotNet ? Path.Combine(AppContext.BaseDirectory, $"nuget-cache-{Guid.NewGuid()}") : null;
         EnvVars = new Dictionary<string, string>();
         if (UsesCustomDotNet)
