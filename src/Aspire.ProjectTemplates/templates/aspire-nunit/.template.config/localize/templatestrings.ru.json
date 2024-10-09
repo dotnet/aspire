@@ -1,9 +1,9 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire 9 Test Project (NUnit)",
-  "description": "A project that contains NUnit integration tests of a .NET Aspire 9 AppHost project.",
+  "name": "Тестовый проект .NET Aspire 9 (NUnit)",
+  "description": "Проект, содержащий интеграционные тесты NUnit проекта .NET Aspire 9 AppHost.",
   "symbols/Framework/description": "Целевая платформа для проекта.",
-  "symbols/Framework/choices/net9.0/description": "Target net9.0",
+  "symbols/Framework/choices/net9.0/description": "Целевая среда net9.0",
   "symbols/skipRestore/description": "Если установлено, автоматическое восстановление проекта при создании пропускается.",
   "postActions/restore/description": "Восстановление пакетов NuGet, необходимых для этого проекта.",
   "postActions/restore/manualInstructions/default/text": "Выполнить команду \"dotnet restore\""
