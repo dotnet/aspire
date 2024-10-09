@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Codespaces;
 
-internal class CodespacesUrlRewriter(ILogger<CodespacesUrlRewriter> logger, IConfiguration configuration, ResourceNotificationService resourceNotificationService) : BackgroundService
+internal sealed class CodespacesUrlRewriter(ILogger<CodespacesUrlRewriter> logger, IConfiguration configuration, ResourceNotificationService resourceNotificationService) : BackgroundService
 {
     private const string CodespacesEnvironmentVariable = "CODESPACES";
     private const string CodespaceNameEnvironmentVariable = "CODESPACE_NAME";
