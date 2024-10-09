@@ -393,19 +393,31 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     private static (string Value, string? ContentAfterValue, string ValueToCopy, string Tooltip)? GetSourceColumnValueAndTooltip(ResourceViewModel resource)
     {
+        var executablePath = resource.TryGetExecutablePath(out var path) ? path : null;
+
+        (string? ArgumentsString, string FullCommandLine)? commandLineInfo = null;
+
+        if (resource.TryGetExecutableArguments(out var arguments))
+        {
+            var argumentsString = arguments.IsDefaultOrEmpty ? null : string.Join(" ", arguments);
+            commandLineInfo = (ArgumentsString: argumentsString, $"{executablePath} {argumentsString}");
+        }
+
         // NOTE projects are also executables, so we have to check for projects first
         if (resource.IsProject() && resource.TryGetProjectPath(out var projectPath))
         {
-            return (Value: Path.GetFileName(projectPath), ContentAfterValue: null, ValueToCopy: projectPath, Tooltip: projectPath);
+            if (commandLineInfo is { ArgumentsString: { } argumentsString, FullCommandLine: { } fullCommandLine })
+            {
+                return (Value: Path.GetFileName(executablePath)!, ContentAfterValue: argumentsString, ValueToCopy: fullCommandLine, Tooltip: fullCommandLine ?? projectPath);
+            }
+
+            // default to project path if there is no executable path or executable arguments
+            return (Value: Path.GetFileName(projectPath), ContentAfterValue: commandLineInfo?.ArgumentsString, ValueToCopy: projectPath, Tooltip: projectPath);
         }
 
-        if (resource.TryGetExecutablePath(out var executablePath))
+        if (executablePath is not null)
         {
-            resource.TryGetExecutableArguments(out var arguments);
-            var argumentsString = arguments.IsDefaultOrEmpty ? "" : string.Join(" ", arguments);
-            var fullCommandLine = $"{executablePath} {argumentsString}";
-
-            return (Value: Path.GetFileName(executablePath), ContentAfterValue: argumentsString, ValueToCopy: fullCommandLine, Tooltip: fullCommandLine);
+            return (Value: Path.GetFileName(executablePath), ContentAfterValue: commandLineInfo?.ArgumentsString, ValueToCopy: commandLineInfo?.FullCommandLine ?? string.Empty, Tooltip: commandLineInfo?.FullCommandLine ?? string.Empty);
         }
 
         if (resource.TryGetContainerImage(out var containerImage))
