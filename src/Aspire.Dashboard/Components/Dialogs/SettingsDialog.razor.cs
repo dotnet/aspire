@@ -7,7 +7,7 @@ using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 
-public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
+public partial class SettingsDialog : IDialogContentComponent, IDisposable
 {
     private string? _currentSetting;
 
@@ -44,9 +44,8 @@ public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
         }
     }
 
-    public ValueTask DisposeAsync()
+    public void Dispose()
     {
         _themeChangedSubscription?.Dispose();
-        return ValueTask.CompletedTask;
     }
 }
