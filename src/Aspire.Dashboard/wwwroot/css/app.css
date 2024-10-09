@@ -304,6 +304,13 @@ fluent-data-grid-cell .long-inner-content {
 .version {
     text-align: end;
     font-size: small;
+    width: 100%;
+    flex-grow: 1;
+
+    /* right/bottom align the inner version text */
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: flex-end;
 }
 
 .anchor-no-padding::part(control) {
