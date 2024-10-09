@@ -73,6 +73,10 @@
     <!-- for templates -->
     <MicrosoftExtensionsHttpResiliencePackageVersionForNet8>$(MicrosoftExtensionsHttpResiliencePackageVersion)</MicrosoftExtensionsHttpResiliencePackageVersionForNet8>
     <MicrosoftExtensionsHttpResiliencePackageVersionForNet9>$(MicrosoftExtensionsHttpResiliencePackageVersion)</MicrosoftExtensionsHttpResiliencePackageVersionForNet9>
+
+    <!-- System dependencies -->
+    <SystemFormatsAsn1PackageVersion>8.0.1</SystemFormatsAsn1PackageVersion>
+    <SystemTextJsonPackageVersion>8.0.5</SystemTextJsonPackageVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0'">
@@ -90,6 +94,10 @@
     <MicrosoftEntityFrameworkCoreToolsPackageVersion>9.0.0-rc.2.24474.1</MicrosoftEntityFrameworkCoreToolsPackageVersion>
 
     <NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>9.0.0-rc.1</NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>
+
+    <!-- System dependencies -->
+    <SystemFormatsAsn1PackageVersion>9.0.0-rc.2.24473.5</SystemFormatsAsn1PackageVersion>
+    <SystemTextJsonPackageVersion>9.0.0-rc.2.24473.5</SystemTextJsonPackageVersion>
   </PropertyGroup>
 
 </Project>
