@@ -1,20 +1,10 @@
 ﻿@using Aspire.Dashboard.Components.Pages
-@using Aspire.Dashboard.Otlp.Storage
 
 @inject IStringLocalizer<Metrics> Loc
 
-@{
-    // instruments may be out of sync if we have updated the application but not yet closed the filter panel
-    // this is because we have not updated the URL, which would close the details panel
-    // because of this, we should always compute the instruments from the repository
-    var selectedInstance = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
-
-    if (selectedInstance is null)
-    {
-        return;
-    }
-
-    var instruments = TelemetryRepository.GetInstrumentsSummaries(selectedInstance.Value);
+@if (_instruments is null)
+{
+    return;
 }
 
 @if (IncludeLabel)
@@ -24,7 +14,7 @@
 
 <FluentTreeView Id="metric-selector" Class="metrics-tree" @bind-CurrentSelected="@PageViewModel.SelectedTreeItem" @bind-CurrentSelected:after="HandleSelectedTreeItemChangedAsync">
     <ChildContent>
-        @foreach (var meterGroup in instruments.GroupBy(i => i.Parent).OrderBy(g => g.Key.MeterName))
+        @foreach (var meterGroup in _instruments.GroupBy(i => i.Parent).OrderBy(g => g.Key.MeterName))
         {
             <FluentTreeItem @key="meterGroup.Key" Text="@meterGroup.Key.MeterName" Data="@meterGroup.Key" title="@meterGroup.Key.MeterName" InitiallyExpanded="true" InitiallySelected="@(PageViewModel.SelectedInstrument == null && meterGroup.Key.MeterName == PageViewModel.SelectedMeter?.MeterName)">
                 @foreach (var instrument in meterGroup.OrderBy(i => i.Name))
@@ -35,22 +25,3 @@
         }
     </ChildContent>
 </FluentTreeView>
-
-@code {
-    [Parameter, EditorRequired]
-    public required Func<Task> HandleSelectedTreeItemChangedAsync { get; set; }
-
-    [Parameter, EditorRequired]
-    public required Metrics.MetricsViewModel PageViewModel { get; set; }
-
-    [Parameter]
-    public bool IncludeLabel { get; set; }
-
-    [Inject]
-    public required TelemetryRepository TelemetryRepository { get; init; }
-
-    public void OnResourceChanged()
-    {
-        StateHasChanged();
-    }
-}

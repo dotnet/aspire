@@ -55,7 +55,6 @@ public static class PageExtensions
     /// <summary>
     /// Called after a change in the view model that will affect the url associated with new page state
     /// to navigate to the new url and save new state in localstorage.
-    ///
     /// <param name="page"></param>
     /// <param name="layout"></param>
     /// <param name="waitToApplyMobileChange">Whether we should avoid applying this change immediately on mobile, and instead
