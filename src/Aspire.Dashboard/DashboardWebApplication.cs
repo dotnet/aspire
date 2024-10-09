@@ -95,6 +95,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
     public IReadOnlyList<string> ValidationFailures => _validationFailures;
 
+    public IServiceProvider Services { get; }
+
     // our localization list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
     internal static HashSet<string> LocalizedCultures { get; } = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -117,9 +119,14 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 #if !DEBUG
         builder.Logging.AddFilter("Default", LogLevel.Information);
         builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
-        builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
+        // Suppress TokenDeserializeException error log from anti-forgery.
+        // When dashboard is upgrade or run in a container the old anti-forgery cookie is no longer valid on first request.
+        // Silently ignore and allow anti-forgery to automatically create a new valid cookie.
+        builder.Logging.AddFilter("Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery", LogLevel.None);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
+        builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
 #else
+
         // Log more when running the dashboard as debug.
         builder.Logging.SetMinimumLevel(LogLevel.Debug);
         builder.Logging.AddFilter("Aspire.Dashboard", LogLevel.Debug);
@@ -163,6 +170,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             _dashboardOptionsMonitor = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
             _validationFailures = failureMessages.ToList();
             _logger = GetLogger();
+            Services = _app.Services;
             WriteVersion(_logger);
             WriteValidationFailures(_logger, _validationFailures);
             return;
@@ -266,6 +274,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _dashboardOptionsMonitor = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
 
+        Services = _app.Services;
         _logger = GetLogger();
 
         var supportedCultures = GetSupportedCultures();

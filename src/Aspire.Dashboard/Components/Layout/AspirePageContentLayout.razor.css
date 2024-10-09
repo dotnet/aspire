@@ -18,6 +18,7 @@
     */
     grid-area: page-header;
     white-space: nowrap;
+    overflow: hidden;
 }
 
 ::deep .title-toolbar-inline {
