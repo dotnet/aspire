@@ -112,10 +112,9 @@
                                         else
                                         {
                                             <div class="empty-content">
-                                                <!-- class needed to prevent color from being removed from reboot style -->
-                                                <a class="" @onclick="@(async () => await _contentLayout!.OpenMobileToolbarAsync())">
+                                                <FluentAnchor Href="#" Appearance="Appearance.Hypertext" OnClick="@(async () => await _contentLayout!.OpenMobileToolbarAsync())">
                                                     @Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectInstrument)]
-                                                </a>
+                                                </FluentAnchor>
                                             </div>
                                         }
                                     }
@@ -135,7 +134,7 @@
                         else
                         {
                             <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple"/>@:&nbsp;
-                            <a class="" @onclick="@(async () => await _contentLayout!.OpenMobileToolbarAsync())">@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectAResource)]</a>
+                            <FluentAnchor Href="#" Appearance="Appearance.Hypertext" OnClick="@(async () => await _contentLayout!.OpenMobileToolbarAsync())">@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectAResource)]</FluentAnchor>
                         }
                     </div>
                 }
