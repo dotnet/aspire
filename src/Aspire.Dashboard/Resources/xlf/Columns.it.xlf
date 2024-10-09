@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="PersistentContainerIconTooltip">
         <source>This container is persistent and won't be stopped when the app host is shut down.</source>
-        <target state="new">This container is persistent and won't be stopped when the app host is shut down.</target>
+        <target state="translated">Questo contenitore è persistente e non verrà arrestato quando l'host dell'app viene arrestato.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNameDisplayContainerIdText">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="RunningAndUnhealthyResourceStateToolTip">
         <source>Resource is running but not in a healthy state. Click for details.</source>
-        <target state="new">Resource is running but not in a healthy state. Click for details.</target>
+        <target state="translated">La risorsa è in esecuzione ma non è in uno stato integro. Fare clic per i dettagli.</target>
         <note>Tool tip text explaining that the resource is running but not yet ready to receive requests.</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerArgsTitle">
