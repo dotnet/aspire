@@ -111,7 +111,7 @@ public class NewUpTemplatesWithAlternateName(ITestOutputHelper testOutput) : Wor
                                         buildEnvironment: buildEnvToUse,
                                         templateHive: templateHive);
 
-            await project.BuildAsync(extraBuildArgs: [$"-c {config}"],
+            await project.BuildAsync(extraBuildArgs: [$"-c {config}", "-v n"],
                                      workingDirectory: testProjectDir,
                                      timeout: TimeSpan.FromSeconds(30));
         }
