@@ -121,8 +121,8 @@ public static class AspireKafkaProducerExtensions
         }
         else
         {
-            builder.Services.AddSingleton<InstrumentedProducerBuilder<TKey, TValue>>(sp => CreateProducerBuilder(sp, configureBuilder, settings));
-            builder.Services.AddKeyedSingleton<ProducerConnectionFactory<TKey, TValue>>(serviceKey, (sp, key) => CreateProducerConnectionFactory<TKey, TValue>(sp, settings));
+            builder.Services.AddKeyedSingleton<InstrumentedProducerBuilder<TKey, TValue>>(serviceKey, (sp, key) => CreateProducerBuilder(sp, configureBuilder, settings));
+            builder.Services.AddKeyedSingleton<ProducerConnectionFactory<TKey, TValue>>(serviceKey, (sp, key) => CreateProducerConnectionFactory<TKey, TValue>(sp, settings, key as string));
             builder.Services.AddKeyedSingleton<IProducer<TKey, TValue>>(serviceKey, (sp, key) => sp.GetRequiredKeyedService<ProducerConnectionFactory<TKey, TValue>>(key).Create());
         }
 
@@ -175,8 +175,14 @@ public static class AspireKafkaProducerExtensions
         }
     }
 
-    private static ProducerConnectionFactory<TKey, TValue> CreateProducerConnectionFactory<TKey, TValue>(IServiceProvider serviceProvider, KafkaProducerSettings settings)
-        => new(serviceProvider.GetRequiredService<InstrumentedProducerBuilder<TKey, TValue>>(), settings.Config);
+    private static ProducerConnectionFactory<TKey, TValue> CreateProducerConnectionFactory<TKey, TValue>(
+        IServiceProvider serviceProvider, KafkaProducerSettings settings, string? key = null)
+    {
+        return key is null
+            ? new(serviceProvider.GetRequiredService<InstrumentedProducerBuilder<TKey, TValue>>(), settings.Config)
+            : new(serviceProvider.GetRequiredKeyedService<InstrumentedProducerBuilder<TKey, TValue>>(key),
+                settings.Config);
+    }
 
     private static InstrumentedProducerBuilder<TKey, TValue> CreateProducerBuilder<TKey, TValue>(IServiceProvider serviceProvider, Action<IServiceProvider, ProducerBuilder<TKey, TValue>>? configureBuilder, KafkaProducerSettings settings)
     {

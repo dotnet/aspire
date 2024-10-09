@@ -121,8 +121,8 @@ public static class AspireKafkaConsumerExtensions
         }
         else
         {
-            builder.Services.AddSingleton<InstrumentedConsumerBuilder<TKey, TValue>>(sp => CreateConsumerBuilder(sp, configureBuilder, settings));
-            builder.Services.AddKeyedSingleton<ConsumerConnectionFactory<TKey, TValue>>(serviceKey, (sp, key) => CreateConsumerConnectionFactory<TKey, TValue>(sp, settings));
+            builder.Services.AddKeyedSingleton<InstrumentedConsumerBuilder<TKey, TValue>>(serviceKey, (sp, key) => CreateConsumerBuilder(sp, configureBuilder, settings));
+            builder.Services.AddKeyedSingleton<ConsumerConnectionFactory<TKey, TValue>>(serviceKey, (sp, key) => CreateConsumerConnectionFactory<TKey, TValue>(sp, settings, key as string));
             builder.Services.AddKeyedSingleton<IConsumer<TKey, TValue>>(serviceKey, (sp, key) => sp.GetRequiredKeyedService<ConsumerConnectionFactory<TKey, TValue>>(key).Create());
         }
 
@@ -175,8 +175,14 @@ public static class AspireKafkaConsumerExtensions
         }
     }
 
-    private static ConsumerConnectionFactory<TKey, TValue> CreateConsumerConnectionFactory<TKey, TValue>(IServiceProvider serviceProvider, KafkaConsumerSettings settings)
-        => new(serviceProvider.GetRequiredService<InstrumentedConsumerBuilder<TKey, TValue>>(), settings.Config);
+    private static ConsumerConnectionFactory<TKey, TValue> CreateConsumerConnectionFactory<TKey, TValue>(
+        IServiceProvider serviceProvider, KafkaConsumerSettings settings, string? key = null)
+    {
+        return key is null
+            ? new(serviceProvider.GetRequiredService<InstrumentedConsumerBuilder<TKey, TValue>>(), settings.Config)
+            : new(serviceProvider.GetRequiredKeyedService<InstrumentedConsumerBuilder<TKey, TValue>>(key),
+                settings.Config);
+    }
 
     private static InstrumentedConsumerBuilder<TKey, TValue> CreateConsumerBuilder<TKey, TValue>(IServiceProvider serviceProvider, Action<IServiceProvider, ConsumerBuilder<TKey, TValue>>? configureBuilder, KafkaConsumerSettings settings)
     {
