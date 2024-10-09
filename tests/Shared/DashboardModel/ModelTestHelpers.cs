@@ -36,7 +36,8 @@ public static class ModelTestHelpers
             StateStyle = null,
             HealthStatus = HealthStatus.Healthy,
             HealthReports = [],
-            Commands = []
+            Commands = [],
+            Relationships = [],
         };
     }
 }

@@ -37,7 +37,7 @@ public partial class TraceDetail : ComponentBase
 
     [Parameter]
     [SupplyParameterFromQuery]
-    public required string? SpanId { get; set; }
+    public string? SpanId { get; set; }
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }

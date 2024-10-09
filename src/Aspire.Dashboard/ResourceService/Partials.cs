@@ -45,6 +45,7 @@ partial class Resource
                 Environment = GetEnvironment(),
                 Urls = GetUrls(),
                 Volumes = GetVolumes(),
+                Relationships = GetRelationships(),
                 State = HasState ? State : null,
                 KnownState = HasState ? Enum.TryParse(State, out KnownResourceState knownState) ? knownState : null : null,
                 StateStyle = HasStateStyle ? StateStyle : null,
@@ -78,6 +79,13 @@ partial class Resource
         {
             return Environment
                 .Select(e => new EnvironmentVariableViewModel(e.Name, e.Value, e.IsFromSpec))
+                .ToImmutableArray();
+        }
+
+        ImmutableArray<RelationshipViewModel> GetRelationships()
+        {
+            return Relationships
+                .Select(r => new RelationshipViewModel(r.ResourceName, r.Type))
                 .ToImmutableArray();
         }
 

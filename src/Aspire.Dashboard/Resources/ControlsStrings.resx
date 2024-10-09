@@ -413,4 +413,13 @@
   <data name="ActionStructuredLogsText" xml:space="preserve">
     <value>Structured logs</value>
   </data>
+  <data name="ResourceDetailsTypeHeader" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="ResourceDetailsReferences" xml:space="preserve">
+    <value>References</value>
+  </data>
+  <data name="ResourceDetailsBackReferences" xml:space="preserve">
+    <value>Back references</value>
+  </data>
 </root>

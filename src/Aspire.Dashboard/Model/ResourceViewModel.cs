@@ -32,6 +32,7 @@ public sealed class ResourceViewModel
     public required ImmutableArray<EnvironmentVariableViewModel> Environment { get; init; }
     public required ImmutableArray<UrlViewModel> Urls { get; init; }
     public required ImmutableArray<VolumeViewModel> Volumes { get; init; }
+    public required ImmutableArray<RelationshipViewModel> Relationships { get; init; }
     public required FrozenDictionary<string, ResourcePropertyViewModel> Properties { get; init; }
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
     /// <summary>The health status of the resource. <see langword="null"/> indicates that health status is expected but not yet available.</summary>
@@ -321,5 +322,21 @@ public sealed record class HealthReportViewModel(string Name, HealthStatus Healt
             Name?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
             Description?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
             _humanizedHealthStatus.Contains(filter, StringComparison.OrdinalIgnoreCase);
+    }
+}
+
+[DebuggerDisplay("ResourceName = {ResourceName}, Type = {Type}")]
+public sealed class RelationshipViewModel
+{
+    public string ResourceName { get; }
+    public string Type { get; }
+
+    public RelationshipViewModel(string resourceName, string type)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(resourceName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(type);
+
+        ResourceName = resourceName;
+        Type = type;
     }
 }

@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -14,6 +16,9 @@ public partial class ResourceDetails
     public required ResourceViewModel Resource { get; set; }
 
     [Parameter]
+    public required ConcurrentDictionary<string, ResourceViewModel> ResourceByName { get; set; }
+
+    [Parameter]
     public bool ShowSpecOnlyToggle { get; set; }
 
     [Inject]
@@ -21,6 +26,9 @@ public partial class ResourceDetails
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
+
+    [Inject]
+    public required NavigationManager NavigationManager { get; init; }
 
     private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceProperties(ordered: false).Any(static vm => vm.KnownProperty is null);
 
@@ -37,6 +45,16 @@ public partial class ResourceDetails
 
     private IQueryable<DisplayedEndpoint> FilteredEndpoints =>
         GetEndpoints()
+            .Where(vm => vm.MatchesFilter(_filter))
+            .AsQueryable();
+
+    private IQueryable<ResourceDetailRelationship> FilteredRelationships =>
+        GetRelationships()
+            .Where(vm => vm.MatchesFilter(_filter))
+            .AsQueryable();
+
+    private IQueryable<ResourceDetailRelationship> FilteredBackRelationships =>
+        GetBackRelationships()
             .Where(vm => vm.MatchesFilter(_filter))
             .AsQueryable();
 
@@ -84,6 +102,68 @@ public partial class ResourceDetails
         }
     }
 
+    private IEnumerable<ResourceDetailRelationship> GetRelationships()
+    {
+        if (ResourceByName == null)
+        {
+            return [];
+        }
+
+        var items = new List<ResourceDetailRelationship>();
+
+        foreach (var relationship in Resource.Relationships)
+        {
+            var matches = ResourceByName.Values
+                .Where(r => string.Equals(r.DisplayName, relationship.ResourceName, StringComparisons.ResourceName))
+                .Where(r => r.KnownState != KnownResourceState.Hidden)
+                .ToList();
+
+            foreach (var match in matches)
+            {
+                items.Add(new()
+                {
+                    Resource = match,
+                    ResourceName = ResourceViewModel.GetResourceName(match, ResourceByName),
+                    Type = relationship.Type
+                });
+            }
+        }
+
+        return items;
+    }
+
+    private IEnumerable<ResourceDetailRelationship> GetBackRelationships()
+    {
+        if (ResourceByName == null)
+        {
+            return [];
+        }
+
+        var items = new List<ResourceDetailRelationship>();
+
+        var otherResources = ResourceByName.Values
+            .Where(r => r != Resource)
+            .Where(r => r.KnownState != KnownResourceState.Hidden);
+
+        foreach (var otherResource in otherResources)
+        {
+            foreach (var relationship in otherResource.Relationships)
+            {
+                if (string.Equals(relationship.ResourceName, Resource.DisplayName, StringComparisons.ResourceName))
+                {
+                    items.Add(new()
+                    {
+                        Resource = otherResource,
+                        ResourceName = ResourceViewModel.GetResourceName(otherResource, ResourceByName),
+                        Type = relationship.Type
+                    });
+                }
+            }
+        }
+
+        return items.OrderBy(r => r.ResourceName);
+    }
+
     private List<DisplayedEndpoint> GetEndpoints()
     {
         return ResourceEndpointHelpers.GetEndpoints(Resource, includeInternalUrls: true);
@@ -119,7 +199,25 @@ public partial class ResourceDetails
                 return;
             }
         }
-
         _isMaskAllChecked = true;
+    }
+
+    public Task OnViewRelationshipAsync(ResourceDetailRelationship relationship)
+    {
+        NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: relationship.Resource.Name));
+        return Task.CompletedTask;
+    }
+}
+
+public sealed class ResourceDetailRelationship
+{
+    public required ResourceViewModel Resource { get; init; }
+    public required string ResourceName { get; init; }
+    public required string Type { get; set; }
+
+    public bool MatchesFilter(string filter)
+    {
+        return Resource.DisplayName.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
+            Type.Contains(filter, StringComparison.CurrentCultureIgnoreCase);
     }
 }

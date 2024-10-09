@@ -89,6 +89,12 @@ public sealed record CustomResourceSnapshot
     /// The commands available in the dashboard for this resource.
     /// </summary>
     public ImmutableArray<ResourceCommandSnapshot> Commands { get; init; } = [];
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+#pragma warning disable RS0016 // Add public types and members to the declared API
+    public ImmutableArray<RelationshipSnapshot> Relationships { get; init; } = [];
+#pragma warning restore RS0016 // Add public types and members to the declared API
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 }
 
 /// <summary>
@@ -130,6 +136,12 @@ public sealed record UrlSnapshot(string Name, string Url, bool IsInternal);
 /// <param name="MountType">Gets the mount type, such as <see cref="VolumeMountType.Bind"/> or <see cref="VolumeMountType.Volume"/></param>
 /// <param name="IsReadOnly">Whether the volume mount is read-only or not.</param>
 public sealed record VolumeSnapshot(string? Source, string Target, string MountType, bool IsReadOnly);
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+#pragma warning disable RS0016 // Add public types and members to the declared API
+public sealed record RelationshipSnapshot(string ResourceName, string Type, ImmutableDictionary<string, object> Properties);
+#pragma warning restore RS0016 // Add public types and members to the declared API
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 
 /// <summary>
 /// A snapshot of the resource property.
@@ -280,4 +292,19 @@ public static class KnownResourceStates
     /// List of terminal states.
     /// </summary>
     public static readonly IReadOnlyList<string> TerminalStates = [Finished, FailedToStart, Exited];
+}
+
+internal static class ResourceSnapshotBuilder
+{
+    public static ImmutableArray<RelationshipSnapshot> BuildRelationships(IResource resource)
+    {
+        var relationships = ImmutableArray.CreateBuilder<RelationshipSnapshot>();
+
+        foreach (var annotation in resource.Annotations.OfType<ResourceRelationshipAnnotation>())
+        {
+            relationships.Add(new(annotation.Resource.Name, annotation.Type, annotation.Properties.ToImmutableDictionary()));
+        }
+
+        return relationships.ToImmutable();
+    }
 }

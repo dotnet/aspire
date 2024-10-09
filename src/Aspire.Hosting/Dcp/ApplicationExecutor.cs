@@ -595,6 +595,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         var environment = GetEnvironmentVariables(container.Status?.EffectiveEnv ?? container.Spec.Env, container.Spec.Env);
         var state = container.AppModelInitialState == KnownResourceStates.Hidden ? KnownResourceStates.Hidden : container.Status?.State;
 
+        var relationships = ImmutableArray<RelationshipSnapshot>.Empty;
+        if (container.AppModelResourceName is not null &&
+            _applicationModel.TryGetValue(container.AppModelResourceName, out var appModelResource))
+        {
+            relationships = ResourceSnapshotBuilder.BuildRelationships(appModelResource);
+        }
+
         return previous with
         {
             ResourceType = KnownResourceTypes.Container,
@@ -614,7 +621,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             StartTimeStamp = container.Status?.StartupTimestamp?.ToUniversalTime(),
             StopTimeStamp = container.Status?.FinishTimestamp?.ToUniversalTime(),
             Urls = urls,
-            Volumes = volumes
+            Volumes = volumes,
+            Relationships = relationships
         };
 
         ImmutableArray<int> GetPorts()
@@ -644,9 +652,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private CustomResourceSnapshot ToSnapshot(Executable executable, CustomResourceSnapshot previous)
     {
         string? projectPath = null;
+        IResource? appModelResource = null;
 
         if (executable.AppModelResourceName is not null &&
-            _applicationModel.TryGetValue(executable.AppModelResourceName, out var appModelResource))
+            _applicationModel.TryGetValue(executable.AppModelResourceName, out appModelResource))
         {
             projectPath = appModelResource is ProjectResource p ? p.GetProjectMetadata().ProjectPath : null;
         }
@@ -656,6 +665,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         var urls = GetUrls(executable);
 
         var environment = GetEnvironmentVariables(executable.Status?.EffectiveEnv, executable.Spec.Env);
+
+        var relationships = ImmutableArray<RelationshipSnapshot>.Empty;
+        if (appModelResource != null)
+        {
+            relationships = ResourceSnapshotBuilder.BuildRelationships(appModelResource);
+        }
 
         if (projectPath is not null)
         {
@@ -675,7 +690,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToUniversalTime(),
                 StartTimeStamp = executable.Status?.StartupTimestamp?.ToUniversalTime(),
                 StopTimeStamp = executable.Status?.FinishTimestamp?.ToUniversalTime(),
-                Urls = urls
+                Urls = urls,
+                Relationships = relationships
             };
         }
 
@@ -694,7 +710,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToUniversalTime(),
             StartTimeStamp = executable.Status?.StartupTimestamp?.ToUniversalTime(),
             StopTimeStamp = executable.Status?.FinishTimestamp?.ToUniversalTime(),
-            Urls = urls
+            Urls = urls,
+            Relationships = relationships
         };
     }
 

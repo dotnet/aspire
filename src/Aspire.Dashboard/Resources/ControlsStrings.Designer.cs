@@ -565,6 +565,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Back references.
+        /// </summary>
+        public static string ResourceDetailsBackReferences {
+            get {
+                return ResourceManager.GetString("ResourceDetailsBackReferences", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Endpoints.
         /// </summary>
         public static string ResourceDetailsEndpointsHeader {
@@ -583,11 +592,29 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to References.
+        /// </summary>
+        public static string ResourceDetailsReferences {
+            get {
+                return ResourceManager.GetString("ResourceDetailsReferences", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Resource.
         /// </summary>
         public static string ResourceDetailsResourceHeader {
             get {
                 return ResourceManager.GetString("ResourceDetailsResourceHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Type.
+        /// </summary>
+        public static string ResourceDetailsTypeHeader {
+            get {
+                return ResourceManager.GetString("ResourceDetailsTypeHeader", resourceCulture);
             }
         }
         

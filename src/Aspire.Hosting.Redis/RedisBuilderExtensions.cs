@@ -120,6 +120,8 @@ public static class RedisBuilderExtensions
 
             configureContainer?.Invoke(resourceBuilder);
 
+            resourceBuilder.WithRelationship(builder.Resource, "Manager");
+
             return builder;
         }
     }

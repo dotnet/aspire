@@ -202,7 +202,8 @@ public class ResourcePublisherTests
             Environment = [],
             HealthStatus = HealthStatus.Healthy,
             HealthReports = [],
-            Commands = []
+            Commands = [],
+            Relationships = []
         };
     }
 

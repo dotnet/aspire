@@ -58,6 +58,10 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     [SupplyParameterFromQuery]
     public string? VisibleTypes { get; set; }
 
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "resource")]
+    public string? ResourceName { get; set; }
+
     private ResourceViewModel? SelectedResource { get; set; }
 
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
@@ -249,6 +253,20 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         // Don't attempt to display more than 2 highlighted commands. Many commands will take up too much space.
         // Extra highlighted commands are still available in the menu.
         _maxHighlightedCount = Math.Min(maxHighlightedCount, 2);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ResourceName is not null)
+        {
+            if (_resourceByName.TryGetValue(ResourceName, out var selectedResource))
+            {
+                await ShowResourceDetailsAsync(selectedResource, buttonId: null);
+            }
+
+            // Navigate to remove ?resource=xxx in the URL.
+            NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(), new NavigationOptions { ReplaceHistoryEntry = true });
+        }
     }
 
     private bool ApplicationErrorCountsChanged(Dictionary<ApplicationKey, int> newApplicationUnviewedErrorCounts)
