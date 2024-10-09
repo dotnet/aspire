@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="PersistentContainerIconTooltip">
         <source>This container is persistent and won't be stopped when the app host is shut down.</source>
-        <target state="new">This container is persistent and won't be stopped when the app host is shut down.</target>
+        <target state="translated">Bu kapsayıcı kalıcıdır ve uygulama ana bilgisayarı kapatıldığında durdurulamaz.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNameDisplayContainerIdText">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="RunningAndUnhealthyResourceStateToolTip">
         <source>Resource is running but not in a healthy state. Click for details.</source>
-        <target state="new">Resource is running but not in a healthy state. Click for details.</target>
+        <target state="translated">Kaynak çalışıyor ancak iyi durumda değil. Ayrıntılar için tıklayın.</target>
         <note>Tool tip text explaining that the resource is running but not yet ready to receive requests.</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerArgsTitle">
