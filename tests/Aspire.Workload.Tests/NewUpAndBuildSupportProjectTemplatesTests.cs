@@ -54,7 +54,7 @@ public class NewUpAndBuildSupportProjectTemplates(ITestOutputHelper testOutput) 
                                         buildEnvironment: buildEnvToUse,
                                         templateHive: templateHive);
 
-            await project.BuildAsync(extraBuildArgs: [$"-c {config}", "-v n"],
+            await project.BuildAsync(extraBuildArgs: [$"-c {config}"],
                                      workingDirectory: testProjectDir,
                                      timeout: TimeSpan.FromMinutes(3));
         }
