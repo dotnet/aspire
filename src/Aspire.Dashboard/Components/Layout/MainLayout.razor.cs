@@ -192,7 +192,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     public async Task LaunchSettingsAsync()
     {
-        DialogParameters parameters = new()
+        var parameters = new DialogParameters
         {
             Title = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogTitle)],
             PrimaryAction =  Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)].Value ,
@@ -215,6 +215,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
             await _openPageDialog.CloseAsync();
         }
+
+        // Ensure the currently set theme is immediately available to display in settings dialog.
+        await ThemeManager.EnsureEffectiveThemeAsync();
 
         if (ViewportInformation.IsDesktop)
         {
