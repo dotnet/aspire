@@ -3,7 +3,11 @@
 @inject IStringLocalizer<Dialogs> Loc
 
 <FluentStack Orientation="Orientation.Vertical" Style="display: contents">
-    <FluentRadioGroup TValue="string" Label="@Loc[nameof(Dialogs.SettingsDialogTheme)]" Value="@_currentSetting" ValueChanged="SettingChangedAsync" Orientation="Orientation.Vertical">
+    <FluentRadioGroup TValue="string"
+                      Label="@Loc[nameof(Dialogs.SettingsDialogTheme)]"
+                      @bind-Value="@_currentSetting"
+                      @bind-Value:after="SettingChangedAsync"
+                      Orientation="Orientation.Vertical">
         <FluentRadio Value="@Aspire.Dashboard.Model.ThemeManager.ThemeSettingSystem">@Loc[nameof(Dialogs.SettingsDialogSystemTheme)]</FluentRadio>
         <FluentRadio Value="@Aspire.Dashboard.Model.ThemeManager.ThemeSettingLight">@Loc[nameof(Dialogs.SettingsDialogLightTheme)]</FluentRadio>
         <FluentRadio Value="@Aspire.Dashboard.Model.ThemeManager.ThemeSettingDark">@Loc[nameof(Dialogs.SettingsDialogDarkTheme)]</FluentRadio>
