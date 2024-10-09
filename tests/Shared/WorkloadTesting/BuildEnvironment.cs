@@ -132,7 +132,7 @@ public class BuildEnvironment
         }
 
         sdkForWorkloadPath = Path.GetFullPath(sdkForWorkloadPath);
-        DefaultBuildArgs = "-nr:false";
+        DefaultBuildArgs = string.Empty;
         NuGetPackagesPath = UsesCustomDotNet ? Path.Combine(AppContext.BaseDirectory, $"nuget-cache-{Guid.NewGuid()}") : null;
         EnvVars = new Dictionary<string, string>();
         if (UsesCustomDotNet)
@@ -155,6 +155,8 @@ public class BuildEnvironment
         // .. and disable new output style for vstest
         EnvVars["VsTestUseMSBuildOutput"] = "false";
         EnvVars["SkipAspireWorkloadManifest"] = "true";
+        // Disable node reuse in msbuild
+        EnvVars["MSBUILDDISABLENODEREUSE"] = "1";
 
         DotNet = Path.Combine(sdkForWorkloadPath!, "dotnet");
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
