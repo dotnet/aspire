@@ -7,7 +7,6 @@
     <FluentStack Orientation="Orientation.Vertical" Style="display: flex; height: 100%" VerticalGap="0">
         <FluentRadioGroup TValue="string"
                           Label="@Loc[nameof(Dialogs.SettingsDialogTheme)]"
-                          Value="@_currentSetting"
                           @bind-Value="@_currentSetting"
                           @bind-Value:after="SettingChangedAsync"
                           Orientation="Orientation.Vertical">
