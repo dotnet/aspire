@@ -34,6 +34,11 @@ public partial class ResourceSelect
     [Inject]
     public required IJSRuntime JS { get; init; }
 
+    private async Task SelectedResourceChangedCore()
+    {
+        await SelectedResourceChanged.InvokeAsync(SelectedResource);
+    }
+
     private static void ValuedChanged(string value)
     {
         // Do nothing. Required for bunit change to trigger SelectedOptionChanged.
