@@ -37,7 +37,7 @@ public static class AzureApplicationInsightsExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureConstruct = (AzureResourceInfrastructure construct) =>
         {
             var appTypeParameter = new ProvisioningParameter("applicationType", typeof(string))
             {

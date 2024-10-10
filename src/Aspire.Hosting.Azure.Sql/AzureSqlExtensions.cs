@@ -19,7 +19,7 @@ public static class AzureSqlExtensions
     {
         builder.ApplicationBuilder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureConstruct = (AzureResourceInfrastructure construct) =>
         {
             CreateSqlServer(construct, builder.ApplicationBuilder, builder.Resource.Databases);
         };
@@ -83,7 +83,7 @@ public static class AzureSqlExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureConstruct = (AzureResourceInfrastructure construct) =>
         {
             var azureResource = (AzureSqlServerResource)construct.Resource;
             CreateSqlServer(construct, builder, azureResource.Databases);
@@ -207,7 +207,7 @@ public static class AzureSqlExtensions
     }
 
     private static void CreateSqlServer(
-        ResourceModuleConstruct construct,
+        AzureResourceInfrastructure construct,
         IDistributedApplicationBuilder distributedApplicationBuilder,
         IReadOnlyDictionary<string, string> databases)
     {

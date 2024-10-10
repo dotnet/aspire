@@ -23,7 +23,7 @@ public static class AzureAppConfigurationExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureConstruct = (AzureResourceInfrastructure construct) =>
         {
             var store = new AppConfigurationStore(construct.Resource.GetBicepIdentifier())
             {

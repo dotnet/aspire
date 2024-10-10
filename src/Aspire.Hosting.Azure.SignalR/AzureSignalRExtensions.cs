@@ -23,7 +23,7 @@ public static class AzureSignalRExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureConstruct = (AzureResourceInfrastructure construct) =>
         {
             var service = new SignalRService(construct.Resource.GetBicepIdentifier())
             {

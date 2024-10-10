@@ -79,7 +79,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
         {
             var context = await ProcessResourceAsync(resource, executionContext, cancellationToken).ConfigureAwait(false);
 
-            var construct = new AzureConstructResource(resource.Name, context.BuildContainerApp);
+            var construct = new AzureProvisioningResource(resource.Name, context.BuildContainerApp);
 
             construct.Annotations.Add(new ManifestPublishingCallbackAnnotation(construct.WriteToManifest));
 
@@ -130,7 +130,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
             public Dictionary<string, KeyVaultService> KeyVaultRefs { get; } = [];
             public Dictionary<string, KeyVaultSecret> KeyVaultSecretRefs { get; } = [];
 
-            public void BuildContainerApp(ResourceModuleConstruct c)
+            public void BuildContainerApp(AzureResourceInfrastructure c)
             {
                 var containerAppIdParam = AllocateParameter(_containerAppEnvironmentContext.ContainerAppEnvironmentId);
 

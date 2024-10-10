@@ -6,7 +6,7 @@ using Azure.Provisioning.AppContainers;
 
 namespace Aspire.Hosting.Azure;
 
-internal sealed class ContainerAppCustomizationAnnotation(Action<ResourceModuleConstruct, ContainerApp> configure) : IResourceAnnotation
+internal sealed class ContainerAppCustomizationAnnotation(Action<AzureResourceInfrastructure, ContainerApp> configure) : IResourceAnnotation
 {
-    public Action<ResourceModuleConstruct, ContainerApp> Configure { get; } = configure;
+    public Action<AzureResourceInfrastructure, ContainerApp> Configure { get; } = configure;
 }

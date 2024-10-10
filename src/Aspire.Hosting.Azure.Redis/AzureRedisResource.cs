@@ -9,10 +9,10 @@ namespace Aspire.Hosting.Azure;
 /// Represents an Azure Redis resource.
 /// </summary>
 /// <param name="innerResource">The inner resource.</param>
-/// <param name="configureConstruct">Callback to populate the construct with Azure resources.</param>
+/// <param name="configureInfrastructure">Callback to populate the construct with Azure resources.</param>
 [Obsolete($"This class is obsolete and will be removed in a future version. Use {nameof(AzureRedisExtensions.AddAzureRedis)} instead to add an Azure Cache for Redis resource.")]
-public class AzureRedisResource(RedisResource innerResource, Action<ResourceModuleConstruct> configureConstruct) :
-    AzureConstructResource(innerResource.Name, configureConstruct),
+public class AzureRedisResource(RedisResource innerResource, Action<AzureResourceInfrastructure> configureInfrastructure) :
+    AzureProvisioningResource(innerResource.Name, configureInfrastructure),
     IResourceWithConnectionString
 {
     /// <summary>

@@ -23,7 +23,7 @@ public static class AzureLogAnalyticsWorkspaceExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureConstruct = (AzureResourceInfrastructure construct) =>
         {
             var workspace = new OperationalInsightsWorkspace(construct.Resource.GetBicepIdentifier())
             {

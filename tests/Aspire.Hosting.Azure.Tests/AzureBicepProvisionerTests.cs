@@ -109,7 +109,7 @@ public class AzureBicepProvisionerTests
         Assert.Throws<ArgumentException>(() =>
         {
             using var builder = TestDistributedApplicationBuilder.Create();
-            builder.AddAzureConstruct("construct", _ => { })
+            builder.AddAzureInfrastructure("construct", _ => { })
                    .WithParameter(bicepParameterName);
         });
     }
@@ -124,7 +124,7 @@ public class AzureBicepProvisionerTests
     public void WithParameterAllowsParameterNamesWhichAreValidBicepIdentifiers(string bicepParameterName)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.AddAzureConstruct("construct", _ => { })
+        builder.AddAzureInfrastructure("construct", _ => { })
                 .WithParameter(bicepParameterName);
     }
 

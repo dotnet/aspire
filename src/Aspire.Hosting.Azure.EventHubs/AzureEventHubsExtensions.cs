@@ -30,7 +30,7 @@ public static class AzureEventHubsExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = static (ResourceModuleConstruct construct) =>
+        var configureConstruct = static (AzureResourceInfrastructure construct) =>
         {
             var skuParameter = new ProvisioningParameter("sku", typeof(string))
             {

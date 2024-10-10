@@ -35,7 +35,7 @@ public static class AzurePostgresExtensions
     {
         builder.ApplicationBuilder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureConstruct = (AzureResourceInfrastructure construct) =>
         {
             var administratorLogin = new ProvisioningParameter("administratorLogin", typeof(string));
             construct.Add(administratorLogin);
@@ -142,7 +142,7 @@ public static class AzurePostgresExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureConstruct = (AzureResourceInfrastructure construct) =>
         {
             var azureResource = (AzurePostgresFlexibleServerResource)construct.Resource;
             var postgres = CreatePostgreSqlFlexibleServer(construct, builder, azureResource.Databases);
@@ -345,8 +345,10 @@ public static class AzurePostgresExtensions
         return builder
             .RemoveActiveDirectoryParameters()
             .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
-            .ConfigureConstruct(construct =>
+            .ConfigureInfrastructure(static construct =>
             {
+                var azureResource = (AzurePostgresFlexibleServerResource)construct.Resource;
+
                 RemoveActiveDirectoryAuthResources(construct);
 
                 var postgres = construct.GetResources().OfType<PostgreSqlFlexibleServer>().FirstOrDefault(r => r.IdentifierName == azureResource.GetBicepIdentifier())
@@ -401,7 +403,7 @@ public static class AzurePostgresExtensions
             });
     }
 
-    private static PostgreSqlFlexibleServer CreatePostgreSqlFlexibleServer(ResourceModuleConstruct construct, IDistributedApplicationBuilder distributedApplicationBuilder, IReadOnlyDictionary<string, string> databases)
+    private static PostgreSqlFlexibleServer CreatePostgreSqlFlexibleServer(AzureResourceInfrastructure construct, IDistributedApplicationBuilder distributedApplicationBuilder, IReadOnlyDictionary<string, string> databases)
     {
         var postgres = new PostgreSqlFlexibleServer(construct.Resource.GetBicepIdentifier())
         {
@@ -471,7 +473,7 @@ public static class AzurePostgresExtensions
         return builder;
     }
 
-    private static void RemoveActiveDirectoryAuthResources(ResourceModuleConstruct construct)
+    private static void RemoveActiveDirectoryAuthResources(AzureResourceInfrastructure construct)
     {
         var resourcesToRemove = new List<Provisionable>();
         foreach (var resource in construct.GetResources())

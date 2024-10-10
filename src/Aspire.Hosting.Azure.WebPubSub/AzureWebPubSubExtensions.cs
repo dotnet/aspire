@@ -26,7 +26,7 @@ public static class AzureWebPubSubExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureConstruct = (AzureResourceInfrastructure construct) =>
         {
             // Supported values are Free_F1 Standard_S1 Premium_P1
             var skuParameter = new ProvisioningParameter("sku", typeof(string))

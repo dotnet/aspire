@@ -2,6 +2,6 @@
 Aspire.Hosting.AzureContainerAppContainerExtensions
 Aspire.Hosting.AzureContainerAppExtensions
 Aspire.Hosting.AzureContainerAppProjectExtensions
-static Aspire.Hosting.AzureContainerAppContainerExtensions.PublishAsAzureContainerApp<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! container, System.Action<Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.AppContainers.ContainerApp!>! configure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.AzureContainerAppContainerExtensions.PublishAsAzureContainerApp<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! container, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!, Azure.Provisioning.AppContainers.ContainerApp!>! configure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.AzureContainerAppExtensions.AddContainerAppsInfrastructure(this Aspire.Hosting.IDistributedApplicationBuilder! builder) -> Aspire.Hosting.IDistributedApplicationBuilder!
-static Aspire.Hosting.AzureContainerAppProjectExtensions.PublishAsAzureContainerApp<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! project, System.Action<Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.AppContainers.ContainerApp!>! configure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.AzureContainerAppProjectExtensions.PublishAsAzureContainerApp<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! project, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!, Azure.Provisioning.AppContainers.ContainerApp!>! configure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!

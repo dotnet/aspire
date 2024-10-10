@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Represents an Azure Sql Server resource.
 /// </summary>
-public class AzureSqlServerResource : AzureConstructResource, IResourceWithConnectionString
+public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithConnectionString
 {
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
     private readonly bool _createdWithInnerResource;
@@ -17,9 +17,9 @@ public class AzureSqlServerResource : AzureConstructResource, IResourceWithConne
     /// Initializes a new instance of the <see cref="AzureSqlServerResource"/> class.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="configureConstruct">Callback to populate the construct with Azure resources.</param>
-    public AzureSqlServerResource(string name, Action<ResourceModuleConstruct> configureConstruct)
-        : base(name, configureConstruct) { }
+    /// <param name="configureInfrastructure">Callback to populate the construct with Azure resources.</param>
+    public AzureSqlServerResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
+        : base(name, configureInfrastructure) { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureSqlServerResource"/> class.
@@ -27,7 +27,7 @@ public class AzureSqlServerResource : AzureConstructResource, IResourceWithConne
     /// <param name="innerResource">The <see cref="SqlServerServerResource"/> that this resource wraps.</param>
     /// <param name="configureConstruct">Callback to populate the construct with Azure resources.</param>
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AzureSqlExtensions.AddAzureSqlServer)} instead to add an Azure SQL server resource.")]
-    public AzureSqlServerResource(SqlServerServerResource innerResource, Action<ResourceModuleConstruct> configureConstruct)
+    public AzureSqlServerResource(SqlServerServerResource innerResource, Action<AzureResourceInfrastructure> configureConstruct)
         : base(innerResource.Name, configureConstruct)
     {
         InnerResource = innerResource;

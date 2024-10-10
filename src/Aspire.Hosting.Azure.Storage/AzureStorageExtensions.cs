@@ -28,7 +28,7 @@ public static class AzureStorageExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureConstruct = (AzureResourceInfrastructure construct) =>
         {
             var storageAccount = new StorageAccount(construct.Resource.GetBicepIdentifier())
             {

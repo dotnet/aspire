@@ -34,7 +34,7 @@ public static class AzureRedisExtensions
     {
         builder.ApplicationBuilder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureConstruct = (AzureResourceInfrastructure construct) =>
         {
             var kvNameParam = new ProvisioningParameter("keyVaultName", typeof(string));
             construct.Add(kvNameParam);
@@ -121,7 +121,7 @@ public static class AzureRedisExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = static (ResourceModuleConstruct construct) =>
+        var configureConstruct = static (AzureResourceInfrastructure construct) =>
         {
             var redis = CreateRedisResource(construct);
 
@@ -227,7 +227,7 @@ public static class AzureRedisExtensions
         return builder
            .RemoveActiveDirectoryParameters()
            .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
-           .ConfigureConstruct(construct =>
+           .ConfigureInfrastructure(construct =>
            {
                RemoveActiveDirectoryAuthResources(construct);
 
@@ -260,7 +260,7 @@ public static class AzureRedisExtensions
            });
     }
 
-    private static CdkRedisResource CreateRedisResource(ResourceModuleConstruct construct)
+    private static CdkRedisResource CreateRedisResource(AzureResourceInfrastructure construct)
     {
         var redisCache = new CdkRedisResource(construct.Resource.GetBicepIdentifier())
         {
@@ -287,7 +287,7 @@ public static class AzureRedisExtensions
         return builder;
     }
 
-    private static void RemoveActiveDirectoryAuthResources(ResourceModuleConstruct construct)
+    private static void RemoveActiveDirectoryAuthResources(AzureResourceInfrastructure construct)
     {
         var resourcesToRemove = new List<Provisionable>();
         foreach (var resource in construct.GetResources())

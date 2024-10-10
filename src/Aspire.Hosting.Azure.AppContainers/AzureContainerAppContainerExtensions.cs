@@ -25,13 +25,13 @@ public static class AzureContainerAppContainerExtensions
     /// </remarks>
     /// <example>
     /// <code>
-    /// builder.AddContainer("name", "image").PublishAsAzureContainerApp((module, app) =>
+    /// builder.AddContainer("name", "image").PublishAsAzureContainerApp((infrastructure, app) =>
     /// {
     ///     // Configure the container app here
     /// });
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> PublishAsAzureContainerApp<T>(this IResourceBuilder<T> container, Action<ResourceModuleConstruct, ContainerApp> configure) where T : ContainerResource
+    public static IResourceBuilder<T> PublishAsAzureContainerApp<T>(this IResourceBuilder<T> container, Action<AzureResourceInfrastructure, ContainerApp> configure) where T : ContainerResource
     {
         if (!container.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {

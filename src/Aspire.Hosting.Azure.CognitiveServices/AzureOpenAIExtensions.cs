@@ -25,7 +25,7 @@ public static class AzureOpenAIExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureConstruct = (AzureResourceInfrastructure construct) =>
         {
             var cogServicesAccount = new CognitiveServicesAccount(construct.Resource.GetBicepIdentifier())
             {

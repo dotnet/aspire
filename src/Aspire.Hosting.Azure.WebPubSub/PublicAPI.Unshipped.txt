@@ -3,7 +3,7 @@ Aspire.Hosting.ApplicationModel.AzureWebPubSubHubResource
 Aspire.Hosting.ApplicationModel.AzureWebPubSubHubResource.AzureWebPubSubHubResource(string! name, Aspire.Hosting.ApplicationModel.AzureWebPubSubResource! webpubsub) -> void
 Aspire.Hosting.ApplicationModel.AzureWebPubSubHubResource.Parent.get -> Aspire.Hosting.ApplicationModel.AzureWebPubSubResource!
 Aspire.Hosting.ApplicationModel.AzureWebPubSubResource
-Aspire.Hosting.ApplicationModel.AzureWebPubSubResource.AzureWebPubSubResource(string! name, System.Action<Aspire.Hosting.ResourceModuleConstruct!>! configureConstruct) -> void
+Aspire.Hosting.ApplicationModel.AzureWebPubSubResource.AzureWebPubSubResource(string! name, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureInfrastructure) -> void
 Aspire.Hosting.ApplicationModel.AzureWebPubSubResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
 Aspire.Hosting.ApplicationModel.AzureWebPubSubResource.Endpoint.get -> Aspire.Hosting.Azure.BicepOutputReference!
 Aspire.Hosting.AzureWebPubSubExtensions
