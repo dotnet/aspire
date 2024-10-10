@@ -7,7 +7,6 @@ using System.Reflection;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Eventing;
-using Aspire.Hosting.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -89,6 +88,7 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
             hostBuilderOptions.ApplicationName = appAssembly.GetName().Name;
             applicationOptions.AssemblyName = assemblyName;
             applicationOptions.DisableDashboard = true;
+            applicationOptions.EnableResourceLogging = true;
             var cfg = hostBuilderOptions.Configuration ??= new();
             cfg.AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -104,7 +104,6 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
     public TestDistributedApplicationBuilder WithTestAndResourceLogging(ITestOutputHelper testOutputHelper)
     {
         Services.AddXunitLogging(testOutputHelper);
-        Services.AddHostedService<ResourceLoggerForwarderService>();
         Services.AddLogging(builder => builder.AddFilter("Aspire.Hosting", LogLevel.Trace));
         return this;
     }
