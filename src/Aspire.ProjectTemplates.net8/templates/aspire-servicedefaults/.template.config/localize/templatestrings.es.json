@@ -1,10 +1,10 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire 9 Service Defaults",
-  "description": "A project template for creating a .NET Aspire 9 service defaults project.",
-  "symbols/Framework/description": "The target framework for the project.",
-  "symbols/Framework/choices/net8.0/description": "Target net8.0",
-  "symbols/skipRestore/description": "If specified, skips the automatic restore of the project on create.",
-  "postActions/restore/description": "Restore NuGet packages required by this project.",
-  "postActions/restore/manualInstructions/default/text": "Run 'dotnet restore'"
+  "name": "Valores predeterminados del servicio .NET Service 9",
+  "description": "Una plantilla de proyecto para crear un proyecto predeterminado del servicio .NET Aspire 9.",
+  "symbols/Framework/description": "Marco de destino del proyecto.",
+  "symbols/Framework/choices/net8.0/description": "net8.0 de destino",
+  "symbols/skipRestore/description": "Si se especifica, se omite la restauración automática del proyecto durante la creación.",
+  "postActions/restore/description": "Restaure los paquetes NuGet necesarios para este proyecto.",
+  "postActions/restore/manualInstructions/default/text": "Ejecutar \"dotnet restore\""
 }
