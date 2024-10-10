@@ -147,6 +147,10 @@
                                                     @OtlpHelpers.ToShortenedId(context.TraceId)
                                                 </a>
                                             }
+                                            else
+                                            {
+                                                <span>&ndash;</span>
+                                            }
                                         </AspireTemplateColumn>
                                         <AspireTemplateColumn ColumnId="@ActionsColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.ActionsColumnHeader)]" Class="no-ellipsis">
                                             @{
