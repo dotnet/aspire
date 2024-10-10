@@ -3,7 +3,6 @@
 @page "/metrics/resource/{applicationName}/meter/{meterName}"
 @page "/metrics/resource/{applicationName}/meter/{meterName}/instrument/{instrumentName}"
 
-@using Aspire.Dashboard.Components.Controls.Grid
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
@@ -40,13 +39,14 @@
                           @bind-SelectedOption:after="HandleSelectedDurationChangedAsync"
                           AriaLabel="@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectADuration)]"/>
 
-            @if (!ViewportInformation.IsDesktop && PageViewModel.Instruments?.Count > 0)
+            @if (!ViewportInformation.IsDesktop)
             {
                 // Show metric selector in the toolbar for mobile, since we don't have enough room to show both
                 // panels on a mobile viewport.
-                <FluentInputLabel Label="@Loc[Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader]" ForId="metric-selector" />
                 <TreeMetricSelector
+                    @ref="_treeMetricSelector"
                     PageViewModel="@PageViewModel"
+                    IncludeLabel="true"
                     HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync"/>
             }
         </ToolbarSection>
@@ -63,9 +63,13 @@
                                     Panel2Size="8fr"
                                     BarSize="@(ViewportInformation.IsDesktop ? 5 : 0)">
                         <Panel1>
-                            <TreeMetricSelector
-                                PageViewModel="@PageViewModel"
-                                HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync" />
+                            @if (ViewportInformation.IsDesktop)
+                            {
+                                <TreeMetricSelector
+                                    @ref="_treeMetricSelector"
+                                    PageViewModel="@PageViewModel"
+                                    HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync"/>
+                            }
                         </Panel1>
                         <Panel2>
                             <div>
@@ -107,10 +111,11 @@
                                         }
                                         else
                                         {
-                                            // class needed to prevent color from being removed from reboot style
-                                            <a class="" @onclick="@(async () => await _contentLayout!.OpenMobileToolbarAsync())">
-                                                @Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectInstrument)]
-                                            </a>
+                                            <div class="empty-content">
+                                                <FluentAnchor Href="#" Appearance="Appearance.Hypertext" OnClick="@(async () => await _contentLayout!.OpenMobileToolbarAsync())">
+                                                    @Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectInstrument)]
+                                                </FluentAnchor>
+                                            </div>
                                         }
                                     }
                                 </div>
@@ -129,7 +134,7 @@
                         else
                         {
                             <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple"/>@:&nbsp;
-                            <a class="" @onclick="@(async () => await _contentLayout!.OpenMobileToolbarAsync())">@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectAResource)]</a>
+                            <FluentAnchor Href="#" Appearance="Appearance.Hypertext" OnClick="@(async () => await _contentLayout!.OpenMobileToolbarAsync())">@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectAResource)]</FluentAnchor>
                         }
                     </div>
                 }
