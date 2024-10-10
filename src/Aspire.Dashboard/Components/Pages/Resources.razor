@@ -111,8 +111,7 @@
                                 <AspireTemplateColumn ColumnId="@EndpointsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEndpointsColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetEndpointsTooltip(ctx))">
                                     <EndpointsColumnDisplay Resource="context"
                                                             HasMultipleReplicas="HasMultipleReplicas(context)"
-                                                            DisplayedEndpoints="@GetDisplayedEndpoints(context, out var additionalMessage)"
-                                                            AdditionalMessage="@additionalMessage" />
+                                                            DisplayedEndpoints="GetDisplayedEndpoints(context)" />
                                 </AspireTemplateColumn>
                                 <AspireTemplateColumn ColumnId="@ActionsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesActionsColumnHeader)]" Class="no-ellipsis">
                                     <div class="grid-action-container" @onclick:stopPropagation="true">

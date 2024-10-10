@@ -61,15 +61,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to None.
-        /// </summary>
-        public static string EndpointsColumnDisplayNone {
-            get {
-                return ResourceManager.GetString("EndpointsColumnDisplayNone", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Endpoints.
         /// </summary>
         public static string EndpointsColumnDisplayOverflowTitle {

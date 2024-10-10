@@ -9,7 +9,6 @@ using Aspire.Dashboard.Extensions;
 
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -416,18 +415,18 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         return null;
     }
 
-    private string GetEndpointsTooltip(ResourceViewModel resource)
+    private static string GetEndpointsTooltip(ResourceViewModel resource)
     {
-        var displayedEndpoints = GetDisplayedEndpoints(resource, out var additionalMessage);
+        var displayedEndpoints = GetDisplayedEndpoints(resource);
 
-        if (additionalMessage is not null)
+        if (displayedEndpoints.Count == 0)
         {
-            return additionalMessage;
+            return "";
         }
 
         if (displayedEndpoints.Count == 1)
         {
-            return displayedEndpoints.First().Text;
+            return displayedEndpoints[0].Text;
         }
 
         var maxShownEndpoints = 3;
@@ -441,17 +440,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         return tooltipBuilder.ToString();
     }
 
-    private List<DisplayedEndpoint> GetDisplayedEndpoints(ResourceViewModel resource, out string? additionalMessage)
+    private static List<DisplayedEndpoint> GetDisplayedEndpoints(ResourceViewModel resource)
     {
-        if (resource.Urls.Length == 0)
-        {
-            // If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None
-            additionalMessage = ColumnsLoc[nameof(Columns.EndpointsColumnDisplayNone)];
-            return [];
-        }
-
-        additionalMessage = null;
-
         return ResourceEndpointHelpers.GetEndpoints(resource, includeInternalUrls: false);
     }
 
