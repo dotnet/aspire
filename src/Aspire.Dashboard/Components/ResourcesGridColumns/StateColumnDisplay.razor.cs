@@ -76,8 +76,8 @@ public partial class StateColumnDisplay
             else if (Resource.IsFinishedState())
             {
                 // Process completed successfully.
-                icon = new Icons.Filled.Size16.CheckmarkUnderlineCircle();
-                color = Color.Success;
+                icon = new Icons.Regular.Size16.RecordStop();
+                color = Color.Info;
             }
             else
             {
@@ -94,7 +94,7 @@ public partial class StateColumnDisplay
         else if (Resource.HasNoState())
         {
             icon = new Icons.Filled.Size16.Circle();
-            color = Color.Neutral;
+            color = Color.Info;
         }
         else if (Resource.HealthStatus is not HealthStatus.Healthy)
         {
