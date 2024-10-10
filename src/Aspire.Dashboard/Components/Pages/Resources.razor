@@ -107,6 +107,10 @@
                                     {
                                         <SourceColumnDisplay Resource="context" FilterText="@_filter" Value="@columnDisplay.Value" ContentAfterValue="@columnDisplay.ContentAfterValue" ValueToCopy="@columnDisplay.ValueToCopy" Tooltip="@columnDisplay.Tooltip" />
                                     }
+                                    else
+                                    {
+                                        <span>&ndash;</span>
+                                    }
                                 </AspireTemplateColumn>
                                 <AspireTemplateColumn ColumnId="@EndpointsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEndpointsColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetEndpointsTooltip(ctx))">
                                     <EndpointsColumnDisplay Resource="context"
