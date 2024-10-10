@@ -43,6 +43,8 @@ dotnet new install Aspire.ProjectTemplates::9.0.0-rc.1.* --force
 > [!TIP]
 > If you want to use the latest build from the `main` branch, change the above to be `dotnet new install Aspire.ProjectTemplates::9.0.0-* --force`
 
+<!-- break between blocks -->
+
 > [!NOTE]  
 > The `--force` parameter is required if you also have the legacy .NET Aspire Workload installed. The new templates have the same name as the old ones, so this command would override those.
 
