@@ -237,6 +237,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                     );
                 }
 
+                _innerBuilder.Services.AddSingleton<TimeProvider>(sp => TimeProvider.System);
                 _innerBuilder.Services.AddSingleton<DashboardCommandExecutor>();
                 _innerBuilder.Services.AddOptions<TransportOptions>().ValidateOnStart().PostConfigure(MapTransportOptionsFromCustomKeys);
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<TransportOptions>, TransportOptionsValidator>());

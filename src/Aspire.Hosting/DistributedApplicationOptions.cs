@@ -50,6 +50,11 @@ public sealed class DistributedApplicationOptions
     /// </summary>
     public bool DisableDashboard { get; set; }
 
+    /// <summary>
+    /// The time provider used to override time handling inside the app host.
+    /// </summary>
+    public TimeProvider TimeProvider { get; set; } = TimeProvider.System;
+
     internal Assembly? Assembly => _assembly.Value;
 
     internal string? Configuration => _configurationLazy.Value;
