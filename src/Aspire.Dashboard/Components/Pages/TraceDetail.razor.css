@@ -88,6 +88,8 @@
     grid-row: 1;
     height: 100%;
     display: grid;
+    /* z-index is required so the span is displayed above ticks */
+    z-index: 1;
     align-items: center;
 }
 
