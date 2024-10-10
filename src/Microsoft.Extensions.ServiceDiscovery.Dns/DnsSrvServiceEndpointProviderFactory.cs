@@ -2,29 +2,29 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using DnsClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 
 internal sealed partial class DnsSrvServiceEndpointProviderFactory(
     IOptionsMonitor<DnsSrvServiceEndpointProviderOptions> options,
     ILogger<DnsSrvServiceEndpointProvider> logger,
-    IDnsQuery dnsClient,
+    IDnsResolver resolver,
     TimeProvider timeProvider) : IServiceEndpointProviderFactory
 {
     private static readonly string s_serviceAccountPath = Path.Combine($"{Path.DirectorySeparatorChar}var", "run", "secrets", "kubernetes.io", "serviceaccount");
     private static readonly string s_serviceAccountNamespacePath = Path.Combine($"{Path.DirectorySeparatorChar}var", "run", "secrets", "kubernetes.io", "serviceaccount", "namespace");
     private static readonly string s_resolveConfPath = Path.Combine($"{Path.DirectorySeparatorChar}etc", "resolv.conf");
-    private readonly string? _querySuffix = options.CurrentValue.QuerySuffix ?? GetKubernetesHostDomain();
+    private readonly string? _querySuffix = options.CurrentValue.QuerySuffix?.TrimStart('.') ?? GetKubernetesHostDomain();
 
     /// <inheritdoc/>
     public bool TryCreateProvider(ServiceEndpointQuery query, [NotNullWhen(true)] out IServiceEndpointProvider? provider)
     {
         // If a default namespace is not specified, then this provider will attempt to infer the namespace from the service name, but only when running inside Kubernetes.
         // Kubernetes DNS spec: https://github.com/kubernetes/dns/blob/master/docs/specification.md
-        // SRV records are available for headless services with named ports. 
+        // SRV records are available for headless services with named ports.
         // They take the form $"_{portName}._{protocol}.{serviceName}.{namespace}.{suffix}"
         // The suffix (after the service name) can be parsed from /etc/resolv.conf
         // Otherwise, the namespace can be read from /var/run/secrets/kubernetes.io/serviceaccount/namespace and combined with an assumed suffix of "svc.cluster.local".
@@ -39,7 +39,7 @@ internal sealed partial class DnsSrvServiceEndpointProviderFactory(
 
         var portName = query.EndpointName ?? "default";
         var srvQuery = $"_{portName}._tcp.{query.ServiceName}.{_querySuffix}";
-        provider = new DnsSrvServiceEndpointProvider(query, srvQuery, hostName: query.ServiceName, options, logger, dnsClient, timeProvider);
+        provider = new DnsSrvServiceEndpointProvider(query, srvQuery, hostName: query.ServiceName, options, logger, resolver, timeProvider);
         return true;
     }
 
