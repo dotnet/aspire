@@ -7,12 +7,16 @@
     <base href="/" />
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="OpenAIEndToEnd.WebStory.styles.css" />
-    <HeadOutlet @rendermode="InteractiveServer" />
+    <HeadOutlet @rendermode="@renderMode" />
 </head>
 
 <body>
-    <Routes @rendermode="InteractiveServer" />
+    <Routes @rendermode="@renderMode" />
     <script src="_framework/blazor.web.js"></script>
 </body>
 
 </html>
+
+@code {
+    IComponentRenderMode renderMode = new InteractiveServerRenderMode(prerender: false);
+}

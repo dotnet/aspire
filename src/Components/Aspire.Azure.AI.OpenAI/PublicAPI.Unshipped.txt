@@ -11,8 +11,10 @@ Aspire.Azure.AI.OpenAI.AzureOpenAISettings.Endpoint.get -> System.Uri?
 Aspire.Azure.AI.OpenAI.AzureOpenAISettings.Endpoint.set -> void
 Aspire.Azure.AI.OpenAI.AzureOpenAISettings.Key.get -> string?
 Aspire.Azure.AI.OpenAI.AzureOpenAISettings.Key.set -> void
+Microsoft.Extensions.Hosting.AspireAzureOpenAIChatClientExtensions
 Microsoft.Extensions.Hosting.AspireAzureOpenAIExtensions
 Microsoft.Extensions.Hosting.AspireConfigurableOpenAIExtensions
+static Microsoft.Extensions.Hosting.AspireAzureOpenAIChatClientExtensions.AddAzureOpenAIChatClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Func<Microsoft.Extensions.AI.ChatClientBuilder!, Microsoft.Extensions.AI.ChatClientBuilder!>? configurePipeline = null, System.Action<Aspire.Azure.AI.OpenAI.AzureOpenAISettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.AI.OpenAI.AzureOpenAIClient!, Azure.AI.OpenAI.AzureOpenAIClientOptions!>!>? configureClientBuilder = null, string? deploymentName = null) -> void
 static Microsoft.Extensions.Hosting.AspireAzureOpenAIExtensions.AddAzureOpenAIClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Azure.AI.OpenAI.AzureOpenAISettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.AI.OpenAI.AzureOpenAIClient!, Azure.AI.OpenAI.AzureOpenAIClientOptions!>!>? configureClientBuilder = null) -> void
 static Microsoft.Extensions.Hosting.AspireAzureOpenAIExtensions.AddKeyedAzureOpenAIClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.Azure.AI.OpenAI.AzureOpenAISettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.AI.OpenAI.AzureOpenAIClient!, Azure.AI.OpenAI.AzureOpenAIClientOptions!>!>? configureClientBuilder = null) -> void
 static Microsoft.Extensions.Hosting.AspireConfigurableOpenAIExtensions.AddKeyedOpenAIClientFromConfiguration(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name) -> void
