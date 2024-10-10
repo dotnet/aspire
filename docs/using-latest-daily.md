@@ -37,7 +37,7 @@ If you use [Package Source Mapping](https://learn.microsoft.com/en-us/nuget/cons
 To be able to create aspire projects, you will need to install the latest Aspire templates. You can do this by running the following command:
 
 ```sh
-dotnet new install Aspire.ProjectTemplates::9.0.0-preview.* --force
+dotnet new install Aspire.ProjectTemplates::9.0.0-rc.* --force
 ```
 
 > **Note:** The `--force` parameter is required if you also have the legacy .NET Aspire Workload installed. The new templates have the same name as the old ones, so this command would override those.
