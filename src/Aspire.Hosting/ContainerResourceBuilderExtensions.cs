@@ -20,7 +20,9 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
     public static IResourceBuilder<ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, [ResourceName] string name, string image)
     {
-        return builder.AddContainer(name, image, "latest");
+        var container = new ContainerResource(name);
+        return builder.AddResource(container)
+                      .WithImage(image);
     }
 
     /// <summary>
@@ -33,9 +35,8 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
     public static IResourceBuilder<ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, [ResourceName] string name, string image, string tag)
     {
-        var container = new ContainerResource(name);
-        return builder.AddResource(container)
-                      .WithImage(image, tag);
+        return builder.AddContainer(name, image)
+                      .WithImageTag(tag);
     }
 
     /// <summary>
@@ -138,18 +139,60 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="image">Image value.</param>
     /// <param name="tag">Tag value.</param>
     /// <returns></returns>
-    public static IResourceBuilder<T> WithImage<T>(this IResourceBuilder<T> builder, string image, string tag = "latest") where T : ContainerResource
+    public static IResourceBuilder<T> WithImage<T>(this IResourceBuilder<T> builder, string image, string? tag = null) where T : ContainerResource
     {
-        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } existingImageAnnotation)
+        var parsedReference = ContainerReferenceParser.Parse(image);
+
+        if (tag is { } && parsedReference.Tag is { })
         {
-            existingImageAnnotation.Image = image;
-            existingImageAnnotation.Tag = tag;
-            return builder;
+            throw new ArgumentOutOfRangeException(nameof(tag), "Ambigious tags - a tag was provied on both the 'tag' and 'image' parameters");
         }
 
-        // if the annotation doesn't exist, create it with the given image and add it to the collection
-        var containerImageAnnotation = new ContainerImageAnnotation() { Image = image, Tag = tag };
-        builder.Resource.Annotations.Add(containerImageAnnotation);
+        if (tag is { } && parsedReference.Digest is { })
+        {
+            throw new ArgumentOutOfRangeException(nameof(tag), "Tag conflicts with digest provided on the 'image' parameter");
+        }
+
+        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } imageAnnotation)
+        {
+            imageAnnotation.Image = parsedReference.Image;
+        }
+        else
+        {
+            imageAnnotation = new ContainerImageAnnotation { Image = parsedReference.Image };
+            builder.Resource.Annotations.Add(imageAnnotation);
+        }
+
+        if (parsedReference.Registry is { })
+        {
+            imageAnnotation.Registry = parsedReference.Registry;
+        }
+
+        if (parsedReference.Digest is { })
+        {
+            const string prefix = "sha256:";
+            if (!parsedReference.Digest.StartsWith(prefix))
+            {
+                throw new ArgumentOutOfRangeException(nameof(image), parsedReference.Digest, "invalid digest format");
+            }
+
+            var digest = parsedReference.Digest.Substring(prefix.Length);
+            imageAnnotation.SHA256 = digest;
+        }
+        else if (parsedReference.Tag is { })
+        {
+            imageAnnotation.Tag = parsedReference.Tag;
+        }
+        else if (tag is { })
+        {
+            imageAnnotation.Tag = tag;
+        }
+
+        if (imageAnnotation.Tag is null && imageAnnotation.SHA256 is null)
+        {
+            imageAnnotation.Tag = "latest";
+        }
+
         return builder;
     }
 
