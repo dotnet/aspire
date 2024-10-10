@@ -39,6 +39,7 @@
     <MicrosoftDotNetXUnitExtensionsPackageVersion>9.0.0-beta.24516.2</MicrosoftDotNetXUnitExtensionsPackageVersion>
     <MicrosoftDotNetBuildTasksInstallersPackageVersion>9.0.0-beta.24516.2</MicrosoftDotNetBuildTasksInstallersPackageVersion>
     <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>9.0.0-beta.24516.2</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
+    <MicrosoftExtensionsAIPackageVersion>9.0.0-preview.9.24507.7</MicrosoftExtensionsAIPackageVersion>
     <MicrosoftExtensionsHttpResiliencePackageVersion>9.0.0-preview.9.24524.6</MicrosoftExtensionsHttpResiliencePackageVersion>
     <MicrosoftExtensionsDiagnosticsTestingPackageVersion>9.0.0-preview.9.24524.6</MicrosoftExtensionsDiagnosticsTestingPackageVersion>
     <MicrosoftExtensionsConfigurationAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsConfigurationAbstractionsPackageVersion>
