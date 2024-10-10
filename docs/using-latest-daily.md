@@ -39,6 +39,7 @@ To be able to create aspire projects, you will need to install the latest Aspire
 ```sh
 dotnet new install Aspire.ProjectTemplates::9.0.0-rc.1.* --force
 ```
+
 > [!TIP]
 > If you want to use the latest build from the `main` branch, change the above to be `dotnet new install Aspire.ProjectTemplates::9.0.0-* --force`
 
