@@ -1,4 +1,4 @@
-/eng/SourceBuild* @dotnet/source-build-internal
+/eng/SourceBuild* @dotnet/source-build
 
 /dogfood.sh @radical @eerhardt
 /src/Aspire.Hosting.Testing @reubenbond

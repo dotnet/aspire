@@ -1,3 +1,5 @@
+<!-- When altering this file, please include @dotnet/product-construction as a reviewer. -->
+
 <Project>
 
   <PropertyGroup>
