@@ -16,10 +16,9 @@ public partial class AspireProject : IAsyncDisposable
 {
     public const int DashboardAvailabilityTimeoutSecs = 60;
     private const int AppStartupWaitTimeoutSecs = 5 * 60;
-    public const string DefaultTargetFramework = "net8.0";
     private static readonly Regex s_dashboardUrlRegex = new(@"Login to the dashboard at (?<url>.*)", RegexOptions.Compiled);
 
-    public static string GetNuGetConfigPathFor(string targetFramework) =>
+    public static string GetNuGetConfigPathFor(TestTargetFramework targetFramework) =>
         Path.Combine(BuildEnvironment.TestAssetsPath, "nuget8.config");
 
     public static Lazy<HttpClient> Client => new(CreateHttpClient);
@@ -27,6 +26,7 @@ public partial class AspireProject : IAsyncDisposable
     public string Id { get; init; }
     public string RootDir { get; init; }
     public string LogPath { get; init; }
+    public TestTargetFramework TargetFramework { get; init; }
     public string AppHostProjectDirectory => Path.Combine(RootDir, $"{Id}.AppHost");
     public string ServiceDefaultsProjectPath => Path.Combine(RootDir, $"{Id}.ServiceDefaults");
     public string TestsProjectDirectory => Path.Combine(RootDir, $"{Id}.Tests");
@@ -38,13 +38,14 @@ public partial class AspireProject : IAsyncDisposable
     private readonly ITestOutputHelper _testOutput;
     private readonly BuildEnvironment _buildEnv;
 
-    public AspireProject(string id, string baseDir, ITestOutputHelper testOutput, BuildEnvironment buildEnv)
+    public AspireProject(string id, string baseDir, ITestOutputHelper testOutput, BuildEnvironment buildEnv, TestTargetFramework? tfm = default)
     {
         Id = id;
         RootDir = baseDir;
         _testOutput = testOutput;
         _buildEnv = buildEnv;
         LogPath = Path.Combine(_buildEnv.LogRootPath, Id);
+        TargetFramework = tfm ?? BuildEnvironment.DefaultTargetFramework;
     }
 
     protected void InitPaths()
@@ -52,7 +53,7 @@ public partial class AspireProject : IAsyncDisposable
         Directory.CreateDirectory(LogPath);
     }
 
-    protected static void InitProjectDir(string dir, string targetFramework = DefaultTargetFramework)
+    protected static void InitProjectDir(string dir, TestTargetFramework tfm)
     {
         if (Directory.Exists(dir))
         {
@@ -62,7 +63,7 @@ public partial class AspireProject : IAsyncDisposable
         File.WriteAllText(Path.Combine(dir, "Directory.Build.props"), "<Project />");
         File.WriteAllText(Path.Combine(dir, "Directory.Build.targets"), "<Project />");
 
-        string srcNuGetConfigPath = GetNuGetConfigPathFor(targetFramework);
+        string srcNuGetConfigPath = GetNuGetConfigPathFor(tfm);
         string targetNuGetConfigPath = Path.Combine(dir, "nuget.config");
         File.Copy(srcNuGetConfigPath, targetNuGetConfigPath);
     }
@@ -81,7 +82,8 @@ public partial class AspireProject : IAsyncDisposable
         string logPath = Path.Combine(BuildEnvironment.ForDefaultFramework.LogRootPath, id);
         Directory.CreateDirectory(logPath);
 
-        InitProjectDir(rootDir);
+        var tfmToUse = targetFramework ?? BuildEnvironment.DefaultTargetFramework;
+        InitProjectDir(rootDir, tfmToUse);
 
         File.WriteAllText(Path.Combine(rootDir, "Directory.Build.props"), "<Project />");
         File.WriteAllText(Path.Combine(rootDir, "Directory.Build.targets"), "<Project />");
@@ -95,7 +97,6 @@ public partial class AspireProject : IAsyncDisposable
         cmd.WithWorkingDirectory(Path.GetDirectoryName(rootDir)!)
            .WithTimeout(TimeSpan.FromMinutes(5));
 
-        var tfmToUse = targetFramework ?? BuildEnvironment.DefaultTargetFramework;
         var tfmToUseString = tfmToUse.ToTFMString();
         var cmdString = $"{template} {extraArgs} -o \"{id}\" -f {tfmToUseString}";
 
@@ -126,7 +127,7 @@ public partial class AspireProject : IAsyncDisposable
             }
         }
 
-        var project = new AspireProject(id, rootDir, testOutput, buildEnvironment);
+        var project = new AspireProject(id, rootDir, testOutput, buildEnvironment, tfm: tfmToUse);
         if (addEndpointsHook)
         {
             File.Copy(Path.Combine(BuildEnvironment.TestAssetsPath, "EndPointWriterHook_cs"), Path.Combine(project.AppHostProjectDirectory, "EndPointWriterHook.cs"));

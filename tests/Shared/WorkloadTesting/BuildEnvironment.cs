@@ -268,8 +268,9 @@ public class BuildEnvironment
 
 public enum TestTargetFramework
 {
-    Previous,
-    Current
+    // Current is default
+    Current,
+    Previous
 }
 
 public static class TestTargetFrameworkExtensions
