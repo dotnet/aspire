@@ -53,6 +53,12 @@
       ]
     }
   ],
+  "constraints": {
+    "aspire": {
+      "type": "workload",
+      "args": [ "aspire" ]
+    }
+  },
   "symbols": {
     "Framework": {
       "type": "parameter",
