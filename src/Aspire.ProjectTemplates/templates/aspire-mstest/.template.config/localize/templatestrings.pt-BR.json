@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire 9 Test Project (MSTest)",
-  "description": "A project that contains MSTest integration tests of a .NET Aspire 9 AppHost project.",
+  "name": "Projeto de teste do .NET Aspire 9 (MSTest)",
+  "description": "Um projeto que contém testes de integração MSTest de um projeto AppHost do .NET Aspire 9.",
   "symbols/Framework/description": "A estrutura de destino do projeto.",
   "symbols/Framework/choices/net9.0/description": "Target net9.0",
   "symbols/skipRestore/description": "Se especificado, ignora a restauração automática do projeto sendo criado.",

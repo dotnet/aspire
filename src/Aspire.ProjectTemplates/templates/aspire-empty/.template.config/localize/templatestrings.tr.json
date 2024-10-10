@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire 9 Empty App",
-  "description": "A project template for creating an empty .NET Aspire 9 app.",
+  "name": ".NET 9 Aspire Boş Uygulaması",
+  "description": "Boş bir .NET 9 Aspire uygulaması oluşturulabilecek bir proje şablonu.",
   "symbols/Framework/description": "Projenin hedef çerçevesi.",
   "symbols/Framework/choices/net9.0/description": "Hedef net9.0",
   "symbols/appHostHttpPort/description": "AppHost projesinin HTTP uç noktası launchSettings.json bağlantı noktası numarası.",
