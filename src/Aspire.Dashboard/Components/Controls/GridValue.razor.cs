@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -68,9 +69,6 @@ public partial class GridValue
     public EventCallback<bool> IsMaskedChanged { get; set; }
 
     [Parameter]
-    public int? MaxDisplayLength { get; set; }
-
-    [Parameter]
     public string? ToolTip { get; set; }
 
     [Parameter]
@@ -90,14 +88,48 @@ public partial class GridValue
 
     private readonly Icon _maskIcon = new Icons.Regular.Size16.EyeOff();
     private readonly Icon _unmaskIcon = new Icons.Regular.Size16.Eye();
+    private readonly string _cellTextId = $"celltext-{Guid.NewGuid():N}";
     private readonly string _copyId = $"copy-{Guid.NewGuid():N}";
     private readonly string _menuAnchorId = $"menu-{Guid.NewGuid():N}";
+    private string? _value;
+    private string? _formattedValue;
     private bool _isMenuOpen;
 
     protected override void OnInitialized()
     {
         PreCopyToolTip = Loc[nameof(ControlsStrings.GridValueCopyToClipboard)];
         PostCopyToolTip = Loc[nameof(ControlsStrings.GridValueCopied)];
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_value != Value)
+        {
+            _value = Value;
+
+            if (UrlParser.TryParse(_value, out var url))
+            {
+                _formattedValue = url;
+            }
+            else
+            {
+                _formattedValue = _value;
+            }
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // If the value and formatted value are different then there are hrefs in the text.
+            // Add a click event to the cell text that stops propagation if a href is clicked.
+            // This prevents details view from opening when the value is in a main page grid.
+            if (_value != _formattedValue)
+            {
+                await JS.InvokeVoidAsync("setCellTextClickHandler", _cellTextId);
+            }
+        }
     }
 
     private string GetContainerClass() => EnableMasking ? "container masking-enabled" : "container";
@@ -107,16 +139,6 @@ public partial class GridValue
         IsMasked = !IsMasked;
 
         await IsMaskedChanged.InvokeAsync(IsMasked);
-    }
-
-    private string TrimLength(string? text)
-    {
-        if (text is not null && MaxDisplayLength is int maxLength && text.Length > maxLength)
-        {
-            return text[..maxLength];
-        }
-
-        return text ?? "";
     }
 
     private void ToggleMenuOpen()
