@@ -37,11 +37,11 @@ If you use [Package Source Mapping](https://learn.microsoft.com/en-us/nuget/cons
 To be able to create aspire projects, you will need to install the latest Aspire templates. You can do this by running the following command:
 
 ```sh
-dotnet new install Aspire.ProjectTemplates::9.0.0-rc.1.* --force
+dotnet new install Aspire.ProjectTemplates::* --force
 ```
 
 > [!TIP]
-> If you want to use the latest build from the `main` branch, change the above to be `dotnet new install Aspire.ProjectTemplates::9.0.0-* --force`
+> If you want to use the latest build from the `release/9.0-rc1` branch, change the above to be `dotnet new install Aspire.ProjectTemplates::9.0.0-rc.1.* --force`
 
 <!-- break between blocks -->
 
