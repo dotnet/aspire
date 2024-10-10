@@ -36,4 +36,6 @@
     <ProjectReference Include="..\Aspire.OpenAI\Aspire.OpenAI.csproj" />
   </ItemGroup>
 
+  <Import Project="..\Aspire.OpenAI\MEAIPackageOverrides.targets" />
+
 </Project>

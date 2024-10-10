@@ -21,9 +21,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="OpenAI" />
+    <PackageReference Include="Microsoft.Extensions.AI" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
+
+  <Import Project="MEAIPackageOverrides.targets" />
 
 </Project>
