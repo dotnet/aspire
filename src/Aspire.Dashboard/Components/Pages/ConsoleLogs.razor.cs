@@ -53,9 +53,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public required ILogger<ConsoleLogs> Logger { get; init; }
 
     [Inject]
-    public required DimensionManager DimensionManager { get; init; }
-
-    [Inject]
     public required IStringLocalizer<Dashboard.Resources.ConsoleLogs> Loc { get; init; }
 
     [Inject]

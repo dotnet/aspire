@@ -12,7 +12,6 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -46,10 +45,6 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     public required BrowserTimeProvider TimeProvider { get; init; }
     [Inject]
     public required IJSRuntime JS { get; init; }
-    [Inject]
-    public required ProtectedSessionStorage SessionStorage { get; init; }
-    [Inject]
-    public required DimensionManager DimensionManager { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
