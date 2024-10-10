@@ -25,8 +25,7 @@ public class BrowserDimensionWatcher : ComponentBase
         if (firstRender)
         {
             var viewportSize = await JS.InvokeAsync<ViewportSize>("window.getWindowDimensions");
-            DimensionManager.InvokeOnViewportSizeChanged(viewportSize)
-                ;
+            DimensionManager.InvokeOnViewportSizeChanged(viewportSize);
             ViewportInformation = ViewportInformation.GetViewportInformation(viewportSize);
             DimensionManager.InvokeOnViewportInformationChanged(ViewportInformation);
 

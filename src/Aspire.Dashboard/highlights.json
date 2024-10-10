@@ -1,0 +1,114 @@
+//"Metric Highlights" and configuration APIs are subject to change or removal without prior notice.
+[
+  {
+    "displayName": "ASP.NET",
+    "id": "aspnet",
+    "charts": [
+      {
+        "title": "Request duration",
+        "instrument": "http.server.request.duration",
+        "required": true
+      },
+      {
+        "title": "Active requests",
+        "instrument": "http.server.active_requests"
+      },
+      {
+        "title": "Active connections",
+        "instrument": "kestrel.active_connections"
+      },
+      {
+        "title": "Routing match attempts",
+        "instrument": "aspnetcore.routing.match_attempts"
+        //"Breakout": "http.route"
+      }
+    ]
+  },
+  {
+    "displayName": "Runtime (Instrumentation Library)",
+    "id": "runtime_instrumentation",
+    "charts": [
+      {
+        "title": "GC Heap Size",
+        "instrument": "process.runtime.dotnet.gc.heap.size"
+      },
+      {
+        "title": "Exception count",
+        "instrument": "process.runtime.dotnet.exceptions.count"
+      },
+      {
+        "title": "Thread pool queue length",
+        "instrument": "process.runtime.dotnet.thread_pool.queue.length"
+      },
+      {
+        "title": "Lock contention",
+        "instrument": "process.runtime.dotnet.monitor.lock_contention.count"
+      },
+      {
+        "title": "Methods JIT compiled",
+        "instrument": "process.runtime.dotnet.jit.methods_compiled.count"
+      },
+      {
+        "title": ".NET assembly count",
+        "instrument": "process.runtime.dotnet.assemblies.count",
+        "required": true
+      }
+    ]
+  },
+  {
+    "displayName": "HttpClient",
+    "id": "http_client",
+    "charts": [
+      {
+        "title": "Request duration",
+        "instrument": "http.client.request.duration"
+        //"Breakout": "server.address"
+      },
+      {
+        "title": "Active requests",
+        "instrument": "http.client.active_requests"
+      },
+      {
+        "title": "Connection duration",
+        "instrument": "http.client.connection.duration"
+      },
+      {
+        "title": "Open connections",
+        "instrument": "http.client.open_connections",
+        "required": true
+      }
+    ]
+  },
+  {
+    "displayName": "Npgsql",
+    "id": "npgsql",
+    "charts": [
+      {
+        "title": "Command duration",
+        "instrument": "db.client.commands.duration"
+        //"Breakout": "pool.name"
+      },
+      {
+        "title": "Commands executing",
+        "instrument": "db.client.commands.executing"
+        //"Breakout": "pool.name"
+      },
+      {
+        "title": "Connection usage",
+        "instrument": "db.client.connections.usage",
+        "required": true
+        //"Breakout": "state"
+      },
+      {
+        "title": "Bytes read",
+        "instrument": "db.client.commands.bytes_read"
+        //"Breakout": "pool.name"
+      },
+      {
+        "title": "Bytes written",
+        "instrument": "db.client.commands.bytes_written"
+        //"Breakout": "pool.name"
+      }
+    ]
+  }
+]

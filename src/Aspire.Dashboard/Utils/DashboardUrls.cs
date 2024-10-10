@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.WebUtilities;
 
 namespace Aspire.Dashboard.Utils;
@@ -29,13 +30,24 @@ internal static class DashboardUrls
         return url;
     }
 
-    public static string MetricsUrl(string? resource = null, string? meter = null, string? instrument = null, int? duration = null, string? view = null)
+    public static string MetricsUrl(string? resource = null, string? meter = null, string? instrument = null, int? duration = null, string? view = null, string? highlight = null, bool? highlightOverviewUrl = false)
     {
         var url = $"/{MetricsBasePath}";
         if (resource != null)
         {
             url += $"/resource/{Uri.EscapeDataString(resource)}";
         }
+
+        if (highlightOverviewUrl is true || highlight is not null)
+        {
+            url += "/highlights";
+        }
+
+        if (highlight is not null)
+        {
+            url += $"/{Uri.EscapeDataString(highlight)}";
+        }
+
         if (meter is not null)
         {
             // Meter and instrument must be querystring parameters because it's valid for the name to contain forward slashes.
@@ -55,6 +67,11 @@ internal static class DashboardUrls
         }
 
         return url;
+    }
+
+    public static bool IsHighlightsUrl(NavigationManager navigationManager, string? resource)
+    {
+        return StringComparers.UrlPath.Equals(MetricsUrl(resource: resource, highlightOverviewUrl: true), "/" + navigationManager.ToBaseRelativePath(navigationManager.Uri).Split("?").First());
     }
 
     public static string StructuredLogsUrl(string? resource = null, string? logLevel = null, string? filters = null, string? traceId = null, string? spanId = null)

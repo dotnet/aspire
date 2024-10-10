@@ -1,0 +1,25 @@
+.highlight-chart-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.highlight-chart-grid .highlight-chart-tile {
+    flex: 1 1 25%;
+    box-sizing: border-box;
+    min-width: 400px;
+}
+
+@media (max-width: 768px) {
+    .highlight-chart-grid .highlight-chart-tile {
+        min-width: 280px; /* We need to properly support widths down to 320px. For this to properly display, we need a width <320 */
+    }
+}
+
+.highlight-chart-grid {
+    margin-bottom: 10px;
+}
+
+.highlight-chart-title {
+    margin-left: 5px;
+}

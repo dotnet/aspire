@@ -1,6 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -15,6 +19,8 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.MetricsViewModel, Metrics.MetricsPageState>
 {
+    public const string HighlightsHome = nameof(HighlightsHome);
+
     private SelectViewModel<ResourceTypeDetails> _selectApplication = null!;
     private List<SelectViewModel<TimeSpan>> _durations = null!;
     private static readonly TimeSpan s_defaultDuration = TimeSpan.FromMinutes(5);
@@ -41,6 +47,9 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public string? InstrumentName { get; set; }
 
     [Parameter]
+    public string? HighlightId { get; set; }
+
+    [Parameter]
     [SupplyParameterFromQuery(Name = "duration")]
     public int? DurationMinutes { get; set; }
 
@@ -58,15 +67,18 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Inject]
+    public required IHighlightPersistence HighlightPersistence { get; init; }
+
+    [Inject]
     public required ILogger<Metrics> Logger { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 
-    protected override Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        _durations = new List<SelectViewModel<TimeSpan>>
-        {
+        _durations =
+        [
             new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastOneMinute)], Id = TimeSpan.FromMinutes(1) },
             new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastFiveMinutes)], Id = TimeSpan.FromMinutes(5) },
             new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastFifteenMinutes)], Id = TimeSpan.FromMinutes(15) },
@@ -75,7 +87,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastThreeHours)], Id = TimeSpan.FromHours(3) },
             new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastSixHours)], Id = TimeSpan.FromHours(6) },
             new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastTwelveHours)], Id = TimeSpan.FromHours(12) },
-        };
+        ];
 
         _selectApplication = new SelectViewModel<ResourceTypeDetails>
         {
@@ -87,24 +99,29 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         {
             SelectedApplication = _selectApplication,
             SelectedDuration = _durations.Single(d => d.Id == s_defaultDuration),
-            SelectedViewKind = null
+            SelectedViewKind = null,
+            Highlights = []
         };
 
         UpdateApplications();
+
         _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
         {
             UpdateApplications();
             StateHasChanged();
         }));
-        return Task.CompletedTask;
     }
 
     protected override async Task OnParametersSetAsync()
     {
+        var highlights = await HighlightPersistence.GetHighlightsAsync(CancellationToken.None);
+        PageViewModel.Highlights = [..highlights.OrderBy(highlight => highlight.DisplayName, StringComparers.HighlightName)];
+
         if (await this.InitializeViewModelAsync())
         {
             return;
         }
+
         UpdateSubscription();
     }
 
@@ -116,7 +133,9 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             MeterName = PageViewModel.SelectedMeter?.MeterName,
             InstrumentName = PageViewModel.SelectedInstrument?.Name,
             DurationMinutes = (int)PageViewModel.SelectedDuration.Id.TotalMinutes,
-            ViewKind = PageViewModel.SelectedViewKind?.ToString()
+            ViewKind = PageViewModel.SelectedViewKind?.ToString(),
+            HighlightId = PageViewModel.SelectedHighlight?.Id,
+            HighlightsHomeSelected = PageViewModel.HighlightsHomeSelected
         };
     }
 
@@ -139,6 +158,15 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
                 viewModel.SelectedInstrument = viewModel.Instruments.FirstOrDefault(i => i.Parent.MeterName == MeterName && i.Name == InstrumentName);
             }
         }
+
+        if (!string.IsNullOrEmpty(HighlightId) &&
+            viewModel.Highlights.FirstOrDefault(page => page.Id.Equals(HighlightId, StringComparisons.OtlpInstrumentName)) is { } highlight)
+        {
+            viewModel.SelectedHighlight = highlight;
+        }
+
+        viewModel.HighlightsHomeSelected = DashboardUrls.IsHighlightsUrl(NavigationManager, ApplicationName);
+
         return Task.CompletedTask;
     }
 
@@ -147,7 +175,18 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         _applications = TelemetryRepository.GetApplications();
         _applicationViewModels = ApplicationsSelectHelpers.CreateApplications(_applications);
         _applicationViewModels.Insert(0, _selectApplication);
+
+        PageViewModel.ApplicationNames = _applications.Select(a => a.ApplicationName).ToImmutableHashSet(StringComparers.OtlpApplicationName);
+
         UpdateSubscription();
+    }
+
+    private Task HandleHighlightMetricViewKindChangedAsync(MenuChangeEventArgs e)
+    {
+        Debug.Assert(e.Id is not null);
+        var metricKind = Enum.Parse<MetricViewKind>(e.Id);
+        PageViewModel.SelectedViewKind = metricKind;
+        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
     private Task HandleSelectedApplicationChangedAsync()
@@ -192,15 +231,102 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
+    #region Model
+
     public sealed class MetricsViewModel
     {
         public FluentTreeItem? SelectedTreeItem { get; set; }
         public OtlpMeter? SelectedMeter { get; set; }
         public OtlpInstrumentSummary? SelectedInstrument { get; set; }
+        public HighlightDefinition? SelectedHighlight { get; set; }
+        public bool HighlightsHomeSelected { get; set; }
+
         public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }
-        public SelectViewModel<TimeSpan> SelectedDuration { get; set; } = null!;
+        public required SelectViewModel<TimeSpan> SelectedDuration { get; set; }
+
+        /// <summary>
+        /// The set of instruments applicable to the selected application.
+        /// </summary>
+        /// <remarks>
+        /// <see langword="null"/> when no application is selected.
+        /// </remarks>
         public List<OtlpInstrumentSummary>? Instruments { get; set; }
+
         public required MetricViewKind? SelectedViewKind { get; set; }
+
+        public required ImmutableArray<HighlightDefinition> Highlights { get; set; }
+
+        public ImmutableHashSet<string> ApplicationNames { get; set; } = [];
+
+        internal bool IsHighlightAvailable(HighlightDefinition highlight)
+        {
+            if (highlight.Charts.Count == 0)
+            {
+                return false;
+            }
+
+            bool foundOne = false;
+            bool allExplicitResources = true;
+
+            foreach (var chart in highlight.Charts)
+            {
+                bool isInstrumentAvailable = IsInstrumentAvailable(chart.InstrumentName);
+
+                if (isInstrumentAvailable)
+                {
+                    foundOne = true;
+                }
+                else if (chart.IsRequired)
+                {
+                    // A required chart's instrument isn't available.
+                    return false;
+                }
+
+                if (chart.ResourceName is not null)
+                {
+                    if (IsResourceAvailable(chart.ResourceName))
+                    {
+                        foundOne = true;
+                    }
+                    else
+                    {
+                        // A chart's explicit resource isn't available.
+                        return false;
+                    }
+                }
+                else
+                {
+                    allExplicitResources = false;
+                }
+            }
+
+            if (!allExplicitResources && SelectedApplication.Id is null)
+            {
+                // No resource is selected and at least one chart doesn't specify an explicit resource.
+                return false;
+            }
+
+            return foundOne;
+
+            bool IsInstrumentAvailable(string instrumentName)
+            {
+                return Instruments?.Any(i => string.Equals(i.Name, instrumentName, StringComparisons.OtlpInstrumentName)) ?? false;
+            }
+
+            bool IsResourceAvailable(string resourceName)
+            {
+                return ApplicationNames.Contains(resourceName);
+            }
+        }
+    }
+
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public enum MetricViewKind
+    {
+        [EnumMember(Value = "graph")]
+        Graph,
+        [EnumMember(Value = "table")]
+        Table
     }
 
     public class MetricsPageState
@@ -210,33 +336,33 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         public string? InstrumentName { get; set; }
         public int DurationMinutes { get; set; }
         public required string? ViewKind { get; set; }
+        public string? HighlightId { get; set; }
+        public required bool HighlightsHomeSelected { get; set; }
     }
 
-    public enum MetricViewKind
-    {
-        Table,
-        Graph
-    }
+    #endregion
 
-    private Task HandleSelectedTreeItemChangedAsync()
+    private async Task HandleSelectedTreeItemChangedAsync()
     {
-        if (PageViewModel.SelectedTreeItem?.Data is OtlpMeter meter)
-        {
-            PageViewModel.SelectedMeter = meter;
-            PageViewModel.SelectedInstrument = null;
-        }
-        else if (PageViewModel.SelectedTreeItem?.Data is OtlpInstrumentSummary instrument)
-        {
-            PageViewModel.SelectedMeter = instrument.Parent;
-            PageViewModel.SelectedInstrument = instrument;
-        }
-        else
-        {
-            PageViewModel.SelectedMeter = null;
-            PageViewModel.SelectedInstrument = null;
-        }
+        (OtlpMeter?, OtlpInstrumentSummary?, HighlightDefinition?, bool) selections =
+            PageViewModel.SelectedTreeItem?.Data switch
+            {
+                OtlpMeter meter => (meter, null, null, false),
+                OtlpInstrumentSummary instrument => (instrument.Parent, instrument, null, false),
+                HighlightDefinition highlight => (null, null, highlight, false),
+                HighlightsHome => (null, null, null, true),
+                _ => (null, null, null, false)
+            };
 
-        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: !ViewportInformation.IsDesktop);
+        var vm = PageViewModel;
+
+        (vm.SelectedMeter, vm.SelectedInstrument, vm.SelectedHighlight, vm.HighlightsHomeSelected) = selections;
+
+        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: !ViewportInformation.IsDesktop);
+
+        // if the data is changed to null, there won't be a state change. we should prompt one ourselves to
+        // ensure UI update
+        await InvokeAsync(StateHasChanged);
     }
 
     public string GetUrlFromSerializableViewModel(MetricsPageState serializable)
@@ -246,7 +372,9 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             meter: serializable.MeterName,
             instrument: serializable.InstrumentName,
             duration: serializable.DurationMinutes,
-            view: serializable.ViewKind);
+            view: serializable.ViewKind,
+            highlight: serializable.HighlightId,
+            highlightOverviewUrl: serializable.HighlightsHomeSelected);
 
         return url;
     }

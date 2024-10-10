@@ -7,18 +7,17 @@ using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
-using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
+using Metrics = Aspire.Dashboard.Components.Pages.Metrics;
 
 namespace Aspire.Dashboard.Components;
 
-public partial class ChartContainer : ComponentBase, IAsyncDisposable
+public abstract class ChartContainer : ComponentBase, IAsyncDisposable
 {
-    private OtlpInstrumentData? _instrument;
     private PeriodicTimer? _tickTimer;
     private Task? _tickTask;
     private IDisposable? _themeChangedSubscription;
     private int _renderedDimensionsCount;
-    private readonly InstrumentViewModel _instrumentViewModel = new InstrumentViewModel();
 
     [Parameter, EditorRequired]
     public required ApplicationKey ApplicationKey { get; set; }
@@ -32,6 +31,9 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     [Parameter, EditorRequired]
     public required TimeSpan Duration { get; set; }
 
+    [Parameter, EditorRequired]
+    public required Func<Metrics.MetricViewKind, Task> OnViewChangedAsync { get; set; }
+
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
 
@@ -41,9 +43,14 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
 
+    [Inject]
+    public required IStringLocalizer<ControlsStrings> Loc { get; init; }
+
     public List<DimensionFilterViewModel> DimensionFilters { get; } = [];
     public string? PreviousMeterName { get; set; }
     public string? PreviousInstrumentName { get; set; }
+    public InstrumentViewModel ViewModel { get; } = new();
+    public OtlpInstrumentData? InstrumentData { get; private set; }
 
     protected override void OnInitialized()
     {
@@ -52,7 +59,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         _tickTask = Task.Run(UpdateDataAsync);
         _themeChangedSubscription = ThemeManager.OnThemeChanged(async () =>
         {
-            _instrumentViewModel.Theme = ThemeManager.Theme;
+            ViewModel.Theme = ThemeManager.Theme;
             await InvokeAsync(StateHasChanged);
         });
     }
@@ -74,33 +81,33 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         var timer = _tickTimer;
         while (await timer!.WaitForNextTickAsync())
         {
-            _instrument = GetInstrument();
-            if (_instrument == null)
+            InstrumentData = GetInstrument();
+            if (InstrumentData == null)
             {
                 continue;
             }
 
-            if (_instrument.Dimensions.Count > _renderedDimensionsCount)
+            if (InstrumentData.Dimensions.Count > _renderedDimensionsCount)
             {
                 // Re-render the entire control if the number of dimensions has changed.
-                _renderedDimensionsCount = _instrument.Dimensions.Count;
+                _renderedDimensionsCount = InstrumentData.Dimensions.Count;
                 await InvokeAsync(StateHasChanged);
             }
             else
             {
-                await UpdateInstrumentDataAsync(_instrument);
+                await UpdateInstrumentDataAsync(InstrumentData);
             }
         }
     }
 
     public async Task DimensionValuesChangedAsync(DimensionFilterViewModel dimensionViewModel)
     {
-        if (_instrument == null)
+        if (InstrumentData == null)
         {
             return;
         }
 
-        await UpdateInstrumentDataAsync(_instrument);
+        await UpdateInstrumentDataAsync(InstrumentData);
     }
 
     private async Task UpdateInstrumentDataAsync(OtlpInstrumentData instrument)
@@ -108,7 +115,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         var matchedDimensions = instrument.Dimensions.Where(MatchDimension).ToList();
 
         // Only update data in plotly
-        await _instrumentViewModel.UpdateDataAsync(instrument.Summary, matchedDimensions);
+        await ViewModel.UpdateDataAsync(instrument.Summary, matchedDimensions);
     }
 
     private bool MatchDimension(DimensionScope dimension)
@@ -145,9 +152,9 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     protected override async Task OnParametersSetAsync()
     {
-        _instrument = GetInstrument();
+        InstrumentData = GetInstrument();
 
-        if (_instrument == null)
+        if (InstrumentData == null)
         {
             return;
         }
@@ -161,7 +168,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         DimensionFilters.Clear();
         DimensionFilters.AddRange(filters);
 
-        await UpdateInstrumentDataAsync(_instrument);
+        await UpdateInstrumentDataAsync(InstrumentData);
     }
 
     private OtlpInstrumentData? GetInstrument()
@@ -195,9 +202,9 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     private List<DimensionFilterViewModel> CreateUpdatedFilters(bool hasInstrumentChanged)
     {
         var filters = new List<DimensionFilterViewModel>();
-        if (_instrument != null)
+        if (InstrumentData != null)
         {
-            foreach (var item in _instrument.KnownAttributeValues.OrderBy(kvp => kvp.Key))
+            foreach (var item in InstrumentData.KnownAttributeValues.OrderBy(kvp => kvp.Key))
             {
                 var dimensionModel = new DimensionFilterViewModel
                 {
@@ -263,19 +270,5 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         }
 
         return filters;
-    }
-
-    private Task OnTabChangeAsync(FluentTab newTab)
-    {
-        var id = newTab.Id?.Substring("tab-".Length);
-
-        if (id is null
-            || !Enum.TryParse(typeof(Pages.Metrics.MetricViewKind), id, out var o)
-            || o is not Pages.Metrics.MetricViewKind viewKind)
-        {
-            return Task.CompletedTask;
-        }
-
-        return OnViewChangedAsync(viewKind);
     }
 }

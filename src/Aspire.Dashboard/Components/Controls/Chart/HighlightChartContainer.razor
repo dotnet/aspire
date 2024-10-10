@@ -1,0 +1,74 @@
+﻿@namespace Aspire.Dashboard.Components
+
+@inherits ChartContainer
+
+@using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Resources
+@using Metrics = Aspire.Dashboard.Components.Pages.Metrics
+@using Aspire.Dashboard.Components.Controls.Chart
+
+@inject IStringLocalizer<StructuredLogs> StructuredLogsLoc
+
+@if (InstrumentData is null)
+{
+    <div>@Loc[nameof(ControlsStrings.ChartContainerUnableToDisplay)]</div>
+}
+else
+{
+    <div>
+        <div class="highlight-chart-header">
+            <h5 title="@InstrumentData.Summary.Name"
+                style="margin-bottom: 0; overflow: hidden; text-overflow: ellipsis; display: inline-block; max-width: 90%">@InstrumentData.Summary.Name</h5>
+
+            @if (DimensionFilters.Count > 0)
+            {
+                <FluentButton Id="@_filterButtonId"
+                              Appearance="Appearance.Stealth"
+                              Style="float: right; padding-bottom: 8px"
+                              aria-label="@StructuredLogsLoc[nameof(StructuredLogs.StructuredLogsAddFilter)]"
+                              OnClick="() => _filterPopupOpen = !_filterPopupOpen">
+                    <FluentIcon Value="@(new Icons.Regular.Size16.Settings())"/>
+                </FluentButton>
+
+                <FluentPopover AnchorId="@_filterButtonId"
+                               @bind-Open="_filterPopupOpen"
+                               FixedPlacement="true"
+                               AutoFocus="true"
+                               HorizontalPosition="HorizontalPosition.Left">
+                    <Body>
+                        <ChartFilters IsRenderedInsideModal="true" InstrumentViewModel="@ViewModel" InstrumentData="@InstrumentData" DimensionFilters="@DimensionFilters"/>
+                    </Body>
+                </FluentPopover>
+            }
+        </div>
+
+        <div class="highlight-chart-body">
+            @if (ActiveView is Metrics.MetricViewKind.Graph)
+            {
+                <ChartWrapper Applications="@Applications"
+                          Duration="@Duration"
+                          InstrumentData="@InstrumentData"
+                          InstrumentViewModel="@ViewModel"
+                          DimensionFilters="@DimensionFilters"
+                          IsRenderedInsideModal="true"/>
+            }
+            else
+            {
+                <MetricTableWrapper Applications="@Applications"
+                                Duration="@Duration"
+                                InstrumentData="@InstrumentData"
+                                InstrumentViewModel="@ViewModel"
+                                DimensionFilters="@DimensionFilters"
+                                IsRenderedInsideModal="true"/>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public required Metrics.MetricViewKind ActiveView { get; init; }
+
+    [Parameter, EditorRequired]
+    public required List<OtlpApplication> Applications { get; init; }
+}

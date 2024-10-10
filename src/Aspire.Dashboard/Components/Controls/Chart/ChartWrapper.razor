@@ -1,0 +1,35 @@
+﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Otlp.Model
+
+<div class="metric-tab">
+    <PlotlyChart InstrumentViewModel="@InstrumentViewModel" Duration="Duration" Applications="Applications" IsHighlight="@IsRenderedInsideModal"/>
+
+    @if (!IsRenderedInsideModal)
+    {
+        // Only render chart filters below the chart if we're not rendered inside a modal, as otherwise filters
+        // will appear elsewhere
+        <div class="left-pad-on-desktop">
+            <ChartFilters IsRenderedInsideModal="@IsRenderedInsideModal" InstrumentViewModel="@InstrumentViewModel" InstrumentData="@InstrumentData" DimensionFilters="@DimensionFilters" />
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public required List<OtlpApplication> Applications { get; init; }
+
+    [Parameter, EditorRequired]
+    public required TimeSpan Duration { get; init; }
+
+    [Parameter, EditorRequired]
+    public required List<DimensionFilterViewModel> DimensionFilters { get; init; }
+
+    [Parameter, EditorRequired]
+    public required OtlpInstrumentData InstrumentData { get; init; }
+
+    [Parameter, EditorRequired]
+    public required InstrumentViewModel InstrumentViewModel { get; init; }
+
+    [Parameter]
+    public bool IsRenderedInsideModal { get; init; }
+}

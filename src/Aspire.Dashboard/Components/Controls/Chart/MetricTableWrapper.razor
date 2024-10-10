@@ -1,0 +1,33 @@
+﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Otlp.Model
+
+<div class="@(IsRenderedInsideModal ? "metric-tab" : "metric-tab metric-standalone-tab left-pad-on-desktop")">
+    <MetricTable InstrumentViewModel="@InstrumentViewModel" Duration="Duration" Applications="Applications" />
+
+    @if (!IsRenderedInsideModal)
+    {
+        // Only render chart filters below the chart if we're not rendered inside a modal, as otherwise filters
+        // will appear elsewhere
+        <ChartFilters IsRenderedInsideModal="@IsRenderedInsideModal" InstrumentViewModel="@InstrumentViewModel" InstrumentData="@InstrumentData" DimensionFilters="@DimensionFilters"/>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public required List<OtlpApplication> Applications { get; init; }
+
+    [Parameter, EditorRequired]
+    public required TimeSpan Duration { get; init; }
+
+    [Parameter, EditorRequired]
+    public required List<DimensionFilterViewModel> DimensionFilters { get; init; }
+
+    [Parameter, EditorRequired]
+    public required OtlpInstrumentData InstrumentData { get; init; }
+
+    [Parameter, EditorRequired]
+    public required InstrumentViewModel InstrumentViewModel { get; init; }
+
+    [Parameter]
+    public bool IsRenderedInsideModal { get; init; }
+}

@@ -1,0 +1,58 @@
+﻿@namespace Aspire.Dashboard.Components
+
+@using Aspire.Dashboard.Components.Pages
+@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Model.Otlp
+@using Aspire.Dashboard.Otlp.Model
+
+<h3 title="@SelectedHighlight.DisplayName" class="highlight-chart-title">@SelectedHighlight.DisplayName</h3>
+
+<section class="highlight-chart-grid">
+    @foreach (var chart in SelectedHighlight.Charts)
+    {
+        if (Instruments.FirstOrDefault(i => StringComparers.OtlpInstrumentName.Equals(i.Name, chart.InstrumentName)) is { } instrument)
+        {
+            <article class="highlight-chart-tile">
+                <FluentCard AreaRestricted="false">
+                    <HighlightChartContainer
+                        ApplicationKey="@SelectedApplication.Id!.GetApplicationKey()"
+                        MeterName="@instrument.Parent.MeterName"
+                        InstrumentName="@instrument.Name"
+                        Duration="@SelectedDuration.Id"
+                        ActiveView="@(SelectedViewKind ?? Metrics.MetricViewKind.Graph)"
+                        OnViewChangedAsync="@OnViewChangedAsync"
+                        Applications="@Applications" />
+                </FluentCard>
+            </article>
+        }
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public required List<OtlpApplication> Applications { get; init; }
+
+    [Parameter, EditorRequired]
+    public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; init; }
+
+    [Parameter, EditorRequired]
+    public required OtlpMeter SelectedMeter { get; init; }
+
+    [Parameter, EditorRequired]
+    public required HighlightDefinition SelectedHighlight { get; init; }
+
+    [Parameter, EditorRequired]
+    public required List<OtlpInstrumentSummary> Instruments { get; init; }
+
+    [Parameter, EditorRequired]
+    public required Func<Metrics.MetricViewKind, Task> OnViewChangedAsync { get; init; }
+
+    [Parameter, EditorRequired]
+    public required Metrics.MetricViewKind? SelectedViewKind { get; init; }
+
+    [Parameter, EditorRequired]
+    public required SelectViewModel<TimeSpan> SelectedDuration { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; init; }
+}

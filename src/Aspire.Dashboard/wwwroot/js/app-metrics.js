@@ -5,7 +5,7 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
 
     var chartContainerDiv = document.getElementById(id);
     if (!chartContainerDiv) {
-        console.log(`Couldn't find container '${id}' when initializing chart.`);
+        console.warn(`Couldn't find container '${id}' when initializing chart.`);
         return;
     }
 
@@ -13,6 +13,14 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
     // Workaround this issue by replacing the chart div. Ensures we start from a new state.
     var chartDiv = document.createElement("div");
     chartContainerDiv.replaceChildren(chartDiv);
+
+    const resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+            Plotly.relayout(chartDiv, { width: entry.contentRect.width });
+        }
+    });
+
+    resizeObserver.observe(chartContainerDiv);
 
     var themeColors = getThemeColors();
 
@@ -50,8 +58,8 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
     };
     data.push(points);
 
-    // Width and height are set using ResizeObserver + ploty resize call.
     var layout = {
+        autosize: true,
         paper_bgcolor: themeColors.backgroundColor,
         plot_bgcolor: themeColors.backgroundColor,
         margin: { t: 0, r: 0, b: 40, l: 50 },
@@ -80,9 +88,9 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
         }
     };
 
-    var options = { scrollZoom: false, displayModeBar: false };
+    var options = { scrollZoom: false, displayModeBar: false, responsive: true };
 
-    var plot = Plotly.newPlot(chartDiv, data, layout, options);
+    Plotly.newPlot(chartDiv, data, layout, options);
 
     fixTraceLineRendering(chartDiv);
 
@@ -116,32 +124,18 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
             chartInterop.invokeMethodAsync('ViewSpan', pointTraceData.traceId, pointTraceData.spanId);
         }
     });
-
-    const resizeObserver = new ResizeObserver(entries => {
-        for (let entry of entries) {
-            // Don't resize if not visible.
-            var display = window.getComputedStyle(entry.target).display;
-            var isHidden = !display || display === "none";
-            if (!isHidden) {
-                Plotly.Plots.resize(entry.target);
-            }
-        }
-    });
-    plot.then(plotyDiv => {
-        resizeObserver.observe(plotyDiv);
-    });
 }
 
 export function updateChart(id, traces, exemplarTrace, rangeStartTime, rangeEndTime) {
     var chartContainerDiv = document.getElementById(id);
     if (!chartContainerDiv) {
-        console.log(`Couldn't find container '${id}' when updating chart.`);
+        console.warn(`Couldn't find container '${id}' when updating chart.`);
         return;
     }
 
     var chartDiv = chartContainerDiv.firstChild;
     if (!chartDiv) {
-        console.log(`Couldn't find div inside container '${id}' when updating chart. Chart may not have been successfully initialized.`);
+        console.warn(`Couldn't find div inside container '${id}' when updating chart. Chart may not have been successfully initialized.`);
         return;
     }
 

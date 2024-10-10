@@ -1,0 +1,8 @@
+::deep .highlight-chart-header {
+    padding-left: 0;
+    margin-bottom: 5px;
+}
+
+::deep .highlight-chart-body {
+    padding-top: 10px;
+}

@@ -2,10 +2,10 @@
 @page "/metrics/resource/{applicationName}"
 @page "/metrics/resource/{applicationName}/meter/{meterName}"
 @page "/metrics/resource/{applicationName}/meter/{meterName}/instrument/{instrumentName}"
+@page "/metrics/resource/{applicationName}/highlights"
+@page "/metrics/resource/{applicationName}/highlights/{highlightId}"
 
-@using Aspire.Dashboard.Components.Controls.Grid
 @using Aspire.Dashboard.Model.Otlp
-@using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @inject IStringLocalizer<Dashboard.Resources.Metrics> Loc
@@ -28,6 +28,21 @@
                             @bind-SelectedResource="PageViewModel.SelectedApplication"
                             @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync"
                             CanSelectGrouping="true" />
+            @if (PageViewModel.SelectedHighlight is not null)
+            {
+                <div slot="end">
+                    <FluentMenuButton ButtonAppearance="Appearance.Stealth"
+                                      Text="@(ControlsStringsLoc[PageViewModel.SelectedViewKind is MetricViewKind.Table ? nameof(ControlsStrings.ChartContainerTableTab) : nameof(ControlsStrings.ChartContainerGraphTab)])"
+                                      OnMenuChanged="@HandleHighlightMetricViewKindChangedAsync"
+                                      slot="end">
+                        <FluentMenuItem Id="@MetricViewKind.Graph.ToString()">@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerGraphTab)]</FluentMenuItem>
+                        <FluentMenuItem Id="@MetricViewKind.Table.ToString()">@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerTableTab)]</FluentMenuItem>
+                    </FluentMenuButton>
+                </div>
+
+                <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+            }
+
             @if (!ViewportInformation.IsDesktop)
             {
                 <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" Style="margin-right:5px;"/>
@@ -70,34 +85,50 @@
                         <Panel2>
                             <div>
                                 <div class="metrics-content">
-                                    @if (PageViewModel.SelectedApplication.Id?.ReplicaSetName != null && PageViewModel.SelectedMeter != null && PageViewModel.SelectedInstrument != null)
+                                    @if (PageViewModel.SelectedHighlight is not null && PageViewModel.SelectedApplication.Id is not null)
                                     {
-                                        <ChartContainer
+                                        <HighlightCharts Applications="@_applications"
+                                                        Instruments="@PageViewModel.Instruments"
+                                                        SelectedApplication="@PageViewModel.SelectedApplication"
+                                                        SelectedDuration="@PageViewModel.SelectedDuration"
+                                                        SelectedHighlight="@PageViewModel.SelectedHighlight"
+                                                        SelectedMeter="@PageViewModel.SelectedMeter"
+                                                        SelectedViewKind="@PageViewModel.SelectedViewKind"
+                                                        OnViewChangedAsync="@OnViewChangedAsync"/>
+                                    }
+                                    else if (PageViewModel.HighlightsHomeSelected)
+                                    {
+                                        var instrumentModels = PageViewModel.Highlights
+                                            .Where(PageViewModel.IsHighlightAvailable)
+                                            .Select(i => new MetricInstrumentSelector.MetricInstrument(i.DisplayName, DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedApplication.Name, duration: DurationMinutes, view: ViewKindName, highlight: i.Id), null));
+
+                                        <MetricInstrumentSelector Title="@Loc[nameof(Dashboard.Resources.Metrics.HighlightsSectionName)]"
+                                                                  PageViewModel="@PageViewModel"
+                                                                  Instruments="@instrumentModels"
+                                                                  ShowDescriptionColumn="false" />
+                                    }
+                                    else if (PageViewModel.SelectedApplication.Id?.ReplicaSetName != null && PageViewModel.SelectedMeter != null && PageViewModel.SelectedInstrument != null)
+                                    {
+                                        // We've got a selected instrument and application, so show the chart
+                                        <SingleMetricChartContainer
                                             ApplicationKey="@(PageViewModel.SelectedApplication.Id.GetApplicationKey())"
                                             MeterName="@(PageViewModel.SelectedMeter.MeterName)"
                                             InstrumentName="@(PageViewModel.SelectedInstrument.Name)"
                                             Duration="PageViewModel.SelectedDuration.Id"
-                                            ActiveView="@(PageViewModel.SelectedViewKind ?? Metrics.MetricViewKind.Graph)"
+                                            ActiveView="@(PageViewModel.SelectedViewKind ?? MetricViewKind.Graph)"
                                             OnViewChangedAsync="@OnViewChangedAsync"
-                                            Applications="@_applications" />
+                                            Applications="_applications" />
                                     }
                                     else if (PageViewModel.SelectedMeter != null)
                                     {
-                                        <h3 class="meter-name-title">@PageViewModel.SelectedMeter.MeterName</h3>
-                                        <FluentDataGrid
-                                            Style="max-width:1100px;"
-                                            Items="@PageViewModel.Instruments.Where(i => i.Parent == PageViewModel.SelectedMeter).OrderBy(i => i.Name).AsQueryable()"
-                                            GridTemplateColumns="3fr 5fr"
-                                            TGridItem="OtlpInstrumentSummary">
-                                            <ChildContent>
-                                                <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader)]">
-                                                    <FluentAnchor Href="@DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedApplication.Name, meter: context.Parent.MeterName, instrument: context.Name, duration: DurationMinutes, view: ViewKindName)" Appearance="Appearance.Lightweight">
-                                                        @context.Name
-                                                    </FluentAnchor>
-                                                </TemplateColumn>
-                                                <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementDescriptionGridNameColumnHeader)]" Property="@(c => c.Description)" Class="multiline-text"/>
-                                            </ChildContent>
-                                        </FluentDataGrid>
+                                        var instrumentModels = PageViewModel.Instruments
+                                            .Where(i => i.Parent == PageViewModel.SelectedMeter)
+                                            .Select(i => new MetricInstrumentSelector.MetricInstrument(i.Name, DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedApplication.Name, meter: i.Parent.MeterName, instrument: i.Name, duration: DurationMinutes, view: ViewKindName), i.Description));
+
+                                        <MetricInstrumentSelector Title="@PageViewModel.SelectedMeter.MeterName"
+                                                                  PageViewModel="@PageViewModel"
+                                                                  Instruments="@instrumentModels"
+                                                                  ShowDescriptionColumn="true" />
                                     }
                                     else
                                     {

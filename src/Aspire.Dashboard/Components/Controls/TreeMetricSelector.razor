@@ -1,7 +1,25 @@
 ﻿@using Aspire.Dashboard.Components.Pages
+@using Aspire.Dashboard.Model
+
+@inject IStringLocalizer<Metrics> Loc
 
 <FluentTreeView Id="metric-selector" Class="metrics-tree" @bind-CurrentSelected="@PageViewModel.SelectedTreeItem" @bind-CurrentSelected:after="HandleSelectedTreeItemChangedAsync">
     <ChildContent>
+        @if (PageViewModel.Highlights.Length is not 0)
+        {
+            var filteredHighlights = PageViewModel.Highlights.Where(PageViewModel.IsHighlightAvailable).ToList();
+
+            if (filteredHighlights.Count is not 0)
+            {
+                <FluentTreeItem Text="@Loc[Aspire.Dashboard.Resources.Metrics.HighlightsSectionName]" Data="@(PageViewModel.HighlightsHomeSelected ? null : Metrics.HighlightsHome)" title="@Loc[Aspire.Dashboard.Resources.Metrics.HighlightsSectionName]" InitiallyExpanded="true">
+                    @foreach (var highlight in filteredHighlights)
+                    {
+                        <FluentTreeItem @key="highlight" Class="nested" Text="@highlight.DisplayName" Data="@highlight" title="@highlight.DisplayName" InitiallySelected="@(highlight.Id == PageViewModel.SelectedHighlight?.Id)"/>
+                    }
+                </FluentTreeItem>
+            }
+        }
+
         @foreach (var meterGroup in PageViewModel.Instruments!.GroupBy(i => i.Parent).OrderBy(g => g.Key.MeterName))
         {
             <FluentTreeItem @key="meterGroup.Key" Text="@meterGroup.Key.MeterName" Data="@meterGroup.Key" title="@meterGroup.Key.MeterName" InitiallyExpanded="true" InitiallySelected="@(PageViewModel.SelectedInstrument == null && meterGroup.Key.MeterName == PageViewModel.SelectedMeter?.MeterName)">

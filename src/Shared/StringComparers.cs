@@ -19,8 +19,12 @@ internal static class StringComparers
     public static StringComparer EnvironmentVariableName => StringComparer.InvariantCultureIgnoreCase;
     public static StringComparer UrlPath => StringComparer.OrdinalIgnoreCase;
     public static StringComparer UrlHost => StringComparer.OrdinalIgnoreCase;
+    public static StringComparer Attribute => StringComparer.Ordinal;
+    public static StringComparer OtlpInstrumentName => StringComparer.OrdinalIgnoreCase;
+    public static StringComparer OtlpApplicationName => StringComparer.OrdinalIgnoreCase;
     public static StringComparer HtmlAttribute => StringComparer.Ordinal;
     public static StringComparer GridColumn => StringComparer.Ordinal;
+    public static StringComparer HighlightName => StringComparer.OrdinalIgnoreCase;
     public static StringComparer OtlpAttribute => StringComparer.Ordinal;
     public static StringComparer OtlpFieldValue => StringComparer.OrdinalIgnoreCase;
 }
@@ -39,8 +43,12 @@ internal static class StringComparisons
     public static StringComparison EnvironmentVariableName => StringComparison.InvariantCultureIgnoreCase;
     public static StringComparison UrlPath => StringComparison.OrdinalIgnoreCase;
     public static StringComparison UrlHost => StringComparison.OrdinalIgnoreCase;
+    public static StringComparison Attribute => StringComparison.Ordinal;
+    public static StringComparison OtlpInstrumentName => StringComparison.OrdinalIgnoreCase;
+    public static StringComparison OtlpApplicationName => StringComparison.OrdinalIgnoreCase;
     public static StringComparison HtmlAttribute => StringComparison.Ordinal;
     public static StringComparison GridColumn => StringComparison.Ordinal;
+    public static StringComparison HighlightName => StringComparison.OrdinalIgnoreCase;
     public static StringComparison OtlpAttribute => StringComparison.Ordinal;
     public static StringComparison OtlpFieldValue => StringComparison.OrdinalIgnoreCase;
 }
