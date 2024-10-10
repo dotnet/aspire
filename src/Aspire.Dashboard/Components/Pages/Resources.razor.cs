@@ -421,7 +421,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         if (displayedEndpoints.Count == 0)
         {
-            return "&ndash;";
+            return string.Empty;
         }
 
         if (displayedEndpoints.Count == 1)
