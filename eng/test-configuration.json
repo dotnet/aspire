@@ -4,6 +4,7 @@
   "localRerunCount": 1,
   "retryOnRules": [
     { "testName": { "contains": "Aspire.Elastic.Clients.Elasticsearch.Tests.ConformanceTests.HealthCheckReportsExpectedStatus" } },
-    { "testAssembly": { "contains": "Aspire.Elastic.Clients.Elasticsearch.Tests" }, "failureMessage": { "contains": "RemoteExecutionException : Half-way through waiting for remote process." } }
+    { "testAssembly": { "contains": "Aspire.Elastic.Clients.Elasticsearch.Tests" }, "failureMessage": { "contains": "RemoteExecutionException : Half-way through waiting for remote process." } },
+    { "failureMessage" : { "contains" : "MSBUILD : error MSB4166: Child node" } }
   ]
 }
