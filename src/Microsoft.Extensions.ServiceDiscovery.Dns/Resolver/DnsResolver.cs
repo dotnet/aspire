@@ -6,10 +6,12 @@ using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
-internal class DnsResolver : IDnsResolver, IDisposable
+internal partial class DnsResolver : IDnsResolver, IDisposable
 {
     private const int MaximumNameLength = 253;
     private const int IPv4Length = 4;
@@ -20,22 +22,23 @@ internal class DnsResolver : IDnsResolver, IDisposable
     bool _disposed;
     private readonly ResolverOptions _options;
     private readonly CancellationTokenSource _pendingRequestsCts = new();
-    private int _maxRetries = 3;
-
     private TimeProvider _timeProvider = TimeProvider.System;
+    private readonly ILogger<DnsResolver> _logger;
 
     internal void SetTimeProvider(TimeProvider timeProvider)
     {
         _timeProvider = timeProvider;
     }
 
-    public DnsResolver(TimeProvider timeProvider) : this(OperatingSystem.IsWindows() ? NetworkInfo.GetOptions() : ResolvConf.GetOptions())
+    public DnsResolver(TimeProvider timeProvider, ILogger<DnsResolver> logger) : this(OperatingSystem.IsWindows() ? NetworkInfo.GetOptions() : ResolvConf.GetOptions())
     {
         _timeProvider = timeProvider;
+        _logger = logger;
     }
 
     internal DnsResolver(ResolverOptions options)
     {
+        _logger = NullLogger<DnsResolver>.Instance;
         _options = options;
         if (options.Servers.Length == 0)
         {
@@ -55,17 +58,6 @@ internal class DnsResolver : IDnsResolver, IDisposable
 
     internal DnsResolver(IPEndPoint server) : this(new ResolverOptions(server))
     {
-    }
-
-    public int MaxRetries
-    {
-        get => _maxRetries;
-        set
-        {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            ArgumentOutOfRangeException.ThrowIfLessThan(value, 0);
-            _maxRetries = value;
-        }
     }
 
     public async ValueTask<ServiceResult[]> ResolveServiceAsync(string name, CancellationToken cancellationToken = default)
@@ -229,29 +221,51 @@ internal class DnsResolver : IDnsResolver, IDisposable
 
         for (int index = 0; index < _options.Servers.Length; index++)
         {
+            IPEndPoint serverEndPoint = _options.Servers[index];
+
             for (int attempt = 0; attempt < _options.Attempts; attempt++)
             {
-                result = await SendQueryToServerWithTimeoutAsync(_options.Servers[index], name, queryType, index == _options.Servers.Length - 1, cancellationToken).ConfigureAwait(false);
 
-                // TODO: we probably should skip to the next server in case of some errors
-                if (result.Error is SendQueryError.NoError)
+                try
                 {
-                    break;
+                    result = await SendQueryToServerWithTimeoutAsync(serverEndPoint, name, queryType, index == _options.Servers.Length - 1, attempt, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+                {
+                    Log.QueryError(_logger, queryType, name, serverEndPoint, attempt, ex);
+                    continue; // retry or skip to the next server
+                }
+
+                switch (result.Error)
+                {
+                    case SendQueryError.NoError:
+                        goto exit;
+                    case SendQueryError.Timeout:
+                        // TODO: should we retry on timeout or skip to the next server?
+                        Log.Timeout(_logger, queryType, name, serverEndPoint, attempt);
+                        break;
+                    case SendQueryError.ServerError:
+                        Log.ErrorResponseCode(_logger, queryType, name, serverEndPoint, result.Response.Header.ResponseCode);
+                        break;
+                    case SendQueryError.NoData:
+                        Log.NoData(_logger, queryType, name, serverEndPoint, attempt);
+                        break;
                 }
             }
         }
 
+    exit:
         // we have at least one server and we always keep the last received response.
         return result;
     }
 
-    internal async ValueTask<SendQueryResult> SendQueryToServerWithTimeoutAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, bool isLastServer, CancellationToken cancellationToken)
+    internal async ValueTask<SendQueryResult> SendQueryToServerWithTimeoutAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, bool isLastServer, int attempt, CancellationToken cancellationToken)
     {
         (CancellationTokenSource cts, bool disposeTokenSource, CancellationTokenSource pendingRequestsCts) = PrepareCancellationTokenSource(cancellationToken);
 
         try
         {
-            return await SendQueryToServerAsync(serverEndPoint, name, queryType, isLastServer, cts.Token).ConfigureAwait(false);
+            return await SendQueryToServerAsync(serverEndPoint, name, queryType, isLastServer, attempt, cts.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (
             !cancellationToken.IsCancellationRequested && // not cancelled by the caller
@@ -277,8 +291,10 @@ internal class DnsResolver : IDnsResolver, IDisposable
         }
     }
 
-    async ValueTask<SendQueryResult> SendQueryToServerAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, bool isLastServer, CancellationToken cancellationToken)
+    async ValueTask<SendQueryResult> SendQueryToServerAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, bool isLastServer, int attempt, CancellationToken cancellationToken)
     {
+        Log.Query(_logger, queryType, name, serverEndPoint, attempt);
+
         DateTime queryStartedTime = _timeProvider.GetUtcNow().DateTime;
         (DnsDataReader responseReader, DnsMessageHeader header) = await SendDnsQueryCoreUdpAsync(serverEndPoint, name, queryType, cancellationToken).ConfigureAwait(false);
 
@@ -286,6 +302,7 @@ internal class DnsResolver : IDnsResolver, IDisposable
         {
             if (header.IsResultTruncated)
             {
+                Log.ResultTruncated(_logger, queryType, name, serverEndPoint, 0);
                 responseReader.Dispose();
                 // TCP fallback
                 (responseReader, header) = await SendDnsQueryCoreTcpAsync(serverEndPoint, name, queryType, cancellationToken).ConfigureAwait(false);
@@ -302,7 +319,11 @@ internal class DnsResolver : IDnsResolver, IDisposable
 
             if (header.ResponseCode != QueryResponseCode.NoError)
             {
-                return new SendQueryResult { Error = SendQueryError.ServerError };
+                return new SendQueryResult
+                {
+                    Response = new DnsResponse(header, queryStartedTime, queryStartedTime, null!, null!, null!),
+                    Error = SendQueryError.ServerError
+                };
             }
 
             if (header.ResponseCode != QueryResponseCode.NoError && !isLastServer)
