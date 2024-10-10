@@ -183,7 +183,7 @@ h1 {
     /* we want less padding on mobile screens to preserve screen height for other elements */
     .page-header {
         padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 0.5px) 0;
-        width: 100vw;
+        width: fit-content;
     }
 
     .page-header > h1 {
@@ -304,6 +304,13 @@ fluent-data-grid-cell .long-inner-content {
 .version {
     text-align: end;
     font-size: small;
+    width: 100%;
+    flex-grow: 1;
+
+    /* right/bottom align the inner version text */
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: flex-end;
 }
 
 .anchor-no-padding::part(control) {

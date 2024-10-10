@@ -223,7 +223,7 @@ public static class AzureRedisExtensions
 
         var redisContainer = builder.ApplicationBuilder.AddRedis(azureResource.Name);
 
-        azureResource.InnerResource = redisContainer.Resource;
+        azureResource.SetInnerResource(redisContainer.Resource);
 
         configureContainer?.Invoke(redisContainer);
 
