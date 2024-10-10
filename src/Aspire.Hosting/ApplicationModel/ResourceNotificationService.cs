@@ -493,9 +493,7 @@ public class ResourceNotificationService
             {
                 ResourceType = resource.GetType().Name,
                 Properties = [],
-                HealthStatus = resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out _)
-                    ? null // Indicates that the resource has health check annotations but the health status is unknown.
-                    : HealthStatus.Healthy
+                HealthStatus = null
             };
         }
 

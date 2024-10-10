@@ -52,14 +52,11 @@ public sealed record CustomResourceSnapshot
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This value is derived from <see cref="HealthReports"/>. However, if a resource
-    /// is known to have a health check and no reports exist, then this value is <see langword="null"/>.
-    /// </para>
-    /// <para>
-    /// Defaults to <see cref="HealthStatus.Healthy"/>.
+    /// This value is derived from <see cref="HealthReports"/>. If a resource is known to have a health check
+    /// and no reports exist, or if a resource does not have a health check, then this value is <see langword="null"/>.
     /// </para>
     /// </remarks>
-    public HealthStatus? HealthStatus { get; init; } = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy;
+    public HealthStatus? HealthStatus { get; init; }
 
     /// <summary>
     /// The health reports for this resource.
