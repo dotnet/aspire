@@ -298,7 +298,7 @@ public partial class AspireProject : IAsyncDisposable
         _testOutput.WriteLine($"-- Ready to run tests --");
     }
 
-    public async Task<CommandResult> BuildAsync(string[]? extraBuildArgs = default, CancellationToken token = default, string? workingDirectory = null)
+    public async Task<CommandResult> BuildAsync(string[]? extraBuildArgs = default, string? workingDirectory = null, TimeSpan? timeout = null)
     {
         workingDirectory ??= Path.Combine(RootDir, $"{Id}.AppHost");
 
@@ -314,6 +314,10 @@ public partial class AspireProject : IAsyncDisposable
         }
         using var buildCmd = new DotNetCommand(_testOutput, buildEnv: _buildEnv, label: "build")
                                         .WithWorkingDirectory(workingDirectory);
+        if (timeout is not null)
+        {
+            buildCmd.WithTimeout(timeout.Value);
+        }
         res = await buildCmd.ExecuteAsync(buildArgs);
         res.EnsureSuccessful();
         return res;

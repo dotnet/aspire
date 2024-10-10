@@ -111,7 +111,9 @@ public class NewUpTemplatesWithAlternateName(ITestOutputHelper testOutput) : Wor
                                         buildEnvironment: buildEnvToUse,
                                         templateHive: templateHive);
 
-            await project.BuildAsync(extraBuildArgs: [$"-c {config}"], workingDirectory: testProjectDir);
+            await project.BuildAsync(extraBuildArgs: [$"-c {config}"],
+                                     workingDirectory: testProjectDir,
+                                     timeout: TimeSpan.FromSeconds(30));
         }
         catch (ToolCommandException tce) when (error is not null)
         {
