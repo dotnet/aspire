@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Dapr;
 /// <summary>
 /// Represents a Dapr component resource.
 /// </summary>
-public sealed class DaprComponentResource : Resource, IDaprComponentResource, IResourceWithWaitSupport
+public sealed class DaprComponentResource : Resource, IDaprComponentResource
 {
     /// <summary>
     /// Initializes a new instance of <see cref="DaprComponentResource"/>.

@@ -137,6 +137,12 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             var daprCliResourceName = $"{daprSidecar.Name}-cli";
             var daprCli = new ExecutableResource(daprCliResourceName, fileName, appHostDirectory);
 
+            // HACK! Need to figure out how to loop over these annotations once above.
+            foreach (var crAnnotations in componentReferenceAnnotations)
+            {
+                daprCli.Annotations.Add(new WaitAnnotation(crAnnotations.Component, WaitType.WaitUntilHealthy));
+            }
+
             resource.Annotations.Add(
                 new EnvironmentCallbackAnnotation(
                     context =>
