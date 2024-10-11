@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
@@ -48,17 +49,17 @@ public class OtlpApplicationView
         }
     }
 
-    public Dictionary<string, string> AllProperties()
+    public List<OtlpDisplayField> AllProperties()
     {
-        var props = new Dictionary<string, string>(StringComparers.OtlpAttribute)
+        var props = new List<OtlpDisplayField>
         {
-            { OtlpApplication.SERVICE_NAME, Application.ApplicationName },
-            { OtlpApplication.SERVICE_INSTANCE_ID, Application.InstanceId }
+            new OtlpDisplayField { DisplayName = "Name", Key = KnownResourceFields.ServiceNameField, Value = Application.ApplicationName },
+            new OtlpDisplayField { DisplayName = "InstanceId", Key = KnownResourceFields.ServiceInstanceIdField, Value = Application.InstanceId }
         };
 
         foreach (var kv in Properties)
         {
-            props.TryAdd(kv.Key, kv.Value);
+            props.Add(new OtlpDisplayField { DisplayName = kv.Key, Key = $"unknown-{kv.Key}", Value = kv.Value });
         }
 
         return props;

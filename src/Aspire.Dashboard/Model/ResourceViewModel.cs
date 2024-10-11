@@ -209,10 +209,12 @@ public sealed class ResourcePropertyViewModel : IPropertyGridItem
     public bool IsValueSensitive { get; }
     public bool IsValueMasked { get; set; }
     internal int Priority { get; }
+    private readonly string _key;
 
-    string? IPropertyGridItem.Name => KnownProperty?.DisplayName ?? Name;
-
+    string IPropertyGridItem.Name => KnownProperty?.DisplayName ?? Name;
     string? IPropertyGridItem.Value => _displayValue.Value;
+
+    object IPropertyGridItem.Key => _key;
 
     public ResourcePropertyViewModel(string name, Value value, bool isValueSensitive, KnownProperty? knownProperty, int priority, BrowserTimeProvider timeProvider)
     {
@@ -224,6 +226,9 @@ public sealed class ResourcePropertyViewModel : IPropertyGridItem
         KnownProperty = knownProperty;
         Priority = priority;
         IsValueMasked = isValueSensitive;
+
+        // Known and unknown properties are displayed together. Avoid any duplicate keys.
+        _key = KnownProperty != null ? $"known-{KnownProperty.Key}" : $"unknown-{Name}";
 
         _tooltip = new(() => value.HasStringValue ? value.StringValue : value.ToString());
 
@@ -281,11 +286,13 @@ public sealed class UrlViewModel
     }
 }
 
-public sealed record class VolumeViewModel(string? Source, string Target, string MountType, bool IsReadOnly) : IPropertyGridItem
+public sealed record class VolumeViewModel(int index, string Source, string Target, string MountType, bool IsReadOnly) : IPropertyGridItem
 {
-    string? IPropertyGridItem.Name => Source;
-
+    string IPropertyGridItem.Name => Source;
     string? IPropertyGridItem.Value => Target;
+
+    // Source could be empty for an anomymous volume. Use index in results as a key.
+    object IPropertyGridItem.Key => index.ToString(CultureInfo.InvariantCulture);
 
     public bool MatchesFilter(string filter) =>
         Source?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||

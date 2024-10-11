@@ -36,7 +36,7 @@ public class TelemetryFilter : IEquatable<TelemetryFilter>
             KnownTraceFields.KindField => "Kind",
             KnownTraceFields.ApplicationField => "Application",
             KnownTraceFields.StatusField => "Status",
-            KnownTraceFields.SourceField => "Source",
+            KnownSourceFields.NameField => "Source",
             _ => name
         };
     }
