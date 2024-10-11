@@ -3,18 +3,11 @@
 
 namespace Aspire.Dashboard.Model.Otlp;
 
-public static class KnownSourceFields
-{
-    public const string NameField = "source.name";
-    public const string VersionField = "source.version";
-}
-
 public static class KnownTraceFields
 {
     public const string NameField = "trace.name";
     public const string KindField = "trace.kind";
     public const string StatusField = "trace.status";
-    public const string ApplicationField = "trace.application";
     public const string TraceIdField = "trace.traceid";
     public const string SpanIdField = "trace.spanid";
 
@@ -26,7 +19,7 @@ public static class KnownTraceFields
         NameField,
         KindField,
         StatusField,
-        ApplicationField,
+        KnownResourceFields.ServiceNameField,
         TraceIdField,
         SpanIdField,
         KnownSourceFields.NameField

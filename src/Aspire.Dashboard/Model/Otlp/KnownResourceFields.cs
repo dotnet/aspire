@@ -1,12 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Otlp.Model;
-
 namespace Aspire.Dashboard.Model.Otlp;
 
 public static class KnownResourceFields
 {
-    public const string ServiceNameField = OtlpApplication.SERVICE_NAME;
-    public const string ServiceInstanceIdField = OtlpApplication.SERVICE_INSTANCE_ID;
+    public const string ServiceNameField = "resource.servicename";
+    public const string ServiceInstanceIdField = "resource.serviceinstanceid";
 }

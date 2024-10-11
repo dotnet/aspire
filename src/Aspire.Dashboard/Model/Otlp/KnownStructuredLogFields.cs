@@ -7,7 +7,6 @@ public static class KnownStructuredLogFields
 {
     public const string MessageField = "log.message";
     public const string CategoryField = "log.category";
-    public const string ApplicationField = "log.application";
     public const string TraceIdField = "log.traceid";
     public const string SpanIdField = "log.spanid";
     public const string ParentIdField = "log.parentid";
@@ -17,7 +16,7 @@ public static class KnownStructuredLogFields
     public static readonly List<string> AllFields = [
         MessageField,
         CategoryField,
-        ApplicationField,
+        KnownResourceFields.ServiceNameField,
         TraceIdField,
         SpanIdField,
         OriginalFormatField

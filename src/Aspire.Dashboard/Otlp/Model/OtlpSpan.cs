@@ -107,7 +107,7 @@ public class OtlpSpan
     {
         return field switch
         {
-            KnownTraceFields.ApplicationField => span.Source.Application.ApplicationName,
+            KnownResourceFields.ServiceNameField => span.Source.Application.FullName,
             KnownTraceFields.TraceIdField => span.TraceId,
             KnownTraceFields.SpanIdField => span.SpanId,
             KnownTraceFields.KindField => span.Kind.ToString(),
