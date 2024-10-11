@@ -54,24 +54,30 @@ public class AzureEventHubsResource(string name, Action<ResourceModuleConstruct>
 
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
     {
-        if (IsEmulator)
+        ApplyAzureFunctionsConfigurationInternal(target, connectionName, IsEmulator, ConnectionStringExpression, EventHubsEndpoint);
+    }
+
+    internal static void ApplyAzureFunctionsConfigurationInternal(IDictionary<string, object> target, string connectionName,
+        bool isEmulator, ReferenceExpression connectionStringExpression, BicepOutputReference eventHubsEndpoint)
+    {
+        if (isEmulator)
         {
             // Injected to support Azure Functions listener initialization.
-            target[connectionName] = ConnectionStringExpression;
+            target[connectionName] = connectionStringExpression;
             // Injected to support Aspire client integration for each EventHubs client in Azure Functions projects.
             foreach (var clientName in s_eventHubClientNames)
             {
-                target[$"{ConnectionKeyPrefix}__{clientName}__{connectionName}__ConnectionString"] = ConnectionStringExpression;
+                target[$"{ConnectionKeyPrefix}__{clientName}__{connectionName}__ConnectionString"] = connectionStringExpression;
             }
         }
         else
         {
             // Injected to support Azure Functions listener initialization.
-            target[$"{connectionName}__fullyQualifiedNamespace"] = EventHubsEndpoint;
+            target[$"{connectionName}__fullyQualifiedNamespace"] = eventHubsEndpoint;
             // Injected to support Aspire client integration for each EventHubs client in Azure Functions projects.
             foreach (var clientName in s_eventHubClientNames)
             {
-                target[$"{ConnectionKeyPrefix}__{clientName}__{connectionName}__FullyQualifiedNamespace"] = EventHubsEndpoint;
+                target[$"{ConnectionKeyPrefix}__{clientName}__{connectionName}__FullyQualifiedNamespace"] = eventHubsEndpoint;
             }
         }
     }
