@@ -1,9 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable AZPROVISION001
-
-using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using RedisResource = Aspire.Hosting.ApplicationModel.RedisResource;
@@ -29,24 +26,11 @@ public static class AzureRedisExtensions
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureRedis)} instead to add an Azure Cache for Redis resource.")]
     public static IResourceBuilder<RedisResource> PublishAsAzureRedis(this IResourceBuilder<RedisResource> builder)
     {
-        return builder.PublishAsAzureRedis(null);
-    }
-
-    /// <summary>
-    /// Configures the resource to be published as Azure Cache for Redis when deployed via Azure Developer CLI.
-    /// </summary>
-    /// <param name="builder">The <see cref="IResourceBuilder{RedisResource}"/> builder.</param>
-    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.Redis.RedisResource"/> resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureRedis)} instead to add an Azure Cache for Redis resource.")]
-    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<RedisResource> PublishAsAzureRedis(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, CdkRedisResource>? configureResource)
-    {
-        return builder.PublishAsAzureRedisInternal(configureResource);
+        return builder.PublishAsAzureRedisInternal(useProvisioner: false);
     }
 
     [Obsolete]
-    private static IResourceBuilder<RedisResource> PublishAsAzureRedisInternal(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, CdkRedisResource>? configureResource, bool useProvisioner = false)
+    private static IResourceBuilder<RedisResource> PublishAsAzureRedisInternal(this IResourceBuilder<RedisResource> builder, bool useProvisioner)
     {
         builder.ApplicationBuilder.AddAzureProvisioning();
 
@@ -71,10 +55,6 @@ public static class AzureRedisExtensions
                 }
             };
             construct.Add(secret);
-
-            var resource = (AzureRedisResource)construct.Resource;
-            var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource);
-            configureResource?.Invoke(resourceBuilder, construct, redisCache);
         };
 
         var resource = new AzureRedisResource(builder.Resource, configureConstruct);
@@ -106,20 +86,7 @@ public static class AzureRedisExtensions
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureRedis)} instead to add an Azure Cache for Redis resource.")]
     public static IResourceBuilder<RedisResource> AsAzureRedis(this IResourceBuilder<RedisResource> builder)
     {
-        return builder.AsAzureRedis(null);
-    }
-
-    /// <summary>
-    /// Configures resource to use Azure for local development and when doing a deployment via the Azure Developer CLI.
-    /// </summary>
-    /// <param name="builder">The <see cref="IResourceBuilder{RedisResource}"/> builder.</param>
-    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.Redis.RedisResource"/> resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureRedis)} instead to add an Azure Cache for Redis resource.")]
-    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<RedisResource> AsAzureRedis(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, CdkRedisResource>? configureResource)
-    {
-        return builder.PublishAsAzureRedisInternal(configureResource, useProvisioner: true);
+        return builder.PublishAsAzureRedisInternal(useProvisioner: true);
     }
 
     /// <summary>
