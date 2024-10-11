@@ -2,17 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
-using Xunit;
-using Xunit.Abstractions;
-using Polly;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
 using NATS.Client.Core;
 using NATS.Client.JetStream;
 using NATS.Client.JetStream.Models;
-using Aspire.Hosting.ApplicationModel;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Polly;
+using Xunit;
+using Xunit.Abstractions;
+
 namespace Aspire.Hosting.Nats.Tests;
 
 public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
@@ -61,6 +62,109 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
             await CreateTestData(jetStream, token);
             await ConsumeTestData(jetStream, token);
         }, cts.Token);
+    }
+
+    [Theory]
+    [RequiresDocker]
+    [InlineData(null, null)]
+    [InlineData("nats", null)]
+    [InlineData(null, "password")]
+    [InlineData("nats", "password")]
+    public async Task AuthenticationShouldWork(string? user, string? password)
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var pipeline = new ResiliencePipelineBuilder()
+                            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NatsException>() })
+                            .Build();
+
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        builder.Configuration["Parameters:user"] = user;
+        builder.Configuration["Parameters:pass"] = password;
+
+        var usernameParameter = user is null ? null : builder.AddParameter("user");
+        var passwordParameter = password is null ? null : builder.AddParameter("pass");
+
+        var nats = builder.AddNats("nats", userName: usernameParameter, password: passwordParameter);
+
+        using var app = builder.Build();
+
+        await app.StartAsync();
+
+        var hb = Host.CreateApplicationBuilder();
+
+        var connectionString = await nats.Resource.ConnectionStringExpression.GetValueAsync(default);
+        hb.Configuration[$"ConnectionStrings:{nats.Resource.Name}"] = connectionString;
+
+        hb.AddNatsClient("nats", configureOptions: opts =>
+        {
+            var jsonRegistry = new NatsJsonContextSerializerRegistry(AppJsonContext.Default);
+            return opts with { SerializerRegistry = jsonRegistry };
+        });
+
+        using var host = hb.Build();
+
+        await host.StartAsync();
+
+        var notificationService = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await notificationService.WaitForResourceAsync(nats.Resource.Name, cancellationToken: cts.Token);
+        var natsConnection = host.Services.GetRequiredService<INatsConnection>();
+        await natsConnection.ConnectAsync();
+        Assert.Equal(NatsConnectionState.Open, natsConnection.ConnectionState);
+    }
+
+    [Theory]
+    [RequiresDocker]
+    [InlineData("user", "wrong-password")]
+    [InlineData("wrong-user", "password")]
+    [InlineData(null, null)]
+    public async Task AuthenticationShouldFailOnWrongOrMissingCredentials(string? user, string? password)
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var pipeline = new ResiliencePipelineBuilder()
+                            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NatsException>() })
+                            .Build();
+
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        builder.Configuration["Parameters:user"] = "user";
+        builder.Configuration["Parameters:pass"] = "password";
+
+        var usernameParameter = builder.AddParameter("user");
+        var passwordParameter = builder.AddParameter("pass");
+
+        var nats = builder.AddNats("nats", userName: usernameParameter, password: passwordParameter);
+
+        using var app = builder.Build();
+
+        await app.StartAsync();
+
+        var hb = Host.CreateApplicationBuilder();
+
+        var connectionString = await nats.Resource.ConnectionStringExpression.GetValueAsync(default);
+        var modifiedConnectionString = user is null
+            ? connectionString!.Replace(new Uri(connectionString).UserInfo, null)
+            : connectionString!.Replace("user", user).Replace("password", password);
+
+        hb.Configuration[$"ConnectionStrings:{nats.Resource.Name}"] = modifiedConnectionString;
+
+        hb.AddNatsClient("nats", configureOptions: opts =>
+        {
+            var jsonRegistry = new NatsJsonContextSerializerRegistry(AppJsonContext.Default);
+            return opts with { SerializerRegistry = jsonRegistry };
+        });
+
+        using var host = hb.Build();
+
+        await host.StartAsync();
+
+        var notificationService = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await notificationService.WaitForResourceAsync(nats.Resource.Name, cancellationToken: cts.Token);
+
+        var natsConnection = host.Services.GetRequiredService<INatsConnection>();
+
+        var exception = await Assert.ThrowsAsync<NatsException>(async () => await natsConnection.ConnectAsync());
+        Assert.IsType<NatsServerException>(exception.InnerException);
     }
 
     [Theory]
