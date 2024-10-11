@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire 9 Service Defaults",
-  "description": "A project template for creating a .NET Aspire 9 service defaults project.",
+  "name": "Domyślne ustawienia usług platformy .NET Aspire 9",
+  "description": "Szablon projektu służący do tworzenia projektu wartości domyślnych usług platformy .NET Aspire 9.",
   "symbols/Framework/description": "Platforma docelowa dla tego projektu.",
   "symbols/Framework/choices/net8.0/description": "Docelowa platforma net8.0",
   "symbols/skipRestore/description": "Jeśli ta opcja jest określona, pomija automatyczne przywracanie projektu podczas tworzenia.",

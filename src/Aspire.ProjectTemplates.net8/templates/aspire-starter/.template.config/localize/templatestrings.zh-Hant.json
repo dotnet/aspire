@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire 9 Starter App",
-  "description": "A project template for creating a .NET Aspire 9 app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
+  "name": ".NET Aspire 9 入門應用程式",
+  "description": "用於使用 Blazor Web 前端和 Web API 後端服務 (選擇性地使用 Redis 進行快取) 來建立 .NET Aspire 9 應用程式的專案範本。",
   "symbols/Framework/description": "專案的目標架構。",
   "symbols/Framework/choices/net8.0/description": "目標 net8.0",
   "symbols/UseRedisCache/displayName": "使用 Redis 進行快取 (需要支援的容器執行階段)(_U)",

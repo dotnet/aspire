@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire 9 Starter App",
-  "description": "A project template for creating a .NET Aspire 9 app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
+  "name": ".NET Aspire 9 スターター アプリ",
+  "description": "Blazor Web フロントエンドと Web API バックエンドのサービスを使用し、オプションで Redis をキャッシュに使用する、.NET Aspire 9 アプリを作成するためのプロジェクト テンプレートです。",
   "symbols/Framework/description": "プロジェクトのターゲット フレームワークです。",
   "symbols/Framework/choices/net8.0/description": "ターゲット net8.0",
   "symbols/UseRedisCache/displayName": "キャッシュ用に Redis を使用する (サポートされているコンテナー ランタイムが必要) (_U)",

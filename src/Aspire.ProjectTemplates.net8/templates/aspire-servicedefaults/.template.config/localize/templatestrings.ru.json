@@ -1,7 +1,7 @@
 ﻿{
   "author": "Майкрософт",
-  "name": ".NET Aspire 9 Service Defaults",
-  "description": "A project template for creating a .NET Aspire 9 service defaults project.",
+  "name": "Параметры службы .NET Aspire 9 по умолчанию",
+  "description": "Шаблон проекта для создания проекта по умолчанию для службы .NET Aspire 9.",
   "symbols/Framework/description": "Целевая платформа для проекта.",
   "symbols/Framework/choices/net8.0/description": "Целевая среда net8.0",
   "symbols/skipRestore/description": "Если указано, пропускает автоматическое восстановление проекта при создании.",
