@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire 9 Empty App",
-  "description": "A project template for creating an empty .NET Aspire 9 app.",
+  "name": ".NET Aspire 9 の空アプリ",
+  "description": "空の .NET Aspire 9 アプリ作成のためのプロジェクト テンプレートです。",
   "symbols/Framework/description": "プロジェクトのターゲット フレームワークです。",
   "symbols/Framework/choices/net8.0/description": "ターゲット net8.0",
   "symbols/appHostHttpPort/description": "AppHost プロジェクトの launchSettings.json の HTTP エンドポイントに使用するポート番号。",
