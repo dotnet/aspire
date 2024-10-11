@@ -283,6 +283,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             .AddSupportedCultures(supportedCultures)
             .AddSupportedUICultures(supportedCultures));
 
+        _app.UseForwardedHeaders();
+
         WriteVersion(_logger);
 
         _app.Lifetime.ApplicationStarted.Register(() =>
