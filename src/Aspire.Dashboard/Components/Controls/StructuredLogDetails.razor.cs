@@ -15,16 +15,16 @@ public partial class StructuredLogDetails
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
 
-    private IQueryable<TelemetryPropertyViewModel> FilteredItems =>
+    internal IQueryable<TelemetryPropertyViewModel> FilteredItems =>
         _logEntryAttributes.Where(ApplyFilter).AsQueryable();
 
-    private IQueryable<TelemetryPropertyViewModel> FilteredExceptionItems =>
+    internal IQueryable<TelemetryPropertyViewModel> FilteredExceptionItems =>
         _exceptionAttributes.Where(ApplyFilter).AsQueryable();
 
-    private IQueryable<TelemetryPropertyViewModel> FilteredContextItems =>
+    internal IQueryable<TelemetryPropertyViewModel> FilteredContextItems =>
         _contextAttributes.Where(ApplyFilter).AsQueryable();
 
-    private IQueryable<TelemetryPropertyViewModel> FilteredResourceItems =>
+    internal IQueryable<TelemetryPropertyViewModel> FilteredResourceItems =>
         ViewModel.LogEntry.ApplicationView.AllProperties().Select(p => new TelemetryPropertyViewModel { Name = p.DisplayName, Key = p.Key, Value = p.Value })
             .Where(ApplyFilter).AsQueryable();
 
@@ -46,7 +46,7 @@ public partial class StructuredLogDetails
         [
             new TelemetryPropertyViewModel { Name ="Category", Key = KnownStructuredLogFields.CategoryField, Value = ViewModel.LogEntry.Scope.ScopeName }
         ];
-        MoveAttributes(attributes, _contextAttributes, a => a.Key is "event.name" or "logrecord.event.id" or "logrecord.event.name");
+        MoveAttributes(attributes, _contextAttributes, a => a.Name is "event.name" or "logrecord.event.id" or "logrecord.event.name");
         if (HasTelemetryBaggage(ViewModel.LogEntry.TraceId))
         {
             _contextAttributes.Add(new TelemetryPropertyViewModel { Name = "TraceId", Key = KnownStructuredLogFields.TraceIdField, Value = ViewModel.LogEntry.TraceId });

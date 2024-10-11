@@ -228,7 +228,7 @@ public sealed class ResourcePropertyViewModel : IPropertyGridItem
         IsValueMasked = isValueSensitive;
 
         // Known and unknown properties are displayed together. Avoid any duplicate keys.
-        _key = KnownProperty != null ? $"known-{KnownProperty.Key}" : $"unknown-{Name}";
+        _key = KnownProperty != null ? KnownProperty.Key : $"unknown-{Name}";
 
         _tooltip = new(() => value.HasStringValue ? value.StringValue : value.ToString());
 
@@ -291,8 +291,9 @@ public sealed record class VolumeViewModel(int index, string Source, string Targ
     string IPropertyGridItem.Name => Source;
     string? IPropertyGridItem.Value => Target;
 
-    // Source could be empty for an anomymous volume. Use index in results as a key.
-    object IPropertyGridItem.Key => index.ToString(CultureInfo.InvariantCulture);
+    // Source could be empty for an anomymous volume so it can't be used as a key.
+    // Because there is no good key in data, use index of the volume in results.
+    object IPropertyGridItem.Key => index;
 
     public bool MatchesFilter(string filter) =>
         Source?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
