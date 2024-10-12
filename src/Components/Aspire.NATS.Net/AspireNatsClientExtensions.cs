@@ -92,23 +92,24 @@ public static class AspireNatsClientExtensions
                 throw new InvalidOperationException($"NATS connection string not found: {connectionName}");
             }
 
-            string redactedConnectionString = settings.ConnectionString;
-            var uri = new Uri(settings.ConnectionString);
+            var redactedConnectionString = settings.ConnectionString;
 
-            // if authentication via user info is added to NATS.Net this can be removed
-            if (uri.UserInfo.Split(':') is [string user, string password])
+            var uriBuilder = new UriBuilder(settings.ConnectionString);
+
+            if (uriBuilder.UserName is { Length: > 0 } username && uriBuilder.Password is { Length: > 0 })
             {
                 options = options with
                 {
                     AuthOpts = options.AuthOpts with
                     {
-                        Username = user,
-                        Password = password
+                        Username = uriBuilder.UserName,
+                        Password = uriBuilder.Password
                     }
                 };
 
                 // redact password so it is not visible in logs
-                redactedConnectionString = redactedConnectionString.Replace(password, "***");
+                uriBuilder.Password = "***";
+                redactedConnectionString = uriBuilder.ToString();
             }
 
             options = options with { Url = redactedConnectionString };
