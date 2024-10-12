@@ -65,12 +65,12 @@ public class OtlpTrace
         if (!added)
         {
             Spans.Insert(0, span);
+        }
 
-            // If there isn't a root span then the first span is used as the trace name.
-            if (_rootSpan == null && !string.IsNullOrEmpty(span.ParentSpanId))
-            {
-                FullName = BuildFullName(span);
-            }
+        if (HasCircularReference(span))
+        {
+            Spans.Remove(span);
+            throw new InvalidOperationException($"Circular loop detected for span '{span.SpanId}'.");
         }
 
         if (string.IsNullOrEmpty(span.ParentSpanId))
@@ -87,6 +87,11 @@ public class OtlpTrace
                 }
             }
         }
+        else if (_rootSpan == null && span == Spans[0])
+        {
+            // If there isn't a root span then the first span is used as the trace name.
+            FullName = BuildFullName(span);
+        }
 
         AssertSpanOrder();
 
@@ -94,6 +99,25 @@ public class OtlpTrace
         {
             return $"{existingSpan.Source.Application.ApplicationName}: {existingSpan.Name}";
         }
+    }
+
+    private static bool HasCircularReference(OtlpSpan span)
+    {
+        var stack = new List<OtlpSpan> { span };
+
+        var currentSpan = span;
+        while (currentSpan.GetParentSpan() is { } parentSpan)
+        {
+            if (stack.Contains(parentSpan))
+            {
+                return true;
+            }
+
+            stack.Add(parentSpan);
+            currentSpan = parentSpan;
+        }
+
+        return false;
     }
 
     [Conditional("DEBUG")]

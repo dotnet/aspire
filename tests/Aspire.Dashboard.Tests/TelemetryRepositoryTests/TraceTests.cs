@@ -91,6 +91,110 @@ public class TraceTests
     }
 
     [Fact]
+    public void AddTraces_SelfParent_Reject()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1")
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(1, addContext.FailureCount);
+
+        var applications = repository.GetApplications();
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+            });
+
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = applications[0].ApplicationKey,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+        Assert.Empty(traces.PagedResult.Items);
+    }
+
+    [Fact]
+    public void AddTraces_MultipleSpansLoop_Reject()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-3"),
+                            CreateSpan(traceId: "1", spanId: "1-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1"),
+                            CreateSpan(traceId: "1", spanId: "1-3", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-2")
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(1, addContext.FailureCount);
+
+        var applications = repository.GetApplications();
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+            });
+
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = applications[0].ApplicationKey,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+        Assert.Collection(traces.PagedResult.Items,
+            trace =>
+            {
+                Assert.Equal(2, trace.Spans.Count);
+            });
+    }
+
+    [Fact]
     public void AddTraces_Scope_Multiple()
     {
         // Arrange
