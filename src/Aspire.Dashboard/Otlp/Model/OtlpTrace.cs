@@ -103,8 +103,14 @@ public class OtlpTrace
 
     private static bool HasCircularReference(OtlpSpan span)
     {
-        var stack = new List<OtlpSpan> { span };
+        // Can't have a circular reference if the span has no parent.
+        if (string.IsNullOrEmpty(span.ParentSpanId))
+        {
+            return false;
+        }
 
+        // Walk up span ancestors to check there is no loop.
+        var stack = new List<OtlpSpan> { span };
         var currentSpan = span;
         while (currentSpan.GetParentSpan() is { } parentSpan)
         {
