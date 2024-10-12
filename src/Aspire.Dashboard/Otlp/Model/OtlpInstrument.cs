@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
@@ -34,7 +33,7 @@ public class OtlpInstrumentData
 public class OtlpInstrument
 {
     public required OtlpInstrumentSummary Summary { get; init; }
-    public required TelemetryLimitOptions Options { get; init; }
+    public required OtlpContext Context { get; init; }
 
     public Dictionary<ReadOnlyMemory<KeyValuePair<string, string>>, DimensionScope> Dimensions { get; } = new(ScopeAttributesComparer.Instance);
     public Dictionary<string, List<string?>> KnownAttributeValues { get; } = new();
@@ -46,19 +45,19 @@ public class OtlpInstrument
             case Metric.DataOneofCase.Gauge:
                 foreach (var d in metric.Gauge.DataPoints)
                 {
-                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Options);
+                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Context);
                 }
                 break;
             case Metric.DataOneofCase.Sum:
                 foreach (var d in metric.Sum.DataPoints)
                 {
-                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Options);
+                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Context);
                 }
                 break;
             case Metric.DataOneofCase.Histogram:
                 foreach (var d in metric.Histogram.DataPoints)
                 {
-                    FindScope(d.Attributes, ref tempAttributes).AddHistogramValue(d, Options);
+                    FindScope(d.Attributes, ref tempAttributes).AddHistogramValue(d, Context);
                 }
                 break;
         }
@@ -70,7 +69,7 @@ public class OtlpInstrument
         // Copy values to a temporary reusable array.
         //
         // A meter can have attributes. Merge these with the data point attributes when creating a dimension.
-        OtlpHelpers.CopyKeyValuePairs(attributes, Summary.Parent.Attributes, Options, out var copyCount, ref tempAttributes);
+        OtlpHelpers.CopyKeyValuePairs(attributes, Summary.Parent.Attributes, Context, out var copyCount, ref tempAttributes);
         Array.Sort(tempAttributes, 0, copyCount, KeyValuePairComparer.Instance);
 
         var comparableAttributes = tempAttributes.AsMemory(0, copyCount);
@@ -86,7 +85,7 @@ public class OtlpInstrument
     {
         var isFirst = Dimensions.Count == 0;
         var durableAttributes = comparableAttributes.ToArray();
-        var dimension = new DimensionScope(Options.MaxMetricsCount, durableAttributes);
+        var dimension = new DimensionScope(Context.Options.MaxMetricsCount, durableAttributes);
         Dimensions.Add(durableAttributes, dimension);
 
         var keys = KnownAttributeValues.Keys.Union(durableAttributes.Select(a => a.Key)).Distinct();
@@ -123,7 +122,7 @@ public class OtlpInstrument
         var newInstrument = new OtlpInstrument
         {
             Summary = instrument.Summary,
-            Options = instrument.Options,
+            Context = instrument.Context
         };
 
         if (cloneData)
