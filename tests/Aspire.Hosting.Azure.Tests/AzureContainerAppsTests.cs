@@ -524,7 +524,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         Assert.Equal(expectedBicep, bicep);
     }
 
-#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     [Fact]
     public async Task PublishAsContainerAppInfluencesContainerAppDefinition()
     {
@@ -620,8 +619,6 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         output.WriteLine(bicep);
         Assert.Equal(expectedBicep, bicep);
     }
-
-#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
     [Fact]
     public async Task VolumesAndBindMountsAreTranslation()

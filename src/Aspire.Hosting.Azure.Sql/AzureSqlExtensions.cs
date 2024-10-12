@@ -1,9 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable AZPROVISION001
-
-using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -18,17 +15,13 @@ namespace Aspire.Hosting;
 public static class AzureSqlExtensions
 {
     [Obsolete]
-    private static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource, bool useProvisioner = false)
+    private static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, bool useProvisioner)
     {
         builder.ApplicationBuilder.AddAzureProvisioning();
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var (sqlServer, sqlDatabases) = CreateSqlServer(construct, builder.ApplicationBuilder, builder.Resource.Databases);
-
-            var resource = (AzureSqlServerResource)construct.Resource;
-            var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource);
-            configureResource?.Invoke(resourceBuilder, construct, sqlServer, sqlDatabases);
+            CreateSqlServer(construct, builder.ApplicationBuilder, builder.Resource.Databases);
         };
 
         var resource = new AzureSqlServerResource(builder.Resource, configureConstruct);
@@ -66,20 +59,7 @@ public static class AzureSqlExtensions
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureSqlServer)} instead to add an Azure SQL server resource.")]
     public static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder)
     {
-        return builder.PublishAsAzureSqlDatabase(null);
-    }
-
-    /// <summary>
-    /// Configures SQL Server resource to be deployed as Azure SQL Database (server).
-    /// </summary>
-    /// <param name="builder">The builder for the SQL Server resource.</param>
-    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.Sql.SqlServer"/> resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureSqlServer)} instead to add an Azure SQL server resource.")]
-    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource)
-    {
-        return builder.PublishAsAzureSqlDatabase(configureResource, useProvisioner: false);
+        return builder.PublishAsAzureSqlDatabase(useProvisioner: false);
     }
 
     /// <summary>
@@ -90,20 +70,7 @@ public static class AzureSqlExtensions
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureSqlServer)} instead to add an Azure SQL server resource.")]
     public static IResourceBuilder<SqlServerServerResource> AsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder)
     {
-        return builder.AsAzureSqlDatabase(null);
-    }
-
-    /// <summary>
-    /// Configures SQL Server resource to be deployed as Azure SQL Database (server).
-    /// </summary>
-    /// <param name="builder">The builder for the SQL Server resource.</param>
-    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.Sql.SqlServer"/> resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureSqlServer)} instead to add an Azure SQL server resource.")]
-    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<SqlServerServerResource> AsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource)
-    {
-        return builder.PublishAsAzureSqlDatabase(configureResource, useProvisioner: true);
+        return builder.PublishAsAzureSqlDatabase(useProvisioner: true);
     }
 
     /// <summary>
@@ -239,7 +206,7 @@ public static class AzureSqlExtensions
         }
     }
 
-    private static (SqlServer Server, List<SqlDatabase> Databases) CreateSqlServer(
+    private static void CreateSqlServer(
         ResourceModuleConstruct construct,
         IDistributedApplicationBuilder distributedApplicationBuilder,
         IReadOnlyDictionary<string, string> databases)
@@ -284,7 +251,6 @@ public static class AzureSqlExtensions
             });
         }
 
-        var sqlDatabases = new List<SqlDatabase>();
         foreach (var databaseNames in databases)
         {
             var identifierName = Infrastructure.NormalizeIdentifierName(databaseNames.Key);
@@ -295,11 +261,8 @@ public static class AzureSqlExtensions
                 Name = databaseName
             };
             construct.Add(sqlDatabase);
-            sqlDatabases.Add(sqlDatabase);
         }
 
         construct.Add(new ProvisioningOutput("sqlServerFqdn", typeof(string)) { Value = sqlServer.FullyQualifiedDomainName });
-
-        return (sqlServer, sqlDatabases);
     }
 }

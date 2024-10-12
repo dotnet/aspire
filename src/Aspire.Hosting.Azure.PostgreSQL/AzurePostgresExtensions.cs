@@ -1,9 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable AZPROVISION001
-
-using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
@@ -34,7 +31,6 @@ public static class AzurePostgresExtensions
     [Obsolete]
     private static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServerInternal(
         this IResourceBuilder<PostgresServerResource> builder,
-        Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource,
         bool useProvisioner = false)
     {
         builder.ApplicationBuilder.AddAzureProvisioning();
@@ -68,10 +64,6 @@ public static class AzurePostgresExtensions
                 }
             };
             construct.Add(secret);
-
-            var azureResource = (AzurePostgresResource)construct.Resource;
-            var azureResourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(azureResource);
-            configureResource?.Invoke(azureResourceBuilder, construct, postgres);
         };
 
         var resource = new AzurePostgresResource(builder.Resource, configureConstruct);
@@ -100,29 +92,12 @@ public static class AzurePostgresExtensions
     /// Configures Postgres Server resource to be deployed as Azure PostgreSQL Flexible Server.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
-    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.PostgreSql.PostgreSqlFlexibleServer"/> resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzurePostgresFlexibleServer)} instead to add an Azure PostgreSQL Flexible Server resource.")]
-    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServer(
-        this IResourceBuilder<PostgresServerResource> builder,
-        Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource)
-    {
-        return builder.PublishAsAzurePostgresFlexibleServerInternal(
-            configureResource,
-            useProvisioner: false);
-    }
-
-    /// <summary>
-    /// Configures Postgres Server resource to be deployed as Azure PostgreSQL Flexible Server.
-    /// </summary>
-    /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzurePostgresFlexibleServer)} instead to add an Azure PostgreSQL Flexible Server resource.")]
     public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder)
     {
-        return builder.PublishAsAzurePostgresFlexibleServer(null);
+        return builder.PublishAsAzurePostgresFlexibleServerInternal(useProvisioner: false);
     }
 
     /// <summary>
@@ -134,24 +109,7 @@ public static class AzurePostgresExtensions
     public static IResourceBuilder<PostgresServerResource> AsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder)
     {
-        return builder.AsAzurePostgresFlexibleServer(null);
-    }
-
-    /// <summary>
-    /// Configures resource to use Azure for local development and when doing a deployment via the Azure Developer CLI.
-    /// </summary>
-    /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
-    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.PostgreSql.PostgreSqlFlexibleServer"/> resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzurePostgresFlexibleServer)} instead to add an Azure PostgreSQL Flexible Server resource.")]
-    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<PostgresServerResource> AsAzurePostgresFlexibleServer(
-        this IResourceBuilder<PostgresServerResource> builder,
-        Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource)
-    {
-        return builder.PublishAsAzurePostgresFlexibleServerInternal(
-            configureResource,
-            useProvisioner: true);
+        return builder.PublishAsAzurePostgresFlexibleServerInternal(useProvisioner: true);
     }
 
     /// <summary>
