@@ -55,7 +55,7 @@ public static class NatsBuilderExtensions
                 AuthOpts = new()
                 {
                     Username = await nats.UserNameReference.GetValueAsync(ct).ConfigureAwait(false),
-                    Password = nats.PasswordParameter.Value,
+                    Password = nats.PasswordParameter!.Value,
                 }
             };
 
@@ -81,7 +81,7 @@ public static class NatsBuilderExtensions
                 context.Args.Add("--user");
                 context.Args.Add(nats.UserNameReference);
                 context.Args.Add("--pass");
-                context.Args.Add(nats.PasswordParameter);
+                context.Args.Add(nats.PasswordParameter!);
             });
     }
 

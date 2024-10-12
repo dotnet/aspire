@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Utils;
 using System.Net.Sockets;
-using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
+using Xunit;
 
 namespace Aspire.Hosting.Nats.Tests;
 
@@ -18,7 +18,7 @@ public class AddNatsTests
         using var appBuilder = TestDistributedApplicationBuilder.Create();
 
         var nats = appBuilder.AddNats("nats");
-        Assert.Equal("Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault", nats.Resource.PasswordParameter.Default?.GetType().FullName);
+        Assert.Equal("Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault", nats.Resource.PasswordParameter!.Default?.GetType().FullName);
     }
 
     [Fact]
@@ -28,7 +28,77 @@ public class AddNatsTests
 
         var nats = appBuilder.AddNats("nats");
 
-        Assert.NotEqual("Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault", nats.Resource.PasswordParameter.Default?.GetType().FullName);
+        Assert.NotEqual("Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault", nats.Resource.PasswordParameter!.Default?.GetType().FullName);
+    }
+
+    [Fact]
+    public void AddNatsSetsDefaultUserNameAndPasswordOnNatsServerResource()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var nats = appBuilder.AddNats("nats");
+
+        Assert.NotNull(nats.Resource.PasswordParameter);
+        Assert.False(string.IsNullOrEmpty(nats.Resource.PasswordParameter!.Value));
+    }
+
+    [Fact]
+    public void AddNatsSetsUserNameAndPasswordOnNatsServerResource()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var userParameters = appBuilder.AddParameter("user", "usr");
+        var passwordParameters = appBuilder.AddParameter("pass", "password");
+
+        var nats = appBuilder.AddNats("nats", userName: userParameters, password: passwordParameters);
+
+        Assert.NotNull(nats.Resource.UserNameParameter);
+        Assert.NotNull(nats.Resource.PasswordParameter);
+
+        Assert.Equal("usr", nats.Resource.UserNameParameter!.Value);
+        Assert.Equal("password", nats.Resource.PasswordParameter!.Value);
+    }
+
+    [Fact]
+    public async Task AddNatsCreatesConnectionStringWithDefaultUserAndPassword()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        appBuilder.AddNats("nats")
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 4222));
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var natsResource = Assert.Single(appModel.Resources.OfType<NatsServerResource>());
+        var connectionStringResource = natsResource as IResourceWithConnectionString;
+        Assert.NotNull(connectionStringResource);
+        var connectionString = await connectionStringResource.GetConnectionStringAsync();
+
+        Assert.Equal($"nats://nats:{natsResource.PasswordParameter?.Value}@localhost:4222", connectionString);
+        Assert.Equal("nats://nats:{nats-password.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public async Task AddNatsCreatesConnectionStringWithUserAndPassword()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var userParameters = appBuilder.AddParameter("user", "usr");
+        var passwordParameters = appBuilder.AddParameter("pass", "password");
+
+        appBuilder.AddNats("nats", userName: userParameters, password: passwordParameters)
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 4222));
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<NatsServerResource>()) as IResourceWithConnectionString;
+        var connectionString = await connectionStringResource.GetConnectionStringAsync();
+
+        Assert.Equal("nats://usr:password@localhost:4222", connectionString);
+        Assert.Equal("nats://{user.value}:{pass.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]

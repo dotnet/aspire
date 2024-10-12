@@ -84,24 +84,30 @@ public class NatsPublicApiTests
     public void CtorNatsServerResourceShouldThrowWhenNameIsNull()
     {
         string name = null!;
-        var builder = TestDistributedApplicationBuilder.Create();
-        var password = builder.AddParameter("password");
 
-        var action = () => new NatsServerResource(name, default(ParameterResource?), password.Resource);
+        var action = () => new NatsServerResource(name);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
     [Fact]
-    public void CtorNatsServerResourceShouldThrowWhenPasswordIsNull()
+    public void CtorNatsServerResourceWithParametersShouldThrowWhenNameIsNull()
     {
-        string name = "NatsServer";
-        ParameterResource password = null!;
+        string name = null!;
+        var builder = TestDistributedApplicationBuilder.Create();
+        var user = builder.AddParameter("user");
+        var password = builder.AddParameter("password");
 
-        var action = () => new NatsServerResource(name, default(ParameterResource?), password);
+        var action = () => new NatsServerResource(name, user.Resource, password.Resource);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(password), exception.ParamName);
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Fact]
+    public void CtorNatsServerResourceWithParametersShouldAcceptNullParameters()
+    {
+        new NatsServerResource("nats", userName: null, password: null);
     }
 }
