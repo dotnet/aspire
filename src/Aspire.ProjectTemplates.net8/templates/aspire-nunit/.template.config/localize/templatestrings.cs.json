@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire 9 Test Project (NUnit)",
-  "description": "A project that contains NUnit integration tests of a .NET Aspire 9 AppHost project.",
+  "name": "Testovací projekt .NET Aspire 9 (NUnit)",
+  "description": "Projekt, který obsahuje NUnit integrační testy projektu .NET Aspire 9 AppHost.",
   "symbols/Framework/description": "Cílová architektura pro projekt",
   "symbols/Framework/choices/net8.0/description": "Cílový net8.0",
   "symbols/skipRestore/description": "Je-li zadáno, přeskočí automatické obnovení projektu při vytvoření.",
