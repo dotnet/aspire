@@ -1,0 +1,24 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Azure.Provisioning.WebPubSub;
+
+namespace Aspire.Hosting.ApplicationModel;
+
+/// <summary>
+/// Represents an Azure Web PubSub Hub setting resource.
+/// </summary>
+/// <param name="name">The name of the resource.</param>
+/// <param name="webpubsub">The <see cref="AzureWebPubSubResource"/> that the resource belongs to.</param>
+public class AzureWebPubSubHubResource(string name, AzureWebPubSubResource webpubsub) : AzureConstructResource(name, s_empty),
+    IResourceWithParent<AzureWebPubSubResource>
+{
+    /// <summary>
+    /// Gets the parent AzureWebPubSubResource of this AzureWebPubSubHubSettingResource.
+    /// </summary>
+    public AzureWebPubSubResource Parent => webpubsub;
+
+    internal List<Action<IResourceBuilder<AzureWebPubSubResource>, ResourceModuleConstruct, WebPubSubHub>> EventHandlers { get; } = new();
+
+    private static readonly Action<ResourceModuleConstruct> s_empty = (_) => { };
+}

@@ -15,6 +15,7 @@ using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.Roles;
 using Azure.Provisioning.Search;
 using Azure.Provisioning.Storage;
+using Azure.Provisioning.WebPubSub;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Xunit.Abstractions;
@@ -1742,6 +1743,405 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 principalType: principalType
               }
               scope: wps1
+            }
+
+            output endpoint string = 'https://${wps1.properties.hostName}'
+            """;
+        Assert.Equal(expectedBicep, manifest.BicepText);
+    }
+
+    [Fact]
+    public void InvalidWebPubSubHubNameThrows()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var wps = builder.AddAzureWebPubSub("wps1");
+        var ex = Assert.Throws<ArgumentException>(() => wps.AddHub("a_b_c"));
+        Assert.StartsWith("Resource name 'a_b_c' is invalid.", ex.Message);
+    }
+
+    [Fact]
+    public async Task AddAzureWebPubSubHubWorks()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var wps = builder.AddAzureWebPubSub("wps1");
+        wps.AddHub("abc");
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{wps1.outputs.endpoint}",
+              "path": "wps1.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalType": ""
+              }
+            }
+            """;
+
+        var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
+        var manifestString = manifest.ManifestNode.ToString();
+        output.WriteLine(manifestString);
+        output.WriteLine(manifest.BicepText);
+
+        Assert.Equal(expectedManifest, manifestString);
+        Assert.Equal("wps1", wps.Resource.Name);
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param sku string = 'Free_F1'
+
+            param capacity int = 1
+            
+            param principalId string
+            
+            param principalType string
+
+            resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
+              name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
+              location: location
+              sku: {
+                name: sku
+                capacity: capacity
+              }
+              tags: {
+                'aspire-resource-name': 'wps1'
+              }
+            }
+
+            resource wps1_WebPubSubServiceOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(wps1.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4')
+                principalType: principalType
+              }
+              scope: wps1
+            }
+
+            resource abc 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
+              name: 'abc'
+              properties: { }
+              parent: wps1
+            }
+
+            output endpoint string = 'https://${wps1.properties.hostName}'
+            """;
+        Assert.Equal(expectedBicep, manifest.BicepText);
+    }
+
+    [Fact]
+    public async Task AddSameAzureWebPubSubHubOverrides()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var wps = builder.AddAzureWebPubSub("wps1");
+        wps.AddHub("abc");
+        wps.AddHub("abc").ConfigureConstruct(construct =>
+        {
+            var hub = construct.GetResources().OfType<WebPubSubHub>().First(i => i.Name.Value == "abc");
+            hub.Properties.Value!.AnonymousConnectPolicy = "allow";
+        });
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{wps1.outputs.endpoint}",
+              "path": "wps1.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalType": ""
+              }
+            }
+            """;
+
+        var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
+        var manifestString = manifest.ManifestNode.ToString();
+        output.WriteLine(manifestString);
+        output.WriteLine(manifest.BicepText);
+
+        Assert.Equal(expectedManifest, manifestString);
+        Assert.Equal("wps1", wps.Resource.Name);
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param sku string = 'Free_F1'
+
+            param capacity int = 1
+            
+            param principalId string
+            
+            param principalType string
+
+            resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
+              name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
+              location: location
+              sku: {
+                name: sku
+                capacity: capacity
+              }
+              tags: {
+                'aspire-resource-name': 'wps1'
+              }
+            }
+
+            resource wps1_WebPubSubServiceOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(wps1.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4')
+                principalType: principalType
+              }
+              scope: wps1
+            }
+
+            resource abc 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
+              name: 'abc'
+              properties: {
+                anonymousConnectPolicy: 'allow'
+              }
+              parent: wps1
+            }
+
+            output endpoint string = 'https://${wps1.properties.hostName}'
+            """;
+        Assert.Equal(expectedBicep, manifest.BicepText);
+    }
+
+    [Fact]
+    public async Task AddAzureWebPubSubHubWithEventHandlerExpressionWorks()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var serviceA = builder.AddProject<ProjectA>("serviceA", o => o.ExcludeLaunchProfile = true).WithHttpsEndpoint();
+        var wps = builder.AddAzureWebPubSub("wps1");
+        wps.AddHub("abc").AddEventHandler($"{serviceA.GetEndpoint("https")}/eventhandler/");
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{wps1.outputs.endpoint}",
+              "path": "wps1.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalType": "",
+                "abc_url_0": "{serviceA.bindings.https.url}/eventhandler/"
+              }
+            }
+            """;
+
+        var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
+        var manifestString = manifest.ManifestNode.ToString();
+        output.WriteLine(manifestString);
+        output.WriteLine(manifest.BicepText);
+
+        Assert.Equal(expectedManifest, manifestString);
+        Assert.Equal("wps1", wps.Resource.Name);
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param sku string = 'Free_F1'
+
+            param capacity int = 1
+
+            param abc_url_0 string
+
+            param principalId string
+
+            param principalType string
+
+            resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
+              name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
+              location: location
+              sku: {
+                name: sku
+                capacity: capacity
+              }
+              tags: {
+                'aspire-resource-name': 'wps1'
+              }
+            }
+
+            resource wps1_WebPubSubServiceOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(wps1.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4')
+                principalType: principalType
+              }
+              scope: wps1
+            }
+
+            resource abc 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
+              name: 'abc'
+              properties: {
+                eventHandlers: [
+                  {
+                    urlTemplate: abc_url_0
+                    userEventPattern: '*'
+                  }
+                ]
+              }
+              parent: wps1
+            }
+
+            output endpoint string = 'https://${wps1.properties.hostName}'
+            """;
+        Assert.Equal(expectedBicep, manifest.BicepText);
+    }
+
+    [Fact]
+    public async Task AddAzureWebPubSubHubSettings()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var serviceA = builder.AddProject<ProjectA>("serviceA", o => o.ExcludeLaunchProfile = true).WithHttpsEndpoint();
+        var url1 = "fake3.com";
+        var wps = builder.AddAzureWebPubSub("wps1");
+        wps.AddHub("hub1").ConfigureConstruct(construct =>
+        {
+            var hub = construct.GetResources().OfType<WebPubSubHub>().First(i => i.Name.Value == "abc");
+            hub.Properties.Value!.EventHandlers.Add(new WebPubSubEventHandler() { UrlTemplate = "http://fake.com" });
+        });
+        // when configuring the same hub, the latter one overrides the former
+        // allow event handler set using a separate call
+        // allow mulitple calls, and order matters
+        wps.AddHub("hub1").ConfigureConstruct(construct =>
+        {
+            var hub = construct.GetResources().OfType<WebPubSubHub>().First(i => i.Name.Value == "hub1");
+            hub.Properties.Value!.AnonymousConnectPolicy = "allow";
+            // allow directly event handler set
+            hub.Properties.Value!.EventHandlers.Add(new WebPubSubEventHandler() { UrlTemplate = "http://fake1.com" });
+        })
+            .AddEventHandler($"http://fake2.com", "event1", authSettings: new UpstreamAuthSettings())
+            .AddEventHandler($"http://{url1}", systemEvents: ["connect"], authSettings: new UpstreamAuthSettings { AuthType = UpstreamAuthType.ManagedIdentity, ManagedIdentityResource = "abc" });
+        wps.AddHub("hub2")
+            .AddEventHandler($"{serviceA.GetEndpoint("https")}/hub/eventhandler1")
+            .AddEventHandler($"{serviceA.GetEndpoint("https")}/eventhandler2")
+            .AddEventHandler($"{serviceA.GetEndpoint("https")}/eventhandler3", "event1", ["connect", "connected"]);
+
+        wps.Resource.Outputs["endpoint"] = "https://mywebpubsubendpoint";
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{wps1.outputs.endpoint}",
+              "path": "wps1.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalType": "",
+                "hub2_url_0": "{serviceA.bindings.https.url}/hub/eventhandler1",
+                "hub2_url_1": "{serviceA.bindings.https.url}/eventhandler2",
+                "hub2_url_2": "{serviceA.bindings.https.url}/eventhandler3"
+              }
+            }
+            """;
+
+        var connectionStringResource = (IResourceWithConnectionString)wps.Resource;
+
+        Assert.Equal("https://mywebpubsubendpoint", await connectionStringResource.GetConnectionStringAsync());
+        var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
+        var manifestString = manifest.ManifestNode.ToString();
+        output.WriteLine(manifestString);
+        output.WriteLine(manifest.BicepText);
+
+        Assert.Equal(expectedManifest, manifestString);
+
+        Assert.Equal("wps1", wps.Resource.Name);
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param sku string = 'Free_F1'
+
+            param capacity int = 1
+
+            param hub2_url_0 string
+
+            param hub2_url_1 string
+
+            param hub2_url_2 string
+
+            param principalId string
+
+            param principalType string
+
+            resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
+              name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
+              location: location
+              sku: {
+                name: sku
+                capacity: capacity
+              }
+              tags: {
+                'aspire-resource-name': 'wps1'
+              }
+            }
+
+            resource wps1_WebPubSubServiceOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(wps1.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4')
+                principalType: principalType
+              }
+              scope: wps1
+            }
+
+            resource hub1 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
+              name: 'hub1'
+              properties: {
+                eventHandlers: [
+                  {
+                    urlTemplate: 'http://fake1.com'
+                  }
+                  {
+                    urlTemplate: 'http://fake2.com'
+                    userEventPattern: 'event1'
+                    auth: { }
+                  }
+                  {
+                    urlTemplate: 'http://fake3.com'
+                    userEventPattern: '*'
+                    systemEvents: [
+                      'connect'
+                    ]
+                    auth: {
+                      type: 'ManagedIdentity'
+                      managedIdentity: {
+                        resource: 'abc'
+                      }
+                    }
+                  }
+                ]
+                anonymousConnectPolicy: 'allow'
+              }
+              parent: wps1
+            }
+
+            resource hub2 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
+              name: 'hub2'
+              properties: {
+                eventHandlers: [
+                  {
+                    urlTemplate: hub2_url_0
+                    userEventPattern: '*'
+                  }
+                  {
+                    urlTemplate: hub2_url_1
+                    userEventPattern: '*'
+                  }
+                  {
+                    urlTemplate: hub2_url_2
+                    userEventPattern: 'event1'
+                    systemEvents: [
+                      'connect'
+                      'connected'
+                    ]
+                  }
+                ]
+              }
+              parent: wps1
             }
 
             output endpoint string = 'https://${wps1.properties.hostName}'

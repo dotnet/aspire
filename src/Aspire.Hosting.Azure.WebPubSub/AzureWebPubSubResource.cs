@@ -14,6 +14,8 @@ public class AzureWebPubSubResource(string name, Action<ResourceModuleConstruct>
     AzureConstructResource(name, configureConstruct),
     IResourceWithConnectionString
 {
+    internal Dictionary<string, IResourceBuilder<AzureWebPubSubHubResource>> Hubs { get; } = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>
     /// Gets the "endpoint" output reference from the bicep template for Azure Web PubSub.
     /// </summary>

@@ -56,6 +56,36 @@ public static class AzureWebPubSubExtensions
             construct.Add(new ProvisioningOutput("endpoint", typeof(string)) { Value = BicepFunction.Interpolate($"https://{service.HostName}") });
 
             construct.Add(service.CreateRoleAssignment(WebPubSubBuiltInRole.WebPubSubServiceOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+
+            var resource = (AzureWebPubSubResource)construct.Resource;
+            var resourceBuilder = builder.CreateResourceBuilder(resource);
+            foreach (var setting in resource.Hubs)
+            {
+                var hubName = setting.Key;
+                
+                var hubBuilder = setting.Value;
+                var hubResource = hubBuilder.Resource;
+                var hub = new WebPubSubHub(Infrastructure.NormalizeIdentifierName(hubResource.Name))
+                {
+                    Name = setting.Key,
+                    Parent = service
+                };
+
+                // create the hub settings with default values
+                if (hub.Properties.Value == null)
+                {
+                    hub.Properties = new WebPubSubHubProperties();
+                }
+                // add to construct
+                construct.Add(hub);
+                // invoke the configure if any
+                hubResource.ConfigureConstruct(construct);
+                // invoke the configure from AddEventHandler
+                foreach (var eventHandlerConfigure in hubResource.EventHandlers)
+                {
+                    eventHandlerConfigure.Invoke(resourceBuilder, construct, hub);
+                }
+            }
         };
 
         var resource = new AzureWebPubSubResource(name, configureConstruct);
@@ -63,5 +93,79 @@ public static class AzureWebPubSubExtensions
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
+    }
+
+    /// <summary>
+    /// Add hub settings
+    /// </summary>
+    /// <param name="builder">The builder for the distributed application.</param>
+    /// <param name="hubName">The hub name.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureWebPubSubHubResource> AddHub(this IResourceBuilder<AzureWebPubSubResource> builder, [ResourceName] string hubName)
+    {
+        var hubResource = new AzureWebPubSubHubResource(hubName, builder.Resource);
+        var hubBuilder = builder.ApplicationBuilder.CreateResourceBuilder(hubResource);
+        builder.Resource.Hubs[hubName] = hubBuilder;
+        return hubBuilder;
+    }
+
+    /// <summary>
+    /// Add event handler setting with expression
+    /// </summary>
+    /// <param name="builder">The builder for a Web PubSub hub.</param>
+    /// <param name="urlTemplateExpression">The expression to evaluate the URL template configured for the event handler.</param>
+    /// <param name="userEventPattern">The user event pattern for the event handler.</param>
+    /// <param name="systemEvents">The system events for the event handler.</param>
+    /// <param name="authSettings">The auth settings configured for the event handler.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureWebPubSubHubResource> AddEventHandler(this IResourceBuilder<AzureWebPubSubHubResource> builder,
+        ReferenceExpression.ExpressionInterpolatedStringHandler urlTemplateExpression, string userEventPattern = "*", string[]? systemEvents = null, UpstreamAuthSettings? authSettings = null)
+    {
+        var urlExpression = ReferenceExpression.Create(urlTemplateExpression);
+
+        builder.Resource.EventHandlers.Add((builder, construct, hub) =>
+        {
+            var hubName = hub.Name.Value;
+
+            var hubResource = hub.Properties.Value!;
+            if (urlExpression.ManifestExpressions.Count == 0)
+            {
+                var eventHandler = GetWebPubSubEventHandler(urlExpression.Format, userEventPattern, systemEvents, authSettings);
+
+                // when urlExpression is literal string, simply add
+                hubResource.EventHandlers.Add(eventHandler);
+            }
+            else
+            {
+                var count = hubResource.EventHandlers.Count;
+                var urlParameter = new ProvisioningParameter($"{hubName}_url_{count}", typeof(string));
+                var eventHandler = GetWebPubSubEventHandler(urlParameter, userEventPattern, systemEvents, authSettings);
+                hubResource.EventHandlers.Add(eventHandler);
+                construct.Add(urlParameter);
+
+                builder.WithParameter(urlParameter.IdentifierName, urlExpression);
+            }
+        });
+        return builder;
+    }
+
+    private static WebPubSubEventHandler GetWebPubSubEventHandler(BicepValue<string> urlValue, string userEventPattern, string[]? systemEvents, UpstreamAuthSettings? authSettings)
+    {
+        var handler = new WebPubSubEventHandler
+        {
+            UrlTemplate = urlValue,
+            UserEventPattern = userEventPattern,
+        };
+
+        if (systemEvents != null)
+        {
+            handler.SystemEvents = new BicepList<string>(systemEvents.Select(i => new BicepValue<string>(i)).ToArray());
+        }
+
+        if (authSettings != null)
+        {
+            handler.Auth = new BicepValue<UpstreamAuthSettings>(authSettings);
+        }
+        return handler;
     }
 }
