@@ -16,7 +16,7 @@ public sealed class TraceHelpersTests
     {
         // Arrange
         var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
-        var app1 = new OtlpApplication("app1", "instance1", context);
+        var app1 = new OtlpApplication("app1", "instance", context);
         var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
         var scope = new OtlpScope(TelemetryTestHelpers.CreateScope(), context);
         trace.AddSpan(CreateSpan(app1, trace, scope, spanId: "1", parentSpanId: null, startDate: new DateTime(2001, 1, 1, 1, 1, 1, DateTimeKind.Utc)));
@@ -29,6 +29,33 @@ public sealed class TraceHelpersTests
             g =>
             {
                 Assert.Equal(app1, g.Application);
+            });
+    }
+
+    [Fact]
+    public void GetOrderedApplications_MultipleUnparentedSpans_GroupedResult()
+    {
+        // Arrange
+        var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
+        var app1 = new OtlpApplication("app1", "instance", context);
+        var app2 = new OtlpApplication("app2", "instance", context);
+        var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
+        var scope = new OtlpScope(TelemetryTestHelpers.CreateScope(), context);
+        trace.AddSpan(CreateSpan(app2, trace, scope, spanId: "1-2", parentSpanId: "1", startDate: new DateTime(2001, 1, 1, 1, 1, 2, DateTimeKind.Utc)));
+        trace.AddSpan(CreateSpan(app1, trace, scope, spanId: "1-1", parentSpanId: "1", startDate: new DateTime(2001, 1, 1, 1, 1, 1, DateTimeKind.Utc)));
+
+        // Act
+        var results = TraceHelpers.GetOrderedApplications(trace);
+
+        // Assert
+        Assert.Collection(results,
+            g =>
+            {
+                Assert.Equal(app1, g.Application);
+            },
+            g =>
+            {
+                Assert.Equal(app2, g.Application);
             });
     }
 
