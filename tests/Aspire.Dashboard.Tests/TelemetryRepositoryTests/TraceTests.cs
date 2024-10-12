@@ -8,6 +8,8 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
@@ -94,7 +96,10 @@ public class TraceTests
     public void AddTraces_SelfParent_Reject()
     {
         // Arrange
-        var repository = CreateRepository();
+        var testSink = new TestSink();
+        var factory = LoggerFactory.Create(b => b.AddProvider(new TestLoggerProvider(testSink)));
+
+        var repository = CreateRepository(loggerFactory: factory);
 
         // Act
         var addContext = new AddContext();
@@ -137,6 +142,10 @@ public class TraceTests
             Filters = []
         });
         Assert.Empty(traces.PagedResult.Items);
+
+        var write = Assert.Single(testSink.Writes);
+        Assert.Equal("Error adding span.", write.Message);
+        Assert.Equal("Circular loop detected for span '312d31' with parent '312d31'.", write.Exception!.Message);
     }
 
     [Fact]

@@ -70,7 +70,7 @@ public class OtlpTrace
         if (HasCircularReference(span))
         {
             Spans.Remove(span);
-            throw new InvalidOperationException($"Circular loop detected for span '{span.SpanId}'.");
+            throw new InvalidOperationException($"Circular loop detected for span '{span.SpanId}' with parent '{span.ParentSpanId}'.");
         }
 
         if (string.IsNullOrEmpty(span.ParentSpanId))
