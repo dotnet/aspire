@@ -92,12 +92,12 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         return tooltip;
     }
 
-    private string GetSpansTooltip(IGrouping<OtlpApplication, OtlpSpan> applicationSpans)
+    private string GetSpansTooltip(TraceHelpers.OrderedApplication applicationSpans)
     {
-        var count = applicationSpans.Count();
-        var errorCount = applicationSpans.Count(s => s.Status == OtlpSpanStatusCode.Error);
+        var count = applicationSpans.TotalSpans;
+        var errorCount = applicationSpans.ErroredSpans;
 
-        var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesResourceSpans)], GetResourceName(applicationSpans.Key));
+        var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesResourceSpans)], GetResourceName(applicationSpans.Application));
         tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesTotalTraces)], count);
         if (errorCount > 0)
         {

@@ -1,6 +1,7 @@
 ﻿@page "/traces"
 @page "/traces/resource/{applicationName}"
 
+@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
@@ -92,15 +93,15 @@
                             <AspireTemplateColumn ColumnId="@SpansColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Traces.TracesSpansColumnHeader)]">
                                 <FluentOverflow>
                                     <ChildContent>
-                                        @foreach (var item in context.Spans.GroupBy(s => s.Source.Application).OrderBy(g => g.Min(s => s.StartTime)))
+                                        @foreach (var item in TraceHelpers.GetOrderedApplications(context))
                                         {
                                             <FluentOverflowItem>
-                                                <span class="trace-tag trace-service-tag" title="@(GetSpansTooltip(item))" style="border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(item.Key)));">
-                                                    @if (item.Any(s => s.Status == OtlpSpanStatusCode.Error))
+                                                <span class="trace-tag trace-service-tag" title="@(GetSpansTooltip(item))" style="border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(item.Application)));">
+                                                    @if (item.ErroredSpans > 0)
                                                     {
                                                         <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
                                                     }
-                                                    @GetResourceName(item.Key) (@item.Count())
+                                                    @GetResourceName(item.Application) (@item.TotalSpans)
                                                 </span>
                                             </FluentOverflowItem>
                                         }
