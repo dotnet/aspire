@@ -122,7 +122,7 @@ public static class AzurePostgresExtensions
     /// By default, the Azure PostgreSQL Flexible Server resource is configured to use Microsoft Entra ID (Azure Active Directory) for authentication.
     /// This requires changes to the application code to use an azure credential to authenticate with the resource. See
     /// https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-connect-with-managed-identity#connect-using-managed-identity-in-c for more information.
-    /// 
+    ///
     /// You can use the <see cref="WithPasswordAuthentication"/> method to configure the resource to use password authentication.
     /// </remarks>
     /// <example>
@@ -224,6 +224,7 @@ public static class AzurePostgresExtensions
     /// </summary>
     /// <param name="builder">The Azure PostgreSQL server resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container to allow for customization.</param>
+    /// <param name="port">The host port used when launching the container. If null a random port will be assigned.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzurePostgresFlexibleServerResource}"/> builder.</returns>
     /// <example>
     /// The following example creates an Azure PostgreSQL Flexible Server resource that runs locally in a
@@ -240,7 +241,7 @@ public static class AzurePostgresExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<AzurePostgresFlexibleServerResource> RunAsContainer(this IResourceBuilder<AzurePostgresFlexibleServerResource> builder, Action<IResourceBuilder<PostgresServerResource>>? configureContainer = null)
+    public static IResourceBuilder<AzurePostgresFlexibleServerResource> RunAsContainer(this IResourceBuilder<AzurePostgresFlexibleServerResource> builder, Action<IResourceBuilder<PostgresServerResource>>? configureContainer = null, int? port = null)
     {
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
@@ -265,7 +266,8 @@ public static class AzurePostgresExtensions
         var postgresContainer = builder.ApplicationBuilder.AddPostgres(
             azureResource.Name,
             userNameParameterBuilder,
-            passwordParameterBuilder);
+            passwordParameterBuilder,
+            port);
 
         azureResource.SetInnerResource(postgresContainer.Resource);
 
