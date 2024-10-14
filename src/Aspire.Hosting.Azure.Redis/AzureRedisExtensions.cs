@@ -117,7 +117,7 @@ public static class AzureRedisExtensions
     /// </example>
     public static IResourceBuilder<AzureRedisCacheResource> AddAzureRedis(
         this IDistributedApplicationBuilder builder,
-        string name)
+        [ResourceName] string name)
     {
         builder.AddAzureProvisioning();
 
