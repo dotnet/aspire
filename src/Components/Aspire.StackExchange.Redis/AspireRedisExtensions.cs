@@ -36,7 +36,11 @@ public static class AspireRedisExtensions
         string connectionName,
         Action<StackExchangeRedisSettings>? configureSettings = null,
         Action<ConfigurationOptions>? configureOptions = null)
-        => AddRedisClient(builder, configureSettings, configureOptions, connectionName, serviceKey: null);
+    {
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        AddRedisClient(builder, configureSettings, configureOptions, connectionName, serviceKey: null);
+    }
 
     /// <summary>
     /// Registers <see cref="IConnectionMultiplexer"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
@@ -58,7 +62,7 @@ public static class AspireRedisExtensions
         AddRedisClient(builder, configureSettings, configureOptions, connectionName: name, serviceKey: name);
     }
 
-    private static void AddRedisClientInternal(
+    private static void AddRedisClient(
         IHostApplicationBuilder builder,
         Action<StackExchangeRedisSettings>? configureSettings,
         Action<ConfigurationOptions>? configureOptions,
@@ -66,7 +70,6 @@ public static class AspireRedisExtensions
         object? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
         var namedConfigSection = configSection.GetSection(connectionName);

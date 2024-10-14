@@ -30,6 +30,8 @@ public static class AspireQdrantExtensions
         string connectionName,
         Action<QdrantClientSettings>? configureSettings = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
         AddQdrant(builder, configureSettings, connectionName, serviceKey: null);
     }
 
@@ -59,7 +61,6 @@ public static class AspireQdrantExtensions
         string? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         var settings = new QdrantClientSettings();
         var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
