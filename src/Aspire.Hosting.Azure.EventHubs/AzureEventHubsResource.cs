@@ -1,10 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable AZPROVISION001
-
 using Aspire.Hosting.ApplicationModel;
-using Azure.Provisioning.EventHubs;
 
 namespace Aspire.Hosting.Azure;
 
@@ -30,7 +27,7 @@ public class AzureEventHubsResource(string name, Action<ResourceModuleConstruct>
 
     private const string ConnectionKeyPrefix = "Aspire__Azure__Messaging__EventHubs";
 
-    internal List<(string Name, Action<IResourceBuilder<AzureEventHubsResource>, ResourceModuleConstruct, EventHub>? Configure)> Hubs { get; } = [];
+    internal List<string> Hubs { get; } = [];
 
     /// <summary>
     /// Gets the "eventHubsEndpoint" output reference from the bicep template for the Azure Event Hubs resource.

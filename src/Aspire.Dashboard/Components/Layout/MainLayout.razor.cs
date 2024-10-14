@@ -195,8 +195,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         var parameters = new DialogParameters
         {
             Title = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogTitle)],
-            PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)],
-            PrimaryActionEnabled = true,
+            PrimaryAction =  Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)].Value ,
             SecondaryAction = null,
             TrapFocus = true,
             Modal = true,
@@ -220,7 +219,14 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         // Ensure the currently set theme is immediately available to display in settings dialog.
         await ThemeManager.EnsureEffectiveThemeAsync();
 
-        _openPageDialog = await DialogService.ShowPanelAsync<SettingsDialog>(parameters).ConfigureAwait(true);
+        if (ViewportInformation.IsDesktop)
+        {
+            _openPageDialog = await DialogService.ShowPanelAsync<SettingsDialog>(parameters).ConfigureAwait(true);
+        }
+        else
+        {
+            _openPageDialog = await DialogService.ShowDialogAsync<SettingsDialog>(parameters).ConfigureAwait(true);
+        }
     }
 
     public IReadOnlySet<AspireKeyboardShortcut> SubscribedShortcuts { get; } = new HashSet<AspireKeyboardShortcut>

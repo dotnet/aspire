@@ -1,9 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable AZPROVISION001
-
-using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
@@ -34,7 +31,6 @@ public static class AzurePostgresExtensions
     [Obsolete]
     private static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServerInternal(
         this IResourceBuilder<PostgresServerResource> builder,
-        Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource,
         bool useProvisioner = false)
     {
         builder.ApplicationBuilder.AddAzureProvisioning();
@@ -68,10 +64,6 @@ public static class AzurePostgresExtensions
                 }
             };
             construct.Add(secret);
-
-            var azureResource = (AzurePostgresResource)construct.Resource;
-            var azureResourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(azureResource);
-            configureResource?.Invoke(azureResourceBuilder, construct, postgres);
         };
 
         var resource = new AzurePostgresResource(builder.Resource, configureConstruct);
@@ -100,29 +92,12 @@ public static class AzurePostgresExtensions
     /// Configures Postgres Server resource to be deployed as Azure PostgreSQL Flexible Server.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
-    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.PostgreSql.PostgreSqlFlexibleServer"/> resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzurePostgresFlexibleServer)} instead to add an Azure PostgreSQL Flexible Server resource.")]
-    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServer(
-        this IResourceBuilder<PostgresServerResource> builder,
-        Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource)
-    {
-        return builder.PublishAsAzurePostgresFlexibleServerInternal(
-            configureResource,
-            useProvisioner: false);
-    }
-
-    /// <summary>
-    /// Configures Postgres Server resource to be deployed as Azure PostgreSQL Flexible Server.
-    /// </summary>
-    /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzurePostgresFlexibleServer)} instead to add an Azure PostgreSQL Flexible Server resource.")]
     public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder)
     {
-        return builder.PublishAsAzurePostgresFlexibleServer(null);
+        return builder.PublishAsAzurePostgresFlexibleServerInternal(useProvisioner: false);
     }
 
     /// <summary>
@@ -134,24 +109,7 @@ public static class AzurePostgresExtensions
     public static IResourceBuilder<PostgresServerResource> AsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder)
     {
-        return builder.AsAzurePostgresFlexibleServer(null);
-    }
-
-    /// <summary>
-    /// Configures resource to use Azure for local development and when doing a deployment via the Azure Developer CLI.
-    /// </summary>
-    /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
-    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.PostgreSql.PostgreSqlFlexibleServer"/> resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzurePostgresFlexibleServer)} instead to add an Azure PostgreSQL Flexible Server resource.")]
-    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<PostgresServerResource> AsAzurePostgresFlexibleServer(
-        this IResourceBuilder<PostgresServerResource> builder,
-        Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource)
-    {
-        return builder.PublishAsAzurePostgresFlexibleServerInternal(
-            configureResource,
-            useProvisioner: true);
+        return builder.PublishAsAzurePostgresFlexibleServerInternal(useProvisioner: true);
     }
 
     /// <summary>
@@ -253,7 +211,8 @@ public static class AzurePostgresExtensions
         {
             // need to add the database to the InnerResource
             var innerBuilder = builder.ApplicationBuilder.CreateResourceBuilder(azureResource.InnerResource);
-            innerBuilder.AddDatabase(name, databaseName);
+            var innerDb = innerBuilder.AddDatabase(name, databaseName);
+            azurePostgresDatabase.SetInnerResource(innerDb.Resource);
 
             // create a builder, but don't add the Azure database to the model because the InnerResource already has it
             return builder.ApplicationBuilder.CreateResourceBuilder(azurePostgresDatabase);
@@ -289,7 +248,12 @@ public static class AzurePostgresExtensions
         }
 
         var azureResource = builder.Resource;
-        RemoveAzureResources(builder.ApplicationBuilder, azureResource);
+        var azureDatabases = builder.ApplicationBuilder.Resources
+            .OfType<AzurePostgresFlexibleServerDatabaseResource>()
+            .Where(db => db.Parent == azureResource)
+            .ToDictionary(db => db.Name);
+
+        RemoveAzureResources(builder.ApplicationBuilder, azureResource, azureDatabases);
 
         var userNameParameterBuilder = azureResource.UserNameParameter is not null ?
             builder.ApplicationBuilder.CreateResourceBuilder(azureResource.UserNameParameter) :
@@ -303,11 +267,17 @@ public static class AzurePostgresExtensions
             userNameParameterBuilder,
             passwordParameterBuilder);
 
-        azureResource.InnerResource = postgresContainer.Resource;
+        azureResource.SetInnerResource(postgresContainer.Resource);
 
         foreach (var database in azureResource.Databases)
         {
-            postgresContainer.AddDatabase(database.Key, database.Value);
+            if (!azureDatabases.TryGetValue(database.Key, out var existingDb))
+            {
+                throw new InvalidOperationException($"Could not find a {nameof(AzurePostgresFlexibleServerDatabaseResource)} with name {database.Key}.");
+            }
+
+            var innerDb = postgresContainer.AddDatabase(database.Key, database.Value);
+            existingDb.SetInnerResource(innerDb.Resource);
         }
 
         configureContainer?.Invoke(postgresContainer);
@@ -315,16 +285,12 @@ public static class AzurePostgresExtensions
         return builder;
     }
 
-    private static void RemoveAzureResources(IDistributedApplicationBuilder appBuilder, AzurePostgresFlexibleServerResource azureResource)
+    private static void RemoveAzureResources(IDistributedApplicationBuilder appBuilder, AzurePostgresFlexibleServerResource azureResource, Dictionary<string, AzurePostgresFlexibleServerDatabaseResource> azureDatabases)
     {
-        List<IResource> resourcesToRemove = [azureResource];
-        resourcesToRemove.AddRange(
-            appBuilder.Resources.OfType<AzurePostgresFlexibleServerDatabaseResource>()
-                .Where(db => db.Parent == azureResource));
-
-        foreach (var resource in resourcesToRemove)
+        appBuilder.Resources.Remove(azureResource);
+        foreach (var database in azureDatabases)
         {
-            appBuilder.Resources.Remove(resource);
+            appBuilder.Resources.Remove(database.Value);
         }
     }
 

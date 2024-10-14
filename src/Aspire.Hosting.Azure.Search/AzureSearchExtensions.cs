@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -22,23 +21,6 @@ public static class AzureSearchExtensions
     /// <param name="name">The name of the Azure AI Search resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSearchConstructResource}"/>.</returns>
     public static IResourceBuilder<AzureSearchResource> AddAzureSearch(this IDistributedApplicationBuilder builder, [ResourceName] string name)
-    {
-#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.AddAzureSearch(name, null);
-#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    }
-    /// <summary>
-    /// Adds an Azure AI Search service resource to the application model.
-    /// </summary>
-    /// <param name="builder">The builder for the distributed application.</param>
-    /// <param name="name">The name of the Azure AI Search resource.</param>
-    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.Search.SearchService"/> resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSearchConstructResource}"/>.</returns>
-    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureSearchResource> AddAzureSearch(
-        this IDistributedApplicationBuilder builder,
-        string name,
-        Action<IResourceBuilder<AzureSearchResource>, ResourceModuleConstruct, SearchService>? configureResource)
     {
         builder.AddAzureProvisioning();
 
@@ -71,10 +53,6 @@ public static class AzureSearchExtensions
             {
                 Value = BicepFunction.Interpolate($"Endpoint=https://{search.Name}.search.windows.net")
             });
-
-            var resource = (AzureSearchResource)construct.Resource;
-            var resourceBuilder = builder.CreateResourceBuilder(resource);
-            configureResource?.Invoke(resourceBuilder, construct, search);
         }
     }
 }

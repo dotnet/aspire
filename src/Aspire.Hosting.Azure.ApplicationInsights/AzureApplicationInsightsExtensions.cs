@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -24,9 +23,7 @@ public static class AzureApplicationInsightsExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureApplicationInsightsResource}"/>.</returns>
     public static IResourceBuilder<AzureApplicationInsightsResource> AddAzureApplicationInsights(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
-#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.AddAzureApplicationInsights(name, null, null);
-#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        return builder.AddAzureApplicationInsights(name, logAnalyticsWorkspace: null);
     }
 
     /// <summary>
@@ -37,35 +34,6 @@ public static class AzureApplicationInsightsExtensions
     /// <param name="logAnalyticsWorkspace">A resource builder for the log analytics workspace.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureApplicationInsightsResource}"/>.</returns>
     public static IResourceBuilder<AzureApplicationInsightsResource> AddAzureApplicationInsights(this IDistributedApplicationBuilder builder, [ResourceName] string name, IResourceBuilder<AzureLogAnalyticsWorkspaceResource>? logAnalyticsWorkspace)
-    {
-#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.AddAzureApplicationInsights(name, logAnalyticsWorkspace, null);
-#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    }
-
-    /// <summary>
-    /// Adds an Azure Application Insights resource to the application model.
-    /// </summary>
-    /// <param name="builder">The builder for the distributed application.</param>
-    /// <param name="name">The name of the resource.</param>
-    /// <param name="configureResource">Optional callback to configure the Application Insights resource.</param>
-    /// <returns></returns>
-    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureApplicationInsightsResource> AddAzureApplicationInsights(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<IResourceBuilder<AzureApplicationInsightsResource>, ResourceModuleConstruct, ApplicationInsightsComponent>? configureResource)
-    {
-        return builder.AddAzureApplicationInsights(name, null, configureResource);
-    }
-
-    /// <summary>
-    /// Adds an Azure Application Insights resource to the application model.
-    /// </summary>
-    /// <param name="builder">The builder for the distributed application.</param>
-    /// <param name="name">The name of the resource.</param>
-    /// <param name="logAnalyticsWorkspace">A resource builder for the log analytics workspace.</param>
-    /// <param name="configureResource">Optional callback to configure the Application Insights resource.</param>
-    /// <returns></returns>
-    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureApplicationInsightsResource> AddAzureApplicationInsights(this IDistributedApplicationBuilder builder, [ResourceName] string name, IResourceBuilder<AzureLogAnalyticsWorkspaceResource>? logAnalyticsWorkspace, Action<IResourceBuilder<AzureApplicationInsightsResource>, ResourceModuleConstruct, ApplicationInsightsComponent>? configureResource)
     {
         builder.AddAzureProvisioning();
 
@@ -128,13 +96,6 @@ public static class AzureApplicationInsightsExtensions
             }
 
             construct.Add(new ProvisioningOutput("appInsightsConnectionString", typeof(string)) { Value = appInsights.ConnectionString });
-
-            if (configureResource != null)
-            {
-                var resource = (AzureApplicationInsightsResource)construct.Resource;
-                var resourceBuilder = builder.CreateResourceBuilder(resource);
-                configureResource(resourceBuilder, construct, appInsights);
-            }
         };
 
         var resource = new AzureApplicationInsightsResource(name, configureConstruct);
