@@ -38,7 +38,7 @@ public static class AspireBlobStorageExtensions
         Action<IAzureClientBuilder<BlobServiceClient, BlobClientOptions>>? configureClientBuilder = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
-        
+
         new BlobStorageComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
     }
 
