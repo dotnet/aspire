@@ -254,10 +254,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.AddHostedService<DcpHostService>();
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DcpOptions>, ConfigureDefaultDcpOptions>());
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DcpOptions>, ValidateDcpOptions>());
+            _innerBuilder.Services.AddSingleton<DcpNameGenerator>();
 
             // We need a unique path per application instance
             _innerBuilder.Services.AddSingleton(new Locations());
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
+
+            Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
         }
 
         // Publishing support
@@ -311,14 +314,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         {
             return new ConfigureOptions<HealthCheckPublisherOptions>(options =>
             {
-                if (ExecutionContext.IsRunMode)
-                {
-                    // In run mode we route requests to the health check scheduler.
-                    var hcs = sp.GetRequiredService<ResourceHealthCheckScheduler>();
-                    options.Predicate = hcs.Predicate;
-                    options.Period = TimeSpan.FromSeconds(5);
-                }
-                else
+                if (ExecutionContext.IsPublishMode)
                 {
                     // In publish mode we don't run any checks.
                     options.Predicate = (check) => false;
@@ -328,9 +324,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         if (ExecutionContext.IsRunMode)
         {
-            _innerBuilder.Services.AddSingleton<IHealthCheckPublisher, ResourceNotificationHealthCheckPublisher>();
-            _innerBuilder.Services.AddSingleton<ResourceHealthCheckScheduler>();
-            _innerBuilder.Services.AddHostedService<ResourceHealthCheckScheduler>(sp => sp.GetRequiredService<ResourceHealthCheckScheduler>());
+            _innerBuilder.Services.AddSingleton<ResourceHealthCheckService>();
+            _innerBuilder.Services.AddHostedService<ResourceHealthCheckService>(sp => sp.GetRequiredService<ResourceHealthCheckService>());
         }
     }
 

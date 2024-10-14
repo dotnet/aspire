@@ -11,9 +11,18 @@ public class AzureSchemaTests
     [Fact]
     public void ValidateApplicationSamples()
     {
-        new SchemaTests().ValidateApplicationSamples("CdkResourceWithChildResource", (IDistributedApplicationBuilder builder) =>
+        var schemaTests = new SchemaTests();
+
+        schemaTests.ValidateApplicationSamples("CdkResourceWithChildResource", (IDistributedApplicationBuilder builder) =>
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             builder.AddPostgres("postgres").PublishAsAzurePostgresFlexibleServer().AddDatabase("db");
+#pragma warning restore CS0618 // Type or member is obsolete
+        });
+
+        schemaTests.ValidateApplicationSamples("CdkResourceWithChildResource", (IDistributedApplicationBuilder builder) =>
+        {
+            builder.AddAzurePostgresFlexibleServer("postgres").AddDatabase("db");
         });
     }
 }

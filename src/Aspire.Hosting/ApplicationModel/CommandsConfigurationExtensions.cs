@@ -8,9 +8,9 @@ namespace Aspire.Hosting.ApplicationModel;
 
 internal static class CommandsConfigurationExtensions
 {
-    internal const string StartType = "start";
-    internal const string StopType = "stop";
-    internal const string RestartType = "restart";
+    internal const string StartType = "resource-start";
+    internal const string StopType = "resource-stop";
+    internal const string RestartType = "resource-restart";
 
     internal static void AddLifeCycleCommands(this IResource resource)
     {
@@ -44,6 +44,9 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Hidden;
                 }
             },
+            displayDescription: null,
+            parameter: null,
+            confirmationMessage: null,
             iconName: "Play",
             iconVariant: IconVariant.Filled,
             isHighlighted: true));
@@ -64,7 +67,7 @@ internal static class CommandsConfigurationExtensions
                 {
                     return ResourceCommandState.Disabled;
                 }
-                else if (!IsStopped(context.ResourceSnapshot.State?.Text) && !IsStarting(context.ResourceSnapshot.State?.Text) && !IsWaiting(context.ResourceSnapshot.State?.Text))
+                else if (!IsStopped(context.ResourceSnapshot.State?.Text) && !IsStarting(context.ResourceSnapshot.State?.Text) && !IsWaiting(context.ResourceSnapshot.State?.Text) && context.ResourceSnapshot.State is not null)
                 {
                     return ResourceCommandState.Enabled;
                 }
@@ -73,6 +76,9 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Hidden;
                 }
             },
+            displayDescription: null,
+            parameter: null,
+            confirmationMessage: null,
             iconName: "Stop",
             iconVariant: IconVariant.Filled,
             isHighlighted: true));
@@ -90,7 +96,7 @@ internal static class CommandsConfigurationExtensions
             },
             updateState: context =>
             {
-                if (IsWaiting(context.ResourceSnapshot.State?.Text) || IsStarting(context.ResourceSnapshot.State?.Text) || IsStopping(context.ResourceSnapshot.State?.Text) || IsStopped(context.ResourceSnapshot.State?.Text))
+                if (IsWaiting(context.ResourceSnapshot.State?.Text) || IsStarting(context.ResourceSnapshot.State?.Text) || IsStopping(context.ResourceSnapshot.State?.Text) || IsStopped(context.ResourceSnapshot.State?.Text) || context.ResourceSnapshot.State is null)
                 {
                     return ResourceCommandState.Disabled;
                 }
@@ -99,6 +105,9 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Enabled;
                 }
             },
+            displayDescription: null,
+            parameter: null,
+            confirmationMessage: null,
             iconName: "ArrowCounterclockwise",
             iconVariant: IconVariant.Regular,
             isHighlighted: false));

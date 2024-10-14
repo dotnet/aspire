@@ -1,13 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Storage;
 using Aspire.Hosting.Utils;
+using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;
+using Azure.Storage.Blobs;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -24,26 +26,11 @@ public static class AzureStorageExtensions
     /// <returns></returns>
     public static IResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
-#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.AddAzureStorage(name, null);
-#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    }
-
-    /// <summary>
-    /// Adds an Azure Storage resource to the application model. This resource can be used to create Azure blob, table, and queue resources.
-    /// </summary>
-    /// <param name="builder">The builder for the distributed application.</param>
-    /// <param name="name">The name of the resource.</param>
-    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.Storage.StorageAccount"/> resource.</param>
-    /// <returns></returns>
-    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<IResourceBuilder<AzureStorageResource>, ResourceModuleConstruct, StorageAccount>? configureResource)
-    {
         builder.AddAzureProvisioning();
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var storageAccount = new StorageAccount(name)
+            var storageAccount = new StorageAccount(construct.Resource.GetBicepIdentifier())
             {
                 Kind = StorageKind.StorageV2,
                 AccessTier = StorageAccountAccessTier.Hot,
@@ -71,20 +58,16 @@ public static class AzureStorageExtensions
             };
             construct.Add(blobs);
 
-            construct.Add(storageAccount.AssignRole(StorageBuiltInRole.StorageBlobDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
-            construct.Add(storageAccount.AssignRole(StorageBuiltInRole.StorageTableDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
-            construct.Add(storageAccount.AssignRole(StorageBuiltInRole.StorageQueueDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageBlobDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageTableDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageQueueDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
-            construct.Add(new BicepOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.BlobUri });
-            construct.Add(new BicepOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.QueueUri });
-            construct.Add(new BicepOutput("tableEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.TableUri });
-
-            var resource = (AzureStorageResource)construct.Resource;
-            var resourceBuilder = builder.CreateResourceBuilder(resource);
-            configureResource?.Invoke(resourceBuilder, construct, storageAccount);
+            construct.Add(new ProvisioningOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.BlobUri });
+            construct.Add(new ProvisioningOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.QueueUri });
+            construct.Add(new ProvisioningOutput("tableEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.TableUri });
         };
-        var resource = new AzureStorageResource(name, configureConstruct);
 
+        var resource = new AzureStorageResource(name, configureConstruct);
         return builder.AddResource(resource)
                       // These ambient parameters are only available in development time.
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
@@ -115,6 +98,29 @@ public static class AzureStorageExtensions
                    Tag = StorageEmulatorContainerImageTags.Tag
                });
 
+        BlobServiceClient? blobServiceClient = null;
+
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (@event, ct) =>
+        {
+            var connectionString = await builder.Resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
+            }
+
+            blobServiceClient = CreateBlobServiceClient(connectionString);
+        });
+
+        var healthCheckKey = $"{builder.Resource.Name}_check";
+
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureBlobStorage(sp =>
+        {
+            return blobServiceClient ?? throw new InvalidOperationException("BlobServiceClient is not initialized.");
+        }, name: healthCheckKey);
+
+        builder.WithHealthCheck(healthCheckKey);
+
         if (configureContainer != null)
         {
             var surrogate = new AzureStorageEmulatorResource(builder.Resource);
@@ -123,6 +129,18 @@ public static class AzureStorageExtensions
         }
 
         return builder;
+
+        static BlobServiceClient CreateBlobServiceClient(string connectionString)
+        {
+            if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+            {
+                return new BlobServiceClient(uri, new DefaultAzureCredential());
+            }
+            else
+            {
+                return new BlobServiceClient(connectionString);
+            }
+        }
     }
 
     /// <summary>
@@ -196,7 +214,6 @@ public static class AzureStorageExtensions
     public static IResourceBuilder<AzureBlobStorageResource> AddBlobs(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
         var resource = new AzureBlobStorageResource(name, builder.Resource);
-
         return builder.ApplicationBuilder.AddResource(resource);
     }
 
@@ -209,7 +226,6 @@ public static class AzureStorageExtensions
     public static IResourceBuilder<AzureTableStorageResource> AddTables(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
         var resource = new AzureTableStorageResource(name, builder.Resource);
-
         return builder.ApplicationBuilder.AddResource(resource);
     }
 
@@ -222,7 +238,6 @@ public static class AzureStorageExtensions
     public static IResourceBuilder<AzureQueueStorageResource> AddQueues(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
         var resource = new AzureQueueStorageResource(name, builder.Resource);
-
         return builder.ApplicationBuilder.AddResource(resource);
     }
 }

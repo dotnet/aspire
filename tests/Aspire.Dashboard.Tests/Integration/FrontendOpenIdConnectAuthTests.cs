@@ -33,7 +33,7 @@ public class FrontendOpenIdConnectAuthTests(ITestOutputHelper testOutputHelper)
             AllowAutoRedirect = false
         };
 
-        using var client = new HttpClient(handler) { BaseAddress = new Uri($"http://{app.FrontendEndPointAccessor().EndPoint}") };
+        using var client = new HttpClient(handler) { BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}") };
 
         // Act
         var response = await client.GetAsync("/");

@@ -12,14 +12,15 @@
     else if (EnableHighlighting)
     {
         <span class="cellText" title="@(ToolTip ?? Value)">
-            <FluentHighlighter HighlightedText="@HighlightText"
-                               Text="@Value" />
+            @ContentBeforeValue
+            <FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />
             @ContentAfterValue
         </span>
     }
     else
     {
         <span class="cellText" title="@(ToolTip ?? Value)">
+            @ContentBeforeValue
             @(MaxDisplayLength.HasValue ? TrimLength(Value) : Value)
             @ContentAfterValue
         </span>
@@ -40,7 +41,7 @@
                       Class="defaultHidden"
                       Style="float: right; flex-shrink: 0"
                       OnClick="@ToggleMenuOpen">
-            <FluentIcon Style="display:inline;" Icon="Icons.Regular.Size16.MoreVertical" />
+            <FluentIcon Style="display:inline;" Icon="Icons.Regular.Size16.MoreHorizontal" />
         </FluentButton>
 
         <FluentMenu Anchor="@_menuAnchorId" @bind-Open="_isMenuOpen" VerticalThreshold="170" HorizontalPosition="HorizontalPosition.End">
@@ -55,8 +56,8 @@
             </FluentMenuItem>
 
             <FluentMenuItem
-                Disabled="@(Value is null)"
-                AdditionalAttributes="@FluentUIExtensions.GetOpenTextVisualizerAdditionalAttributes(Value!, !string.IsNullOrEmpty(TextVisualizerTitle) ? TextVisualizerTitle : ValueDescription)">
+                Disabled="@(ValueToVisualize is null && Value is null)"
+                AdditionalAttributes="@FluentUIExtensions.GetOpenTextVisualizerAdditionalAttributes(ValueToVisualize ?? Value!, !string.IsNullOrEmpty(TextVisualizerTitle) ? TextVisualizerTitle : ValueDescription)">
                 <span slot="start">
                     <FluentIcon Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Open" Slot="start"/>
                 </span>

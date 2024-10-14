@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -17,7 +18,7 @@ public partial class TraceDetail : ComponentBase
 {
     private const string NameColumn = nameof(NameColumn);
     private const string TicksColumn = nameof(TicksColumn);
-    private const string DetailsColumn = nameof(DetailsColumn);
+    private const string ActionsColumn = nameof(ActionsColumn);
 
     private readonly List<IDisposable> _peerChangesSubscriptions = new();
     private OtlpTrace? _trace;
@@ -27,6 +28,7 @@ public partial class TraceDetail : ComponentBase
     private List<OtlpApplication> _applications = default!;
     private readonly List<string> _collapsedSpanIds = [];
     private string? _elementIdBeforeDetailsViewOpened;
+    private FluentDataGrid<SpanWaterfallViewModel> _dataGrid = null!;
     private GridColumnManager _manager = null!;
     private IList<GridColumn> _gridColumns = null!;
 
@@ -52,18 +54,12 @@ public partial class TraceDetail : ComponentBase
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
-    [Inject]
-    public required DimensionManager DimensionManager { get; init; }
-
-    [CascadingParameter]
-    public required ViewportInformation ViewportInformation { get; set; }
-
     protected override void OnInitialized()
     {
         _gridColumns = [
             new GridColumn(Name: NameColumn, DesktopWidth: "4fr", MobileWidth: "4fr"),
             new GridColumn(Name: TicksColumn, DesktopWidth: "12fr", MobileWidth: "12fr"),
-            new GridColumn(Name: DetailsColumn, DesktopWidth: "85px", MobileWidth: null)
+            new GridColumn(Name: ActionsColumn, DesktopWidth: "90px", MobileWidth: null)
         ];
 
         foreach (var resolver in OutgoingPeerResolvers)
@@ -71,7 +67,7 @@ public partial class TraceDetail : ComponentBase
             _peerChangesSubscriptions.Add(resolver.OnPeerChanges(async () =>
             {
                 UpdateDetailViewData();
-                await InvokeAsync(StateHasChanged);
+                await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             }));
         }
     }
@@ -242,11 +238,10 @@ public partial class TraceDetail : ComponentBase
                 if (_tracesSubscription is null || _tracesSubscription.ApplicationKey != trace.FirstSpan.Source.ApplicationKey)
                 {
                     _tracesSubscription?.Dispose();
-                    _tracesSubscription = TelemetryRepository.OnNewTraces(trace.FirstSpan.Source.ApplicationKey, SubscriptionType.Read, () => InvokeAsync(() =>
+                    _tracesSubscription = TelemetryRepository.OnNewTraces(trace.FirstSpan.Source.ApplicationKey, SubscriptionType.Read, () => InvokeAsync(async () =>
                     {
                         UpdateDetailViewData();
-                        StateHasChanged();
-                        return Task.CompletedTask;
+                        await _dataGrid.SafeRefreshDataAsync();
                     }));
                 }
             }

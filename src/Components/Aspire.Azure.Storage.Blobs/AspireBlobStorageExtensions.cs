@@ -37,13 +37,9 @@ public static class AspireBlobStorageExtensions
         Action<AzureStorageBlobsSettings>? configureSettings = null,
         Action<IAzureClientBuilder<BlobServiceClient, BlobClientOptions>>? configureClientBuilder = null)
     {
-        AddAzureBlobClientInternal(
-            builder,
-            DefaultConfigSectionName,
-            connectionName,
-            serviceKey: null,
-            configureSettings,
-            configureClientBuilder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+        
+        new BlobStorageComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
     }
 
     /// <summary>
@@ -64,37 +60,17 @@ public static class AspireBlobStorageExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        string configurationSectionName = BlobStorageComponent.GetKeyedConfigurationSectionName(name, DefaultConfigSectionName);
-
-        AddAzureBlobClientInternal(
-            builder,
-            configurationSectionName,
-            connectionName: name,
-            serviceKey: name,
-            configureSettings,
-            configureClientBuilder);
-    }
-
-    private static void AddAzureBlobClientInternal(
-        IHostApplicationBuilder builder,
-        string configurationSectionName,
-        string connectionName,
-        string? serviceKey,
-        Action<AzureStorageBlobsSettings>? configureSettings = null,
-        Action<IAzureClientBuilder<BlobServiceClient, BlobClientOptions>>? configureClientBuilder = null)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(connectionName);
-
-        new BlobStorageComponent().AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder, connectionName: connectionName, serviceKey: serviceKey);
+        new BlobStorageComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
     }
 
     private sealed class BlobStorageComponent : AzureComponent<AzureStorageBlobsSettings, BlobServiceClient, BlobClientOptions>
     {
         protected override IAzureClientBuilder<BlobServiceClient, BlobClientOptions> AddClient(
-            AzureClientFactoryBuilder azureFactoryBuilder, AzureStorageBlobsSettings settings, string connectionName,
+            AzureClientFactoryBuilder azureFactoryBuilder,
+            AzureStorageBlobsSettings settings,
+            string connectionName,
             string configurationSectionName)
-        {
+        {          
             return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<BlobServiceClient, BlobClientOptions>((options, cred) =>
             {
                 var connectionString = settings.ConnectionString;
@@ -129,6 +105,9 @@ public static class AspireBlobStorageExtensions
 
         protected override TokenCredential? GetTokenCredential(AzureStorageBlobsSettings settings)
             => settings.Credential;
+
+        protected override bool GetMetricsEnabled(AzureStorageBlobsSettings settings)
+            => false;
 
         protected override bool GetTracingEnabled(AzureStorageBlobsSettings settings)
             => !settings.DisableTracing;

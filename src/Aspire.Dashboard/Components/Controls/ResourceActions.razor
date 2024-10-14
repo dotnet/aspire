@@ -2,22 +2,42 @@
 @using Aspire.Dashboard.Model
 @using Microsoft.FluentUI.AspNetCore.Components
 
-@foreach (var highlightedCommand in Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden))
+@if (ViewportInformation.IsDesktop)
 {
-    <FluentButton Appearance="Appearance.Lightweight" Title="@(highlightedCommand.DisplayDescription ?? highlightedCommand.DisplayName)" OnClick="@(() => CommandSelected.InvokeAsync(highlightedCommand))" Disabled="@(highlightedCommand.State == CommandViewModelState.Disabled)">
-        @if (!string.IsNullOrEmpty(highlightedCommand.IconName) && CommandViewModel.ResolveIconName(highlightedCommand.IconName, highlightedCommand.IconVariant) is { } icon)
+    // Either display commands or a spacer.
+    // Spacer keeps a consistent placing of following buttons if there are less highlighted commands for this resource.
+    @for (var i = 0; i < MaxHighlightedCount; i++)
+    {
+        if (i < _highlightedCommands.Count)
         {
-            <FluentIcon Value="@icon" />
+            var highlightedCommand = _highlightedCommands[i];
+
+            <FluentButton Appearance="Appearance.Lightweight" Title="@(!string.IsNullOrEmpty(highlightedCommand.DisplayDescription) ? highlightedCommand.DisplayDescription : highlightedCommand.DisplayName)" OnClick="@(() => CommandSelected.InvokeAsync(highlightedCommand))" Disabled="@(highlightedCommand.State == CommandViewModelState.Disabled)">
+                @if (!string.IsNullOrEmpty(highlightedCommand.IconName) && CommandViewModel.ResolveIconName(highlightedCommand.IconName, highlightedCommand.IconVariant) is { } icon)
+                {
+                    <FluentIcon Value="@icon" Width="16px" />
+                }
+                else
+                {
+                    @highlightedCommand.DisplayName
+                }
+            </FluentButton>
         }
         else
         {
-            @highlightedCommand.DisplayName
+            <div style="display:inline-block; width:32px;"></div>
         }
+    }
+
+    <FluentButton Appearance="Appearance.Lightweight" Title="@Loc[nameof(Resources.Resources.ResourceActionConsoleLogsText)]" OnClick="@(() => NavigationManager.NavigateTo(Aspire.Dashboard.Utils.DashboardUrls.ConsoleLogsUrl(resource: Resource.Name)))">
+        <FluentIcon Value="@s_consoleLogsIcon" />
     </FluentButton>
+
+    <FluentDivider Class="action-divider" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
 }
 
-<AspireMenuButton
-    ButtonAppearance="Appearance.Lightweight"
-    Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
-    Items="@_menuItems"
-    @ref="_menuButton" />
+<AspireMenuButton ButtonAppearance="Appearance.Lightweight"
+                  Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
+                  Items="@_menuItems"
+                  @ref="_menuButton"
+                  Title="@ControlLoc[nameof(Resources.ControlsStrings.ActionsButtonText)]" />

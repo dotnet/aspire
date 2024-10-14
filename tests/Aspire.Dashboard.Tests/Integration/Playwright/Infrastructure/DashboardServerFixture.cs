@@ -8,7 +8,6 @@ using Aspire.Hosting;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
@@ -58,11 +57,7 @@ public class DashboardServerFixture : IAsyncLifetime
             preConfigureBuilder: builder =>
             {
                 builder.Configuration.AddConfiguration(config);
-            },
-            postConfigureBuilder: builder =>
-            {
-                builder.Services.RemoveAll<IDashboardClient>();
-                builder.Services.AddSingleton<IDashboardClient, MockDashboardClient>();
+                builder.Services.AddScoped<IDashboardClient, MockDashboardClient>();
             });
 
         await DashboardApp.StartAsync();

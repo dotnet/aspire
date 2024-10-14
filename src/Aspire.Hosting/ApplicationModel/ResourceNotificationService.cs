@@ -77,8 +77,8 @@ public class ResourceNotificationService
     /// will throw <see cref="OperationCanceledException"/>.
     /// </remarks>
     /// <param name="resourceName">The name of the resource.</param>
-    /// <param name="targetState"></param>
-    /// <param name="cancellationToken">A <see cref="CancellationToken"/> </param>
+    /// <param name="targetState">The state to wait for the resource to transition to. See <see cref="KnownResourceStates"/> for common states.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="Task"/> representing the wait operation.</returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "targetState(s) parameters are mutually exclusive.")]
@@ -178,7 +178,7 @@ public class ResourceNotificationService
     /// This method returns a task that will complete with the resource is healthy. A resource
     /// without <see cref="HealthCheckAnnotation"/> annotations will be considered healthy.
     /// </remarks>
-    public Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, CancellationToken cancellationToken)
+    public Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, CancellationToken cancellationToken = default)
     {
         return WaitForResourceAsync(resourceName, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: cancellationToken);
     }
@@ -459,7 +459,7 @@ public class ResourceNotificationService
         {
             var state = annotation.UpdateState(new UpdateCommandStateContext { ResourceSnapshot = previousState, ServiceProvider = serviceProvider });
 
-            return new ResourceCommandSnapshot(annotation.Type, state, annotation.DisplayName, annotation.IconName, annotation.IconVariant, annotation.IsHighlighted);
+            return new ResourceCommandSnapshot(annotation.Type, state, annotation.DisplayName, annotation.DisplayDescription, annotation.Parameter, annotation.ConfirmationMessage, annotation.IconName, annotation.IconVariant, annotation.IsHighlighted);
         }
     }
 
@@ -468,9 +468,13 @@ public class ResourceNotificationService
     /// </summary>
     /// <param name="resource">The resource to update</param>
     /// <param name="stateFactory">A factory that creates the new state based on the previous state.</param>
-    public Task PublishUpdateAsync(IResource resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
+    public async Task PublishUpdateAsync(IResource resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
     {
-        return PublishUpdateAsync(resource, resource.Name, stateFactory);
+        var resourceNames = resource.GetResolvedResourceNames();
+        foreach (var resourceName in resourceNames)
+        {
+            await PublishUpdateAsync(resource, resourceName, stateFactory).ConfigureAwait(false);
+        }
     }
 
     private static CustomResourceSnapshot GetCurrentSnapshot(IResource resource, ResourceNotificationState notificationState)
@@ -488,7 +492,10 @@ public class ResourceNotificationService
             previousState ??= new CustomResourceSnapshot()
             {
                 ResourceType = resource.GetType().Name,
-                Properties = []
+                Properties = [],
+                HealthStatus = resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out _)
+                    ? null // Indicates that the resource has health check annotations but the health status is unknown.
+                    : HealthStatus.Healthy
             };
         }
 

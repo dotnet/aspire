@@ -12,7 +12,7 @@ public sealed class Subscription : IDisposable
     private readonly CancellationToken _cancellationToken;
     private readonly Action _unsubscribe;
     private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
-    private ILogger Logger => _telemetryRepository._logger;
+    private ILogger Logger => _telemetryRepository._otlpContext.Logger;
 
     private DateTime? _lastExecute;
 

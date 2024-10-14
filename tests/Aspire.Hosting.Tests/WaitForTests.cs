@@ -12,6 +12,30 @@ namespace Aspire.Hosting.Tests;
 public class WaitForTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
+    [RequiresDocker]
+    public async Task ResourceThatFailsToStartDueToExceptionDoesNotCauseStartAsyncToThrow()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+        var throwingResource = builder.AddContainer("throwingresource", "doesnotmatter")
+                              .WithEnvironment(ctx => throw new InvalidOperationException("BOOM!"));
+        var dependingContainerResource = builder.AddContainer("dependingcontainerresource", "doesnotmatter")
+                                       .WaitFor(throwingResource);
+        var dependingExecutableResource = builder.AddExecutable("dependingexecutableresource", "doesnotmatter", "alsodoesntmatter")
+                                       .WaitFor(throwingResource);
+
+        var abortCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        using var app = builder.Build();
+        await app.StartAsync(abortCts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceAsync(throwingResource.Resource.Name, KnownResourceStates.FailedToStart, abortCts.Token);
+        await rns.WaitForResourceAsync(dependingContainerResource.Resource.Name, KnownResourceStates.FailedToStart, abortCts.Token);
+        await rns.WaitForResourceAsync(dependingExecutableResource.Resource.Name, KnownResourceStates.FailedToStart, abortCts.Token);
+
+        await app.StopAsync(abortCts.Token);
+    }
+
+    [Fact]
     public void ResourceCannotWaitForItself()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -333,12 +357,12 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
             );
     }
 
-    private sealed class CustomChildResource(string name, CustomResource parent) : Resource(name), IResourceWithParent<CustomResource>
+    private sealed class CustomChildResource(string name, CustomResource parent) : Resource(name), IResourceWithParent<CustomResource>, IResourceWithWaitSupport
     {
         public CustomResource Parent => parent;
     }
 
-    private sealed class CustomResource(string name) : Resource(name), IResourceWithConnectionString
+    private sealed class CustomResource(string name) : Resource(name), IResourceWithConnectionString, IResourceWithWaitSupport
     {
         public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"foo");
     }

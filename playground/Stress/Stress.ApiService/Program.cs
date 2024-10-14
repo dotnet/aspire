@@ -47,6 +47,8 @@ app.MapGet("/write-console", () =>
 app.MapGet("/increment-counter", (TestMetrics metrics) =>
 {
     metrics.IncrementCounter(1, new TagList([new KeyValuePair<string, object?>("add-tag", "1")]));
+    metrics.IncrementCounter(2, new TagList([new KeyValuePair<string, object?>("add-tag", "")]));
+    metrics.IncrementCounter(3, default);
 
     return "Counter incremented";
 });

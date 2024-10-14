@@ -2,6 +2,9 @@
 @using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
+@using Humanizer
+@using Microsoft.Extensions.Diagnostics.HealthChecks
+
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
 @inject IStringLocalizer<Resources> Loc
 
@@ -108,6 +111,71 @@
                     </PropertyGrid>
                 </FluentAccordionItem>
             }
+            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceHealthChecksHeader)]" Expanded="@_isHealthChecksExpanded">
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
+                        @FilteredHealthReports.Count()
+                    </FluentBadge>
+                </div>
+                @if (Resource.HealthStatus is null)
+                {
+                    <div style="margin:10px">
+                        <FluentIcon Icon="Icons.Regular.Size16.HourglassHalf" Color="Color.Info" Class="severity-icon" />
+                        @Loc[nameof(Resources.WaitingForHealthDataMessage)]
+                    </div>
+                }
+                else
+                {
+                    <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlStringsLoc)"
+                                    ResizeType="DataGridResizeType.Discrete"
+                                    Items="@FilteredHealthReports"
+                                    ItemKey="r => r.Name"
+                                    ResizableColumns="true"
+                                    Style="width:100%"
+                                    GenerateHeader="GenerateHeaderOption.Sticky"
+                                    GridTemplateColumns="1fr 1fr 1.5fr"
+                                    ShowHover="true">
+                        <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
+                            <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]"
+                                       Value="@context.Name"
+                                       EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
+                                       HighlightText="@_filter" />
+                        </AspireTemplateColumn>
+                        <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.StateColumnHeader)]" Class="stateColumn">
+                            <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.StateColumnHeader)]"
+                                       Value="@context.HealthStatus.Humanize()"
+                                       EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
+                                       HighlightText="@_filter"
+                                       TextVisualizerTitle="@context.Name">
+                                <ContentBeforeValue>
+                                    @{
+                                        // Browse the icon library at: https://aka.ms/fluentui-system-icons
+                                        (Icon icon, Color color) = context.HealthStatus switch
+                                        {
+                                            HealthStatus.Healthy => ((Icon)new Icons.Filled.Size16.Heart(), Color.Success),
+                                            HealthStatus.Degraded => (new Icons.Filled.Size16.HeartBroken(), Color.Warning),
+                                            HealthStatus.Unhealthy => (new Icons.Filled.Size16.HeartBroken(), Color.Error),
+                                            _ => (new Icons.Regular.Size16.CircleHint(), Color.Info)
+                                        };
+                                    }
+                                    <FluentIcon Value="@icon" Color="@color" Class="severity-icon" />
+                                </ContentBeforeValue>
+                            </GridValue>
+                        </AspireTemplateColumn>
+                        <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="detailsColumn">
+                            <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]"
+                                       Value="@context.DisplayedDescription"
+                                       EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
+                                       HighlightText="@_filter"
+                                       TextVisualizerTitle="@context.Name">
+                                <ContentBeforeValue>
+                                    <ExceptionDetails ExceptionText="@context.ExceptionText" />
+                                </ContentBeforeValue>
+                            </GridValue>
+                        </AspireTemplateColumn>
+                    </FluentDataGrid>
+                }
+            </FluentAccordionItem>
         </FluentAccordion>
     </div>
 </div>

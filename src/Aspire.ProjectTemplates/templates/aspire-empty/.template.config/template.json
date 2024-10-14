@@ -10,10 +10,10 @@
     "API",
     "Service"
   ],
-  "name": ".NET Aspire Empty App",
+  "name": ".NET Aspire 9 Empty App",
   "defaultName": "AspireApp",
-  "description": "A project template for creating an empty .NET Aspire app.",
-  "shortName": "aspire",
+  "description": "A project template for creating an empty .NET Aspire 9 app.",
+  "shortName": ["aspire", "aspire-9"],
   "sourceName": "AspireApplication.1",
   "preferNameDirectory": true,
   "tags": {
@@ -21,10 +21,10 @@
     "type": "solution",
     "editorTreatAs": "solution"
   },
-  "precedence": "8000",
-  "identity": "Aspire.Empty.CSharp.8.0",
-  "thirdPartyNotices": "https://aka.ms/dotnet/aspire/8.0-third-party-notices",
-  "groupIdentity": "Aspire.Empty",
+  "precedence": "9000",
+  "identity": "Aspire.Empty.CSharp.9.net9",
+  "thirdPartyNotices": "https://aka.ms/dotnet/aspire/third-party-notices",
+  "groupIdentity": "Aspire.Empty.9",
   "guids": [
     "F98A6C4E-E01C-44BB-BCC9-4C23F1CD09CD",
     "8CD1957F-C0E5-454E-8BDC-88F84DD58303",
@@ -50,12 +50,12 @@
       "datatype": "choice",
       "choices": [
         {
-          "choice": "net8.0",
-          "description": "Target net8.0"
+          "choice": "net9.0",
+          "description": "Target net9.0"
         }
       ],
-      "replaces": "net8.0",
-      "defaultValue": "net8.0"
+      "replaces": "net9.0",
+      "defaultValue": "net9.0"
     },
     "hostIdentifier": {
       "type": "bind",
