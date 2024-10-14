@@ -32,7 +32,10 @@ public static class AspireMilvusExtensions
         string connectionName,
         Action<MilvusClientSettings>? configureSettings = null)
     {
-        AddMilvus(builder, DefaultConfigSectionName, configureSettings, connectionName, serviceKey: null);
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        AddMilvus(builder, configureSettings, connectionName, serviceKey: null);
     }
 
     /// <summary>
@@ -49,23 +52,24 @@ public static class AspireMilvusExtensions
         string name,
         Action<MilvusClientSettings>? configureSettings = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
-
-        AddMilvus(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, connectionName: name, serviceKey: name);
+        AddMilvus(builder, configureSettings, connectionName: name, serviceKey: name);
     }
 
     private static void AddMilvus(
         this IHostApplicationBuilder builder,
-        string configurationSectionName,
         Action<MilvusClientSettings>? configureSettings,
         string connectionName,
         string? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         var settings = new MilvusClientSettings();
-        builder.Configuration.GetSection(configurationSectionName).Bind(settings);
+        var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
+        configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -106,7 +110,7 @@ public static class AspireMilvusExtensions
                 throw new InvalidOperationException(
                         $"A MilvusClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
                         $"{nameof(settings.Endpoint)} and {nameof(settings.Key)} must both be provided " +
-                        $"in the '{configurationSectionName}' configuration section.");
+                        $"in the '{DefaultConfigSectionName}' or '{DefaultConfigSectionName}:{connectionName}' configuration sections.");
             }
         }
     }
