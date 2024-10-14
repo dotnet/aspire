@@ -1,8 +1,6 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddAzureProvisioning();
-
 var wps = builder.AddAzureWebPubSub("wps1");
 var web = builder.AddProject<Projects.WebPubSubWeb>("webfrontend")
     .WithExternalHttpEndpoints()

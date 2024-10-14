@@ -58,13 +58,12 @@ public static class AzureWebPubSubExtensions
             construct.Add(service.CreateRoleAssignment(WebPubSubBuiltInRole.WebPubSubServiceOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             var resource = (AzureWebPubSubResource)construct.Resource;
-            var resourceBuilder = builder.CreateResourceBuilder(resource);
             foreach (var setting in resource.Hubs)
             {
                 var hubName = setting.Key;
                 
                 var hubBuilder = setting.Value;
-                var hubResource = hubBuilder.Resource;
+                var hubResource = hubBuilder;
                 var hub = new WebPubSubHub(Infrastructure.NormalizeIdentifierName(hubResource.Name))
                 {
                     Name = setting.Key,
@@ -83,7 +82,7 @@ public static class AzureWebPubSubExtensions
                 // invoke the configure from AddEventHandler
                 foreach (var eventHandlerConfigure in hubResource.EventHandlers)
                 {
-                    eventHandlerConfigure.Invoke(resourceBuilder, construct, hub);
+                    eventHandlerConfigure.Invoke(construct, hub);
                 }
             }
         };
@@ -105,7 +104,7 @@ public static class AzureWebPubSubExtensions
     {
         var hubResource = new AzureWebPubSubHubResource(hubName, builder.Resource);
         var hubBuilder = builder.ApplicationBuilder.CreateResourceBuilder(hubResource);
-        builder.Resource.Hubs[hubName] = hubBuilder;
+        builder.Resource.Hubs[hubName] = hubResource;
         return hubBuilder;
     }
 
@@ -123,7 +122,7 @@ public static class AzureWebPubSubExtensions
     {
         var urlExpression = ReferenceExpression.Create(urlTemplateExpression);
 
-        builder.Resource.EventHandlers.Add((builder, construct, hub) =>
+        builder.Resource.EventHandlers.Add((construct, hub) =>
         {
             var hubName = hub.Name.Value;
 
@@ -143,7 +142,7 @@ public static class AzureWebPubSubExtensions
                 hubResource.EventHandlers.Add(eventHandler);
                 construct.Add(urlParameter);
 
-                builder.WithParameter(urlParameter.IdentifierName, urlExpression);
+                builder.Resource.Parent.Parameters[urlParameter.IdentifierName] = urlExpression;
             }
         });
         return builder;
@@ -159,7 +158,7 @@ public static class AzureWebPubSubExtensions
 
         if (systemEvents != null)
         {
-            handler.SystemEvents = new BicepList<string>(systemEvents.Select(i => new BicepValue<string>(i)).ToArray());
+            handler.SystemEvents = [..systemEvents];
         }
 
         if (authSettings != null)

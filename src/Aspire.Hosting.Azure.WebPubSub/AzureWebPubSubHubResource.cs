@@ -18,7 +18,7 @@ public class AzureWebPubSubHubResource(string name, AzureWebPubSubResource webpu
     /// </summary>
     public AzureWebPubSubResource Parent => webpubsub;
 
-    internal List<Action<IResourceBuilder<AzureWebPubSubResource>, ResourceModuleConstruct, WebPubSubHub>> EventHandlers { get; } = new();
+    internal List<Action<ResourceModuleConstruct, WebPubSubHub>> EventHandlers { get; } = new();
 
     private static readonly Action<ResourceModuleConstruct> s_empty = (_) => { };
 }
