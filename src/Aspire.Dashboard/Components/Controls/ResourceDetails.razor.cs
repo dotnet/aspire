@@ -16,12 +16,6 @@ public partial class ResourceDetails
     [Parameter]
     public bool ShowSpecOnlyToggle { get; set; }
 
-    [Inject]
-    public required ILogger<ResourceDetails> Logger { get; init; }
-
-    [Inject]
-    public required BrowserTimeProvider TimeProvider { get; init; }
-
     private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceProperties(ordered: false).Any(static vm => vm.KnownProperty is null);
 
     // NOTE Excludes endpoints as they don't expose sensitive items (and enumerating endpoints is non-trivial)

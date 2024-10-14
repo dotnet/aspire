@@ -150,8 +150,49 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
                 c.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455));
             });
 
-        Assert.False(redis.Resource.IsContainer(), "The resource is still the Azure Resource.");
+        Assert.True(redis.Resource.IsContainer(), "The resource should now be a container resource.");
 
         Assert.Equal("localhost:12455", await redis.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void RunAsContainerAppliesAnnotationsCorrectly(bool before)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var cache = builder.AddAzureRedis("cache");
+
+        if (before)
+        {
+            cache.WithAnnotation(new Dummy1Annotation());
+        }
+
+        cache.RunAsContainer(c =>
+        {
+            c.WithAnnotation(new Dummy2Annotation());
+        });
+
+        if (!before)
+        {
+            cache.WithAnnotation(new Dummy1Annotation());
+        }
+
+        var cacheInModel = builder.Resources.Single(r => r.Name == "cache");
+
+        Assert.True(cacheInModel.TryGetAnnotationsOfType<Dummy1Annotation>(out var cacheAnnotations1));
+        Assert.Single(cacheAnnotations1);
+
+        Assert.True(cacheInModel.TryGetAnnotationsOfType<Dummy2Annotation>(out var cacheAnnotations2));
+        Assert.Single(cacheAnnotations2);
+    }
+
+    private sealed class Dummy1Annotation : IResourceAnnotation
+    {
+    }
+
+    private sealed class Dummy2Annotation : IResourceAnnotation
+    {
     }
 }

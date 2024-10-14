@@ -54,12 +54,6 @@ public partial class TraceDetail : ComponentBase
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
-    [Inject]
-    public required DimensionManager DimensionManager { get; init; }
-
-    [CascadingParameter]
-    public required ViewportInformation ViewportInformation { get; set; }
-
     protected override void OnInitialized()
     {
         _gridColumns = [

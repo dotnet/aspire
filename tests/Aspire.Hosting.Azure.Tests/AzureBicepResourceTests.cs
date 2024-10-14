@@ -1,25 +1,23 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable AZPROVISION001 // Because we are testing CDK callbacks.
-
+using System.Net.Sockets;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning;
-using Azure.Provisioning.Roles;
 using Azure.Provisioning.CognitiveServices;
 using Azure.Provisioning.CosmosDB;
-using Azure.Provisioning.KeyVault;
-using Azure.Provisioning.Storage;
-using Azure.Provisioning.Sql;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.KeyVault;
+using Azure.Provisioning.Roles;
+using Azure.Provisioning.Search;
+using Azure.Provisioning.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Xunit.Abstractions;
-using System.Net.Sockets;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -245,10 +243,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create();
 
         IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
-        var cosmos = builder.AddAzureCosmosDB("cosmos", (resource, construct, account, databases) =>
-        {
-            callbackDatabases = databases;
-        });
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+            .ConfigureConstruct(construct =>
+            {
+                callbackDatabases = construct.GetResources().OfType<CosmosDBSqlDatabase>();
+            });
         cosmos.AddDatabase("mydatabase");
 
         cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
@@ -338,10 +337,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
-        var cosmos = builder.AddAzureCosmosDB("cosmos", (resource, construct, account, databases) =>
-        {
-            callbackDatabases = databases;
-        });
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+            .ConfigureConstruct(construct =>
+            {
+                callbackDatabases = construct.GetResources().OfType<CosmosDBSqlDatabase>();
+            });
         cosmos.AddDatabase("mydatabase");
 
         cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
@@ -1093,27 +1093,21 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task AsAzureSqlDatabaseViaRunMode(bool overrideDefaultTlsVersion)
+    [Fact]
+    public async Task AsAzureSqlDatabaseViaRunMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
 #pragma warning disable CS0618 // Type or member is obsolete
-        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, sql, _) =>
-        {
-            azureSqlBuilder.Resource.Outputs["sqlServerFqdn"] = "myserver";
-
-            if (overrideDefaultTlsVersion)
-            {
-                sql.MinTlsVersion = SqlMinimalTlsVersion.Tls1_3;
-            }
-        });
+        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase();
 #pragma warning restore CS0618 // Type or member is obsolete
         sql.AddDatabase("db", "dbName");
 
         var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource);
+
+        Assert.True(sql.Resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation));
+        var azureSql = (AzureSqlServerResource)connectionStringAnnotation.Resource;
+        azureSql.Outputs["sqlServerFqdn"] = "myserver";
 
         Assert.Equal("Server=tcp:myserver,1433;Encrypt=True;Authentication=\"Active Directory Default\"", await sql.Resource.GetConnectionStringAsync(default));
         Assert.Equal("Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.ConnectionStringExpression.ValueExpression);
@@ -1154,7 +1148,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                   tenantId: subscription().tenantId
                   azureADOnlyAuthentication: true
                 }
-                minimalTlsVersion: '{{(overrideDefaultTlsVersion ? "1.3" : "1.2")}}'
+                minimalTlsVersion: '1.2'
                 publicNetworkAccess: 'Enabled'
                 version: '12.0'
               }
@@ -1193,27 +1187,21 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task AsAzureSqlDatabaseViaPublishMode(bool overrideDefaultTlsVersion)
+    [Fact]
+    public async Task AsAzureSqlDatabaseViaPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
 #pragma warning disable CS0618 // Type or member is obsolete
-        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, sql, _) =>
-        {
-            azureSqlBuilder.Resource.Outputs["sqlServerFqdn"] = "myserver";
-
-            if (overrideDefaultTlsVersion)
-            {
-                sql.MinTlsVersion = SqlMinimalTlsVersion.Tls1_3;
-            }
-        });
+        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase();
 #pragma warning restore CS0618 // Type or member is obsolete
         sql.AddDatabase("db", "dbName");
 
         var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource);
+
+        Assert.True(sql.Resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation));
+        var azureSql = (AzureSqlServerResource)connectionStringAnnotation.Resource;
+        azureSql.Outputs["sqlServerFqdn"] = "myserver";
 
         Assert.Equal("Server=tcp:myserver,1433;Encrypt=True;Authentication=\"Active Directory Default\"", await sql.Resource.GetConnectionStringAsync(default));
         Assert.Equal("Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.ConnectionStringExpression.ValueExpression);
@@ -1250,7 +1238,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                   tenantId: subscription().tenantId
                   azureADOnlyAuthentication: true
                 }
-                minimalTlsVersion: '{{(overrideDefaultTlsVersion ? "1.3" : "1.2")}}'
+                minimalTlsVersion: '1.2'
                 publicNetworkAccess: 'Enabled'
                 version: '12.0'
               }
@@ -1292,21 +1280,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var pwd = builder.AddParameter("pwd", secret: true);
 
 #pragma warning disable CS0618 // Type or member is obsolete
-        IResourceBuilder<AzurePostgresResource>? azurePostgres = null;
-        var postgres = builder.AddPostgres("postgres", usr, pwd).AsAzurePostgresFlexibleServer((resource, _, _) =>
-        {
-            Assert.NotNull(resource);
-            azurePostgres = resource;
-        });
+        var postgres = builder.AddPostgres("postgres", usr, pwd).AsAzurePostgresFlexibleServer();
         postgres.AddDatabase("db", "dbName");
 #pragma warning restore CS0618 // Type or member is obsolete
 
         var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
-
-        // Setup to verify that connection strings is acquired via resource connectionstring redirct.
-        Assert.NotNull(azurePostgres);
-        azurePostgres.Resource.SecretOutputs["connectionString"] = "myconnectionstring";
-        Assert.Equal("myconnectionstring", await postgres.Resource.GetConnectionStringAsync(default));
 
         var expectedManifest = """
             {
@@ -1412,21 +1390,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var pwd = builder.AddParameter("pwd", secret: true);
 
 #pragma warning disable CS0618 // Type or member is obsolete
-        IResourceBuilder<AzurePostgresResource>? azurePostgres = null;
-        var postgres = builder.AddPostgres("postgres", usr, pwd).AsAzurePostgresFlexibleServer((resource, _, _) =>
-        {
-            Assert.NotNull(resource);
-            azurePostgres = resource;
-        });
+        var postgres = builder.AddPostgres("postgres", usr, pwd).AsAzurePostgresFlexibleServer();
         postgres.AddDatabase("db", "dbName");
 #pragma warning restore CS0618 // Type or member is obsolete
 
         var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
-
-        // Setup to verify that connection strings is acquired via resource connectionstring redirct.
-        Assert.NotNull(azurePostgres);
-        azurePostgres.Resource.SecretOutputs["connectionString"] = "myconnectionstring";
-        Assert.Equal("myconnectionstring", await postgres.Resource.GetConnectionStringAsync(default));
 
         var expectedManifest = """
             {
@@ -1881,7 +1849,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             qs!.Replace("{storage.bindings." + name + ".host}", "127.0.0.1")
                .Replace("{storage.bindings." + name + ".port}", port.ToString());
 
-        Assert.Equal(Resolve(blobqs, "blob", 10000), await((IResourceWithConnectionString)blob.Resource).GetConnectionStringAsync());
+        Assert.Equal(Resolve(blobqs, "blob", 10000), await ((IResourceWithConnectionString)blob.Resource).GetConnectionStringAsync());
         Assert.Equal(Resolve(queueqs, "queue", 10001), await ((IResourceWithConnectionString)queue.Resource).GetConnectionStringAsync());
         Assert.Equal(Resolve(tableqs, "table", 10002), await ((IResourceWithConnectionString)table.Resource).GetConnectionStringAsync());
     }
@@ -1892,13 +1860,15 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var storagesku = builder.AddParameter("storagesku");
-        var storage = builder.AddAzureStorage("storage", (_, construct, sa) =>
-        {
-            sa.Sku = new StorageSku()
+        var storage = builder.AddAzureStorage("storage")
+            .ConfigureConstruct(construct =>
             {
-                Name = storagesku.AsProvisioningParameter(construct)
-            };
-        });
+                var sa = construct.GetResources().OfType<StorageAccount>().Single();
+                sa.Sku = new StorageSku()
+                {
+                    Name = storagesku.AsProvisioningParameter(construct)
+                };
+            });
 
         storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
         storage.Resource.Outputs["queueEndpoint"] = "https://myqueue";
@@ -2048,14 +2018,16 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var storagesku = builder.AddParameter("storagesku");
-        var storage = builder.AddAzureStorage("storage", (_, construct, sa) =>
-        {
-            sa.Sku = new StorageSku()
+        var storage = builder.AddAzureStorage("storage")
+            .ConfigureConstruct(construct =>
             {
-                Name = storagesku.AsProvisioningParameter(construct)
-            };
-            sa.AllowSharedKeyAccess = true;
-        });
+                var sa = construct.GetResources().OfType<StorageAccount>().Single();
+                sa.Sku = new StorageSku()
+                {
+                    Name = storagesku.AsProvisioningParameter(construct)
+                };
+                sa.AllowSharedKeyAccess = true;
+            });
 
         storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
         storage.Resource.Outputs["queueEndpoint"] = "https://myqueue";
@@ -2205,13 +2177,15 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         var storagesku = builder.AddParameter("storagesku");
-        var storage = builder.AddAzureStorage("storage", (_, construct, sa) =>
-        {
-            sa.Sku = new StorageSku()
+        var storage = builder.AddAzureStorage("storage")
+            .ConfigureConstruct(construct =>
             {
-                Name = storagesku.AsProvisioningParameter(construct)
-            };
-        });
+                var sa = construct.GetResources().OfType<StorageAccount>().Single();
+                sa.Sku = new StorageSku()
+                {
+                    Name = storagesku.AsProvisioningParameter(construct)
+                };
+            });
 
         storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
         storage.Resource.Outputs["queueEndpoint"] = "https://myqueue";
@@ -2361,14 +2335,16 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         var storagesku = builder.AddParameter("storagesku");
-        var storage = builder.AddAzureStorage("storage", (_, construct, sa) =>
-        {
-            sa.Sku = new StorageSku()
+        var storage = builder.AddAzureStorage("storage")
+            .ConfigureConstruct(construct =>
             {
-                Name = storagesku.AsProvisioningParameter(construct)
-            };
-            sa.AllowSharedKeyAccess = true;
-        });
+                var sa = construct.GetResources().OfType<StorageAccount>().Single();
+                sa.Sku = new StorageSku()
+                {
+                    Name = storagesku.AsProvisioningParameter(construct)
+                };
+                sa.AllowSharedKeyAccess = true;
+            });
 
         storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
         storage.Resource.Outputs["queueEndpoint"] = "https://myqueue";
@@ -2519,8 +2495,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         // Add search and parameterize the SKU
         var sku = builder.AddParameter("searchSku");
-        var search = builder.AddAzureSearch("search", (_, construct, search) =>
-            search.SearchSkuName = sku.AsProvisioningParameter(construct));
+        var search = builder.AddAzureSearch("search")
+            .ConfigureConstruct(construct =>
+            {
+                var search = construct.GetResources().OfType<SearchService>().Single();
+                search.SearchSkuName = sku.AsProvisioningParameter(construct);
+            });
 
         // Pretend we deployed it
         const string fakeConnectionString = "mysearchconnectionstring";
@@ -2637,15 +2617,17 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create();
 
         IEnumerable<CognitiveServicesAccountDeployment>? aiDeployments = null;
-        var openai = builder.AddAzureOpenAI("openai", (_, _, account, deployments) =>
-        {
-            aiDeployments = deployments;
-
-            if (overrideLocalAuthDefault)
+        var openai = builder.AddAzureOpenAI("openai")
+            .ConfigureConstruct(construct =>
             {
-                account.Properties.Value!.DisableLocalAuth = false;
-            }
-        })
+                aiDeployments = construct.GetResources().OfType<CognitiveServicesAccountDeployment>();
+
+                if (overrideLocalAuthDefault)
+                {
+                    var account = construct.GetResources().OfType<CognitiveServicesAccount>().Single();
+                    account.Properties.Value!.DisableLocalAuth = false;
+                }
+            })
             .AddDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4))
             .AddDeployment(new("embedding-model", "text-embedding-ada-002", "2", "Basic", 4));
 
