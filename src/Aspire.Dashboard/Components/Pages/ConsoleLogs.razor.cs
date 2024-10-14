@@ -24,12 +24,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 {
     private sealed class ConsoleLogsSubscription
     {
+        private static int s_subscriptionId;
+
         private readonly CancellationTokenSource _cts = new();
+        private readonly int _subscriptionId = Interlocked.Increment(ref s_subscriptionId);
 
         public required string Name { get; init; }
         public Task? SubscriptionTask { get; set; }
 
         public CancellationToken CancellationToken => _cts.Token;
+        public int SubscriptionId => _subscriptionId;
         public void Cancel() => _cts.Cancel();
     }
 
@@ -49,9 +53,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public required ILogger<ConsoleLogs> Logger { get; init; }
 
     [Inject]
-    public required DimensionManager DimensionManager { get; init; }
-
-    [Inject]
     public required IStringLocalizer<Dashboard.Resources.ConsoleLogs> Loc { get; init; }
 
     [Inject]
@@ -63,9 +64,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     [Parameter]
     public string? ResourceName { get; set; }
 
-    private readonly CancellationTokenSource _resourceSubscriptionCancellation = new();
+    private readonly CancellationTokenSource _resourceSubscriptionCts = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private ImmutableList<SelectViewModel<ResourceTypeDetails>>? _resources;
+    private CancellationToken _resourceSubscriptionToken;
     private Task? _resourceSubscriptionTask;
     private ConsoleLogsSubscription? _consoleLogsSubscription;
     internal LogEntries _logEntries = null!;
@@ -82,8 +84,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     protected override async Task OnInitializedAsync()
     {
+        _resourceSubscriptionToken = _resourceSubscriptionCts.Token;
         _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
-        _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.None)] };
+        _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelNone)] };
         PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
 
         var loadingTcs = new TaskCompletionSource();
@@ -93,12 +96,17 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         // Wait for resource to be selected. If selected resource isn't available after a few seconds then stop waiting.
         try
         {
-            await loadingTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await loadingTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), _resourceSubscriptionToken);
             Logger.LogDebug("Loading task completed.");
+        }
+        catch (OperationCanceledException)
+        {
+            Logger.LogDebug("Load task canceled.");
         }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Load timeout while waiting for resource {ResourceName}.", ResourceName);
+            PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
         }
 
         async Task TrackResourceSnapshotsAsync()
@@ -108,7 +116,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 return;
             }
 
-            var (snapshot, subscription) = await DashboardClient.SubscribeResourcesAsync(_resourceSubscriptionCancellation.Token);
+            var (snapshot, subscription) = await DashboardClient.SubscribeResourcesAsync(_resourceSubscriptionToken);
 
             Logger.LogDebug("Received initial resource snapshot with {ResourceCount} resources.", snapshot.Length);
 
@@ -125,7 +133,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             {
                 if (_resourceByName.TryGetValue(ResourceName, out var selectedResource))
                 {
-                    await SetSelectedResourceOption(selectedResource);
+                    SetSelectedResourceOption(selectedResource);
                 }
             }
             else
@@ -136,10 +144,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             _resourceSubscriptionTask = Task.Run(async () =>
             {
-                await foreach (var changes in subscription.WithCancellation(_resourceSubscriptionCancellation.Token).ConfigureAwait(false))
+                await foreach (var changes in subscription.WithCancellation(_resourceSubscriptionToken).ConfigureAwait(false))
                 {
-                    // TODO: This could be updated to be more efficient.
-                    // It should apply on the resource changes in a batch and then update the UI.
                     foreach (var (changeType, resource) in changes)
                     {
                         await OnResourceChanged(changeType, resource);
@@ -149,23 +155,23 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                         // so if there is no selected resource when we
                         // receive an added resource, and that added resource name == ResourceName,
                         // we should mark it as selected
-                        if (ResourceName is not null && PageViewModel.SelectedResource is null && changeType == ResourceViewModelChangeType.Upsert && string.Equals(ResourceName, resource.Name))
+                        if (ResourceName is not null && PageViewModel.SelectedResource is null && changeType == ResourceViewModelChangeType.Upsert && string.Equals(ResourceName, resource.Name, StringComparisons.ResourceName))
                         {
-                            await SetSelectedResourceOption(resource);
+                            SetSelectedResourceOption(resource);
                         }
                     }
+
+                    await InvokeAsync(StateHasChanged);
                 }
             });
         }
 
-        async Task SetSelectedResourceOption(ResourceViewModel resource)
+        void SetSelectedResourceOption(ResourceViewModel resource)
         {
             Debug.Assert(_resources is not null);
 
             PageViewModel.SelectedOption = _resources.Single(option => option.Id?.Type is not OtlpApplicationType.ResourceGrouping && string.Equals(ResourceName, option.Id?.InstanceId, StringComparison.Ordinal));
             PageViewModel.SelectedResource = resource;
-
-            await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: false);
 
             Logger.LogDebug("Selected console resource from name {ResourceName}.", ResourceName);
             loadingTcs.TrySetResult();
@@ -189,13 +195,14 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             if (selectedResourceName is not null)
             {
                 newConsoleLogsSubscription = new ConsoleLogsSubscription { Name = selectedResourceName };
+                Logger.LogDebug("Creating new subscription {SubscriptionId}.", newConsoleLogsSubscription.SubscriptionId);
 
                 if (Logger.IsEnabled(LogLevel.Debug))
                 {
                     newConsoleLogsSubscription.CancellationToken.Register(state =>
                     {
                         var s = (ConsoleLogsSubscription)state!;
-                        Logger.LogDebug("Canceling current subscription to {ResourceName}.", s.Name);
+                        Logger.LogDebug("Canceling subscription {SubscriptionId} to {ResourceName}.", s.SubscriptionId, s.Name);
                     }, newConsoleLogsSubscription);
                 }
             }
@@ -231,7 +238,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         foreach (var grouping in resourcesByName
             .Where(r => !r.Value.IsHiddenState())
-            .OrderBy(c => c.Value.Name, StringComparers.ResourceName)
+            .OrderBy(c => c.Value, ResourceViewModelNameComparer.Instance)
             .GroupBy(r => r.Value.DisplayName, StringComparers.ResourceName))
         {
             string applicationName;
@@ -251,7 +258,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 applicationName = grouping.First().Value.DisplayName;
             }
 
-            foreach (var resource in grouping.Select(g => g.Value).OrderBy(r => r.Name, StringComparers.ResourceName))
+            foreach (var resource in grouping.Select(g => g.Value).OrderBy(r => r, ResourceViewModelNameComparer.Instance))
             {
                 builder.Add(ToOption(resource, grouping.Count() > 1, applicationName));
             }
@@ -295,12 +302,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     private void LoadLogs(ConsoleLogsSubscription newConsoleLogsSubscription)
     {
-        Logger.LogDebug("Starting log subscription.");
+        Logger.LogDebug("Starting log subscription {SubscriptionId}.", newConsoleLogsSubscription.SubscriptionId);
         var consoleLogsTask = Task.Run(async () =>
         {
             newConsoleLogsSubscription.CancellationToken.ThrowIfCancellationRequested();
 
-            Logger.LogDebug("Subscribing to console logs for resource {ResourceName}.", newConsoleLogsSubscription.Name);
+            Logger.LogDebug("Subscribing to console logs with subscription {SubscriptionId} to resource {ResourceName}.", newConsoleLogsSubscription.SubscriptionId, newConsoleLogsSubscription.Name);
 
             var subscription = DashboardClient.SubscribeConsoleLogs(newConsoleLogsSubscription.Name, newConsoleLogsSubscription.CancellationToken);
 
@@ -334,7 +341,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             }
             finally
             {
-                Logger.LogDebug("Finished watching logs for resource {ResourceName}.", newConsoleLogsSubscription.Name);
+                Logger.LogDebug("Subscription {SubscriptionId} finished watching logs for resource {ResourceName}.", newConsoleLogsSubscription.SubscriptionId, newConsoleLogsSubscription.Name);
 
                 // If the subscription is being canceled then a new one could be starting.
                 // Don't set the status when finishing because overwrite the status from the new subscription.
@@ -352,7 +359,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private async Task HandleSelectedOptionChangedAsync()
     {
         PageViewModel.SelectedResource = PageViewModel.SelectedOption?.Id?.InstanceId is null ? null : _resourceByName[PageViewModel.SelectedOption.Id.InstanceId];
-        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: false);
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
     }
 
     private async Task OnResourceChanged(ResourceViewModelChangeType changeType, ResourceViewModel resource)
@@ -362,7 +369,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             _resourceByName[resource.Name] = resource;
             UpdateResourcesList();
 
-            if (string.Equals(PageViewModel.SelectedResource?.Name, resource.Name, StringComparison.Ordinal))
+            if (string.Equals(PageViewModel.SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
             {
                 PageViewModel.SelectedResource = resource;
             }
@@ -372,7 +379,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             var removed = _resourceByName.TryRemove(resource.Name, out _);
             Debug.Assert(removed, "Cannot remove unknown resource.");
 
-            if (string.Equals(PageViewModel.SelectedResource?.Name, resource.Name, StringComparison.Ordinal))
+            if (string.Equals(PageViewModel.SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
             {
                 // The selected resource was deleted
                 PageViewModel.SelectedOption = _noSelection;
@@ -381,8 +388,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             UpdateResourcesList();
         }
-
-        await InvokeAsync(StateHasChanged);
     }
 
     private async Task StopAndClearConsoleLogsSubscriptionAsync()
@@ -398,8 +403,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     public async ValueTask DisposeAsync()
     {
-        await _resourceSubscriptionCancellation.CancelAsync();
-        _resourceSubscriptionCancellation.Dispose();
+        _resourceSubscriptionCts.Cancel();
+        _resourceSubscriptionCts.Dispose();
         await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);
 
         await StopAndClearConsoleLogsSubscriptionAsync();

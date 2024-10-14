@@ -14,7 +14,7 @@ namespace Aspire.Hosting;
 public static class RabbitMQBuilderExtensions
 {
     /// <summary>
-    /// Adds a RabbitMQ container to the application model.
+    /// Adds a RabbitMQ container to the application model. This version of the package defaults to the <inheritdoc cref="RabbitMQContainerImageTags.Tag"/> tag of the <inheritdoc cref="RabbitMQContainerImageTags.Image"/> container image.
     /// </summary>
     /// <remarks>
     /// The default image and tag are "rabbitmq" and "3.13".
@@ -106,7 +106,7 @@ public static class RabbitMQBuilderExtensions
     }
 
     /// <summary>
-    /// Configures the RabbitMQ container resource to enable the RabbitMQ management plugin.
+    /// Configures the RabbitMQ container resource to enable the RabbitMQ management plugin. This version of the package defaults to the <inheritdoc cref="RabbitMQContainerImageTags.TagManagement"/> tag of the <inheritdoc cref="RabbitMQContainerImageTags.Image"/> container image.
     /// </summary>
     /// <remarks>
     /// This method only supports the default RabbitMQ container image and tags, e.g. <c>3</c>, <c>3.12-alpine</c>, <c>3.12.13-management-alpine</c>, etc.<br />

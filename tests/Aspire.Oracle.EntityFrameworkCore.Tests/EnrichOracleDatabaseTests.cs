@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OpenTelemetry.Trace;
 using Oracle.EntityFrameworkCore;
 using Oracle.EntityFrameworkCore.Infrastructure.Internal;
 using Xunit;
@@ -331,5 +332,27 @@ public class EnrichOracleDatabaseTests : ConformanceTests
         Assert.IsType<CustomRetryExecutionStrategy>(executionStrategy);
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
+    [Fact]
+    public void EnrichWithNamedAndNonNamedUsesBoth()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:DisableTracing", "false"),
+            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:TestDbContext:DisableTracing", "true")
+        ]);
+
+        builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
+        {
+            optionsBuilder.UseOracle(ConnectionString);
+        });
+
+        builder.EnrichOracleDatabaseDbContext<TestDbContext>();
+
+        using var host = builder.Build();
+
+        var tracerProvider = host.Services.GetService<TracerProvider>();
+        Assert.Null(tracerProvider);
     }
 }

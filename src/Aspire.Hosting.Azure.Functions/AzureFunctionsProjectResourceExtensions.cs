@@ -4,15 +4,17 @@
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.Azure;
+using Azure.Provisioning.Storage;
 
-namespace Aspire.Hosting.Azure;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Extension methods for <see cref="AzureFunctionsProjectResource"/>.
 /// </summary>
 public static class AzureFunctionsProjectResourceExtensions
 {
-    internal const string DefaultAzureFunctionsHostStorageName = "azFuncHostStorage";
+    internal const string DefaultAzureFunctionsHostStorageName = "defaultazfuncstorage";
 
     /// <summary>
     /// Adds an Azure Functions project to the distributed application.
@@ -26,33 +28,53 @@ public static class AzureFunctionsProjectResourceExtensions
         var resource = new AzureFunctionsProjectResource(name);
 
         // Add the default storage resource if it doesn't already exist.
-        var storage = builder.Resources.OfType<AzureStorageResource>().FirstOrDefault(r => r.Name == DefaultAzureFunctionsHostStorageName);
+        var storageResourceName = builder.CreateDefaultStorageName();
+        AzureStorageResource? storage = builder.Resources
+            .OfType<AzureStorageResource>()
+            .FirstOrDefault(r => r.Name == storageResourceName);
 
+        // Azure Functions blob triggers require StorageAccountContributor access to the host storage
+        // account when deployed. We assign this role to the host storage resource when running in publish mode.
         if (storage is null)
         {
-            storage = builder.AddAzureStorage("azFuncHostStorage").RunAsEmulator().Resource;
-
-            builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
+            if (builder.ExecutionContext.IsPublishMode)
             {
-                var removeStorage = true;
-                // Look at all of the resources and if none of them use the default storage, then we can remove it.
-                // This is because we're unable to cleanly add a resource to the builder from within a callback.
-                foreach (var item in data.Model.Resources.OfType<AzureFunctionsProjectResource>())
+                var configureConstruct = (ResourceModuleConstruct construct) =>
                 {
-                    if (item.HostStorage == storage)
-                    {
-                        removeStorage = false;
-                    }
-                }
-
-                if (removeStorage)
-                {
-                    data.Model.Resources.Remove(storage);
-                }
-
-                return Task.CompletedTask;
-            });
+                    var storageAccount = construct.GetResources().OfType<StorageAccount>().FirstOrDefault(r => r.IdentifierName == storageResourceName)
+                        ?? throw new InvalidOperationException($"Could not find storage account with '{storageResourceName}' name.");
+                    construct.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageAccountContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+                };
+                storage = builder.AddAzureStorage(storageResourceName)
+                    .ConfigureConstruct(configureConstruct)
+                    .RunAsEmulator().Resource;
+            }
+            else
+            {
+                storage = builder.AddAzureStorage(storageResourceName).RunAsEmulator().Resource;
+            }
         }
+
+        builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
+        {
+            var removeStorage = true;
+            // Look at all of the resources and if none of them use the default storage, then we can remove it.
+            // This is because we're unable to cleanly add a resource to the builder from within a callback.
+            foreach (var item in data.Model.Resources.OfType<AzureFunctionsProjectResource>())
+            {
+                if (item.HostStorage == storage)
+                {
+                    removeStorage = false;
+                }
+            }
+
+            if (removeStorage)
+            {
+                data.Model.Resources.Remove(storage);
+            }
+
+            return Task.CompletedTask;
+        });
 
         resource.HostStorage = storage;
 
@@ -65,9 +87,17 @@ public static class AzureFunctionsProjectResourceExtensions
                 context.EnvironmentVariables["OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY"] = "in_memory";
                 context.EnvironmentVariables["ASPNETCORE_FORWARDEDHEADERS_ENABLED"] = "true";
                 context.EnvironmentVariables["FUNCTIONS_WORKER_RUNTIME"] = "dotnet-isolated";
+                // Set ASPNETCORE_URLS to use the non-privileged port 8080 when running in publish mode.
+                // We can't use the newer ASPNETCORE_HTTP_PORTS environment variables here since the Azure
+                // Functions host is still initialized using the classic WebHostBuilder.
+                if (context.ExecutionContext.IsPublishMode)
+                {
+                    var endpoint = resource.GetEndpoint("http");
+                    context.EnvironmentVariables["ASPNETCORE_URLS"] = ReferenceExpression.Create($"http://+:{endpoint.Property(EndpointProperty.TargetPort)}");
+                }
 
                 // Set the storage connection string.
-                ((IResourceWithAzureFunctionsConfig)resource.HostStorage).ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, "Storage");
+                ((IResourceWithAzureFunctionsConfig)resource.HostStorage).ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, "AzureWebJobsStorage");
             })
             .WithArgs(context =>
             {
@@ -92,7 +122,10 @@ public static class AzureFunctionsProjectResourceExtensions
     /// <remarks>
     /// If the Azure Function is running under publish mode, we don't need to map the port
     /// the host should listen on from the launch profile. Instead, we'll use the default
-    /// post (8080) used by the Azure Functions container image.
+    /// post (8080) used by the .NET container image. The Azure Functions container images
+    /// extend the .NET container image and override the default port to 80 for back-compat
+    /// purposes. We use the default port (8080) to avoid using privileged ports in the
+    /// container image.
     /// </remarks>
     /// <remarks>
     /// /// We provide a custom overload of `WithReference` that allows for the injection of Azure
@@ -109,8 +142,8 @@ public static class AzureFunctionsProjectResourceExtensions
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return builder
-                .WithHttpEndpoint()
-                .WithHttpsEndpoint();
+                .WithHttpEndpoint(targetPort: 8080)
+                .WithHttpsEndpoint(targetPort: 8080);
         }
         var launchProfile = builder.Resource.GetEffectiveLaunchProfile();
         int? port = null;
@@ -161,5 +194,11 @@ public static class AzureFunctionsProjectResourceExtensions
             connectionName ??= source.Resource.Name;
             source.Resource.ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, connectionName);
         });
+    }
+
+    private static string CreateDefaultStorageName(this IDistributedApplicationBuilder builder)
+    {
+        var applicationHash = builder.Configuration["AppHost:Sha256"]![..5].ToLowerInvariant();
+        return $"{DefaultAzureFunctionsHostStorageName}{applicationHash}";
     }
 }

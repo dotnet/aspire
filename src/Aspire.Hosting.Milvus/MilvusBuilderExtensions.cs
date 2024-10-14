@@ -133,7 +133,7 @@ public static class MilvusBuilderExtensions
     }
 
     /// <summary>
-    /// Adds an administration and development platform for Milvus to the application model using Attu. This version of the package defaults to the <inheritdoc cref="MilvusContainerImageTags.AttuTag"/> tag of the <inheritdoc cref="MilvusContainerImageTags.AttuImage"/> container image
+    /// Adds an administration and development platform for Milvus to the application model using Attu. This version of the package defaults to the <inheritdoc cref="MilvusContainerImageTags.AttuTag"/> tag of the <inheritdoc cref="MilvusContainerImageTags.AttuImage"/> container image.
     /// </summary>
     /// <example>
     /// Use in application host with a Milvus resource

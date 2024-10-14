@@ -25,7 +25,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     private const string NameColumn = nameof(NameColumn);
     private const string SpansColumn = nameof(SpansColumn);
     private const string DurationColumn = nameof(DurationColumn);
-    private const string DetailsColumn = nameof(DetailsColumn);
+    private const string ActionsColumn = nameof(ActionsColumn);
     private IList<GridColumn> _gridColumns = null!;
     private SelectViewModel<ResourceTypeDetails> _allApplication = null!;
 
@@ -35,7 +35,6 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     private Subscription? _applicationsSubscription;
     private Subscription? _tracesSubscription;
     private bool _applicationChanged;
-    private CancellationTokenSource? _filterCts;
     private string _filter = string.Empty;
     private AspirePageContentLayout? _contentLayout;
     private FluentDataGrid<OtlpTrace> _dataGrid = null!;
@@ -83,7 +82,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "filters")]
-    public string? SerializedLogFilters { get; set; }
+    public string? SerializedFilters { get; set; }
 
     private string GetNameTooltip(OtlpTrace trace)
     {
@@ -141,10 +140,10 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             new GridColumn(Name: NameColumn, DesktopWidth: "2fr", MobileWidth: "2fr"),
             new GridColumn(Name: SpansColumn, DesktopWidth: "3fr"),
             new GridColumn(Name: DurationColumn, DesktopWidth: "0.8fr"),
-            new GridColumn(Name: DetailsColumn, DesktopWidth: "0.5fr", MobileWidth: "1fr")
+            new GridColumn(Name: ActionsColumn, DesktopWidth: "0.5fr", MobileWidth: "1fr")
         ];
 
-        _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = ControlsStringsLoc[name: nameof(ControlsStrings.All)] };
+        _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = ControlsStringsLoc[name: nameof(ControlsStrings.LabelAll)] };
         PageViewModel = new TracesPageViewModel { SelectedApplication = _allApplication };
 
         UpdateApplications();
@@ -184,7 +183,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     private Task HandleSelectedApplicationChanged()
     {
         _applicationChanged = true;
-        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
+        return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
     private void UpdateSubscription()
@@ -203,36 +202,9 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         }
     }
 
-    private void HandleFilter(ChangeEventArgs args)
-    {
-        if (args.Value is string newFilter)
-        {
-            _filterCts?.Cancel();
-
-            // Debouncing logic. Apply the filter after a delay.
-            var cts = _filterCts = new CancellationTokenSource();
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(400, cts.Token);
-                TracesViewModel.FilterText = newFilter;
-                await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
-            });
-        }
-    }
-
     private async Task HandleAfterFilterBindAsync()
     {
-        if (!string.IsNullOrEmpty(_filter))
-        {
-            return;
-        }
-
-        if (_filterCts is not null)
-        {
-            await _filterCts.CancelAsync();
-        }
-
-        TracesViewModel.FilterText = string.Empty;
+        TracesViewModel.FilterText = _filter;
         await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
@@ -274,9 +246,9 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _allApplication);
         TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
 
-        if (SerializedLogFilters is not null)
+        if (SerializedFilters is not null)
         {
-            var filters = LogFilterFormatter.DeserializeLogFiltersFromString(SerializedLogFilters);
+            var filters = TelemetryFilterFormatter.DeserializeFiltersFromString(SerializedFilters);
 
             if (filters.Count > 0)
             {
@@ -293,7 +265,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
 
     public string GetUrlFromSerializableViewModel(TracesPageState serializable)
     {
-        var filters = (serializable.Filters.Count > 0) ? LogFilterFormatter.SerializeLogFiltersToString(serializable.Filters) : null;
+        var filters = (serializable.Filters.Count > 0) ? TelemetryFilterFormatter.SerializeFiltersToString(serializable.Filters) : null;
 
         return DashboardUrls.TracesUrl(
             resource: serializable.SelectedApplication,
@@ -350,7 +322,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             }
         }
 
-        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
     public class TracesPageViewModel

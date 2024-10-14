@@ -16,7 +16,7 @@ else
 fi
 
 REPO_ROOT=$(cd "${scriptroot}";pwd)
-SDK_PATH=$REPO_ROOT/artifacts/bin/dotnet-latest
+SDK_PATH=$REPO_ROOT/artifacts/bin/dotnet-tests
 if [ ! -x "$SDK_PATH/dotnet" ]; then
     echo "Error: Could not find dotnet at $SDK_PATH/dotnet"
     return

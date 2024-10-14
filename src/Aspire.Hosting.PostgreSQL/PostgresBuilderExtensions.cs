@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
 using System.Text;
+using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Utils;
@@ -19,7 +19,7 @@ public static class PostgresBuilderExtensions
     private const string PasswordEnvVarName = "POSTGRES_PASSWORD";
 
     /// <summary>
-    /// Adds a PostgreSQL resource to the application model. A container is used for local development. This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.Tag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.Image"/> container image
+    /// Adds a PostgreSQL resource to the application model. A container is used for local development. This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.Tag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.Image"/> container image.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -69,7 +69,7 @@ public static class PostgresBuilderExtensions
             //
             //       https://github.com/npgsql/npgsql/blob/c3b31c393de66a4b03fba0d45708d46a2acb06d2/src/Npgsql/NpgsqlConnection.cs#L445
             //
-            connection.ConnectionString = connection.ConnectionString + ";Database=postgres;";
+            connection.ConnectionString += ";Database=postgres;";
         });
 
         return builder.AddResource(postgresServer)
@@ -120,7 +120,7 @@ public static class PostgresBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a pgAdmin 4 administration and development platform for PostgreSQL to the application model. This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgAdminTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgAdminImage"/> container image
+    /// Adds a pgAdmin 4 administration and development platform for PostgreSQL to the application model. This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgAdminTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgAdminImage"/> container image.
     /// </summary>
     /// <param name="builder">The PostgreSQL server resource builder.</param>
     /// <param name="configureContainer">Callback to configure PgAdmin container resource.</param>
@@ -147,6 +147,7 @@ public static class PostgresBuilderExtensions
                                                  .WithHttpEndpoint(targetPort: 80, name: "http")
                                                  .WithEnvironment(SetPgAdminEnvironmentVariables)
                                                  .WithBindMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
+                                                 .WithHttpHealthCheck("/browser")
                                                  .ExcludeFromManifest();
 
             builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
@@ -182,7 +183,7 @@ public static class PostgresBuilderExtensions
                         // This will need to be refactored once updated service discovery APIs are available
                         writer.WriteString("Host", endpoint.Resource.Name);
                         writer.WriteNumber("Port", (int)endpoint.TargetPort!);
-                        writer.WriteString("Username", "postgres");
+                        writer.WriteString("Username", postgresInstance.UserNameParameter?.Value ?? "postgres");
                         writer.WriteString("SSLMode", "prefer");
                         writer.WriteString("MaintenanceDB", "postgres");
                         writer.WriteString("PasswordExecCommand", $"echo '{postgresInstance.PasswordParameter.Value}'"); // HACK: Generating a pass file and playing around with chmod is too painful.

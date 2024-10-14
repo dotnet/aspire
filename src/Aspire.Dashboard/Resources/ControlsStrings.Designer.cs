@@ -61,11 +61,38 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to (All).
+        ///   Looks up a localized string similar to Actions.
         /// </summary>
-        public static string All {
+        public static string ActionsButtonText {
             get {
-                return ResourceManager.GetString("All", resourceCulture);
+                return ResourceManager.GetString("ActionsButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Actions.
+        /// </summary>
+        public static string ActionsColumnHeader {
+            get {
+                return ResourceManager.GetString("ActionsColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Structured logs.
+        /// </summary>
+        public static string ActionStructuredLogsText {
+            get {
+                return ResourceManager.GetString("ActionStructuredLogsText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to View details.
+        /// </summary>
+        public static string ActionViewDetailsText {
+            get {
+                return ResourceManager.GetString("ActionViewDetailsText", resourceCulture);
             }
         }
         
@@ -232,6 +259,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Exception details.
+        /// </summary>
+        public static string ExceptionDetailsTitle {
+            get {
+                return ResourceManager.GetString("ExceptionDetailsTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Filter....
         /// </summary>
         public static string FilterPlaceholder {
@@ -318,6 +354,42 @@ namespace Aspire.Dashboard.Resources {
         public static string GridValueMaskShowValue {
             get {
                 return ResourceManager.GetString("GridValueMaskShowValue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to (All).
+        /// </summary>
+        public static string LabelAll {
+            get {
+                return ResourceManager.GetString("LabelAll", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to (Empty).
+        /// </summary>
+        public static string LabelEmpty {
+            get {
+                return ResourceManager.GetString("LabelEmpty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to (None).
+        /// </summary>
+        public static string LabelNone {
+            get {
+                return ResourceManager.GetString("LabelNone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to (Unset).
+        /// </summary>
+        public static string LabelUnset {
+            get {
+                return ResourceManager.GetString("LabelUnset", resourceCulture);
             }
         }
         
@@ -417,15 +489,6 @@ namespace Aspire.Dashboard.Resources {
         public static string NameColumnHeader {
             get {
                 return ResourceManager.GetString("NameColumnHeader", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to (None).
-        /// </summary>
-        public static string None {
-            get {
-                return ResourceManager.GetString("None", resourceCulture);
             }
         }
         
@@ -543,6 +606,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourceDropdownReplicaAccessibleTitle {
             get {
                 return ResourceManager.GetString("ResourceDropdownReplicaAccessibleTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Health checks.
+        /// </summary>
+        public static string ResourceHealthChecksHeader {
+            get {
+                return ResourceManager.GetString("ResourceHealthChecksHeader", resourceCulture);
             }
         }
         
@@ -669,6 +741,42 @@ namespace Aspire.Dashboard.Resources {
         public static string SpanDetailsStartTime {
             get {
                 return ResourceManager.GetString("SpanDetailsStartTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to State.
+        /// </summary>
+        public static string StateColumnHeader {
+            get {
+                return ResourceManager.GetString("StateColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add filter.
+        /// </summary>
+        public static string StructuredFilteringAddFilter {
+            get {
+                return ResourceManager.GetString("StructuredFilteringAddFilter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filters.
+        /// </summary>
+        public static string StructuredFilteringFilters {
+            get {
+                return ResourceManager.GetString("StructuredFilteringFilters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No filters.
+        /// </summary>
+        public static string StructuredFilteringNoFilters {
+            get {
+                return ResourceManager.GetString("StructuredFilteringNoFilters", resourceCulture);
             }
         }
         

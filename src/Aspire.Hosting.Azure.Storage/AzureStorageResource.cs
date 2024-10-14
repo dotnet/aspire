@@ -47,19 +47,19 @@ public class AzureStorageResource(string name, Action<ResourceModuleConstruct> c
     /// </summary>
     /// <returns></returns>
     internal ReferenceExpression GetEmulatorConnectionString() => IsEmulator
-       ? ReferenceExpression.Create($"{AzureStorageEmulatorConnectionString.Create(blobPort: EmulatorBlobEndpoint.Port, queuePort: EmulatorQueueEndpoint.Port, tablePort: EmulatorTableEndpoint.Port)}")
+       ? AzureStorageEmulatorConnectionString.Create(blobEndpoint: EmulatorBlobEndpoint, queueEndpoint: EmulatorQueueEndpoint, tableEndpoint: EmulatorTableEndpoint)
        : throw new InvalidOperationException("The Azure Storage resource is not running in the local emulator.");
 
     internal ReferenceExpression GetTableConnectionString() => IsEmulator
-        ? ReferenceExpression.Create($"{AzureStorageEmulatorConnectionString.Create(tablePort: EmulatorTableEndpoint.Port)}")
+        ? AzureStorageEmulatorConnectionString.Create(tableEndpoint: EmulatorTableEndpoint)
         : ReferenceExpression.Create($"{TableEndpoint}");
 
     internal ReferenceExpression GetQueueConnectionString() => IsEmulator
-        ? ReferenceExpression.Create($"{AzureStorageEmulatorConnectionString.Create(queuePort: EmulatorQueueEndpoint.Port)}")
+        ? AzureStorageEmulatorConnectionString.Create(queueEndpoint: EmulatorQueueEndpoint)
         : ReferenceExpression.Create($"{QueueEndpoint}");
 
     internal ReferenceExpression GetBlobConnectionString() => IsEmulator
-        ? ReferenceExpression.Create($"{AzureStorageEmulatorConnectionString.Create(blobPort: EmulatorBlobEndpoint.Port)}")
+        ? AzureStorageEmulatorConnectionString.Create(blobEndpoint: EmulatorBlobEndpoint)
         : ReferenceExpression.Create($"{BlobEndpoint}");
 
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)

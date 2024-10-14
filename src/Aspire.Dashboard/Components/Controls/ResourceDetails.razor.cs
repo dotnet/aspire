@@ -16,12 +16,6 @@ public partial class ResourceDetails
     [Parameter]
     public bool ShowSpecOnlyToggle { get; set; }
 
-    [Inject]
-    public required ILogger<ResourceDetails> Logger { get; init; }
-
-    [Inject]
-    public required BrowserTimeProvider TimeProvider { get; init; }
-
     private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceProperties(ordered: false).Any(static vm => vm.KnownProperty is null);
 
     // NOTE Excludes endpoints as they don't expose sensitive items (and enumerating endpoints is non-trivial)
@@ -32,7 +26,7 @@ public partial class ResourceDetails
 
     private IQueryable<EnvironmentVariableViewModel> FilteredEnvironmentVariables =>
         Resource.Environment
-            .Where(vm => (_showAll || vm.FromSpec) && vm.MatchesFilter(_filter))
+            .Where(vm => (_showAll || vm.FromSpec) && ((IPropertyGridItem)vm).MatchesFilter(_filter))
             .AsQueryable();
 
     private IQueryable<DisplayedEndpoint> FilteredEndpoints =>
@@ -41,10 +35,14 @@ public partial class ResourceDetails
             .AsQueryable();
 
     private IQueryable<VolumeViewModel> FilteredVolumes =>
-        Resource.Volumes.Where(vm =>
-            vm.Source?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true ||
-            vm.Target?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true
-        ).AsQueryable();
+        Resource.Volumes
+            .Where(vm => vm.MatchesFilter(_filter))
+            .AsQueryable();
+
+    private IQueryable<HealthReportViewModel> FilteredHealthReports =>
+        Resource.HealthReports
+            .Where(vm => vm.MatchesFilter(_filter))
+            .AsQueryable();
 
     private IQueryable<ResourcePropertyViewModel> FilteredResourceProperties =>
         GetResourceProperties(ordered: true)
@@ -54,6 +52,7 @@ public partial class ResourceDetails
     private bool _isVolumesExpanded;
     private bool _isEnvironmentVariablesExpanded;
     private bool _isEndpointsExpanded;
+    private bool _isHealthChecksExpanded;
 
     private string _filter = "";
     private bool _isMaskAllChecked = true;
@@ -70,6 +69,7 @@ public partial class ResourceDetails
             _isEndpointsExpanded = GetEndpoints().Any();
             _isEnvironmentVariablesExpanded = _resource.Environment.Any();
             _isVolumesExpanded = _resource.Volumes.Any();
+            _isHealthChecksExpanded = _resource.HealthReports.Any() || _resource.HealthStatus is null; // null means we're waiting for health reports
 
             foreach (var item in SensitiveGridItems)
             {

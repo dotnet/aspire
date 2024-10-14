@@ -8,6 +8,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Bunit;
+using Microsoft.Extensions.Logging.Abstractions;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using Xunit;
@@ -52,6 +53,8 @@ public class PlotlyChartTests : TestContext
         MetricsSetupHelpers.SetupPlotlyChart(this);
 
         var options = new TelemetryLimitOptions();
+        var logger = NullLogger.Instance;
+        var context = new OtlpContext { Options = options, Logger = logger };
         var instrument = new OtlpInstrument
         {
             Summary = new OtlpInstrumentSummary
@@ -62,10 +65,10 @@ public class PlotlyChartTests : TestContext
                 Parent = new OtlpMeter(new InstrumentationScope
                 {
                     Name = "Parent-Name-<b>Bold</b>"
-                }, options),
+                }, context),
                 Type = OtlpInstrumentType.Sum
             },
-            Options = options,
+            Context = context
         };
 
         var model = new InstrumentViewModel();
@@ -75,7 +78,7 @@ public class PlotlyChartTests : TestContext
             AsInt = 1,
             StartTimeUnixNano = 0,
             TimeUnixNano = long.MaxValue
-        }, options);
+        }, context);
 
         await model.UpdateDataAsync(instrument.Summary, [dimension]);
 

@@ -1,9 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Data.Common;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Qdrant;
 using Aspire.Hosting.Utils;
+using Aspire.Qdrant.Client;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting;
 
@@ -42,6 +46,25 @@ public static class QdrantBuilderExtensions
         var apiKeyParameter = apiKey?.Resource ??
             ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-Key", special: false);
         var qdrant = new QdrantServerResource(name, apiKeyParameter);
+
+        HttpClient? httpClient = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(qdrant, async (@event, ct) =>
+        {
+            var connectionString = await qdrant.HttpConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false)
+            ?? throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{qdrant.Name}' resource but the connection string was null.");
+            httpClient = CreateQdrantHttpClient(connectionString);
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks()
+          .Add(new HealthCheckRegistration(
+              healthCheckKey,
+              sp => new QdrantHealthCheck(httpClient!),
+              failureStatus: default,
+              tags: default,
+              timeout: default));
+
         return builder.AddResource(qdrant)
             .WithImage(QdrantContainerImageTags.Image, QdrantContainerImageTags.Tag)
             .WithImageRegistry(QdrantContainerImageTags.Registry)
@@ -61,7 +84,8 @@ public static class QdrantBuilderExtensions
                 {
                     context.EnvironmentVariables[EnableStaticContentEnvVarName] = "0";
                 }
-            });
+            })
+            .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -116,5 +140,46 @@ public static class QdrantBuilderExtensions
         });
 
         return builder;
+    }
+
+    private static HttpClient CreateQdrantHttpClient(string? connectionString)
+    {
+        if (connectionString is null)
+        {
+            throw new InvalidOperationException("Connection string is unavailable");
+        }
+
+        Uri? endpoint = null;
+        string? key = null;
+
+        if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+        {
+            endpoint = uri;
+        }
+        else
+        {
+            var connectionBuilder = new DbConnectionStringBuilder
+            {
+                ConnectionString = connectionString
+            };
+
+            if (connectionBuilder.TryGetValue("Endpoint", out var endpointValue) && Uri.TryCreate(endpointValue.ToString(), UriKind.Absolute, out var serviceUri))
+            {
+                endpoint = serviceUri;
+            }
+
+            if (connectionBuilder.TryGetValue("Key", out var keyValue))
+            {
+                key = keyValue.ToString();
+            }
+        }
+
+        var client = new HttpClient();
+        client.BaseAddress = endpoint;
+        if (key is not null)
+        {
+            client.DefaultRequestHeaders.Add("Api-Key", key);
+        }
+        return client;
     }
 }

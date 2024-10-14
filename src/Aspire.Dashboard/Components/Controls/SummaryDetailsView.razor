@@ -1,5 +1,4 @@
 ﻿@using Aspire.Dashboard.Resources
-@inject IStringLocalizer<ControlsStrings> Loc
 @typeparam T
 
 <div class="summary-details-container">
@@ -26,8 +25,8 @@
     {
         <FluentSplitter Orientation="@Orientation" Collapsed="@(!_internalShowDetails)"
                         OnResized="HandleSplitterResize"
-                        Panel1Size="@_panel1Size" Panel2Size="@_panel2Size"
-                        Panel1MinSize="150px" Panel2MinSize="150px"
+                        Panel1Size="@EffectivePanel1Size" Panel2Size="@EffectivePanel2Size"
+                        Panel1MinSize="@PanelMinimumSize" Panel2MinSize="@PanelMinimumSize"
                         BarSize="5"
                         @ref="_splitterRef">
             <Panel1>

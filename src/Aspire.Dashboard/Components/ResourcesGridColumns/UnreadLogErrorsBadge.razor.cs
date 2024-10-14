@@ -20,8 +20,6 @@ public partial class UnreadLogErrorsBadge
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
-    [Inject]
-    public required NavigationManager NavigationManager { get; init; }
 
     protected override void OnParametersSet()
     {

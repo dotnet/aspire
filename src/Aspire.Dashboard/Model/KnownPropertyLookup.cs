@@ -54,6 +54,7 @@ public sealed class KnownPropertyLookup : IKnownPropertyLookup
             new(KnownProperties.Container.Command, loc[ResourcesDetailsContainerCommandProperty]),
             new(KnownProperties.Container.Args, loc[ResourcesDetailsContainerArgumentsProperty]),
             new(KnownProperties.Container.Ports, loc[ResourcesDetailsContainerPortsProperty]),
+            new(KnownProperties.Container.Lifetime, loc[ResourcesDetailsContainerLifetimeProperty]),
         ];
     }
 
