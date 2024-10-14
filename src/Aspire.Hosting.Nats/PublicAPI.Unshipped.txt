@@ -1,2 +1,6 @@
 #nullable enable
-
+Aspire.Hosting.Nats.NuiContainerResource
+Aspire.Hosting.Nats.NuiContainerResource.NuiContainerResource(string! name) -> void
+Aspire.Hosting.Nats.NuiContainerResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
+static Aspire.Hosting.NatsBuilderExtensions.WithHostPort(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Nats.NuiContainerResource!>! builder, int? port) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Nats.NuiContainerResource!>!
+static Aspire.Hosting.NatsBuilderExtensions.WithNui(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.NatsServerResource!>! builder, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Nats.NuiContainerResource!>!>? configureContainer = null, string? containerName = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.NatsServerResource!>!
