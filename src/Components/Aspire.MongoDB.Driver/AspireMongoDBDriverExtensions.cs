@@ -35,10 +35,14 @@ public static class AspireMongoDBDriverExtensions
         Action<MongoDBSettings>? configureSettings = null,
         Action<MongoClientSettings>? configureClientSettings = null)
     {
-        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
-        builder.AddMongoDBClient(configureSettings, configureClientSettings, connectionName, serviceKey: null);
+        AddMongoDBClient(
+            builder,
+            configureSettings,
+            configureClientSettings,
+            connectionName,
+            serviceKey: null);
     }
 
     /// <summary>
@@ -57,10 +61,10 @@ public static class AspireMongoDBDriverExtensions
         Action<MongoDBSettings>? configureSettings = null,
         Action<MongoClientSettings>? configureClientSettings = null)
     {
-        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        builder.AddMongoDBClient(
+        AddMongoDBClient(
+            builder,
             configureSettings,
             configureClientSettings,
             connectionName: name,
@@ -68,7 +72,7 @@ public static class AspireMongoDBDriverExtensions
     }
 
     private static void AddMongoDBClient(
-        this IHostApplicationBuilder builder,
+        IHostApplicationBuilder builder,
         Action<MongoDBSettings>? configureSettings,
         Action<MongoClientSettings>? configureClientSettings,
         string connectionName,

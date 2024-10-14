@@ -33,10 +33,14 @@ public static class AspireElasticClientsElasticsearchExtensions
         Action<ElasticsearchClientSettings>? configureClientSettings = null
         )
     {
-        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
-        builder.AddElasticsearchClient(configureSettings, configureClientSettings, connectionName, serviceKey: null);
+        AddElasticsearchClient(
+            builder,
+            configureSettings,
+            configureClientSettings,
+            connectionName,
+            serviceKey: null);
     }
 
     /// <summary>
@@ -53,10 +57,10 @@ public static class AspireElasticClientsElasticsearchExtensions
         Action<ElasticClientsElasticsearchSettings>? configureSettings = null,
         Action<ElasticsearchClientSettings>? configureClientSettings = null)
     {
-        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        builder.AddElasticsearchClient(
+        AddElasticsearchClient(
+            builder,
             configureSettings,
             configureClientSettings,
             connectionName: name,
@@ -64,7 +68,7 @@ public static class AspireElasticClientsElasticsearchExtensions
     }
 
     private static void AddElasticsearchClient(
-        this IHostApplicationBuilder builder,
+        IHostApplicationBuilder builder,
         Action<ElasticClientsElasticsearchSettings>? configureSettings,
         Action<ElasticsearchClientSettings>? configureClientSettings,
         string connectionName,
