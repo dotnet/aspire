@@ -31,7 +31,7 @@ public class StateColumnDisplayTests
         /* expected output */ "Exited Unexpectedly TestResourceType 3", "ErrorCircle", Color.Error, "Exited")]
     [InlineData(
         /* state */ KnownResourceState.Finished, 0, null, null,
-        /* expected output */ "Exited TestResourceType", "CheckmarkUnderlineCircle", Color.Success, "Finished")]
+        /* expected output */ "Exited TestResourceType", "RecordStop", Color.Info, "Finished")]
     [InlineData(
         /* state */ KnownResourceState.Unknown, null, null, null,
         /* expected output */ null, "CircleHint", Color.Info, "Unknown")]
