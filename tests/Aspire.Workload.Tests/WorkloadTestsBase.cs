@@ -233,7 +233,9 @@ public partial class WorkloadTestsBase
                 AssertEqual(expectedEndpoints.Length, matchingEndpoints, $"Expected number of endpoints for {resourceName}");
 
                 // Check 'Source' column
-                AssertEqual(expectedRow.Source, await cellLocs[4].InnerTextAsync(), $"Source for {resourceName}");
+                // Since this will be the entire command, we can just confirm that the path of the executable contains
+                // the expected source (executable/project)
+                Assert.Contains(expectedRow.SourceContains, await cellLocs[4].InnerTextAsync());
 
                 foundRows.Add(expectedRow with { Endpoints = endpointsFound.ToArray() });
                 foundNames.Add(resourceName);
