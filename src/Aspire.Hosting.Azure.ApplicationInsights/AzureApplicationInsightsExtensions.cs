@@ -37,32 +37,32 @@ public static class AzureApplicationInsightsExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (AzureResourceInfrastructure construct) =>
+        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
             var appTypeParameter = new ProvisioningParameter("applicationType", typeof(string))
             {
                 Value = new StringLiteral("web")
             };
-            construct.Add(appTypeParameter);
+            infrastructure.Add(appTypeParameter);
 
             var kindParameter = new ProvisioningParameter("kind", typeof(string))
             {
                 Value = new StringLiteral("web")
             };
-            construct.Add(kindParameter);
+            infrastructure.Add(kindParameter);
 
-            var appInsights = new ApplicationInsightsComponent(construct.Resource.GetBicepIdentifier())
+            var appInsights = new ApplicationInsightsComponent(infrastructure.Resource.GetBicepIdentifier())
             {
                 ApplicationType = appTypeParameter,
                 Kind = kindParameter,
                 Tags = { { "aspire-resource-name", name } }
             };
-            construct.Add(appInsights);
+            infrastructure.Add(appInsights);
 
             if (logAnalyticsWorkspace != null)
             {
                 // If someone provides a workspace via the extension method we should use it.
-                appInsights.WorkspaceResourceId = logAnalyticsWorkspace.Resource.WorkspaceId.AsProvisioningParameter(construct, AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId);
+                appInsights.WorkspaceResourceId = logAnalyticsWorkspace.Resource.WorkspaceId.AsProvisioningParameter(infrastructure, AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId);
             }
             else if (builder.ExecutionContext.IsRunMode)
             {
@@ -76,7 +76,7 @@ public static class AzureApplicationInsightsExtensions
                     },
                     Tags = { { "aspire-resource-name", autoInjectedLogAnalyticsWorkspaceName } }
                 };
-                construct.Add(autoInjectedLogAnalyticsWorkspace);
+                infrastructure.Add(autoInjectedLogAnalyticsWorkspace);
 
                 // If the user does not supply a log analytics workspace of their own we still create a parameter on the Aspire
                 // side and the CDK side so that AZD can fill the value in with the one it generates.
@@ -86,19 +86,19 @@ public static class AzureApplicationInsightsExtensions
             {
                 // If the user does not supply a log analytics workspace of their own, and we are in publish mode
                 // then we want AZD to provide one to us.
-                construct.Resource.Parameters.TryAdd(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, null);
+                infrastructure.Resource.Parameters.TryAdd(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, null);
                 var logAnalyticsWorkspaceParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, typeof(string))
                 {
                     Value = new StringLiteral("web")
                 };
-                construct.Add(kindParameter);
+                infrastructure.Add(kindParameter);
                 appInsights.WorkspaceResourceId = logAnalyticsWorkspaceParameter;
             }
 
-            construct.Add(new ProvisioningOutput("appInsightsConnectionString", typeof(string)) { Value = appInsights.ConnectionString });
+            infrastructure.Add(new ProvisioningOutput("appInsightsConnectionString", typeof(string)) { Value = appInsights.ConnectionString });
         };
 
-        var resource = new AzureApplicationInsightsResource(name, configureConstruct);
+        var resource = new AzureApplicationInsightsResource(name, configureInfrastructure);
 
         return builder.AddResource(resource)
                       .WithManifestPublishingCallback(resource.WriteToManifest);

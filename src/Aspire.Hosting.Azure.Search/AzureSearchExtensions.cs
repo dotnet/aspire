@@ -19,7 +19,7 @@ public static class AzureSearchExtensions
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the Azure AI Search resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSearchConstructResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSearchResource}"/>.</returns>
     public static IResourceBuilder<AzureSearchResource> AddAzureSearch(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
         builder.AddAzureProvisioning();
@@ -30,9 +30,9 @@ public static class AzureSearchExtensions
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
 
-        void ConfigureSearch(AzureResourceInfrastructure construct)
+        void ConfigureSearch(AzureResourceInfrastructure infrastructure)
         {
-            var search = new SearchService(construct.Resource.GetBicepIdentifier())
+            var search = new SearchService(infrastructure.Resource.GetBicepIdentifier())
             {
                 SearchSkuName = SearchServiceSkuName.Basic,
                 ReplicaCount = 1,
@@ -41,15 +41,15 @@ public static class AzureSearchExtensions
                 IsLocalAuthDisabled = true,
                 Tags = { { "aspire-resource-name", name } }
             };
-            construct.Add(search);
+            infrastructure.Add(search);
 
-            construct.Add(search.CreateRoleAssignment(SearchBuiltInRole.SearchIndexDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
-            construct.Add(search.CreateRoleAssignment(SearchBuiltInRole.SearchServiceContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            infrastructure.Add(search.CreateRoleAssignment(SearchBuiltInRole.SearchIndexDataContributor, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
+            infrastructure.Add(search.CreateRoleAssignment(SearchBuiltInRole.SearchServiceContributor, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
 
             // TODO: The endpoint format should move into the CDK so we can maintain this
             // logic in a single location and have a better chance at supporting more than
             // just public Azure in the future.  https://github.com/Azure/azure-sdk-for-net/issues/42640
-            construct.Add(new ProvisioningOutput("connectionString", typeof(string))
+            infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
                 Value = BicepFunction.Interpolate($"Endpoint=https://{search.Name}.search.windows.net")
             });

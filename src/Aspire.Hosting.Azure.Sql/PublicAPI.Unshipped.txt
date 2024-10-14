@@ -7,7 +7,7 @@ Aspire.Hosting.Azure.AzureSqlDatabaseResource.AzureSqlDatabaseResource(string! n
 Aspire.Hosting.Azure.AzureSqlDatabaseResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
 Aspire.Hosting.Azure.AzureSqlDatabaseResource.DatabaseName.get -> string!
 Aspire.Hosting.Azure.AzureSqlDatabaseResource.Parent.get -> Aspire.Hosting.Azure.AzureSqlServerResource!
-Aspire.Hosting.Azure.AzureSqlServerResource.AzureSqlServerResource(Aspire.Hosting.ApplicationModel.SqlServerServerResource! innerResource, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureConstruct) -> void
+Aspire.Hosting.Azure.AzureSqlServerResource.AzureSqlServerResource(Aspire.Hosting.ApplicationModel.SqlServerServerResource! innerResource, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureInfrastructure) -> void
 Aspire.Hosting.Azure.AzureSqlServerResource.AzureSqlServerResource(string! name, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureInfrastructure) -> void
 Aspire.Hosting.Azure.AzureSqlServerResource.Databases.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
 *REMOVED*override Aspire.Hosting.Azure.AzureSqlServerResource.Name.get -> string!

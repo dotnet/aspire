@@ -26,7 +26,7 @@ public class AzureResourceInfrastructure : Infrastructure
     }
 
     /// <summary>
-    /// The Azure construct resource that this resource module construct represents.
+    /// The Aspire <see cref="AzureProvisioningResource"/> resource that this <see cref="AzureResourceInfrastructure"/> represents.
     /// </summary>
     public AzureProvisioningResource Resource { get; }
 

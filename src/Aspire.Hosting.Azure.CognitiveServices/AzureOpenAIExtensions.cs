@@ -25,9 +25,9 @@ public static class AzureOpenAIExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (AzureResourceInfrastructure construct) =>
+        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var cogServicesAccount = new CognitiveServicesAccount(construct.Resource.GetBicepIdentifier())
+            var cogServicesAccount = new CognitiveServicesAccount(infrastructure.Resource.GetBicepIdentifier())
             {
                 Kind = "OpenAI",
                 Sku = new CognitiveServicesSku()
@@ -36,16 +36,16 @@ public static class AzureOpenAIExtensions
                 },
                 Properties = new CognitiveServicesAccountProperties()
                 {
-                    CustomSubDomainName = ToLower(Take(Concat(construct.Resource.Name, GetUniqueString(GetResourceGroup().Id)), 24)),
+                    CustomSubDomainName = ToLower(Take(Concat(infrastructure.Resource.Name, GetUniqueString(GetResourceGroup().Id)), 24)),
                     PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
                     // Disable local auth for AOAI since managed identity is used
                     DisableLocalAuth = true
                 },
-                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+                Tags = { { "aspire-resource-name", infrastructure.Resource.Name } }
             };
-            construct.Add(cogServicesAccount);
+            infrastructure.Add(cogServicesAccount);
 
-            construct.Add(new ProvisioningOutput("connectionString", typeof(string))
+            infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
                 Value = new InterpolatedString(
                         "Endpoint={0}",
@@ -60,9 +60,9 @@ public static class AzureOpenAIExtensions
                 // Value = BicepFunction.Interpolate($"Endpoint={cogServicesAccount.Endpoint}")
             });
 
-            construct.Add(cogServicesAccount.CreateRoleAssignment(CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            infrastructure.Add(cogServicesAccount.CreateRoleAssignment(CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
 
-            var resource = (AzureOpenAIResource)construct.Resource;
+            var resource = (AzureOpenAIResource)infrastructure.Resource;
 
             CognitiveServicesAccountDeployment? dependency = null;
 
@@ -88,7 +88,7 @@ public static class AzureOpenAIExtensions
                         Capacity = deployment.SkuCapacity
                     }
                 };
-                construct.Add(cdkDeployment);
+                infrastructure.Add(cdkDeployment);
                 cdkDeployments.Add(cdkDeployment);
 
                 // Subsequent deployments need an explicit dependency on the previous one
@@ -104,7 +104,7 @@ public static class AzureOpenAIExtensions
             }
         };
 
-        var resource = new AzureOpenAIResource(name, configureConstruct);
+        var resource = new AzureOpenAIResource(name, configureInfrastructure);
         return builder.AddResource(resource)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)

@@ -24,7 +24,7 @@ public static class AzureKeyVaultResourceExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = static (AzureResourceInfrastructure infrastructure) =>
+        var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
             var keyVault = new KeyVaultService(infrastructure.Resource.GetBicepIdentifier())
             {
@@ -57,8 +57,8 @@ public static class AzureKeyVaultResourceExtensions
 
             infrastructure.Add(keyVault.CreateRoleAssignment(KeyVaultBuiltInRole.KeyVaultAdministrator, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
         };
-        var resource = new AzureKeyVaultResource(name, configureConstruct);
 
+        var resource = new AzureKeyVaultResource(name, configureInfrastructure);
         return builder.AddResource(resource)
                       // These ambient parameters are only available in development time.
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)

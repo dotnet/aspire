@@ -28,9 +28,9 @@ public static class AzureStorageExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (AzureResourceInfrastructure construct) =>
+        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var storageAccount = new StorageAccount(construct.Resource.GetBicepIdentifier())
+            var storageAccount = new StorageAccount(infrastructure.Resource.GetBicepIdentifier())
             {
                 Kind = StorageKind.StorageV2,
                 AccessTier = StorageAccountAccessTier.Hot,
@@ -48,26 +48,26 @@ public static class AzureStorageExtensions
                 // Disable shared key access to the storage account as managed identity is configured
                 // to access the storage account by default.
                 AllowSharedKeyAccess = false,
-                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+                Tags = { { "aspire-resource-name", infrastructure.Resource.Name } }
             };
-            construct.Add(storageAccount);
+            infrastructure.Add(storageAccount);
 
             var blobs = new BlobService("blobs")
             {
                 Parent = storageAccount
             };
-            construct.Add(blobs);
+            infrastructure.Add(blobs);
 
-            construct.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageBlobDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
-            construct.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageTableDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
-            construct.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageQueueDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageBlobDataContributor, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
+            infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageTableDataContributor, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
+            infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageQueueDataContributor, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
 
-            construct.Add(new ProvisioningOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.BlobUri });
-            construct.Add(new ProvisioningOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.QueueUri });
-            construct.Add(new ProvisioningOutput("tableEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.TableUri });
+            infrastructure.Add(new ProvisioningOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.BlobUri });
+            infrastructure.Add(new ProvisioningOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.QueueUri });
+            infrastructure.Add(new ProvisioningOutput("tableEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.TableUri });
         };
 
-        var resource = new AzureStorageResource(name, configureConstruct);
+        var resource = new AzureStorageResource(name, configureInfrastructure);
         return builder.AddResource(resource)
                       // These ambient parameters are only available in development time.
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)

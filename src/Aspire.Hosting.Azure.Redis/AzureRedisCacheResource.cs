@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Azure;
 /// Represents an Azure Cache for Redis resource.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="configureInfrastructure">Callback to populate the construct with Azure resources.</param>
+/// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
 public class AzureRedisCacheResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
     AzureProvisioningResource(name, configureInfrastructure),
     IResourceWithConnectionString

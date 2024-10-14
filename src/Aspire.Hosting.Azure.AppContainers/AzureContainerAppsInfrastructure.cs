@@ -79,11 +79,11 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
         {
             var context = await ProcessResourceAsync(resource, executionContext, cancellationToken).ConfigureAwait(false);
 
-            var construct = new AzureProvisioningResource(resource.Name, context.BuildContainerApp);
+            var provisioningResource = new AzureProvisioningResource(resource.Name, context.BuildContainerApp);
 
-            construct.Annotations.Add(new ManifestPublishingCallbackAnnotation(construct.WriteToManifest));
+            provisioningResource.Annotations.Add(new ManifestPublishingCallbackAnnotation(construct.WriteToManifest));
 
-            return construct;
+            return provisioningResource;
         }
 
         private async Task<ContainerAppContext> ProcessResourceAsync(IResource resource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
@@ -190,7 +190,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                     containerAppContainer.VolumeMounts.Add(mountedVolume);
                 }
 
-                // Add parameters to the construct
+                // Add parameters to the provisioningResource
                 foreach (var (_, parameter) in _provisioningParameters)
                 {
                     c.Add(parameter);

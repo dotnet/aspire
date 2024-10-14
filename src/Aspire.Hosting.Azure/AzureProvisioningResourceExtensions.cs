@@ -18,13 +18,13 @@ public static class AzureProvisioningResourceExtensions
     /// </summary>
     /// <param name="builder">The distributed application builder.</param>
     /// <param name="name">The name of the resource being added.</param>
-    /// <param name="configureConstruct">A callback used to configure the construct resource.</param>
+    /// <param name="configureInfrastructure">A callback used to configure the infrastructure resource.</param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureProvisioningResource> AddAzureInfrastructure(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<AzureResourceInfrastructure> configureConstruct)
+    public static IResourceBuilder<AzureProvisioningResource> AddAzureInfrastructure(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<AzureResourceInfrastructure> configureInfrastructure)
     {
         builder.AddAzureProvisioning();
 
-        var resource = new AzureProvisioningResource(name, configureConstruct);
+        var resource = new AzureProvisioningResource(name, configureInfrastructure);
         return builder.AddResource(resource)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
@@ -47,14 +47,14 @@ public static class AzureProvisioningResourceExtensions
     }
 
     /// <summary>
-    /// Creates a new <see cref="ProvisioningParameter"/> in <paramref name="construct"/>, or reuses an existing bicep parameter if one with
+    /// Creates a new <see cref="ProvisioningParameter"/> in <paramref name="infrastructure"/>, or reuses an existing bicep parameter if one with
     /// the same name already exists, that corresponds to <paramref name="parameterResourceBuilder"/>.
     /// </summary>
     /// <param name="parameterResourceBuilder">
     /// The <see cref="IResourceBuilder{ParameterResource}"/> that represents a parameter in the <see cref="Aspire.Hosting.ApplicationModel" />
     /// to get or create a corresponding <see cref="ProvisioningParameter"/>.
     /// </param>
-    /// <param name="construct">The <see cref="AzureResourceInfrastructure"/> that contains the <see cref="ProvisioningParameter"/>.</param>
+    /// <param name="infrastructure">The <see cref="AzureResourceInfrastructure"/> that contains the <see cref="ProvisioningParameter"/>.</param>
     /// <param name="parameterName">The name of the parameter to be assigned.</param>
     /// <returns>
     /// The corresponding <see cref="ProvisioningParameter"/> that was found or newly created.
@@ -64,36 +64,36 @@ public static class AzureProvisioningResourceExtensions
     /// </remarks>
     [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
         Justification = "The 'this' arguments are mutually exclusive")]
-    public static ProvisioningParameter AsProvisioningParameter(this IResourceBuilder<ParameterResource> parameterResourceBuilder, AzureResourceInfrastructure construct, string? parameterName = null)
+    public static ProvisioningParameter AsProvisioningParameter(this IResourceBuilder<ParameterResource> parameterResourceBuilder, AzureResourceInfrastructure infrastructure, string? parameterName = null)
     {
         ArgumentNullException.ThrowIfNull(parameterResourceBuilder);
-        ArgumentNullException.ThrowIfNull(construct);
+        ArgumentNullException.ThrowIfNull(infrastructure);
 
         parameterName ??= Infrastructure.NormalizeIdentifierName(parameterResourceBuilder.Resource.Name);
 
-        construct.Resource.Parameters[parameterName] = parameterResourceBuilder.Resource;
+        infrastructure.Resource.Parameters[parameterName] = parameterResourceBuilder.Resource;
 
-        var parameter = construct.GetParameters().FirstOrDefault(p => p.IdentifierName == parameterName);
+        var parameter = infrastructure.GetParameters().FirstOrDefault(p => p.IdentifierName == parameterName);
         if (parameter is null)
         {
             parameter = new ProvisioningParameter(parameterName, typeof(string))
             {
                 IsSecure = parameterResourceBuilder.Resource.Secret
             };
-            construct.Add(parameter);
+            infrastructure.Add(parameter);
         }
 
         return parameter;
     }
 
     /// <summary>
-    /// Creates a new <see cref="ProvisioningParameter"/> in <paramref name="construct"/>, or reuses an existing bicep parameter if one with
+    /// Creates a new <see cref="ProvisioningParameter"/> in <paramref name="infrastructure"/>, or reuses an existing bicep parameter if one with
     /// the same name already exists, that corresponds to <paramref name="outputReference"/>.
     /// </summary>
     /// <param name="outputReference">
     /// The <see cref="BicepOutputReference"/> that contains the value to use for the <see cref="ProvisioningParameter"/>.
     /// </param>
-    /// <param name="construct">The <see cref="AzureResourceInfrastructure"/> that contains the <see cref="ProvisioningParameter"/>.</param>
+    /// <param name="infrastructure">The <see cref="AzureResourceInfrastructure"/> that contains the <see cref="ProvisioningParameter"/>.</param>
     /// <param name="parameterName">The name of the parameter to be assigned.</param>
     /// <returns>
     /// The corresponding <see cref="ProvisioningParameter"/> that was found or newly created.
@@ -103,20 +103,20 @@ public static class AzureProvisioningResourceExtensions
     /// </remarks>
     [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
         Justification = "The 'this' arguments are mutually exclusive")]
-    public static ProvisioningParameter AsProvisioningParameter(this BicepOutputReference outputReference, AzureResourceInfrastructure construct, string? parameterName = null)
+    public static ProvisioningParameter AsProvisioningParameter(this BicepOutputReference outputReference, AzureResourceInfrastructure infrastructure, string? parameterName = null)
     {
         ArgumentNullException.ThrowIfNull(outputReference);
-        ArgumentNullException.ThrowIfNull(construct);
+        ArgumentNullException.ThrowIfNull(infrastructure);
 
         parameterName ??= outputReference.Name;
 
-        construct.Resource.Parameters[parameterName] = outputReference;
+        infrastructure.Resource.Parameters[parameterName] = outputReference;
 
-        var parameter = construct.GetParameters().FirstOrDefault(p => p.IdentifierName == parameterName);
+        var parameter = infrastructure.GetParameters().FirstOrDefault(p => p.IdentifierName == parameterName);
         if (parameter is null)
         {
             parameter = new ProvisioningParameter(parameterName, typeof(string));
-            construct.Add(parameter);
+            infrastructure.Add(parameter);
         }
 
         return parameter;

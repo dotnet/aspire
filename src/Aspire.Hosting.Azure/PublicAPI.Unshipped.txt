@@ -11,6 +11,8 @@
 *REMOVED*override Aspire.Hosting.AzureConstructResource.GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true) -> Aspire.Hosting.Azure.BicepTemplateFile
 *REMOVED*override Aspire.Hosting.AzureConstructResource.GetBicepTemplateString() -> string!
 *REMOVED*static Aspire.Hosting.AzureConstructResourceExtensions.AddAzureConstruct(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.ResourceModuleConstruct!>! configureConstruct) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureConstructResource!>!
+*REMOVED*static Aspire.Hosting.AzureConstructResourceExtensions.AssignProperty<T>(this Azure.Provisioning.Resource<T>! resource, System.Linq.Expressions.Expression<System.Func<T, object?>!>! propertySelector, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>! parameterResourceBuilder, string? parameterName = null) -> void
+*REMOVED*static Aspire.Hosting.AzureConstructResourceExtensions.AssignProperty<T>(this Azure.Provisioning.Resource<T>! resource, System.Linq.Expressions.Expression<System.Func<T, object?>!>! propertySelector, Aspire.Hosting.Azure.BicepOutputReference! outputReference, string? parameterName = null) -> void
 Aspire.Hosting.Azure.AspireV8ResourceNamePropertyResolver
 Aspire.Hosting.Azure.AspireV8ResourceNamePropertyResolver.AspireV8ResourceNamePropertyResolver() -> void
 Aspire.Hosting.Azure.AzureProvisioningOptions
@@ -21,26 +23,21 @@ Aspire.Hosting.Azure.AzureProvisioningResource.ConfigureInfrastructure.get -> Sy
 Aspire.Hosting.Azure.AzureProvisioningResource
 Aspire.Hosting.Azure.AzureProvisioningResource.ProvisioningContext.get -> Azure.Provisioning.ProvisioningContext?
 Aspire.Hosting.Azure.AzureProvisioningResource.ProvisioningContext.set -> void
-Aspire.Hosting.AzureProvisioningResourceExtensions
 Aspire.Hosting.Azure.AzureResourceInfrastructure
 Aspire.Hosting.Azure.AzureResourceInfrastructure.PrincipalIdParameter.get -> Azure.Provisioning.ProvisioningParameter!
 Aspire.Hosting.Azure.AzureResourceInfrastructure.PrincipalNameParameter.get -> Azure.Provisioning.ProvisioningParameter!
 Aspire.Hosting.Azure.AzureResourceInfrastructure.PrincipalTypeParameter.get -> Azure.Provisioning.ProvisioningParameter!
 Aspire.Hosting.Azure.AzureResourceInfrastructure.Resource.get -> Aspire.Hosting.Azure.AzureProvisioningResource!
+Aspire.Hosting.Azure.IResourceWithAzureFunctionsConfig
+Aspire.Hosting.Azure.IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string!, object!>! target, string! connectionName) -> void
+Aspire.Hosting.AzureProvisioningResourceExtensions
 override Aspire.Hosting.Azure.AspireV8ResourceNamePropertyResolver.ResolveName(Azure.Provisioning.ProvisioningContext! context, Azure.Provisioning.Primitives.Resource! resource, Azure.Provisioning.Primitives.ResourceNameRequirements requirements) -> Azure.Provisioning.BicepValue<string!>?
 override Aspire.Hosting.Azure.AzureProvisioningResource.GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true) -> Aspire.Hosting.Azure.BicepTemplateFile
 override Aspire.Hosting.Azure.AzureProvisioningResource.GetBicepTemplateString() -> string!
 static Aspire.Hosting.AzureBicepResourceExtensions.WithParameter<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, Aspire.Hosting.ApplicationModel.EndpointReference! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.AzureBicepResourceExtensions.WithParameter<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, Aspire.Hosting.ApplicationModel.ReferenceExpression! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
-Aspire.Hosting.Azure.IResourceWithAzureFunctionsConfig
-Aspire.Hosting.Azure.IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string!, object!>! target, string! connectionName) -> void
-*REMOVED*Aspire.Hosting.ResourceModuleConstruct.PrincipalIdParameter.get -> Azure.Provisioning.Parameter
-*REMOVED*Aspire.Hosting.ResourceModuleConstruct.PrincipalNameParameter.get -> Azure.Provisioning.Parameter
-*REMOVED*Aspire.Hosting.ResourceModuleConstruct.PrincipalTypeParameter.get -> Azure.Provisioning.Parameter
-*REMOVED*static Aspire.Hosting.AzureConstructResourceExtensions.AssignProperty<T>(this Azure.Provisioning.Resource<T>! resource, System.Linq.Expressions.Expression<System.Func<T, object?>!>! propertySelector, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>! parameterResourceBuilder, string? parameterName = null) -> void
-*REMOVED*static Aspire.Hosting.AzureConstructResourceExtensions.AssignProperty<T>(this Azure.Provisioning.Resource<T>! resource, System.Linq.Expressions.Expression<System.Func<T, object?>!>! propertySelector, Aspire.Hosting.Azure.BicepOutputReference! outputReference, string? parameterName = null) -> void
-static Aspire.Hosting.AzureProvisioningResourceExtensions.AddAzureInfrastructure(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureConstruct) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureProvisioningResource!>!
-static Aspire.Hosting.AzureProvisioningResourceExtensions.AsProvisioningParameter(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>! parameterResourceBuilder, Aspire.Hosting.Azure.AzureResourceInfrastructure! construct, string? parameterName = null) -> Azure.Provisioning.ProvisioningParameter!
-static Aspire.Hosting.AzureProvisioningResourceExtensions.AsProvisioningParameter(this Aspire.Hosting.Azure.BicepOutputReference! outputReference, Aspire.Hosting.Azure.AzureResourceInfrastructure! construct, string? parameterName = null) -> Azure.Provisioning.ProvisioningParameter!
+static Aspire.Hosting.AzureProvisioningResourceExtensions.AddAzureInfrastructure(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureInfrastructure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureProvisioningResource!>!
+static Aspire.Hosting.AzureProvisioningResourceExtensions.AsProvisioningParameter(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>! parameterResourceBuilder, Aspire.Hosting.Azure.AzureResourceInfrastructure! infrastructure, string? parameterName = null) -> Azure.Provisioning.ProvisioningParameter!
+static Aspire.Hosting.AzureProvisioningResourceExtensions.AsProvisioningParameter(this Aspire.Hosting.Azure.BicepOutputReference! outputReference, Aspire.Hosting.Azure.AzureResourceInfrastructure! infrastructure, string? parameterName = null) -> Azure.Provisioning.ProvisioningParameter!
 static Aspire.Hosting.AzureProvisioningResourceExtensions.ConfigureInfrastructure<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.AzureResourceExtensions.GetBicepIdentifier(this Aspire.Hosting.ApplicationModel.IAzureResource! resource) -> string!

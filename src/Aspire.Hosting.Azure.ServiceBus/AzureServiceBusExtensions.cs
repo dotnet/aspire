@@ -24,7 +24,7 @@ public static class AzureServiceBusExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = static (AzureResourceInfrastructure infrastructure) =>
+        var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
             var skuParameter = new ProvisioningParameter("sku", typeof(string))
             {
@@ -81,7 +81,7 @@ public static class AzureServiceBusExtensions
             }
         };
 
-        var resource = new AzureServiceBusResource(name, configureConstruct);
+        var resource = new AzureServiceBusResource(name, configureInfrastructure);
         return builder.AddResource(resource)
                       // These ambient parameters are only available in development time.
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
