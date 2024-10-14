@@ -25,31 +25,40 @@ public partial class StateColumnDisplay
     [Inject]
     public required IStringLocalizer<Columns> Loc { get; init; }
 
+    internal static string? GetResourceStateTooltip(ResourceViewModel resource, IStringLocalizer<Columns> loc)
+    {
+        return GetResourceStateTooltip(
+            resource,
+            loc[Columns.StateColumnResourceExitedUnexpectedly].Value,
+            loc[Columns.StateColumnResourceExited].Value,
+            loc[nameof(Columns.RunningAndUnhealthyResourceStateToolTip)]);
+    }
+
     /// <summary>
     /// Gets the tooltip for a cell in the state column of the resource grid.
     /// </summary>
     /// <remarks>
     /// This is a static method so it can be called at the level of the parent column.
     /// </remarks>
-    public static string? GetResourceStateTooltip(ResourceViewModel resource, IStringLocalizer<Columns> Loc)
+    internal static string? GetResourceStateTooltip(ResourceViewModel resource, string exitedUnexpectedlyTooltip, string exitedTooltip, string runningAndUnhealthyTooltip)
     {
         if (resource.IsStopped())
         {
             if (resource.TryGetExitCode(out var exitCode) && exitCode is not 0)
             {
                 // Process completed unexpectedly, hence the non-zero code. This is almost certainly an error, so warn users.
-                return string.Format(CultureInfo.CurrentCulture, Loc[Columns.StateColumnResourceExitedUnexpectedly], resource.ResourceType, exitCode);
+                return string.Format(CultureInfo.CurrentCulture, exitedUnexpectedlyTooltip, resource.ResourceType, exitCode);
             }
             else
             {
                 // Process completed, which may not have been unexpected.
-                return string.Format(CultureInfo.CurrentCulture, Loc[Columns.StateColumnResourceExited], resource.ResourceType);
+                return string.Format(CultureInfo.CurrentCulture, exitedTooltip, resource.ResourceType);
             }
         }
-        else if (resource.KnownState is KnownResourceState.Running && resource.HealthStatus is not HealthStatus.Healthy)
+        else if (resource is { KnownState: KnownResourceState.Running, HealthStatus: not HealthStatus.Healthy and not null })
         {
             // Resource is running but not healthy (initializing).
-            return Loc[nameof(Columns.RunningAndUnhealthyResourceStateToolTip)];
+            return runningAndUnhealthyTooltip;
         }
 
         return null;
@@ -58,22 +67,22 @@ public partial class StateColumnDisplay
     /// <summary>
     /// Gets data needed to populate the content of the state column.
     /// </summary>
-    private ResourceStateViewModel GetStateViewModel()
+    internal static ResourceStateViewModel GetStateViewModel(ResourceViewModel resource, string unknownStateLabel)
     {
         // Browse the icon library at: https://aka.ms/fluentui-system-icons
 
         Icon icon;
         Color color;
 
-        if (Resource.IsStopped())
+        if (resource.IsStopped())
         {
-            if (Resource.TryGetExitCode(out var exitCode) && exitCode is not 0)
+            if (resource.TryGetExitCode(out var exitCode) && exitCode is not 0)
             {
                 // Process completed unexpectedly, hence the non-zero code. This is almost certainly an error, so warn users.
                 icon = new Icons.Filled.Size16.ErrorCircle();
                 color = Color.Error;
             }
-            else if (Resource.IsFinishedState())
+            else if (resource.IsFinishedState())
             {
                 // Process completed successfully.
                 icon = new Icons.Filled.Size16.CheckmarkUnderlineCircle();
@@ -86,24 +95,24 @@ public partial class StateColumnDisplay
                 color = Color.Warning;
             }
         }
-        else if (Resource.IsUnusableTransitoryState() || Resource.IsUnknownState())
+        else if (resource.IsUnusableTransitoryState() || resource.IsUnknownState())
         {
             icon = new Icons.Filled.Size16.CircleHint(); // A dashed, hollow circle.
             color = Color.Info;
         }
-        else if (Resource.HasNoState())
+        else if (resource.HasNoState())
         {
             icon = new Icons.Filled.Size16.Circle();
             color = Color.Neutral;
         }
-        else if (Resource.HealthStatus is not HealthStatus.Healthy and not null)
+        else if (resource.HealthStatus is not HealthStatus.Healthy and not null)
         {
             icon = new Icons.Filled.Size16.CheckmarkCircleWarning();
             color = Color.Neutral;
         }
-        else if (!string.IsNullOrEmpty(Resource.StateStyle))
+        else if (!string.IsNullOrEmpty(resource.StateStyle))
         {
-            (icon, color) = Resource.StateStyle switch
+            (icon, color) = resource.StateStyle switch
             {
                 "warning" => ((Icon)new Icons.Filled.Size16.Warning(), Color.Warning),
                 "error" => (new Icons.Filled.Size16.ErrorCircle(), Color.Error),
@@ -118,15 +127,15 @@ public partial class StateColumnDisplay
             color = Color.Success;
         }
 
-        var text = Resource switch
+        var text = resource switch
         {
-            { State: null or "" } => Loc[Columns.UnknownStateLabel],
-            { KnownState: KnownResourceState.Running, HealthStatus: not HealthStatus.Healthy and not null } => $"{Resource.State.Humanize()} ({(Resource.HealthStatus ?? HealthStatus.Unhealthy).Humanize()})",
-            _ => Resource.State.Humanize()
+            { State: null or "" } => unknownStateLabel,
+            { KnownState: KnownResourceState.Running, HealthStatus: not HealthStatus.Healthy and not null } => $"{resource.State.Humanize()} ({(resource.HealthStatus ?? HealthStatus.Unhealthy).Humanize()})",
+            _ => resource.State.Humanize()
         };
 
         return new ResourceStateViewModel(text, icon, color);
     }
 
-    private record class ResourceStateViewModel(string Text, Icon Icon, Color Color);
+    internal record class ResourceStateViewModel(string Text, Icon Icon, Color Color);
 }

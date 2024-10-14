@@ -1,7 +1,7 @@
-﻿@using Aspire.Dashboard.Model
+﻿@using Aspire.Dashboard.Resources
 
 @{
-    var vm = GetStateViewModel();
+    var vm = GetStateViewModel(Resource, Loc[Columns.UnknownStateLabel]);
 }
 
 <div class="state-column-cell">
