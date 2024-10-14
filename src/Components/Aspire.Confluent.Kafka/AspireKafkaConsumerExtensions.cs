@@ -22,23 +22,52 @@ public static class AspireKafkaConsumerExtensions
 
     /// <inheritdoc cref="AddKafkaConsumer{TKey,TValue}(IHostApplicationBuilder, string, Action{KafkaConsumerSettings}?, Action{IServiceProvider,ConsumerBuilder{TKey,TValue}}?)"/>
     public static void AddKafkaConsumer<TKey, TValue>(this IHostApplicationBuilder builder, string connectionName)
-        => AddKafkaConsumerInternal<TKey, TValue>(builder, null, null, connectionName, serviceKey: null);
+    {
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        AddKafkaConsumerInternal<TKey, TValue>(builder, null, null, connectionName, serviceKey: null);
+    }
 
     /// <inheritdoc cref="AddKafkaConsumer{TKey,TValue}(IHostApplicationBuilder, string, Action{KafkaConsumerSettings}?, Action{IServiceProvider,ConsumerBuilder{TKey,TValue}}?)"/>
     public static void AddKafkaConsumer<TKey, TValue>(this IHostApplicationBuilder builder, string connectionName, Action<KafkaConsumerSettings>? configureSettings)
-        => AddKafkaConsumerInternal<TKey, TValue>(builder, configureSettings, null, connectionName, serviceKey: null);
+    {
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        AddKafkaConsumerInternal<TKey, TValue>(builder, configureSettings, null, connectionName, serviceKey: null);
+    }
 
     /// <inheritdoc cref="AddKafkaConsumer{TKey,TValue}(IHostApplicationBuilder, string, Action{KafkaConsumerSettings}?, Action{IServiceProvider,ConsumerBuilder{TKey,TValue}}?)"/>
     public static void AddKafkaConsumer<TKey, TValue>(this IHostApplicationBuilder builder, string connectionName, Action<ConsumerBuilder<TKey, TValue>>? configureBuilder)
-        => AddKafkaConsumerInternal<TKey, TValue>(builder, null, Wrap(configureBuilder), connectionName, serviceKey: null);
+    {
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        AddKafkaConsumerInternal<TKey, TValue>(builder, null, Wrap(configureBuilder), connectionName, serviceKey: null);
+    }
 
     /// <inheritdoc cref="AddKafkaConsumer{TKey,TValue}(IHostApplicationBuilder, string, Action{KafkaConsumerSettings}?, Action{IServiceProvider,ConsumerBuilder{TKey,TValue}}?)"/>
     public static void AddKafkaConsumer<TKey, TValue>(this IHostApplicationBuilder builder, string connectionName, Action<IServiceProvider, ConsumerBuilder<TKey, TValue>>? configureBuilder)
-        => AddKafkaConsumerInternal<TKey, TValue>(builder, null, configureBuilder, connectionName, serviceKey: null);
+    {
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        AddKafkaConsumerInternal<TKey, TValue>(builder, null, configureBuilder, connectionName, serviceKey: null);
+    }
 
     /// <inheritdoc cref="AddKafkaConsumer{TKey,TValue}(IHostApplicationBuilder, string, Action{KafkaConsumerSettings}?, Action{IServiceProvider,ConsumerBuilder{TKey,TValue}}?)"/>
-    public static void AddKafkaConsumer<TKey, TValue>(this IHostApplicationBuilder builder, string connectionName, Action<KafkaConsumerSettings>? configureSettings, Action<ConsumerBuilder<TKey, TValue>>? configureBuilder)
-        => AddKafkaConsumerInternal<TKey, TValue>(builder, configureSettings, Wrap(configureBuilder), connectionName, serviceKey: null);
+    public static void AddKafkaConsumer<TKey, TValue>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<KafkaConsumerSettings>? configureSettings,
+        Action<ConsumerBuilder<TKey, TValue>>? configureBuilder)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        AddKafkaConsumerInternal<TKey, TValue>(
+            builder,
+            configureSettings,
+            Wrap(configureBuilder),
+            connectionName,
+            serviceKey: null);
+    }
 
     /// <summary>
     /// Registers <see cref="IConsumer{TKey,TValue}"/> as a singleton in the services provided by the <paramref name="builder"/>.
@@ -48,13 +77,27 @@ public static class AspireKafkaConsumerExtensions
     /// <param name="configureSettings">An optional method for customizing the <see cref="KafkaConsumerSettings"/>.</param>
     /// <param name="configureBuilder">An optional method used for customizing the <see cref="ConsumerBuilder{TKey,TValue}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Kafka:Consumer" section.</remarks>
-    public static void AddKafkaConsumer<TKey, TValue>(this IHostApplicationBuilder builder, string connectionName, Action<KafkaConsumerSettings>? configureSettings, Action<IServiceProvider, ConsumerBuilder<TKey, TValue>>? configureBuilder)
-        => AddKafkaConsumerInternal<TKey, TValue>(builder, configureSettings, configureBuilder, connectionName, serviceKey: null);
+    public static void AddKafkaConsumer<TKey, TValue>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<KafkaConsumerSettings>? configureSettings,
+        Action<IServiceProvider, ConsumerBuilder<TKey, TValue>>? configureBuilder)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        AddKafkaConsumerInternal<TKey, TValue>(
+            builder,
+            configureSettings,
+            configureBuilder,
+            connectionName,
+            serviceKey: null);
+    }
 
     /// <inheritdoc cref="AddKeyedKafkaConsumer{TKey, TValue}(IHostApplicationBuilder, string, Action{KafkaConsumerSettings}?, Action{IServiceProvider, ConsumerBuilder{TKey, TValue}}?)"/>
     public static void AddKeyedKafkaConsumer<TKey, TValue>(this IHostApplicationBuilder builder, string name)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddKafkaConsumerInternal<TKey, TValue>(builder, null, null, connectionName: name, serviceKey: name);
     }
 
@@ -62,6 +105,7 @@ public static class AspireKafkaConsumerExtensions
     public static void AddKeyedKafkaConsumer<TKey, TValue>(this IHostApplicationBuilder builder, string name, Action<KafkaConsumerSettings>? configureSettings)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddKafkaConsumerInternal<TKey, TValue>(builder, configureSettings, null, connectionName: name, serviceKey: name);
     }
 
@@ -69,6 +113,7 @@ public static class AspireKafkaConsumerExtensions
     public static void AddKeyedKafkaConsumer<TKey, TValue>(this IHostApplicationBuilder builder, string name, Action<ConsumerBuilder<TKey, TValue>>? configureBuilder)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddKafkaConsumerInternal<TKey, TValue>(builder, null, Wrap(configureBuilder), connectionName: name, serviceKey: name);
     }
 
@@ -76,6 +121,7 @@ public static class AspireKafkaConsumerExtensions
     public static void AddKeyedKafkaConsumer<TKey, TValue>(this IHostApplicationBuilder builder, string name, Action<IServiceProvider, ConsumerBuilder<TKey, TValue>>? configureBuilder)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddKafkaConsumerInternal<TKey, TValue>(builder, null, configureBuilder, connectionName: name, serviceKey: name);
     }
 
@@ -83,6 +129,7 @@ public static class AspireKafkaConsumerExtensions
     public static void AddKeyedKafkaConsumer<TKey, TValue>(this IHostApplicationBuilder builder, string name, Action<KafkaConsumerSettings>? configureSettings, Action<ConsumerBuilder<TKey, TValue>>? configureBuilder)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddKafkaConsumerInternal<TKey, TValue>(builder, configureSettings, Wrap(configureBuilder), connectionName: name, serviceKey: name);
     }
 
@@ -97,6 +144,7 @@ public static class AspireKafkaConsumerExtensions
     public static void AddKeyedKafkaConsumer<TKey, TValue>(this IHostApplicationBuilder builder, string name, Action<KafkaConsumerSettings>? configureSettings, Action<IServiceProvider, ConsumerBuilder<TKey, TValue>>? configureBuilder)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddKafkaConsumerInternal<TKey, TValue>(builder, configureSettings, configureBuilder, connectionName: name, serviceKey: name);
     }
 
@@ -108,8 +156,6 @@ public static class AspireKafkaConsumerExtensions
         string? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(configurationSectionName);
-        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         var settings = BuildConsumerSettings(builder, configureSettings, connectionName);
 
