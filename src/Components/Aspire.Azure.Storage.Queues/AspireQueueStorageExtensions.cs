@@ -105,6 +105,9 @@ public static class AspireQueueStorageExtensions
         protected override TokenCredential? GetTokenCredential(AzureStorageQueuesSettings settings)
             => settings.Credential;
 
+        protected override bool GetMetricsEnabled(AzureStorageQueuesSettings settings)
+            => false;
+
         protected override bool GetTracingEnabled(AzureStorageQueuesSettings settings)
             => !settings.DisableTracing;
     }

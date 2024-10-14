@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -24,26 +23,11 @@ public static class AzureOpenAIExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
-#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.AddAzureOpenAI(name, null);
-#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    }
-
-    /// <summary>
-    /// Adds an Azure OpenAI resource to the application model.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.CognitiveServices.CognitiveServicesAccount"/> resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<IResourceBuilder<AzureOpenAIResource>, ResourceModuleConstruct, CognitiveServicesAccount, IEnumerable<CognitiveServicesAccountDeployment>>? configureResource)
-    {
         builder.AddAzureProvisioning();
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var cogServicesAccount = new CognitiveServicesAccount(name)
+            var cogServicesAccount = new CognitiveServicesAccount(construct.Resource.GetBicepIdentifier())
             {
                 Kind = "OpenAI",
                 Sku = new CognitiveServicesSku()
@@ -52,7 +36,7 @@ public static class AzureOpenAIExtensions
                 },
                 Properties = new CognitiveServicesAccountProperties()
                 {
-                    CustomSubDomainName = ToLower(Take(Concat(name, GetUniqueString(GetResourceGroup().Id)), 24)),
+                    CustomSubDomainName = ToLower(Take(Concat(construct.Resource.Name, GetUniqueString(GetResourceGroup().Id)), 24)),
                     PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
                     // Disable local auth for AOAI since managed identity is used
                     DisableLocalAuth = true
@@ -61,14 +45,14 @@ public static class AzureOpenAIExtensions
             };
             construct.Add(cogServicesAccount);
 
-            construct.Add(new BicepOutput("connectionString", typeof(string))
+            construct.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
                 Value = new InterpolatedString(
                         "Endpoint={0}",
                         [
                             new MemberExpression(
                                 new MemberExpression(
-                                    new IdentifierExpression(cogServicesAccount.ResourceName),
+                                    new IdentifierExpression(cogServicesAccount.IdentifierName),
                                     "properties"),
                                 "endpoint")
                         ])
@@ -76,7 +60,7 @@ public static class AzureOpenAIExtensions
                 // Value = BicepFunction.Interpolate($"Endpoint={cogServicesAccount.Endpoint}")
             });
 
-            construct.Add(cogServicesAccount.AssignRole(CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(cogServicesAccount.CreateRoleAssignment(CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             var resource = (AzureOpenAIResource)construct.Resource;
 
@@ -85,9 +69,9 @@ public static class AzureOpenAIExtensions
             var cdkDeployments = new List<CognitiveServicesAccountDeployment>();
             foreach (var deployment in resource.Deployments)
             {
-                var cdkDeployment = new CognitiveServicesAccountDeployment(deployment.Name, cogServicesAccount.ResourceVersion)
+                var cdkDeployment = new CognitiveServicesAccountDeployment(Infrastructure.NormalizeIdentifierName(deployment.Name))
                 {
-                    Name = deployment.Name,     
+                    Name = deployment.Name,
                     Parent = cogServicesAccount,
                     Properties = new CognitiveServicesAccountDeploymentProperties()
                     {
@@ -118,9 +102,6 @@ public static class AzureOpenAIExtensions
 
                 dependency = cdkDeployment;
             }
-
-            var resourceBuilder = builder.CreateResourceBuilder(resource);
-            configureResource?.Invoke(resourceBuilder, construct, cogServicesAccount, cdkDeployments);
         };
 
         var resource = new AzureOpenAIResource(name, configureConstruct);

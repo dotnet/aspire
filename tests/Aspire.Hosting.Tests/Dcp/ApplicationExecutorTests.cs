@@ -11,6 +11,7 @@ using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Tests.Utils;
 using k8s.Models;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -41,6 +42,61 @@ public class ApplicationExecutorTests
         // Assert
         var container = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
         Assert.Equal("CustomName", container.Metadata.Annotations["otel-service-name"]);
+    }
+
+    [Fact]
+    public async Task ResourceStarted_ProjectHasReplicas_EventRaisedOnce()
+    {
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
+        });
+
+        var resource = builder.AddProject<Projects.ServiceA>("ServiceA")
+            .WithReplicas(2).Resource;
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix" };
+
+        var beforeStartedEvents = new List<BeforeResourceStartedEvent>();
+        var eventing = new DistributedApplicationEventing();
+        eventing.Subscribe<BeforeResourceStartedEvent>((@event, ct) =>
+        {
+            beforeStartedEvents.Add(@event);
+            return Task.CompletedTask;
+        });
+
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService, dcpOptions: dcpOptions, eventing: eventing, resourceNotificationService: resourceNotificationService);
+        await appExecutor.RunApplicationAsync();
+
+        var executables = kubernetesService.CreatedResources.OfType<Executable>().ToList();
+        Assert.Equal(2, executables.Count);
+
+        var e = Assert.Single(beforeStartedEvents);
+        Assert.Equal(resource, e.Resource);
+
+        var resourceIds = new HashSet<string>();
+        var watchResourceTask = Task.Run(async () =>
+        {
+            await foreach (var item in resourceNotificationService.WatchAsync())
+            {
+                if (item.Resource == resource)
+                {
+                    resourceIds.Add(item.ResourceId);
+                    if (resourceIds.Count == 2)
+                    {
+                        break;
+                    }
+                }
+            }
+        });
+
+        await watchResourceTask.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(2, resourceIds.Count);
     }
 
     [Fact]
@@ -947,7 +1003,9 @@ public class ApplicationExecutorTests
         IConfiguration? configuration = null,
         IKubernetesService? kubernetesService = null,
         DcpOptions? dcpOptions = null,
-        ResourceLoggerService? resourceLoggerService = null)
+        ResourceLoggerService? resourceLoggerService = null,
+        DistributedApplicationEventing? eventing = null,
+        ResourceNotificationService? resourceNotificationService = null)
     {
         if (configuration == null)
         {
@@ -962,7 +1020,10 @@ public class ApplicationExecutorTests
             configuration = builder.Build();
         }
 
-        var eventing = new DistributedApplicationEventing();
+        eventing ??= new DistributedApplicationEventing();
+        resourceLoggerService ??= new ResourceLoggerService();
+        resourceNotificationService ??= ResourceNotificationServiceTestHelpers.Create(resourceLoggerService: resourceLoggerService);
+        dcpOptions ??= new DcpOptions { DashboardPath = "./dashboard" };
 
         return new ApplicationExecutor(
             NullLogger<ApplicationExecutor>.Instance,
@@ -972,16 +1033,17 @@ public class ApplicationExecutorTests
             Array.Empty<IDistributedApplicationLifecycleHook>(),
             configuration,
             new DistributedApplicationOptions(),
-            Options.Create(dcpOptions ?? new DcpOptions { DashboardPath = "./dashboard" }),
+            Options.Create(dcpOptions),
             new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
             {
                 ServiceProvider = TestServiceProvider.Instance
             }),
-            ResourceNotificationServiceTestHelpers.Create(),
-            resourceLoggerService ?? new ResourceLoggerService(),
+            resourceNotificationService,
+            resourceLoggerService,
             new TestDcpDependencyCheckService(),
             eventing,
-            serviceProvider
+            serviceProvider,
+            new DcpNameGenerator(configuration, Options.Create(dcpOptions))
         );
     }
 

@@ -102,6 +102,9 @@ public static class AspireBlobStorageExtensions
         protected override TokenCredential? GetTokenCredential(AzureStorageBlobsSettings settings)
             => settings.Credential;
 
+        protected override bool GetMetricsEnabled(AzureStorageBlobsSettings settings)
+            => false;
+
         protected override bool GetTracingEnabled(AzureStorageBlobsSettings settings)
             => !settings.DisableTracing;
     }

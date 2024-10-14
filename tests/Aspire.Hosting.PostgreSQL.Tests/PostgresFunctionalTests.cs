@@ -144,14 +144,20 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/5785")]
     public async Task VerifyWithPgWeb()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         IResourceBuilder<PgWebContainerResource>? pgWebBuilder = null;
         var dbName = "postgres";
-        var pg = builder.AddPostgres("pg1").WithPgWeb(c => pgWebBuilder = c).AddDatabase(dbName);
+        var pg = builder.AddPostgres("pg1");
+        var db = pg.AddDatabase(dbName);
+        pg.WithPgWeb(c =>
+        {
+            c.WaitFor(pg);
+            pgWebBuilder = c;
+        });
+
         Assert.NotNull(pgWebBuilder);
 
         using var app = builder.Build();

@@ -34,6 +34,16 @@ public interface IPropertyGridItem
     string? Value { get; }
 
     /// <summary>
+    /// Overrides the value to copy. If <see langword="null"/>, <see cref="Value"/> is copied.
+    /// </summary>
+    public string? ValueToCopy => null;
+
+    /// <summary>
+    /// Overrides the value to visualize. If <see langword="null"/>, <see cref="Value"/> is visualized.
+    /// </summary>
+    public string? ValueToVisualize => null;
+
+    /// <summary>
     /// Gets whether this item's value is sensitive and should be masked.
     /// </summary>
     /// <remarks>
@@ -61,11 +71,13 @@ public interface IPropertyGridItem
     /// Gets whether this item matches a filter string.
     /// </summary>
     /// <remarks>
-    /// Default implementation returns <see langword="false"/>.
+    /// Default implementation checks against <see cref="Name"/> and <see cref="Value"/>.
     /// </remarks>
     /// <param name="filter">The search text to match against.</param>
     /// <returns><see langword="true"/> if this item matches the filter, otherwise <see langword="false"/>.</returns>
-    public bool MatchesFilter(string filter) => false;
+    public bool MatchesFilter(string filter)
+        => Name?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
+           Value?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
 }
 
 public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem

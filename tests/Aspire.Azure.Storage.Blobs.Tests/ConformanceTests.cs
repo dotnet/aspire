@@ -34,7 +34,6 @@ public class ConformanceTests : ConformanceTests<BlobServiceClient, AzureStorage
 
     protected override bool CanConnectToServer => s_canConnectToServer.Value;
 
-    protected override bool SupportsNamedConfig => true;
     protected override string? ConfigurationSectionName => "Aspire:Azure:Storage:Blobs";
 
     protected override string ValidJsonConfig => """

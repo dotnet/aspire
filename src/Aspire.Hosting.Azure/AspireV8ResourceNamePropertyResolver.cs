@@ -19,6 +19,6 @@ public sealed class AspireV8ResourceNamePropertyResolver : DynamicResourceNamePr
     public override BicepValue<string>? ResolveName(ProvisioningContext context, Resource resource, ResourceNameRequirements requirements)
     {
         var suffix = GetUniqueSuffix(context, resource);
-        return BicepFunction.ToLower(BicepFunction.Take(BicepFunction.Interpolate($"{resource.ResourceName}{suffix}"), 24));
+        return BicepFunction.ToLower(BicepFunction.Take(BicepFunction.Interpolate($"{resource.IdentifierName}{suffix}"), 24));
     }
 }

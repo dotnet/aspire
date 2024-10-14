@@ -52,12 +52,16 @@ internal sealed class AzureProvisioner(
         var azureResources = new List<(IResource, IAzureResource)>();
         foreach (var resource in appModel.Resources)
         {
-            if (resource is IAzureResource azureResource)
+            if (resource.IsContainer())
+            {
+                continue;
+            }
+            else if (resource is IAzureResource azureResource)
             {
                 // If we are dealing with an Azure resource then we just return it.
                 azureResources.Add((resource, azureResource));
             }
-            if (resource.Annotations.OfType<AzureBicepResourceAnnotation>().SingleOrDefault() is { } annotation)
+            else if (resource.Annotations.OfType<AzureBicepResourceAnnotation>().SingleOrDefault() is { } annotation)
             {
                 // If we aren't an Azure resource and there is no surrogate, return null for
                 // the Azure resource in the tuple (we'll filter it out later.
@@ -67,6 +71,8 @@ internal sealed class AzureProvisioner(
 
         return azureResources;
     }
+
+    private ILookup<IResource, IResourceWithParent>? _parentChildLookup;
 
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
@@ -92,8 +98,15 @@ internal sealed class AzureProvisioner(
             return;
         }
 
-        // Create a map of parents to their children used to propagate state changes later.
-        var parentChildLookup = appModel.Resources.OfType<IResourceWithParent>().ToLookup(r => r.Parent);
+        static IResource? SelectParentResource(IResource resource) => resource switch
+        {
+            IAzureResource ar => ar,
+            IResourceWithParent rp => SelectParentResource(rp.Parent),
+            _ => null
+        };
+
+        // Create a map of parents to their children used to propogate state changes later.
+        _parentChildLookup = appModel.Resources.OfType<IResourceWithParent>().ToLookup(r => r.Parent);
 
         // Sets the state of the resource and all of its children
         async Task UpdateStateAsync((IResource Resource, IAzureResource AzureResource) resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
@@ -110,7 +123,7 @@ internal sealed class AzureProvisioner(
 
             // We basically want child resources to be moved into the same state as their parent resources whenever
             // there is a state update. This is done for us in DCP so we replicate the behavior here in the Azure Provisioner.
-            var childResources = parentChildLookup[resource.Resource];
+            var childResources = _parentChildLookup[resource.Resource];
             foreach (var child in childResources)
             {
                 await notificationService.PublishUpdateAsync(child, stateFactory).ConfigureAwait(false);
@@ -327,6 +340,15 @@ internal sealed class AzureProvisioner(
         {
             var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(resource.Resource, serviceProvider);
             await eventing.PublishAsync(connectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+
+            if (_parentChildLookup![resource.Resource] is { } children)
+            {
+                foreach (var child in children.OfType<IResourceWithConnectionString>())
+                {
+                    var childConnectionStringAvailableEvent = new ConnectionStringAvailableEvent(child, serviceProvider);
+                    await eventing.PublishAsync(childConnectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+                }
+            }
         }
     }
 

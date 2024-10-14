@@ -23,9 +23,6 @@ public partial class EndpointsColumnDisplay
     public string? AdditionalMessage { get; set; }
 
     [Inject]
-    public required ILogger<EndpointsColumnDisplay> Logger { get; init; }
-
-    [Inject]
     public required IStringLocalizer<Columns> Loc { get; init; }
 
     private bool _popoverVisible;

@@ -9,7 +9,7 @@ param principalId string
 
 param principalType string
 
-resource wps1 'Microsoft.SignalRService/webPubSub@2021-10-01' = {
+resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
   name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
   location: location
   sku: {

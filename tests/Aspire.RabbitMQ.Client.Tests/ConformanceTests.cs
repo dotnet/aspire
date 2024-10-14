@@ -34,6 +34,8 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
 
     protected override string ActivitySourceName => "";
 
+    protected override string? ConfigurationSectionName => "Aspire:RabbitMQ:Client";
+
     protected override string ValidJsonConfig => """
         {
           "Aspire": {

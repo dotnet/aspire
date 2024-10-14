@@ -19,11 +19,8 @@ namespace Aspire.Hosting;
 public static class RedisBuilderExtensions
 {
     /// <summary>
-    /// Adds a Redis container to the application model.
+    /// Adds a Redis container to the application model. This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.Tag"/> tag of the <inheritdoc cref="RedisContainerImageTags.Image"/> container image.
     /// </summary>
-    /// <remarks>
-    /// The default image is "redis" and the tag is "7.2.4".
-    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port to bind the underlying container to.</param>
@@ -66,6 +63,7 @@ public static class RedisBuilderExtensions
 
     /// <summary>
     /// Configures a container resource for Redis Commander which is pre-configured to connect to the <see cref="RedisResource"/> that this method is used on.
+    /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.RedisCommanderTag"/> tag of the <inheritdoc cref="RedisContainerImageTags.RedisCommanderImage"/> container image.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the <see cref="RedisResource"/>.</param>
     /// <param name="configureContainer">Configuration callback for Redis Commander container resource.</param>
@@ -128,6 +126,7 @@ public static class RedisBuilderExtensions
 
     /// <summary>
     /// Configures a container resource for Redis Insight which is pre-configured to connect to the <see cref="RedisResource"/> that this method is used on.
+    /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.RedisInsightTag"/> tag of the <inheritdoc cref="RedisContainerImageTags.RedisInsightImage"/> container image.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the <see cref="RedisResource"/>.</param>
     /// <param name="configureContainer">Configuration callback for Redis Insight container resource.</param>
@@ -145,7 +144,6 @@ public static class RedisBuilderExtensions
         }
         else
         {
-            builder.ApplicationBuilder.Services.AddHttpClient();
             containerName ??= $"{builder.Resource.Name}-insight";
 
             var resource = new RedisInsightResource(containerName);
@@ -165,21 +163,14 @@ public static class RedisBuilderExtensions
                     return;
                 }
 
-                var httpClientFactory = e.Services.GetRequiredService<IHttpClientFactory>();
-
                 var redisInsightResource = builder.ApplicationBuilder.Resources.OfType<RedisInsightResource>().Single();
                 var insightEndpoint = redisInsightResource.PrimaryEndpoint;
 
-                var client = httpClientFactory.CreateClient();
+                using var client = new HttpClient();
                 client.BaseAddress = new Uri($"{insightEndpoint.Scheme}://{insightEndpoint.Host}:{insightEndpoint.Port}");
 
                 var rls = e.Services.GetRequiredService<ResourceLoggerService>();
                 var resourceLogger = rls.GetLogger(resource);
-
-                if (resource.AcceptedEula)
-                {
-                    await AcceptRedisInsightEula(resourceLogger, client, ct).ConfigureAwait(false);
-                }
 
                 await ImportRedisDatabases(resourceLogger, redisInstances, client, ct).ConfigureAwait(false);
             });
@@ -249,60 +240,8 @@ public static class RedisBuilderExtensions
                 }
             };
         }
-
-        static async Task AcceptRedisInsightEula(ILogger resourceLogger, HttpClient client, CancellationToken ct)
-        {
-            using (var stream = new MemoryStream())
-            {
-                using var writer = new Utf8JsonWriter(stream);
-
-                writer.WriteStartObject();
-
-                writer.WritePropertyName("agreements");
-                writer.WriteStartObject();
-                writer.WriteBoolean("eula", true);
-                writer.WriteBoolean("analytics", false);
-                writer.WriteBoolean("notifications", false);
-                writer.WriteBoolean("encryption", false);
-                writer.WriteEndObject();
-
-                writer.WriteEndObject();
-
-                await writer.FlushAsync(ct).ConfigureAwait(false);
-                stream.Seek(0, SeekOrigin.Begin);
-                string json = Encoding.UTF8.GetString(stream.ToArray());
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                var apiUrl = $"/api/settings";
-
-                var pipeline = new ResiliencePipelineBuilder().AddRetry(new Polly.Retry.RetryStrategyOptions
-                {
-                    Delay = TimeSpan.FromSeconds(2),
-                    MaxRetryAttempts = 5,
-                }).Build();
-
-                try
-                {
-                    await pipeline.ExecuteAsync(async (ctx) =>
-                    {
-                        var response = await client.PatchAsync(apiUrl, content, ctx)
-                        .ConfigureAwait(false);
-
-                        response.EnsureSuccessStatusCode();
-
-                        var d = await response.Content.ReadAsStringAsync(ctx).ConfigureAwait(false);
-
-                    }, ct).ConfigureAwait(false);
-
-                }
-                catch (Exception ex)
-                {
-                    resourceLogger.LogError("Could accept RedisInsight eula. Reason: {reason}", ex.Message);
-                }
-            };
-        }
-
     }
+
     /// <summary>
     /// Configures the host port that the Redis Commander resource is exposed on instead of using randomly assigned port.
     /// </summary>
@@ -333,20 +272,6 @@ public static class RedisBuilderExtensions
         {
             endpoint.Port = port;
         });
-    }
-
-    /// <summary>
-    /// Configures the acceptance of the End User License Agreement (EULA) for Redis Insight.
-    /// </summary>
-    /// <param name="builder">The resource builder for Redis Insight.</param>
-    /// <param name="accept">A boolean value indicating whether to accept the EULA. If <see langword="true"/>, the EULA is accepted.</param>
-    /// <returns>The resource builder for Redis Insight.</returns>
-    public static IResourceBuilder<RedisInsightResource> WithAcceptEula(this IResourceBuilder<RedisInsightResource> builder, bool accept = true)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        builder.Resource.AcceptedEula = accept;
-        return builder;
     }
 
     /// <summary>

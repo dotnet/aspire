@@ -20,11 +20,6 @@ partial class Resource
             StateStyle = snapshot.StateStyle ?? "",
         };
 
-        if (snapshot.HealthState is HealthStateKind healthState)
-        {
-            resource.HealthState = healthState;
-        }
-
         if (snapshot.CreationTimeStamp.HasValue)
         {
             resource.CreatedAt = Timestamp.FromDateTime(snapshot.CreationTimeStamp.Value.ToUniversalTime());
@@ -68,10 +63,31 @@ partial class Resource
 
         foreach (var command in snapshot.Commands)
         {
-            resource.Commands.Add(new ResourceCommand { CommandType = command.Type, DisplayName = command.DisplayName, IconName = command.IconName ?? string.Empty, IconVariant = MapIconVariant(command.IconVariant), IsHighlighted = command.IsHighlighted, State = MapCommandState(command.State) });
+            resource.Commands.Add(new ResourceCommand { CommandType = command.Type, DisplayName = command.DisplayName, DisplayDescription = command.DisplayDescription ?? string.Empty, Parameter = ResourceSnapshot.ConvertToValue(command.Parameter), ConfirmationMessage = command.ConfirmationMessage ?? string.Empty, IconName = command.IconName ?? string.Empty, IconVariant = MapIconVariant(command.IconVariant), IsHighlighted = command.IsHighlighted, State = MapCommandState(command.State) });
+        }
+
+        if (snapshot.HealthStatus is not null)
+        {
+            resource.HealthStatus = MapHealthStatus(snapshot.HealthStatus.Value);
+        }
+
+        foreach (var report in snapshot.HealthReports)
+        {
+            resource.HealthReports.Add(new HealthReport { Key = report.Name, Description = report.Description ?? "", Status = MapHealthStatus(report.Status), Exception = report.ExceptionText ?? "" });
         }
 
         return resource;
+
+        static HealthStatus MapHealthStatus(Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus healthStatus)
+        {
+            return healthStatus switch
+            {
+                Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy => HealthStatus.Healthy,
+                Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded => HealthStatus.Degraded,
+                Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy => HealthStatus.Unhealthy,
+                _ => throw new InvalidOperationException("Unknown health status: " + healthStatus),
+            };
+        }
     }
 
     private static IconVariant MapIconVariant(Hosting.ApplicationModel.IconVariant? iconVariant)
@@ -95,5 +111,4 @@ partial class Resource
             _ => throw new InvalidOperationException("Unexpected state: " + state)
         };
     }
-
 }

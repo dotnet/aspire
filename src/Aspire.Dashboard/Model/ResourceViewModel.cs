@@ -5,11 +5,14 @@ using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
+using Humanizer;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Model;
@@ -23,7 +26,6 @@ public sealed class ResourceViewModel
     public required string Uid { get; init; }
     public required string? State { get; init; }
     public required string? StateStyle { get; init; }
-    public required ReadinessState ReadinessState { get; init; }
     public required DateTime? CreationTimeStamp { get; init; }
     public required DateTime? StartTimeStamp { get; init; }
     public required DateTime? StopTimeStamp { get; init; }
@@ -32,6 +34,9 @@ public sealed class ResourceViewModel
     public required ImmutableArray<VolumeViewModel> Volumes { get; init; }
     public required FrozenDictionary<string, ResourcePropertyViewModel> Properties { get; init; }
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
+    /// <summary>The health status of the resource. <see langword="null"/> indicates that health status is expected but not yet available.</summary>
+    public required HealthStatus? HealthStatus { get; init; }
+    public required ImmutableArray<HealthReportViewModel> HealthReports { get; init; }
     public KnownResourceState? KnownState { get; init; }
 
     internal bool MatchesFilter(string filter)
@@ -50,7 +55,7 @@ public sealed class ResourceViewModel
                 continue;
             }
 
-            if (item.DisplayName == resource.DisplayName)
+            if (string.Equals(item.DisplayName, resource.DisplayName, StringComparisons.ResourceName))
             {
                 count++;
                 if (count >= 2)
@@ -66,11 +71,27 @@ public sealed class ResourceViewModel
     }
 }
 
-public enum ReadinessState
+public sealed class ResourceViewModelNameComparer : IComparer<ResourceViewModel>
 {
-    Unknown,
-    NotReady,
-    Ready
+    public static readonly ResourceViewModelNameComparer Instance = new();
+
+    public int Compare(ResourceViewModel? x, ResourceViewModel? y)
+    {
+        Debug.Assert(x != null);
+        Debug.Assert(y != null);
+
+        // Use display name by itself first.
+        // This is to avoid the problem of using the full name where one resource is called "database" and another is called "database-admin".
+        // The full names could end up "database-xyz" and "database-admin-xyz", which would put resources out of order.
+        var displayNameResult = StringComparers.ResourceName.Compare(x.DisplayName, y.DisplayName);
+        if (displayNameResult != 0)
+        {
+            return displayNameResult;
+        }
+
+        // Display names are the same so compare with full names.
+        return StringComparers.ResourceName.Compare(x.Name, y.Name);
+    }
 }
 
 [DebuggerDisplay("CommandType = {CommandType}, DisplayName = {DisplayName}")]
@@ -110,21 +131,39 @@ public sealed class CommandViewModel
         // Icons.GetInstance isn't efficient. Cache icon lookup.
         return s_iconCache.GetOrAdd(new IconKey(iconName, iconVariant ?? IconVariant.Regular), static key =>
         {
-            try
+            // We display 16px icons in the UI. Some icons aren't available in 16px size so fall back to 20px.
+            CustomIcon? icon;
+            if (TryGetIcon(key, IconSize.Size16, out icon))
             {
-                return Icons.GetInstance(new IconInfo
-                {
-                    Name = key.IconName,
-                    Variant = key.IconVariant,
-                    Size = IconSize.Size16
-                });
+                return icon;
             }
-            catch
+            if (TryGetIcon(key, IconSize.Size20, out icon))
             {
-                // Icon name couldn't be found.
-                return null;
+                return icon;
             }
+
+            return null;
         });
+    }
+
+    private static bool TryGetIcon(IconKey key, IconSize size, [NotNullWhen(true)] out CustomIcon? icon)
+    {
+        try
+        {
+            icon = Icons.GetInstance(new IconInfo
+            {
+                Name = key.IconName,
+                Variant = key.IconVariant,
+                Size = size
+            });
+            return true;
+        }
+        catch
+        {
+            // Icon name or size couldn't be found.
+            icon = null;
+            return false;
+        }
     }
 }
 
@@ -145,10 +184,6 @@ public sealed class EnvironmentVariableViewModel : IPropertyGridItem
     public bool IsValueMasked { get; set; } = true;
 
     public bool IsValueSensitive => true;
-
-    public bool MatchesFilter(string filter)
-        => Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
-           Value?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
 
     public EnvironmentVariableViewModel(string name, string? value, bool fromSpec)
     {
@@ -251,4 +286,40 @@ public sealed record class VolumeViewModel(string? Source, string Target, string
     string? IPropertyGridItem.Name => Source;
 
     string? IPropertyGridItem.Value => Target;
+
+    public bool MatchesFilter(string filter) =>
+        Source?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
+        Target?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
+}
+
+public sealed record class HealthReportViewModel(string Name, HealthStatus HealthStatus, string? Description, string? ExceptionText)
+{
+    private readonly string _humanizedHealthStatus = HealthStatus.Humanize();
+
+    public string? DisplayedDescription
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(Description))
+            {
+                return Description;
+            }
+
+            if (!string.IsNullOrWhiteSpace(ExceptionText))
+            {
+                var newLineIndex = ExceptionText.IndexOfAny(['\n', '\r']);
+                return newLineIndex > 0 ? ExceptionText[..newLineIndex] : ExceptionText;
+            }
+
+            return null;
+        }
+    }
+
+    public bool MatchesFilter(string filter)
+    {
+        return
+            Name?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
+            Description?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
+            _humanizedHealthStatus.Contains(filter, StringComparison.OrdinalIgnoreCase);
+    }
 }

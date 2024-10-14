@@ -161,7 +161,15 @@ public static partial class AspireEFMySqlExtensions
 #pragma warning disable EF1001 // Internal EF Core API usage.
             if (!settings.DisableRetry || settings.CommandTimeout.HasValue)
             {
-                builder.PatchServiceDescriptor<TContext>(optionsBuilder =>
+                builder.CheckDbContextRegistered<TContext>();
+
+#if NET9_0_OR_GREATER
+                builder.Services.ConfigureDbContext<TContext>(ConfigureRetryAndTimeout);
+#else
+                builder.PatchServiceDescriptor<TContext>(ConfigureRetryAndTimeout);
+#endif
+
+                void ConfigureRetryAndTimeout(DbContextOptionsBuilder optionsBuilder)
                 {
                     if (optionsBuilder.Options.FindExtension<MySqlOptionsExtension>() is not MySqlOptionsExtension extension ||
                         extension.ServerVersion is not ServerVersion serverVersion)
@@ -215,7 +223,7 @@ public static partial class AspireEFMySqlExtensions
                         }
 
                     });
-                });
+                }
             }
 #pragma warning restore EF1001 // Internal EF Core API usage.
         }
