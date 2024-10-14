@@ -96,7 +96,7 @@ public partial class StateColumnDisplay
             icon = new Icons.Filled.Size16.Circle();
             color = Color.Neutral;
         }
-        else if (Resource.HealthStatus is not HealthStatus.Healthy)
+        else if (Resource.HealthStatus is not HealthStatus.Healthy and not null)
         {
             icon = new Icons.Filled.Size16.CheckmarkCircleWarning();
             color = Color.Neutral;
@@ -121,7 +121,7 @@ public partial class StateColumnDisplay
         var text = Resource switch
         {
             { State: null or "" } => Loc[Columns.UnknownStateLabel],
-            { KnownState: KnownResourceState.Running, HealthStatus: not HealthStatus.Healthy } => $"{Resource.State.Humanize()} ({(Resource.HealthStatus ?? HealthStatus.Unhealthy).Humanize()})",
+            { KnownState: KnownResourceState.Running, HealthStatus: not HealthStatus.Healthy and not null } => $"{Resource.State.Humanize()} ({(Resource.HealthStatus ?? HealthStatus.Unhealthy).Humanize()})",
             _ => Resource.State.Humanize()
         };
 
