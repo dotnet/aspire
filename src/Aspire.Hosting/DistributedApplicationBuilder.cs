@@ -151,8 +151,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var appHostName = options.ProjectName ?? _innerBuilder.Environment.ApplicationName;
         AppHostPath = Path.Join(AppHostDirectory, appHostName);
 
-        var appHostShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath));
-        var appHostSha = Convert.ToHexString(appHostShaBytes);
+        var appHostNameShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostName));
+        var appHostNameSha = Convert.ToHexString(appHostNameShaBytes);
 
         // Set configuration
         ConfigurePublishingOptions(options);
@@ -161,7 +161,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             // Make the app host directory available to the application via configuration
             ["AppHost:Directory"] = AppHostDirectory,
             ["AppHost:Path"] = AppHostPath,
-            ["AppHost:Sha256"] = appHostSha,
+            ["AppHost:Sha256"] = appHostNameSha,
         });
 
         _executionContextOptions = _innerBuilder.Configuration["Publishing:Publisher"] switch
@@ -172,7 +172,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
 
-        // 
         Eventing.Subscribe<BeforeResourceStartedEvent>(async (@event, ct) =>
         {
             var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
