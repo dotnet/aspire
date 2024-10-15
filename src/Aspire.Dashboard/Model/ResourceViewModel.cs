@@ -292,9 +292,9 @@ public sealed record class VolumeViewModel(string? Source, string Target, string
         Target?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
 }
 
-public sealed record class HealthReportViewModel(string Name, HealthStatus HealthStatus, string? Description, string? ExceptionText)
+public sealed record class HealthReportViewModel(string Name, HealthStatus? HealthStatus, string? Description, string? ExceptionText)
 {
-    private readonly string _humanizedHealthStatus = HealthStatus.Humanize();
+    private readonly string? _humanizedHealthStatus = HealthStatus?.Humanize();
 
     public string? DisplayedDescription
     {
@@ -320,6 +320,6 @@ public sealed record class HealthReportViewModel(string Name, HealthStatus Healt
         return
             Name?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
             Description?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
-            _humanizedHealthStatus.Contains(filter, StringComparison.OrdinalIgnoreCase);
+            _humanizedHealthStatus?.Contains(filter, StringComparison.OrdinalIgnoreCase) is true;
     }
 }

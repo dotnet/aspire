@@ -66,22 +66,30 @@ partial class Resource
             resource.Commands.Add(new ResourceCommand { CommandType = command.Type, DisplayName = command.DisplayName, DisplayDescription = command.DisplayDescription ?? string.Empty, Parameter = ResourceSnapshot.ConvertToValue(command.Parameter), ConfirmationMessage = command.ConfirmationMessage ?? string.Empty, IconName = command.IconName ?? string.Empty, IconVariant = MapIconVariant(command.IconVariant), IsHighlighted = command.IsHighlighted, State = MapCommandState(command.State) });
         }
 
-        if (snapshot.HealthStatus is not null)
+        if (MapHealthStatus(snapshot.HealthStatus) is { } healthStatus)
         {
-            resource.HealthStatus = MapHealthStatus(snapshot.HealthStatus.Value);
+            resource.HealthStatus = healthStatus;
         }
 
         foreach (var report in snapshot.HealthReports)
         {
-            resource.HealthReports.Add(new HealthReport { Key = report.Name, Description = report.Description ?? "", Status = MapHealthStatus(report.Status), Exception = report.ExceptionText ?? "" });
+            var healthReport = new HealthReport { Key = report.Name, Description = report.Description ?? "", Exception = report.ExceptionText ?? "" };
+
+            if (MapHealthStatus(report.Status) is { } reportStatus)
+            {
+                healthReport.Status = reportStatus;
+            }
+
+            resource.HealthReports.Add(healthReport);
         }
 
         return resource;
 
-        static HealthStatus MapHealthStatus(Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus healthStatus)
+        static HealthStatus? MapHealthStatus(Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus? healthStatus)
         {
             return healthStatus switch
             {
+                null => null,
                 Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy => HealthStatus.Healthy,
                 Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded => HealthStatus.Degraded,
                 Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy => HealthStatus.Unhealthy,

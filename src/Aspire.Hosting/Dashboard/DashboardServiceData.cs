@@ -56,22 +56,24 @@ internal sealed class DashboardServiceData : IAsyncDisposable
 
                 ImmutableArray<HealthReportSnapshot> GetOrCreateHealthReports()
                 {
-                    if (resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out var annotations))
+                    if (!resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out var annotations))
                     {
-                        var enumeratedAnnotations = annotations.ToList();
-                        if (snapshot.HealthReports.Length == enumeratedAnnotations.Count)
-                        {
-                            return snapshot.HealthReports;
-                        }
-
-                        var reportsByKey = snapshot.HealthReports.ToDictionary(report => report.Name);
-                        foreach (var healthCheckAnnotation in enumeratedAnnotations.Where(annotation => !reportsByKey.ContainsKey(annotation.Key)))
-                        {
-                            reportsByKey.Add(healthCheckAnnotation.Key, new HealthReportSnapshot(healthCheckAnnotation.Key, null, "Waiting for initial health check results", null));
-                        }
+                        return snapshot.HealthReports;
                     }
 
-                    return snapshot.HealthReports;
+                    var enumeratedAnnotations = annotations.ToList();
+                    if (snapshot.HealthReports.Length == enumeratedAnnotations.Count)
+                    {
+                        return snapshot.HealthReports;
+                    }
+
+                    var reportsByKey = snapshot.HealthReports.ToDictionary(report => report.Name);
+                    foreach (var healthCheckAnnotation in enumeratedAnnotations.Where(annotation => !reportsByKey.ContainsKey(annotation.Key)))
+                    {
+                        reportsByKey.Add(healthCheckAnnotation.Key, new HealthReportSnapshot(healthCheckAnnotation.Key, null, null, null));
+                    }
+
+                    return [..reportsByKey.Values];
                 }
             }
 
