@@ -51,8 +51,8 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         }
 
         // Stop watching logs from the dashboard when the app host is stopping. Part of the app host shutdown is tearing down the dashboard service.
-        // This happens while the dashboard is using it will cause the dashboard to report an error accessing data.
-        // This event is raised earlier than the hook is disposed, and prevents the app host from printing errors caused by shutdown.
+        // Dashboard services are killed while the dashboard is using them and will cause the dashboard to report an error accessing data.
+        // By stopping here we prevent the app host from printing errors from the dashboard caused by shutdown.
         _dashboardLogsTask = WatchDashboardLogsAsync(hostApplicationLifetime.ApplicationStopping);
 
         return Task.CompletedTask;
