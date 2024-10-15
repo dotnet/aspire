@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
@@ -49,9 +50,29 @@ internal sealed class DashboardServiceData : IAsyncDisposable
                     State = snapshot.State?.Text,
                     StateStyle = snapshot.State?.Style,
                     HealthStatus = snapshot.HealthStatus,
-                    HealthReports = snapshot.HealthReports,
+                    HealthReports = GetOrCreateHealthReports(),
                     Commands = snapshot.Commands
                 };
+
+                ImmutableArray<HealthReportSnapshot> GetOrCreateHealthReports()
+                {
+                    if (resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out var annotations))
+                    {
+                        var enumeratedAnnotations = annotations.ToList();
+                        if (snapshot.HealthReports.Length == enumeratedAnnotations.Count)
+                        {
+                            return snapshot.HealthReports;
+                        }
+
+                        var reportsByKey = snapshot.HealthReports.ToDictionary(report => report.Name);
+                        foreach (var healthCheckAnnotation in enumeratedAnnotations.Where(annotation => !reportsByKey.ContainsKey(annotation.Key)))
+                        {
+                            reportsByKey.Add(healthCheckAnnotation.Key, new HealthReportSnapshot(healthCheckAnnotation.Key, null, "Waiting for initial health check results", null));
+                        }
+                    }
+
+                    return snapshot.HealthReports;
+                }
             }
 
             var timestamp = DateTime.UtcNow;
