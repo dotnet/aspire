@@ -151,9 +151,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var appHostName = options.ProjectName ?? _innerBuilder.Environment.ApplicationName;
         AppHostPath = Path.Join(AppHostDirectory, appHostName);
 
-        var appHostNameShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostName));
-        var appHostNameSha = Convert.ToHexString(appHostNameShaBytes);
-
         // Set configuration
         ConfigurePublishingOptions(options);
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -161,7 +158,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             // Make the app host directory available to the application via configuration
             ["AppHost:Directory"] = AppHostDirectory,
             ["AppHost:Path"] = AppHostPath,
-            ["AppHost:Sha256"] = appHostNameSha,
         });
 
         _executionContextOptions = _innerBuilder.Configuration["Publishing:Publisher"] switch
@@ -176,6 +172,18 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         {
             var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
             await rns.WaitForDependenciesAsync(@event.Resource, ct).ConfigureAwait(false);
+        });
+
+        // Conditionally configure AppHostSha based on execution context. For local scenarios, we want to
+        // account for the path the AppHost is running from to disambiguate between different projects
+        // with the same name as seen in https://github.com/dotnet/aspire/issues/5413. For publish scenarios,
+        // we want to use a stable hash based only on the project name.
+        var appHostShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath));
+        var appHostNameShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostName));
+        var appHostSha = ExecutionContext.IsPublishMode ? Convert.ToHexString(appHostNameShaBytes) : Convert.ToHexString(appHostShaBytes);
+        _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["AppHost:Sha256"] = appHostSha
         });
 
         // Core things
