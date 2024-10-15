@@ -12,6 +12,35 @@ namespace Aspire.Hosting.Tests.Health;
 public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
+    public async Task ResourcesWithoutHealthCheck_HealthyWhenRunning()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var resource = builder.AddResource(new ParentResource("resource"));
+
+        await using var app = await builder.BuildAsync();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Starting, null)
+        });
+
+        var startingEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Starting);
+        Assert.Null(startingEvent.Snapshot.HealthStatus);
+
+        await rns.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
+        });
+
+        var runningEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running);
+        Assert.Equal(HealthStatus.Healthy, runningEvent.Snapshot.HealthStatus);
+
+        await app.StopAsync();
+
+    }
+
+    [Fact]
     public async Task ResourcesWithoutHealthCheckAnnotationsGetReadyEventFired()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
