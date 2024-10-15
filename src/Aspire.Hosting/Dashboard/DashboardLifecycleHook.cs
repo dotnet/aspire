@@ -32,6 +32,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              IHostApplicationLifetime hostApplicationLifetime) : IDistributedApplicationLifecycleHook, IAsyncDisposable
 {
     private Task? _dashboardLogsTask;
+    private CancellationTokenSource? _dashboardLogsCts;
 
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
@@ -53,13 +54,18 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         // Stop watching logs from the dashboard when the app host is stopping. Part of the app host shutdown is tearing down the dashboard service.
         // Dashboard services are killed while the dashboard is using them and will cause the dashboard to report an error accessing data.
         // By stopping here we prevent the app host from printing errors from the dashboard caused by shutdown.
-        _dashboardLogsTask = WatchDashboardLogsAsync(hostApplicationLifetime.ApplicationStopping);
+        _dashboardLogsCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
+
+        _dashboardLogsTask = WatchDashboardLogsAsync(_dashboardLogsCts.Token);
 
         return Task.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()
     {
+        // Stop listening to logs if the lifecycle hook is disposed without the app being shutdown.
+        _dashboardLogsCts?.Cancel();
+
         if (_dashboardLogsTask is not null)
         {
             try
