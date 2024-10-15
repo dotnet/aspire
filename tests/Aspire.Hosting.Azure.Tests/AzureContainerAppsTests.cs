@@ -18,7 +18,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddContainerAppsInfrastructure();
+        builder.AddAzureContainerAppsInfrastructure();
 
         builder.AddContainer("api", "myimage");
 
@@ -109,7 +109,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddContainerAppsInfrastructure();
+        builder.AddAzureContainerAppsInfrastructure();
 
         builder.AddProject<Project>("api", launchProfileName: null)
             .WithHttpEndpoint();
@@ -241,7 +241,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddContainerAppsInfrastructure();
+        builder.AddAzureContainerAppsInfrastructure();
 
         var value = builder.AddParameter("value");
         var minReplicas = builder.AddParameter("minReplicas");
@@ -268,7 +268,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
 
-        var resource = target?.DeploymentTarget as AzureConstructResource;
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
 
         Assert.NotNull(resource);
 
@@ -356,7 +356,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddContainerAppsInfrastructure();
+        builder.AddAzureContainerAppsInfrastructure();
 
         // CosmosDB uses secret outputs
         var db = builder.AddAzureCosmosDB("mydb").AddDatabase("db");
@@ -645,7 +645,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddContainerAppsInfrastructure();
+        builder.AddAzureContainerAppsInfrastructure();
         builder.AddContainer("api", "myimage")
             .PublishAsAzureContainerApp((module, c) =>
             {
@@ -741,7 +741,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddContainerAppsInfrastructure();
+        builder.AddAzureContainerAppsInfrastructure();
 
         builder.AddContainer("api", "myimage")
             .WithVolume("vol1", "/path1")
@@ -875,7 +875,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddContainerAppsInfrastructure();
+        builder.AddAzureContainerAppsInfrastructure();
 
         var db = builder.AddAzureCosmosDB("mydb").AddDatabase("db");
 
@@ -1052,7 +1052,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddContainerAppsInfrastructure();
+        builder.AddAzureContainerAppsInfrastructure();
 
         builder.AddContainer("api", "myimage")
             .WithHttpEndpoint()
@@ -1150,7 +1150,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddContainerAppsInfrastructure();
+        builder.AddAzureContainerAppsInfrastructure();
 
         builder.AddContainer("api", "myimage")
             .WithHttpEndpoint(name: "one", targetPort: 8080)
@@ -1254,7 +1254,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddContainerAppsInfrastructure();
+        builder.AddAzureContainerAppsInfrastructure();
 
         builder.AddContainer("api", "myimage")
             .WithHttpEndpoint()
@@ -1353,7 +1353,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddContainerAppsInfrastructure();
+        builder.AddAzureContainerAppsInfrastructure();
 
         builder.AddProject<Project>("api", launchProfileName: null)
                .WithHttpEndpoint()
@@ -1490,7 +1490,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddContainerAppsInfrastructure();
+        builder.AddAzureContainerAppsInfrastructure();
 
         builder.AddContainer("api", "myimage")
             .WithEndpoint(scheme: "foo");
@@ -1509,7 +1509,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddContainerAppsInfrastructure();
+        builder.AddAzureContainerAppsInfrastructure();
 
         builder.AddContainer("api", "myimage")
             .WithHttpEndpoint(name: "ep1")
@@ -1530,7 +1530,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddContainerAppsInfrastructure();
+        builder.AddAzureContainerAppsInfrastructure();
 
         builder.AddContainer("api", "myimage")
             .WithEndpoint("ep1", e => e.IsExternal = true);
@@ -1549,7 +1549,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddContainerAppsInfrastructure();
+        builder.AddAzureContainerAppsInfrastructure();
 
         builder.AddContainer("api", "myimage")
             .WithHttpEndpoint(targetPort: 80)
@@ -1569,7 +1569,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddContainerAppsInfrastructure();
+        builder.AddAzureContainerAppsInfrastructure();
 
         builder.AddContainer("api", "myimage")
             .WithHttpEndpoint(port: 8081);
@@ -1588,7 +1588,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddContainerAppsInfrastructure();
+        builder.AddAzureContainerAppsInfrastructure();
 
         builder.AddContainer("api", "myimage")
             .WithHttpsEndpoint(port: 8081);
