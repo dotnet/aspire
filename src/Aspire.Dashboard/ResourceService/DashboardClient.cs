@@ -245,7 +245,7 @@ internal sealed class DashboardClient : IDashboardClient
 
                 await WatchResourcesWithRecoveryAsync().ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 // Ignore. This is likely caused by the dashboard client being disposed. We don't want to log.
             }

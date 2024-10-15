@@ -22,7 +22,7 @@ namespace Aspire.Hosting.Dashboard;
 /// Hosts a gRPC service via <see cref="DashboardService"/> (aka the "Resource Service") that a dashboard can connect to.
 /// Configures DI and networking options for the service.
 /// </summary>
-internal sealed class DashboardServiceHost : IHostedService
+internal sealed class DashboardServiceHost : IHostedService, IDashboardServiceHostLifetime
 {
     /// <summary>
     /// Name of the environment variable that optionally specifies the resource service URL,
@@ -44,6 +44,8 @@ internal sealed class DashboardServiceHost : IHostedService
     /// </summary>
     private readonly WebApplication? _app;
     private readonly ILogger<DashboardServiceHost> _logger;
+
+    public CancellationToken ApplicationStopping { get; }
 
     public DashboardServiceHost(
         DistributedApplicationOptions options,
@@ -121,6 +123,8 @@ internal sealed class DashboardServiceHost : IHostedService
             _app.UseAuthorization();
 
             _app.MapGrpcService<DashboardService>();
+
+            ApplicationStopping = _app.Lifetime.ApplicationStopping;
         }
         catch (Exception ex)
         {

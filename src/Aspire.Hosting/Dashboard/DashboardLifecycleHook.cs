@@ -27,9 +27,10 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              ResourceNotificationService resourceNotificationService,
                                              ResourceLoggerService resourceLoggerService,
                                              ILoggerFactory loggerFactory,
-                                             DcpNameGenerator nameGenerator) : IDistributedApplicationLifecycleHook, IAsyncDisposable
+                                             DcpNameGenerator nameGenerator,
+                                             IDashboardServiceHostLifetime dashboardServiceHostLifetime) : IDistributedApplicationLifecycleHook, IAsyncDisposable
 {
-    private readonly CancellationTokenSource _shutdownCts = new();
+    private CancellationTokenSource? _shutdownCts;
     private Task? _dashboardLogsTask;
 
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
@@ -49,6 +50,10 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             AddDashboardResource(appModel);
         }
 
+        // Stop watching logs from the dashboard when the dashboard service host is stopping. This happens before the lifecycle hook is disposed.
+        // Stopping here prevents the app host from printing errors caused by the service being stopped.
+        _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(dashboardServiceHostLifetime.ApplicationStopping);
+
         _dashboardLogsTask = WatchDashboardLogsAsync(_shutdownCts.Token);
 
         return Task.CompletedTask;
@@ -56,7 +61,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
     public async ValueTask DisposeAsync()
     {
-        _shutdownCts.Cancel();
+        _shutdownCts?.Cancel();
 
         if (_dashboardLogsTask is not null)
         {
