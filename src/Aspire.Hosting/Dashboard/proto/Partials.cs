@@ -66,18 +66,18 @@ partial class Resource
             resource.Commands.Add(new ResourceCommand { CommandType = command.Type, DisplayName = command.DisplayName, DisplayDescription = command.DisplayDescription ?? string.Empty, Parameter = ResourceSnapshot.ConvertToValue(command.Parameter), ConfirmationMessage = command.ConfirmationMessage ?? string.Empty, IconName = command.IconName ?? string.Empty, IconVariant = MapIconVariant(command.IconVariant), IsHighlighted = command.IsHighlighted, State = MapCommandState(command.State) });
         }
 
-        if (MapHealthStatus(snapshot.HealthStatus) is { } healthStatus)
+        if (snapshot.HealthStatus is not null)
         {
-            resource.HealthStatus = healthStatus;
+            resource.HealthStatus = MapHealthStatus(snapshot.HealthStatus.Value);
         }
 
         foreach (var report in snapshot.HealthReports)
         {
             var healthReport = new HealthReport { Key = report.Name, Description = report.Description ?? "", Exception = report.ExceptionText ?? "" };
 
-            if (MapHealthStatus(report.Status) is { } reportStatus)
+            if (report.Status is not null)
             {
-                healthReport.Status = reportStatus;
+                healthReport.Status = MapHealthStatus(report.Status.Value);
             }
 
             resource.HealthReports.Add(healthReport);
@@ -85,11 +85,10 @@ partial class Resource
 
         return resource;
 
-        static HealthStatus? MapHealthStatus(Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus? healthStatus)
+        static HealthStatus MapHealthStatus(Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus healthStatus)
         {
             return healthStatus switch
             {
-                null => null,
                 Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy => HealthStatus.Healthy,
                 Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded => HealthStatus.Degraded,
                 Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy => HealthStatus.Unhealthy,
