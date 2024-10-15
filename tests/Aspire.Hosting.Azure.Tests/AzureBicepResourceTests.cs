@@ -1282,9 +1282,17 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 #pragma warning disable CS0618 // Type or member is obsolete
         var postgres = builder.AddPostgres("postgres", usr, pwd).AsAzurePostgresFlexibleServer();
         postgres.AddDatabase("db", "dbName");
+
+        Assert.True(postgres.Resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation));
+        var azurePostgres = (AzurePostgresResource)connectionStringAnnotation.Resource;
 #pragma warning restore CS0618 // Type or member is obsolete
 
         var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
+
+        // Setup to verify that connection strings is acquired via resource connectionstring redirct.
+        Assert.NotNull(azurePostgres);
+        azurePostgres.SecretOutputs["connectionString"] = "myconnectionstring";
+        Assert.Equal("myconnectionstring", await postgres.Resource.GetConnectionStringAsync(default));
 
         var expectedManifest = """
             {
@@ -1392,9 +1400,17 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 #pragma warning disable CS0618 // Type or member is obsolete
         var postgres = builder.AddPostgres("postgres", usr, pwd).AsAzurePostgresFlexibleServer();
         postgres.AddDatabase("db", "dbName");
+
+        Assert.True(postgres.Resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation));
+        var azurePostgres = (AzurePostgresResource)connectionStringAnnotation.Resource;
 #pragma warning restore CS0618 // Type or member is obsolete
 
         var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
+
+        // Setup to verify that connection strings is acquired via resource connectionstring redirct.
+        Assert.NotNull(azurePostgres);
+        azurePostgres.SecretOutputs["connectionString"] = "myconnectionstring";
+        Assert.Equal("myconnectionstring", await postgres.Resource.GetConnectionStringAsync(default));
 
         var expectedManifest = """
             {
