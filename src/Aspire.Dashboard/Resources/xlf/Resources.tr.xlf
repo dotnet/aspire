@@ -17,6 +17,11 @@
         <target state="translated">Yapılandırılmış günlükler</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceActionTelemetryTooltip">
+        <source>No telemetry found for this resource.</source>
+        <target state="new">No telemetry found for this resource.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceActionTracesText">
         <source>Traces</source>
         <target state="translated">İzlemeler</target>
