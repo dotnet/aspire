@@ -18,9 +18,9 @@ public static class AzureFunctionsProjectResourceExtensions
     /// The prefix used for configuring the name default Azure Storage account that is used
     /// for Azure Functions bookkeeping. Locally, the name is generated using a combination of this
     /// prefix, a hash of the AppHost project name. During publish mode, the name generated
-    /// is a combination of this prefix, a hash of the AppHost project name, and  the name of
-    /// the resource group associated with the deployment. We want to keep the total number
-    /// of characters in the name under 24 characters to avoid truncation by Azure and allow
+    /// is a combination of this prefix and  the name of the resource group associated with
+    /// the deployment. We want to keep the total number of characters in the name under
+    /// 24 characters to avoid truncation by Azure and allow
     /// for unique enough identifiers.
     /// </remarks>
     internal const string DefaultAzureFunctionsHostStorageName = "funcstorage";
