@@ -72,8 +72,16 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
             var componentReferenceAnnotations = resource.Annotations.OfType<DaprComponentReferenceAnnotation>();
 
+            var waitAnnotationsToCopyToDaprCli = new List<WaitAnnotation>();
+
             foreach (var componentReferenceAnnotation in componentReferenceAnnotations)
             {
+                // Whilst we are passing over each component annotations collect the list of annotations to copy to the Dapr CLI.
+                if (componentReferenceAnnotation.Component.TryGetAnnotationsOfType<WaitAnnotation>(out var componentWaitAnnotations))
+                {
+                    waitAnnotationsToCopyToDaprCli.AddRange(componentWaitAnnotations);
+                }
+
                 if (componentReferenceAnnotation.Component.Options?.LocalPath is not null)
                 {
                     var localPathDirectory = Path.GetDirectoryName(NormalizePath(componentReferenceAnnotation.Component.Options.LocalPath));
@@ -93,6 +101,9 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                     }
                 }
             }
+
+            // It is possible that we have duplicate wate annotations so we just dedupe them here.
+            var distinctWaitAnnotationsToCopyToDaprCli = waitAnnotationsToCopyToDaprCli.DistinctBy(w => (w.Resource, w.WaitType));
 
             var daprAppPortArg = (int? port) => ModelNamedArg("--app-port", port);
             var daprGrpcPortArg = (object port) => ModelNamedObjectArg("--dapr-grpc-port", port);
@@ -137,11 +148,8 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             var daprCliResourceName = $"{daprSidecar.Name}-cli";
             var daprCli = new ExecutableResource(daprCliResourceName, fileName, appHostDirectory);
 
-            // HACK! Need to figure out how to loop over these annotations once above.
-            foreach (var crAnnotations in componentReferenceAnnotations)
-            {
-                daprCli.Annotations.Add(new WaitAnnotation(crAnnotations.Component, WaitType.WaitUntilHealthy));
-            }
+            // Add all the unique wait annotations to the CLI.
+            daprCli.Annotations.AddRange(distinctWaitAnnotationsToCopyToDaprCli);
 
             resource.Annotations.Add(
                 new EnvironmentCallbackAnnotation(

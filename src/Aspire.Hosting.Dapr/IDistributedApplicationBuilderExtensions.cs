@@ -43,29 +43,13 @@ public static class IDistributedApplicationBuilderExtensions
     public static IResourceBuilder<IDaprComponentResource> AddDaprComponent(this IDistributedApplicationBuilder builder, [ResourceName] string name, string type, DaprComponentOptions? options = null)
     {
         var resource = new DaprComponentResource(name, type) { Options = options };
-
-        builder.Eventing.Subscribe<BeforeStartEvent>((@event, ct) =>
-        {
-            var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
-
-            _ = Task.Run(async () =>
-            {
-                await rns.WaitForDependenciesAsync(resource, ct).ConfigureAwait(false);
-                await rns.PublishUpdateAsync(
-                    resource, s=> s with { State = KnownResourceStates.Running }
-                    ).ConfigureAwait(false);
-            }, ct);
-
-            return Task.CompletedTask;
-        });
-
         return builder
             .AddResource(resource)
             .WithInitialState(new()
             {
                 Properties = [],
                 ResourceType = "DaprComponent",
-                State = KnownResourceStates.Starting
+                State = KnownResourceStates.Hidden
             })
             .WithAnnotation(new ManifestPublishingCallbackAnnotation(context => WriteDaprComponentResourceToManifest(context, resource)));
     }
