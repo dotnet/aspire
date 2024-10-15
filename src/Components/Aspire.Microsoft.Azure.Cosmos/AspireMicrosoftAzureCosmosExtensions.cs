@@ -33,6 +33,8 @@ public static class AspireMicrosoftAzureCosmosExtensions
         Action<MicrosoftAzureCosmosSettings>? configureSettings = null,
         Action<CosmosClientOptions>? configureClientOptions = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
         AddAzureCosmosClient(
             builder,
             configureSettings,
@@ -57,6 +59,8 @@ public static class AspireMicrosoftAzureCosmosExtensions
         Action<MicrosoftAzureCosmosSettings>? configureSettings = null,
         Action<CosmosClientOptions>? configureClientOptions = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddAzureCosmosClient(
             builder,
             configureSettings,
