@@ -81,7 +81,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
 
             var provisioningResource = new AzureProvisioningResource(resource.Name, context.BuildContainerApp);
 
-            provisioningResource.Annotations.Add(new ManifestPublishingCallbackAnnotation(construct.WriteToManifest));
+            provisioningResource.Annotations.Add(new ManifestPublishingCallbackAnnotation(provisioningResource.WriteToManifest));
 
             return provisioningResource;
         }
