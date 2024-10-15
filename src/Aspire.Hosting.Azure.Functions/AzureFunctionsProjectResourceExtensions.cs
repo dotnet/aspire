@@ -207,6 +207,10 @@ public static class AzureFunctionsProjectResourceExtensions
 
     private static string CreateDefaultStorageName(this IDistributedApplicationBuilder builder)
     {
+        if (builder.ExecutionContext.IsPublishMode)
+        {
+            return DefaultAzureFunctionsHostStorageName;
+        }
         var applicationHash = builder.Configuration["AppHost:Sha256"]![..5].ToLowerInvariant();
         return $"{DefaultAzureFunctionsHostStorageName}{applicationHash}";
     }
