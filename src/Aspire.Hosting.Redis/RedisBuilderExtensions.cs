@@ -153,6 +153,15 @@ public static class RedisBuilderExtensions
                                       .WithHttpEndpoint(targetPort: 5540, name: "http")
                                       .ExcludeFromManifest();
 
+            // We need to wait for all endpoints to be allocated before attempting to import databases
+            var endpointsAllocatedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+            {
+                endpointsAllocatedTcs.TrySetResult();
+                return Task.CompletedTask;
+            });
+
             builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(resource, async (e, ct) =>
             {
                 var redisInstances = builder.ApplicationBuilder.Resources.OfType<RedisResource>();
@@ -162,6 +171,9 @@ public static class RedisBuilderExtensions
                     // No-op if there are no Redis resources present.
                     return;
                 }
+
+                // Wait for all endpoints to be allocated before attempting to import databases
+                await endpointsAllocatedTcs.Task.ConfigureAwait(false);
 
                 var redisInsightResource = builder.ApplicationBuilder.Resources.OfType<RedisInsightResource>().Single();
                 var insightEndpoint = redisInsightResource.PrimaryEndpoint;
