@@ -47,7 +47,6 @@ public static class IDistributedApplicationBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         var resource = new DaprComponentResource(name, type) { Options = options };
-
         return builder
             .AddResource(resource)
             .WithInitialState(new()
