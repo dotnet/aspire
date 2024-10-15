@@ -81,6 +81,7 @@ public partial class ResourceActions : ComponentBase
 
         // Show telemetry menu items if there is telemetry for the resource.
         var hasTelemetryApplication = TelemetryRepository.GetApplicationByCompositeName(Resource.Name) != null;
+        var telemetryTooltip = !hasTelemetryApplication ? Loc[nameof(Resources.Resources.ResourceActionTelemetryTooltip)] : string.Empty;
         _menuItems.Add(new MenuButtonItem { IsDivider = true });
         _menuItems.Add(new MenuButtonItem
         {
@@ -91,6 +92,7 @@ public partial class ResourceActions : ComponentBase
                 NavigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(resource: GetResourceName(Resource)));
                 return Task.CompletedTask;
             },
+            Tooltip = telemetryTooltip,
             IsDisabled = !hasTelemetryApplication
         });
         _menuItems.Add(new MenuButtonItem
@@ -102,6 +104,7 @@ public partial class ResourceActions : ComponentBase
                 NavigationManager.NavigateTo(DashboardUrls.TracesUrl(resource: GetResourceName(Resource)));
                 return Task.CompletedTask;
             },
+            Tooltip = telemetryTooltip,
             IsDisabled = !hasTelemetryApplication
         });
         _menuItems.Add(new MenuButtonItem
@@ -113,6 +116,7 @@ public partial class ResourceActions : ComponentBase
                 NavigationManager.NavigateTo(DashboardUrls.MetricsUrl(resource: GetResourceName(Resource)));
                 return Task.CompletedTask;
             },
+            Tooltip = telemetryTooltip,
             IsDisabled = !hasTelemetryApplication
         });
 
