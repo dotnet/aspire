@@ -178,7 +178,7 @@ public sealed record ResourceCommandSnapshot(string Type, ResourceCommandState S
 /// A report produced by a health check about a resource.
 /// </summary>
 /// <param name="Name">The name of the health check that produced this report.</param>
-/// <param name="Status">The state of the resource, according to the report.</param>
+/// <param name="Status">The state of the resource, according to the report, or null if a health check has not yet been completed.</param>
 /// <param name="Description">An optional description of the report, for display.</param>
 /// <param name="ExceptionText">An optional string containing exception details.</param>
 public sealed record HealthReportSnapshot(string Name, HealthStatus? Status, string? Description, string? ExceptionText);
