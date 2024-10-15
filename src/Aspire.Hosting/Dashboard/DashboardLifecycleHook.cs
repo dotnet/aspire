@@ -14,6 +14,7 @@ using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -28,7 +29,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              ResourceLoggerService resourceLoggerService,
                                              ILoggerFactory loggerFactory,
                                              DcpNameGenerator nameGenerator,
-                                             IDashboardServiceHostLifetime dashboardServiceHostLifetime) : IDistributedApplicationLifecycleHook, IAsyncDisposable
+                                             IHostApplicationLifetime hostApplicationLifetime) : IDistributedApplicationLifecycleHook, IAsyncDisposable
 {
     private CancellationTokenSource? _shutdownCts;
     private Task? _dashboardLogsTask;
@@ -50,9 +51,10 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             AddDashboardResource(appModel);
         }
 
-        // Stop watching logs from the dashboard when the dashboard service host is stopping. This happens before the lifecycle hook is disposed.
-        // Stopping here prevents the app host from printing errors caused by the service being stopped.
-        _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(dashboardServiceHostLifetime.ApplicationStopping);
+        // Stop watching logs from the dashboard when the app host is stopping. Part of the app host shutdown is tearing down the dashboard service.
+        // This happens while the dashboard is using it will cause the dashboard to report an error accessing data.
+        // This event is raised earlier than the hook is disposed, and prevents the app host from printing errors caused by shutdown.
+        _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
 
         _dashboardLogsTask = WatchDashboardLogsAsync(_shutdownCts.Token);
 
