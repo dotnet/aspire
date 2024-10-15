@@ -67,22 +67,40 @@ public static class AzureWebPubSubExtensions
                 var hub = new WebPubSubHub(Infrastructure.NormalizeIdentifierName(hubResource.Name))
                 {
                     Name = setting.Key,
-                    Parent = service
+                    Parent = service,
+                    Properties = new WebPubSubHubProperties()
                 };
 
-                // create the hub settings with default values
-                if (hub.Properties.Value == null)
+                var hubProperties = hub.Properties.Value!;
+
+                // invoke the configure from AddEventHandler
+                for (var i = 0; i < hubResource.EventHandlers.Count; i++)
                 {
-                    hub.Properties = new WebPubSubHubProperties();
+                    var (url, userEvents, systemEvents, auth) = hubResource.EventHandlers[i];
+                    var urlExpression = url;
+
+                    BicepValue<string> urlParameter;
+                    if (urlExpression.ManifestExpressions.Count == 0)
+                    {
+                        // when urlExpression is literal string, simply add
+                        urlParameter = urlExpression.Format;
+                    }
+                    else
+                    {
+                        // otherwise add parameter to the construct
+                        var parameter = new ProvisioningParameter($"{hubName}_url_{i}", typeof(string));
+                        construct.Add(parameter);
+                        resource.Parameters[parameter.IdentifierName] = urlExpression;
+                        urlParameter = parameter;
+                    }
+
+                    var eventHandler = GetWebPubSubEventHandler(urlParameter, userEvents, systemEvents, auth);
+
+                    hubProperties.EventHandlers.Add(eventHandler);
                 }
 
                 // add to construct
                 construct.Add(hub);
-                // invoke the configure from AddEventHandler
-                foreach (var eventHandlerConfigure in hubResource.EventHandlers)
-                {
-                    eventHandlerConfigure.Invoke(construct, hub);
-                }
             }
         };
 
@@ -120,34 +138,31 @@ public static class AzureWebPubSubExtensions
     /// <param name="systemEvents">The system events for the event handler.</param>
     /// <param name="authSettings">The auth settings configured for the event handler.</param>
     /// <returns></returns>
+#pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
     public static IResourceBuilder<AzureWebPubSubHubResource> AddEventHandler(this IResourceBuilder<AzureWebPubSubHubResource> builder,
+#pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
         ReferenceExpression.ExpressionInterpolatedStringHandler urlTemplateExpression, string userEventPattern = "*", string[]? systemEvents = null, UpstreamAuthSettings? authSettings = null)
     {
         var urlExpression = ReferenceExpression.Create(urlTemplateExpression);
 
-        builder.Resource.EventHandlers.Add((construct, hub) =>
-        {
-            var hubName = hub.Name.Value;
+        return builder.AddEventHandler(urlExpression, userEventPattern, systemEvents, authSettings);
+    }
 
-            var hubProperties = hub.Properties.Value!;
-            if (urlExpression.ManifestExpressions.Count == 0)
-            {
-                var eventHandler = GetWebPubSubEventHandler(urlExpression.Format, userEventPattern, systemEvents, authSettings);
-
-                // when urlExpression is literal string, simply add
-                hubProperties.EventHandlers.Add(eventHandler);
-            }
-            else
-            {
-                var count = hubProperties.EventHandlers.Count;
-                var urlParameter = new ProvisioningParameter($"{hubName}_url_{count}", typeof(string));
-                var eventHandler = GetWebPubSubEventHandler(urlParameter, userEventPattern, systemEvents, authSettings);
-                hubProperties.EventHandlers.Add(eventHandler);
-                construct.Add(urlParameter);
-
-                builder.Resource.Parent.Parameters[urlParameter.IdentifierName] = urlExpression;
-            }
-        });
+    /// <summary>
+    /// Add event handler setting with expression
+    /// </summary>
+    /// <param name="builder">The builder for a Web PubSub hub.</param>
+    /// <param name="urlExpression">The expression to evaluate the URL template configured for the event handler.</param>
+    /// <param name="userEventPattern">The user event pattern for the event handler.</param>
+    /// <param name="systemEvents">The system events for the event handler.</param>
+    /// <param name="authSettings">The auth settings configured for the event handler.</param>
+    /// <returns></returns>
+#pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
+    public static IResourceBuilder<AzureWebPubSubHubResource> AddEventHandler(this IResourceBuilder<AzureWebPubSubHubResource> builder,
+#pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
+        ReferenceExpression urlExpression, string userEventPattern = "*", string[]? systemEvents = null, UpstreamAuthSettings? authSettings = null)
+    {
+        builder.Resource.EventHandlers.Add((urlExpression, userEventPattern, systemEvents, authSettings));
         return builder;
     }
 

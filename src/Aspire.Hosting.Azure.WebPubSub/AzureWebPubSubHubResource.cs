@@ -18,5 +18,5 @@ public class AzureWebPubSubHubResource(string name, AzureWebPubSubResource webpu
     /// </summary>
     public AzureWebPubSubResource Parent => webpubsub;
 
-    internal List<Action<ResourceModuleConstruct, WebPubSubHub>> EventHandlers { get; } = new();
+    internal List<(ReferenceExpression url, string userEvents, string[]? systemEvents, UpstreamAuthSettings? auth)> EventHandlers { get; } = new();
 }
