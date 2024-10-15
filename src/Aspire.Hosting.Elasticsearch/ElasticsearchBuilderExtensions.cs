@@ -22,9 +22,6 @@ public static class ElasticsearchBuilderExtensions
     /// <summary>
     /// Adds an Elasticsearch container resource to the application model. This version of the package defaults to the <inheritdoc cref="ElasticsearchContainerImageTags.Tag"/> tag of the <inheritdoc cref="ElasticsearchContainerImageTags.Image"/> container image.
     /// </summary>
-    /// <remarks>
-    /// The default image is "elasticsearch" and the tag is "8.15.1".
-    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port to bind the underlying container to.</param>

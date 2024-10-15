@@ -18,7 +18,7 @@ namespace Aspire.Hosting;
 public static class NatsBuilderExtensions
 {
     /// <summary>
-    /// Adds a NATS server resource to the application model. A container is used for local development.
+    /// Adds a NATS server resource to the application model. A container is used for local development. This version of the package defaults to the <inheritdoc cref="NatsContainerImageTags.Tag"/> tag of the <inheritdoc cref="NatsContainerImageTags.Image"/> container image.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
