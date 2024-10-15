@@ -1,0 +1,14 @@
+{
+  "author": "Microsoft",
+  "name": "Valores predeterminados del servicio .NET Service",
+<<<<<<<< HEAD:src/Aspire.ProjectTemplates.net8/templates/aspire-servicedefaults/.template.config/localize/templatestrings.es.json
+  "description": "Una plantilla de proyecto para crear un proyecto predeterminado del servicio .NET Aspire 9.",
+========
+  "description": "Una plantilla de proyecto para crear un proyecto predeterminado del servicio .NET Aspire 8.",
+>>>>>>>> origin/release/9.0-rc1:src/Aspire.ProjectTemplates/templates/aspire-servicedefaults-downlevel/.template.config/localize/templatestrings.es.json
+  "symbols/Framework/description": "Marco de destino del proyecto.",
+  "symbols/Framework/choices/net8.0/description": "NET8.0 de destino",
+  "symbols/skipRestore/description": "Si se especifica, se omite la restauración automática del proyecto durante la creación.",
+  "postActions/restore/description": "Restaure los paquetes NuGet necesarios para este proyecto.",
+  "postActions/restore/manualInstructions/default/text": "Ejecutar \"dotnet restore\""
+}

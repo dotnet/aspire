@@ -1,0 +1,15 @@
+{
+  "author": "Microsoft",
+<<<<<<<< HEAD:src/Aspire.ProjectTemplates.net8/templates/aspire-servicedefaults/.template.config/localize/templatestrings.cs.json
+  "name": "Výchozí nastavení služby .NET Aspire 9",
+  "description": "Šablona projektu pro vytvoření výchozího projektu služby .NET Aspire 9.",
+========
+  "name": "Výchozí nastavení služby .NET Aspire 8",
+  "description": "Šablona projektu pro vytvoření výchozího projektu služby .NET Aspire 8.",
+>>>>>>>> origin/release/9.0-rc1:src/Aspire.ProjectTemplates/templates/aspire-servicedefaults-downlevel/.template.config/localize/templatestrings.cs.json
+  "symbols/Framework/description": "Cílová architektura pro projekt",
+  "symbols/Framework/choices/net8.0/description": "Cílový net8.0",
+  "symbols/skipRestore/description": "Pokud se tato možnost zadá, přeskočí automatické obnovení projektu při vytvoření.",
+  "postActions/restore/description": "Obnoví balíčky NuGet vyžadované tímto projektem.",
+  "postActions/restore/manualInstructions/default/text": "Spustit dotnet restore"
+}

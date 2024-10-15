@@ -1,0 +1,15 @@
+﻿{
+  "author": "Microsoft",
+<<<<<<<< HEAD:src/Aspire.ProjectTemplates.net8/templates/aspire-mstest/.template.config/localize/templatestrings.zh-Hant.json
+  "name": ".NET Aspire 9 測試專案 (MSTest)",
+  "description": "包含 .NET Aspire 9 AppHost 專案之 MSTest 整合測試的專案。",
+========
+  "name": ".NET Aspire 9 服務預設值",
+  "description": "用於建立 .NET Aspire 9 服務預設專案的專案範本。",
+>>>>>>>> origin/release/9.0-rc1:src/Aspire.ProjectTemplates/templates/aspire-servicedefaults-net8/.template.config/localize/templatestrings.zh-Hant.json
+  "symbols/Framework/description": "專案的目標 Framework。",
+  "symbols/Framework/choices/net8.0/description": "目標 net8.0",
+  "symbols/skipRestore/description": "若指定，會在建立時跳過專案的自動還原。",
+  "postActions/restore/description": "還原此專案所需的 NuGet 套件。",
+  "postActions/restore/manualInstructions/default/text": "執行 'dotnet restore'"
+}
