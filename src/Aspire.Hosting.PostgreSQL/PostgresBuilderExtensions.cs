@@ -215,7 +215,7 @@ public static class PostgresBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithEndpoint("http", endpoint =>
+        return builder.WithEndpoint("tcp", endpoint =>
         {
             endpoint.Port = port;
         });
