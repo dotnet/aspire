@@ -75,10 +75,9 @@ public static class AzureWebPubSubExtensions
                 {
                     hub.Properties = new WebPubSubHubProperties();
                 }
+
                 // add to construct
                 construct.Add(hub);
-                // invoke the configure if any
-                hubResource.ConfigureConstruct(construct);
                 // invoke the configure from AddEventHandler
                 foreach (var eventHandlerConfigure in hubResource.EventHandlers)
                 {
@@ -98,13 +97,17 @@ public static class AzureWebPubSubExtensions
     /// Add hub settings
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
-    /// <param name="hubName">The hub name.</param>
+    /// <param name="hubName">The hub name. Hub name is case-insensitive.</param>
     /// <returns></returns>
     public static IResourceBuilder<AzureWebPubSubHubResource> AddHub(this IResourceBuilder<AzureWebPubSubResource> builder, [ResourceName] string hubName)
     {
-        var hubResource = new AzureWebPubSubHubResource(hubName, builder.Resource);
+        AzureWebPubSubHubResource? hubResource;
+        if (!builder.Resource.Hubs.TryGetValue(hubName, out hubResource))
+        {
+            hubResource = new AzureWebPubSubHubResource(hubName, builder.Resource);
+            builder.Resource.Hubs[hubName] = hubResource;
+        }
         var hubBuilder = builder.ApplicationBuilder.CreateResourceBuilder(hubResource);
-        builder.Resource.Hubs[hubName] = hubResource;
         return hubBuilder;
     }
 
@@ -126,20 +129,20 @@ public static class AzureWebPubSubExtensions
         {
             var hubName = hub.Name.Value;
 
-            var hubResource = hub.Properties.Value!;
+            var hubProperties = hub.Properties.Value!;
             if (urlExpression.ManifestExpressions.Count == 0)
             {
                 var eventHandler = GetWebPubSubEventHandler(urlExpression.Format, userEventPattern, systemEvents, authSettings);
 
                 // when urlExpression is literal string, simply add
-                hubResource.EventHandlers.Add(eventHandler);
+                hubProperties.EventHandlers.Add(eventHandler);
             }
             else
             {
-                var count = hubResource.EventHandlers.Count;
+                var count = hubProperties.EventHandlers.Count;
                 var urlParameter = new ProvisioningParameter($"{hubName}_url_{count}", typeof(string));
                 var eventHandler = GetWebPubSubEventHandler(urlParameter, userEventPattern, systemEvents, authSettings);
-                hubResource.EventHandlers.Add(eventHandler);
+                hubProperties.EventHandlers.Add(eventHandler);
                 construct.Add(urlParameter);
 
                 builder.Resource.Parent.Parameters[urlParameter.IdentifierName] = urlExpression;

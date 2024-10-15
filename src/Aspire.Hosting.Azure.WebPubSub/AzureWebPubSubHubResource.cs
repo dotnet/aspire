@@ -10,7 +10,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="webpubsub">The <see cref="AzureWebPubSubResource"/> that the resource belongs to.</param>
-public class AzureWebPubSubHubResource(string name, AzureWebPubSubResource webpubsub) : AzureConstructResource(name, s_empty),
+public class AzureWebPubSubHubResource(string name, AzureWebPubSubResource webpubsub) : Resource(name),
     IResourceWithParent<AzureWebPubSubResource>
 {
     /// <summary>
@@ -19,6 +19,4 @@ public class AzureWebPubSubHubResource(string name, AzureWebPubSubResource webpu
     public AzureWebPubSubResource Parent => webpubsub;
 
     internal List<Action<ResourceModuleConstruct, WebPubSubHub>> EventHandlers { get; } = new();
-
-    private static readonly Action<ResourceModuleConstruct> s_empty = (_) => { };
 }
