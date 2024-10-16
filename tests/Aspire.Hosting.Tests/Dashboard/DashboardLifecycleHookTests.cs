@@ -101,7 +101,8 @@ public class DashboardLifecycleHookTests
             resourceNotificationService,
             resourceLoggerService,
             loggerFactory ?? NullLoggerFactory.Instance,
-            new DcpNameGenerator(configuration, Options.Create(new DcpOptions())));
+            new DcpNameGenerator(configuration, Options.Create(new DcpOptions())),
+            new TestHostApplicationLifetime());
     }
 
     public static IEnumerable<object?[]> Data()

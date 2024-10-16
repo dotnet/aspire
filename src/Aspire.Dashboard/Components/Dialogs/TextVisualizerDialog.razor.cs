@@ -54,7 +54,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        await ThemeManager.EnsureEffectiveThemeAsync();
+        await ThemeManager.EnsureInitializedAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
