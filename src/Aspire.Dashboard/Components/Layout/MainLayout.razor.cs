@@ -77,7 +77,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         {
             if (_jsModule is not null)
             {
-                var newValue = ThemeManager.Theme!;
+                var newValue = ThemeManager.SelectedTheme!;
 
                 var effectiveTheme = await _jsModule.InvokeAsync<string>("updateTheme", newValue);
                 ThemeManager.EffectiveTheme = effectiveTheme;
@@ -217,7 +217,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         }
 
         // Ensure the currently set theme is immediately available to display in settings dialog.
-        await ThemeManager.EnsureEffectiveThemeAsync();
+        await ThemeManager.EnsureBrowserThemeLoadedAsync();
 
         if (ViewportInformation.IsDesktop)
         {

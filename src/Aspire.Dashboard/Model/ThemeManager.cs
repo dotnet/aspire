@@ -6,24 +6,29 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Model;
 
-public interface IEffectiveThemeResolver
+public sealed record ThemeSettings(string? SelectedTheme, string EffectiveTheme);
+
+public interface IThemeResolver
 {
-    Task<string> GetEffectiveThemeAsync(CancellationToken cancellationToken);
+    Task<ThemeSettings> GetThemeSettingsAsync(CancellationToken cancellationToken);
 }
 
-public sealed class BrowserEffectiveThemeResolver(IJSRuntime jsRuntime) : IEffectiveThemeResolver, IAsyncDisposable
+public sealed class BrowserThemeResolver(IJSRuntime jsRuntime) : IThemeResolver, IAsyncDisposable
 {
     private readonly IJSRuntime _jsRuntime = jsRuntime;
     private IJSObjectReference? _jsModule;
 
-    public async Task<string> GetEffectiveThemeAsync(CancellationToken cancellationToken)
+    public async Task<ThemeSettings> GetThemeSettingsAsync(CancellationToken cancellationToken)
     {
         if (_jsModule == null)
         {
             _jsModule = await _jsRuntime.InvokeAsync<IJSObjectReference>("import", "/js/app-theme.js").ConfigureAwait(false);
         }
 
-        return await _jsModule.InvokeAsync<string>("getCurrentTheme", cancellationToken).ConfigureAwait(false);
+        var currentTheme = await _jsModule.InvokeAsync<string>("getCurrentTheme", cancellationToken).ConfigureAwait(false);
+        var themeCookieValue = await _jsModule.InvokeAsync<string?>("getThemeCookieValue", cancellationToken).ConfigureAwait(false);
+
+        return new ThemeSettings(themeCookieValue, currentTheme);
     }
 
     public async ValueTask DisposeAsync()
@@ -40,22 +45,23 @@ public sealed class ThemeManager
 
     private readonly object _lock = new object();
     private readonly List<ModelSubscription> _subscriptions = new List<ModelSubscription>();
-    private readonly IEffectiveThemeResolver _effectiveThemeResolver;
+    private readonly IThemeResolver _themeResolver;
     private string? _effectiveTheme;
+    private bool _hasLoaded;
 
-    public ThemeManager(IEffectiveThemeResolver effectiveThemeResolver)
+    public ThemeManager(IThemeResolver themeResolver)
     {
-        _effectiveThemeResolver = effectiveThemeResolver;
+        _themeResolver = themeResolver;
     }
 
     /// <summary>
     /// The actual theme key (null, System, Dark, Light) set by the user.
     /// </summary>
-    public string? Theme { get; private set; }
+    public string? SelectedTheme { get; private set; }
 
     /// <summary>
     /// The effective theme, from app-theme.js, which is the theme that is actually applied to the browser window.
-    /// To ensure the effective theme is loaded from the browser, call <see cref="EnsureEffectiveThemeAsync"/> before accessing.
+    /// To ensure the effective theme is loaded from the browser, call <see cref="EnsureBrowserThemeLoadedAsync"/> before accessing.
     /// </summary>
     public string EffectiveTheme
     {
@@ -71,11 +77,15 @@ public sealed class ThemeManager
         set => _effectiveTheme = value;
     }
 
-    public async Task EnsureEffectiveThemeAsync()
+    public async Task EnsureBrowserThemeLoadedAsync()
     {
-        if (_effectiveTheme == null)
+        if (!_hasLoaded)
         {
-            _effectiveTheme = await _effectiveThemeResolver.GetEffectiveThemeAsync(CancellationToken.None).ConfigureAwait(false);
+            var browserThemeSettings = await _themeResolver.GetThemeSettingsAsync(CancellationToken.None).ConfigureAwait(false);
+            _effectiveTheme = browserThemeSettings.EffectiveTheme;
+            SelectedTheme = !string.IsNullOrEmpty(browserThemeSettings.SelectedTheme) ? browserThemeSettings.SelectedTheme : null;
+
+            _hasLoaded = true;
         }
     }
 
@@ -99,7 +109,7 @@ public sealed class ThemeManager
 
     public async Task RaiseThemeChangedAsync(string theme)
     {
-        Theme = theme;
+        SelectedTheme = theme;
 
         if (_subscriptions.Count == 0)
         {
