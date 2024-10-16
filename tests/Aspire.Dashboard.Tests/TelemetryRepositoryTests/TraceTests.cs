@@ -1064,8 +1064,8 @@ public class TraceTests
     [InlineData(KnownTraceFields.SpanIdField, "312d31")]
     [InlineData(KnownTraceFields.StatusField, "Unset")]
     [InlineData(KnownTraceFields.KindField, "Internal")]
-    [InlineData(KnownTraceFields.ApplicationField, "app1")]
-    [InlineData(KnownTraceFields.SourceField, "TestScope")]
+    [InlineData(KnownResourceFields.ServiceNameField, "app1")]
+    [InlineData(KnownSourceFields.NameField, "TestScope")]
     public void GetTraces_KnownFilters(string name, string value)
     {
         // Arrange
