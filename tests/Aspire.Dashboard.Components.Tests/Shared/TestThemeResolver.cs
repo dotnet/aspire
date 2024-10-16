@@ -7,7 +7,7 @@ namespace Aspire.Dashboard.Components.Tests.Shared;
 
 public sealed class TestThemeResolver : IThemeResolver
 {
-    public string EffectiveTheme { get; set; } = "Dark";
+    public string EffectiveTheme { get; set; } = ThemeManager.ThemeSettingDark;
 
     public Task<ThemeSettings> GetThemeSettingsAsync(CancellationToken cancellationToken)
     {

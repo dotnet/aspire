@@ -217,7 +217,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         }
 
         // Ensure the currently set theme is immediately available to display in settings dialog.
-        await ThemeManager.EnsureBrowserThemeLoadedAsync();
+        await ThemeManager.EnsureInitializedAsync();
 
         if (ViewportInformation.IsDesktop)
         {

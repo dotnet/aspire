@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Utils;
 using Microsoft.JSInterop;
 
@@ -25,8 +27,10 @@ public sealed class BrowserThemeResolver(IJSRuntime jsRuntime) : IThemeResolver,
             _jsModule = await _jsRuntime.InvokeAsync<IJSObjectReference>("import", "/js/app-theme.js").ConfigureAwait(false);
         }
 
-        var currentTheme = await _jsModule.InvokeAsync<string>("getCurrentTheme", cancellationToken).ConfigureAwait(false);
-        var themeCookieValue = await _jsModule.InvokeAsync<string?>("getThemeCookieValue", cancellationToken).ConfigureAwait(false);
+        var currentThemeTask = _jsModule.InvokeAsync<string>("getCurrentTheme", cancellationToken);
+        var themeCookieValueTask = _jsModule.InvokeAsync<string?>("getThemeCookieValue", cancellationToken);
+        var currentTheme = await currentThemeTask.ConfigureAwait(false);
+        var themeCookieValue = await themeCookieValueTask.ConfigureAwait(false);
 
         return new ThemeSettings(themeCookieValue, currentTheme);
     }
@@ -47,7 +51,8 @@ public sealed class ThemeManager
     private readonly List<ModelSubscription> _subscriptions = new List<ModelSubscription>();
     private readonly IThemeResolver _themeResolver;
     private string? _effectiveTheme;
-    private bool _hasLoaded;
+    private bool _hasInitialized;
+    private string? _selectedTheme;
 
     public ThemeManager(IThemeResolver themeResolver)
     {
@@ -56,36 +61,53 @@ public sealed class ThemeManager
 
     /// <summary>
     /// The actual theme key (null, System, Dark, Light) set by the user.
+    /// To ensure the theme is loaded from the browser, <see cref="EnsureInitializedAsync"/> must be called before accessing.
     /// </summary>
-    public string? SelectedTheme { get; private set; }
+    public string? SelectedTheme
+    {
+        get
+        {
+            AssertInitialized();
+            return _selectedTheme;
+        }
+        private set => _selectedTheme = value;
+    }
 
     /// <summary>
     /// The effective theme, from app-theme.js, which is the theme that is actually applied to the browser window.
-    /// To ensure the effective theme is loaded from the browser, call <see cref="EnsureBrowserThemeLoadedAsync"/> before accessing.
+    /// To ensure the theme is loaded from the browser, <see cref="EnsureInitializedAsync"/> must be called before accessing.
     /// </summary>
     public string EffectiveTheme
     {
         get
         {
-            if (_effectiveTheme == null)
-            {
-                throw new InvalidOperationException("EffectiveTheme hasn't been set.");
-            }
-
+            AssertInitialized();
             return _effectiveTheme;
         }
         set => _effectiveTheme = value;
     }
 
-    public async Task EnsureBrowserThemeLoadedAsync()
+    [MemberNotNull(nameof(_effectiveTheme))]
+    private void AssertInitialized()
     {
-        if (!_hasLoaded)
+        if (!_hasInitialized)
+        {
+            throw new InvalidOperationException("Theme manager not initialized.");
+        }
+
+        Debug.Assert(_effectiveTheme != null, "There should be an effective theme if theme manager has been initialized.");
+    }
+
+    public async Task EnsureInitializedAsync()
+    {
+        // There is some overhead is calling to the browser. Initializing can be delayed until it is needed, i.e. displaying settings dialog.
+        if (!_hasInitialized)
         {
             var browserThemeSettings = await _themeResolver.GetThemeSettingsAsync(CancellationToken.None).ConfigureAwait(false);
             _effectiveTheme = browserThemeSettings.EffectiveTheme;
             SelectedTheme = !string.IsNullOrEmpty(browserThemeSettings.SelectedTheme) ? browserThemeSettings.SelectedTheme : null;
 
-            _hasLoaded = true;
+            _hasInitialized = true;
         }
     }
 
@@ -109,6 +131,8 @@ public sealed class ThemeManager
 
     public async Task RaiseThemeChangedAsync(string theme)
     {
+        AssertInitialized();
+
         SelectedTheme = theme;
 
         if (_subscriptions.Count == 0)

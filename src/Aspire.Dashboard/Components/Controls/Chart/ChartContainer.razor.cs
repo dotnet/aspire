@@ -47,7 +47,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        await ThemeManager.EnsureBrowserThemeLoadedAsync();
+        await ThemeManager.EnsureInitializedAsync();
 
         // Update the graph every 200ms. This displays the latest data and moves time forward.
         _tickTimer = new PeriodicTimer(TimeSpan.FromSeconds(0.2));
