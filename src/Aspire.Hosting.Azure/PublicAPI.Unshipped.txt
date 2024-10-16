@@ -25,9 +25,6 @@ Aspire.Hosting.Azure.AzureProvisioningResource.ProvisioningContext.get -> Azure.
 Aspire.Hosting.Azure.AzureProvisioningResource.ProvisioningContext.set -> void
 Aspire.Hosting.Azure.AzureResourceInfrastructure
 Aspire.Hosting.Azure.AzureResourceInfrastructure.AspireResource.get -> Aspire.Hosting.Azure.AzureProvisioningResource!
-Aspire.Hosting.Azure.AzureResourceInfrastructure.PrincipalIdParameter.get -> Azure.Provisioning.ProvisioningParameter!
-Aspire.Hosting.Azure.AzureResourceInfrastructure.PrincipalNameParameter.get -> Azure.Provisioning.ProvisioningParameter!
-Aspire.Hosting.Azure.AzureResourceInfrastructure.PrincipalTypeParameter.get -> Azure.Provisioning.ProvisioningParameter!
 Aspire.Hosting.Azure.IResourceWithAzureFunctionsConfig
 Aspire.Hosting.Azure.IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string!, object!>! target, string! connectionName) -> void
 Aspire.Hosting.AzureProvisioningResourceExtensions

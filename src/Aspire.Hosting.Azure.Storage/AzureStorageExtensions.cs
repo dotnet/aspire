@@ -58,9 +58,14 @@ public static class AzureStorageExtensions
             };
             infrastructure.Add(blobs);
 
-            infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageBlobDataContributor, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
-            infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageTableDataContributor, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
-            infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageQueueDataContributor, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalTypeParameter);
+            infrastructure.Add(principalIdParameter);
+
+            infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageBlobDataContributor, principalTypeParameter, principalIdParameter));
+            infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageTableDataContributor, principalTypeParameter, principalIdParameter));
+            infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageQueueDataContributor, principalTypeParameter, principalIdParameter));
 
             infrastructure.Add(new ProvisioningOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.BlobUri });
             infrastructure.Add(new ProvisioningOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.QueueUri });

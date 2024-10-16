@@ -48,7 +48,12 @@ public static class AzureEventHubsExtensions
             };
             infrastructure.Add(eventHubsNamespace);
 
-            infrastructure.Add(eventHubsNamespace.CreateRoleAssignment(EventHubsBuiltInRole.AzureEventHubsDataOwner, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalTypeParameter);
+            infrastructure.Add(principalIdParameter);
+
+            infrastructure.Add(eventHubsNamespace.CreateRoleAssignment(EventHubsBuiltInRole.AzureEventHubsDataOwner, principalTypeParameter, principalIdParameter));
 
             infrastructure.Add(new ProvisioningOutput("eventHubsEndpoint", typeof(string)) { Value = eventHubsNamespace.ServiceBusEndpoint });
 

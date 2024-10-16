@@ -153,12 +153,19 @@ public static class AzurePostgresExtensions
                 PasswordAuth = PostgreSqlFlexibleServerPasswordAuthEnum.Disabled
             };
 
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
+            infrastructure.Add(principalIdParameter);
+            infrastructure.Add(principalTypeParameter);
+            infrastructure.Add(principalNameParameter);
+
             var admin = new PostgreSqlFlexibleServerActiveDirectoryAdministrator($"{postgres.IdentifierName}_admin")
             {
                 Parent = postgres,
-                Name = infrastructure.PrincipalIdParameter,
-                PrincipalType = infrastructure.PrincipalTypeParameter,
-                PrincipalName = infrastructure.PrincipalNameParameter,
+                Name = principalIdParameter,
+                PrincipalType = principalIdParameter,
+                PrincipalName = principalNameParameter,
             };
 
             // This is a workaround for a bug in the API that requires the parent to be fully resolved
@@ -171,7 +178,7 @@ public static class AzurePostgresExtensions
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
-                Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName};Username={infrastructure.PrincipalNameParameter}")
+                Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName};Username={principalNameParameter}")
             });
         };
 

@@ -48,7 +48,12 @@ public static class AzureSignalRExtensions
 
             infrastructure.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = service.HostName });
 
-            infrastructure.Add(service.CreateRoleAssignment(SignalRBuiltInRole.SignalRAppServer, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalTypeParameter);
+            infrastructure.Add(principalIdParameter);
+
+            infrastructure.Add(service.CreateRoleAssignment(SignalRBuiltInRole.SignalRAppServer, principalTypeParameter, principalIdParameter));
         };
 
         var resource = new AzureSignalRResource(name, configureInfrastructure);

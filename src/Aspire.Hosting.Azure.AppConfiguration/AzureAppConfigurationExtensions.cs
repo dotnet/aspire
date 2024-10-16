@@ -35,7 +35,12 @@ public static class AzureAppConfigurationExtensions
 
             infrastructure.Add(new ProvisioningOutput("appConfigEndpoint", typeof(string)) { Value = store.Endpoint });
 
-            infrastructure.Add(store.CreateRoleAssignment(AppConfigurationBuiltInRole.AppConfigurationDataOwner, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalTypeParameter);
+            infrastructure.Add(principalIdParameter);
+
+            infrastructure.Add(store.CreateRoleAssignment(AppConfigurationBuiltInRole.AppConfigurationDataOwner, principalTypeParameter, principalIdParameter));
         };
 
         var resource = new AzureAppConfigurationResource(name, configureInfrastructure);

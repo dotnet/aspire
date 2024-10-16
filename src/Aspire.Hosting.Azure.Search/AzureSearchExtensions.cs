@@ -43,8 +43,13 @@ public static class AzureSearchExtensions
             };
             infrastructure.Add(search);
 
-            infrastructure.Add(search.CreateRoleAssignment(SearchBuiltInRole.SearchIndexDataContributor, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
-            infrastructure.Add(search.CreateRoleAssignment(SearchBuiltInRole.SearchServiceContributor, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalTypeParameter);
+            infrastructure.Add(principalIdParameter);
+
+            infrastructure.Add(search.CreateRoleAssignment(SearchBuiltInRole.SearchIndexDataContributor, principalTypeParameter, principalIdParameter));
+            infrastructure.Add(search.CreateRoleAssignment(SearchBuiltInRole.SearchServiceContributor, principalTypeParameter, principalIdParameter));
 
             // TODO: The endpoint format should move into the CDK so we can maintain this
             // logic in a single location and have a better chance at supporting more than

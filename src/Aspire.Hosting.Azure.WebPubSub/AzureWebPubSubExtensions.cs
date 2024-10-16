@@ -55,7 +55,12 @@ public static class AzureWebPubSubExtensions
 
             infrastructure.Add(new ProvisioningOutput("endpoint", typeof(string)) { Value = BicepFunction.Interpolate($"https://{service.HostName}") });
 
-            infrastructure.Add(service.CreateRoleAssignment(WebPubSubBuiltInRole.WebPubSubServiceOwner, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalTypeParameter);
+            infrastructure.Add(principalIdParameter);
+
+            infrastructure.Add(service.CreateRoleAssignment(WebPubSubBuiltInRole.WebPubSubServiceOwner, principalTypeParameter, principalIdParameter));
 
             var resource = (AzureWebPubSubResource)infrastructure.AspireResource;
             foreach (var setting in resource.Hubs)

@@ -134,12 +134,17 @@ public static class AzureRedisExtensions
             var disableAccessKeys = BicepValue<string>.DefineProperty(redis, "DisableAccessKeyAuthentication", ["properties", "disableAccessKeyAuthentication"], isOutput: false, isRequired: false);
             disableAccessKeys.Assign("true");
 
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
+            infrastructure.Add(principalIdParameter);
+            infrastructure.Add(principalNameParameter);
+
             infrastructure.Add(new RedisCacheAccessPolicyAssignment($"{redis.IdentifierName}_contributor")
             {
                 Parent = redis,
                 AccessPolicyName = "Data Contributor",
-                ObjectId = infrastructure.PrincipalIdParameter,
-                ObjectIdAlias = infrastructure.PrincipalNameParameter
+                ObjectId = principalIdParameter,
+                ObjectIdAlias = principalNameParameter
             });
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))

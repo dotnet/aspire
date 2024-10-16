@@ -30,20 +30,5 @@ public sealed class AzureResourceInfrastructure : Infrastructure
     /// </summary>
     public AzureProvisioningResource AspireResource { get; }
 
-    /// <summary>
-    /// The common principalId parameter injected into most Aspire-based Bicep files.
-    /// </summary>
-    public ProvisioningParameter PrincipalIdParameter => new ProvisioningParameter("principalId", typeof(string));
-
-    /// <summary>
-    /// The common principalType parameter injected into most Aspire-based Bicep files.
-    /// </summary>
-    public ProvisioningParameter PrincipalTypeParameter => new ProvisioningParameter("principalType", typeof(string));
-
-    /// <summary>
-    /// The common principalName parameter injected into some Aspire-based Bicep files.
-    /// </summary>
-    public ProvisioningParameter PrincipalNameParameter => new ProvisioningParameter("principalName", typeof(string));
-
     internal IEnumerable<ProvisioningParameter> GetParameters() => GetResources().OfType<ProvisioningParameter>();
 }

@@ -211,14 +211,19 @@ public static class AzureSqlExtensions
         IDistributedApplicationBuilder distributedApplicationBuilder,
         IReadOnlyDictionary<string, string> databases)
     {
+        var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+        var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
+        infrastructure.Add(principalIdParameter);
+        infrastructure.Add(principalNameParameter);
+
         var sqlServer = new SqlServer(infrastructure.AspireResource.GetBicepIdentifier())
         {
             Administrators = new ServerExternalAdministrator()
             {
                 AdministratorType = SqlAdministratorType.ActiveDirectory,
                 IsAzureADOnlyAuthenticationEnabled = true,
-                Sid = infrastructure.PrincipalIdParameter,
-                Login = infrastructure.PrincipalNameParameter,
+                Sid = principalIdParameter,
+                Login = principalNameParameter,
                 TenantId = BicepFunction.GetSubscription().TenantId
             },
             Version = "12.0",
@@ -240,7 +245,10 @@ public static class AzureSqlExtensions
         {
             // When in run mode we inject the users identity and we need to specify
             // the principalType.
-            sqlServer.Administrators.Value!.PrincipalType = infrastructure.PrincipalTypeParameter;
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            infrastructure.Add(principalTypeParameter);
+
+            sqlServer.Administrators.Value!.PrincipalType = principalTypeParameter;
 
             infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps")
             {
