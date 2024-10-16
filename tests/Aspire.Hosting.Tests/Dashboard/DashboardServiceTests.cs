@@ -149,11 +149,6 @@ public class DashboardServiceTests
             .WithHealthCheck("Check1")
             .WithHealthCheck("Check2");
 
-        await resourceNotificationService.PublishUpdateAsync(testResource, s =>
-        {
-            return s with { State = new ResourceStateSnapshot("Starting", null) };
-        });
-
         var cts = new CancellationTokenSource();
         var context = TestServerCallContext.Create(cancellationToken: cts.Token);
         var writer = new TestServerStreamWriter<WatchResourcesUpdate>(context);
@@ -165,8 +160,13 @@ public class DashboardServiceTests
             context);
 
         // Assert
-        var initialUpdate = await writer.ReadNextAsync();
-        var resource = Assert.Single(initialUpdate.InitialData.Resources);
+        await writer.ReadNextAsync();
+        await resourceNotificationService.PublishUpdateAsync(testResource, s =>
+        {
+            return s with { State = new ResourceStateSnapshot("Starting", null) };
+        });
+
+        var resource = Assert.Single((await writer.ReadNextAsync()).Changes.Value).Upsert;
         Assert.False(resource.HasHealthStatus);
         Assert.Collection(resource.HealthReports,
             r =>
