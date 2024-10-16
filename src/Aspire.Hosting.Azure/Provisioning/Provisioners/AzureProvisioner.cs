@@ -27,7 +27,7 @@ namespace Aspire.Hosting.Azure;
 // Provisions azure resources for development purposes
 internal sealed class AzureProvisioner(
     IOptions<AzureProvisionerOptions> options,
-    IOptions<AzureResourceOptions> provisioningOptions,
+    IOptions<AzureProvisioningOptions> provisioningOptions,
     DistributedApplicationExecutionContext executionContext,
     IConfiguration configuration,
     IHostEnvironment environment,
@@ -86,9 +86,9 @@ internal sealed class AzureProvisioner(
         // set the ProvisioningContext on the resource, if necessary
         foreach (var r in azureResources)
         {
-            if (r.AzureResource is AzureConstructResource constructResource)
+            if (r.AzureResource is AzureProvisioningResource provisioningResource)
             {
-                constructResource.ProvisioningContext = provisioningOptions.Value.ProvisioningContext;
+                provisioningResource.ProvisioningContext = provisioningOptions.Value.ProvisioningContext;
             }
         }
 
@@ -105,7 +105,7 @@ internal sealed class AzureProvisioner(
             _ => null
         };
 
-        // Create a map of parents to their children used to propogate state changes later.
+        // Create a map of parents to their children used to propagate state changes later.
         _parentChildLookup = appModel.Resources.OfType<IResourceWithParent>().ToLookup(r => r.Parent);
 
         // Sets the state of the resource and all of its children

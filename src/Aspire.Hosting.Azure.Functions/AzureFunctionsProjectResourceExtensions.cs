@@ -48,14 +48,14 @@ public static class AzureFunctionsProjectResourceExtensions
         {
             if (builder.ExecutionContext.IsPublishMode)
             {
-                var configureConstruct = (ResourceModuleConstruct construct) =>
+                var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
                 {
-                    var storageAccount = construct.GetResources().OfType<StorageAccount>().FirstOrDefault(r => r.IdentifierName == storageResourceName)
+                    var storageAccount = infrastructure.GetResources().OfType<StorageAccount>().FirstOrDefault(r => r.IdentifierName == storageResourceName)
                         ?? throw new InvalidOperationException($"Could not find storage account with '{storageResourceName}' name.");
-                    construct.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageAccountContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+                    infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageAccountContributor, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
                 };
                 storage = builder.AddAzureStorage(storageResourceName)
-                    .ConfigureConstruct(configureConstruct)
+                    .ConfigureInfrastructure(configureInfrastructure)
                     .RunAsEmulator().Resource;
             }
             else

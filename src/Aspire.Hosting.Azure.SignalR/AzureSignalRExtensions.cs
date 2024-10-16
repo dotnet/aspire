@@ -23,9 +23,9 @@ public static class AzureSignalRExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var service = new SignalRService(construct.Resource.GetBicepIdentifier())
+            var service = new SignalRService(infrastructure.Resource.GetBicepIdentifier())
             {
                 Kind = SignalRServiceKind.SignalR,
                 Sku = new SignalRResourceSku()
@@ -42,16 +42,16 @@ public static class AzureSignalRExtensions
                     }
                 ],
                 CorsAllowedOrigins = ["*"],
-                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+                Tags = { { "aspire-resource-name", infrastructure.Resource.Name } }
             };
-            construct.Add(service);
+            infrastructure.Add(service);
 
-            construct.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = service.HostName });
+            infrastructure.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = service.HostName });
 
-            construct.Add(service.CreateRoleAssignment(SignalRBuiltInRole.SignalRAppServer, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            infrastructure.Add(service.CreateRoleAssignment(SignalRBuiltInRole.SignalRAppServer, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
         };
 
-        var resource = new AzureSignalRResource(name, configureConstruct);
+        var resource = new AzureSignalRResource(name, configureInfrastructure);
         return builder.AddResource(resource)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)

@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Azure;
 /// These options can be configured using https://learn.microsoft.com/dotnet/core/extensions/options#use-di-services-to-configure-options
 /// to customize how Azure resources are provisioned.
 /// </remarks>
-public sealed class AzureResourceOptions
+public sealed class AzureProvisioningOptions
 {
     /// <summary>
     /// Gets the <see cref="Azure.Provisioning.ProvisioningContext"/> which contains common settings and
