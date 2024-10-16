@@ -149,6 +149,18 @@ public class AzureFunctionsTests
         await host.StopAsync();
     }
 
+    [Fact]
+    public void AddAzureFunctionsProject_UsesCorrectNameUnderPublish()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureFunctionsProject<TestProject>("funcapp");
+
+        var resource = Assert.Single(builder.Resources.OfType<AzureStorageResource>());
+
+        Assert.NotEqual(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName, resource.Name);
+        Assert.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName, resource.Name);
+    }
+
     private sealed class TestProject : IProjectMetadata
     {
         public string ProjectPath => "some-path";
