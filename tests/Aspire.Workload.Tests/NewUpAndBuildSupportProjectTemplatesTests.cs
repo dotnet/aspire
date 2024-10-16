@@ -29,9 +29,9 @@ public class NewUpAndBuildSupportProjectTemplates(ITestOutputHelper testOutput) 
 
         var templateHive = templates switch
         {
-            TestTemplatesInstall.Net8 => TemplatesCustomHive.With9_0_Net8,
-            TestTemplatesInstall.Net9 => TemplatesCustomHive.With9_0_Net9,
-            TestTemplatesInstall.Net9AndNet8 => TemplatesCustomHive.With9_0_Net9_And_Net8,
+            TestTemplatesInstall.Net8 => TemplatesCustomHive.TemplatesHive,
+            TestTemplatesInstall.Net9 => TemplatesCustomHive.TemplatesHive,
+            TestTemplatesInstall.Net9AndNet8 => TemplatesCustomHive.TemplatesHive,
             _ => throw new ArgumentOutOfRangeException(nameof(templates))
         };
 

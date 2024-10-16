@@ -23,12 +23,8 @@ public enum ContainerLifetime
     /// <para>When an existing container IS found, Aspire MAY re-use it based on the following criteria:</para>
     /// <list type="bullet">
     /// <item>If the container WAS NOT originally created by Aspire, the existing container will be re-used.</item>
-    /// <item>If the container WAS originally created by Aspire:
-    /// <list type="bullet">
-    /// <item>And the <see cref="ContainerResource"/> configuration DOES match the existing container, the existing container will be re-used.</item>
-    /// <item>And the <see cref="ContainerResource"/> configuration DOES NOT match the existing container, the existing container will be stopped
-    /// and a new container created in order to apply the updated configuration.</item>
-    /// </list></item>
+    /// <item>If the container WAS originally created by Aspire, and the <see cref="ContainerResource"/> configuration DOES match the existing container, the existing container will be re-used.</item>
+    /// <item>If the container WAS originally created by Aspire, and the <see cref="ContainerResource"/> configuration DOES NOT match the existing container, the existing container will be stopped and a new container created in order to apply the updated configuration.</item>
     /// </list>
     /// </remarks>
     Persistent,

@@ -6,7 +6,7 @@ using Aspire.Hosting.Eventing;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// This experimental event is published after all endpoints have been allocated.
+/// This event is published after all endpoints have been allocated.
 /// </summary>
 /// <param name="services">The <see cref="IServiceProvider"/> instance.</param>
 /// <param name="model">The <see cref="DistributedApplicationModel"/> instance.</param>
