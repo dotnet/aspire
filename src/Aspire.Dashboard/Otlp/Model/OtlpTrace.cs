@@ -1,25 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 
 namespace Aspire.Dashboard.Otlp.Model;
-
-public sealed class SpanCollection : KeyedCollection<string, OtlpSpan>
-{
-    // Chosen to balance memory usage overhead of dictionary vs work to find spans by ID.
-    private const int DictionaryCreationThreshold = 128;
-
-    public SpanCollection() : base(StringComparers.OtlpSpanId, DictionaryCreationThreshold)
-    {
-    }
-
-    protected override string GetKeyForItem(OtlpSpan item)
-    {
-        return item.SpanId;
-    }
-}
 
 [DebuggerDisplay("{DebuggerToString(),nq}")]
 public class OtlpTrace
@@ -68,6 +52,11 @@ public class OtlpTrace
 
     public void AddSpan(OtlpSpan span)
     {
+        if (Spans.Contains(span.SpanId))
+        {
+            throw new InvalidOperationException($"Duplicate span id '{span.SpanId}' detected.");
+        }
+
         var added = false;
         for (var i = Spans.Count - 1; i >= 0; i--)
         {
@@ -126,7 +115,7 @@ public class OtlpTrace
         }
 
         // Walk up span ancestors to check there is no loop.
-        var stack = new List<OtlpSpan> { span };
+        var stack = new SpanCollection { span };
         var currentSpan = span;
         while (currentSpan.GetParentSpan() is { } parentSpan)
         {
