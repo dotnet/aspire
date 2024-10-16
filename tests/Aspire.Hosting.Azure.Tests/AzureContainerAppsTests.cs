@@ -778,7 +778,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "params": {
             "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
-            "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
+            "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+            "certificateName": "{certificateName.value}",
+            "customDomain": "{customDomain.value}"
           }
         }
         """;
@@ -796,12 +798,28 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         param outputs_azure_container_apps_environment_id string
 
+        param certificateName string
+
+        param customDomain string
+
         resource api 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'api'
           location: location
           properties: {
             configuration: {
               activeRevisionsMode: 'Single'
+              ingress: {
+                external: false
+                targetPort: 1111
+                transport: 'http'
+                customDomains: [
+                  {
+                    name: customDomain
+                    bindingType: (certificateName != '') ? 'SniEnabled' : 'Disabled'
+                    certificateId: (certificateName != '') ? '${outputs_azure_container_apps_environment_id}/managedCertificates/${certificateName}' : null
+                  }
+                ]
+              }
             }
             environmentId: outputs_azure_container_apps_environment_id
             template: {
@@ -818,7 +836,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                 }
               ]
               scale: {
-                minReplicas: 0
+                minReplicas: 1
               }
             }
           }
