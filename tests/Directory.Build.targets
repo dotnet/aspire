@@ -55,10 +55,14 @@
       <TestClassName Include="$([System.IO.Path]::GetFileNameWithoutExtension('%(_TestLines0.Identity)'))" />
     </ItemGroup>
 
+    <ItemGroup>
+      <UniqueTestClassNamesFiltered Include="@(TestClassName->Distinct())" Exclude="@(TestClassNamesToSkipTests)" />
+    </ItemGroup>
+
     <Error Text="No $(ExtractTestClassNamesPrefix) test classes found!" Condition="'@(TestClassName)' == ''" />
 
     <WriteLinesToFile File="$(TestArchiveTestsDir)$(MSBuildProjectName).tests.list"
-                      Lines="@(TestClassName->Distinct())"
+                      Lines="@(UniqueTestClassNamesFiltered)"
                       Overwrite="true" />
   </Target>
 
