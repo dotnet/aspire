@@ -288,6 +288,25 @@ public class SchemaTests
     }
 
     [Fact]
+    public void InvalidBicepResourceFailsValidationToProveItIsntBeingIgnored()
+    {
+        var manifestText = """
+            {
+              "resources": {
+                "invalidbicepresource": {
+                  "type": "azure.bicep.v0",
+                  "invalidproperty": "invalidvalue"
+                }
+              }
+            }
+            """;
+
+        var manifestJson = JsonNode.Parse(manifestText);
+        var schema = GetSchema();
+        Assert.False(schema.Evaluate(manifestJson).IsValid);
+    }
+
+    [Fact]
     public void ManifestWithContainerResourceAndNoEnvOrBindingsIsAccepted()
     {
         var manifestText = """
