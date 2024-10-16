@@ -6,7 +6,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Expressions;
@@ -82,7 +81,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
 
             var construct = new AzureConstructResource(resource.Name, context.BuildContainerApp);
 
-            construct.Annotations.Add(new ManifestPublishingCallbackAnnotation(c => context.WriteToManifest(c, construct)));
+            construct.Annotations.Add(new ManifestPublishingCallbackAnnotation(construct.WriteToManifest));
 
             return construct;
         }
@@ -130,17 +129,6 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
 
             public Dictionary<string, KeyVaultService> KeyVaultRefs { get; } = [];
             public Dictionary<string, KeyVaultSecret> KeyVaultSecretRefs { get; } = [];
-
-            public void WriteToManifest(ManifestPublishingContext context, AzureConstructResource construct)
-            {
-                // Write the parameters we generated to the construct so they are included in the manifest
-                foreach (var (key, value) in Parameters)
-                {
-                    construct.Parameters[key] = value;
-                }
-
-                construct.WriteToManifest(context);
-            }
 
             public void BuildContainerApp(ResourceModuleConstruct c)
             {
@@ -220,6 +208,12 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 }
 
                 c.Add(containerAppResource);
+
+                // Write the parameters we generated to the construct so they are included in the manifest
+                foreach (var (key, value) in Parameters)
+                {
+                    c.Resource.Parameters[key] = value;
+                }
 
                 if (resource.TryGetAnnotationsOfType<ContainerAppCustomizationAnnotation>(out var annotations))
                 {

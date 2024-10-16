@@ -284,6 +284,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           "params": {
             "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+            "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
             "value": "{value.value}",
             "minReplicas": "{minReplicas.value}"
           }
