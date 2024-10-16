@@ -34,7 +34,7 @@ public class OtlpTrace
         }
     }
 
-    public SpanCollection Spans { get; } = new SpanCollection();
+    public OtlpSpanCollection Spans { get; } = new OtlpSpanCollection();
 
     public int CalculateDepth(OtlpSpan span)
     {
@@ -115,7 +115,7 @@ public class OtlpTrace
         }
 
         // Walk up span ancestors to check there is no loop.
-        var stack = new SpanCollection { span };
+        var stack = new OtlpSpanCollection { span };
         var currentSpan = span;
         while (currentSpan.GetParentSpan() is { } parentSpan)
         {
