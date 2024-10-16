@@ -1,10 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable AZPROVISION001
-
 using Aspire.Hosting.ApplicationModel;
-using Azure.Provisioning.ServiceBus;
 
 namespace Aspire.Hosting.Azure;
 
@@ -16,9 +13,9 @@ namespace Aspire.Hosting.Azure;
 public class AzureServiceBusResource(string name, Action<ResourceModuleConstruct> configureConstruct)
     : AzureConstructResource(name, configureConstruct), IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
-    internal List<(string Name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusQueue>? Configure)> Queues { get; } = [];
-    internal List<(string Name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusTopic>? Configure)> Topics { get; } = [];
-    internal List<(string TopicName, string Name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusSubscription>? Configure)> Subscriptions { get; } = [];
+    internal List<string> Queues { get; } = [];
+    internal List<string> Topics { get; } = [];
+    internal List<(string TopicName, string Name)> Subscriptions { get; } = [];
 
     /// <summary>
     /// Gets the "serviceBusEndpoint" output reference from the bicep template for the Azure Storage resource.

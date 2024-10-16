@@ -48,9 +48,6 @@ public partial class AspirePageContentLayout : ComponentBase
     [Inject]
     public required IDialogService DialogService { get; init; }
 
-    [Inject]
-    public required NavigationManager NavigationManager { get; init; }
-
     private IDialogReference? _toolbarPanel;
 
     public bool IsToolbarPanelOpen => _toolbarPanel is not null;

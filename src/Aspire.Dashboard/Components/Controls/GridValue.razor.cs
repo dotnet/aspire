@@ -4,7 +4,6 @@
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
 
@@ -78,15 +77,6 @@ public partial class GridValue
 
     [Parameter]
     public string PostCopyToolTip { get; set; } = null!;
-
-    [Inject]
-    public required IDialogService DialogService { get; init; }
-
-    [Inject]
-    public required IJSRuntime JS { get; init; }
-
-    [CascadingParameter]
-    public required ViewportInformation ViewportInformation { get; set; }
 
     private readonly Icon _maskIcon = new Icons.Regular.Size16.EyeOff();
     private readonly Icon _unmaskIcon = new Icons.Regular.Size16.Eye();

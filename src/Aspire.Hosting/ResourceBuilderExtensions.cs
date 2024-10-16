@@ -297,10 +297,7 @@ public static class ResourceBuilderExtensions
         {
             var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
 
-            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional)
-            {
-                ConnectionName = connectionName
-            };
+            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional);
         });
     }
 
@@ -682,7 +679,7 @@ public static class ResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var startAfter = DateTime.Now.AddSeconds(30);
-    /// 
+    ///
     /// builder.Services.AddHealthChecks().AddCheck(mycheck", () =>
     /// {
     ///     return DateTime.Now > startAfter ? HealthCheckResult.Healthy() : HealthCheckResult.Unhealthy();

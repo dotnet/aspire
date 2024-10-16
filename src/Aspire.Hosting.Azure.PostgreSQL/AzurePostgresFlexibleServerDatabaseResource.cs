@@ -31,6 +31,27 @@ public class AzurePostgresFlexibleServerDatabaseResource(string name, string dat
     /// </summary>
     public string DatabaseName { get; } = ThrowIfNull(databaseName);
 
+    /// <summary>
+    /// Gets the inner PostgresDatabaseResource resource.
+    /// 
+    /// This is set when RunAsContainer is called on the AzurePostgresFlexibleServerResource resource to create a local PostgreSQL container.
+    /// </summary>
+    internal PostgresDatabaseResource? InnerResource { get; private set; }
+
+    /// <inheritdoc />
+    public override ResourceAnnotationCollection Annotations => InnerResource?.Annotations ?? base.Annotations;
+
     private static T ThrowIfNull<T>([NotNull] T? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
         => argument ?? throw new ArgumentNullException(paramName);
+
+    internal void SetInnerResource(PostgresDatabaseResource innerResource)
+    {
+        // Copy the annotations to the inner resource before making it the inner resource
+        foreach (var annotation in Annotations)
+        {
+            innerResource.Annotations.Add(annotation);
+        }
+
+        InnerResource = innerResource;
+    }
 }

@@ -36,7 +36,7 @@
                         @FilteredItems.Count()
                     </FluentBadge>
                 </div>
-                <PropertyGrid TItem="SpanPropertyViewModel"
+                <PropertyGrid TItem="TelemetryPropertyViewModel"
                               Items="@FilteredItems"
                               GridTemplateColumns="1fr 2fr"
                               HighlightText="@_filter" />
@@ -47,7 +47,7 @@
                         @FilteredContextItems.Count()
                     </FluentBadge>
                 </div>
-                <PropertyGrid TItem="SpanPropertyViewModel"
+                <PropertyGrid TItem="TelemetryPropertyViewModel"
                               Items="@FilteredContextItems"
                               GridTemplateColumns="1fr 2fr"
                               HighlightText="@_filter" />
@@ -58,7 +58,7 @@
                         @FilteredResourceItems.Count()
                     </FluentBadge>
                 </div>
-                <PropertyGrid TItem="SpanPropertyViewModel"
+                <PropertyGrid TItem="TelemetryPropertyViewModel"
                               Items="@FilteredResourceItems"
                               GridTemplateColumns="1fr 2fr"
                               HighlightText="@_filter" />
@@ -71,7 +71,6 @@
                 </div>
                 <PropertyGrid TItem="OtlpSpanEvent"
                               Items="@FilteredSpanEvents"
-                              ItemKey="@((r) => r.InternalId)"
                               GridTemplateColumns="1fr 2fr"
                               NameColumnTitle="@(Loc[nameof(ControlsStrings.TimeOffsetColumnHeader)])"
                               ValueColumnTitle="@(Loc[nameof(ControlsStrings.EventColumnHeader)])"

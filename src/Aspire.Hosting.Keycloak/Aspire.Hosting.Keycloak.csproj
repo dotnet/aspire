@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <PackageTags>aspire integration hosting keycloak</PackageTags>
     <Description>Keycloak support for .NET Aspire.</Description>
   </PropertyGroup>

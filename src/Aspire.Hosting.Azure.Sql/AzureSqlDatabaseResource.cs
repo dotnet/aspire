@@ -32,6 +32,28 @@ public class AzureSqlDatabaseResource(string name, string databaseName, AzureSql
     /// </summary>
     public string DatabaseName { get; } = ThrowIfNull(databaseName);
 
+    /// <summary>
+    /// Gets the inner SqlServerDatabaseResource resource.
+    /// 
+    /// This is set when RunAsContainer is called on the AzureSqlServerResource resource to create a local SQL Server container.
+    /// </summary>
+    internal SqlServerDatabaseResource? InnerResource { get; private set; }
+
+    /// <inheritdoc />
+    public override ResourceAnnotationCollection Annotations => InnerResource?.Annotations ?? base.Annotations;
+
     private static T ThrowIfNull<T>([NotNull] T? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
         => argument ?? throw new ArgumentNullException(paramName);
+
+    internal void SetInnerResource(SqlServerDatabaseResource innerResource)
+    {
+        // Copy the annotations to the inner resource before making it the inner resource
+        foreach (var annotation in Annotations)
+        {
+            innerResource.Annotations.Add(annotation);
+        }
+
+        InnerResource = innerResource;
+    }
+
 }

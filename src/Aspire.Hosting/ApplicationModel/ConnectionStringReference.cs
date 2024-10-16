@@ -17,11 +17,6 @@ public class ConnectionStringReference(IResourceWithConnectionString resource, b
     /// </summary>
     public bool Optional { get; } = optional;
 
-    /// <summary>
-    /// The name of the connection key.
-    /// </summary>
-    public string? ConnectionName { get; set; }
-
     string IManifestExpressionProvider.ValueExpression => Resource.ValueExpression;
 
     IEnumerable<object> IValueWithReferences.References => [Resource];

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
+using System.Text.Json.Nodes;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Http;
 using Aspire.Hosting;
@@ -9,9 +10,11 @@ using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
+using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using Xunit;
@@ -473,6 +476,73 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(DashboardClientCertificateSource.KeyStore, app.DashboardOptionsMonitor.CurrentValue.ResourceServiceClient.ClientCertificate.Source);
         Assert.Equal("MySubject", app.DashboardOptionsMonitor.CurrentValue.ResourceServiceClient.ClientCertificate.Subject);
         Assert.Empty(app.ValidationFailures);
+    }
+
+    [Fact]
+    public async Task Configuration_Logging_OverrideDefaults()
+    {
+        // Arrange & Act
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data["Logging:LogLevel:Default"] = "Trace";
+                data["Logging:LogLevel:Grpc"] = "Trace";
+                data["Logging:LogLevel:Microsoft.Hosting.Lifetime"] = "Trace";
+            },
+            clearLogFilterRules: false);
+
+        // Assert
+        await app.StartAsync();
+
+        var options = app.Services.GetRequiredService<IOptions<LoggerFilterOptions>>();
+
+        Assert.Single(options.Value.Rules.Where(r => r.CategoryName == null && r.LogLevel == LogLevel.Trace));
+        Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Grpc" && r.LogLevel == LogLevel.Trace));
+        Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Microsoft.Hosting.Lifetime" && r.LogLevel == LogLevel.Trace));
+    }
+
+    [Fact]
+    public async Task Configuration_Logging_FileConfig_OverrideDefaults()
+    {
+        // Arrange
+        var configFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        var configJson = new JsonObject
+        {
+            ["Logging"] = new JsonObject
+            {
+                ["LogLevel"] = new JsonObject
+                {
+                    ["Default"] = nameof(LogLevel.Trace),
+                    ["Grpc"] = nameof(LogLevel.Trace),
+                    ["Microsoft.Hosting.Lifetime"] = nameof(LogLevel.Trace)
+                }
+            }
+        };
+        await File.WriteAllTextAsync(configFilePath, configJson.ToString());
+
+        try
+        {
+            // Arrange & Act
+            await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+                additionalConfiguration: data =>
+                {
+                    data[DashboardConfigNames.DashboardConfigFilePathName.ConfigKey] = configFilePath;
+                },
+                clearLogFilterRules: false);
+
+            // Assert
+            await app.StartAsync();
+
+            var options = app.Services.GetRequiredService<IOptions<LoggerFilterOptions>>();
+
+            Assert.Single(options.Value.Rules.Where(r => r.CategoryName == null && r.LogLevel == LogLevel.Trace));
+            Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Grpc" && r.LogLevel == LogLevel.Trace));
+            Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Microsoft.Hosting.Lifetime" && r.LogLevel == LogLevel.Trace));
+        }
+        finally
+        {
+            File.Delete(configFilePath);
+        }
     }
 
     [Fact]

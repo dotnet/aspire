@@ -83,7 +83,7 @@ internal static class MetricsSetupHelpers
         context.Services.AddSingleton<ShortcutManager>();
         context.Services.AddSingleton<LibraryConfiguration>();
         context.Services.AddSingleton<IKeyCodeService, KeyCodeService>();
-        context.Services.AddSingleton<IEffectiveThemeResolver, TestEffectiveThemeResolver>();
+        context.Services.AddSingleton<IThemeResolver, TestThemeResolver>();
         context.Services.AddSingleton<ThemeManager>();
     }
 

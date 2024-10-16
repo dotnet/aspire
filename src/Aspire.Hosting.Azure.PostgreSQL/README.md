@@ -41,18 +41,28 @@ automatically.
 Then, in the _Program.cs_ file of `AppHost`, register a Postgres database and consume the connection using the following methods:
 
 ```csharp
-var postgresdb = builder.AddPostgres("pg").
-                        .AsAzurePostgresFlexibleServer()
+var postgresdb = builder.AddAzurePostgresFlexibleServer("pg")
                         .AddDatabase("postgresdb");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(postgresdb);
 ```
 
-The `WithReference` method configures a connection in the `MyService` project named `postgresdb`. In the _Program.cs_ file of `MyService`, the database connection can be consumed using the client library [Aspire.Npgsql](https://www.nuget.org/packages/Aspire.Npgsql):
+The `WithReference` method configures a connection in the `MyService` project named `postgresdb`. By default, `AddAzurePostgresFlexibleServer` configures [Microsoft Entra ID](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-azure-ad-authentication) authentication. This requires changes to applications that need to connect to these resources. In the _Program.cs_ file of `MyService`, the database connection can be consumed using the client library [Aspire.Npgsql](https://www.nuget.org/packages/Aspire.Npgsql) and [Azure.Identity](https://www.nuget.org/packages/Azure.Identity):
 
 ```csharp
-builder.AddNpgsqlDataSource("postgresdb");
+builder.AddNpgsqlDataSource("postgresdb", configureDataSourceBuilder: dataSourceBuilder =>
+{
+    if (string.IsNullOrEmpty(dataSourceBuilder.ConnectionStringBuilder.Password))
+    {
+        dataSourceBuilder.UsePeriodicPasswordProvider(async (_, ct) =>
+        {
+            var credentials = new DefaultAzureCredential();
+            var token = await credentials.GetTokenAsync(new TokenRequestContext(["https://ossrdbms-aad.database.windows.net/.default"]), ct);
+            return token.Token;
+        }, TimeSpan.FromHours(24), TimeSpan.FromSeconds(10));
+    }
+});
 ```
 
 ## Additional documentation

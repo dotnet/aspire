@@ -1,8 +1,0 @@
-<Project>
-
-  <PropertyGroup>
-    <GitHubRepositoryName>aspire</GitHubRepositoryName>
-    <SourceBuildManagedOnly>true</SourceBuildManagedOnly>
-  </PropertyGroup>
-
-</Project>

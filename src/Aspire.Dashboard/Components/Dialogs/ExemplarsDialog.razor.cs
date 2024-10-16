@@ -15,9 +15,6 @@ namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class ExemplarsDialog : IDisposable
 {
-    [CascadingParameter]
-    public FluentDialog Dialog { get; set; } = default!;
-
     [Parameter]
     public ExemplarsDialogViewModel Content { get; set; } = default!;
 

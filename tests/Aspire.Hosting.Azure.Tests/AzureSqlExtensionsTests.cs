@@ -158,7 +158,7 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
             db2 = sql.AddDatabase("db2", "db2Name");
         }
 
-        Assert.False(sql.Resource.IsContainer(), "The resource should still be the Azure Resource.");
+        Assert.True(sql.Resource.IsContainer(), "The resource should now be a container resource.");
         var serverConnectionString = await sql.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=", serverConnectionString);
         Assert.EndsWith(";TrustServerCertificate=true", serverConnectionString);
@@ -170,5 +170,71 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         var db2ConnectionString = await db2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=", db2ConnectionString);
         Assert.EndsWith(";TrustServerCertificate=true;Database=db2Name", db2ConnectionString);
+    }
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public void RunAsContainerAppliesAnnotationsCorrectly(bool annotationsBefore, bool addDatabaseBefore)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var sql = builder.AddAzureSqlServer("sql");
+        IResourceBuilder<AzureSqlDatabaseResource>? db = null;
+
+        if (addDatabaseBefore)
+        {
+            db = sql.AddDatabase("db1");
+        }
+
+        if (annotationsBefore)
+        {
+            sql.WithAnnotation(new Dummy1Annotation());
+            db?.WithAnnotation(new Dummy1Annotation());
+        }
+
+        sql.RunAsContainer(c =>
+        {
+            c.WithAnnotation(new Dummy2Annotation());
+        });
+
+        if (!addDatabaseBefore)
+        {
+            db = sql.AddDatabase("db1");
+
+            if (annotationsBefore)
+            {
+                // need to add the annotation here in this case becuase it has to be added after the DB is created
+                db!.WithAnnotation(new Dummy1Annotation());
+            }
+        }
+
+        if (!annotationsBefore)
+        {
+            sql.WithAnnotation(new Dummy1Annotation());
+            db!.WithAnnotation(new Dummy1Annotation());
+        }
+
+        var sqlResourceInModel = builder.Resources.Single(r => r.Name == "sql");
+        var dbResourceInModel = builder.Resources.Single(r => r.Name == "db1");
+
+        Assert.True(sqlResourceInModel.TryGetAnnotationsOfType<Dummy1Annotation>(out var sqlAnnotations1));
+        Assert.Single(sqlAnnotations1);
+
+        Assert.True(sqlResourceInModel.TryGetAnnotationsOfType<Dummy2Annotation>(out var sqlAnnotations2));
+        Assert.Single(sqlAnnotations2);
+
+        Assert.True(dbResourceInModel.TryGetAnnotationsOfType<Dummy1Annotation>(out var dbAnnotations));
+        Assert.Single(dbAnnotations);
+    }
+
+    private sealed class Dummy1Annotation : IResourceAnnotation
+    {
+    }
+
+    private sealed class Dummy2Annotation : IResourceAnnotation
+    {
     }
 }

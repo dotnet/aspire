@@ -255,4 +255,7 @@
     <value>Waiting for health data...</value>
     <comment>A message shown in the UI as a placeholder to indicate that health checks are expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</comment>
   </data>
+  <data name="ResourceActionTelemetryTooltip" xml:space="preserve">
+    <value>No telemetry found for this resource.</value>
+  </data>
 </root>

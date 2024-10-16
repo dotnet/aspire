@@ -210,7 +210,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         _applicationChanged = true;
 
-        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
+        return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
     private async Task HandleSelectedLogLevelChangedAsync()
@@ -218,7 +218,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         _applicationChanged = true;
 
         await ClearSelectedLogEntryAsync();
-        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
     private void UpdateSubscription()
@@ -308,7 +308,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             }
         }
 
-        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
     private async Task HandleAfterFilterBindAsync()

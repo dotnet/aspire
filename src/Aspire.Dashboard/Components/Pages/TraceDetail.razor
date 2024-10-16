@@ -23,8 +23,10 @@
                     var headerSpan = trace.RootSpan ?? trace.FirstSpan;
                 }
                 <div class="page-header">
-                    <h1 style="display:inline-block">@GetResourceName(headerSpan.Source): @headerSpan.Name</h1>
-                    <span class="trace-id">@OtlpHelpers.ToShortenedId(trace.TraceId)</span>
+                    <h1>
+                        <span>@GetResourceName(headerSpan.Source): @headerSpan.Name</span>
+                        <span class="trace-id">@OtlpHelpers.ToShortenedId(trace.TraceId)</span>
+                    </h1>                    
                 </div>
             </PageTitleSection>
             <ToolbarSection>

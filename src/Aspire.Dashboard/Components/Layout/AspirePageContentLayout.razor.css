@@ -12,12 +12,8 @@
 }
 
 ::deep.content-header {
-    /*
-        Long titles inside a header don't add an ellipsis when trimmed.
-        Improve here could be to add that feature
-    */
     grid-area: page-header;
-    white-space: nowrap;
+    word-break: break-all;
 }
 
 ::deep .title-toolbar-inline {

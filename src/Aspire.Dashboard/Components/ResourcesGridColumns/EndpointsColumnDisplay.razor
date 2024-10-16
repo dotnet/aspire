@@ -1,7 +1,11 @@
 ﻿@using Aspire.Dashboard.Model
 @namespace Aspire.Dashboard.Components
 
-@if (DisplayedEndpoints.Count == 1)
+@if (DisplayedEndpoints.Count == 0)
+{
+    <span class="empty-data"></span>
+}
+else if (DisplayedEndpoints.Count == 1)
 {
     @WriteEndpoint(DisplayedEndpoints[0])
 }

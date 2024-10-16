@@ -88,6 +88,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No telemetry found for this resource..
+        /// </summary>
+        public static string ResourceActionTelemetryTooltip {
+            get {
+                return ResourceManager.GetString("ResourceActionTelemetryTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Traces.
         /// </summary>
         public static string ResourceActionTracesText {

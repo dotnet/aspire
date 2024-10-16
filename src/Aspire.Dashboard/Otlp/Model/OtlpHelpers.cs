@@ -196,7 +196,7 @@ public static class OtlpHelpers
         }
 
         var readLimit = Math.Min(attributes.Count, context.Options.MaxAttributeCount);
-        var values = new List<KeyValuePair<string, string>>(readLimit);
+        List<KeyValuePair<string, string>>? values = null;
         for (var i = 0; i < attributes.Count; i++)
         {
             var attribute = attributes[i];
@@ -205,6 +205,8 @@ public static class OtlpHelpers
             {
                 continue;
             }
+
+            values ??= new List<KeyValuePair<string, string>>(readLimit);
 
             var value = TruncateString(attribute.Value.GetString(), context.Options.MaxAttributeLength);
 
@@ -228,7 +230,7 @@ public static class OtlpHelpers
             }
         }
 
-        return values.ToArray();
+        return values?.ToArray() ?? [];
 
         static int GetIndex(List<KeyValuePair<string, string>> values, string name)
         {

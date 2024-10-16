@@ -277,7 +277,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
             db2 = postgres.AddDatabase("db2", "db2Name");
         }
 
-        Assert.False(postgres.Resource.IsContainer(), "The resource should still be the Azure Resource.");
+        Assert.True(postgres.Resource.IsContainer(), "The resource should now be a container resource.");
         Assert.StartsWith("Host=localhost;Port=12455;Username=postgres;Password=", await postgres.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
 
         var db1ConnectionString = await db1.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
@@ -322,5 +322,71 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         Assert.Equal("Host=localhost;Port=12455;Username=user;Password=p@ssw0rd1", await postgres.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
         Assert.Equal("Host=localhost;Port=12455;Username=user;Password=p@ssw0rd1;Database=db1", await db1.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
         Assert.Equal("Host=localhost;Port=12455;Username=user;Password=p@ssw0rd1;Database=db2Name", await db2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+    }
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public void RunAsContainerAppliesAnnotationsCorrectly(bool annotationsBefore, bool addDatabaseBefore)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var postgres = builder.AddAzurePostgresFlexibleServer("postgres-data");
+        IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource>? db = null;
+
+        if (addDatabaseBefore)
+        {
+            db = postgres.AddDatabase("db1");
+        }
+
+        if (annotationsBefore)
+        {
+            postgres.WithAnnotation(new Dummy1Annotation());
+            db?.WithAnnotation(new Dummy1Annotation());
+        }
+
+        postgres.RunAsContainer(c =>
+        {
+            c.WithAnnotation(new Dummy2Annotation());
+        });
+
+        if (!addDatabaseBefore)
+        {
+            db = postgres.AddDatabase("db1");
+
+            if (annotationsBefore)
+            {
+                // need to add the annotation here in this case becuase it has to be added after the DB is created
+                db!.WithAnnotation(new Dummy1Annotation());
+            }
+        }
+
+        if (!annotationsBefore)
+        {
+            postgres.WithAnnotation(new Dummy1Annotation());
+            db!.WithAnnotation(new Dummy1Annotation());
+        }
+
+        var postgresResourceInModel = builder.Resources.Single(r => r.Name == "postgres-data");
+        var dbResourceInModel = builder.Resources.Single(r => r.Name == "db1");
+
+        Assert.True(postgresResourceInModel.TryGetAnnotationsOfType<Dummy1Annotation>(out var postgresAnnotations1));
+        Assert.Single(postgresAnnotations1);
+
+        Assert.True(postgresResourceInModel.TryGetAnnotationsOfType<Dummy2Annotation>(out var postgresAnnotations2));
+        Assert.Single(postgresAnnotations2);
+
+        Assert.True(dbResourceInModel.TryGetAnnotationsOfType<Dummy1Annotation>(out var dbAnnotations));
+        Assert.Single(dbAnnotations);
+    }
+
+    private sealed class Dummy1Annotation : IResourceAnnotation
+    {
+    }
+
+    private sealed class Dummy2Annotation : IResourceAnnotation
+    {
     }
 }

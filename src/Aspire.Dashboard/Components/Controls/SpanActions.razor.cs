@@ -18,9 +18,6 @@ public partial class SpanActions : ComponentBase
     private AspireMenuButton? _menuButton;
 
     [Inject]
-    public required IStringLocalizer<Resources.TraceDetail> Loc { get; set; }
-
-    [Inject]
     public required IStringLocalizer<Resources.ControlsStrings> ControlsLoc { get; set; }
 
     [Inject]
