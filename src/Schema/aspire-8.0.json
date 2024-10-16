@@ -106,6 +106,9 @@
                 "type": "string",
                 "description": "The entrypoint to use for the container image when executed."
               },
+              "deployment": {
+                "$ref": "#/definitions/resource.azure.bicep.v0"
+              },
               "args": {
                 "$ref": "#/definitions/args"
               },
@@ -165,6 +168,9 @@
               "path": {
                 "type": "string",
                 "description": "The path to the project file. Relative paths are interpreted as being relative to the location of the manifest file."
+              },
+              "deployment": {
+                "$ref": "#/definitions/resource.azure.bicep.v0"
               },
               "args": {
                 "$ref": "#/definitions/args"
@@ -370,35 +376,7 @@
             "additionalProperties": false
           },
           {
-            "type": "object",
-            "default": "Represents a resource that is deployed using Azure Bicep.",
-            "required": [ "path" ],
-            "properties": {
-              "type": {
-                "const": "azure.bicep.v0"
-              },
-              "path": {
-                "type": "string",
-                "description": "Path to the Bicep file to be used for deployment."
-              },
-              "connectionString": {
-                "$ref": "#/definitions/connectionString"
-              },
-              "params": {
-                "type": "object",
-                "description": "A list of parameters which are passed to Azure deployment.",
-                "additionalProperties": {
-                  "oneOf": [
-                    { "type": "array" },
-                    { "type": "boolean" },
-                    { "type": "number" },
-                    { "type": "object" },
-                    { "type": "string" }
-                  ]
-                }
-              }
-            },
-            "additionalProperties": false
+            "$ref": "#/definitions/resource.azure.bicep.v0"
           },
           {
             "type": "object",
@@ -490,6 +468,37 @@
     }
   },
   "definitions": {
+    "resource.azure.bicep.v0": {
+      "type": "object",
+      "default": "Represents a resource that is deployed using Azure Bicep.",
+      "required": [ "path" ],
+      "properties": {
+        "type": {
+          "const": "azure.bicep.v0"
+        },
+        "path": {
+          "type": "string",
+          "description": "Path to the Bicep file to be used for deployment."
+        },
+        "connectionString": {
+          "$ref": "#/definitions/connectionString"
+        },
+        "params": {
+          "type": "object",
+          "description": "A list of parameters which are passed to Azure deployment.",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "array" },
+              { "type": "boolean" },
+              { "type": "number" },
+              { "type": "object" },
+              { "type": "string" }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "connectionString": {
       "type": "string",
       "description": "A connection string that can be used to connect to this resource."
@@ -508,7 +517,7 @@
     "build": {
       "type": "object",
       "description": "An object that captures properties that control the building of a container image.",
-      "required": ["context", "dockerfile"],
+      "required": [ "context", "dockerfile" ],
       "properties": {
         "context": {
           "type": "string",
@@ -530,10 +539,10 @@
           "description": "A list of build arguments which are used during container build.",
           "additionalProperties": {
             "type": "object",
-            "required": ["type"],
+            "required": [ "type" ],
             "oneOf": [
               {
-                "required": ["type", "value"],
+                "required": [ "type", "value" ],
                 "properties": {
                   "type": {
                     "type": "string",
@@ -546,7 +555,7 @@
                 }
               },
               {
-                "required": ["type", "source"],
+                "required": [ "type", "source" ],
                 "properties": {
                   "type": {
                     "type": "string",
@@ -576,22 +585,22 @@
       "description": "A list of port bindings for the resource when it is deployed.",
       "additionalProperties": {
         "type": "object",
-        "required": ["scheme", "protocol", "transport"],
+        "required": [ "scheme", "protocol", "transport" ],
         "properties": {
           "scheme": {
             "type": "string",
             "description": "The scheme used in URIs for this binding.",
-            "enum": ["http", "https", "tcp", "udp"]
+            "enum": [ "http", "https", "tcp", "udp" ]
           },
           "protocol": {
             "type": "string",
             "description": "The protocol used for this binding (only 'tcp' or 'udp' are valid).",
-            "enum": ["tcp", "udp"]
+            "enum": [ "tcp", "udp" ]
           },
           "transport": {
             "type": "string",
             "description": "Additional information describing the transport (e.g. HTTP/2).",
-            "enum": ["http", "http2", "tcp"]
+            "enum": [ "http", "http2", "tcp" ]
           },
           "external": {
             "type": "boolean",
@@ -621,7 +630,7 @@
       "description": "A list of volumes associated with this resource when deployed.",
       "items": {
         "type": "object",
-        "required": ["name", "target", "readOnly"],
+        "required": [ "name", "target", "readOnly" ],
         "properties": {
           "name": {
             "type": "string",
@@ -644,7 +653,7 @@
       "description": "A list of bind mounts associated with this resource when deployed.",
       "items": {
         "type": "object",
-        "required": ["source", "target", "readOnly"],
+        "required": [ "source", "target", "readOnly" ],
         "properties": {
           "source": {
             "type": "string",

@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
+using Azure.Provisioning.KeyVault;
 using Json.Schema;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -19,118 +20,126 @@ public class SchemaTests
         {
             var data = new TheoryData<string, Action<IDistributedApplicationBuilder>>
             {
-                //{ "BasicParameter", (IDistributedApplicationBuilder builder) =>
-                //    {
-                //        builder.AddParameter("foo");
-                //    }
-                //},
+                { "BasicParameter", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddParameter("foo");
+                    }
+                },
 
-                //{ "BasicSecretParameter", (IDistributedApplicationBuilder builder) =>
-                //    {
-                //        builder.AddParameter("foo", secret: true);
-                //    }
-                //},
+                { "BasicSecretParameter", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddParameter("foo", secret: true);
+                    }
+                },
 
-                //{ "ConnectionStringParameter", (IDistributedApplicationBuilder builder) =>
-                //    {
-                //        builder.AddConnectionString("foo");
-                //    }
-                //},
+                { "ConnectionStringParameter", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddConnectionString("foo");
+                    }
+                },
 
-                //{ "BasicContainer", (IDistributedApplicationBuilder builder) =>
-                //    {
-                //        builder.AddRedis("redis");
-                //    }
-                //},
+                { "BasicContainer", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddRedis("redis");
+                    }
+                },
 
-                //{ "ContainerWithBuild", (IDistributedApplicationBuilder builder) =>
-                //    {
-                //        var tempPath = Path.GetTempPath();
-                //        var tempContextPath = Path.Combine(tempPath, Path.GetRandomFileName());
-                //        Directory.CreateDirectory(tempContextPath);
-                //        var tempDockerfilePath = Path.Combine(tempContextPath, "Dockerfile");
-                //        File.WriteAllText(tempDockerfilePath, "does not need to be valid dockerfile content here");
+                { "ContainerWithBuild", (IDistributedApplicationBuilder builder) =>
+                    {
+                        var tempPath = Path.GetTempPath();
+                        var tempContextPath = Path.Combine(tempPath, Path.GetRandomFileName());
+                        Directory.CreateDirectory(tempContextPath);
+                        var tempDockerfilePath = Path.Combine(tempContextPath, "Dockerfile");
+                        File.WriteAllText(tempDockerfilePath, "does not need to be valid dockerfile content here");
 
-                //        builder.AddContainer("mycontainer", "myimage").WithDockerfile(tempContextPath);
-                //    }
-                //},
+                        builder.AddContainer("mycontainer", "myimage").WithDockerfile(tempContextPath);
+                    }
+                },
 
-                //{ "ContainerWithBuildAndBuildArgs", (IDistributedApplicationBuilder builder) =>
-                //    {
-                //        var tempPath = Path.GetTempPath();
-                //        var tempContextPath = Path.Combine(tempPath, Path.GetRandomFileName());
-                //        Directory.CreateDirectory(tempContextPath);
-                //        var tempDockerfilePath = Path.Combine(tempContextPath, "Dockerfile");
-                //        File.WriteAllText(tempDockerfilePath, "does not need to be valid dockerfile content here");
+                { "ContainerWithBuildAndBuildArgs", (IDistributedApplicationBuilder builder) =>
+                    {
+                        var tempPath = Path.GetTempPath();
+                        var tempContextPath = Path.Combine(tempPath, Path.GetRandomFileName());
+                        Directory.CreateDirectory(tempContextPath);
+                        var tempDockerfilePath = Path.Combine(tempContextPath, "Dockerfile");
+                        File.WriteAllText(tempDockerfilePath, "does not need to be valid dockerfile content here");
 
-                //        var p = builder.AddParameter("p");
-                //        builder.AddContainer("mycontainer", "myimage")
-                //               .WithDockerfile(tempContextPath)
-                //               .WithBuildArg("stringArg", "a string")
-                //               .WithBuildArg("intArg", 42)
-                //               .WithBuildArg("boolArg", true)
-                //               .WithBuildArg("parameterArg", p);
-                //    }
-                //},
+                        var p = builder.AddParameter("p");
+                        builder.AddContainer("mycontainer", "myimage")
+                               .WithDockerfile(tempContextPath)
+                               .WithBuildArg("stringArg", "a string")
+                               .WithBuildArg("intArg", 42)
+                               .WithBuildArg("boolArg", true)
+                               .WithBuildArg("parameterArg", p);
+                    }
+                },
 
-                //{ "ContainerWithBuildAndSecretBuildArgs", (IDistributedApplicationBuilder builder) =>
-                //    {
-                //        var tempPath = Path.GetTempPath();
-                //        var tempContextPath = Path.Combine(tempPath, Path.GetRandomFileName());
-                //        Directory.CreateDirectory(tempContextPath);
-                //        var tempDockerfilePath = Path.Combine(tempContextPath, "Dockerfile");
-                //        File.WriteAllText(tempDockerfilePath, "does not need to be valid dockerfile content here");
+                { "ContainerWithBuildAndSecretBuildArgs", (IDistributedApplicationBuilder builder) =>
+                    {
+                        var tempPath = Path.GetTempPath();
+                        var tempContextPath = Path.Combine(tempPath, Path.GetRandomFileName());
+                        Directory.CreateDirectory(tempContextPath);
+                        var tempDockerfilePath = Path.Combine(tempContextPath, "Dockerfile");
+                        File.WriteAllText(tempDockerfilePath, "does not need to be valid dockerfile content here");
 
-                //        var p = builder.AddParameter("p", secret: true);
-                //        builder.AddContainer("mycontainer", "myimage")
-                //               .WithDockerfile(tempContextPath)
-                //               .WithBuildSecret("secretArg", p);
-                //    }
-                //},
+                        var p = builder.AddParameter("p", secret: true);
+                        builder.AddContainer("mycontainer", "myimage")
+                               .WithDockerfile(tempContextPath)
+                               .WithBuildSecret("secretArg", p);
+                    }
+                },
 
-                //{ "ContainerWithVolume", (IDistributedApplicationBuilder builder) =>
-                //    {
-                //        builder.AddRedis("redis").WithDataVolume();
-                //    }
-                //},
+                { "ContainerWithVolume", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddRedis("redis").WithDataVolume();
+                    }
+                },
 
-                //{ "ContainerWithBindMount", (IDistributedApplicationBuilder builder) =>
-                //    {
-                //        builder.AddRedis("redis").WithBindMount("source", "target");
-                //    }
-                //},
+                { "ContainerWithBindMount", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddRedis("redis").WithBindMount("source", "target");
+                    }
+                },
 
-                //{ "BasicContainerWithConnectionString", (IDistributedApplicationBuilder builder) =>
-                //    {
-                //        builder.AddPostgres("postgres");
-                //    }
-                //},
+                { "BasicContainerWithConnectionString", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddPostgres("postgres");
+                    }
+                },
 
-                //{ "BasicDockerfile", (IDistributedApplicationBuilder builder) =>
-                //    {
-                //        builder.AddExecutable("foo", "bar", "baz", "one", "two", "three").PublishAsDockerFile();
-                //    }
-                //},
+                { "BasicDockerfile", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddExecutable("foo", "bar", "baz", "one", "two", "three").PublishAsDockerFile();
+                    }
+                },
 
-                //{ "ContainerWithContainerRuntimeArgs", (IDistributedApplicationBuilder builder) =>
-                //    {
-                //        builder.AddContainer("foo", "bar").WithContainerRuntimeArgs("one", "two", "three");
-                //    }
-                //},
+                { "ContainerWithContainerRuntimeArgs", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddContainer("foo", "bar").WithContainerRuntimeArgs("one", "two", "three");
+                    }
+                },
 
-                //{ "BasicProject", (IDistributedApplicationBuilder builder) =>
-                //    {
-                //        builder.AddProject<Projects.ServiceA>("project");
-                //    }
-                //},
+                { "BasicProject", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddProject<Projects.ServiceA>("project");
+                    }
+                },
 
-                //{ "BasicExecutable", (IDistributedApplicationBuilder builder) =>
-                //    {
-                //        builder.AddExecutable("executable", "hellworld", "foo", "arg1", "arg2");
-                //    }
-                //},
+                { "BasicExecutable", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddExecutable("executable", "hellworld", "foo", "arg1", "arg2");
+                    }
+                },
 
-                { "CustomizedContainerApp", (IDistributedApplicationBuilder builder) =>
+                { "VanillaProjectBasedContainerApp", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddProject<Projects.ServiceA>("project")
+                               .PublishAsAzureContainerApp((_, _) => { });
+
+                    }
+                },
+
+                { "CustomizedProjectBasedContainerApp", (IDistributedApplicationBuilder builder) =>
                     {
                         var minReplicas = builder.AddParameter("minReplicas");
 
@@ -140,6 +149,37 @@ public class SchemaTests
                                    app.Template.Value!.Scale.Value!.MinReplicas = minReplicas.AsProvisioningParameter(module);
                                });
 
+                    }
+                },
+
+                { "VanillaContainerBasedContainerApp", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddContainer("mycontainer", "myimage")
+                               .PublishAsAzureContainerApp((_, _) => { });
+
+                    }
+                },
+
+                { "CustomizedContainerBasedContainerApp", (IDistributedApplicationBuilder builder) =>
+                    {
+                        var minReplicas = builder.AddParameter("minReplicas");
+
+                        builder.AddContainer("mycontainer", "myimage")
+                               .PublishAsAzureContainerApp((module, app) =>
+                               {
+                                   app.Template.Value!.Scale.Value!.MinReplicas = minReplicas.AsProvisioningParameter(module);
+                               });
+
+                    }
+                },
+
+                { "VanillaBicepResource", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddAzureConstruct("construct", module =>
+                        {
+                            var kv = KeyVaultService.FromExisting("doesnotexist");
+                            module.Add(kv);
+                        });
                     }
                 },
             };
