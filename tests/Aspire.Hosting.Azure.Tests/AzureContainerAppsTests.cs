@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Azure.Provisioning.AppContainers;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Xunit.Abstractions;
@@ -231,6 +232,120 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
           }
         }
         """;
+        output.WriteLine(bicep);
+        Assert.Equal(expectedBicep, bicep);
+    }
+
+    [Fact]
+    public async Task AddContainerAppsInfrastructureWithParameterReference()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddContainerAppsInfrastructure();
+
+        var value = builder.AddParameter("value");
+        var minReplicas = builder.AddParameter("minReplicas");
+
+        builder.AddContainer("api", "myimage")
+               .PublishAsAzureContainerApp((module, c) =>
+               {
+                   var val = new ContainerAppEnvironmentVariable()
+                   {
+                       Name = "Parameter",
+                       Value = value.AsProvisioningParameter(module)
+                   };
+
+                   c.Template.Value!.Containers[0].Value!.Env.Add(val);
+                   c.Template.Value!.Scale.Value!.MinReplicas = minReplicas.AsProvisioningParameter(module);
+               });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureConstructResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await ManifestUtils.GetManifestWithBicep(resource);
+
+        var m = manifest.ToString();
+
+        var expectedManifest =
+        """
+        {
+          "type": "azure.bicep.v0",
+          "path": "api.module.bicep",
+          "params": {
+            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+            "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+            "value": "{value.value}",
+            "minReplicas": "{minReplicas.value}"
+          }
+        }
+        """;
+
+        Assert.Equal(expectedManifest, m);
+
+        var expectedBicep =
+        """
+        @description('The location for the resource(s) to be deployed.')
+        param location string = resourceGroup().location
+
+        param outputs_azure_container_registry_managed_identity_id string
+
+        param outputs_managed_identity_client_id string
+
+        param outputs_azure_container_apps_environment_id string
+
+        param value string
+
+        param minReplicas string
+
+        resource api 'Microsoft.App/containerApps@2024-03-01' = {
+          name: 'api'
+          location: location
+          properties: {
+            configuration: {
+              activeRevisionsMode: 'Single'
+            }
+            environmentId: outputs_azure_container_apps_environment_id
+            template: {
+              containers: [
+                {
+                  image: 'myimage:latest'
+                  name: 'api'
+                  env: [
+                    {
+                      name: 'AZURE_CLIENT_ID'
+                      value: outputs_managed_identity_client_id
+                    }
+                    {
+                      name: 'Parameter'
+                      value: value
+                    }
+                  ]
+                }
+              ]
+              scale: {
+                minReplicas: minReplicas
+              }
+            }
+          }
+          identity: {
+            type: 'UserAssigned'
+            userAssignedIdentities: {
+              '${outputs_azure_container_registry_managed_identity_id}': { }
+            }
+          }
+        }
+        """;
+
         output.WriteLine(bicep);
         Assert.Equal(expectedBicep, bicep);
     }
