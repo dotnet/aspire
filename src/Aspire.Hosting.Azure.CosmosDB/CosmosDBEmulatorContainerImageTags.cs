@@ -9,7 +9,7 @@ internal static class CosmosDBEmulatorContainerImageTags
     public const string Registry = "mcr.microsoft.com";
 
     /// <summary>azure-messaging/eventhubs-emulator</summary>
-    public const string Image = "azure-messaging/eventhubs-emulator";
+    public const string Image = "cosmosdb/linux/azure-cosmos-emulator";
 
     /// <summary>latest</summary>
     public const string Tag = "latest";
