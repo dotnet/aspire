@@ -45,11 +45,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
     public async Task ResourcesWithHealthCheck_NotHealthyUntilCheckSucceeds()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
-        builder.Services.AddHealthChecks().AddAsyncCheck("healthcheck_a", async () =>
-        {
-            await Task.Delay(50000);
-            return HealthCheckResult.Healthy();
-        });
+        builder.Services.AddHealthChecks().AddCheck("healthcheck_a",  () => HealthCheckResult.Healthy());
 
         var resource = builder.AddResource(new ParentResource("resource"))
             .WithHealthCheck("healthcheck_a");
