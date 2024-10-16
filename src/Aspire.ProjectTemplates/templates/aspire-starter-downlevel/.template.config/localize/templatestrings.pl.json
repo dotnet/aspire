@@ -1,10 +1,6 @@
-{
+﻿{
   "author": "Microsoft",
-<<<<<<<< HEAD:src/Aspire.ProjectTemplates.net8/templates/aspire-starter/.template.config/localize/templatestrings.pl.json
-  "name": "Aplikacja startowa platformy .NET Aspire 9",
-========
   "name": "Aplikacja startowa platformy .NET Aspire 8",
->>>>>>>> origin/release/9.0-rc1:src/Aspire.ProjectTemplates/templates/aspire-starter-downlevel/.template.config/localize/templatestrings.pl.json
   "description": "Szablon projektu służący do tworzenia aplikacji Aspire platformy .NET z frontonem internetowym platformy Blazor i usługą zaplecza internetowego interfejsu API, opcjonalnie używając usługi Redis do buforowania.",
   "symbols/Framework/description": "Platforma docelowa dla tego projektu.",
   "symbols/Framework/choices/net8.0/description": "Docelowa platforma net8.0",

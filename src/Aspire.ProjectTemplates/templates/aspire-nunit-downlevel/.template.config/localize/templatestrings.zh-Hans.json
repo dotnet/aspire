@@ -1,12 +1,7 @@
 ﻿{
   "author": "Microsoft",
-<<<<<<<< HEAD:src/Aspire.ProjectTemplates.net8/templates/aspire-servicedefaults/.template.config/localize/templatestrings.zh-Hans.json
-  "name": ".NET Aspire 9 服务默认值",
-  "description": "一个用于创建“.NET Aspire 9 服务默认值”项目的项目模板。",
-========
   "name": ".NET Aspire 8 测试项目(NUnit)",
   "description": "包含 .NET Aspire 8 AppHost 项目的 NUnit 集成测试的项目。",
->>>>>>>> origin/release/9.0-rc1:src/Aspire.ProjectTemplates/templates/aspire-nunit-downlevel/.template.config/localize/templatestrings.zh-Hans.json
   "symbols/Framework/description": "项目的目标框架。",
   "symbols/Framework/choices/net8.0/description": "目标 net8.0",
   "symbols/skipRestore/description": "如果指定，则在创建时跳过项目的自动还原。",

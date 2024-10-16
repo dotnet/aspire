@@ -1,10 +1,6 @@
-{
+﻿{
   "author": "Microsoft",
-<<<<<<<< HEAD:src/Aspire.ProjectTemplates.net8/templates/aspire-starter/.template.config/localize/templatestrings.pt-BR.json
-  "name": "Aplicativo inicial do .NET Aspire 9",
-========
   "name": "Aplicativo inicial do .NET Aspire 8",
->>>>>>>> origin/release/9.0-rc1:src/Aspire.ProjectTemplates/templates/aspire-starter-downlevel/.template.config/localize/templatestrings.pt-BR.json
   "description": "Um modelo de projeto para criar um aplicativo .NET Pool com um front-end da Web Blazor e um serviço de back-end da API Web, opcionalmente usando o Redis para cache.",
   "symbols/Framework/description": "A estrutura de destino do projeto.",
   "symbols/Framework/choices/net8.0/description": "Destino net8.0",

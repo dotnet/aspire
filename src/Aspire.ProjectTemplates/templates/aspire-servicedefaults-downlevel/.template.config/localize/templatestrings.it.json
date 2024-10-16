@@ -1,12 +1,7 @@
-{
+﻿{
   "author": "Microsoft",
-<<<<<<<< HEAD:src/Aspire.ProjectTemplates.net8/templates/aspire-servicedefaults/.template.config/localize/templatestrings.it.json
-  "name": "Impostazioni predefinite del servizio .NET Aspire 9",
-  "description": "Un modello di progetto per la creazione di un progetto predefinito del servizio .NET Aspire 9.",
-========
   "name": "Impostazioni predefinite del servizio .NET Aspire 8",
   "description": "Un modello di progetto per la creazione di un progetto predefinito del servizio .NET Aspire 8.",
->>>>>>>> origin/release/9.0-rc1:src/Aspire.ProjectTemplates/templates/aspire-servicedefaults-downlevel/.template.config/localize/templatestrings.it.json
   "symbols/Framework/description": "Il framework di destinazione per il progetto.",
   "symbols/Framework/choices/net8.0/description": "Destinazione net8.0",
   "symbols/skipRestore/description": "Se specificato, ignora il ripristino automatico del progetto durante la creazione.",

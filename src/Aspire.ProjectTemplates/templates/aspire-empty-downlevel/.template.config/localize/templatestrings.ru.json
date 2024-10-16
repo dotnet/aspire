@@ -1,12 +1,7 @@
-{
+﻿{
   "author": "Майкрософт",
-<<<<<<<< HEAD:src/Aspire.ProjectTemplates.net8/templates/aspire-empty/.template.config/localize/templatestrings.ru.json
-  "name": "Пустое приложение .NET Aspire 9",
-  "description": "Шаблон проекта для создания пустого приложения .NET Aspire 9.",
-========
   "name": "Пустое приложение .NET Aspire 8",
   "description": "Шаблон проекта для создания пустого приложения .NET Aspire 8.",
->>>>>>>> origin/release/9.0-rc1:src/Aspire.ProjectTemplates/templates/aspire-empty-downlevel/.template.config/localize/templatestrings.ru.json
   "symbols/Framework/description": "Целевая платформа для проекта.",
   "symbols/Framework/choices/net8.0/description": "Целевая среда net8.0",
   "symbols/appHostHttpPort/description": "Номер порта, который будет использоваться для конечной точки HTTP в файле launchSettings.json проекта AppHost.",

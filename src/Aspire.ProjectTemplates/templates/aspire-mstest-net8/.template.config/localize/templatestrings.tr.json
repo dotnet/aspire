@@ -1,12 +1,7 @@
 ﻿{
   "author": "Microsoft",
-<<<<<<<< HEAD:src/Aspire.ProjectTemplates.net8/templates/aspire-xunit/.template.config/localize/templatestrings.tr.json
-  "name": ".NET Aspire 9 Test Projesi (xUnit)",
-  "description": "Bir .NET Aspire 9 AppHost projesinin xUnit.net tümleştirme testlerini içeren bir proje.",
-========
   "name": ".NET Aspire 9 Test Projesi (MSTest)",
   "description": ".NET Aspire 9 AppHost projesinin MSTest tümleştirme testlerini içeren bir proje.",
->>>>>>>> origin/release/9.0-rc1:src/Aspire.ProjectTemplates/templates/aspire-mstest-net8/.template.config/localize/templatestrings.tr.json
   "symbols/Framework/description": "Projenin hedef çerçevesi.",
   "symbols/Framework/choices/net8.0/description": "Hedef net8.0",
   "symbols/skipRestore/description": "Belirtilirse, oluşturma sırasında projenin otomatik geri yüklenmesini atlar.",

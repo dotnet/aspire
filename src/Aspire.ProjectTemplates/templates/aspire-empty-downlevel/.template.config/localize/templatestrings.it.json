@@ -1,12 +1,7 @@
-{
+﻿{
   "author": "Microsoft",
-<<<<<<<< HEAD:src/Aspire.ProjectTemplates.net8/templates/aspire-empty/.template.config/localize/templatestrings.it.json
-  "name": "App vuota .NET Aspire 9",
-  "description": "Modello di progetto per la creazione di un'app .NET Aspire 9 vuota.",
-========
   "name": "App vuota .NET Aspire 8",
   "description": "Modello di progetto per la creazione di un'app .NET Aspire 8 vuota.",
->>>>>>>> origin/release/9.0-rc1:src/Aspire.ProjectTemplates/templates/aspire-empty-downlevel/.template.config/localize/templatestrings.it.json
   "symbols/Framework/description": "Il framework di destinazione per il progetto.",
   "symbols/Framework/choices/net8.0/description": "Destinazione net8.0",
   "symbols/appHostHttpPort/description": "Numero di porta da usare per l'endpoint HTTP in launchSettings.json. del progetto AppHost.",

@@ -1,12 +1,7 @@
-{
+﻿{
   "author": "Microsoft",
-<<<<<<<< HEAD:src/Aspire.ProjectTemplates.net8/templates/aspire-starter/.template.config/localize/templatestrings.it.json
-  "name": "App Starter .NET Aspire 9",
-  "description": "Modello di progetto per la creazione di un'app .NET Aspire 9 con un front-end Web Blazor e un servizio back-end dell'API Web, facoltativamente usando Redis per la memorizzazione nella cache.",
-========
   "name": "App Starter .NET Aspire 8",
   "description": "Modello di progetto per la creazione di un'app .NET Aspire 8 con un front-end Web Blazor e un servizio back-end dell'API Web, facoltativamente usando Redis per la memorizzazione nella cache.",
->>>>>>>> origin/release/9.0-rc1:src/Aspire.ProjectTemplates/templates/aspire-starter-downlevel/.template.config/localize/templatestrings.it.json
   "symbols/Framework/description": "Il framework di destinazione per il progetto.",
   "symbols/Framework/choices/net8.0/description": "Destinazione net8.0",
   "symbols/UseRedisCache/displayName": "_Usare Redis per la memorizzazione nella cache (richiede un runtime del contenitore supportato)",

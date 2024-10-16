@@ -1,12 +1,7 @@
-{
+﻿{
   "author": "Майкрософт",
-<<<<<<<< HEAD:src/Aspire.ProjectTemplates.net8/templates/aspire-starter/.template.config/localize/templatestrings.ru.json
-  "name": "Начальное приложение .NET Aspire 9",
-  "description": "Шаблон проекта для создания приложения .NET Aspire 9 с веб-интерфейсом Blazor и внутренней службой веб-API, при необходимости с использованием Redis для кэширования.",
-========
   "name": "Начальное приложение .NET Aspire 8",
   "description": "Шаблон проекта для создания приложения .NET Aspire 8 с веб-интерфейсом Blazor и внутренней службой веб-API, при необходимости с использованием Redis для кэширования.",
->>>>>>>> origin/release/9.0-rc1:src/Aspire.ProjectTemplates/templates/aspire-starter-downlevel/.template.config/localize/templatestrings.ru.json
   "symbols/Framework/description": "Целевая платформа для проекта.",
   "symbols/Framework/choices/net8.0/description": "Целевая среда net8.0",
   "symbols/UseRedisCache/displayName": "_Использовать Redis для кэширования (требуется поддерживаемая среда выполнения контейнера)",

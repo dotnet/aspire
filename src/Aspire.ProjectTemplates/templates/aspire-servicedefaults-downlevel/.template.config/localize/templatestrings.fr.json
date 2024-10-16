@@ -1,12 +1,7 @@
-{
+﻿{
   "author": "Microsoft",
-<<<<<<<< HEAD:src/Aspire.ProjectTemplates.net8/templates/aspire-servicedefaults/.template.config/localize/templatestrings.fr.json
-  "name": "Paramètres par défaut du service .NET Aspire 9",
-  "description": "Un modèle de projet pour créer un projet par défaut du service .NET Aspire 9.",
-========
   "name": "Paramètres par défaut du service .NET Aspire 8",
   "description": "Un modèle de projet pour créer un projet par défaut du service .NET Aspire 8.",
->>>>>>>> origin/release/9.0-rc1:src/Aspire.ProjectTemplates/templates/aspire-servicedefaults-downlevel/.template.config/localize/templatestrings.fr.json
   "symbols/Framework/description": "Framework cible du projet.",
   "symbols/Framework/choices/net8.0/description": "Cible net8.0",
   "symbols/skipRestore/description": "S’il est spécifié, ignore la restauration automatique du projet lors de la création.",

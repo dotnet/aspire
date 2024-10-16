@@ -1,12 +1,7 @@
-{
+﻿{
   "author": "Microsoft",
-<<<<<<<< HEAD:src/Aspire.ProjectTemplates.net8/templates/aspire-starter/.template.config/localize/templatestrings.de.json
-  "name": ".NET Aspire 9-Starter-App",
-  "description": "Eine Projektvorlage zum Erstellen einer .NET Aspire 9-App mit einem Blazor-Web-Front-End und einem Web-API-Back-End-Dienst, die optional Redis zum Zwischenspeichern verwendet.",
-========
   "name": ".NET Aspire 8-Starter-App",
   "description": "Eine Projektvorlage zum Erstellen einer .NET Aspire 8-App mit einem Blazor-Web-Front-End und einem Web-API-Back-End-Dienst, die optional Redis zum Zwischenspeichern verwendet.",
->>>>>>>> origin/release/9.0-rc1:src/Aspire.ProjectTemplates/templates/aspire-starter-downlevel/.template.config/localize/templatestrings.de.json
   "symbols/Framework/description": "Das Zielframework für das Projekt.",
   "symbols/Framework/choices/net8.0/description": "Ziel net8.0",
   "symbols/UseRedisCache/displayName": "_Use Redis für die Zwischenspeicherung (erfordert eine unterstützte Container-Runtime)",

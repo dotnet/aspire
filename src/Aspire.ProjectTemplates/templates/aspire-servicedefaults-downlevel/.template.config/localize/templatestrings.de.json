@@ -1,12 +1,7 @@
-{
+﻿{
   "author": "Microsoft",
-<<<<<<<< HEAD:src/Aspire.ProjectTemplates.net8/templates/aspire-servicedefaults/.template.config/localize/templatestrings.de.json
-  "name": "Standardwerte für den .NET Aspire 9-Dienst",
-  "description": "Eine Projektvorlage zum Erstellen eines Standardprojekts für den .NET Aspire 9-Dienst.",
-========
   "name": "Standardwerte für den .NET Aspire-Dienst 8",
   "description": "Eine Projektvorlage zum Erstellen eines Standardprojekts für den .NET Aspire-Dienst 8.",
->>>>>>>> origin/release/9.0-rc1:src/Aspire.ProjectTemplates/templates/aspire-servicedefaults-downlevel/.template.config/localize/templatestrings.de.json
   "symbols/Framework/description": "Das Zielframework für das Projekt.",
   "symbols/Framework/choices/net8.0/description": "Ziel net8.0",
   "symbols/skipRestore/description": "Wenn angegeben, wird die automatische Wiederherstellung des Projekts beim Erstellen übersprungen.",

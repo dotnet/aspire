@@ -1,12 +1,7 @@
 ﻿{
   "author": "Microsoft",
-<<<<<<<< HEAD:src/Aspire.ProjectTemplates.net8/templates/aspire-mstest/.template.config/localize/templatestrings.pt-BR.json
-  "name": "Projeto de teste do .NET Aspire 9 (MSTest)",
-  "description": "Um projeto que contém testes de integração do MSTest de um projeto AppHost do .NET Aspire 9.",
-========
   "name": "Projeto de teste do .NET Aspire 8 (NUnit)",
   "description": "Um projeto que contém testes de integração do NUnit de um projeto AppHost do .NET Aspire 8.",
->>>>>>>> origin/release/9.0-rc1:src/Aspire.ProjectTemplates/templates/aspire-nunit-downlevel/.template.config/localize/templatestrings.pt-BR.json
   "symbols/Framework/description": "A estrutura de destino do projeto.",
   "symbols/Framework/choices/net8.0/description": "Destino net8.0",
   "symbols/skipRestore/description": "Se especificado, ignora a restauração automática do projeto sendo criado.",

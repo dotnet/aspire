@@ -1,12 +1,7 @@
 ﻿{
   "author": "Майкрософт",
-<<<<<<<< HEAD:src/Aspire.ProjectTemplates.net8/templates/aspire-servicedefaults/.template.config/localize/templatestrings.ru.json
-  "name": "Параметры службы .NET Aspire 9 по умолчанию",
-  "description": "Шаблон проекта для создания проекта по умолчанию для службы .NET Aspire 9.",
-========
   "name": "Параметры службы .NET Aspire 8 по умолчанию",
   "description": "Шаблон проекта для создания проекта по умолчанию для службы .NET Aspire 8.",
->>>>>>>> origin/release/9.0-rc1:src/Aspire.ProjectTemplates/templates/aspire-servicedefaults-downlevel/.template.config/localize/templatestrings.ru.json
   "symbols/Framework/description": "Целевая платформа для проекта.",
   "symbols/Framework/choices/net8.0/description": "Целевая среда net8.0",
   "symbols/skipRestore/description": "Если установлено, автоматическое восстановление проекта при создании пропускается.",

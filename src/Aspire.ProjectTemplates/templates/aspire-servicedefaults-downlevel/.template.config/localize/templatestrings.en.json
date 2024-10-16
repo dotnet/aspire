@@ -1,12 +1,7 @@
 {
   "author": "Microsoft",
-<<<<<<<< HEAD:src/Aspire.ProjectTemplates.net8/templates/aspire-servicedefaults/.template.config/localize/templatestrings.en.json
-  "name": ".NET Aspire 9 Service Defaults",
-  "description": "A project template for creating a .NET Aspire 9 service defaults project.",
-========
   "name": ".NET Aspire 8 Service Defaults",
   "description": "A project template for creating a .NET Aspire 8 service defaults project.",
->>>>>>>> origin/release/9.0-rc1:src/Aspire.ProjectTemplates/templates/aspire-servicedefaults-downlevel/.template.config/localize/templatestrings.en.json
   "symbols/Framework/description": "The target framework for the project.",
   "symbols/Framework/choices/net8.0/description": "Target net8.0",
   "symbols/skipRestore/description": "If specified, skips the automatic restore of the project on create.",

@@ -1,12 +1,7 @@
 ﻿{
   "author": "Microsoft",
-<<<<<<<< HEAD:src/Aspire.ProjectTemplates.net8/templates/aspire-nunit/.template.config/localize/templatestrings.es.json
-  "name": "Proyecto de prueba .NET Aspire 9 (NUnit)",
-  "description": "Proyecto que contiene las pruebas de integración de NUnit de un proyecto AppHost de .NET Aspire 9.",
-========
   "name": "Proyecto de prueba .NET Aspire 8 (NUnit)",
   "description": "Proyecto que contiene las pruebas de integración de NUnit de un proyecto AppHost de .NET Aspire 8.",
->>>>>>>> origin/release/9.0-rc1:src/Aspire.ProjectTemplates/templates/aspire-nunit-downlevel/.template.config/localize/templatestrings.es.json
   "symbols/Framework/description": "Marco de destino del proyecto.",
   "symbols/Framework/choices/net8.0/description": "NET8.0 de destino",
   "symbols/skipRestore/description": "Si se especifica, se omite la restauración automática del proyecto durante la creación.",

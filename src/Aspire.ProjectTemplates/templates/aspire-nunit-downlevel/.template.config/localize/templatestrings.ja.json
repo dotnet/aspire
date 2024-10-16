@@ -1,12 +1,7 @@
 ﻿{
   "author": "Microsoft",
-<<<<<<<< HEAD:src/Aspire.ProjectTemplates.net8/templates/aspire-mstest/.template.config/localize/templatestrings.ja.json
-  "name": ".NET Aspire 9 テスト プロジェクト (MSTest)",
-  "description": ".NET Aspire 9 AppHost プロジェクトの MSTest 統合テストを含むプロジェクト。",
-========
   "name": ".NET Aspire 8 テスト プロジェクト (NUnit)",
   "description": ".NET Aspire 8 AppHost プロジェクトの NUnit 統合テストを含むプロジェクト。",
->>>>>>>> origin/release/9.0-rc1:src/Aspire.ProjectTemplates/templates/aspire-nunit-downlevel/.template.config/localize/templatestrings.ja.json
   "symbols/Framework/description": "プロジェクトのターゲット フレームワークです。",
   "symbols/Framework/choices/net8.0/description": "ターゲット net8.0",
   "symbols/skipRestore/description": "指定した場合、作成時にプロジェクトの自動復元がスキップされます。",
