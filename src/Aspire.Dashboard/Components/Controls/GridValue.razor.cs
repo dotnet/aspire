@@ -12,6 +12,8 @@ public partial class GridValue
     [Parameter, EditorRequired]
     public string? Value { get; set; }
 
+    [Parameter] public bool ShowValue { get; set; } = true;
+
     [Parameter, EditorRequired]
     public required string ValueDescription { get; set; }
 

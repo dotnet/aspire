@@ -14,6 +14,12 @@ if (firstUndefinedElement) {
     document.body.classList.remove("before-upgrade");
 }
 
+function decodeHtmlSafely(text) {
+    const intermediateTextarea = document.createElement("textarea");
+    intermediateTextarea.innerHTML = text;
+    return intermediateTextarea.value;
+}
+
 function isElementTagName(element, tagName) {
     return element.tagName.toLowerCase() === tagName;
 }
@@ -115,14 +121,7 @@ function isScrolledToBottom(container) {
 }
 
 window.buttonCopyTextToClipboard = function(element) {
-    let text = element.getAttribute("data-text");
-
-    if (element.getAttribute("data-needs-decode")) {
-        const intermediateTextarea = document.createElement("textarea");
-        intermediateTextarea.innerHTML = text;
-        text = intermediateTextarea.value;
-    }
-
+    let text = decodeHtmlSafely(element.getAttribute("data-text"));
     const precopy = element.getAttribute("data-precopy");
     const postcopy = element.getAttribute("data-postcopy");
 
@@ -334,7 +333,7 @@ window.registerOpenTextVisualizerOnClick = function(layout) {
             return;
         }
 
-        const text = fluentMenuItem.getAttribute("data-text");
+        const text = decodeHtmlSafely(fluentMenuItem.getAttribute("data-text"));
         const description = fluentMenuItem.getAttribute("data-textvisualizer-description");
 
         if (text && description) {

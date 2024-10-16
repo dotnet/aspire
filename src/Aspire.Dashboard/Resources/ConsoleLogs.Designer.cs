@@ -168,6 +168,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Line {0}.
+        /// </summary>
+        public static string IndividualLogLine {
+            get {
+                return ResourceManager.GetString("IndividualLogLine", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Service log status.
         /// </summary>
         public static string LogStatusLabel {
