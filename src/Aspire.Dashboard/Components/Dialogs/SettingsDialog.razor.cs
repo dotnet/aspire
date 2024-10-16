@@ -18,12 +18,12 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
 
     protected override void OnInitialized()
     {
-        _currentSetting = ThemeManager.EffectiveTheme;
+        _currentSetting = ThemeManager.SelectedTheme ?? ThemeManager.ThemeSettingSystem;
 
         // Handle value being changed in a different browser window.
         _themeChangedSubscription = ThemeManager.OnThemeChanged(async () =>
         {
-            var newValue = ThemeManager.Theme!;
+            var newValue = ThemeManager.SelectedTheme!;
             if (_currentSetting != newValue)
             {
                 _currentSetting = newValue;
