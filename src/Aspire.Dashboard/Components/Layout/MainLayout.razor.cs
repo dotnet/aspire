@@ -195,7 +195,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         var parameters = new DialogParameters
         {
             Title = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogTitle)],
-            PrimaryAction =  Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)].Value ,
+            PrimaryAction =  Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)].Value,
             SecondaryAction = null,
             TrapFocus = true,
             Modal = true,
