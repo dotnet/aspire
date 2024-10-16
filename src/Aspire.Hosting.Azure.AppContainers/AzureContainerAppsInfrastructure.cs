@@ -1,13 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Expressions;
@@ -83,7 +81,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
 
             var construct = new AzureConstructResource(resource.Name, context.BuildContainerApp);
 
-            construct.Annotations.Add(new ManifestPublishingCallbackAnnotation(c => context.WriteToManifest(c, construct)));
+            construct.Annotations.Add(new ManifestPublishingCallbackAnnotation(construct.WriteToManifest));
 
             return construct;
         }
@@ -131,29 +129,6 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
 
             public Dictionary<string, KeyVaultService> KeyVaultRefs { get; } = [];
             public Dictionary<string, KeyVaultSecret> KeyVaultSecretRefs { get; } = [];
-
-            public void WriteToManifest(ManifestPublishingContext context, AzureConstructResource construct)
-            {
-                // Assert that the construct has no parameters
-                Debug.Assert(construct.Parameters.Count == 0);
-
-                construct.WriteToManifest(context);
-
-                // We're handling custom resource writing here instead of in the AzureConstructResource
-                // this is because we're tracking the ProvisioningParameter instances as we process the resource
-                if (Parameters.Count > 0)
-                {
-                    context.Writer.WriteStartObject("params");
-                    foreach (var (key, value) in Parameters)
-                    {
-                        context.Writer.WriteString(key, value.ValueExpression);
-
-                        context.TryAddDependentResources(value);
-                    }
-
-                    context.Writer.WriteEndObject();
-                }
-            }
 
             public void BuildContainerApp(ResourceModuleConstruct c)
             {
@@ -233,6 +208,12 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 }
 
                 c.Add(containerAppResource);
+
+                // Write the parameters we generated to the construct so they are included in the manifest
+                foreach (var (key, value) in Parameters)
+                {
+                    c.Resource.Parameters[key] = value;
+                }
 
                 if (resource.TryGetAnnotationsOfType<ContainerAppCustomizationAnnotation>(out var annotations))
                 {
