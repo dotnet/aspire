@@ -26,10 +26,11 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
         {
             await PlaywrightFixture.GoToHomeAndWaitForDataGridLoad(page);
 
-            await SetAndVerifyTheme(Dialogs.SettingsDialogDarkTheme, "dark");
+            await SetAndVerifyTheme(Dialogs.SettingsDialogSystemTheme, null); // don't guess system theme
             await SetAndVerifyTheme(Dialogs.SettingsDialogLightTheme, "light");
+            await SetAndVerifyTheme(Dialogs.SettingsDialogDarkTheme, "dark");
 
-            async Task SetAndVerifyTheme(string checkboxText, string expected)
+            async Task SetAndVerifyTheme(string checkboxText, string? expected)
             {
                 var settingsButton = page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = Layout.MainLayoutLaunchSettings });
                 await settingsButton.ClickAsync();
@@ -38,9 +39,12 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
                 var checkbox = page.GetByRole(AriaRole.Radio).And(page.GetByText(checkboxText)).First;
                 await checkbox.ClickAsync();
 
-                await Assertions
-                    .Expect(page.Locator("html"))
-                    .ToHaveAttributeAsync("data-theme", expected);
+                if (expected != null)
+                {
+                    await Assertions
+                        .Expect(page.Locator("html"))
+                        .ToHaveAttributeAsync("data-theme", expected);
+                }
 
                 // Close settings.
                 var closeButton = page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = Layout.MainLayoutSettingsDialogClose });
@@ -56,6 +60,50 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
                     "Checkbox isn't immediately checked.");
 
                 await closeButton.First.ClickAsync();
+            }
+        });
+    }
+
+    [Fact]
+    public async Task AppBar_Change_Theme_ReloadPage()
+    {
+        // Arrange
+        await RunTestAsync(async page =>
+        {
+            await SetAndVerifyTheme(Dialogs.SettingsDialogSystemTheme, null); // don't guess system theme
+            await SetAndVerifyTheme(Dialogs.SettingsDialogLightTheme, "light");
+            await SetAndVerifyTheme(Dialogs.SettingsDialogDarkTheme, "dark");
+
+            async Task SetAndVerifyTheme(string checkboxText, string? expected)
+            {
+                await PlaywrightFixture.GoToHomeAndWaitForDataGridLoad(page);
+
+                var settingsButton = page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = Layout.MainLayoutLaunchSettings });
+                await settingsButton.ClickAsync();
+
+                // Set theme
+                var checkbox = page.GetByRole(AriaRole.Radio).And(page.GetByText(checkboxText)).First;
+                await checkbox.ClickAsync();
+
+                if (expected != null)
+                {
+                    await Assertions
+                        .Expect(page.Locator("html"))
+                        .ToHaveAttributeAsync("data-theme", expected);
+                }
+
+                // Reload page.
+                await PlaywrightFixture.GoToHomeAndWaitForDataGridLoad(page);
+
+                // Re-open settings and assert that the correct checkbox is checked.
+                settingsButton = page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = Layout.MainLayoutLaunchSettings });
+                await settingsButton.ClickAsync();
+
+                checkbox = page.GetByRole(AriaRole.Radio).And(page.GetByText(checkboxText)).First;
+
+                await AsyncTestHelpers.AssertIsTrueRetryAsync(
+                    async () => await checkbox.IsCheckedAsync(),
+                    "Checkbox isn't immediately checked.");
             }
         });
     }
