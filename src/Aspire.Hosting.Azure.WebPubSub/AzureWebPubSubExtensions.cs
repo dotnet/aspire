@@ -42,14 +42,14 @@ public static class AzureWebPubSubExtensions
             };
             infrastructure.Add(capacityParameter);
 
-            var service = new WebPubSubService(infrastructure.Resource.GetBicepIdentifier())
+            var service = new WebPubSubService(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Sku = new BillingInfoSku()
                 {
                     Name = skuParameter,
                     Capacity = capacityParameter
                 },
-                Tags = { { "aspire-resource-name", infrastructure.Resource.Name } }
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
             };
             infrastructure.Add(service);
 
@@ -57,7 +57,7 @@ public static class AzureWebPubSubExtensions
 
             infrastructure.Add(service.CreateRoleAssignment(WebPubSubBuiltInRole.WebPubSubServiceOwner, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
 
-            var resource = (AzureWebPubSubResource)infrastructure.Resource;
+            var resource = (AzureWebPubSubResource)infrastructure.AspireResource;
             foreach (var setting in resource.Hubs)
             {
                 var hubName = setting.Key;

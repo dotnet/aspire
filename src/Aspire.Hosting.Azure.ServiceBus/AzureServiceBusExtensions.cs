@@ -32,14 +32,14 @@ public static class AzureServiceBusExtensions
             };
             infrastructure.Add(skuParameter);
 
-            var serviceBusNamespace = new ServiceBusNamespace(infrastructure.Resource.GetBicepIdentifier())
+            var serviceBusNamespace = new ServiceBusNamespace(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Sku = new ServiceBusSku()
                 {
                     Name = skuParameter
                 },
                 DisableLocalAuth = true,
-                Tags = { { "aspire-resource-name", infrastructure.Resource.Name } }
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
             };
             infrastructure.Add(serviceBusNamespace);
 
@@ -47,7 +47,7 @@ public static class AzureServiceBusExtensions
 
             infrastructure.Add(new ProvisioningOutput("serviceBusEndpoint", typeof(string)) { Value = serviceBusNamespace.ServiceBusEndpoint });
 
-            var azureResource = (AzureServiceBusResource)infrastructure.Resource;
+            var azureResource = (AzureServiceBusResource)infrastructure.AspireResource;
 
             foreach (var queue in azureResource.Queues)
             {

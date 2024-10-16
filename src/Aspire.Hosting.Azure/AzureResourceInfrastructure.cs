@@ -13,7 +13,7 @@ public sealed class AzureResourceInfrastructure : Infrastructure
 {
     internal AzureResourceInfrastructure(AzureProvisioningResource resource, string name) : base(name)
     {
-        Resource = resource;
+        AspireResource = resource;
 
         // Always add a default location parameter.
         // azd assumes there will be a location parameter for every module.
@@ -28,7 +28,7 @@ public sealed class AzureResourceInfrastructure : Infrastructure
     /// <summary>
     /// The Aspire <see cref="AzureProvisioningResource"/> resource that this <see cref="AzureResourceInfrastructure"/> represents.
     /// </summary>
-    public AzureProvisioningResource Resource { get; }
+    public AzureProvisioningResource AspireResource { get; }
 
     /// <summary>
     /// The common principalId parameter injected into most Aspire-based Bicep files.

@@ -25,11 +25,11 @@ public static class AzureAppConfigurationExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var store = new AppConfigurationStore(infrastructure.Resource.GetBicepIdentifier())
+            var store = new AppConfigurationStore(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 SkuName = "standard",
                 DisableLocalAuth = true,
-                Tags = { { "aspire-resource-name", infrastructure.Resource.Name } }
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
             };
             infrastructure.Add(store);
 

@@ -30,7 +30,7 @@ public static class AzureStorageExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var storageAccount = new StorageAccount(infrastructure.Resource.GetBicepIdentifier())
+            var storageAccount = new StorageAccount(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Kind = StorageKind.StorageV2,
                 AccessTier = StorageAccountAccessTier.Hot,
@@ -48,7 +48,7 @@ public static class AzureStorageExtensions
                 // Disable shared key access to the storage account as managed identity is configured
                 // to access the storage account by default.
                 AllowSharedKeyAccess = false,
-                Tags = { { "aspire-resource-name", infrastructure.Resource.Name } }
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
             };
             infrastructure.Add(storageAccount);
 

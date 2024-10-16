@@ -32,7 +32,7 @@ public static class AzureSearchExtensions
 
         void ConfigureSearch(AzureResourceInfrastructure infrastructure)
         {
-            var search = new SearchService(infrastructure.Resource.GetBicepIdentifier())
+            var search = new SearchService(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 SearchSkuName = SearchServiceSkuName.Basic,
                 ReplicaCount = 1,

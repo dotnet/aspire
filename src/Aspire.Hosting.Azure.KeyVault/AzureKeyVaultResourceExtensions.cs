@@ -26,7 +26,7 @@ public static class AzureKeyVaultResourceExtensions
 
         var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
-            var keyVault = new KeyVaultService(infrastructure.Resource.GetBicepIdentifier())
+            var keyVault = new KeyVaultService(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Properties = new KeyVaultProperties()
                 {
@@ -53,7 +53,7 @@ public static class AzureKeyVaultResourceExtensions
                 //Value = keyVault.VaultUri
             });
 
-            keyVault.Tags["aspire-resource-name"] = infrastructure.Resource.Name;
+            keyVault.Tags["aspire-resource-name"] = infrastructure.AspireResource.Name;
 
             infrastructure.Add(keyVault.CreateRoleAssignment(KeyVaultBuiltInRole.KeyVaultAdministrator, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
         };

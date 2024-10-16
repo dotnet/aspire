@@ -85,7 +85,7 @@ public static class AzureSqlExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var azureResource = (AzureSqlServerResource)infrastructure.Resource;
+            var azureResource = (AzureSqlServerResource)infrastructure.AspireResource;
             CreateSqlServer(infrastructure, builder, azureResource.Databases);
         };
 
@@ -211,7 +211,7 @@ public static class AzureSqlExtensions
         IDistributedApplicationBuilder distributedApplicationBuilder,
         IReadOnlyDictionary<string, string> databases)
     {
-        var sqlServer = new SqlServer(infrastructure.Resource.GetBicepIdentifier())
+        var sqlServer = new SqlServer(infrastructure.AspireResource.GetBicepIdentifier())
         {
             Administrators = new ServerExternalAdministrator()
             {
@@ -224,7 +224,7 @@ public static class AzureSqlExtensions
             Version = "12.0",
             PublicNetworkAccess = ServerNetworkAccessFlag.Enabled,
             MinTlsVersion = SqlMinimalTlsVersion.Tls1_2,
-            Tags = { { "aspire-resource-name", infrastructure.Resource.Name } }
+            Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
         };
         infrastructure.Add(sqlServer);
 
