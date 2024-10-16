@@ -95,11 +95,11 @@ public class OtlpLogEntry
         return field switch
         {
             KnownStructuredLogFields.MessageField => log.Message,
-            KnownStructuredLogFields.ApplicationField => log.ApplicationView.Application.ApplicationName,
             KnownStructuredLogFields.TraceIdField => log.TraceId,
             KnownStructuredLogFields.SpanIdField => log.SpanId,
             KnownStructuredLogFields.OriginalFormatField => log.OriginalFormat,
             KnownStructuredLogFields.CategoryField => log.Scope.ScopeName,
+            KnownResourceFields.ServiceNameField => log.ApplicationView.Application.ApplicationName,
             _ => log.Attributes.GetValue(field)
         };
     }

@@ -94,7 +94,7 @@ partial class Resource
         ImmutableArray<VolumeViewModel> GetVolumes()
         {
             return Volumes
-                .Select(v => new VolumeViewModel(v.Source, v.Target, v.MountType, v.IsReadOnly))
+                .Select((v, i) => new VolumeViewModel(i, v.Source, v.Target, v.MountType, v.IsReadOnly))
                 .ToImmutableArray();
         }
 

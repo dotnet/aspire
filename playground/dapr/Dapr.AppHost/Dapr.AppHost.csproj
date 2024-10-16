@@ -15,6 +15,7 @@
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Dapr" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.RabbitMQ" />
 
     <ProjectReference Include="..\ServiceA\DaprServiceA.csproj" />
     <ProjectReference Include="..\ServiceB\DaprServiceB.csproj" />
