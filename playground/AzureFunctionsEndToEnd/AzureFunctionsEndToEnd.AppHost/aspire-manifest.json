@@ -35,9 +35,9 @@
         "principalType": ""
       }
     },
-    "funcstorage": {
+    "funcstorage67c6c": {
       "type": "azure.bicep.v0",
-      "path": "funcstorage.module.bicep",
+      "path": "funcstorage67c6c.module.bicep",
       "params": {
         "principalId": "",
         "principalType": ""
@@ -53,10 +53,10 @@
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
         "ASPNETCORE_URLS": "http://\u002B:{funcapp.bindings.http.targetPort}",
-        "AzureWebJobsStorage__blobServiceUri": "{funcstorage.outputs.blobEndpoint}",
-        "AzureWebJobsStorage__queueServiceUri": "{funcstorage.outputs.queueEndpoint}",
-        "Aspire__Azure__Storage__Blobs__AzureWebJobsStorage__ServiceUri": "{funcstorage.outputs.blobEndpoint}",
-        "Aspire__Azure__Storage__Queues__AzureWebJobsStorage__ServiceUri": "{funcstorage.outputs.queueEndpoint}",
+        "AzureWebJobsStorage__blobServiceUri": "{funcstorage67c6c.outputs.blobEndpoint}",
+        "AzureWebJobsStorage__queueServiceUri": "{funcstorage67c6c.outputs.queueEndpoint}",
+        "Aspire__Azure__Storage__Blobs__AzureWebJobsStorage__ServiceUri": "{funcstorage67c6c.outputs.blobEndpoint}",
+        "Aspire__Azure__Storage__Queues__AzureWebJobsStorage__ServiceUri": "{funcstorage67c6c.outputs.queueEndpoint}",
         "eventhubs__fullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
         "Aspire__Azure__Messaging__EventHubs__EventHubProducerClient__eventhubs__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
         "Aspire__Azure__Messaging__EventHubs__EventHubConsumerClient__eventhubs__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
