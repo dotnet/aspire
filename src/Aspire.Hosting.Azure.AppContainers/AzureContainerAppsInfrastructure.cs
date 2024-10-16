@@ -215,7 +215,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                     c.Resource.Parameters[key] = value;
                 }
 
-                if (resource.TryGetAnnotationsOfType<ContainerAppCustomizationAnnotation>(out var annotations))
+                if (resource.TryGetAnnotationsOfType<AzureContainerAppCustomizationAnnotation>(out var annotations))
                 {
                     foreach (var a in annotations)
                     {

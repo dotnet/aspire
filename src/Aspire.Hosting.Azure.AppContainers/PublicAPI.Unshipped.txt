@@ -1,4 +1,7 @@
 #nullable enable
+Aspire.Hosting.Azure.AzureContainerAppCustomizationAnnotation
+Aspire.Hosting.Azure.AzureContainerAppCustomizationAnnotation.AzureContainerAppCustomizationAnnotation(System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!, Azure.Provisioning.AppContainers.ContainerApp!>! configure) -> void
+Aspire.Hosting.Azure.AzureContainerAppCustomizationAnnotation.Configure.get -> System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!, Azure.Provisioning.AppContainers.ContainerApp!>!
 Aspire.Hosting.AzureContainerAppContainerExtensions
 Aspire.Hosting.AzureContainerAppExtensions
 Aspire.Hosting.AzureContainerAppProjectExtensions
