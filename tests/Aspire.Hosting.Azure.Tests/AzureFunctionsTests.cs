@@ -157,7 +157,8 @@ public class AzureFunctionsTests
 
         var resource = Assert.Single(builder.Resources.OfType<AzureStorageResource>());
 
-        Assert.Equal(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName, resource.Name);
+        Assert.NotEqual(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName, resource.Name);
+        Assert.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName, resource.Name);
     }
 
     private sealed class TestProject : IProjectMetadata

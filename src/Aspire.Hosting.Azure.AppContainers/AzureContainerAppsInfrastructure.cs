@@ -79,11 +79,11 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
         {
             var context = await ProcessResourceAsync(resource, executionContext, cancellationToken).ConfigureAwait(false);
 
-            var construct = new AzureConstructResource(resource.Name, context.BuildContainerApp);
+            var provisioningResource = new AzureProvisioningResource(resource.Name, context.BuildContainerApp);
 
-            construct.Annotations.Add(new ManifestPublishingCallbackAnnotation(construct.WriteToManifest));
+            provisioningResource.Annotations.Add(new ManifestPublishingCallbackAnnotation(provisioningResource.WriteToManifest));
 
-            return construct;
+            return provisioningResource;
         }
 
         private async Task<ContainerAppContext> ProcessResourceAsync(IResource resource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
@@ -130,7 +130,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
             public Dictionary<string, KeyVaultService> KeyVaultRefs { get; } = [];
             public Dictionary<string, KeyVaultSecret> KeyVaultSecretRefs { get; } = [];
 
-            public void BuildContainerApp(ResourceModuleConstruct c)
+            public void BuildContainerApp(AzureResourceInfrastructure c)
             {
                 var containerAppIdParam = AllocateParameter(_containerAppEnvironmentContext.ContainerAppEnvironmentId);
 
@@ -190,7 +190,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                     containerAppContainer.VolumeMounts.Add(mountedVolume);
                 }
 
-                // Add parameters to the construct
+                // Add parameters to the provisioningResource
                 foreach (var (_, parameter) in _provisioningParameters)
                 {
                     c.Add(parameter);
@@ -215,7 +215,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                     c.Resource.Parameters[key] = value;
                 }
 
-                if (resource.TryGetAnnotationsOfType<ContainerAppCustomizationAnnotation>(out var annotations))
+                if (resource.TryGetAnnotationsOfType<AzureContainerAppCustomizationAnnotation>(out var annotations))
                 {
                     foreach (var a in annotations)
                     {

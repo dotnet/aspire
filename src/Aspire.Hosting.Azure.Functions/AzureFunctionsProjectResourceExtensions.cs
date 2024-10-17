@@ -17,10 +17,10 @@ public static class AzureFunctionsProjectResourceExtensions
     /// <remarks>
     /// The prefix used for configuring the name default Azure Storage account that is used
     /// for Azure Functions bookkeeping. Locally, the name is generated using a combination of this
-    /// prefix, a hash of the AppHost project name. During publish mode, the name generated
-    /// is a combination of this prefix and  the name of the resource group associated with
-    /// the deployment. We want to keep the total number of characters in the name under
-    /// 24 characters to avoid truncation by Azure and allow
+    /// prefix, a hash of the AppHost project path. During publish mode, the name generated
+    /// is a combination of this prefix, a hash of the AppHost project name, and the name of the
+    /// resource group associated with the deployment. We want to keep the total number of characters
+    /// in the name under 24 characters to avoid truncation by Azure and allow
     /// for unique enough identifiers.
     /// </remarks>
     internal const string DefaultAzureFunctionsHostStorageName = "funcstorage";
@@ -48,14 +48,14 @@ public static class AzureFunctionsProjectResourceExtensions
         {
             if (builder.ExecutionContext.IsPublishMode)
             {
-                var configureConstruct = (ResourceModuleConstruct construct) =>
+                var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
                 {
-                    var storageAccount = construct.GetResources().OfType<StorageAccount>().FirstOrDefault(r => r.IdentifierName == storageResourceName)
+                    var storageAccount = infrastructure.GetResources().OfType<StorageAccount>().FirstOrDefault(r => r.IdentifierName == storageResourceName)
                         ?? throw new InvalidOperationException($"Could not find storage account with '{storageResourceName}' name.");
-                    construct.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageAccountContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+                    infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageAccountContributor, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
                 };
                 storage = builder.AddAzureStorage(storageResourceName)
-                    .ConfigureConstruct(configureConstruct)
+                    .ConfigureInfrastructure(configureInfrastructure)
                     .RunAsEmulator().Resource;
             }
             else
@@ -207,10 +207,6 @@ public static class AzureFunctionsProjectResourceExtensions
 
     private static string CreateDefaultStorageName(this IDistributedApplicationBuilder builder)
     {
-        if (builder.ExecutionContext.IsPublishMode)
-        {
-            return DefaultAzureFunctionsHostStorageName;
-        }
         var applicationHash = builder.Configuration["AppHost:Sha256"]![..5].ToLowerInvariant();
         return $"{DefaultAzureFunctionsHostStorageName}{applicationHash}";
     }

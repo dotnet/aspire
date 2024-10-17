@@ -30,29 +30,29 @@ public static class AzureEventHubsExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = static (ResourceModuleConstruct construct) =>
+        var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
             var skuParameter = new ProvisioningParameter("sku", typeof(string))
             {
                 Value = new StringLiteral("Standard")
             };
-            construct.Add(skuParameter);
+            infrastructure.Add(skuParameter);
 
-            var eventHubsNamespace = new EventHubsNamespace(construct.Resource.GetBicepIdentifier())
+            var eventHubsNamespace = new EventHubsNamespace(infrastructure.Resource.GetBicepIdentifier())
             {
                 Sku = new EventHubsSku()
                 {
                     Name = skuParameter
                 },
-                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+                Tags = { { "aspire-resource-name", infrastructure.Resource.Name } }
             };
-            construct.Add(eventHubsNamespace);
+            infrastructure.Add(eventHubsNamespace);
 
-            construct.Add(eventHubsNamespace.CreateRoleAssignment(EventHubsBuiltInRole.AzureEventHubsDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            infrastructure.Add(eventHubsNamespace.CreateRoleAssignment(EventHubsBuiltInRole.AzureEventHubsDataOwner, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
 
-            construct.Add(new ProvisioningOutput("eventHubsEndpoint", typeof(string)) { Value = eventHubsNamespace.ServiceBusEndpoint });
+            infrastructure.Add(new ProvisioningOutput("eventHubsEndpoint", typeof(string)) { Value = eventHubsNamespace.ServiceBusEndpoint });
 
-            var azureResource = (AzureEventHubsResource)construct.Resource;
+            var azureResource = (AzureEventHubsResource)infrastructure.Resource;
 
             foreach (var hub in azureResource.Hubs)
             {
@@ -61,11 +61,11 @@ public static class AzureEventHubsExtensions
                     Parent = eventHubsNamespace,
                     Name = hub
                 };
-                construct.Add(hubResource);
+                infrastructure.Add(hubResource);
             }
         };
 
-        var resource = new AzureEventHubsResource(name, configureConstruct);
+        var resource = new AzureEventHubsResource(name, configureInfrastructure);
         return builder.AddResource(resource)
                       // These ambient parameters are only available in development time.
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
