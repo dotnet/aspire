@@ -62,10 +62,16 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
             icon = new Icons.Filled.Size16.Circle();
             color = Color.Info;
         }
-        else if (resource.HealthStatus is not HealthStatus.Healthy and not null)
+        else if (resource.HealthStatus is null)
+        {
+            // If we are waiting for a health check, show a progress bar and consider the resource unhealthy
+            icon = new Icons.Filled.Size16.CheckmarkCircleWarning();
+            color = Color.Warning;
+        }
+        else if (resource.HealthStatus is not HealthStatus.Healthy)
         {
             icon = new Icons.Filled.Size16.CheckmarkCircleWarning();
-            color = Color.Neutral;
+            color = Color.Warning;
         }
         else if (!string.IsNullOrEmpty(resource.StateStyle))
         {
@@ -95,7 +101,7 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
     /// <remarks>
     /// This is a static method so it can be called at the level of the parent column.
     /// </remarks>
-    internal static string? GetResourceStateTooltip(ResourceViewModel resource, IStringLocalizer<Columns> loc)
+    internal static string GetResourceStateTooltip(ResourceViewModel resource, IStringLocalizer<Columns> loc)
     {
         if (resource.IsStopped())
         {
@@ -110,7 +116,7 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
                 return loc.GetString(nameof(Columns.StateColumnResourceExited), resource.ResourceType);
             }
         }
-        else if (resource is { KnownState: KnownResourceState.Running, HealthStatus: not HealthStatus.Healthy and not null })
+        else if (resource is { KnownState: KnownResourceState.Running, HealthStatus: not HealthStatus.Healthy })
         {
             // Resource is running but not healthy (initializing).
             return loc[nameof(Columns.RunningAndUnhealthyResourceStateToolTip)];
@@ -130,7 +136,7 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
         return resource switch
         {
             { State: null or "" } => loc[Columns.UnknownStateLabel],
-            { KnownState: KnownResourceState.Running, HealthStatus: not HealthStatus.Healthy and not null } => $"{resource.State.Humanize()} ({(resource.HealthStatus ?? HealthStatus.Unhealthy).Humanize()})",
+            { KnownState: KnownResourceState.Running, HealthStatus: not HealthStatus.Healthy } => $"{resource.State.Humanize()} ({(resource.HealthStatus ?? HealthStatus.Unhealthy).Humanize()})",
             _ => resource.State.Humanize()
         };
     }
