@@ -37,15 +37,15 @@ public class ResourceStateViewModelTests
         /* expected output */ "Running", "CheckmarkCircle", Color.Success, "Running")]
     [InlineData(
         /* state */ KnownResourceState.Running, null, null, null,
-        /* expected output */ "Running", "CheckmarkCircle", Color.Success, "Running")]
+        /* expected output */ $"Localized:{nameof(Columns.RunningAndUnhealthyResourceStateToolTip)}", "CheckmarkCircleWarning", Color.Warning, "Running (Unhealthy)")]
     [InlineData(
         /* state */ KnownResourceState.Running, null, "Unhealthy", null,
-        /* expected output */ $"Localized:{nameof(Columns.RunningAndUnhealthyResourceStateToolTip)}", "CheckmarkCircleWarning", Color.Neutral, "Running (Unhealthy)")]
+        /* expected output */ $"Localized:{nameof(Columns.RunningAndUnhealthyResourceStateToolTip)}", "CheckmarkCircleWarning", Color.Warning, "Running (Unhealthy)")]
     [InlineData(
-        /* state */ KnownResourceState.Running, null, null, "warning",
+        /* state */ KnownResourceState.Running, null, "Healthy", "warning",
         /* expected output */ "Running", "Warning", Color.Warning, "Running")]
     [InlineData(
-        /* state */ KnownResourceState.Running, null, null, "NOT_A_VALID_STATE_STYLE",
+        /* state */ KnownResourceState.Running, null, "Healthy", "NOT_A_VALID_STATE_STYLE",
         /* expected output */ "Running", "Circle", Color.Neutral, "Running")]
     [InlineData(
         /* state */ KnownResourceState.RuntimeUnhealthy, null, null, null,
