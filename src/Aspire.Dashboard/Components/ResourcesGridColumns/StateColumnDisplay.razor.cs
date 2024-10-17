@@ -19,11 +19,4 @@ public partial class StateColumnDisplay
 
     [Inject]
     public required IStringLocalizer<Columns> Loc { get; init; }
-
-    private ResourceStateViewModel _viewModel = default!;
-
-    protected override void OnInitialized()
-    {
-        _viewModel = ResourceStateViewModel.GetStateViewModel(Resource, Loc);
-    }
 }
