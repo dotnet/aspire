@@ -155,6 +155,8 @@ public class BuildEnvironment
         // .. and disable new output style for vstest
         EnvVars["VsTestUseMSBuildOutput"] = "false";
         EnvVars["SkipAspireWorkloadManifest"] = "true";
+        // Disable node reuse in msbuild
+        EnvVars["MSBUILDDISABLENODEREUSE"] = "1";
 
         DotNet = Path.Combine(sdkForWorkloadPath!, "dotnet");
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
