@@ -7,7 +7,6 @@ using HealthChecks.MySql;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Logging;
 using MySqlConnector;
 
 namespace Microsoft.Extensions.Hosting;
@@ -54,6 +53,7 @@ public static class AspireMySqlConnectorExtensions
         Action<MySqlConnectorSettings>? configureSettings, string connectionName, object? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         MySqlConnectorSettings settings = new();
         var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);

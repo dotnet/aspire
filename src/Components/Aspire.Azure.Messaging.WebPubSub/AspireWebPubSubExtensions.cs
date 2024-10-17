@@ -36,6 +36,9 @@ public static class AspireWebPubSubExtensions
         Action<AzureMessagingWebPubSubSettings>? configureSettings = null,
         Action<IAzureClientBuilder<WebPubSubServiceClient, WebPubSubServiceClientOptions>>? configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
         new WebPubSubComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
     }
 
@@ -56,6 +59,7 @@ public static class AspireWebPubSubExtensions
         Action<AzureMessagingWebPubSubSettings>? configureSettings = null,
         Action<IAzureClientBuilder<WebPubSubServiceClient, WebPubSubServiceClientOptions>>? configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
         ArgumentException.ThrowIfNullOrEmpty(serviceKey);
 

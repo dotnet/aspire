@@ -49,6 +49,7 @@ public static partial class AspireEFPostgreSqlExtensions
         Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         builder.EnsureDbContextNotRegistered<TContext>();
 

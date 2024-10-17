@@ -53,10 +53,15 @@ public static class AspirePostgreSqlNpgsqlExtensions
         AddNpgsqlDataSource(builder, configureSettings, connectionName: name, serviceKey: name, configureDataSourceBuilder: configureDataSourceBuilder);
     }
 
-    private static void AddNpgsqlDataSource(IHostApplicationBuilder builder,
-        Action<NpgsqlSettings>? configureSettings, string connectionName, object? serviceKey, Action<NpgsqlDataSourceBuilder>? configureDataSourceBuilder)
+    private static void AddNpgsqlDataSource(
+        IHostApplicationBuilder builder,
+        Action<NpgsqlSettings>? configureSettings,
+        string connectionName,
+        object? serviceKey,
+        Action<NpgsqlDataSourceBuilder>? configureDataSourceBuilder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         NpgsqlSettings settings = new();
         var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
