@@ -378,7 +378,7 @@ internal sealed class AzureProvisioner(
         {
             logger.LogInformation(
                 "Using DefaultAzureCredential for provisioning. This may not work in all environments. " +
-                "See https://aka.ms/azsdk/net/identity/default-azure-credential for more information.");
+                "See https://aka.ms/azsdk/net/identity/credential-chains#defaultazurecredential-overview for more information.");
         }
         else
         {
