@@ -57,8 +57,6 @@ public static class AzureWebPubSubExtensions
 
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
             var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-            infrastructure.Add(principalTypeParameter);
-            infrastructure.Add(principalIdParameter);
 
             infrastructure.Add(service.CreateRoleAssignment(WebPubSubBuiltInRole.WebPubSubServiceOwner, principalTypeParameter, principalIdParameter));
 

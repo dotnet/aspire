@@ -156,9 +156,6 @@ public static class AzurePostgresExtensions
             var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
             var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
-            infrastructure.Add(principalIdParameter);
-            infrastructure.Add(principalTypeParameter);
-            infrastructure.Add(principalNameParameter);
 
             var admin = new PostgreSqlFlexibleServerActiveDirectoryAdministrator($"{postgres.IdentifierName}_admin")
             {

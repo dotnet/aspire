@@ -45,8 +45,6 @@ public static class AzureSearchExtensions
 
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
             var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-            infrastructure.Add(principalTypeParameter);
-            infrastructure.Add(principalIdParameter);
 
             infrastructure.Add(search.CreateRoleAssignment(SearchBuiltInRole.SearchIndexDataContributor, principalTypeParameter, principalIdParameter));
             infrastructure.Add(search.CreateRoleAssignment(SearchBuiltInRole.SearchServiceContributor, principalTypeParameter, principalIdParameter));

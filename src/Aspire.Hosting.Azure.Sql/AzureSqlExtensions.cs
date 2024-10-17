@@ -213,8 +213,6 @@ public static class AzureSqlExtensions
     {
         var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
         var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
-        infrastructure.Add(principalIdParameter);
-        infrastructure.Add(principalNameParameter);
 
         var sqlServer = new SqlServer(infrastructure.AspireResource.GetBicepIdentifier())
         {
@@ -246,7 +244,6 @@ public static class AzureSqlExtensions
             // When in run mode we inject the users identity and we need to specify
             // the principalType.
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-            infrastructure.Add(principalTypeParameter);
 
             sqlServer.Administrators.Value!.PrincipalType = principalTypeParameter;
 

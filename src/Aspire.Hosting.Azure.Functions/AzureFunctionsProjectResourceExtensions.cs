@@ -54,8 +54,6 @@ public static class AzureFunctionsProjectResourceExtensions
 
                     var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
                     var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-                    infrastructure.Add(principalTypeParameter);
-                    infrastructure.Add(principalIdParameter);
 
                     var storageAccount = infrastructure.GetResources().OfType<StorageAccount>().FirstOrDefault(r => r.IdentifierName == storageResourceName)
                         ?? throw new InvalidOperationException($"Could not find storage account with '{storageResourceName}' name.");
