@@ -98,7 +98,8 @@ public static class AzureCosmosExtensions
 
     /// <summary>
     /// Configures an Azure Cosmos DB resource to be emulated using the Azure Cosmos DB emulator with the NoSQL API. This resource requires an <see cref="AzureCosmosDBResource"/> to be added to the application model.
-    /// For more information on the Azure Cosmos DB emulator, see <a href="https://learn.microsoft.com/azure/cosmos-db/emulator#authentication"></a>
+    /// For more information on the Azure Cosmos DB emulator, see <a href="https://learn.microsoft.com/azure/cosmos-db/emulator#authentication"></a>.
+    /// This version of the package defaults to the <inheritdoc cref="CosmosDBEmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="CosmosDBEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="CosmosDBEmulatorContainerImageTags.Image"/> container image.
     /// </summary>
     /// <param name="builder">The Azure Cosmos DB resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
@@ -117,9 +118,9 @@ public static class AzureCosmosExtensions
         builder.WithEndpoint(name: "emulator", targetPort: 8081)
                .WithAnnotation(new ContainerImageAnnotation
                {
-                   Registry = "mcr.microsoft.com",
-                   Image = "cosmosdb/linux/azure-cosmos-emulator",
-                   Tag = "latest"
+                   Registry = CosmosDBEmulatorContainerImageTags.Registry,
+                   Image = CosmosDBEmulatorContainerImageTags.Image,
+                   Tag = CosmosDBEmulatorContainerImageTags.Tag
                });
 
         CosmosClient? cosmosClient = null;
