@@ -118,7 +118,7 @@ public class DashboardServiceTests
         var resourceData = Assert.Single(update.InitialData.Resources);
         var commandData = Assert.Single(resourceData.Commands);
 
-        Assert.Equal("TestType", commandData.Name);
+        Assert.Equal("TestName", commandData.Name);
         Assert.Equal("Display name!", commandData.DisplayName);
         Assert.Equal("Display description!", commandData.DisplayDescription);
         Assert.Equal(Value.ForList(Value.ForString("One"), Value.ForString("Two")), commandData.Parameter);
