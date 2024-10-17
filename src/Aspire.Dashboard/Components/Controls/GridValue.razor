@@ -5,23 +5,22 @@
 <div class="@GetContainerClass()" style="width: inherit;">
     @if (EnableMasking && IsMasked)
     {
-        <span class="cellText">
+        <span class="grid-value masked">
             &#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;
-        </span>
-    }
-    else if (EnableHighlighting)
-    {
-        <span class="cellText" title="@(ToolTip ?? Value)">
-            @ContentBeforeValue
-            <FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />
-            @ContentAfterValue
         </span>
     }
     else
     {
-        <span class="cellText" title="@(ToolTip ?? Value)">
+        <span class="grid-value" title="@(ToolTip ?? Value)">
             @ContentBeforeValue
-            @(MaxDisplayLength.HasValue ? TrimLength(Value) : Value)
+            @if (EnableHighlighting && !string.IsNullOrEmpty(HighlightText))
+            {
+                <FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />
+            }
+            else
+            {
+                @Value
+            }
             @ContentAfterValue
         </span>
     }
