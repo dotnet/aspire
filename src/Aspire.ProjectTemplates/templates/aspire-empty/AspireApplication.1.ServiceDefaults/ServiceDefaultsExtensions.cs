@@ -22,7 +22,7 @@ public static class ServiceDefaultsExtensions
     /// <summary>
     /// Adds and configures common concerns for service projects including service discovery, resilience, health checks, and OpenTelemetry to the specified <see cref="IHostApplicationBuilder"/>.
     /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder"/> to add the services to.</param>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder"/> to configure.</param>
     /// <returns>The <see cref="IHostApplicationBuilder"/> with the added services.</returns>
     /// <exception cref="ArgumentNullException">Thrown if the <paramref name="builder"/> is null.</exception>
     public static IHostApplicationBuilder AddServiceDefaults(this IHostApplicationBuilder builder)
