@@ -396,7 +396,7 @@ public class ResourceNotificationService
     private static CustomResourceSnapshot UpdateHealthStatus(IResource resource, CustomResourceSnapshot previousState)
     {
         // A resource is also healthy if it has no health check annotations and is in the running state.
-        if (!resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out _) && previousState.State?.Text == KnownResourceStates.Running)
+        if (previousState.HealthStatus is not HealthStatus.Healthy && !resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out _) && previousState.State?.Text == KnownResourceStates.Running)
         {
             return previousState with { HealthStatus = HealthStatus.Healthy };
         }
