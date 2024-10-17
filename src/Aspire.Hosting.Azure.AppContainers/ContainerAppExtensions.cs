@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Aspire.Hosting;
 
@@ -52,6 +53,7 @@ public static class ContainerAppExtensions
     ///        });
     /// </code>
     /// </example>
+    [Experimental("ASPIREACADOMAINS001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static void ConfigureCustomDomain(this ContainerApp app, IResourceBuilder<ParameterResource> customDomain, IResourceBuilder<ParameterResource> certificateName)
     {
         if (app.ParentInfrastructure is not ResourceModuleConstruct module)
