@@ -51,7 +51,6 @@ public static class AzureFunctionsProjectResourceExtensions
             {
                 var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
                 {
-
                     var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
                     var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
 
