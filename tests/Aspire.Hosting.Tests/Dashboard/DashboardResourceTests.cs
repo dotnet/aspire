@@ -263,8 +263,10 @@ public class DashboardResourceTests
         Assert.Equal("http://localhost:5000", config.Single(e => e.Key == DashboardConfigNames.ResourceServiceUrlName.EnvVarName).Value);
     }
 
-    [Fact]
-    public async Task DashboardResource_OtlpHttpEndpoint_CorsEnvVarSet()
+    [Theory]
+    [InlineData("*")]
+    [InlineData(null)]
+    public async Task DashboardResource_OtlpHttpEndpoint_CorsEnvVarSet(string? explicitCorsAllowedOrigins)
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(options => options.DisableDashboard = false);
@@ -277,7 +279,8 @@ public class DashboardResourceTests
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["ASPNETCORE_URLS"] = "http://localhost",
-            ["DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL"] = "http://localhost"
+            ["DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL"] = "http://localhost",
+            ["DOTNET_DASHBOARD_CORS_ALLOWED_ORIGINS"] = explicitCorsAllowedOrigins
         });
 
         using var app = builder.Build();
@@ -295,12 +298,15 @@ public class DashboardResourceTests
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services);
 
-        Assert.Equal("http://localhost:8081,http://localhost:58080", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName).Value);
+        var expectedAllowedOrigins = !string.IsNullOrEmpty(explicitCorsAllowedOrigins) ? explicitCorsAllowedOrigins : "http://localhost:8081,http://localhost:58080";
+        Assert.Equal(expectedAllowedOrigins, config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName).Value);
         Assert.Equal("*", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.EnvVarName).Value);
     }
 
-    [Fact]
-    public async Task DashboardResource_OtlpGrpcEndpoint_CorsEnvVarNotSet()
+    [Theory]
+    [InlineData("*")]
+    [InlineData(null)]
+    public async Task DashboardResource_OtlpGrpcEndpoint_CorsEnvVarNotSet(string? explicitCorsAllowedOrigins)
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(options => options.DisableDashboard = false);
@@ -313,7 +319,8 @@ public class DashboardResourceTests
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["ASPNETCORE_URLS"] = "http://localhost",
-            ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost"
+            ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost",
+            ["DOTNET_DASHBOARD_CORS_ALLOWED_ORIGINS"] = explicitCorsAllowedOrigins
         });
 
         using var app = builder.Build();
