@@ -161,7 +161,7 @@ public static class AzurePostgresExtensions
             {
                 Parent = postgres,
                 Name = principalIdParameter,
-                PrincipalType = principalIdParameter,
+                PrincipalType = principalTypeParameter,
                 PrincipalName = principalNameParameter,
             };
 
