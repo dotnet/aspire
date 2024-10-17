@@ -4,8 +4,10 @@
 using System.Collections.Frozen;
 using Aspire.Dashboard.Components.ResourcesGridColumns;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Resources;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Xunit;
@@ -98,8 +100,10 @@ public class StateColumnDisplayTests
             resource.Properties.TryAdd(KnownProperties.Resource.ExitCode, new ResourcePropertyViewModel(KnownProperties.Resource.ExitCode, Value.ForNumber((double)exitCode), false, null, 0, new BrowserTimeProvider(new NullLoggerFactory())));
         }
 
+        var localizer = new TestColumnLocalizer();
+
         // Act
-        var tooltip = StateColumnDisplay.GetResourceStateTooltip(resource, ExitedUnexpectedlyTooltip, ExitedTooltip, RunningAndUnhealthyTooltip);
+        var tooltip = StateColumnDisplay.GetResourceStateTooltip(resource, localizer);
         var vm = StateColumnDisplay.GetStateViewModel(resource, UnknownStateLabel);
 
         // Assert
@@ -108,5 +112,29 @@ public class StateColumnDisplayTests
         Assert.Equal(expectedIconName, vm.Icon.Name);
         Assert.Equal(expectedColor, vm.Color);
         Assert.Equal(expectedText, vm.Text);
+    }
+
+    private sealed class TestColumnLocalizer : IStringLocalizer<Columns>
+    {
+        public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures)
+        {
+            throw new NotImplementedException();
+        }
+
+        public LocalizedString this[string name] => name switch
+        {
+            nameof(Columns.StateColumnResourceExitedUnexpectedly) => new LocalizedString(nameof(Columns.StateColumnResourceExitedUnexpectedly), ExitedUnexpectedlyTooltip),
+            nameof(Columns.StateColumnResourceExited) => new LocalizedString(nameof(Columns.StateColumnResourceExited), ExitedTooltip),
+            nameof(Columns.RunningAndUnhealthyResourceStateToolTip) => new LocalizedString(nameof(Columns.RunningAndUnhealthyResourceStateToolTip), RunningAndUnhealthyTooltip),
+            _ => throw new ArgumentOutOfRangeException(nameof(name), name, null)
+        };
+
+        public LocalizedString this[string name, params object[] arguments] => name switch
+        {
+            nameof(Columns.StateColumnResourceExitedUnexpectedly) => new LocalizedString(string.Format(nameof(Columns.StateColumnResourceExitedUnexpectedly), arguments), ExitedUnexpectedlyTooltip),
+            nameof(Columns.StateColumnResourceExited) => new LocalizedString(string.Format(nameof(Columns.StateColumnResourceExited), arguments), ExitedTooltip),
+            nameof(Columns.RunningAndUnhealthyResourceStateToolTip) => new LocalizedString(string.Format(nameof(Columns.RunningAndUnhealthyResourceStateToolTip), arguments), RunningAndUnhealthyTooltip),
+            _ => throw new ArgumentOutOfRangeException(nameof(name), name, null)
+        };
     }
 }

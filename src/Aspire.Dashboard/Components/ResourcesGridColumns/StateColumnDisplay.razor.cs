@@ -25,40 +25,31 @@ public partial class StateColumnDisplay
     [Inject]
     public required IStringLocalizer<Columns> Loc { get; init; }
 
-    internal static string? GetResourceStateTooltip(ResourceViewModel resource, IStringLocalizer<Columns> loc)
-    {
-        return GetResourceStateTooltip(
-            resource,
-            loc[Columns.StateColumnResourceExitedUnexpectedly].Value,
-            loc[Columns.StateColumnResourceExited].Value,
-            loc[nameof(Columns.RunningAndUnhealthyResourceStateToolTip)]);
-    }
-
     /// <summary>
     /// Gets the tooltip for a cell in the state column of the resource grid.
     /// </summary>
     /// <remarks>
     /// This is a static method so it can be called at the level of the parent column.
     /// </remarks>
-    internal static string? GetResourceStateTooltip(ResourceViewModel resource, string exitedUnexpectedlyTooltip, string exitedTooltip, string runningAndUnhealthyTooltip)
+    internal static string? GetResourceStateTooltip(ResourceViewModel resource, IStringLocalizer<Columns> loc)
     {
         if (resource.IsStopped())
         {
             if (resource.TryGetExitCode(out var exitCode) && exitCode is not 0)
             {
                 // Process completed unexpectedly, hence the non-zero code. This is almost certainly an error, so warn users.
-                return string.Format(CultureInfo.CurrentCulture, exitedUnexpectedlyTooltip, resource.ResourceType, exitCode);
+                return string.Format(CultureInfo.CurrentCulture, loc[nameof(Columns.StateColumnResourceExitedUnexpectedly)].Value, resource.ResourceType, exitCode);
             }
             else
             {
                 // Process completed, which may not have been unexpected.
-                return string.Format(CultureInfo.CurrentCulture, exitedTooltip, resource.ResourceType);
+                return string.Format(CultureInfo.CurrentCulture, loc[nameof(Columns.StateColumnResourceExited)].Value, resource.ResourceType);
             }
         }
         else if (resource is { KnownState: KnownResourceState.Running, HealthStatus: not HealthStatus.Healthy and not null })
         {
             // Resource is running but not healthy (initializing).
-            return runningAndUnhealthyTooltip;
+            return loc[nameof(Columns.RunningAndUnhealthyResourceStateToolTip)];
         }
 
         return null;
