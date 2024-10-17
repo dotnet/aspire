@@ -146,8 +146,8 @@ message Volume {
 }
 
 message HealthReport {
-    // The health status of the resource.
-    HealthStatus status = 1;
+    // The health status of the resource. Not provided if we have not yet received an initial report from the check.
+    optional HealthStatus status = 1;
     // Identifies the health check that produced this report.
     string key = 2;
     // The reason for the health status.
