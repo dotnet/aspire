@@ -115,6 +115,6 @@ internal static class CommandsConfigurationExtensions
         static bool IsStopped(string? state) => state is "Exited" or "Finished" or "FailedToStart";
         static bool IsStopping(string? state) => state is "Stopping";
         static bool IsStarting(string? state) => state is "Starting";
-        static bool IsWaiting(string? state) => state is "Waiting";
+        static bool IsWaiting(string? state) => state is "Waiting" or "RuntimeUnhealthy";
     }
 }
