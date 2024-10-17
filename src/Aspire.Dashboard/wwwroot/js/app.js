@@ -350,4 +350,20 @@ window.registerOpenTextVisualizerOnClick = function(layout) {
 
 window.unregisterOpenTextVisualizerOnClick = function (obj) {
     document.removeEventListener('click', obj.onClickListener);
-}
+};
+
+window.setCellTextClickHandler = function (id) {
+    var cellTextElement = document.getElementById(id);
+    if (!cellTextElement) {
+        return;
+    }
+
+    cellTextElement.addEventListener('click', e => {
+        // Propagation behavior:
+        // - Link click stops. Link will open in a new window.
+        // - Any other text allows propagation. Potentially opens details view.
+        if (isElementTagName(e.target, 'a')) {
+            e.stopPropagation();
+        }
+    });
+};

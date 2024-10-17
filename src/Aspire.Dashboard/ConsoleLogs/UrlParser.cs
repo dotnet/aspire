@@ -18,11 +18,13 @@ public static partial class UrlParser
         {
             var urlMatch = s_urlRegEx.Match(text);
 
-            var builder = new StringBuilder(text.Length * 2);
+            StringBuilder? builder = null;
 
             var nextCharIndex = 0;
             while (urlMatch.Success)
             {
+                builder ??= new StringBuilder(text.Length * 2);
+
                 if (urlMatch.Index > 0)
                 {
                     builder.Append(text[(nextCharIndex)..urlMatch.Index]);
@@ -36,7 +38,7 @@ public static partial class UrlParser
                 urlMatch = urlMatch.NextMatch();
             }
 
-            if (builder.Length > 0)
+            if (builder?.Length > 0)
             {
                 if (nextCharIndex < text.Length)
                 {
