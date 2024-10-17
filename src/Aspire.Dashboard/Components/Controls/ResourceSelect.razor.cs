@@ -30,6 +30,11 @@ public partial class ResourceSelect
     [Parameter]
     public bool CanSelectGrouping { get; set; }
 
+    private async Task SelectedResourceChangedCore()
+    {
+        await SelectedResourceChanged.InvokeAsync(SelectedResource);
+    }
+
     private static void ValuedChanged(string value)
     {
         // Do nothing. Required for bunit change to trigger SelectedOptionChanged.

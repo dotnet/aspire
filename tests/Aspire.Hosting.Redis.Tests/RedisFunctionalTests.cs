@@ -132,13 +132,21 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         IResourceBuilder<RedisInsightResource>? redisInsightBuilder = null;
         var redis2 = builder.AddRedis("redis-2").WithRedisInsight(c => redisInsightBuilder = c);
         Assert.NotNull(redisInsightBuilder);
+
+        // RedisInsight will import databases when it is ready, this task will run after the initial databases import
+        // so we will use that to know when the databases have been successfully imported
+        var redisInsightsReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        builder.Eventing.Subscribe<ResourceReadyEvent>(redisInsightBuilder.Resource, (evt, ct) =>
+        {
+            redisInsightsReady.TrySetResult();
+            return Task.CompletedTask;
+        });
+
         using var app = builder.Build();
 
         await app.StartAsync();
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
-        await rns.WaitForResourceAsync(redisInsightBuilder.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await redisInsightsReady.Task.WaitAsync(cts.Token);
 
         var client = app.CreateHttpClient(redisInsightBuilder.Resource.Name, "http");
 

@@ -15,7 +15,7 @@ public static class AzureContainerAppExtensions
     /// Adds the necessary infrastructure for Azure Container Apps to the distributed application builder.
     /// </summary>
     /// <param name="builder">The distributed application builder.</param>
-    public static IDistributedApplicationBuilder AddContainerAppsInfrastructure(this IDistributedApplicationBuilder builder)
+    public static IDistributedApplicationBuilder AddAzureContainerAppsInfrastructure(this IDistributedApplicationBuilder builder)
     {
         builder.Services.TryAddLifecycleHook<AzureContainerAppsInfrastructure>();
 

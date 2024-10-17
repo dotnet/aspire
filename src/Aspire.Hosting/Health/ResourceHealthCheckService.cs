@@ -83,10 +83,9 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                         cancellationToken).ConfigureAwait(false);
                 }
 
-                if (_latestEvents[resource.Name].Snapshot.HealthStatus == report.Status)
+                if (_latestEvents[resource.Name] is { } latestEvent && latestEvent.Snapshot.HealthStatus == report.Status)
                 {
-                    // If the last health status is the same as this health status then we don't need
-                    // to publish anything as it just creates noise.
+                    await SlowDownMonitoringAsync(latestEvent, cancellationToken).ConfigureAwait(false);
                     continue;
                 }
 
@@ -103,10 +102,6 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                         HealthReports = healthReports
                     };
                 }).ConfigureAwait(false);
-
-                var lastEvent = _latestEvents[resource.Name];
-                await SlowDownMonitoringAsync(lastEvent, cancellationToken).ConfigureAwait(false);
-
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {

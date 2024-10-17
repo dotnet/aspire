@@ -8,7 +8,7 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Python;
 
 /// <summary>
-/// A resource that represents a python executible or app.
+/// A resource that represents a python executable or app.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="executablePath">The path to the executable used to run the python app.</param>

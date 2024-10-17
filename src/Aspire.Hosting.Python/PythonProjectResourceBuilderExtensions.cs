@@ -46,7 +46,7 @@ public static class PythonProjectResourceBuilderExtensions
     /// </remarks>
     /// <example>
     /// Add a python project to the application model. In this example the project is located in the <c>PythonProject</c> directory
-    /// if this path is relative then it is assumed to be relative to the AppHost directory, and the virtual enviroment path if relative
+    /// if this path is relative then it is assumed to be relative to the AppHost directory, and the virtual environment path if relative
     /// is relative to the project directory. In the example below, if the app host directory is <c>$HOME/repos/MyApp/src/MyApp.AppHost</c> then
     /// the ProjectPath would be <c>$HOME/repos/MyApp/src/MyApp.AppHost/PythonProject</c> and the virtual environment path (defaulted) would
     /// be <c>$HOME/repos/MyApp/src/MyApp.AppHost/PythonProject/.venv</c>.
@@ -96,7 +96,7 @@ public static class PythonProjectResourceBuilderExtensions
     /// </remarks>
     /// <example>
     /// Add a python project to the application model. In this example the project is located in the <c>PythonProject</c> directory
-    /// if this path is relative then it is assumed to be relative to the AppHost directory, and the virtual enviroment path if relative
+    /// if this path is relative then it is assumed to be relative to the AppHost directory, and the virtual environment path if relative
     /// is relative to the project directory. In the example below, if the app host directory is <c>$HOME/repos/MyApp/src/MyApp.AppHost</c> then
     /// the ProjectPath would be <c>$HOME/repos/MyApp/src/MyApp.AppHost/PythonProject</c> and the virtual environment path (defaulted) would
     /// be <c>$HOME/repos/MyApp/src/MyApp.AppHost/PythonProject/.venv</c>.

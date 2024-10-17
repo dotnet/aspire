@@ -54,7 +54,7 @@ partial class Resource
         {
             resource.Volumes.Add(new Volume
             {
-                Source = volume.Source,
+                Source = volume.Source ?? string.Empty,
                 Target = volume.Target,
                 MountType = volume.MountType,
                 IsReadOnly = volume.IsReadOnly

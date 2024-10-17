@@ -664,3 +664,7 @@ fluent-data-grid-cell.no-ellipsis {
     column-gap: 4px;
     align-items: center;
 }
+
+.empty-data::before {
+    content: "-"
+}

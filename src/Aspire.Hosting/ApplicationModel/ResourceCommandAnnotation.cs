@@ -128,7 +128,7 @@ public static class CommandResults
 /// <summary>
 /// The result of executing a command. Returned from <see cref="ResourceCommandAnnotation.ExecuteCommand"/>.
 /// </summary>
-public class ExecuteCommandResult
+public sealed class ExecuteCommandResult
 {
     /// <summary>
     /// A flag that indicates whether the command was successful.
@@ -144,7 +144,7 @@ public class ExecuteCommandResult
 /// <summary>
 /// Context for <see cref="ResourceCommandAnnotation.UpdateState"/>.
 /// </summary>
-public class UpdateCommandStateContext
+public sealed class UpdateCommandStateContext
 {
     /// <summary>
     /// The resource snapshot.
@@ -160,7 +160,7 @@ public class UpdateCommandStateContext
 /// <summary>
 /// Context for <see cref="ResourceCommandAnnotation.ExecuteCommand"/>.
 /// </summary>
-public class ExecuteCommandContext
+public sealed class ExecuteCommandContext
 {
     /// <summary>
     /// The service provider.

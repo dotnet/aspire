@@ -105,14 +105,17 @@
                                 <AspireTemplateColumn ColumnId="@SourceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesSourceColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetSourceColumnValueAndTooltip(ctx)?.Tooltip)">
                                     @if (GetSourceColumnValueAndTooltip(context) is { } columnDisplay)
                                     {
-                                        <SourceColumnDisplay Resource="context" FilterText="@_filter" Value="@columnDisplay.Value" ContentAfterValue="@columnDisplay.ContentAfterValue" ValueToCopy="@columnDisplay.ValueToCopy" Tooltip="@columnDisplay.Tooltip" />
+                                        <SourceColumnDisplay FilterText="@_filter" Value="@columnDisplay.Value" ContentAfterValue="@columnDisplay.ContentAfterValue" ValueToCopy="@columnDisplay.ValueToCopy" Tooltip="@columnDisplay.Tooltip" />
+                                    }
+                                    else
+                                    {
+                                        <span class="empty-data"></span>
                                     }
                                 </AspireTemplateColumn>
                                 <AspireTemplateColumn ColumnId="@EndpointsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEndpointsColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetEndpointsTooltip(ctx))">
                                     <EndpointsColumnDisplay Resource="context"
                                                             HasMultipleReplicas="HasMultipleReplicas(context)"
-                                                            DisplayedEndpoints="@GetDisplayedEndpoints(context, out var additionalMessage)"
-                                                            AdditionalMessage="@additionalMessage" />
+                                                            DisplayedEndpoints="GetDisplayedEndpoints(context)" />
                                 </AspireTemplateColumn>
                                 <AspireTemplateColumn ColumnId="@ActionsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesActionsColumnHeader)]" Class="no-ellipsis">
                                     <div class="grid-action-container" @onclick:stopPropagation="true">

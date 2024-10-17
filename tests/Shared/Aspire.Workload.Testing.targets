@@ -73,7 +73,7 @@
   <Target Name="_ValidateExpectedSetOfPackagesExist" Condition="'$(SkipPackageCheckForWorkloadTesting)' != 'true'">
     <ItemGroup>
       <_SrcProjects Include="$(RepoRoot)src\**\*.csproj"
-                    Exclude="$(RepoRoot)src\Aspire.ProjectTemplates.net8\templates\**\*.csproj;$(RepoRoot)src\Aspire.ProjectTemplates\templates\**\*.csproj" />
+                    Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**\*.csproj" />
     </ItemGroup>
 
     <MSBuild Projects="@(_SrcProjects)" Targets="GetPackageName">

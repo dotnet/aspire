@@ -3,8 +3,6 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <!-- In preview until the public API is validated and the Microsoft.Extensions.AI integration is designed. -->
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <PackageTags>$(ComponentAzurePackageTags) ai openai</PackageTags>
     <Description>A client for Azure OpenAI that integrates with Aspire, including logging and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzureOpenAI_256x.png</PackageIconFullPath>

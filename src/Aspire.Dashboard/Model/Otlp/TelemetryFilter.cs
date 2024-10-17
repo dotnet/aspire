@@ -25,7 +25,6 @@ public class TelemetryFilter : IEquatable<TelemetryFilter>
         return name switch
         {
             KnownStructuredLogFields.MessageField => "Message",
-            KnownStructuredLogFields.ApplicationField => "Application",
             KnownStructuredLogFields.TraceIdField => "TraceId",
             KnownStructuredLogFields.SpanIdField => "SpanId",
             KnownStructuredLogFields.OriginalFormatField => "OriginalFormat",
@@ -34,9 +33,9 @@ public class TelemetryFilter : IEquatable<TelemetryFilter>
             KnownTraceFields.SpanIdField => "SpanId",
             KnownTraceFields.TraceIdField => "TraceId",
             KnownTraceFields.KindField => "Kind",
-            KnownTraceFields.ApplicationField => "Application",
             KnownTraceFields.StatusField => "Status",
-            KnownTraceFields.SourceField => "Source",
+            KnownSourceFields.NameField => "Source",
+            KnownResourceFields.ServiceNameField => "Application",
             _ => name
         };
     }

@@ -9,7 +9,7 @@ param administratorLoginPassword string
 param keyVaultName string
 
 resource pgsql 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
-  name: take('pgsql${uniqueString(resourceGroup().id)}', 24)
+  name: take('pgsql-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
     administratorLogin: administratorLogin

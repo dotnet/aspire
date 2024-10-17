@@ -20,6 +20,7 @@ public class OtlpApplication
 
     public string ApplicationName { get; }
     public string InstanceId { get; }
+    public OtlpContext Context { get; }
 
     public ApplicationKey ApplicationKey => new ApplicationKey(ApplicationName, InstanceId);
 
@@ -28,14 +29,11 @@ public class OtlpApplication
     private readonly Dictionary<OtlpInstrumentKey, OtlpInstrument> _instruments = new();
     private readonly ConcurrentDictionary<KeyValuePair<string, string>[], OtlpApplicationView> _applicationViews = new(ApplicationViewKeyComparer.Instance);
 
-    private readonly OtlpContext _context;
-
     public OtlpApplication(string name, string instanceId, OtlpContext context)
     {
         ApplicationName = name;
         InstanceId = instanceId;
-
-        _context = context;
+        Context = context;
     }
 
     public void AddMetrics(AddContext context, RepeatedField<ScopeMetrics> scopeMetrics)
@@ -66,7 +64,7 @@ public class OtlpApplication
                                     Type = MapMetricType(metric.DataCase),
                                     Parent = GetMeter(sm.Scope)
                                 },
-                                Context = _context
+                                Context = Context
                             });
                         }
 
@@ -75,7 +73,7 @@ public class OtlpApplication
                     catch (Exception ex)
                     {
                         context.FailureCount++;
-                        _context.Logger.LogInformation(ex, "Error adding metric.");
+                        Context.Logger.LogInformation(ex, "Error adding metric.");
                     }
                 }
             }
@@ -101,7 +99,7 @@ public class OtlpApplication
     {
         if (!_meters.TryGetValue(scope.Name, out var meter))
         {
-            _meters.Add(scope.Name, meter = new OtlpMeter(scope, _context));
+            _meters.Add(scope.Name, meter = new OtlpMeter(scope, Context));
         }
         return meter;
     }
