@@ -154,7 +154,7 @@ public sealed record ResourcePropertySnapshot(string Name, object? Value)
 /// <summary>
 /// A snapshot of a resource command.
 /// </summary>
-/// <param name="Type">The type of command. The type uniquely identifies the command.</param>
+/// <param name="Name">The name of command. The name uniquely identifies the command.</param>
 /// <param name="State">The state of the command.</param>
 /// <param name="DisplayName">The display name visible in UI for the command.</param>
 /// <param name="DisplayDescription">
@@ -172,7 +172,7 @@ public sealed record ResourcePropertySnapshot(string Name, object? Value)
 /// <param name="IconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
 /// <param name="IconVariant">The icon variant.</param>
 /// <param name="IsHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
-public sealed record ResourceCommandSnapshot(string Type, ResourceCommandState State, string DisplayName, string? DisplayDescription, object? Parameter, string? ConfirmationMessage, string? IconName, IconVariant? IconVariant, bool IsHighlighted);
+public sealed record ResourceCommandSnapshot(string Name, ResourceCommandState State, string DisplayName, string? DisplayDescription, object? Parameter, string? ConfirmationMessage, string? IconName, IconVariant? IconVariant, bool IsHighlighted);
 
 /// <summary>
 /// A report produced by a health check about a resource.

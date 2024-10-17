@@ -82,7 +82,7 @@ public class DashboardServiceTests
         using var applicationBuilder = TestDistributedApplicationBuilder.Create();
         var builder = applicationBuilder.AddResource(testResource);
         builder.WithCommand(
-            type: "TestType",
+            name: "TestName",
             displayName: "Display name!",
             executeCommand: c => Task.FromResult(CommandResults.Success()),
             updateState: c => ApplicationModel.ResourceCommandState.Enabled,
@@ -118,7 +118,7 @@ public class DashboardServiceTests
         var resourceData = Assert.Single(update.InitialData.Resources);
         var commandData = Assert.Single(resourceData.Commands);
 
-        Assert.Equal("TestType", commandData.CommandType);
+        Assert.Equal("TestName", commandData.Name);
         Assert.Equal("Display name!", commandData.DisplayName);
         Assert.Equal("Display description!", commandData.DisplayDescription);
         Assert.Equal(Value.ForList(Value.ForString("One"), Value.ForString("Two")), commandData.Parameter);

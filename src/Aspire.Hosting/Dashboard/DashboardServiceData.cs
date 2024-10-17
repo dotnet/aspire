@@ -116,7 +116,7 @@ internal sealed class DashboardServiceData : IAsyncDisposable
         logger.LogInformation("Executing command '{Type}'.", type);
         if (_resourcePublisher.TryGetResource(resourceId, out _, out var resource))
         {
-            var annotation = resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Type == type);
+            var annotation = resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Name == type);
             if (annotation != null)
             {
                 try
