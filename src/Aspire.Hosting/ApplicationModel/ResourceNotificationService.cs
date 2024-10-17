@@ -413,7 +413,7 @@ public class ResourceNotificationService
 
         foreach (var annotation in resource.Annotations.OfType<ResourceCommandAnnotation>())
         {
-            var existingCommand = FindByType(previousState.Commands, annotation.Type);
+            var existingCommand = FindByName(previousState.Commands, annotation.Name);
 
             if (existingCommand == null)
             {
@@ -457,11 +457,11 @@ public class ResourceNotificationService
 
         return previousState with { Commands = builder.ToImmutable() };
 
-        static ResourceCommandSnapshot? FindByType(ImmutableArray<ResourceCommandSnapshot> commands, string type)
+        static ResourceCommandSnapshot? FindByName(ImmutableArray<ResourceCommandSnapshot> commands, string name)
         {
             for (var i = 0; i < commands.Length; i++)
             {
-                if (commands[i].Type == type)
+                if (commands[i].Name == name)
                 {
                     return commands[i];
                 }
@@ -474,7 +474,7 @@ public class ResourceNotificationService
         {
             var state = annotation.UpdateState(new UpdateCommandStateContext { ResourceSnapshot = previousState, ServiceProvider = serviceProvider });
 
-            return new ResourceCommandSnapshot(annotation.Type, state, annotation.DisplayName, annotation.DisplayDescription, annotation.Parameter, annotation.ConfirmationMessage, annotation.IconName, annotation.IconVariant, annotation.IsHighlighted);
+            return new ResourceCommandSnapshot(annotation.Name, state, annotation.DisplayName, annotation.DisplayDescription, annotation.Parameter, annotation.ConfirmationMessage, annotation.IconName, annotation.IconVariant, annotation.IsHighlighted);
         }
     }
 
