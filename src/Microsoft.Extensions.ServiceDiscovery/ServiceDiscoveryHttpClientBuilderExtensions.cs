@@ -21,6 +21,8 @@ public static class ServiceDiscoveryHttpClientBuilderExtensions
     /// <returns>The builder.</returns>
     public static IHttpClientBuilder AddServiceDiscovery(this IHttpClientBuilder httpClientBuilder)
     {
+        ArgumentNullException.ThrowIfNull(httpClientBuilder);
+
         var services = httpClientBuilder.Services;
         services.AddServiceDiscoveryCore();
         httpClientBuilder.AddHttpMessageHandler(services =>

@@ -23,8 +23,8 @@ public static class NodeAppHostingExtension
     public static IResourceBuilder<NodeAppResource> AddNodeApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string scriptPath, string? workingDirectory = null, string[]? args = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(scriptPath);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(scriptPath);
 
         args ??= [];
         string[] effectiveArgs = [scriptPath, .. args];
@@ -51,9 +51,9 @@ public static class NodeAppHostingExtension
     {
 
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(workingDirectory);
-        ArgumentNullException.ThrowIfNull(scriptName);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(workingDirectory);
+        ArgumentException.ThrowIfNullOrEmpty(scriptName);
 
         string[] allArgs = args is { Length: > 0 }
             ? ["run", scriptName, "--", .. args]
