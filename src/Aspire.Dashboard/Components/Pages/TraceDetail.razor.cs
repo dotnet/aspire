@@ -54,12 +54,6 @@ public partial class TraceDetail : ComponentBase
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
-    [Inject]
-    public required DimensionManager DimensionManager { get; init; }
-
-    [CascadingParameter]
-    public required ViewportInformation ViewportInformation { get; set; }
-
     protected override void OnInitialized()
     {
         _gridColumns = [
@@ -294,7 +288,7 @@ public partial class TraceDetail : ComponentBase
         else
         {
             var entryProperties = viewModel.Span.AllProperties()
-                .Select(kvp => new SpanPropertyViewModel { Name = kvp.Key, Value = kvp.Value })
+                .Select(f => new TelemetryPropertyViewModel { Name = f.DisplayName, Key = f.Key, Value = f.Value })
                 .ToList();
 
             var traceCache = new Dictionary<string, OtlpTrace>(StringComparer.Ordinal);

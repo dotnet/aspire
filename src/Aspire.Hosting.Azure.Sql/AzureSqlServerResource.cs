@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Represents an Azure Sql Server resource.
 /// </summary>
-public class AzureSqlServerResource : AzureConstructResource, IResourceWithConnectionString
+public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithConnectionString
 {
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
     private readonly bool _createdWithInnerResource;
@@ -17,18 +17,18 @@ public class AzureSqlServerResource : AzureConstructResource, IResourceWithConne
     /// Initializes a new instance of the <see cref="AzureSqlServerResource"/> class.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="configureConstruct">Callback to populate the construct with Azure resources.</param>
-    public AzureSqlServerResource(string name, Action<ResourceModuleConstruct> configureConstruct)
-        : base(name, configureConstruct) { }
+    /// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
+    public AzureSqlServerResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
+        : base(name, configureInfrastructure) { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureSqlServerResource"/> class.
     /// </summary>
     /// <param name="innerResource">The <see cref="SqlServerServerResource"/> that this resource wraps.</param>
-    /// <param name="configureConstruct">Callback to populate the construct with Azure resources.</param>
+    /// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AzureSqlExtensions.AddAzureSqlServer)} instead to add an Azure SQL server resource.")]
-    public AzureSqlServerResource(SqlServerServerResource innerResource, Action<ResourceModuleConstruct> configureConstruct)
-        : base(innerResource.Name, configureConstruct)
+    public AzureSqlServerResource(SqlServerServerResource innerResource, Action<AzureResourceInfrastructure> configureInfrastructure)
+        : base(innerResource.Name, configureInfrastructure)
     {
         InnerResource = innerResource;
         _createdWithInnerResource = true;
@@ -60,8 +60,15 @@ public class AzureSqlServerResource : AzureConstructResource, IResourceWithConne
         }
     }
 
+    /// <summary>
+    /// Gets the inner SqlServerServerResource resource.
+    /// 
+    /// This is set when RunAsContainer is called on the AzureSqlServerResource resource to create a local SQL Server container.
+    /// </summary>
+    internal SqlServerServerResource? InnerResource { get; private set; }
+
     /// <inheritdoc />
-    public override ResourceAnnotationCollection Annotations => _createdWithInnerResource ? InnerResource!.Annotations : base.Annotations;
+    public override ResourceAnnotationCollection Annotations => InnerResource?.Annotations ?? base.Annotations;
 
     /// <summary>
     /// A dictionary where the key is the resource name and the value is the database name.
@@ -73,5 +80,14 @@ public class AzureSqlServerResource : AzureConstructResource, IResourceWithConne
         _databases.TryAdd(name, databaseName);
     }
 
-    internal SqlServerServerResource? InnerResource { get; set; }
+    internal void SetInnerResource(SqlServerServerResource innerResource)
+    {
+        // Copy the annotations to the inner resource before making it the inner resource
+        foreach (var annotation in Annotations)
+        {
+            innerResource.Annotations.Add(annotation);
+        }
+
+        InnerResource = innerResource;
+    }
 }

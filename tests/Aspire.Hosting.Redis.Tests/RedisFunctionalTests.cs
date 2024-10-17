@@ -15,7 +15,6 @@ using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 using Xunit;
 using Xunit.Abstractions;
-using Newtonsoft.Json.Linq;
 
 namespace Aspire.Hosting.Redis.Tests;
 
@@ -133,13 +132,21 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         IResourceBuilder<RedisInsightResource>? redisInsightBuilder = null;
         var redis2 = builder.AddRedis("redis-2").WithRedisInsight(c => redisInsightBuilder = c);
         Assert.NotNull(redisInsightBuilder);
+
+        // RedisInsight will import databases when it is ready, this task will run after the initial databases import
+        // so we will use that to know when the databases have been successfully imported
+        var redisInsightsReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        builder.Eventing.Subscribe<ResourceReadyEvent>(redisInsightBuilder.Resource, (evt, ct) =>
+        {
+            redisInsightsReady.TrySetResult();
+            return Task.CompletedTask;
+        });
+
         using var app = builder.Build();
 
         await app.StartAsync();
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
-        await rns.WaitForResourceAsync(redisInsightBuilder.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await redisInsightsReady.Task.WaitAsync(cts.Token);
 
         var client = app.CreateHttpClient(redisInsightBuilder.Resource.Name, "http");
 
@@ -172,58 +179,6 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(2));
             var testConnectionResponse = await client.GetAsync($"/api/databases/test/{db.Id}", cts2.Token);
             response.EnsureSuccessStatusCode();
-        }
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    [RequiresDocker]
-    public async Task VerifyWithRedisInsightAcceptEula(bool accept)
-    {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-
-        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-
-        IResourceBuilder<RedisInsightResource>? redisInsightBuilder = null;
-        var redis = builder.AddRedis("redis").WithRedisInsight(c =>
-        {
-            c.WithAcceptEula(accept);
-            redisInsightBuilder = c;
-        });
-
-        Assert.NotNull(redisInsightBuilder);
-        Assert.Equal(accept, redisInsightBuilder.Resource.AcceptedEula);
-
-        using var app = builder.Build();
-
-        await app.StartAsync();
-
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
-        await rns.WaitForResourceAsync(redisInsightBuilder.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        var client = app.CreateHttpClient(redisInsightBuilder.Resource.Name, "http");
-
-        var response = await client.GetAsync("/api/settings", cts.Token);
-        response.EnsureSuccessStatusCode();
-
-        var content = await response.Content.ReadAsStringAsync();
-
-        var jo = JObject.Parse(content);
-        var agreements = jo["agreements"];
-        if (accept)
-        {
-            Assert.NotNull(agreements);
-            Assert.False(agreements["analytics"]!.Value<bool>());
-            Assert.False(agreements["notifications"]!.Value<bool>());
-            Assert.False(agreements["encryption"]!.Value<bool>());
-            Assert.True(agreements["eula"]!.Value<bool>());
-        }
-        else
-        {
-            Assert.NotNull(agreements);
-            Assert.False(agreements.HasValues);
         }
     }
 

@@ -9,14 +9,7 @@ public class TemplatesCustomHive
 {
     private static readonly string s_tmpDirSuffix = Guid.NewGuid().ToString()[..8];
 
-    public static TemplatesCustomHive With9_0_Net8 { get; } = new([TemplatePackageIdNames.AspireProjectTemplates_net8], "templates-with-9-net8");
-
-    public static TemplatesCustomHive With9_0_Net9 { get; } = new([TemplatePackageIdNames.AspireProjectTemplates], "templates-with-9-net9");
-    public static TemplatesCustomHive With9_0_Net9_And_Net8 => new(
-            [
-                TemplatePackageIdNames.AspireProjectTemplates,
-                TemplatePackageIdNames.AspireProjectTemplates_net8
-            ], "templates-with-9-net8-net9");
+    public static TemplatesCustomHive TemplatesHive { get; } = new([TemplatePackageIdNames.AspireProjectTemplates], "templates");
 
     private readonly string _stampFilePath;
     private readonly string _customHiveDirectory;
@@ -90,7 +83,7 @@ public class TemplatesCustomHive
 
     public static string GetPackagePath(string builtNuGetsPath, string templatePackageId)
     {
-        var packageNameRegex = new Regex($@"{templatePackageId}\.\d+\.\d+\.\d+(-[A-z]*\.*\d*)?\.nupkg");
+        var packageNameRegex = new Regex($@"{templatePackageId}\.\d+\.\d+\.\d+(-[A-z\.\d]*\.*\d*)?\.nupkg");
         var packages = Directory.EnumerateFiles(builtNuGetsPath, $"{templatePackageId}*.nupkg")
                         .Where(p => packageNameRegex.IsMatch(Path.GetFileName(p)));
 

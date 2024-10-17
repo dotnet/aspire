@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Tests.Shared.Telemetry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
@@ -214,6 +214,6 @@ public sealed class ApplicationsSelectHelpersTests
         };
         var applicationKey = OtlpHelpers.GetApplicationKey(resource);
 
-        return new OtlpApplication(applicationKey.Name, applicationKey.InstanceId!, NullLogger.Instance, new TelemetryLimitOptions());
+        return new OtlpApplication(applicationKey.Name, applicationKey.InstanceId!, TelemetryTestHelpers.CreateContext());
     }
 }

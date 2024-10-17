@@ -9,9 +9,9 @@ namespace Aspire.Hosting.Azure;
 /// Represents an Azure Cache for Redis resource.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="configureConstruct">Callback to populate the construct with Azure resources.</param>
-public class AzureRedisCacheResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
-    AzureConstructResource(name, configureConstruct),
+/// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
+public class AzureRedisCacheResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
+    AzureProvisioningResource(name, configureInfrastructure),
     IResourceWithConnectionString
 {
     /// <summary>
@@ -33,7 +33,10 @@ public class AzureRedisCacheResource(string name, Action<ResourceModuleConstruct
     /// 
     /// This is set when RunAsContainer is called on the AzureRedisCacheResource resource to create a local Redis container.
     /// </summary>
-    internal RedisResource? InnerResource { get; set; }
+    internal RedisResource? InnerResource { get; private set; }
+
+    /// <inheritdoc />
+    public override ResourceAnnotationCollection Annotations => InnerResource?.Annotations ?? base.Annotations;
 
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Cache for Redis resource.
@@ -43,4 +46,15 @@ public class AzureRedisCacheResource(string name, Action<ResourceModuleConstruct
             (ConnectionStringSecretOutput is not null ?
                 ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
                 ReferenceExpression.Create($"{ConnectionStringOutput}"));
+
+    internal void SetInnerResource(RedisResource innerResource)
+    {
+        // Copy the annotations to the inner resource before making it the inner resource
+        foreach (var annotation in Annotations)
+        {
+            innerResource.Annotations.Add(annotation);
+        }
+
+        InnerResource = innerResource;
+    }
 }

@@ -38,12 +38,12 @@ public partial class StateColumnDisplay
             if (resource.TryGetExitCode(out var exitCode) && exitCode is not 0)
             {
                 // Process completed unexpectedly, hence the non-zero code. This is almost certainly an error, so warn users.
-                return string.Format(CultureInfo.CurrentCulture, Loc[Columns.StateColumnResourceExitedUnexpectedly], resource.ResourceType, exitCode);
+                return string.Format(CultureInfo.CurrentCulture, Loc[nameof(Columns.StateColumnResourceExitedUnexpectedly)], resource.ResourceType, exitCode);
             }
             else
             {
                 // Process completed, which may not have been unexpected.
-                return string.Format(CultureInfo.CurrentCulture, Loc[Columns.StateColumnResourceExited], resource.ResourceType);
+                return string.Format(CultureInfo.CurrentCulture, Loc[nameof(Columns.StateColumnResourceExited)], resource.ResourceType);
             }
         }
         else if (resource.KnownState is KnownResourceState.Running && resource.HealthStatus is not HealthStatus.Healthy)
@@ -76,8 +76,8 @@ public partial class StateColumnDisplay
             else if (Resource.IsFinishedState())
             {
                 // Process completed successfully.
-                icon = new Icons.Filled.Size16.CheckmarkUnderlineCircle();
-                color = Color.Success;
+                icon = new Icons.Regular.Size16.RecordStop();
+                color = Color.Info;
             }
             else
             {
@@ -94,7 +94,7 @@ public partial class StateColumnDisplay
         else if (Resource.HasNoState())
         {
             icon = new Icons.Filled.Size16.Circle();
-            color = Color.Neutral;
+            color = Color.Info;
         }
         else if (Resource.HealthStatus is not HealthStatus.Healthy)
         {
@@ -120,7 +120,7 @@ public partial class StateColumnDisplay
 
         var text = Resource switch
         {
-            { State: null or "" } => Loc[Columns.UnknownStateLabel],
+            { State: null or "" } => Loc[nameof(Columns.UnknownStateLabel)],
             { KnownState: KnownResourceState.Running, HealthStatus: not HealthStatus.Healthy } => $"{Resource.State.Humanize()} ({(Resource.HealthStatus ?? HealthStatus.Unhealthy).Humanize()})",
             _ => Resource.State.Humanize()
         };

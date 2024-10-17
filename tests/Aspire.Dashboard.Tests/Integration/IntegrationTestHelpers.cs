@@ -40,18 +40,22 @@ public static class IntegrationTestHelpers
         ITestOutputHelper testOutputHelper,
         Action<Dictionary<string, string?>>? additionalConfiguration = null,
         Action<WebApplicationBuilder>? preConfigureBuilder = null,
+        bool? clearLogFilterRules = null,
         ITestSink? testSink = null)
     {
         var loggerFactory = CreateLoggerFactory(testOutputHelper, testSink);
 
-        return CreateDashboardWebApplication(loggerFactory, additionalConfiguration, preConfigureBuilder);
+        return CreateDashboardWebApplication(loggerFactory, additionalConfiguration, preConfigureBuilder, clearLogFilterRules);
     }
 
     public static DashboardWebApplication CreateDashboardWebApplication(
         ILoggerFactory loggerFactory,
         Action<Dictionary<string, string?>>? additionalConfiguration = null,
-        Action<WebApplicationBuilder>? preConfigureBuilder = null)
+        Action<WebApplicationBuilder>? preConfigureBuilder = null,
+        bool? clearLogFilterRules = null)
     {
+        clearLogFilterRules ??= true;
+
         var initialData = new Dictionary<string, string?>
         {
             [DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "http://127.0.0.1:0",
@@ -72,10 +76,14 @@ public static class IntegrationTestHelpers
         {
             preConfigureBuilder?.Invoke(builder);
 
-            builder.Services.PostConfigure<LoggerFilterOptions>(o =>
+            // Clear log filter rules by default so all logs are available in test output.
+            if (clearLogFilterRules.Value)
             {
-                o.Rules.Clear();
-            });
+                builder.Services.PostConfigure<LoggerFilterOptions>(o =>
+                {
+                    o.Rules.Clear();
+                });
+            }
 
             // Remove environment variable source of configuration.
             var sources = ((IConfigurationBuilder)builder.Configuration).Sources;

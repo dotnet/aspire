@@ -3,8 +3,6 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <!-- This library can't ship stable until OpenAI ships stable. -->
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <PackageTags>$(ComponentCommonPackageTags) ai openai</PackageTags>
     <Description>A client for OpenAI that integrates with Aspire, including metrics and telemetry.</Description>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>

@@ -27,6 +27,12 @@
     </ItemGroup>
   </Target>
 
+  <Target Name="ValidatePreReleaseLabelIsCorrectForPreviewPackages"
+          AfterTargets="Pack"
+          Condition="'$(OfficialBuildId)' != '' and '$(SuppressFinalPackageVersion)' == 'true' and !$(PreReleaseVersionLabel.StartsWith('preview'))">
+    <Error Text="The PreReleaseLabel for package '$(MSBuildProjectName)' must start with 'preview' as it has the SuppressFinalPackageVersion flag set. Current label is '$(PreReleaseVersionLabel)'" />
+  </Target>
+
   <!--
   Logic for generating and comparing the ConfigurationSchema.json file
   -->
@@ -71,7 +77,8 @@
 
   <Target Name="CalculateConfigurationSchemaGeneratorPath">
     <MSBuild Projects="$(ConfigurationSchemaGeneratorProjectPath)"
-             Targets="GetTargetPath">
+             Targets="GetTargetPath"
+             RemoveProperties="TargetFramework">
       <Output TaskParameter="TargetOutputs" PropertyName="ConfigurationSchemaGeneratorPath" />
     </MSBuild>
   </Target>

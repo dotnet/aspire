@@ -14,6 +14,7 @@ using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -27,10 +28,11 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              ResourceNotificationService resourceNotificationService,
                                              ResourceLoggerService resourceLoggerService,
                                              ILoggerFactory loggerFactory,
-                                             DcpNameGenerator nameGenerator) : IDistributedApplicationLifecycleHook, IAsyncDisposable
+                                             DcpNameGenerator nameGenerator,
+                                             IHostApplicationLifetime hostApplicationLifetime) : IDistributedApplicationLifecycleHook, IAsyncDisposable
 {
-    private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _dashboardLogsTask;
+    private CancellationTokenSource? _dashboardLogsCts;
 
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
@@ -49,14 +51,20 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             AddDashboardResource(appModel);
         }
 
-        _dashboardLogsTask = WatchDashboardLogsAsync(_shutdownCts.Token);
+        // Stop watching logs from the dashboard when the app host is stopping. Part of the app host shutdown is tearing down the dashboard service.
+        // Dashboard services are killed while the dashboard is using them and will cause the dashboard to report an error accessing data.
+        // By stopping here we prevent the app host from printing errors from the dashboard caused by shutdown.
+        _dashboardLogsCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
+
+        _dashboardLogsTask = WatchDashboardLogsAsync(_dashboardLogsCts.Token);
 
         return Task.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()
     {
-        _shutdownCts.Cancel();
+        // Stop listening to logs if the lifecycle hook is disposed without the app being shutdown.
+        _dashboardLogsCts?.Cancel();
 
         if (_dashboardLogsTask is not null)
         {
