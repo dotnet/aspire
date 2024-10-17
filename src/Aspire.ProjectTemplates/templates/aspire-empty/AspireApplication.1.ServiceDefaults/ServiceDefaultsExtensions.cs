@@ -51,7 +51,7 @@ public static class ServiceDefaultsExtensions
     /// Configures OpenTelemetry for the specified <see cref="IHostApplicationBuilder"/>.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder"/> to configure OpenTelemetry for.</param>
-    /// <returns>The <see cref="IHostApplicationBuilder"/> with OpenTelemetry configured.</returns>
+    /// <returns>The <see cref="IHostApplicationBuilder"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown if the <paramref name="builder"/> is null.</exception>
     public static IHostApplicationBuilder ConfigureOpenTelemetry(this IHostApplicationBuilder builder)
     {
