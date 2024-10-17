@@ -19,10 +19,19 @@
             "Client": {
               "type": "object",
               "properties": {
+                "DisableHealthChecks": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the Qdrant client health check is disabled or not.",
+                  "default": false
+                },
                 "Endpoint": {
                   "type": "string",
                   "format": "uri",
                   "description": "The endpoint URI string of the Qdrant server to connect to."
+                },
+                "HealthCheckTimeout": {
+                  "type": "integer",
+                  "description": "Gets or sets a integer value that indicates the Qdrant health check timeout in milliseconds."
                 },
                 "Key": {
                   "type": "string",
