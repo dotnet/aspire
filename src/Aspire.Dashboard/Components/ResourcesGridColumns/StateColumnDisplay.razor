@@ -1,17 +1,13 @@
-﻿@using Aspire.Dashboard.Resources
-
-@{
-    var vm = GetStateViewModel(Resource, Loc[nameof(Columns.UnknownStateLabel)]);
-}
+﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
 
 <div class="state-column-cell">
 
-    <FluentIcon
-        Value="@vm.Icon"
-        Color="@vm.Color"
-        Class="severity-icon" />
+    <FluentIcon Value="@_viewModel.Icon"
+                Color="@_viewModel.Color"
+                Class="severity-icon" />
 
-    <span>@vm.Text</span>
+    <span>@_viewModel.Text</span>
 
     <UnreadLogErrorsBadge
         UnviewedErrorCounts="UnviewedErrorCounts"
