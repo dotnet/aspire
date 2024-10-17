@@ -24,7 +24,6 @@ public partial class StateColumnDisplay
 
     protected override void OnInitialized()
     {
-            { State: null or "" } => Loc[Columns.UnknownStateLabel],
         _viewModel = ResourceStateViewModel.GetStateViewModel(Resource, Loc);
     }
 }
