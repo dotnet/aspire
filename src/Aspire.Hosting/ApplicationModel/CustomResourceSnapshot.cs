@@ -52,14 +52,11 @@ public sealed record CustomResourceSnapshot
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This value is derived from <see cref="HealthReports"/>. However, if a resource
-    /// is known to have a health check and no reports exist, then this value is <see langword="null"/>.
-    /// </para>
-    /// <para>
-    /// Defaults to <see cref="HealthStatus.Healthy"/>.
+    /// This value is derived from <see cref="HealthReports"/>. If a resource is known to have a health check
+    /// and no reports exist, or if a resource does not have a health check, then this value is <see langword="null"/>.
     /// </para>
     /// </remarks>
-    public HealthStatus? HealthStatus { get; init; } = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy;
+    public HealthStatus? HealthStatus { get; init; }
 
     /// <summary>
     /// The health reports for this resource.
@@ -181,10 +178,10 @@ public sealed record ResourceCommandSnapshot(string Type, ResourceCommandState S
 /// A report produced by a health check about a resource.
 /// </summary>
 /// <param name="Name">The name of the health check that produced this report.</param>
-/// <param name="Status">The state of the resource, according to the report.</param>
+/// <param name="Status">The state of the resource, according to the report, or <see langword="null"/> if a health report has not yet been received for this health check.</param>
 /// <param name="Description">An optional description of the report, for display.</param>
 /// <param name="ExceptionText">An optional string containing exception details.</param>
-public sealed record HealthReportSnapshot(string Name, HealthStatus Status, string? Description, string? ExceptionText);
+public sealed record HealthReportSnapshot(string Name, HealthStatus? Status, string? Description, string? ExceptionText);
 
 /// <summary>
 /// The state of a resource command.

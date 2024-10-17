@@ -96,7 +96,7 @@
                                 <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort" Tooltip="true" TooltipText="@(c => GetResourceName(c))">
                                     <ResourceNameDisplay Resource="context" FilterText="@_filter" FormatName="GetResourceName" />
                                 </AspireTemplateColumn>
-                                <AspireTemplateColumn ColumnId="@StateColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStateColumnHeader)]" Sortable="true" SortBy="@_stateSort" Tooltip="true" TooltipText="@(c => StateColumnDisplay.GetResourceStateTooltip(c, ColumnsLoc))">
+                                <AspireTemplateColumn ColumnId="@StateColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStateColumnHeader)]" Sortable="true" SortBy="@_stateSort" Tooltip="true" TooltipText="@(c => ResourceStateViewModel.GetResourceStateTooltip(c, ColumnsLoc))">
                                     <StateColumnDisplay Resource="@context" UnviewedErrorCounts="@_applicationUnviewedErrorCounts" />
                                 </AspireTemplateColumn>
                                 <AspireTemplateColumn ColumnId="@StartTimeColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStartTimeColumnHeader)]" Sortable="true" SortBy="@_startTimeSort" TooltipText="@(context => context.CreationTimeStamp != null ? FormatHelpers.FormatDateTime(TimeProvider, context.CreationTimeStamp.Value, MillisecondsDisplay.None, CultureInfo.CurrentCulture) : null)" Tooltip="true">
