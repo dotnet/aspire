@@ -118,14 +118,14 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
                 Type: "Project",
                 Name: "apiservice",
                 State: "Running",
-                Source: $"{project.Id}.ApiService.csproj",
+                SourceContains: $"{project.Id}.ApiService.csproj",
                 Endpoints: ["http://localhost:\\d+/weatherforecast", "https://localhost:\\d+/weatherforecast"]),
 
             new ResourceRow(
                 Type: "Project",
                 Name: "webfrontend",
                 State: "Running",
-                Source: $"{project.Id}.Web.csproj",
+                SourceContains: $"{project.Id}.Web.csproj",
                 Endpoints: ["https://localhost:\\d+", "http://localhost:\\d+"])
         };
         if (hasRedisCache)
@@ -134,7 +134,7 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
                 new ResourceRow(Type: "Container",
                                 Name: "cache",
                                 State: "Running",
-                                Source: $"{RedisContainerImageTags.Registry}/{RedisContainerImageTags.Image}:{RedisContainerImageTags.Tag}",
+                                SourceContains: $"{RedisContainerImageTags.Registry}/{RedisContainerImageTags.Image}:{RedisContainerImageTags.Tag}",
                                 Endpoints: ["tcp://localhost:\\d+"]));
         }
 
@@ -142,4 +142,4 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
     }
 }
 
-public sealed record ResourceRow(string Type, string Name, string State, string Source, string[] Endpoints);
+public sealed record ResourceRow(string Type, string Name, string State, string SourceContains, string[] Endpoints);
