@@ -122,7 +122,7 @@ public static class AzurePostgresExtensions
     /// By default, the Azure PostgreSQL Flexible Server resource is configured to use Microsoft Entra ID (Azure Active Directory) for authentication.
     /// This requires changes to the application code to use an azure credential to authenticate with the resource. See
     /// https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-connect-with-managed-identity#connect-using-managed-identity-in-c for more information.
-    /// 
+    ///
     /// You can use the <see cref="WithPasswordAuthentication"/> method to configure the resource to use password authentication.
     /// </remarks>
     /// <example>
