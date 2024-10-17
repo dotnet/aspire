@@ -13,9 +13,9 @@ using Enum = System.Enum;
 
 namespace Aspire.Dashboard.Tests.Model;
 
-public class StateColumnDisplayTests
+public class ResourceStateViewModelTests
 {
-    private const string ResourceType = "TestResourceType";
+    private const string ResourceType = "Container";
 
     [Theory]
     // Resource is no longer running
@@ -47,6 +47,9 @@ public class StateColumnDisplayTests
     [InlineData(
         /* state */ KnownResourceState.Running, null, null, "NOT_A_VALID_STATE_STYLE",
         /* expected output */ "Running", "Circle", Color.Neutral, "Running")]
+    [InlineData(
+        /* state */ KnownResourceState.RuntimeUnhealthy, null, null, null,
+        /* expected output */ $"Localized:{nameof(Columns.StateColumnResourceContainerRuntimeUnhealthy)}", "Warning", Color.Warning, "Runtime unhealthy")]
     public void ResourceViewModel_ReturnsCorrectIconAndTooltip(
         KnownResourceState state,
         int? exitCode,
