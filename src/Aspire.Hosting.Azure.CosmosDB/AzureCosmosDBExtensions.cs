@@ -40,7 +40,7 @@ public static class AzureCosmosExtensions
             keyVault.Name = kvNameParam;
             infrastructure.Add(keyVault);
 
-            var cosmosAccount = new CosmosDBAccount(infrastructure.Resource.GetBicepIdentifier())
+            var cosmosAccount = new CosmosDBAccount(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Kind = CosmosDBAccountKind.GlobalDocumentDB,
                 ConsistencyPolicy = new ConsistencyPolicy()
@@ -56,11 +56,11 @@ public static class AzureCosmosExtensions
                         FailoverPriority = 0
                     }
                 },
-                Tags = { { "aspire-resource-name", infrastructure.Resource.Name } }
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
             };
             infrastructure.Add(cosmosAccount);
 
-            var azureResource = (AzureCosmosDBResource)infrastructure.Resource;
+            var azureResource = (AzureCosmosDBResource)infrastructure.AspireResource;
             var azureResourceBuilder = builder.CreateResourceBuilder(azureResource);
             List<CosmosDBSqlDatabase> cosmosSqlDatabases = new List<CosmosDBSqlDatabase>();
             foreach (var databaseName in azureResource.Databases)

@@ -134,12 +134,14 @@ public static class AzureRedisExtensions
             var disableAccessKeys = BicepValue<string>.DefineProperty(redis, "DisableAccessKeyAuthentication", ["properties", "disableAccessKeyAuthentication"], isOutput: false, isRequired: false);
             disableAccessKeys.Assign("true");
 
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
             infrastructure.Add(new RedisCacheAccessPolicyAssignment($"{redis.IdentifierName}_contributor")
             {
                 Parent = redis,
                 AccessPolicyName = "Data Contributor",
-                ObjectId = infrastructure.PrincipalIdParameter,
-                ObjectIdAlias = infrastructure.PrincipalNameParameter
+                ObjectId = principalIdParameter,
+                ObjectIdAlias = principalNameParameter
             });
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
@@ -262,7 +264,7 @@ public static class AzureRedisExtensions
 
     private static CdkRedisResource CreateRedisResource(AzureResourceInfrastructure Infrastructure)
     {
-        var redisCache = new CdkRedisResource(Infrastructure.Resource.GetBicepIdentifier())
+        var redisCache = new CdkRedisResource(Infrastructure.AspireResource.GetBicepIdentifier())
         {
             Sku = new RedisSku()
             {
@@ -272,7 +274,7 @@ public static class AzureRedisExtensions
             },
             EnableNonSslPort = false,
             MinimumTlsVersion = RedisTlsVersion.Tls1_2,
-            Tags = { { "aspire-resource-name", Infrastructure.Resource.Name } }
+            Tags = { { "aspire-resource-name", Infrastructure.AspireResource.Name } }
         };
         Infrastructure.Add(redisCache);
 
@@ -293,7 +295,7 @@ public static class AzureRedisExtensions
         foreach (var resource in infrastructure.GetResources())
         {
             if (resource is RedisCacheAccessPolicyAssignment accessPolicy &&
-                accessPolicy.IdentifierName == $"{infrastructure.Resource.GetBicepIdentifier()}_contributor")
+                accessPolicy.IdentifierName == $"{infrastructure.AspireResource.GetBicepIdentifier()}_contributor")
             {
                 resourcesToRemove.Add(resource);
             }

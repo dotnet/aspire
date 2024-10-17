@@ -71,7 +71,7 @@ public static class AzureProvisioningResourceExtensions
 
         parameterName ??= Infrastructure.NormalizeIdentifierName(parameterResourceBuilder.Resource.Name);
 
-        infrastructure.Resource.Parameters[parameterName] = parameterResourceBuilder.Resource;
+        infrastructure.AspireResource.Parameters[parameterName] = parameterResourceBuilder.Resource;
 
         var parameter = infrastructure.GetParameters().FirstOrDefault(p => p.IdentifierName == parameterName);
         if (parameter is null)
@@ -110,7 +110,7 @@ public static class AzureProvisioningResourceExtensions
 
         parameterName ??= outputReference.Name;
 
-        infrastructure.Resource.Parameters[parameterName] = outputReference;
+        infrastructure.AspireResource.Parameters[parameterName] = outputReference;
 
         var parameter = infrastructure.GetParameters().FirstOrDefault(p => p.IdentifierName == parameterName);
         if (parameter is null)
