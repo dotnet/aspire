@@ -29,7 +29,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         });
 
         var startingEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Starting);
-        Assert.Null(startingEvent.Snapshot.HealthStatus);
+        Assert.Null(startingEvent.Snapshot.GetHealthStatus());
 
         await rns.PublishUpdateAsync(resource.Resource, s => s with
         {
@@ -37,7 +37,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         });
 
         var runningEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running);
-        Assert.Equal(HealthStatus.Healthy, runningEvent.Snapshot.HealthStatus);
+        Assert.Equal(HealthStatus.Healthy, runningEvent.Snapshot.GetHealthStatus());
 
         await app.StopAsync();
     }
@@ -62,7 +62,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         });
 
         var startingEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Starting);
-        Assert.Null(startingEvent.Snapshot.HealthStatus);
+        Assert.Null(startingEvent.Snapshot.GetHealthStatus());
 
         await rns.PublishUpdateAsync(resource.Resource, s => s with
         {
@@ -70,10 +70,10 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         });
 
         var runningEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running);
-        Assert.Null(runningEvent.Snapshot.HealthStatus);
+        Assert.Null(runningEvent.Snapshot.GetHealthStatus());
 
         var hasHealthReportsEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.HealthReports.Length > 0);
-        Assert.Equal(HealthStatus.Healthy, hasHealthReportsEvent.Snapshot.HealthStatus);
+        Assert.Equal(HealthStatus.Healthy, hasHealthReportsEvent.Snapshot.GetHealthStatus());
 
         await app.StopAsync();
     }

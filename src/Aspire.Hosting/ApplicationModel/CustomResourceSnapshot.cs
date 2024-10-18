@@ -52,11 +52,19 @@ public sealed record CustomResourceSnapshot
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This value is derived from <see cref="HealthReports"/>. If a resource is known to have a health check
-    /// and no reports exist, or if a resource does not have a health check, then this value is <see langword="null"/>.
+    /// This value is derived from <see cref="HealthReports"/>.
     /// </para>
     /// </remarks>
-    public HealthStatus? HealthStatus { get; init; }
+    public HealthStatus? GetHealthStatus()
+    {
+        if (HealthReports.Length == 0 && State == "Running")
+        {
+            // If there are no health reports and the resource is running, assume it's healthy.
+            return HealthStatus.Healthy;
+        }
+
+        return HealthReports.MinBy(r => r.Status)?.Status;
+    }
 
     /// <summary>
     /// The health reports for this resource.

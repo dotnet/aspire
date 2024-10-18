@@ -1,5 +1,6 @@
 #nullable enable
 Aspire.Hosting.ApplicationModel.ContainerLifetime.Session = 0 -> Aspire.Hosting.ApplicationModel.ContainerLifetime
+Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.GetHealthStatus() -> Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus?
 Aspire.Hosting.ApplicationModel.EndpointNameAttribute
 Aspire.Hosting.ApplicationModel.EndpointNameAttribute.EndpointNameAttribute() -> void
 Aspire.Hosting.ApplicationModel.HealthReportSnapshot
@@ -46,8 +47,6 @@ Aspire.Hosting.ApplicationModel.ContainerNameAnnotation.Name.get -> string!
 Aspire.Hosting.ApplicationModel.ContainerNameAnnotation.Name.set -> void
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Commands.get -> System.Collections.Immutable.ImmutableArray<Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot!>
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Commands.init -> void
-Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.get -> Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus?
-Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.init -> void
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthReports.get -> System.Collections.Immutable.ImmutableArray<Aspire.Hosting.ApplicationModel.HealthReportSnapshot!>
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthReports.init -> void
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.StartTimeStamp.get -> System.DateTime?

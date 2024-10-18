@@ -167,7 +167,7 @@ public class DashboardServiceTests
         });
 
         var resource = Assert.Single((await writer.ReadNextAsync()).Changes.Value).Upsert;
-        Assert.False(resource.HasHealthStatus);
+
         Assert.Collection(resource.HealthReports,
             r =>
             {

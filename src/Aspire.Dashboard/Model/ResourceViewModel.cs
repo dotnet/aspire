@@ -34,8 +34,22 @@ public sealed class ResourceViewModel
     public required ImmutableArray<VolumeViewModel> Volumes { get; init; }
     public required FrozenDictionary<string, ResourcePropertyViewModel> Properties { get; init; }
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
+
     /// <summary>The health status of the resource. <see langword="null"/> indicates that health status is expected but not yet available.</summary>
-    public required HealthStatus? HealthStatus { get; init; }
+    public HealthStatus? HealthStatus
+    {
+        get
+        {
+            if (HealthReports.Length == 0 && KnownState == KnownResourceState.Running)
+            {
+                // If there are no health reports and the resource is running, assume it's healthy.
+                return Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy;
+            }
+
+            return HealthReports.MinBy(r => r.HealthStatus)?.HealthStatus;
+        }
+    }
+
     public required ImmutableArray<HealthReportViewModel> HealthReports { get; init; }
     public KnownResourceState? KnownState { get; init; }
 

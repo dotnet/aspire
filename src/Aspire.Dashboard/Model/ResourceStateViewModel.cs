@@ -136,7 +136,7 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
         return resource switch
         {
             { State: null or "" } => loc[Columns.UnknownStateLabel],
-            { KnownState: KnownResourceState.Running, HealthStatus: not HealthStatus.Healthy } => $"{resource.State.Humanize()} ({(resource.HealthStatus ?? HealthStatus.Unhealthy).Humanize()})",
+            { KnownState: KnownResourceState.Running, HealthStatus: not HealthStatus.Healthy, HealthReports: not [] } => $"{resource.State.Humanize()} ({(resource.HealthStatus ?? HealthStatus.Unhealthy).Humanize()})",
             _ => resource.State.Humanize()
         };
     }

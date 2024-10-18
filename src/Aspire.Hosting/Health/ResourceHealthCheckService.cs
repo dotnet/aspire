@@ -83,7 +83,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                         cancellationToken).ConfigureAwait(false);
                 }
 
-                if (_latestEvents[resource.Name] is { } latestEvent && latestEvent.Snapshot.HealthStatus == report.Status)
+                if (_latestEvents[resource.Name] is { } latestEvent && latestEvent.Snapshot.GetHealthStatus() == report.Status)
                 {
                     await SlowDownMonitoringAsync(latestEvent, cancellationToken).ConfigureAwait(false);
                     continue;
@@ -93,12 +93,8 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                 {
                     var healthReports = MergeHealthReports(s.HealthReports, report);
 
-                    // Matches the logic in ASP.NET Core's private HealthReport.CalculateAggregateStatus
-                    var healthStatus = healthReports.MinBy(r => r.Status)?.Status ?? s.HealthStatus;
-
                     return s with
                     {
-                        HealthStatus = healthStatus,
                         HealthReports = healthReports
                     };
                 }).ConfigureAwait(false);
@@ -122,7 +118,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
             // If we've waited for 30 seconds, or we received an updated event, or the health status is no longer
             // healthy then we stop slowing down the monitoring loop.
-            while (DateTime.Now < releaseAfter && _latestEvents[lastEvent.Resource.Name] == lastEvent && lastEvent.Snapshot.HealthStatus == HealthStatus.Healthy)
+            while (DateTime.Now < releaseAfter && _latestEvents[lastEvent.Resource.Name] == lastEvent && lastEvent.Snapshot.GetHealthStatus() == HealthStatus.Healthy)
             {
                 await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
             }
