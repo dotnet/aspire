@@ -37,6 +37,9 @@ public static class AspireAzureSearchExtensions
         Action<AzureSearchSettings>? configureSettings = null,
         Action<IAzureClientBuilder<SearchIndexClient, SearchClientOptions>>? configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
         new AzureSearchComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
     }
 
@@ -54,6 +57,7 @@ public static class AspireAzureSearchExtensions
         Action<AzureSearchSettings>? configureSettings = null,
         Action<IAzureClientBuilder<SearchIndexClient, SearchClientOptions>>? configureClientBuilder = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         new AzureSearchComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
