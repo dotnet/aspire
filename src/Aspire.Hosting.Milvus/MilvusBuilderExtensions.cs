@@ -22,9 +22,9 @@ public static class MilvusBuilderExtensions
 
     /// <summary>
     /// Adds a Milvus resource to the application. A container is used for local development.
+    /// This version of the package defaults to the <inheritdoc cref="MilvusContainerImageTags.Tag"/> tag of the <inheritdoc cref="MilvusContainerImageTags.Image"/> container image.
     /// </summary>
     /// <remarks>
-    /// This version of the package defaults to the <inheritdoc cref="MilvusContainerImageTags.Tag"/> tag of the <inheritdoc cref="MilvusContainerImageTags.Image"/> container image.
     /// The .NET client library uses the gRPC port by default to communicate and this resource exposes that endpoint.
     /// A web-based administration tool for Milvus can also be added using <see cref="WithAttu"/>.
     /// <example>
