@@ -395,20 +395,22 @@ public class ResourceNotificationService
     /// </summary>
     private static CustomResourceSnapshot UpdateHealthStatus(IResource resource, CustomResourceSnapshot previousState)
     {
-        var hasHealthChecks = resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out _);
-        var hasInitialSnapshot = resource.TryGetLastAnnotation<ResourceSnapshotAnnotation>(out _);
-
         // A resource is also healthy if it
         // - has a null health status (wasn't set by a health check nor initial snapshot)
         // - has no health check annotations
         // - is in the running state
         // - was not started with an initial snapshot
-        if (previousState.HealthStatus is null
-            && !hasHealthChecks
-            && previousState.State?.Text == KnownResourceStates.Running
-            && !hasInitialSnapshot)
+        if (previousState.HealthStatus is null)
         {
-            return previousState with { HealthStatus = HealthStatus.Healthy };
+            var hasHealthChecks = resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out _);
+            var hasInitialSnapshot = resource.TryGetLastAnnotation<ResourceSnapshotAnnotation>(out _);
+
+            if (!hasHealthChecks
+                && previousState.State?.Text == KnownResourceStates.Running
+                && !hasInitialSnapshot)
+            {
+                return previousState with { HealthStatus = HealthStatus.Healthy };
+            }
         }
 
         return previousState;
