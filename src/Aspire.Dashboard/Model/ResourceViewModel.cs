@@ -62,13 +62,15 @@ public sealed class ResourceViewModel
 
     private static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportViewModel> healthReports, KnownResourceState? state)
     {
-        if (healthReports.Length == 0 && state is KnownResourceState.Running)
+        if (state != KnownResourceState.Running)
         {
-            // If there are no health reports and the resource is running, assume it's healthy.
-            return Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy;
+            return null;
         }
 
-        return healthReports.MinBy(r => r.HealthStatus)?.HealthStatus;
+        return healthReports.Length == 0
+            // If there are no health reports and the resource is running, assume it's healthy.
+            ? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy
+            : healthReports.MinBy(r => r.HealthStatus)?.HealthStatus;
     }
 
     internal bool MatchesFilter(string filter)
