@@ -6,7 +6,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-    <TestcontainersPackageVersion>3.9.0</TestcontainersPackageVersion>
+    <TestcontainersPackageVersion>3.10.0</TestcontainersPackageVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- AWS SDK for .NET dependencies -->
@@ -153,15 +153,15 @@
     <PackageVersion Include="Microsoft.Playwright" Version="1.47.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.9.0" />
     <PackageVersion Include="Testcontainers.MongoDb" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.MsSql" Version="3.10.0" />
-    <PackageVersion Include="Testcontainers.MySql" Version="3.10.0" />
-    <PackageVersion Include="Testcontainers.PostgreSQL" Version="3.10.0" />
-    <PackageVersion Include="Testcontainers.RabbitMq" Version="3.10.0" />
-    <PackageVersion Include="Testcontainers.Redis" Version="3.10.0" />
-    <PackageVersion Include="Testcontainers.Nats" Version="3.10.0" />
-    <PackageVersion Include="Testcontainers.Milvus" Version="3.10.0" />
-    <PackageVersion Include="Testcontainers.Oracle" Version="3.10.0" />
-    <PackageVersion Include="Testcontainers.Elasticsearch" Version="3.10.0" />
+    <PackageVersion Include="Testcontainers.MsSql" Version="$(TestcontainersPackageVersion)" />
+    <PackageVersion Include="Testcontainers.MySql" Version="$(TestcontainersPackageVersion)" />
+    <PackageVersion Include="Testcontainers.PostgreSQL" Version="$(TestcontainersPackageVersion)" />
+    <PackageVersion Include="Testcontainers.RabbitMq" Version="$(TestcontainersPackageVersion)" />
+    <PackageVersion Include="Testcontainers.Redis" Version="$(TestcontainersPackageVersion)" />
+    <PackageVersion Include="Testcontainers.Nats" Version="$(TestcontainersPackageVersion)" />
+    <PackageVersion Include="Testcontainers.Milvus" Version="$(TestcontainersPackageVersion)" />
+    <PackageVersion Include="Testcontainers.Oracle" Version="$(TestcontainersPackageVersion)" />
+    <PackageVersion Include="Testcontainers.Elasticsearch" Version="$(TestcontainersPackageVersion)" />
     <!-- playground apps dependencies -->
     <PackageVersion Include="Dapr.AspNetCore" Version="1.14.0" />
     <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="8.2.0" />
