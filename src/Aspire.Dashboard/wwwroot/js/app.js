@@ -115,7 +115,14 @@ function isScrolledToBottom(container) {
 }
 
 window.buttonCopyTextToClipboard = function(element) {
-    const text = element.getAttribute("data-text");
+    let text = element.getAttribute("data-text");
+
+    if (element.getAttribute("data-needs-decode")) {
+        const intermediateTextarea = document.createElement("textarea");
+        intermediateTextarea.innerHTML = text;
+        text = intermediateTextarea.value;
+    }
+
     const precopy = element.getAttribute("data-precopy");
     const postcopy = element.getAttribute("data-postcopy");
 

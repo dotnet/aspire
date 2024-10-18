@@ -4,6 +4,8 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Text;
+using System.Text.RegularExpressions;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.ConsoleLogs;
@@ -71,6 +73,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private Task? _resourceSubscriptionTask;
     private ConsoleLogsSubscription? _consoleLogsSubscription;
     internal LogEntries _logEntries = null!;
+    private LogViewer? _logViewer;
 
     // UI
     private SelectViewModel<ResourceTypeDetails> _noSelection = null!;
@@ -81,6 +84,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     public string BasePath => DashboardUrls.ConsoleLogBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ConsoleLogsPageState;
+    private static readonly Regex s_tagRemoverRegex = new("<[a-zA-Z/].*?>", RegexOptions.Compiled);
 
     protected override async Task OnInitializedAsync()
     {
@@ -399,6 +403,30 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             _consoleLogsSubscription = null;
         }
+    }
+
+    private string? GetLogsCopyString()
+    {
+        if (_logViewer is null)
+        {
+            return null;
+        }
+
+        return string.Join(Environment.NewLine, _logEntries.GetEntries().Select(entry =>
+        {
+            var line = new StringBuilder();
+            if (entry.Timestamp is not null)
+            {
+                line.Append(_logViewer.GetDisplayTimestamp(entry.Timestamp.Value) + " ");
+            }
+
+            if (entry.Content is not null)
+            {
+                line.Append(s_tagRemoverRegex.Replace(entry.Content, string.Empty));
+            }
+
+            return line.ToString();
+        }));
     }
 
     public async ValueTask DisposeAsync()
