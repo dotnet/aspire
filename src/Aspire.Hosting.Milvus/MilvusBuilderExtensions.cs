@@ -23,6 +23,10 @@ public static class MilvusBuilderExtensions
     /// <summary>
     /// Adds a Milvus resource to the application. A container is used for local development.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="MilvusContainerImageTags.Tag"/> tag of the <inheritdoc cref="MilvusContainerImageTags.Image"/> container image.
+    /// The .NET client library uses the gRPC port by default to communicate and this resource exposes that endpoint.
+    /// A web-based administration tool for Milvus can also be added using <see cref="WithAttu"/>.
     /// <example>
     /// Use in application host
     /// <code lang="csharp">
@@ -35,10 +39,6 @@ public static class MilvusBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    /// <remarks>
-    /// This version of the package defaults to the <inheritdoc cref="MilvusContainerImageTags.Tag"/> tag of the <inheritdoc cref="MilvusContainerImageTags.Image"/> container image.
-    /// The .NET client library uses the gRPC port by default to communicate and this resource exposes that endpoint.
-    /// A web-based administration tool for Milvus can also be added using <see cref="WithAttu"/>.
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency</param>
@@ -100,6 +100,7 @@ public static class MilvusBuilderExtensions
     /// <summary>
     /// Adds a Milvus database to the application model.
     /// </summary>
+    /// <remarks>This method does not actually create the database in Milvus, rather helps complete a connection string that is used by the client component.
     /// <example>
     /// Use in application host
     /// <code lang="csharp">
@@ -114,10 +115,10 @@ public static class MilvusBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     /// <param name="builder">The Milvus server resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
-    /// <remarks>This method does not actually create the database in Milvus, rather helps complete a connection string that is used by the client component.</remarks>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MilvusDatabaseResource> AddDatabase(this IResourceBuilder<MilvusServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
@@ -135,6 +136,7 @@ public static class MilvusBuilderExtensions
     /// <summary>
     /// Adds an administration and development platform for Milvus to the application model using Attu. This version of the package defaults to the <inheritdoc cref="MilvusContainerImageTags.AttuTag"/> tag of the <inheritdoc cref="MilvusContainerImageTags.AttuImage"/> container image.
     /// </summary>
+    /// <remarks>
     /// <example>
     /// Use in application host with a Milvus resource
     /// <code lang="csharp">
@@ -148,6 +150,7 @@ public static class MilvusBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     /// <param name="builder">The Milvus server resource builder.</param>
     /// <param name="configureContainer">Configuration callback for Attu container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
