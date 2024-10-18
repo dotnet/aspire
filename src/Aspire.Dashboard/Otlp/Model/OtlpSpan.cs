@@ -42,7 +42,20 @@ public class OtlpSpan
     public TimeSpan Duration => EndTime - StartTime;
 
     public IEnumerable<OtlpSpan> GetChildSpans() => Trace.Spans.Where(s => s.ParentSpanId == SpanId);
-    public OtlpSpan? GetParentSpan() => string.IsNullOrEmpty(ParentSpanId) ? null : Trace.Spans.Where(s => s.SpanId == ParentSpanId).FirstOrDefault();
+    public OtlpSpan? GetParentSpan()
+    {
+        if (string.IsNullOrEmpty(ParentSpanId))
+        {
+            return null;
+        }
+
+        if (Trace.Spans.TryGetValue(ParentSpanId, out var span))
+        {
+            return span;
+        }
+
+        return null;
+    }
 
     public OtlpSpan(OtlpApplicationView applicationView, OtlpTrace trace, OtlpScope scope)
     {
