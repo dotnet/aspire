@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="ResourceActionTelemetryTooltip">
         <source>No telemetry found for this resource.</source>
-        <target state="new">No telemetry found for this resource.</target>
+        <target state="translated">Non sono stati trovati dati di telemetria per questa risorsa.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceActionTracesText">
