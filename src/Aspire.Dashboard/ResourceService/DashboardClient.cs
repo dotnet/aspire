@@ -528,7 +528,7 @@ internal sealed class DashboardClient : IDashboardClient
 
         var request = new ResourceCommandRequest()
         {
-            CommandType = command.CommandType,
+            CommandName = command.Name,
             Parameter = command.Parameter,
             ResourceName = resourceName,
             ResourceType = resourceType
@@ -544,7 +544,7 @@ internal sealed class DashboardClient : IDashboardClient
         }
         catch (RpcException ex)
         {
-            _logger.LogError(ex, "Error executing command \"{CommandType}\" on resource \"{ResourceName}\": {StatusCode}", command.CommandType, resourceName, ex.StatusCode);
+            _logger.LogError(ex, "Error executing command \"{CommandName}\" on resource \"{ResourceName}\": {StatusCode}", command.Name, resourceName, ex.StatusCode);
 
             var errorMessage = ex.StatusCode == StatusCode.Unimplemented ? "Command not implemented" : "Unknown error. See logs for details";
 

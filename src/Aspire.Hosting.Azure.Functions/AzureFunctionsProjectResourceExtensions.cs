@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning.Storage;
+using Azure.Provisioning;
 
 namespace Aspire.Hosting;
 
@@ -50,9 +51,12 @@ public static class AzureFunctionsProjectResourceExtensions
             {
                 var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
                 {
+                    var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+                    var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+
                     var storageAccount = infrastructure.GetResources().OfType<StorageAccount>().FirstOrDefault(r => r.IdentifierName == storageResourceName)
                         ?? throw new InvalidOperationException($"Could not find storage account with '{storageResourceName}' name.");
-                    infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageAccountContributor, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
+                    infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageAccountContributor, principalTypeParameter, principalIdParameter));
                 };
                 storage = builder.AddAzureStorage(storageResourceName)
                     .ConfigureInfrastructure(configureInfrastructure)

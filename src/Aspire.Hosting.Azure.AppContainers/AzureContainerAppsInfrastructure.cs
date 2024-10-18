@@ -212,7 +212,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 // Write the parameters we generated to the construct so they are included in the manifest
                 foreach (var (key, value) in Parameters)
                 {
-                    c.Resource.Parameters[key] = value;
+                    c.AspireResource.Parameters[key] = value;
                 }
 
                 if (resource.TryGetAnnotationsOfType<AzureContainerAppCustomizationAnnotation>(out var annotations))
