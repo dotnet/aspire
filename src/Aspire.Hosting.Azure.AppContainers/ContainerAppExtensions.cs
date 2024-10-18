@@ -6,6 +6,7 @@ using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning;
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting.Azure;
 
 namespace Aspire.Hosting;
 
@@ -20,12 +21,12 @@ public static class ContainerAppExtensions
     /// <param name="app">The container app resource to configure for custom domain usage.</param>
     /// <param name="customDomain">A resource builder for a parameter resource capturing the name of the custom domain.</param>
     /// <param name="certificateName">A resource builder for a parameter resource capturing the name of the certficate configured in the Azure Portal.</param>
-    /// <exception cref="ArgumentException">Throws if the container app resource is not parented to a <see cref="ResourceModuleConstruct"/>.</exception>
+    /// <exception cref="ArgumentException">Throws if the container app resource is not parented to a <see cref="AzureResourceInfrastructure"/>.</exception>
     /// <remarks>
     /// <para>The <see cref="ConfigureCustomDomain(ContainerApp, IResourceBuilder{ParameterResource}, IResourceBuilder{ParameterResource})"/> extension method
     /// simplifies the process of assigning a custom domain to a container app resource when it is deployed. It has no impact on local development.</para>
     /// <para>The <see cref="ConfigureCustomDomain(ContainerApp, IResourceBuilder{ParameterResource}, IResourceBuilder{ParameterResource})"/> method is used
-    /// in conjunction with the <see cref="AzureContainerAppContainerExtensions.PublishAsAzureContainerApp{T}(IResourceBuilder{T}, Action{ResourceModuleConstruct, ContainerApp})"/>
+    /// in conjunction with the <see cref="AzureContainerAppContainerExtensions.PublishAsAzureContainerApp{T}(IResourceBuilder{T}, Action{AzureResourceInfrastructure, ContainerApp})"/>
     /// callback. Assigning a custom domain to a container app resource is a multi-step process and requires multiple deployments.</para>
     /// <para>The <see cref="ConfigureCustomDomain(ContainerApp, IResourceBuilder{ParameterResource}, IResourceBuilder{ParameterResource})"/> method takes
     /// two arguments which are parameter resource builders. The first is a parameter that represents the custom domain and the second is a parameter that
@@ -40,7 +41,7 @@ public static class ContainerAppExtensions
     /// <example>
     /// This example shows declaring two parameters to capture the custom domain and certificate name and
     /// passing them to the <see cref="ConfigureCustomDomain(ContainerApp, IResourceBuilder{ParameterResource}, IResourceBuilder{ParameterResource})"/>
-    /// method via the <see cref="AzureContainerAppContainerExtensions.PublishAsAzureContainerApp{T}(IResourceBuilder{T}, Action{ResourceModuleConstruct, ContainerApp})"/>
+    /// method via the <see cref="AzureContainerAppContainerExtensions.PublishAsAzureContainerApp{T}(IResourceBuilder{T}, Action{AzureResourceInfrastructure, ContainerApp})"/>
     /// extension method.
     /// <code lang="C#">
     /// var builder = DistributedApplication.CreateBuilder();
@@ -56,7 +57,7 @@ public static class ContainerAppExtensions
     [Experimental("ASPIREACADOMAINS001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static void ConfigureCustomDomain(this ContainerApp app, IResourceBuilder<ParameterResource> customDomain, IResourceBuilder<ParameterResource> certificateName)
     {
-        if (app.ParentInfrastructure is not ResourceModuleConstruct module)
+        if (app.ParentInfrastructure is not AzureResourceInfrastructure module)
         {
             throw new ArgumentException("Cannot configure custom domain when resource is not parented by ResourceModuleConstruct.", nameof(app));
         }

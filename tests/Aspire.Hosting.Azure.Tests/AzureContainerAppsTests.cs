@@ -746,7 +746,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         var customDomain = builder.AddParameter("customDomain");
         var certificateName = builder.AddParameter("certificateName");
 
-        builder.AddContainerAppsInfrastructure();
+        builder.AddAzureContainerAppsInfrastructure();
         builder.AddContainer("api", "myimage")
             .WithHttpEndpoint(targetPort: 1111)
             .PublishAsAzureContainerApp((module, c) =>
@@ -764,7 +764,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
 
-        var resource = target?.DeploymentTarget as AzureConstructResource;
+        var resource = target?.DeploymentTarget as AzureBicepResource;
 
         Assert.NotNull(resource);
 
