@@ -7,6 +7,6 @@ internal static class ElasticsearchContainerImageTags
 {
     public const string Registry = "docker.io";
     public const string Image = "library/elasticsearch";
-    public const string Tag = "8.15.1";
+    public const string Tag = "8.15.3";
 }
 

@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.ClientModel;
 using Aspire.Azure.AI.OpenAI;
 using Aspire.Azure.Common;
-using Azure;
 using Azure.AI.OpenAI;
 using Azure.Core;
 using Azure.Core.Extensions;
@@ -90,7 +90,7 @@ public static class AspireAzureOpenAIExtensions
 
                     if (!string.IsNullOrEmpty(settings.Key))
                     {
-                        var credential = new AzureKeyCredential(settings.Key);
+                        var credential = new ApiKeyCredential(settings.Key);
                         return new AzureOpenAIClient(settings.Endpoint, credential, options);
                     }
                     else

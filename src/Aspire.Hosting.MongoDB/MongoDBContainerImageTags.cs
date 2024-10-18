@@ -7,7 +7,7 @@ internal static class MongoDBContainerImageTags
 {
     public const string Registry = "docker.io";
     public const string Image = "library/mongo";
-    public const string Tag = "7.0";
+    public const string Tag = "8.0";
     public const string MongoExpressRegistry = "docker.io";
     public const string MongoExpressImage = "library/mongo-express";
     public const string MongoExpressTag = "1.0";
