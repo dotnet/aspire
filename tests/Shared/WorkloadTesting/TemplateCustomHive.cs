@@ -103,7 +103,9 @@ public class TemplatesCustomHive
         using var cmd = new ToolCommand(dotnet,
                                         new TestOutputWrapper(forceShowBuildOutput: true),
                                         label: "template install")
-                            .WithWorkingDirectory(Path.GetTempPath()); // avoid running from the repo
+                            .WithWorkingDirectory(BuildEnvironment.IsRunningOnCI
+                                ? Path.GetTempPath()
+                                : Path.Combine(BuildEnvironment.TempDir, "templates", "working")); // avoid running from the repo
 
         var res = await cmd.ExecuteAsync(installCmd);
         res.EnsureSuccessful();
