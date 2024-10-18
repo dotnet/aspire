@@ -100,6 +100,8 @@ public static class AzureFunctionsProjectResourceExtensions
                 context.EnvironmentVariables["OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY"] = "in_memory";
                 context.EnvironmentVariables["ASPNETCORE_FORWARDEDHEADERS_ENABLED"] = "true";
                 context.EnvironmentVariables["FUNCTIONS_WORKER_RUNTIME"] = "dotnet-isolated";
+                // Required to enable OpenTelemetry in the Azure Functions host.
+                context.EnvironmentVariables["AzureFunctionsJobHost__telemetryMode"] = "OpenTelemetry";
                 // Set ASPNETCORE_URLS to use the non-privileged port 8080 when running in publish mode.
                 // We can't use the newer ASPNETCORE_HTTP_PORTS environment variables here since the Azure
                 // Functions host is still initialized using the classic WebHostBuilder.
