@@ -25,7 +25,7 @@ public static class AzureLogAnalyticsWorkspaceExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var workspace = new OperationalInsightsWorkspace(infrastructure.Resource.GetBicepIdentifier())
+            var workspace = new OperationalInsightsWorkspace(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Sku = new OperationalInsightsWorkspaceSku()
                 {

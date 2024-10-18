@@ -30,7 +30,7 @@ public static class AzureStorageExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var storageAccount = new StorageAccount(infrastructure.Resource.GetBicepIdentifier())
+            var storageAccount = new StorageAccount(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Kind = StorageKind.StorageV2,
                 AccessTier = StorageAccountAccessTier.Hot,
@@ -48,7 +48,7 @@ public static class AzureStorageExtensions
                 // Disable shared key access to the storage account as managed identity is configured
                 // to access the storage account by default.
                 AllowSharedKeyAccess = false,
-                Tags = { { "aspire-resource-name", infrastructure.Resource.Name } }
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
             };
             infrastructure.Add(storageAccount);
 
@@ -58,9 +58,12 @@ public static class AzureStorageExtensions
             };
             infrastructure.Add(blobs);
 
-            infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageBlobDataContributor, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
-            infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageTableDataContributor, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
-            infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageQueueDataContributor, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+
+            infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageBlobDataContributor, principalTypeParameter, principalIdParameter));
+            infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageTableDataContributor, principalTypeParameter, principalIdParameter));
+            infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageQueueDataContributor, principalTypeParameter, principalIdParameter));
 
             infrastructure.Add(new ProvisioningOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.BlobUri });
             infrastructure.Add(new ProvisioningOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.QueueUri });

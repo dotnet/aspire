@@ -144,7 +144,7 @@ public static class AzurePostgresExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var azureResource = (AzurePostgresFlexibleServerResource)infrastructure.Resource;
+            var azureResource = (AzurePostgresFlexibleServerResource)infrastructure.AspireResource;
             var postgres = CreatePostgreSqlFlexibleServer(infrastructure, builder, azureResource.Databases);
 
             postgres.AuthConfig = new PostgreSqlFlexibleServerAuthConfig()
@@ -153,12 +153,16 @@ public static class AzurePostgresExtensions
                 PasswordAuth = PostgreSqlFlexibleServerPasswordAuthEnum.Disabled
             };
 
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
+
             var admin = new PostgreSqlFlexibleServerActiveDirectoryAdministrator($"{postgres.IdentifierName}_admin")
             {
                 Parent = postgres,
-                Name = infrastructure.PrincipalIdParameter,
-                PrincipalType = infrastructure.PrincipalTypeParameter,
-                PrincipalName = infrastructure.PrincipalNameParameter,
+                Name = principalIdParameter,
+                PrincipalType = principalTypeParameter,
+                PrincipalName = principalNameParameter,
             };
 
             // This is a workaround for a bug in the API that requires the parent to be fully resolved
@@ -171,7 +175,7 @@ public static class AzurePostgresExtensions
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
-                Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName};Username={infrastructure.PrincipalNameParameter}")
+                Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName};Username={principalNameParameter}")
             });
         };
 
@@ -347,7 +351,7 @@ public static class AzurePostgresExtensions
             .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
             .ConfigureInfrastructure(static infrastructure =>
             {
-                var azureResource = (AzurePostgresFlexibleServerResource)infrastructure.Resource;
+                var azureResource = (AzurePostgresFlexibleServerResource)infrastructure.AspireResource;
 
                 RemoveActiveDirectoryAuthResources(infrastructure);
 
@@ -405,7 +409,7 @@ public static class AzurePostgresExtensions
 
     private static PostgreSqlFlexibleServer CreatePostgreSqlFlexibleServer(AzureResourceInfrastructure infrastructure, IDistributedApplicationBuilder distributedApplicationBuilder, IReadOnlyDictionary<string, string> databases)
     {
-        var postgres = new PostgreSqlFlexibleServer(infrastructure.Resource.GetBicepIdentifier())
+        var postgres = new PostgreSqlFlexibleServer(infrastructure.AspireResource.GetBicepIdentifier())
         {
             StorageSizeInGB = 32,
             Sku = new PostgreSqlFlexibleServerSku()
@@ -424,7 +428,7 @@ public static class AzurePostgresExtensions
                 GeoRedundantBackup = PostgreSqlFlexibleServerGeoRedundantBackupEnum.Disabled
             },
             AvailabilityZone = "1",
-            Tags = { { "aspire-resource-name", infrastructure.Resource.Name } }
+            Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
         };
         infrastructure.Add(postgres);
 

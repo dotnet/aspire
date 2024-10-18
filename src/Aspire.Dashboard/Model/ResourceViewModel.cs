@@ -132,13 +132,13 @@ public sealed class ResourceViewModelNameComparer : IComparer<ResourceViewModel>
     }
 }
 
-[DebuggerDisplay("CommandType = {CommandType}, DisplayName = {DisplayName}")]
+[DebuggerDisplay("Name = {Name}, DisplayName = {DisplayName}")]
 public sealed class CommandViewModel
 {
     private sealed record IconKey(string IconName, IconVariant IconVariant);
     private static readonly ConcurrentDictionary<IconKey, CustomIcon?> s_iconCache = new();
 
-    public string CommandType { get; }
+    public string Name { get; }
     public CommandViewModelState State { get; }
     public string DisplayName { get; }
     public string DisplayDescription { get; }
@@ -148,12 +148,12 @@ public sealed class CommandViewModel
     public string IconName { get; }
     public IconVariant IconVariant { get; }
 
-    public CommandViewModel(string commandType, CommandViewModelState state, string displayName, string displayDescription, string confirmationMessage, Value? parameter, bool isHighlighted, string iconName, IconVariant iconVariant)
+    public CommandViewModel(string name, CommandViewModelState state, string displayName, string displayDescription, string confirmationMessage, Value? parameter, bool isHighlighted, string iconName, IconVariant iconVariant)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(commandType);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
 
-        CommandType = commandType;
+        Name = name;
         State = state;
         DisplayName = displayName;
         DisplayDescription = displayDescription;
