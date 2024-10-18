@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Dashboard;
+using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Tests.Utils.Grpc;
 using Aspire.Hosting.Utils;
@@ -107,10 +108,10 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             return s with { State = new ResourceStateSnapshot("Starting", null) };
         });
 
-        logger.LogInformation("Waiting for the resource with a command.");
-        await resourceNotificationService.WaitForResourceAsync(testResource.Name, r =>
+        logger.LogInformation("Waiting for the resource with a command. Required so reource is always in the service's initial data collection");
+        await dashboardServiceData.WaitForResourceAsync(testResource.Name, r =>
         {
-            return r.Snapshot.Commands.Length == 1;
+            return r.Commands.Length == 1;
         });
 
         var cts = new CancellationTokenSource();
