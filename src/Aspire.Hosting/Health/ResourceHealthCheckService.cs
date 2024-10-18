@@ -83,10 +83,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                         cancellationToken).ConfigureAwait(false);
                 }
 
-                // We only want to slow down monitoring if we have
-                // - received initial health reports <-- because when health reports are initially empty, the resource is Healthy
-                // - the health has not changed
-                if (_latestEvents[resource.Name] is { Snapshot.HealthReports.Length: > 0 } latestEvent && latestEvent.Snapshot.HealthStatus == report.Status)
+                if (_latestEvents[resource.Name] is { } latestEvent && latestEvent.Snapshot.HealthStatus == report.Status)
                 {
                     await SlowDownMonitoringAsync(latestEvent, cancellationToken).ConfigureAwait(false);
                     continue;
