@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire 8 Test Project (NUnit)",
-  "description": "A project that contains NUnit integration tests of a .NET Aspire 8 AppHost project.",
+  "name": ".NET Aspire 8 Test Projesi (NUnit)",
+  "description": ".NET Aspire 8 AppHost projesinin NUnit tümleştirme testlerini içeren bir proje.",
   "symbols/Framework/description": "Projenin hedef çerçevesi.",
   "symbols/Framework/choices/net8.0/description": "Hedef net8.0",
   "symbols/skipRestore/description": "Belirtilmişse, oluşturma anında projenin otomatik geri yüklenmesini atlar.",
