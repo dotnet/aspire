@@ -395,21 +395,32 @@ public class ResourceNotificationService
     /// </summary>
     private static CustomResourceSnapshot UpdateHealthStatus(IResource resource, CustomResourceSnapshot previousState)
     {
-        // A resource is also healthy if it
-        // - has a null health status (wasn't set by a health check nor initial snapshot)
-        // - has no health check annotations
+        // We can compute the resource health status based on its health reports if it
+        // - has no health checks
+        // - has an initial null health status (wasn't set by an initial snapshot)
         // - is in the running state
-        // - was not started with an initial snapshot
-        if (previousState.HealthStatus is null)
+        //
+        // Since health reports may have been manually added
+        // resource health status uses the same algorithm as in ResourceHealthCheckService
+        // computing the health status based on the health reports reported
+        // and defaulting to Healthy
+        if (previousState.State?.Text == KnownResourceStates.Running)
         {
             var hasHealthChecks = resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out _);
-            var hasInitialSnapshot = resource.TryGetLastAnnotation<ResourceSnapshotAnnotation>(out _);
 
-            if (!hasHealthChecks
-                && previousState.State?.Text == KnownResourceStates.Running
-                && !hasInitialSnapshot)
+            if (!hasHealthChecks)
             {
-                return previousState with { HealthStatus = HealthStatus.Healthy };
+                var initialHealthStatus = resource.TryGetLastAnnotation<ResourceSnapshotAnnotation>(out var snapshotAnnotation) ? snapshotAnnotation.InitialSnapshot.HealthStatus : null;
+
+                // maybe the user has set a health status in the initial snapshot
+                // if so we should default to the initial health status
+                if (initialHealthStatus is null)
+                {
+                    return previousState with
+                    {
+                        HealthStatus = previousState.HealthReports.MinBy(r => r.Status)?.Status ?? HealthStatus.Healthy
+                    };
+                }
             }
         }
 
