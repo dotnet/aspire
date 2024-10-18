@@ -12,6 +12,8 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public sealed record CustomResourceSnapshot
 {
+    private readonly ImmutableArray<HealthReportSnapshot> _healthReports = [];
+
     /// <summary>
     /// The type of the resource.
     /// </summary>
@@ -55,16 +57,7 @@ public sealed record CustomResourceSnapshot
     /// This value is derived from <see cref="HealthReports"/>.
     /// </para>
     /// </remarks>
-    public HealthStatus? GetHealthStatus()
-    {
-        if (HealthReports.Length == 0 && State == "Running")
-        {
-            // If there are no health reports and the resource is running, assume it's healthy.
-            return HealthStatus.Healthy;
-        }
-
-        return HealthReports.MinBy(r => r.Status)?.Status;
-    }
+    public HealthStatus? HealthStatus { get; private set; }
 
     /// <summary>
     /// The health reports for this resource.
@@ -73,7 +66,15 @@ public sealed record CustomResourceSnapshot
     /// May be zero or more. If there are no health reports, the resource is considered healthy
     /// so long as no heath checks are registered for the resource.
     /// </remarks>
-    public ImmutableArray<HealthReportSnapshot> HealthReports { get; init; } = [];
+    public ImmutableArray<HealthReportSnapshot> HealthReports
+    {
+        get => _healthReports;
+        init
+        {
+            _healthReports = value;
+            HealthStatus = ComputeHealthStatus(value, State?.Text);
+        }
+    }
 
     /// <summary>
     /// The environment variables that should show up in the dashboard for this resource.
@@ -94,6 +95,17 @@ public sealed record CustomResourceSnapshot
     /// The commands available in the dashboard for this resource.
     /// </summary>
     public ImmutableArray<ResourceCommandSnapshot> Commands { get; init; } = [];
+
+    private static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportSnapshot> healthReports, string? state)
+    {
+        if (healthReports.Length == 0 && state == "Running")
+        {
+            // If there are no health reports and the resource is running, assume it's healthy.
+            return Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy;
+        }
+
+        return healthReports.MinBy(r => r.Status)?.Status;
+    }
 }
 
 /// <summary>

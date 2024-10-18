@@ -20,6 +20,7 @@ namespace Aspire.Dashboard.Model;
 [DebuggerDisplay("Name = {Name}, ResourceType = {ResourceType}, State = {State}, Properties = {Properties.Count}")]
 public sealed class ResourceViewModel
 {
+    private readonly ImmutableArray<HealthReportViewModel> _healthReports;
     public required string Name { get; init; }
     public required string ResourceType { get; init; }
     public required string DisplayName { get; init; }
@@ -36,22 +37,30 @@ public sealed class ResourceViewModel
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
 
     /// <summary>The health status of the resource. <see langword="null"/> indicates that health status is expected but not yet available.</summary>
-    public HealthStatus? HealthStatus
-    {
-        get
-        {
-            if (HealthReports.Length == 0 && KnownState == KnownResourceState.Running)
-            {
-                // If there are no health reports and the resource is running, assume it's healthy.
-                return Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy;
-            }
+    public HealthStatus? HealthStatus { get; private set; }
 
-            return HealthReports.MinBy(r => r.HealthStatus)?.HealthStatus;
+    public required ImmutableArray<HealthReportViewModel> HealthReports
+    {
+        get => _healthReports;
+        init
+        {
+            _healthReports = value;
+            HealthStatus = ComputeHealthStatus(value, KnownState);
         }
     }
 
-    public required ImmutableArray<HealthReportViewModel> HealthReports { get; init; }
     public KnownResourceState? KnownState { get; init; }
+
+    private static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportViewModel> healthReports, KnownResourceState? state)
+    {
+        if (healthReports.Length == 0 && state is KnownResourceState.Running)
+        {
+            // If there are no health reports and the resource is running, assume it's healthy.
+            return Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy;
+        }
+
+        return healthReports.MinBy(r => r.HealthStatus)?.HealthStatus;
+    }
 
     internal bool MatchesFilter(string filter)
     {

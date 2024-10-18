@@ -83,7 +83,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                         cancellationToken).ConfigureAwait(false);
                 }
 
-                if (_latestEvents[resource.Name] is { } latestEvent && latestEvent.Snapshot.GetHealthStatus() == report.Status)
+                if (_latestEvents[resource.Name] is { } latestEvent && latestEvent.Snapshot.HealthStatus == report.Status)
                 {
                     await SlowDownMonitoringAsync(latestEvent, cancellationToken).ConfigureAwait(false);
                     continue;
@@ -118,7 +118,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
             // If we've waited for 30 seconds, or we received an updated event, or the health status is no longer
             // healthy then we stop slowing down the monitoring loop.
-            while (DateTime.Now < releaseAfter && _latestEvents[lastEvent.Resource.Name] == lastEvent && lastEvent.Snapshot.GetHealthStatus() == HealthStatus.Healthy)
+            while (DateTime.Now < releaseAfter && _latestEvents[lastEvent.Resource.Name] == lastEvent && lastEvent.Snapshot.HealthStatus == HealthStatus.Healthy)
             {
                 await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
             }

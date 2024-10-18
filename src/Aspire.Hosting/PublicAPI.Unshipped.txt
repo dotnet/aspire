@@ -1,6 +1,6 @@
 #nullable enable
 Aspire.Hosting.ApplicationModel.ContainerLifetime.Session = 0 -> Aspire.Hosting.ApplicationModel.ContainerLifetime
-Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.GetHealthStatus() -> Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus?
+Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.get -> Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus?
 Aspire.Hosting.ApplicationModel.EndpointNameAttribute
 Aspire.Hosting.ApplicationModel.EndpointNameAttribute.EndpointNameAttribute() -> void
 Aspire.Hosting.ApplicationModel.HealthReportSnapshot

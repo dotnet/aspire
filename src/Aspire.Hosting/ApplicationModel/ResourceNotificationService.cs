@@ -180,7 +180,7 @@ public class ResourceNotificationService
     /// </remarks>
     public Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, CancellationToken cancellationToken = default)
     {
-        return WaitForResourceAsync(resourceName, re => re.Snapshot.GetHealthStatus() == HealthStatus.Healthy, cancellationToken: cancellationToken);
+        return WaitForResourceAsync(resourceName, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: cancellationToken);
     }
 
     private async Task WaitUntilCompletionAsync(IResource resource, IResource dependency, int exitCode, CancellationToken cancellationToken)
