@@ -22,6 +22,7 @@ public sealed class ResourceViewModel
 {
     private readonly ImmutableArray<HealthReportViewModel> _healthReports = [];
     private readonly KnownResourceState? _knownState;
+
     public required string Name { get; init; }
     public required string ResourceType { get; init; }
     public required string DisplayName { get; init; }
@@ -56,7 +57,7 @@ public sealed class ResourceViewModel
         init
         {
             _knownState = value;
-            ComputeHealthStatus(HealthReports, value);
+            HealthStatus = ComputeHealthStatus(HealthReports, value);
         }
     }
 
