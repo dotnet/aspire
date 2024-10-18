@@ -147,9 +147,7 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
                 Name: "apiservice",
                 State: "Running",
                 Source: $"{project.Id}.ApiService.csproj",
-                Endpoints: project.TargetFramework == TestTargetFramework.Current
-                    ? ["^http://localhost:\\d+$", "^https://localhost:\\d+$"]
-                    : ["^http://localhost:\\d+/weatherforecast$", "^https://localhost:\\d+/weatherforecast$"]),
+                Endpoints: ["^http://localhost:\\d+$", "^https://localhost:\\d+$"]),
 
             new(Type: "Project",
                 Name: "webfrontend",
