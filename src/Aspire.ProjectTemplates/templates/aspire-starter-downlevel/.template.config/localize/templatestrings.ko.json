@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire 8 Starter App",
-  "description": "A project template for creating a .NET Aspire 8 app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
+  "name": ".NET Aspire 8 시작 앱",
+  "description": "Blazor 웹 프런트 엔드 및 웹 API 백 엔드 서비스를 사용하여 .NET Aspire 8 앱을 만들기 위한 프로젝트 템플릿입니다. 선택적으로 캐싱에 Redis를 사용할 수 있습니다.",
   "symbols/Framework/description": "프로젝트에 대한 대상 프레임워크입니다.",
   "symbols/Framework/choices/net8.0/description": "Target net8.0",
   "symbols/UseRedisCache/displayName": "캐싱용 _Use Redis(지원되는 컨테이너 런타임 필요)",
