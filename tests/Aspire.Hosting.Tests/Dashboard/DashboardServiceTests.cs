@@ -108,7 +108,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             return s with { State = new ResourceStateSnapshot("Starting", null) };
         });
 
-        logger.LogInformation("Waiting for the resource with a command. Required so reource is always in the service's initial data collection");
+        logger.LogInformation("Waiting for the resource with a command. Required so added resource is always in the service's initial data collection");
         await dashboardServiceData.WaitForResourceAsync(testResource.Name, r =>
         {
             return r.Commands.Length == 1;
