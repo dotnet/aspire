@@ -199,7 +199,6 @@ public class ResourcePublisherTests
             Urls = [],
             Volumes = [],
             Environment = [],
-            HealthStatus = null,
             HealthReports = [],
             Commands = []
         };

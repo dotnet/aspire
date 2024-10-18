@@ -185,7 +185,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         }).DefaultTimeout();
 
         var resource = Assert.Single((await writer.ReadNextAsync().DefaultTimeout()).Changes.Value).Upsert;
-        Assert.False(resource.HasHealthStatus);
+
         Assert.Collection(resource.HealthReports,
             r =>
             {

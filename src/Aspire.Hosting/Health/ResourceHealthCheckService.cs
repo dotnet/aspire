@@ -57,6 +57,14 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                 resourceReadyEvent,
                 EventDispatchBehavior.NonBlockingSequential,
                 cancellationToken).ConfigureAwait(false);
+
+            await resourceNotificationService.PublishUpdateAsync(resource, s =>
+            {
+                return s with
+                {
+                    HealthReports = []
+                };
+            }).ConfigureAwait(false);
             return;
         }
 
@@ -93,12 +101,8 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                 {
                     var healthReports = MergeHealthReports(s.HealthReports, report);
 
-                    // Matches the logic in ASP.NET Core's private HealthReport.CalculateAggregateStatus
-                    var healthStatus = healthReports.MinBy(r => r.Status)?.Status ?? s.HealthStatus;
-
                     return s with
                     {
-                        HealthStatus = healthStatus,
                         HealthReports = healthReports
                     };
                 }).ConfigureAwait(false);

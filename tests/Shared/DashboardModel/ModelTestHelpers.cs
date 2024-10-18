@@ -18,7 +18,8 @@ public static class ModelTestHelpers
         Dictionary<string, ResourcePropertyViewModel>? properties = null,
         string? resourceType = null,
         string? stateStyle = null,
-        HealthStatus? healthStatus = null)
+        HealthStatus? reportHealthStatus = null,
+        bool createNullHealthReport = false)
     {
         return new ResourceViewModel
         {
@@ -36,8 +37,7 @@ public static class ModelTestHelpers
             State = state?.ToString(),
             KnownState = state,
             StateStyle = stateStyle,
-            HealthStatus = healthStatus,
-            HealthReports = [],
+            HealthReports = reportHealthStatus is null && !createNullHealthReport ? [] : [new HealthReportViewModel("healthcheck", reportHealthStatus, null, null)],
             Commands = []
         };
     }
