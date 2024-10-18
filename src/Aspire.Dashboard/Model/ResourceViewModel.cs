@@ -21,6 +21,7 @@ namespace Aspire.Dashboard.Model;
 public sealed class ResourceViewModel
 {
     private readonly ImmutableArray<HealthReportViewModel> _healthReports;
+    private readonly KnownResourceState? _knownState;
     public required string Name { get; init; }
     public required string ResourceType { get; init; }
     public required string DisplayName { get; init; }
@@ -49,7 +50,15 @@ public sealed class ResourceViewModel
         }
     }
 
-    public KnownResourceState? KnownState { get; init; }
+    public KnownResourceState? KnownState
+    {
+        get => _knownState;
+        init
+        {
+            _knownState = value;
+            ComputeHealthStatus(HealthReports, value);
+        }
+    }
 
     private static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportViewModel> healthReports, KnownResourceState? state)
     {

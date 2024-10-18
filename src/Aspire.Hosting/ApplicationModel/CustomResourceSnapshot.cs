@@ -13,6 +13,7 @@ namespace Aspire.Hosting.ApplicationModel;
 public sealed record CustomResourceSnapshot
 {
     private readonly ImmutableArray<HealthReportSnapshot> _healthReports = [];
+    private readonly ResourceStateSnapshot? _state;
 
     /// <summary>
     /// The type of the resource.
@@ -42,7 +43,15 @@ public sealed record CustomResourceSnapshot
     /// <summary>
     /// Represents the state of the resource.
     /// </summary>
-    public ResourceStateSnapshot? State { get; init; }
+    public ResourceStateSnapshot? State
+    {
+        get => _state;
+        init
+        {
+            _state = value;
+            HealthStatus = ComputeHealthStatus(HealthReports, value?.Text);
+        }
+    }
 
     /// <summary>
     /// The exit code of the resource.
