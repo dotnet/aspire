@@ -352,6 +352,7 @@ public class ResourceNotificationService
             var newState = stateFactory(previousState);
 
             newState = UpdateCommands(resource, newState);
+            newState = UpdateHealthStatus(resource, newState);
 
             notificationState.LastSnapshot = newState;
 
@@ -387,6 +388,20 @@ public class ResourceNotificationService
         }
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Update resource snapshot health status if the resource is running with no health checks.
+    /// </summary>
+    private static CustomResourceSnapshot UpdateHealthStatus(IResource resource, CustomResourceSnapshot previousState)
+    {
+        // A resource is also healthy if it has no health check annotations and is in the running state.
+        if (previousState.HealthStatus is not HealthStatus.Healthy && !resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out _) && previousState.State?.Text == KnownResourceStates.Running)
+        {
+            return previousState with { HealthStatus = HealthStatus.Healthy };
+        }
+
+        return previousState;
     }
 
     /// <summary>
@@ -492,10 +507,7 @@ public class ResourceNotificationService
             previousState ??= new CustomResourceSnapshot()
             {
                 ResourceType = resource.GetType().Name,
-                Properties = [],
-                HealthStatus = resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out _)
-                    ? null // Indicates that the resource has health check annotations but the health status is unknown.
-                    : HealthStatus.Healthy
+                Properties = []
             };
         }
 

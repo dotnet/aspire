@@ -16,6 +16,7 @@ public class ResourceCommandAnnotationTests
     [InlineData(CommandsConfigurationExtensions.StartType, "Finished", ResourceCommandState.Enabled)]
     [InlineData(CommandsConfigurationExtensions.StartType, "FailedToStart", ResourceCommandState.Enabled)]
     [InlineData(CommandsConfigurationExtensions.StartType, "Waiting", ResourceCommandState.Disabled)]
+    [InlineData(CommandsConfigurationExtensions.StartType, "RuntimeUnhealthy", ResourceCommandState.Disabled)]
     [InlineData(CommandsConfigurationExtensions.StopType, "Starting", ResourceCommandState.Hidden)]
     [InlineData(CommandsConfigurationExtensions.StopType, "Stopping", ResourceCommandState.Disabled)]
     [InlineData(CommandsConfigurationExtensions.StopType, "Running", ResourceCommandState.Enabled)]
@@ -23,6 +24,7 @@ public class ResourceCommandAnnotationTests
     [InlineData(CommandsConfigurationExtensions.StopType, "Finished", ResourceCommandState.Hidden)]
     [InlineData(CommandsConfigurationExtensions.StopType, "FailedToStart", ResourceCommandState.Hidden)]
     [InlineData(CommandsConfigurationExtensions.StopType, "Waiting", ResourceCommandState.Hidden)]
+    [InlineData(CommandsConfigurationExtensions.StopType, "RuntimeUnhealthy", ResourceCommandState.Hidden)]
     [InlineData(CommandsConfigurationExtensions.RestartType, "Starting", ResourceCommandState.Disabled)]
     [InlineData(CommandsConfigurationExtensions.RestartType, "Stopping", ResourceCommandState.Disabled)]
     [InlineData(CommandsConfigurationExtensions.RestartType, "Running", ResourceCommandState.Enabled)]
@@ -30,6 +32,7 @@ public class ResourceCommandAnnotationTests
     [InlineData(CommandsConfigurationExtensions.RestartType, "Finished", ResourceCommandState.Disabled)]
     [InlineData(CommandsConfigurationExtensions.RestartType, "FailedToStart", ResourceCommandState.Disabled)]
     [InlineData(CommandsConfigurationExtensions.RestartType, "Waiting", ResourceCommandState.Disabled)]
+    [InlineData(CommandsConfigurationExtensions.RestartType, "RuntimeUnhealthy", ResourceCommandState.Disabled)]
     public void LifeCycleCommands_CommandState(string commandType, string resourceState, ResourceCommandState commandState)
     {
         // Arrange

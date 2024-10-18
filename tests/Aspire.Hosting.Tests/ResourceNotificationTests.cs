@@ -80,6 +80,7 @@ public class ResourceNotificationTests
                 Assert.Equal("myResource", c.ResourceId);
                 Assert.Equal("CustomResource", c.Snapshot.ResourceType);
                 Assert.Equal("value", c.Snapshot.Properties.Single(p => p.Name == "A").Value);
+                Assert.Null(c.Snapshot.HealthStatus);
             },
             c =>
             {
@@ -87,6 +88,7 @@ public class ResourceNotificationTests
                 Assert.Equal("myResource", c.ResourceId);
                 Assert.Equal("CustomResource", c.Snapshot.ResourceType);
                 Assert.Equal("value", c.Snapshot.Properties.Single(p => p.Name == "B").Value);
+                Assert.Null(c.Snapshot.HealthStatus);
             });
     }
 

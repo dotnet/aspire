@@ -136,8 +136,8 @@ public static class AspireKafkaProducerExtensions
                 ? ConfluentKafkaCommon.ProducerHealthCheckName
                 : string.Concat(ConfluentKafkaCommon.KeyedProducerHealthCheckName, connectionName);
 
-            builder.TryAddHealthCheck(new HealthCheckRegistration(healthCheckName,
-                sp =>
+            builder.Services.TryAddKeyedSingleton<KafkaHealthCheck>(healthCheckName,
+                (sp, _) =>
                 {
                     var connectionFactory = serviceKey is null
                         ? sp.GetRequiredService<ProducerConnectionFactory<TKey, TValue>>()
@@ -149,7 +149,10 @@ public static class AspireKafkaProducerExtensions
                     options.Configuration.MessageTimeoutMs = 1000;
                     options.Configuration.StatisticsIntervalMs = 0;
                     return new KafkaHealthCheck(options);
-                },
+                });
+
+            builder.TryAddHealthCheck(new HealthCheckRegistration(healthCheckName,
+                sp => sp.GetRequiredKeyedService<KafkaHealthCheck>(healthCheckName),
                 failureStatus: default,
                 tags: default));
         }

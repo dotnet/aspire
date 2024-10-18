@@ -8,12 +8,15 @@ using Aspire.Hosting.Utils;
 using Aspire.ResourceService.Proto.V1;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 using DashboardService = Aspire.Hosting.Dashboard.DashboardService;
+using HealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
+using ProtoHealthStatus = Aspire.ResourceService.Proto.V1.HealthStatus;
 using Resource = Aspire.Hosting.ApplicationModel.Resource;
 
 namespace Aspire.Hosting.Tests.Dashboard;
@@ -124,16 +127,81 @@ public class DashboardServiceTests
         Assert.Equal(ResourceService.Proto.V1.IconVariant.Filled, commandData.IconVariant);
         Assert.True(commandData.IsHighlighted);
 
-        cts.Cancel();
+        await CancelTokenAndAwaitTask(cts, task);
+    }
 
-        try
+    [Fact]
+    public async Task CreateResource_NoChild_WithHealthChecks_ResourceImmediatelyReturnsFakeHealthReports_ThenUpdates()
+    {
+        // Arrange
+        var resourceLoggerService = new ResourceLoggerService();
+        var resourceNotificationService = new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, new TestHostApplicationLifetime(), new ServiceCollection().BuildServiceProvider(), resourceLoggerService);
+        await using var dashboardServiceData = new DashboardServiceData(resourceNotificationService, resourceLoggerService, NullLogger<DashboardServiceData>.Instance, new DashboardCommandExecutor(new ServiceCollection().BuildServiceProvider()));
+        var dashboardService = new DashboardService(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), NullLogger<DashboardService>.Instance);
+
+        var testResource = new TestResource("test-resource");
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddHealthChecks()
+            .AddCheck("Check1", () => HealthCheckResult.Healthy())
+            .AddCheck("Check2", () => HealthCheckResult.Healthy());
+
+        builder.AddResource(testResource)
+            .WithHealthCheck("Check1")
+            .WithHealthCheck("Check2");
+
+        var cts = new CancellationTokenSource();
+        var context = TestServerCallContext.Create(cancellationToken: cts.Token);
+        var writer = new TestServerStreamWriter<WatchResourcesUpdate>(context);
+
+        // Act
+        var task = dashboardService.WatchResources(
+            new WatchResourcesRequest(),
+            writer,
+            context);
+
+        // Assert
+        await writer.ReadNextAsync();
+        await resourceNotificationService.PublishUpdateAsync(testResource, s =>
         {
-            await task;
-        }
-        catch (OperationCanceledException)
+            return s with { State = new ResourceStateSnapshot("Starting", null) };
+        });
+
+        var resource = Assert.Single((await writer.ReadNextAsync()).Changes.Value).Upsert;
+        Assert.False(resource.HasHealthStatus);
+        Assert.Collection(resource.HealthReports,
+            r =>
+            {
+                Assert.Equal("Check1", r.Key);
+                Assert.False(r.HasStatus);
+            },
+            r =>
+            {
+                Assert.Equal("Check2", r.Key);
+                Assert.False(r.HasStatus);
+            });
+
+        await resourceNotificationService.PublishUpdateAsync(testResource, s =>
         {
-            // Ok if this error is thrown.
-        }
+            // simulate only having received health check report from one of the checks
+            return s with { HealthReports = [new HealthReportSnapshot("Check1", HealthStatus.Healthy, null, null)] };
+        });
+
+        var updateAfterCheck = await writer.ReadNextAsync();
+        var upsert = Assert.Single(updateAfterCheck.Changes.Value).Upsert;
+
+        Assert.Collection(upsert.HealthReports,
+            r =>
+            {
+                Assert.Equal("Check1", r.Key);
+                Assert.Equal(ProtoHealthStatus.Healthy, r.Status);
+            },
+            r =>
+            {
+                Assert.Equal("Check2", r.Key);
+                Assert.False(r.HasStatus);
+            });
+
+        await CancelTokenAndAwaitTask(cts, task);
     }
 
     private sealed class TestHostEnvironment : IHostEnvironment
@@ -146,5 +214,19 @@ public class DashboardServiceTests
 
     private sealed class TestResource(string name) : Resource(name)
     {
+    }
+
+    private static async Task CancelTokenAndAwaitTask(CancellationTokenSource cts, Task task)
+    {
+        await cts.CancelAsync();
+
+        try
+        {
+            await task;
+        }
+        catch (OperationCanceledException)
+        {
+            // Ok if this error is thrown.
+        }
     }
 }

@@ -296,8 +296,11 @@ public partial class WorkloadTestsBase
                 throw;
             }
 
-            string url = resourceRows.First(r => r.Name == "webfrontend").Endpoints[0];
-            await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckWebFrontendWorksAsync(context, url, _testOutput, project.LogPath);
+            string apiServiceUrl = resourceRows.First(r => r.Name == "apiservice").Endpoints[0];
+            await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckApiServiceWorksAsync(apiServiceUrl, _testOutput, project.LogPath);
+
+            string webFrontEnd = resourceRows.First(r => r.Name == "webfrontend").Endpoints[0];
+            await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckWebFrontendWorksAsync(context, webFrontEnd, _testOutput, project.LogPath);
         }
         else
         {

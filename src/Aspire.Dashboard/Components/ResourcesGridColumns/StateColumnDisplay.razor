@@ -1,15 +1,16 @@
 ﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
 
 @{
-    var vm = GetStateViewModel();
+    // Create view model every render. The resource state may have changed.
+    var vm = ResourceStateViewModel.GetStateViewModel(Resource, Loc);
 }
 
 <div class="state-column-cell">
 
-    <FluentIcon
-        Value="@vm.Icon"
-        Color="@vm.Color"
-        Class="severity-icon" />
+    <FluentIcon Value="@vm.Icon"
+                Color="@vm.Color"
+                Class="severity-icon" />
 
     <span>@vm.Text</span>
 

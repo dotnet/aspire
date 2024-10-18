@@ -32,6 +32,11 @@ internal static class ResourceViewModelExtensions
         return resource.KnownState is KnownResourceState.Starting or KnownResourceState.Building or KnownResourceState.Waiting or KnownResourceState.Stopping;
     }
 
+    public static bool IsRuntimeUnhealthy(this ResourceViewModel resource)
+    {
+        return resource.KnownState is KnownResourceState.RuntimeUnhealthy;
+    }
+
     public static bool IsUnknownState(this ResourceViewModel resource) => resource.KnownState is KnownResourceState.Unknown;
 
     public static bool HasNoState(this ResourceViewModel resource) => string.IsNullOrEmpty(resource.State);
