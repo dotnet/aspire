@@ -9,10 +9,14 @@
     grid-template-columns: 1fr auto auto;
 }
 
-::deep .cellText {
+::deep .grid-value {
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
+}
+
+::deep .grid-value > .exception-details-button {
+    vertical-align: super;
 }
 
 ::deep .defaultHidden {
@@ -21,7 +25,7 @@
     width: 0;
 }
 
-::deep:hover .defaultHidden, ::deep:focus-within .defaultHidden  {
+::deep:hover .defaultHidden, ::deep:focus-within .defaultHidden {
     opacity: 1;  /* safari has a bug where hover is not always called on an invisible element, so we use opacity instead */
     width: auto;
 }

@@ -67,9 +67,6 @@ public partial class GridValue
     public EventCallback<bool> IsMaskedChanged { get; set; }
 
     [Parameter]
-    public int? MaxDisplayLength { get; set; }
-
-    [Parameter]
     public string? ToolTip { get; set; }
 
     [Parameter]
@@ -97,16 +94,6 @@ public partial class GridValue
         IsMasked = !IsMasked;
 
         await IsMaskedChanged.InvokeAsync(IsMasked);
-    }
-
-    private string TrimLength(string? text)
-    {
-        if (text is not null && MaxDisplayLength is int maxLength && text.Length > maxLength)
-        {
-            return text[..maxLength];
-        }
-
-        return text ?? "";
     }
 
     private void ToggleMenuOpen()
