@@ -20,7 +20,7 @@ namespace Aspire.Dashboard.Model;
 [DebuggerDisplay("Name = {Name}, ResourceType = {ResourceType}, State = {State}, Properties = {Properties.Count}")]
 public sealed class ResourceViewModel
 {
-    private readonly ImmutableArray<HealthReportViewModel> _healthReports = [];
+    private readonly ImmutableArray<HealthReportViewModel>? _healthReports;
     private readonly KnownResourceState? _knownState;
 
     public required string Name { get; init; }
@@ -43,7 +43,7 @@ public sealed class ResourceViewModel
 
     public required ImmutableArray<HealthReportViewModel> HealthReports
     {
-        get => _healthReports;
+        get => _healthReports ?? [];
         init
         {
             _healthReports = value;
@@ -57,23 +57,23 @@ public sealed class ResourceViewModel
         init
         {
             _knownState = value;
-            HealthStatus = ComputeHealthStatus(HealthReports, value);
+            HealthStatus = ComputeHealthStatus(_healthReports, value);
         }
     }
 
-    internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportViewModel> healthReports, KnownResourceState? state)
+    internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportViewModel>? healthReports, KnownResourceState? state)
     {
-        if (state != KnownResourceState.Running)
+        if (healthReports is null || state != KnownResourceState.Running)
         {
             return null;
         }
 
-        return healthReports.Length == 0
+        return healthReports.Value.Length == 0
             // If there are no health reports and the resource is running, assume it's healthy.
             ? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy
             // If there are health reports, the health status is the minimum of the health status of the reports.
             // If any of the reports is null (first health check has not returned), the health status is unhealthy.
-            : healthReports.MinBy(r => r.HealthStatus)?.HealthStatus
+            : healthReports.Value.MinBy(r => r.HealthStatus)?.HealthStatus
               ?? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy;
     }
 

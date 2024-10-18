@@ -19,13 +19,16 @@ public sealed class ResourceViewModelTests
 
     [Theory]
     [InlineData(KnownResourceState.Starting, null, null)]
+    [InlineData(KnownResourceState.Starting, null, new string[]{})]
     [InlineData(KnownResourceState.Starting, null, new string?[]{null})]
+    // we don't have a Running + HealthReports null case because that's not a valid state - by this point, we will have received the list of HealthReports
+    [InlineData(KnownResourceState.Running, HealthStatus.Healthy, new string[]{})]
     [InlineData(KnownResourceState.Running, HealthStatus.Healthy, new string?[] {"Healthy"})]
     [InlineData(KnownResourceState.Running, HealthStatus.Unhealthy, new string?[] {null})]
     [InlineData(KnownResourceState.Running, HealthStatus.Degraded, new string?[] {"Healthy", "Degraded"})]
     public void Resource_WithHealthReportAndState_ReturnsCorrectHealthStatus(KnownResourceState? state, HealthStatus? expectedStatus, string?[]? healthStatusStrings)
     {
-        var reports = healthStatusStrings?.Select<string?, HealthReportViewModel>((h, i) => new HealthReportViewModel(i.ToString(), h is null ? null : Enum.Parse<HealthStatus>(h), null, null)).ToImmutableArray() ?? [];
+        var reports = healthStatusStrings?.Select<string?, HealthReportViewModel>((h, i) => new HealthReportViewModel(i.ToString(), h is null ? null : Enum.Parse<HealthStatus>(h), null, null)).ToImmutableArray();
         var actualStatus = ResourceViewModel.ComputeHealthStatus(reports, state);
         Assert.Equal(expectedStatus, actualStatus);
     }
