@@ -843,7 +843,7 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="type">The type of command. The type uniquely identifies the command.</param>
+    /// <param name="name">The name of command. The name uniquely identifies the command.</param>
     /// <param name="displayName">The display name visible in UI.</param>
     /// <param name="executeCommand">
     /// A callback that is executed when the command is executed. The callback is run inside the .NET Aspire host.
@@ -876,7 +876,7 @@ public static class ResourceBuilderExtensions
     /// </remarks>
     public static IResourceBuilder<T> WithCommand<T>(
         this IResourceBuilder<T> builder,
-        string type,
+        string name,
         string displayName,
         Func<ExecuteCommandContext, Task<ExecuteCommandResult>> executeCommand,
         Func<UpdateCommandStateContext, ResourceCommandState>? updateState = null,
@@ -888,12 +888,12 @@ public static class ResourceBuilderExtensions
         bool isHighlighted = false) where T : IResource
     {
         // Replace existing annotation with the same name.
-        var existingAnnotation = builder.Resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Type == type);
+        var existingAnnotation = builder.Resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Name == name);
         if (existingAnnotation != null)
         {
             builder.Resource.Annotations.Remove(existingAnnotation);
         }
 
-        return builder.WithAnnotation(new ResourceCommandAnnotation(type, displayName, updateState ?? (c => ResourceCommandState.Enabled), executeCommand, displayDescription, parameter, confirmationMessage, iconName, iconVariant, isHighlighted));
+        return builder.WithAnnotation(new ResourceCommandAnnotation(name, displayName, updateState ?? (c => ResourceCommandState.Enabled), executeCommand, displayDescription, parameter, confirmationMessage, iconName, iconVariant, isHighlighted));
     }
 }
