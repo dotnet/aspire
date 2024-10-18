@@ -57,6 +57,14 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                 resourceReadyEvent,
                 EventDispatchBehavior.NonBlockingSequential,
                 cancellationToken).ConfigureAwait(false);
+
+            await resourceNotificationService.PublishUpdateAsync(resource, s =>
+            {
+                return s with
+                {
+                    HealthReports = []
+                };
+            }).ConfigureAwait(false);
             return;
         }
 

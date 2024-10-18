@@ -33,12 +33,11 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
 
         await rns.PublishUpdateAsync(resource.Resource, s => s with
         {
-            State = new ResourceStateSnapshot(KnownResourceStates.Running, null),
-            HealthReports = []
+            State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
         });
 
-        var runningEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running);
-        Assert.Equal(HealthStatus.Healthy, runningEvent.Snapshot.HealthStatus);
+        var healthyEvent = await rns.WaitForResourceHealthyAsync("resource");
+        Assert.Equal(HealthStatus.Healthy, healthyEvent.Snapshot.HealthStatus);
 
         await app.StopAsync();
     }
