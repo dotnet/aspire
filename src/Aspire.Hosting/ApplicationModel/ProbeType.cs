@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
-///
+/// Represents the type of a probe (health, readiness, liveness, etc.)
 /// </summary>
 public enum ProbeType
 {

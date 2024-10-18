@@ -13,12 +13,12 @@ public class WithHealthProbeTests
     {
         var ex = Assert.Throws<DistributedApplicationException>(() =>
         {
-            const string endpointName = "myEndpoint";
+            const string endpointName = "http";
             var appBuilder = DistributedApplication.CreateBuilder();
             var resource = appBuilder.AddResource(new CustomResourceWithProbes("myResouce"));
             resource.WithHttpsEndpoint(3000, 3000, endpointName);
-            resource.WithProbe(ProbeType.Readiness, resource.GetEndpoint(endpointName), "/health");
-            resource.WithProbe(ProbeType.Readiness, resource.GetEndpoint(endpointName), "/ready");
+            resource.WithProbe(endpointName, ProbeType.Readiness, "/health");
+            resource.WithProbe(endpointName, ProbeType.Readiness, "/ready");
         });
 
         Assert.Equal("Probe with type 'Readiness' already exists", ex.Message);
@@ -27,11 +27,11 @@ public class WithHealthProbeTests
     [Fact]
     public void CreatesAnnotation()
     {
-        const string endpointName = "myEndpoint";
+        const string endpointName = "http";
         var appBuilder = DistributedApplication.CreateBuilder();
         var resource = appBuilder.AddResource(new CustomResourceWithProbes("myResouce"));
         resource.WithHttpsEndpoint(3000, 3000, endpointName);
-        resource.WithProbe(ProbeType.Startup, resource.GetEndpoint(endpointName), "/health");
+        resource.WithProbe(endpointName, ProbeType.Startup, "/health");
 
         var annotations = resource.Resource.Annotations.OfType<ProbeAnnotation>().ToArray();
 
@@ -45,14 +45,13 @@ public class WithHealthProbeTests
         var appBuilder = DistributedApplication.CreateBuilder();
         var resource = appBuilder.AddResource(new CustomResourceWithProbes("myResouce"));
         resource.WithHttpsEndpoint(3000, 3000, endpointName);
-        resource.WithProbe(ProbeType.Startup, resource.GetEndpoint(endpointName), "/health");
-        resource.WithProbe(ProbeType.Readiness, resource.GetEndpoint(endpointName), "/ready");
+        resource.WithLivenessProbe(endpointName, "/health");
+        resource.WithReadinessProbe(endpointName, "/ready");
 
         var annotations = resource.Resource.Annotations.OfType<ProbeAnnotation>().ToArray();
 
         Assert.Equal(2, annotations.Length);
     }
-
 }
 
 /// <summary>
