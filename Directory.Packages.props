@@ -104,7 +104,7 @@
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsHttpResiliencePackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(MicrosoftExtensionsTimeProviderTestingVersion)" />
     <!-- NuGet dependencies -->
-    <PackageVersion Include="NuGet.ProjectModel" Version="6.11.0" />
+    <PackageVersion Include="NuGet.ProjectModel" Version="6.11.1" />
     <!-- external dependencies -->
     <PackageVersion Include="Confluent.Kafka" Version="2.5.3" />
     <PackageVersion Include="Dapper" Version="2.1.44" />

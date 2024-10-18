@@ -79,6 +79,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/6363")]
     public async Task HealthCheckIntervalSlowsAfterSteadyHealthyState()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);

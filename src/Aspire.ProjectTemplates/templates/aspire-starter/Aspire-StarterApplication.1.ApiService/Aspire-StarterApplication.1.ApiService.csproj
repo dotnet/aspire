@@ -10,4 +10,8 @@
     <ProjectReference Include="..\XmlEncodedProjectName.ServiceDefaults\XmlEncodedProjectName.ServiceDefaults.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="!!REPLACE_WITH_ASPNETCORE_9_VERSION!!" />
+  </ItemGroup>
+
 </Project>

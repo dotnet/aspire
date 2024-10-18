@@ -53,7 +53,7 @@ public class TemplatesCustomHive
         {
             // Installation exists, but check if any of the packages have been updated since
             var dirWriteTime = Directory.GetLastWriteTimeUtc(_customHiveDirectory);
-            installTemplates = packageIdAndPaths.Where(t => new FileInfo(t.id).LastWriteTimeUtc > dirWriteTime).Any();
+            installTemplates = packageIdAndPaths.Where(t => new FileInfo(t.path).LastWriteTimeUtc > dirWriteTime).Any();
         }
 
         if (!installTemplates)
