@@ -57,6 +57,11 @@
         <target state="translated">Surveillance en cours des journaux... Merci de patienter.</target>
         <note />
       </trans-unit>
+      <trans-unit id="CopyLogs">
+        <source>Copy console logs</source>
+        <target state="new">Copy console logs</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LogStatusLabel">
         <source>Service log status</source>
         <target state="translated">État du journal de service</target>
