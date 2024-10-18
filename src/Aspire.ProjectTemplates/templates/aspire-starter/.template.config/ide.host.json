@@ -11,6 +11,11 @@
   ],
   "symbolInfo": [
     {
+      "id": "AspireVersion",
+      "isVisible": true,
+      "persistenceScope": "templateGroup"
+    },
+    {
       "id": "UseRedisCache",
       "isVisible": true,
       "persistenceScope": "templateGroup"

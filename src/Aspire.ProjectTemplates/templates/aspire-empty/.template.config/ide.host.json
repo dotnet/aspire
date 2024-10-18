@@ -3,6 +3,13 @@
   "icon": "ide/AspireEmpty.ico",
   "displayOverviewPage": "0",
   "disableHttpsSymbol": "NoHttps",
+  "symbolInfo": [
+    {
+      "id": "AspireVersion",
+      "isVisible": true,
+      "persistenceScope": "templateGroup"
+    }
+  ],
   "unsupportedHosts": [
     {
       "id": "vs",

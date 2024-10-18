@@ -24,7 +24,7 @@
     "aspire-9.0-tfms": "net8.0;net9.0"
   },
   "precedence": "9000",
-  "identity": "Aspire.Empty.CSharp.8",
+  "identity": "Aspire.Empty.CSharp.8.0",
   "thirdPartyNotices": "https://aka.ms/dotnet/aspire/third-party-notices",
   "groupIdentity": "Aspire.Empty",
   "guids": [
@@ -77,7 +77,7 @@
         }
       ],
       "replaces": "net8.0",
-      "defaultValue": "net8.0"
+      "defaultValue": "net9.0"
     },
     "AspireVersion": {
       "type": "parameter",

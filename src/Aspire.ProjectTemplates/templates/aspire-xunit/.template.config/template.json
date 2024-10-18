@@ -22,7 +22,7 @@
     "type": "project"
   },
   "precedence": "9000",
-  "identity": "Aspire.Tests.xUnit.CSharp.8",
+  "identity": "Aspire.Tests.xUnit.CSharp.8.0",
   "thirdPartyNotices": "https://aka.ms/dotnet/aspire/third-party-notices",
   "groupIdentity": "Aspire.Tests.xUnit",
   "sources": [
@@ -53,7 +53,7 @@
         }
       ],
       "replaces": "net8.0",
-      "defaultValue": "net8.0"
+      "defaultValue": "net9.0"
     },
     "AspireVersion": {
       "type": "parameter",
