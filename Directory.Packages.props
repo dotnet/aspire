@@ -175,7 +175,5 @@
     <PackageVersion Include="Azure.Identity" Version="1.12.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" /> <!-- https://github.com/Azure/azure-cosmos-dotnet-v3/pull/3313 -->
     <PackageVersion Include="System.Formats.Asn1" Version="8.0.1" />
-    <PackageVersion Include="System.Net.Http" Version="4.3.4" />
-    <PackageVersion Include="System.Text.RegularExpressions" Version="4.3.1" />
   </ItemGroup>
 </Project>
