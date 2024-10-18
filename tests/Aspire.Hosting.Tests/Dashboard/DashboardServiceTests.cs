@@ -8,6 +8,7 @@ using Aspire.Hosting.Tests.Utils.Grpc;
 using Aspire.Hosting.Utils;
 using Aspire.ResourceService.Proto.V1;
 using Google.Protobuf.WellKnownTypes;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.FileProviders;
@@ -32,7 +33,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         const int LongLineCharacters = DashboardService.LogMaxBatchCharacters / 3;
         var resourceLoggerService = new ResourceLoggerService();
         var resourceNotificationService = new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, new TestHostApplicationLifetime(), new ServiceCollection().BuildServiceProvider(), resourceLoggerService);
-        await using var dashboardServiceData = new DashboardServiceData(resourceNotificationService, resourceLoggerService, NullLogger<DashboardServiceData>.Instance, new DashboardCommandExecutor(new ServiceCollection().BuildServiceProvider()));
+        var dashboardServiceData = new DashboardServiceData(resourceNotificationService, resourceLoggerService, NullLogger<DashboardServiceData>.Instance, new DashboardCommandExecutor(new ServiceCollection().BuildServiceProvider()));
         var dashboardService = new DashboardService(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), NullLogger<DashboardService>.Instance);
 
         var logger = resourceLoggerService.GetLogger("test-resource");
@@ -54,21 +55,21 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             context);
 
         // Assert
-        var exceedLimitUpdate = await writer.ReadNextAsync();
+        var exceedLimitUpdate = await writer.ReadNextAsync().DefaultTimeout();
         Assert.Collection(exceedLimitUpdate.LogLines,
             l => Assert.Equal(DashboardService.LogMaxBatchCharacters, l.Text.Length));
 
-        var longLinesUpdate1 = await writer.ReadNextAsync();
+        var longLinesUpdate1 = await writer.ReadNextAsync().DefaultTimeout();
         Assert.Collection(longLinesUpdate1.LogLines,
             l => Assert.Equal(LongLineCharacters, l.Text.Split(' ')[1].Length),
             l => Assert.Equal(LongLineCharacters, l.Text.Split(' ')[1].Length));
 
-        var longLinesUpdate2 = await writer.ReadNextAsync();
+        var longLinesUpdate2 = await writer.ReadNextAsync().DefaultTimeout();
         Assert.Collection(longLinesUpdate2.LogLines,
             l => Assert.Equal(LongLineCharacters, l.Text.Split(' ')[1].Length));
 
         resourceLoggerService.Complete("test-resource");
-        await task;
+        await task.DefaultTimeout();
     }
 
     [Fact]
@@ -84,7 +85,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         var logger = loggerFactory.CreateLogger<DashboardServiceTests>();
         var resourceLoggerService = new ResourceLoggerService();
         var resourceNotificationService = new ResourceNotificationService(loggerFactory.CreateLogger<ResourceNotificationService>(), new TestHostApplicationLifetime(), new ServiceCollection().BuildServiceProvider(), resourceLoggerService);
-        await using var dashboardServiceData = new DashboardServiceData(resourceNotificationService, resourceLoggerService, loggerFactory.CreateLogger<DashboardServiceData>(), new DashboardCommandExecutor(new ServiceCollection().BuildServiceProvider()));
+        using var dashboardServiceData = new DashboardServiceData(resourceNotificationService, resourceLoggerService, loggerFactory.CreateLogger<DashboardServiceData>(), new DashboardCommandExecutor(new ServiceCollection().BuildServiceProvider()));
         var dashboardService = new DashboardService(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), loggerFactory.CreateLogger<DashboardService>());
 
         var testResource = new TestResource("test-resource");
@@ -106,13 +107,13 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         await resourceNotificationService.PublishUpdateAsync(testResource, s =>
         {
             return s with { State = new ResourceStateSnapshot("Starting", null) };
-        });
+        }).DefaultTimeout();
 
         logger.LogInformation("Waiting for the resource with a command. Required so added resource is always in the service's initial data collection");
         await dashboardServiceData.WaitForResourceAsync(testResource.Name, r =>
         {
             return r.Commands.Length == 1;
-        });
+        }).DefaultTimeout();
 
         var cts = new CancellationTokenSource();
         var context = TestServerCallContext.Create(cancellationToken: cts.Token);
@@ -127,7 +128,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
 
         // Assert
         logger.LogInformation("Reading result from writer.");
-        var update = await writer.ReadNextAsync();
+        var update = await writer.ReadNextAsync().DefaultTimeout();
 
         logger.LogInformation($"Initial data count: {update.InitialData.Resources.Count}");
         var resourceData = Assert.Single(update.InitialData.Resources);
@@ -144,7 +145,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(ResourceService.Proto.V1.IconVariant.Filled, commandData.IconVariant);
         Assert.True(commandData.IsHighlighted);
 
-        await CancelTokenAndAwaitTask(cts, task);
+        await CancelTokenAndAwaitTask(cts, task).DefaultTimeout();
     }
 
     [Fact]
@@ -153,7 +154,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         // Arrange
         var resourceLoggerService = new ResourceLoggerService();
         var resourceNotificationService = new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, new TestHostApplicationLifetime(), new ServiceCollection().BuildServiceProvider(), resourceLoggerService);
-        await using var dashboardServiceData = new DashboardServiceData(resourceNotificationService, resourceLoggerService, NullLogger<DashboardServiceData>.Instance, new DashboardCommandExecutor(new ServiceCollection().BuildServiceProvider()));
+        using var dashboardServiceData = new DashboardServiceData(resourceNotificationService, resourceLoggerService, NullLogger<DashboardServiceData>.Instance, new DashboardCommandExecutor(new ServiceCollection().BuildServiceProvider()));
         var dashboardService = new DashboardService(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), NullLogger<DashboardService>.Instance);
 
         var testResource = new TestResource("test-resource");
@@ -177,13 +178,13 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             context);
 
         // Assert
-        await writer.ReadNextAsync();
+        await writer.ReadNextAsync().DefaultTimeout();
         await resourceNotificationService.PublishUpdateAsync(testResource, s =>
         {
             return s with { State = new ResourceStateSnapshot("Starting", null) };
-        });
+        }).DefaultTimeout();
 
-        var resource = Assert.Single((await writer.ReadNextAsync()).Changes.Value).Upsert;
+        var resource = Assert.Single((await writer.ReadNextAsync().DefaultTimeout()).Changes.Value).Upsert;
         Assert.False(resource.HasHealthStatus);
         Assert.Collection(resource.HealthReports,
             r =>
@@ -201,9 +202,9 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         {
             // simulate only having received health check report from one of the checks
             return s with { HealthReports = [new HealthReportSnapshot("Check1", HealthStatus.Healthy, null, null)] };
-        });
+        }).DefaultTimeout();
 
-        var updateAfterCheck = await writer.ReadNextAsync();
+        var updateAfterCheck = await writer.ReadNextAsync().DefaultTimeout();
         var upsert = Assert.Single(updateAfterCheck.Changes.Value).Upsert;
 
         Assert.Collection(upsert.HealthReports,
@@ -218,7 +219,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
                 Assert.False(r.HasStatus);
             });
 
-        await CancelTokenAndAwaitTask(cts, task);
+        await CancelTokenAndAwaitTask(cts, task).DefaultTimeout();
     }
 
     private sealed class TestHostEnvironment : IHostEnvironment

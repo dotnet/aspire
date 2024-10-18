@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Dashboard;
 /// Models the state for <see cref="DashboardService"/>, as that service is constructed
 /// for each gRPC request. This long-lived object holds state across requests.
 /// </summary>
-internal sealed class DashboardServiceData : IAsyncDisposable
+internal sealed class DashboardServiceData : IDisposable
 {
     private readonly CancellationTokenSource _cts = new();
     private readonly ResourcePublisher _resourcePublisher;
@@ -102,10 +102,9 @@ internal sealed class DashboardServiceData : IAsyncDisposable
         cancellationToken);
     }
 
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
-        await _cts.CancelAsync().ConfigureAwait(false);
-
+        _cts.Cancel();
         _cts.Dispose();
     }
 
