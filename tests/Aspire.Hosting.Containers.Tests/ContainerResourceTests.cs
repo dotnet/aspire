@@ -185,7 +185,7 @@ public class ContainerResourceTests
         builder.AddContainer("containerwithvolumes", "image/name")
             .WithVolume("myvolume", "/mount/here")
             .WithVolume("myreadonlyvolume", "/mount/there", isReadOnly: true)
-            .WithVolume(null! /* anonymous volume */, "/mount/everywhere");
+            .WithVolume("/mount/everywhere");
 
         using var app = builder.Build();
 
