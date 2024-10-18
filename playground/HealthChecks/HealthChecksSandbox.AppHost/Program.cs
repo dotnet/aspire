@@ -45,6 +45,8 @@ IResourceBuilder<TestResource> AddTestResource(string name, HealthStatus status,
             ResourceType = "Test Resource",
             State = "Starting",
             Properties = [],
+            // this is not computed unless there is a health check, so we need to set it manually
+            HealthStatus = status,
             HealthReports = [new HealthReportSnapshot($"{name}_check", status, description, exception)]
         })
         .ExcludeFromManifest();
