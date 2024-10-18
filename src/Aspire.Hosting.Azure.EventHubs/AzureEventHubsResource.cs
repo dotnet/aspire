@@ -9,9 +9,9 @@ namespace Aspire.Hosting.Azure;
 /// Represents an Azure Event Hubs resource.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="configureConstruct">Callback to configure the Azure Event Hubs resource.</param>
-public class AzureEventHubsResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
-    AzureConstructResource(name, configureConstruct),
+/// <param name="configureInfrastructure">Callback to configure the Azure Event Hubs resource.</param>
+public class AzureEventHubsResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
+    AzureProvisioningResource(name, configureInfrastructure),
     IResourceWithConnectionString,
     IResourceWithEndpoints,
     IResourceWithAzureFunctionsConfig

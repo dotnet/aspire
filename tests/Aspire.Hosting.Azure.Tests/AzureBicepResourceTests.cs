@@ -42,11 +42,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
     private static TheoryData<Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>>> CreateAllAzureExtensions(string resourceName)
     {
-        static void CreateConstruct(ResourceModuleConstruct construct)
+        static void CreateInfrastructure(AzureResourceInfrastructure infrastructure)
         {
             var id = new UserAssignedIdentity("id");
-            construct.Add(id);
-            construct.Add(new ProvisioningOutput("cid", typeof(string)) { Value = id.ClientId });
+            infrastructure.Add(id);
+            infrastructure.Add(new ProvisioningOutput("cid", typeof(string)) { Value = id.ClientId });
         }
 
         return new()
@@ -55,7 +55,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             { builder => builder.AddAzureApplicationInsights(resourceName) },
             { builder => builder.AddBicepTemplate(resourceName, "template.bicep") },
             { builder => builder.AddBicepTemplateString(resourceName, "content") },
-            { builder => builder.AddAzureConstruct(resourceName, CreateConstruct) },
+            { builder => builder.AddAzureInfrastructure(resourceName, CreateInfrastructure) },
             { builder => builder.AddAzureOpenAI(resourceName) },
             { builder => builder.AddAzureCosmosDB(resourceName) },
             { builder => builder.AddAzureEventHubs(resourceName) },
@@ -96,7 +96,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create();
         var azureResourceBuilder = addAzureResource(builder);
 
-        if (azureResourceBuilder.Resource is not AzureConstructResource bicepResource)
+        if (azureResourceBuilder.Resource is not AzureProvisioningResource bicepResource)
         {
             // Skip
             return;
@@ -117,7 +117,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create();
         var azureResourceBuilder = addAzureResource(builder);
 
-        if (azureResourceBuilder.Resource is not AzureConstructResource bicepResource)
+        if (azureResourceBuilder.Resource is not AzureProvisioningResource bicepResource)
         {
             // Skip
             return;
@@ -244,9 +244,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
         var cosmos = builder.AddAzureCosmosDB("cosmos")
-            .ConfigureConstruct(construct =>
+            .ConfigureInfrastructure(infrastructure =>
             {
-                callbackDatabases = construct.GetResources().OfType<CosmosDBSqlDatabase>();
+                callbackDatabases = infrastructure.GetResources().OfType<CosmosDBSqlDatabase>();
             });
         cosmos.AddDatabase("mydatabase");
 
@@ -338,9 +338,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
         var cosmos = builder.AddAzureCosmosDB("cosmos")
-            .ConfigureConstruct(construct =>
+            .ConfigureInfrastructure(infrastructure =>
             {
-                callbackDatabases = construct.GetResources().OfType<CosmosDBSqlDatabase>();
+                callbackDatabases = infrastructure.GetResources().OfType<CosmosDBSqlDatabase>();
             });
         cosmos.AddDatabase("mydatabase");
 
@@ -732,23 +732,23 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task AddAzureConstructGenertesCorrectManifestEntry()
+    public async Task AddAzureInfrastructureGeneratesCorrectManifestEntry()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var construct1 = builder.AddAzureConstruct("construct1", (construct) =>
+        var infrastructure1 = builder.AddAzureInfrastructure("infrastructure1", (infrastructure) =>
         {
             var storage = new StorageAccount("storage")
             {
                 Kind = StorageKind.StorageV2,
                 Sku = new StorageSku() { Name = StorageSkuName.StandardLrs }
             };
-            construct.Add(storage);
-            construct.Add(new ProvisioningOutput("storageAccountName", typeof(string)) { Value = storage.Name });
+            infrastructure.Add(storage);
+            infrastructure.Add(new ProvisioningOutput("storageAccountName", typeof(string)) { Value = storage.Name });
         });
 
-        var manifest = await ManifestUtils.GetManifest(construct1.Resource);
+        var manifest = await ManifestUtils.GetManifest(infrastructure1.Resource);
         Assert.Equal("azure.bicep.v0", manifest["type"]?.ToString());
-        Assert.Equal("construct1.module.bicep", manifest["path"]?.ToString());
+        Assert.Equal("infrastructure1.module.bicep", manifest["path"]?.ToString());
     }
 
     [Fact]
@@ -759,29 +759,29 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         var skuName = builder.AddParameter("skuName");
 
-        ResourceModuleConstruct? moduleConstruct = null;
-        var construct1 = builder.AddAzureConstruct("construct1", (construct) =>
+        AzureResourceInfrastructure? moduleInfrastructure = null;
+        var infrastructure1 = builder.AddAzureInfrastructure("infrastructure1", (infrastructure) =>
         {
             var storage = new StorageAccount("storage")
             {
                 Kind = StorageKind.StorageV2,
-                Sku = new StorageSku() { Name = skuName.AsProvisioningParameter(construct) }
+                Sku = new StorageSku() { Name = skuName.AsProvisioningParameter(infrastructure) }
             };
-            construct.Add(storage);
-            moduleConstruct = construct;
+            infrastructure.Add(storage);
+            moduleInfrastructure = infrastructure;
         });
 
-        var manifest = await ManifestUtils.GetManifest(construct1.Resource);
+        var manifest = await ManifestUtils.GetManifest(infrastructure1.Resource);
 
-        Assert.NotNull(moduleConstruct);
-        var constructParameters = moduleConstruct.GetParameters().DistinctBy(x => x.IdentifierName);
-        var constructParametersLookup = constructParameters.ToDictionary(p => p.IdentifierName);
-        Assert.True(constructParametersLookup.ContainsKey("skuName"));
+        Assert.NotNull(moduleInfrastructure);
+        var infrastructureParameters = moduleInfrastructure.GetParameters().DistinctBy(x => x.IdentifierName);
+        var infrastructureParametersLookup = infrastructureParameters.ToDictionary(p => p.IdentifierName);
+        Assert.True(infrastructureParametersLookup.ContainsKey("skuName"));
 
         var expectedManifest = """
             {
               "type": "azure.bicep.v0",
-              "path": "construct1.module.bicep",
+              "path": "infrastructure1.module.bicep",
               "params": {
                 "skuName": "{skuName.value}"
               }
@@ -798,29 +798,29 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         var skuName = builder.AddParameter("skuName");
 
-        ResourceModuleConstruct? moduleConstruct = null;
-        var construct1 = builder.AddAzureConstruct("construct1", (construct) =>
+        AzureResourceInfrastructure? moduleInfrastructure = null;
+        var infrastructure1 = builder.AddAzureInfrastructure("infrastructure1", (infrastructure) =>
         {
             var storage = new StorageAccount("storage")
             {
                 Kind = StorageKind.StorageV2,
-                Sku = new StorageSku() { Name = skuName.AsProvisioningParameter(construct, parameterName: "sku") }
+                Sku = new StorageSku() { Name = skuName.AsProvisioningParameter(infrastructure, parameterName: "sku") }
             };
-            construct.Add(storage);
-            moduleConstruct = construct;
+            infrastructure.Add(storage);
+            moduleInfrastructure = infrastructure;
         });
 
-        var manifest = await ManifestUtils.GetManifest(construct1.Resource);
+        var manifest = await ManifestUtils.GetManifest(infrastructure1.Resource);
 
-        Assert.NotNull(moduleConstruct);
-        var constructParameters = moduleConstruct.GetParameters().DistinctBy(x => x.IdentifierName);
-        var constructParametersLookup = constructParameters.ToDictionary(p => p.IdentifierName);
-        Assert.True(constructParametersLookup.ContainsKey("sku"));
+        Assert.NotNull(moduleInfrastructure);
+        var infrastructureParameters = moduleInfrastructure.GetParameters().DistinctBy(x => x.IdentifierName);
+        var infrastructureParametersLookup = infrastructureParameters.ToDictionary(p => p.IdentifierName);
+        Assert.True(infrastructureParametersLookup.ContainsKey("sku"));
 
         var expectedManifest = """
             {
               "type": "azure.bicep.v0",
-              "path": "construct1.module.bicep",
+              "path": "infrastructure1.module.bicep",
               "params": {
                 "sku": "{skuName.value}"
               }
@@ -830,7 +830,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task PublishAsRedisPublishesRedisAsAzureRedisConstruct()
+    public async Task PublishAsRedisPublishesRedisAsAzureRedisInfrastructure()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -1282,9 +1282,17 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 #pragma warning disable CS0618 // Type or member is obsolete
         var postgres = builder.AddPostgres("postgres", usr, pwd).AsAzurePostgresFlexibleServer();
         postgres.AddDatabase("db", "dbName");
+
+        Assert.True(postgres.Resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation));
+        var azurePostgres = (AzurePostgresResource)connectionStringAnnotation.Resource;
 #pragma warning restore CS0618 // Type or member is obsolete
 
         var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
+
+        // Setup to verify that connection strings is acquired via resource connectionstring redirct.
+        Assert.NotNull(azurePostgres);
+        azurePostgres.SecretOutputs["connectionString"] = "myconnectionstring";
+        Assert.Equal("myconnectionstring", await postgres.Resource.GetConnectionStringAsync(default));
 
         var expectedManifest = """
             {
@@ -1392,9 +1400,17 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 #pragma warning disable CS0618 // Type or member is obsolete
         var postgres = builder.AddPostgres("postgres", usr, pwd).AsAzurePostgresFlexibleServer();
         postgres.AddDatabase("db", "dbName");
+
+        Assert.True(postgres.Resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation));
+        var azurePostgres = (AzurePostgresResource)connectionStringAnnotation.Resource;
 #pragma warning restore CS0618 // Type or member is obsolete
 
         var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
+
+        // Setup to verify that connection strings is acquired via resource connectionstring redirct.
+        Assert.NotNull(azurePostgres);
+        azurePostgres.SecretOutputs["connectionString"] = "myconnectionstring";
+        Assert.Equal("myconnectionstring", await postgres.Resource.GetConnectionStringAsync(default));
 
         var expectedManifest = """
             {
@@ -1861,12 +1877,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         var storagesku = builder.AddParameter("storagesku");
         var storage = builder.AddAzureStorage("storage")
-            .ConfigureConstruct(construct =>
+            .ConfigureInfrastructure(infrastructure =>
             {
-                var sa = construct.GetResources().OfType<StorageAccount>().Single();
+                var sa = infrastructure.GetResources().OfType<StorageAccount>().Single();
                 sa.Sku = new StorageSku()
                 {
-                    Name = storagesku.AsProvisioningParameter(construct)
+                    Name = storagesku.AsProvisioningParameter(infrastructure)
                 };
             });
 
@@ -2019,12 +2035,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         var storagesku = builder.AddParameter("storagesku");
         var storage = builder.AddAzureStorage("storage")
-            .ConfigureConstruct(construct =>
+            .ConfigureInfrastructure(infrastructure =>
             {
-                var sa = construct.GetResources().OfType<StorageAccount>().Single();
+                var sa = infrastructure.GetResources().OfType<StorageAccount>().Single();
                 sa.Sku = new StorageSku()
                 {
-                    Name = storagesku.AsProvisioningParameter(construct)
+                    Name = storagesku.AsProvisioningParameter(infrastructure)
                 };
                 sa.AllowSharedKeyAccess = true;
             });
@@ -2178,12 +2194,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         var storagesku = builder.AddParameter("storagesku");
         var storage = builder.AddAzureStorage("storage")
-            .ConfigureConstruct(construct =>
+            .ConfigureInfrastructure(infrastructure =>
             {
-                var sa = construct.GetResources().OfType<StorageAccount>().Single();
+                var sa = infrastructure.GetResources().OfType<StorageAccount>().Single();
                 sa.Sku = new StorageSku()
                 {
-                    Name = storagesku.AsProvisioningParameter(construct)
+                    Name = storagesku.AsProvisioningParameter(infrastructure)
                 };
             });
 
@@ -2336,12 +2352,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         var storagesku = builder.AddParameter("storagesku");
         var storage = builder.AddAzureStorage("storage")
-            .ConfigureConstruct(construct =>
+            .ConfigureInfrastructure(infrastructure =>
             {
-                var sa = construct.GetResources().OfType<StorageAccount>().Single();
+                var sa = infrastructure.GetResources().OfType<StorageAccount>().Single();
                 sa.Sku = new StorageSku()
                 {
-                    Name = storagesku.AsProvisioningParameter(construct)
+                    Name = storagesku.AsProvisioningParameter(infrastructure)
                 };
                 sa.AllowSharedKeyAccess = true;
             });
@@ -2496,10 +2512,10 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         // Add search and parameterize the SKU
         var sku = builder.AddParameter("searchSku");
         var search = builder.AddAzureSearch("search")
-            .ConfigureConstruct(construct =>
+            .ConfigureInfrastructure(infrastructure =>
             {
-                var search = construct.GetResources().OfType<SearchService>().Single();
-                search.SearchSkuName = sku.AsProvisioningParameter(construct);
+                var search = infrastructure.GetResources().OfType<SearchService>().Single();
+                search.SearchSkuName = sku.AsProvisioningParameter(infrastructure);
             });
 
         // Pretend we deployed it
@@ -2618,13 +2634,13 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         IEnumerable<CognitiveServicesAccountDeployment>? aiDeployments = null;
         var openai = builder.AddAzureOpenAI("openai")
-            .ConfigureConstruct(construct =>
+            .ConfigureInfrastructure(infrastructure =>
             {
-                aiDeployments = construct.GetResources().OfType<CognitiveServicesAccountDeployment>();
+                aiDeployments = infrastructure.GetResources().OfType<CognitiveServicesAccountDeployment>();
 
                 if (overrideLocalAuthDefault)
                 {
-                    var account = construct.GetResources().OfType<CognitiveServicesAccount>().Single();
+                    var account = infrastructure.GetResources().OfType<CognitiveServicesAccount>().Single();
                     account.Properties.Value!.DisableLocalAuth = false;
                 }
             })
@@ -2729,25 +2745,25 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void ConfigureConstructMustNotBeNull()
+    public void ConfigureInfrastructureMustNotBeNull()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var constructResource = builder.AddAzureConstruct("construct", r =>
+        var provisioningResource = builder.AddAzureInfrastructure("infrastructure", r =>
         {
             r.Add(new KeyVaultService("kv"));
         });
 
-        var ex = Assert.Throws<ArgumentNullException>(() => constructResource.ConfigureConstruct(null!));
+        var ex = Assert.Throws<ArgumentNullException>(() => provisioningResource.ConfigureInfrastructure(null!));
         Assert.Equal("configure", ex.ParamName);
     }
 
     [Fact]
-    public async Task ConstructCanBeMutatedAfterCreation()
+    public async Task InfrastructureCanBeMutatedAfterCreation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var constructResource = builder.AddAzureConstruct("construct", r =>
+        var provisioningResource = builder.AddAzureInfrastructure("infrastructure", r =>
         {
             r.Add(new KeyVaultService("kv")
             {
@@ -2763,7 +2779,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 }
             });
         })
-        .ConfigureConstruct(r =>
+        .ConfigureInfrastructure(r =>
         {
             var vault = r.GetResources().OfType<KeyVaultService>().Single();
             Assert.NotNull(vault);
@@ -2780,7 +2796,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 //Value = keyVault.VaultUri
             });
         })
-        .ConfigureConstruct(r =>
+        .ConfigureInfrastructure(r =>
         {
             var vault = r.GetResources().OfType<KeyVaultService>().Single();
             Assert.NotNull(vault);
@@ -2793,12 +2809,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             });
         });
 
-        var (manifest, bicep) = await ManifestUtils.GetManifestWithBicep(constructResource.Resource);
+        var (manifest, bicep) = await ManifestUtils.GetManifestWithBicep(provisioningResource.Resource);
 
         var expectedManifest = """
             {
               "type": "azure.bicep.v0",
-              "path": "construct.module.bicep"
+              "path": "infrastructure.module.bicep"
             }
             """;
 

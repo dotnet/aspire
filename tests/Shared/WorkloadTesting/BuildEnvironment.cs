@@ -31,17 +31,17 @@ public class BuildEnvironment
 
     private static readonly Lazy<BuildEnvironment> s_instance_80 = new(() =>
         new BuildEnvironment(
-            templatesCustomHive: TemplatesCustomHive.With9_0_Net8,
+            templatesCustomHive: TemplatesCustomHive.TemplatesHive,
             sdkDirName: "dotnet-8"));
 
     private static readonly Lazy<BuildEnvironment> s_instance_90 = new(() =>
         new BuildEnvironment(
-            templatesCustomHive: TemplatesCustomHive.With9_0_Net9,
+            templatesCustomHive: TemplatesCustomHive.TemplatesHive,
             sdkDirName: "dotnet-9"));
 
     private static readonly Lazy<BuildEnvironment> s_instance_90_80 = new(() =>
         new BuildEnvironment(
-            templatesCustomHive: TemplatesCustomHive.With9_0_Net9_And_Net8,
+            templatesCustomHive: TemplatesCustomHive.TemplatesHive,
             sdkDirName: "dotnet-tests"));
 
     public static BuildEnvironment ForPreviousSdkOnly => s_instance_80.Value;
@@ -268,8 +268,9 @@ public class BuildEnvironment
 
 public enum TestTargetFramework
 {
-    Previous,
-    Current
+    // Current is default
+    Current,
+    Previous
 }
 
 public static class TestTargetFrameworkExtensions
