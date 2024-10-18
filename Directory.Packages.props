@@ -109,7 +109,7 @@
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.10.2" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.10.2" />
     <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1"/>
-    <PackageVersion Include="MongoDB.Driver" Version="3.0.0" />
+    <PackageVersion Include="MongoDB.Driver" Version="2.30.0" />
     <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="1.5.0" />
     <PackageVersion Include="MySqlConnector.DependencyInjection" Version="2.3.6" />
     <PackageVersion Include="MySqlConnector.Logging.Microsoft.Extensions.Logging" Version="2.1.0" />
