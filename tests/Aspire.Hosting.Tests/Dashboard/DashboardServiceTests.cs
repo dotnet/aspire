@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Dashboard;
+using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Tests.Utils.Grpc;
 using Aspire.Hosting.Utils;
@@ -14,6 +15,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
+using Xunit.Abstractions;
 using DashboardService = Aspire.Hosting.Dashboard.DashboardService;
 using HealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
 using ProtoHealthStatus = Aspire.ResourceService.Proto.V1.HealthStatus;
@@ -21,7 +23,7 @@ using Resource = Aspire.Hosting.ApplicationModel.Resource;
 
 namespace Aspire.Hosting.Tests.Dashboard;
 
-public class DashboardServiceTests
+public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public async Task WatchResourceConsoleLogs_LargePendingData_BatchResults()
@@ -73,13 +75,20 @@ public class DashboardServiceTests
     public async Task WatchResources_ResourceHasCommands_CommandsSentWithResponse()
     {
         // Arrange
+        var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.SetMinimumLevel(LogLevel.Trace);
+            builder.AddXunit(testOutputHelper);
+        });
+
+        var logger = loggerFactory.CreateLogger<DashboardServiceTests>();
         var resourceLoggerService = new ResourceLoggerService();
-        var resourceNotificationService = new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, new TestHostApplicationLifetime(), new ServiceCollection().BuildServiceProvider(), resourceLoggerService);
-        await using var dashboardServiceData = new DashboardServiceData(resourceNotificationService, resourceLoggerService, NullLogger<DashboardServiceData>.Instance, new DashboardCommandExecutor(new ServiceCollection().BuildServiceProvider()));
-        var dashboardService = new DashboardService(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), NullLogger<DashboardService>.Instance);
+        var resourceNotificationService = new ResourceNotificationService(loggerFactory.CreateLogger<ResourceNotificationService>(), new TestHostApplicationLifetime(), new ServiceCollection().BuildServiceProvider(), resourceLoggerService);
+        await using var dashboardServiceData = new DashboardServiceData(resourceNotificationService, resourceLoggerService, loggerFactory.CreateLogger<DashboardServiceData>(), new DashboardCommandExecutor(new ServiceCollection().BuildServiceProvider()));
+        var dashboardService = new DashboardService(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), loggerFactory.CreateLogger<DashboardService>());
 
         var testResource = new TestResource("test-resource");
-        using var applicationBuilder = TestDistributedApplicationBuilder.Create();
+        using var applicationBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper: testOutputHelper);
         var builder = applicationBuilder.AddResource(testResource);
         builder.WithCommand(
             type: "TestType",
@@ -93,13 +102,16 @@ public class DashboardServiceTests
             iconVariant: ApplicationModel.IconVariant.Filled,
             isHighlighted: true);
 
+        logger.LogInformation("Publishing resource.");
         await resourceNotificationService.PublishUpdateAsync(testResource, s =>
         {
             return s with { State = new ResourceStateSnapshot("Starting", null) };
         });
-        await resourceNotificationService.WaitForResourceAsync(testResource.Name, r =>
+
+        logger.LogInformation("Waiting for the resource with a command. Required so reource is always in the service's initial data collection");
+        await dashboardServiceData.WaitForResourceAsync(testResource.Name, r =>
         {
-            return r.Snapshot.Commands.Length == 1;
+            return r.Commands.Length == 1;
         });
 
         var cts = new CancellationTokenSource();
@@ -107,15 +119,20 @@ public class DashboardServiceTests
         var writer = new TestServerStreamWriter<WatchResourcesUpdate>(context);
 
         // Act
+        logger.LogInformation("Calling WatchResources.");
         var task = dashboardService.WatchResources(
             new WatchResourcesRequest(),
             writer,
             context);
 
         // Assert
+        logger.LogInformation("Reading result from writer.");
         var update = await writer.ReadNextAsync();
 
+        logger.LogInformation($"Initial data count: {update.InitialData.Resources.Count}");
         var resourceData = Assert.Single(update.InitialData.Resources);
+
+        logger.LogInformation($"Commands count: {resourceData.Commands.Count}");
         var commandData = Assert.Single(resourceData.Commands);
 
         Assert.Equal("TestType", commandData.CommandType);
