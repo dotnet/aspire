@@ -2,9 +2,9 @@
   "author": "Microsoft",
   "name": ".NET Aspire 8 Service Defaults",
   "description": "A project template for creating a .NET Aspire 8 service defaults project.",
-  "symbols/Framework/description": "The target framework for the project.",
-  "symbols/Framework/choices/net8.0/description": "Target net8.0",
-  "symbols/skipRestore/description": "If specified, skips the automatic restore of the project on create.",
-  "postActions/restore/description": "Restore NuGet packages required by this project.",
-  "postActions/restore/manualInstructions/default/text": "Run 'dotnet restore'"
+  "symbols/Framework/description": "Le cadre cible du projet.",
+  "symbols/Framework/choices/net8.0/description": "Cible net8.0",
+  "symbols/skipRestore/description": "Si spécifié, ignore la restauration automatique du projet lors de la création.",
+  "postActions/restore/description": "Restaurer les packages NuGet requis par ce projet.",
+  "postActions/restore/manualInstructions/default/text": "Exécutez « dotnet restore »"
 }
