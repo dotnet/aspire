@@ -1,23 +1,20 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param administratorLogin string
+param principalId string
 
-@secure()
-param administratorLoginPassword string
+param principalType string
 
-param keyVaultName string
+param principalName string
 
-resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
-  name: keyVaultName
-}
-
-resource pgsql2 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
-  name: toLower(take('pgsql2${uniqueString(resourceGroup().id)}', 24))
+resource pgsql2 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
+  name: take('pgsql2-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
-    administratorLogin: administratorLogin
-    administratorLoginPassword: administratorLoginPassword
+    authConfig: {
+      activeDirectoryAuth: 'Enabled'
+      passwordAuth: 'Disabled'
+    }
     availabilityZone: '1'
     backup: {
       backupRetentionDays: 7
@@ -40,7 +37,7 @@ resource pgsql2 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
   }
 }
 
-resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2022-12-01' = {
+resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
   name: 'AllowAllAzureIps'
   properties: {
     endIpAddress: '0.0.0.0'
@@ -49,10 +46,22 @@ resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flex
   parent: pgsql2
 }
 
-resource connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
-  name: 'connectionString'
-  properties: {
-    value: 'Host=${pgsql2.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
-  }
-  parent: keyVault
+resource pgsql2db 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
+  name: 'pgsql2db'
+  parent: pgsql2
 }
+
+resource pgsql2_admin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = {
+  name: principalId
+  properties: {
+    principalName: principalName
+    principalType: principalType
+  }
+  parent: pgsql2
+  dependsOn: [
+    pgsql2
+    postgreSqlFirewallRule_AllowAllAzureIps
+  ]
+}
+
+output connectionString string = 'Host=${pgsql2.properties.fullyQualifiedDomainName};Username=${principalName}'

@@ -8,14 +8,19 @@ namespace Aspire.Hosting.ApplicationModel;
 
 internal static class CommandsConfigurationExtensions
 {
-    internal const string StartType = "start";
-    internal const string StopType = "stop";
-    internal const string RestartType = "restart";
+    internal const string StartCommandName = "resource-start";
+    internal const string StopCommandName = "resource-stop";
+    internal const string RestartCommandName = "resource-restart";
 
-    internal static IResourceBuilder<T> WithLifeCycleCommands<T>(this IResourceBuilder<T> builder) where T : IResource
+    internal static void AddLifeCycleCommands(this IResource resource)
     {
-        builder.WithCommand(
-            type: StartType,
+        if (resource.TryGetLastAnnotation<ExcludeLifecycleCommandsAnnotation>(out _))
+        {
+            return;
+        }
+
+        resource.Annotations.Add(new ResourceCommandAnnotation(
+            name: StartCommandName,
             displayName: "Start",
             executeCommand: async context =>
             {
@@ -26,7 +31,7 @@ internal static class CommandsConfigurationExtensions
             },
             updateState: context =>
             {
-                if (IsStarting(context.ResourceSnapshot.State?.Text))
+                if (IsStarting(context.ResourceSnapshot.State?.Text) || IsWaiting(context.ResourceSnapshot.State?.Text))
                 {
                     return ResourceCommandState.Disabled;
                 }
@@ -39,11 +44,15 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Hidden;
                 }
             },
+            displayDescription: null,
+            parameter: null,
+            confirmationMessage: null,
             iconName: "Play",
-            isHighlighted: true);
+            iconVariant: IconVariant.Filled,
+            isHighlighted: true));
 
-        builder.WithCommand(
-            type: StopType,
+        resource.Annotations.Add(new ResourceCommandAnnotation(
+            name: StopCommandName,
             displayName: "Stop",
             executeCommand: async context =>
             {
@@ -54,11 +63,11 @@ internal static class CommandsConfigurationExtensions
             },
             updateState: context =>
             {
-                if (IsWaiting(context.ResourceSnapshot.State?.Text) || IsStopping(context.ResourceSnapshot.State?.Text))
+                if (IsStopping(context.ResourceSnapshot.State?.Text))
                 {
                     return ResourceCommandState.Disabled;
                 }
-                else if (!IsStopped(context.ResourceSnapshot.State?.Text) && !IsStarting(context.ResourceSnapshot.State?.Text))
+                else if (!IsStopped(context.ResourceSnapshot.State?.Text) && !IsStarting(context.ResourceSnapshot.State?.Text) && !IsWaiting(context.ResourceSnapshot.State?.Text) && context.ResourceSnapshot.State is not null)
                 {
                     return ResourceCommandState.Enabled;
                 }
@@ -67,11 +76,15 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Hidden;
                 }
             },
+            displayDescription: null,
+            parameter: null,
+            confirmationMessage: null,
             iconName: "Stop",
-            isHighlighted: true);
+            iconVariant: IconVariant.Filled,
+            isHighlighted: true));
 
-        builder.WithCommand(
-            type: RestartType,
+        resource.Annotations.Add(new ResourceCommandAnnotation(
+            name: RestartCommandName,
             displayName: "Restart",
             executeCommand: async context =>
             {
@@ -83,7 +96,7 @@ internal static class CommandsConfigurationExtensions
             },
             updateState: context =>
             {
-                if (IsWaiting(context.ResourceSnapshot.State?.Text) || IsStarting(context.ResourceSnapshot.State?.Text) || IsStopping(context.ResourceSnapshot.State?.Text) || IsStopped(context.ResourceSnapshot.State?.Text))
+                if (IsWaiting(context.ResourceSnapshot.State?.Text) || IsStarting(context.ResourceSnapshot.State?.Text) || IsStopping(context.ResourceSnapshot.State?.Text) || IsStopped(context.ResourceSnapshot.State?.Text) || context.ResourceSnapshot.State is null)
                 {
                     return ResourceCommandState.Disabled;
                 }
@@ -92,14 +105,16 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Enabled;
                 }
             },
+            displayDescription: null,
+            parameter: null,
+            confirmationMessage: null,
             iconName: "ArrowCounterclockwise",
-            isHighlighted: false);
-
-        return builder;
+            iconVariant: IconVariant.Regular,
+            isHighlighted: false));
 
         static bool IsStopped(string? state) => state is "Exited" or "Finished" or "FailedToStart";
         static bool IsStopping(string? state) => state is "Stopping";
         static bool IsStarting(string? state) => state is "Starting";
-        static bool IsWaiting(string? state) => state is "Waiting";
+        static bool IsWaiting(string? state) => state is "Waiting" or "RuntimeUnhealthy";
     }
 }

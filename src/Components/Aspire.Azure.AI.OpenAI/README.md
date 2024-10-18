@@ -1,6 +1,6 @@
 # Aspire.Azure.AI.OpenAI library
 
-Registers [OpenAIClient](https://learn.microsoft.com/dotnet/api/azure.ai.openai.openaiclient) as a singleton in the DI container for connecting to Azure OpenAI or OpenAI. Enables corresponding logging and telemetry.
+Registers [OpenAIClient](https://learn.microsoft.com/dotnet/api/azure.ai.openai.openaiclient) as a singleton in the DI container for connecting to Azure OpenAI or OpenAI. Enables corresponding metrics, logging and telemetry.
 
 ## Getting started
 
@@ -36,9 +36,20 @@ public CognitiveController(AzureOpenAIClient client)
 }
 ```
 
-Additionally, you can retrieve the `AzureOpenAIClient` object using the base `OpenAIClient` service type. This allows for code that is not dependent on Azure OpenAI-specific features to not depend directly on Azure types.
-
 See the [Azure OpenAI Service quickstarts](https://learn.microsoft.com/azure/ai-services/openai/quickstart) for examples on using the `AzureOpenAIClient`.
+
+## Azure-agnostic client resolution
+
+You can retrieve the `AzureOpenAIClient` object using the base `OpenAIClient` service type. This allows for code that is not dependent on Azure OpenAI-specific features to not depend directly on Azure types.
+
+Additionally this package provides the `AddOpenAIClientFromConfiguration` extension method to register an `OpenAIClient` instance based on the connection string that is provided. This allows your application
+to register the best implementation for the OpenAI Rest API it connects. The following rules are followed:
+
+- If the `Endpoint` attribute is empty or missing, the OpenAI service is used and an `OpenAIClient` instance is registered, e.g., `Key={key};`.
+- If the attribute `IsAzure` is provided and `true` then `AzureOpenAIClient` is registered, `OpenAIClient` otherwise, e.g., `Endpoint={azure_endpoint};Key={key};IsAzure=true` would register an `AzureOpenAIClient`, while `Endpoint=https://localhost:18889;Key={key}` would register an `OpenAIClient`.
+- If the `Endpoint` attribute contains `".azure."` then `AzureOpenAIClient` is registered, `OpenAIClient` otherwise, e.g., `Endpoint=https://{account}.azure.com;Key={key};`.
+
+In any case a valid connection string must contain at least either an `Endpoint` or a `Key`.
 
 ## Configuration
 
@@ -91,6 +102,9 @@ The .NET Aspire Azure OpenAI library supports [Microsoft.Extensions.Configuratio
       "AI": {
         "OpenAI": {
           "DisableTracing": false,
+          "ClientOptions": {
+            "UserAgentApplicationId": "myapp"
+          }
         }
       }
     }
@@ -136,6 +150,17 @@ The `AddAzureOpenAI` method adds an Azure OpenAI resource to the builder. Or `Ad
 ```csharp
 builder.AddAzureOpenAIClient("openai");
 ```
+
+## Experimental Telemetry
+
+Azure AI OpenAI telemetry support is experimental, the shape of traces may change in the future without notice.
+It can be enabled by invoking
+
+```c#
+AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
+```
+
+or by setting the "OPENAI_EXPERIMENTAL_ENABLE_OPEN_TELEMETRY" environment variable to "true".
 
 ## Additional documentation
 

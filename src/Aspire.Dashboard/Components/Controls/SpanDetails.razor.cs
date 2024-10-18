@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
@@ -24,15 +25,14 @@ public partial class SpanDetails : IDisposable
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
 
-    private IQueryable<SpanPropertyViewModel> FilteredItems =>
+    private IQueryable<TelemetryPropertyViewModel> FilteredItems =>
         ViewModel.Properties.Where(ApplyFilter).AsQueryable();
 
-    private IQueryable<SpanPropertyViewModel> FilteredContextItems =>
-        _contextAttributes.Select(p => new SpanPropertyViewModel { Name = p.Key, Value = p.Value })
-            .Where(ApplyFilter).AsQueryable();
+    private IQueryable<TelemetryPropertyViewModel> FilteredContextItems =>
+        _contextAttributes.Where(ApplyFilter).AsQueryable();
 
-    private IQueryable<SpanPropertyViewModel> FilteredResourceItems =>
-        ViewModel.Span.Source.AllProperties().Select(p => new SpanPropertyViewModel { Name = p.Key, Value = p.Value })
+    private IQueryable<TelemetryPropertyViewModel> FilteredResourceItems =>
+        ViewModel.Span.Source.AllProperties().Select(p => new TelemetryPropertyViewModel { Name = p.DisplayName, Key = p.Key, Value = p.Value })
             .Where(ApplyFilter).AsQueryable();
 
     private IQueryable<OtlpSpanEvent> FilteredSpanEvents =>
@@ -44,15 +44,16 @@ public partial class SpanDetails : IDisposable
     private IQueryable<SpanLinkViewModel> FilteredSpanBacklinks =>
         ViewModel.Backlinks.Where(e => e.SpanId.Contains(_filter, StringComparison.CurrentCultureIgnoreCase)).AsQueryable();
 
+    private bool _isSpanEventsExpanded;
+    private bool _isSpanLinksExpanded;
+    private bool _isSpanBacklinksExpanded;
+
     private string _filter = "";
-    private List<KeyValuePair<string, string>> _contextAttributes = null!;
+    private List<TelemetryPropertyViewModel> _contextAttributes = null!;
 
     private readonly CancellationTokenSource _cts = new();
 
-    private readonly GridSort<SpanPropertyViewModel> _nameSort = GridSort<SpanPropertyViewModel>.ByAscending(vm => vm.Name);
-    private readonly GridSort<SpanPropertyViewModel> _valueSort = GridSort<SpanPropertyViewModel>.ByAscending(vm => vm.Value);
-
-    private bool ApplyFilter(SpanPropertyViewModel vm)
+    private bool ApplyFilter(TelemetryPropertyViewModel vm)
     {
         return vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
             vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true;
@@ -62,20 +63,25 @@ public partial class SpanDetails : IDisposable
     {
         _contextAttributes =
         [
-            new KeyValuePair<string, string>("Source", ViewModel.Span.Scope.ScopeName)
+            new TelemetryPropertyViewModel { Name = "Source", Key = KnownSourceFields.NameField, Value = ViewModel.Span.Scope.ScopeName }
         ];
         if (!string.IsNullOrEmpty(ViewModel.Span.Scope.Version))
         {
-            _contextAttributes.Add(new KeyValuePair<string, string>("Version", ViewModel.Span.Scope.Version));
+            _contextAttributes.Add(new TelemetryPropertyViewModel { Name = "Version", Key = KnownSourceFields.VersionField, Value = ViewModel.Span.Scope.ScopeName });
         }
         if (!string.IsNullOrEmpty(ViewModel.Span.ParentSpanId))
         {
-            _contextAttributes.Add(new KeyValuePair<string, string>("ParentId", ViewModel.Span.ParentSpanId));
+            _contextAttributes.Add(new TelemetryPropertyViewModel { Name = "ParentId", Key = KnownTraceFields.ParentIdField, Value = ViewModel.Span.ParentSpanId });
         }
         if (!string.IsNullOrEmpty(ViewModel.Span.TraceId))
         {
-            _contextAttributes.Add(new KeyValuePair<string, string>("TraceId", ViewModel.Span.TraceId));
+            _contextAttributes.Add(new TelemetryPropertyViewModel { Name = "TraceId", Key = KnownTraceFields.TraceIdField, Value = ViewModel.Span.TraceId });
         }
+
+        // Collapse details sections when they have no data.
+        _isSpanEventsExpanded = ViewModel.Span.Events.Any();
+        _isSpanLinksExpanded = ViewModel.Span.Links.Any();
+        _isSpanBacklinksExpanded = ViewModel.Span.BackLinks.Any();
     }
 
     public async Task OnViewDetailsAsync(SpanLinkViewModel linkVM)

@@ -1,15 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Frozen;
 using System.Threading.Channels;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.BrowserStorage;
+using Aspire.Tests.Shared.DashboardModel;
 using Bunit;
-using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
@@ -66,7 +65,7 @@ public partial class ConsoleLogsTests : TestContext
         logger.LogInformation("Console log page is waiting for resource.");
         cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsLoadingResources)]);
 
-        var testResource = CreateResourceViewModel("test-resource", KnownResourceState.Running);
+        var testResource = ModelTestHelpers.CreateResource(appName: "test-resource", state: KnownResourceState.Running);
         resourceChannel.Writer.TryWrite([
             new ResourceViewModelChange(ResourceViewModelChangeType.Upsert, testResource)
         ]);
@@ -92,7 +91,7 @@ public partial class ConsoleLogsTests : TestContext
     public async Task ResourceName_ViaUrlAndResourceLoaded_LogViewerUpdated()
     {
         // Arrange
-        var testResource = CreateResourceViewModel("test-resource", KnownResourceState.Running);
+        var testResource = ModelTestHelpers.CreateResource(appName: "test-resource", state: KnownResourceState.Running);
         var subscribedResourceNameTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
         var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
@@ -133,7 +132,7 @@ public partial class ConsoleLogsTests : TestContext
 
         logger.LogInformation("Log results are added to log viewer.");
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "Hello world", IsErrorMessage: false)]);
-        cut.WaitForState(() => instance.LogViewer.LogEntries.EntriesCount > 0);
+        cut.WaitForState(() => instance._logEntries.EntriesCount > 0);
     }
 
     private void SetupConsoleLogsServices(TestDashboardClient? dashboardClient = null)
@@ -177,27 +176,5 @@ public partial class ConsoleLogsTests : TestContext
     private static string GetFluentFile(string filePath, Version version)
     {
         return $"{filePath}?v={version}";
-    }
-
-    // display name will be replica set when there are multiple resources with the same display name
-    private static ResourceViewModel CreateResourceViewModel(string appName, KnownResourceState? state, string? displayName = null)
-    {
-        return new ResourceViewModel
-        {
-            Name = appName,
-            ResourceType = "CustomResource",
-            DisplayName = displayName ?? appName,
-            Uid = Guid.NewGuid().ToString(),
-            CreationTimeStamp = DateTime.UtcNow,
-            Environment = [],
-            Properties = FrozenDictionary<string, Value>.Empty,
-            Urls = [],
-            Volumes = [],
-            State = state?.ToString(),
-            KnownState = state,
-            StateStyle = null,
-            ReadinessState = ReadinessState.Ready,
-            Commands = []
-        };
     }
 }

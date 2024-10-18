@@ -5,8 +5,8 @@ param principalId string
 
 param principalType string
 
-resource openai 'Microsoft.CognitiveServices/accounts@2022-12-01' = {
-  name: toLower(take('openai${uniqueString(resourceGroup().id)}', 24))
+resource openai 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
+  name: take('openai-${uniqueString(resourceGroup().id)}', 64)
   location: location
   kind: 'OpenAI'
   properties: {
@@ -32,7 +32,7 @@ resource openai_CognitiveServicesOpenAIContributor 'Microsoft.Authorization/role
   scope: openai
 }
 
-resource gpt-4o 'Microsoft.CognitiveServices/accounts/deployments@2022-12-01' = {
+resource gpt_4o 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   name: 'gpt-4o'
   properties: {
     model: {

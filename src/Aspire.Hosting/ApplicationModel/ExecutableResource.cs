@@ -9,7 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 /// <param name="command">The command to execute.</param>
 /// <param name="workingDirectory">The working directory of the executable.</param>
-public class ExecutableResource(string name, string command, string workingDirectory) : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints
+public class ExecutableResource(string name, string command, string workingDirectory) : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints, IResourceWithWaitSupport
 {
     /// <summary>
     /// Gets the command associated with this executable resource.

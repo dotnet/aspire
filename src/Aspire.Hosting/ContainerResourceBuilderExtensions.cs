@@ -18,7 +18,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="image">The container image name. The tag is assumed to be "latest".</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
-    public static IResourceBuilder<ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, string name, string image)
+    public static IResourceBuilder<ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, [ResourceName] string name, string image)
     {
         return builder.AddContainer(name, image, "latest");
     }
@@ -31,7 +31,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="image">The container image name.</param>
     /// <param name="tag">The container image tag.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
-    public static IResourceBuilder<ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, string name, string image, string tag)
+    public static IResourceBuilder<ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, [ResourceName] string name, string image, string tag)
     {
         var container = new ContainerResource(name);
         return builder.AddResource(container)
@@ -150,7 +150,6 @@ public static class ContainerResourceBuilderExtensions
         // if the annotation doesn't exist, create it with the given image and add it to the collection
         var containerImageAnnotation = new ContainerImageAnnotation() { Image = image, Tag = tag };
         builder.Resource.Annotations.Add(containerImageAnnotation);
-        builder.WithLifeCycleCommands();
         return builder;
     }
 
@@ -227,7 +226,7 @@ public static class ContainerResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">Builder for the container resource.</param>
-    /// <param name="lifetime">The lifetime behavior of the container resource (defaults behavior is <see cref="ContainerLifetime.Default"/>)</param>
+    /// <param name="lifetime">The lifetime behavior of the container resource. The defaults behavior is <see cref="ContainerLifetime.Session"/>.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <example>
     /// Marking a container resource to have a <see cref="ContainerLifetime.Persistent"/> lifetime.
@@ -349,7 +348,7 @@ public static class ContainerResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, string name, string contextPath, string? dockerfilePath = null, string? stage = null)
+    public static IResourceBuilder<ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, string? dockerfilePath = null, string? stage = null)
     {
         return builder.AddContainer(name, "placeholder") // Image name will be replaced by WithDockerfile.
                       .WithDockerfile(contextPath, dockerfilePath, stage);
@@ -421,7 +420,7 @@ public static class ContainerResourceBuilderExtensions
     /// <summary>
     /// Adds a build argument when the container is built from a Dockerfile.
     /// </summary>
-    /// <typeparam name="T">The type of container resoruce.</typeparam>
+    /// <typeparam name="T">The type of container resource.</typeparam>
     /// <param name="builder">The resource builder for the container resource.</param>
     /// <param name="name">The name of the build argument.</param>
     /// <param name="value">The resource builder for a parameter resource.</param>
@@ -460,7 +459,7 @@ public static class ContainerResourceBuilderExtensions
     /// <summary>
     /// Adds a secret build argument when the container is built from a Dockerfile.
     /// </summary>
-    /// <typeparam name="T">The type of container resoruce.</typeparam>
+    /// <typeparam name="T">The type of container resource.</typeparam>
     /// <param name="builder">The resource builder for the container resource.</param>
     /// <param name="name">The name of the secret build argument.</param>
     /// <param name="value">The resource builder for a parameter resource.</param>

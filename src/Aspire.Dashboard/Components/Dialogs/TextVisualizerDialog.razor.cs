@@ -54,7 +54,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        await ThemeManager.EnsureEffectiveThemeAsync();
+        await ThemeManager.EnsureInitializedAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -262,5 +262,20 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
     }
 
     public record StringLogLine(int LineNumber, string Content, bool IsFormatted);
+
+    public static async Task OpenDialogAsync(ViewportInformation viewportInformation, IDialogService dialogService, string valueDescription, string value)
+    {
+        var width = viewportInformation.IsDesktop ? "75vw" : "100vw";
+        var parameters = new DialogParameters
+        {
+            Title = valueDescription,
+            Width = $"min(1000px, {width})",
+            TrapFocus = true,
+            Modal = true,
+            PreventScroll = true,
+        };
+
+        await dialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(value, valueDescription), parameters);
+    }
 }
 

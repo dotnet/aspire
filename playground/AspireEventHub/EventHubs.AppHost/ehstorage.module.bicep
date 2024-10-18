@@ -5,8 +5,8 @@ param principalId string
 
 param principalType string
 
-resource ehstorage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
-  name: toLower(take('ehstorage${uniqueString(resourceGroup().id)}', 24))
+resource ehstorage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
+  name: take('ehstorage${uniqueString(resourceGroup().id)}', 24)
   kind: 'StorageV2'
   location: location
   sku: {
@@ -25,7 +25,7 @@ resource ehstorage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   }
 }
 
-resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01' = {
+resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
   name: 'default'
   parent: ehstorage
 }

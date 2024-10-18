@@ -1,5 +1,5 @@
 <Project DefaultTargets="Build">
-  <!-- Wrapper project to install workloads for testing -->
+  <!-- Wrapper project to install sdks for testing -->
 
   <Target Name="Build">
     <PropertyGroup>
@@ -7,7 +7,7 @@
     </PropertyGroup>
 
     <MSBuild Projects="Aspire.EndToEnd.Tests\Aspire.EndToEnd.Tests.csproj"
-             Targets="InstallWorkloadUsingArtifacts"
-             Properties="Configuration=$(Configuration);TestUsingWorkloads=true" />
+             Targets="InstallSdksForTemplateTesting"
+             Properties="Configuration=$(Configuration)" />
   </Target>
 </Project>

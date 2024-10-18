@@ -25,6 +25,8 @@ public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, Azur
 
     protected override bool SupportsKeyedRegistrations => true;
 
+    protected override string? ConfigurationSectionName => "Aspire:Azure:Messaging:ServiceBus";
+
     protected override string ValidJsonConfig => """
         {
           "Aspire": {
@@ -38,7 +40,7 @@ public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, Azur
                     "EnableCrossEntityTransactions": true,
                     "RetryOptions": {
                       "Mode": "Fixed",
-                      "MaxDelay": "00:03"  
+                      "MaxDelay": "00:03"
                     },
                     "TransportType": "AmqpWebSockets"
                   }

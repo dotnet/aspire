@@ -13,6 +13,73 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresDocker]
+    public async Task ResourceThatFailsToStartDueToExceptionDoesNotCauseStartAsyncToThrow()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+        var throwingResource = builder.AddContainer("throwingresource", "doesnotmatter")
+                              .WithEnvironment(ctx => throw new InvalidOperationException("BOOM!"));
+        var dependingContainerResource = builder.AddContainer("dependingcontainerresource", "doesnotmatter")
+                                       .WaitFor(throwingResource);
+        var dependingExecutableResource = builder.AddExecutable("dependingexecutableresource", "doesnotmatter", "alsodoesntmatter")
+                                       .WaitFor(throwingResource);
+
+        var abortCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        using var app = builder.Build();
+        await app.StartAsync(abortCts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceAsync(throwingResource.Resource.Name, KnownResourceStates.FailedToStart, abortCts.Token);
+        await rns.WaitForResourceAsync(dependingContainerResource.Resource.Name, KnownResourceStates.FailedToStart, abortCts.Token);
+        await rns.WaitForResourceAsync(dependingExecutableResource.Resource.Name, KnownResourceStates.FailedToStart, abortCts.Token);
+
+        await app.StopAsync(abortCts.Token);
+    }
+
+    [Fact]
+    public void ResourceCannotWaitForItself()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resource = builder.AddResource(new CustomResource("test"));
+
+        var waitForEx = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            resource.WaitFor(resource);
+        });
+
+        Assert.Equal("The 'test' resource cannot wait for itself.", waitForEx.Message);
+
+        var waitForCompletionEx = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            resource.WaitForCompletion(resource);
+        });
+
+        Assert.Equal("The 'test' resource cannot wait for itself.", waitForCompletionEx.Message);
+    }
+
+    [Fact]
+    public void ResourceCannotWaitForItsParent()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var parentResourceBuilder = builder.AddResource(new CustomResource("parent"));
+        var childResourceBuilder = builder.AddResource(new CustomChildResource("child", parentResourceBuilder.Resource));
+
+        var waitForEx = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            childResourceBuilder.WaitFor(parentResourceBuilder);
+        });
+
+        Assert.Equal("The 'child' resource cannot wait for its parent 'parent'.", waitForEx.Message);
+
+        var waitForCompletionEx = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            childResourceBuilder.WaitForCompletion(parentResourceBuilder);
+        });
+
+        Assert.Equal("The 'child' resource cannot wait for its parent 'parent'.", waitForCompletionEx.Message);
+    }
+
+    [Fact]
+    [RequiresDocker]
     public async Task EnsureDependentResourceMovesIntoWaitingState()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
@@ -272,7 +339,30 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
-    private sealed class CustomResource(string name) : Resource(name), IResourceWithConnectionString
+    [Fact]
+    public void WaitForOnChildResourceAddsWaitAnnotationPointingToParent()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var parentResource = builder.AddResource(new CustomResource("parent"));
+        var childResource = builder.AddResource(new CustomChildResource("child", parentResource.Resource));
+        var containerResource = builder.AddContainer("container", "image", "tag")
+                                       .WaitFor(childResource);
+
+        Assert.True(containerResource.Resource.TryGetAnnotationsOfType<WaitAnnotation>(out var waitAnnotations));
+
+        Assert.Collection(
+            waitAnnotations,
+            a => Assert.Equal(a.Resource, parentResource.Resource),
+            a => Assert.Equal(a.Resource, childResource.Resource)
+            );
+    }
+
+    private sealed class CustomChildResource(string name, CustomResource parent) : Resource(name), IResourceWithParent<CustomResource>, IResourceWithWaitSupport
+    {
+        public CustomResource Parent => parent;
+    }
+
+    private sealed class CustomResource(string name) : Resource(name), IResourceWithConnectionString, IResourceWithWaitSupport
     {
         public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"foo");
     }
