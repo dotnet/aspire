@@ -151,6 +151,11 @@ public sealed class DashboardClientTests
 
     private DashboardClient CreateResourceServiceClient()
     {
-        return new DashboardClient(NullLoggerFactory.Instance, _configuration, _dashboardOptions, s_timeProvider, new MockKnownPropertyLookup());
+        return new DashboardClient(NullLoggerFactory.Instance, _configuration, _dashboardOptions, new TestDashboardClientStatus(), s_timeProvider, new MockKnownPropertyLookup());
+    }
+
+    private sealed class TestDashboardClientStatus : IDashboardClientStatus
+    {
+        public bool IsEnabled => true;
     }
 }

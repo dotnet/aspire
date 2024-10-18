@@ -8,17 +8,8 @@ namespace Aspire.Dashboard.Model;
 /// <summary>
 /// Provides data about active resources to external components, such as the dashboard.
 /// </summary>
-public interface IDashboardClient : IAsyncDisposable
+public interface IDashboardClient : IDashboardClientStatus, IAsyncDisposable
 {
-    /// <summary>
-    /// Gets whether this client object is enabled for use.
-    /// </summary>
-    /// <remarks>
-    /// Users of this client should check <see cref="IsEnabled"/> before calling
-    /// any other members of this interface, to avoid exceptions.
-    /// </remarks>
-    bool IsEnabled { get; }
-
     Task WhenConnected { get; }
 
     /// <summary>
