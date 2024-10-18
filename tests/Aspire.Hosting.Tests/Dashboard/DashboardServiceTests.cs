@@ -125,46 +125,6 @@ public class DashboardServiceTests
     }
 
     [Fact]
-    public async Task CreateResource_NoChild_WithoutHealthChecks_WithInitialSnapshot_HealthStatusReportedCorrectly()
-    {
-         // Arrange
-        var resourceLoggerService = new ResourceLoggerService();
-        var resourceNotificationService = new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, new TestHostApplicationLifetime(), new ServiceCollection().BuildServiceProvider(), resourceLoggerService);
-        await using var dashboardServiceData = new DashboardServiceData(resourceNotificationService, resourceLoggerService, NullLogger<DashboardServiceData>.Instance, new DashboardCommandExecutor(new ServiceCollection().BuildServiceProvider()));
-        var dashboardService = new DashboardService(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), NullLogger<DashboardService>.Instance);
-
-        var testResource = new TestResource("test-resource");
-        using var builder = TestDistributedApplicationBuilder.Create();
-        builder.AddResource(testResource)
-            .WithInitialState(new CustomResourceSnapshot
-            {
-                ResourceType = string.Empty,
-                Properties = [],
-                HealthStatus = HealthStatus.Degraded,
-            });
-
-        await resourceNotificationService.PublishUpdateAsync(testResource, s => { return s with { State = new ResourceStateSnapshot("Running", null) }; });
-
-        var cts = new CancellationTokenSource();
-        var context = TestServerCallContext.Create(cancellationToken: cts.Token);
-        var writer = new TestServerStreamWriter<WatchResourcesUpdate>(context);
-
-        // Act
-        var task = dashboardService.WatchResources(
-            new WatchResourcesRequest(),
-            writer,
-            context);
-
-        // Assert
-        var initialRead = await writer.ReadNextAsync();
-        var initialSnapshot = Assert.Single(initialRead.InitialData.Resources);
-        Assert.True(initialSnapshot.HasHealthStatus);
-        Assert.Equal(ProtoHealthStatus.Degraded, initialSnapshot.HealthStatus);
-
-        await CancelTokenAndAwaitTask(cts, task);
-    }
-
-    [Fact]
     public async Task CreateResource_NoChild_WithHealthChecks_ResourceImmediatelyReturnsFakeHealthReports_ThenUpdates()
     {
         // Arrange

@@ -35,7 +35,8 @@ public sealed class ResourceViewModel
     public required FrozenDictionary<string, ResourcePropertyViewModel> Properties { get; init; }
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
     /// <summary>The health status of the resource. <see langword="null"/> indicates that health status is expected but not yet available.</summary>
-    public required HealthStatus? HealthStatus { get; init; }
+    public required HealthStatus? HealthStatus { private get; init; }
+    public HealthStatus? EffectiveHealthStatus => GetEffectiveHealthStatus();
     public required ImmutableArray<HealthReportViewModel> HealthReports { get; init; }
     public KnownResourceState? KnownState { get; init; }
 
@@ -43,6 +44,21 @@ public sealed class ResourceViewModel
     {
         // TODO let ResourceType define the additional data values we include in searches
         return Name.Contains(filter, StringComparisons.UserTextSearch);
+    }
+
+    private HealthStatus? GetEffectiveHealthStatus()
+    {
+        if (HealthStatus is not null)
+        {
+            return HealthStatus;
+        }
+
+        if (KnownState is KnownResourceState.Running && HealthReports.Length == 0)
+        {
+            return Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy;
+        }
+
+        return null;
     }
 
     public static string GetResourceName(ResourceViewModel resource, IDictionary<string, ResourceViewModel> allResources)

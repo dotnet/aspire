@@ -62,13 +62,13 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
             icon = new Icons.Filled.Size16.Circle();
             color = Color.Info;
         }
-        else if (resource.HealthStatus is null)
+        else if (resource.EffectiveHealthStatus is null)
         {
             // If we are waiting for a health check, show a progress bar and consider the resource unhealthy
             icon = new Icons.Filled.Size16.CheckmarkCircleWarning();
             color = Color.Warning;
         }
-        else if (resource.HealthStatus is not HealthStatus.Healthy)
+        else if (resource.EffectiveHealthStatus is not HealthStatus.Healthy)
         {
             icon = new Icons.Filled.Size16.CheckmarkCircleWarning();
             color = Color.Warning;
@@ -116,7 +116,7 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
                 return loc.GetString(nameof(Columns.StateColumnResourceExited), resource.ResourceType);
             }
         }
-        else if (resource is { KnownState: KnownResourceState.Running, HealthStatus: not HealthStatus.Healthy })
+        else if (resource is { KnownState: KnownResourceState.Running, EffectiveHealthStatus: not HealthStatus.Healthy })
         {
             // Resource is running but not healthy (initializing).
             return loc[nameof(Columns.RunningAndUnhealthyResourceStateToolTip)];
@@ -136,7 +136,7 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
         return resource switch
         {
             { State: null or "" } => loc[Columns.UnknownStateLabel],
-            { KnownState: KnownResourceState.Running, HealthStatus: not HealthStatus.Healthy } => $"{resource.State.Humanize()} ({(resource.HealthStatus ?? HealthStatus.Unhealthy).Humanize()})",
+            { KnownState: KnownResourceState.Running, EffectiveHealthStatus: not HealthStatus.Healthy } => $"{resource.State.Humanize()} ({(resource.EffectiveHealthStatus ?? HealthStatus.Unhealthy).Humanize()})",
             _ => resource.State.Humanize()
         };
     }

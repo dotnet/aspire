@@ -352,7 +352,6 @@ public class ResourceNotificationService
             var newState = stateFactory(previousState);
 
             newState = UpdateCommands(resource, newState);
-            newState = UpdateHealthStatus(resource, newState);
 
             notificationState.LastSnapshot = newState;
 
@@ -388,43 +387,6 @@ public class ResourceNotificationService
         }
 
         return Task.CompletedTask;
-    }
-
-    /// <summary>
-    /// Update resource snapshot health status if the resource is running with no health checks.
-    /// </summary>
-    private static CustomResourceSnapshot UpdateHealthStatus(IResource resource, CustomResourceSnapshot previousState)
-    {
-        // We can compute the resource health status based on its health reports if it
-        // - has no health checks
-        // - has an initial null health status (wasn't set by an initial snapshot)
-        // - is in the running state
-        //
-        // Since health reports may have been manually added
-        // resource health status uses the same algorithm as in ResourceHealthCheckService
-        // computing the health status based on the health reports reported
-        // and defaulting to Healthy
-        if (previousState.State?.Text == KnownResourceStates.Running)
-        {
-            var hasHealthChecks = resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out _);
-
-            if (!hasHealthChecks)
-            {
-                var initialHealthStatus = resource.TryGetLastAnnotation<ResourceSnapshotAnnotation>(out var snapshotAnnotation) ? snapshotAnnotation.InitialSnapshot.HealthStatus : null;
-
-                // maybe the user has set a health status in the initial snapshot
-                // if so we should default to the initial health status
-                if (initialHealthStatus is null)
-                {
-                    return previousState with
-                    {
-                        HealthStatus = previousState.HealthReports.MinBy(r => r.Status)?.Status ?? HealthStatus.Healthy
-                    };
-                }
-            }
-        }
-
-        return previousState;
     }
 
     /// <summary>
