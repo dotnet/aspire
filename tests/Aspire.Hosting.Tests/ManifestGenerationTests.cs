@@ -235,7 +235,7 @@ public class ManifestGenerationTests
             .WithImage("image/name");
         // resource.WithHttpEndpoint(8000, 8000, endpointName); // Throws when calling GetEndpoint() ???
         resource.WithEndpoint(endpointName, e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 8000));
-        resource.WithProbe(ProbeType.Liveness, resource.GetEndpoint(endpointName), "/health");
+        resource.WithProbe(endpointName, ProbeType.Liveness, "/health");
 
         program.Build();
 
