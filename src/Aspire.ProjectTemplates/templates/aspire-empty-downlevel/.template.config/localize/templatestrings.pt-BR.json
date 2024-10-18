@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire 8 Empty App",
-  "description": "A project template for creating an empty .NET Aspire 8 app.",
+  "name": "Aplicativo vazio do .NET Aspire 8",
+  "description": "Um modelo de projeto para criar um aplicativo vazio do .NET Aspire 8.",
   "symbols/Framework/description": "A estrutura de destino para o projeto.",
   "symbols/Framework/choices/net8.0/description": "net8.0 de destino",
   "symbols/appHostHttpPort/description": "Número da porta a ser usado para o ponto de extremidade HTTP launchSettings.json do projeto AppHost.",
