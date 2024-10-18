@@ -30,7 +30,6 @@ public class TemplatesCustomHive
                                         : Path.Combine(AppContext.BaseDirectory, "templates");
         _customHiveDirectory = Path.Combine(customHiveBaseDirectory, customHiveDirName);
         _stampFilePath = Path.Combine(_customHiveDirectory, ".stamp-installed");
-
     }
 
     public async Task EnsureInstalledAsync(BuildEnvironment buildEnvironment)
