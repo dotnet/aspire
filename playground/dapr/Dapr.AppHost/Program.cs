@@ -20,6 +20,7 @@ builder.AddProject<Projects.DaprServiceB>("serviceb")
 
 // console app with no appPort (sender only)
 builder.AddProject<Projects.DaprServiceC>("servicec")
+       .WithReference(stateStore)
        .WithDaprSidecar();
 
 #if !SKIP_DASHBOARD_REFERENCE

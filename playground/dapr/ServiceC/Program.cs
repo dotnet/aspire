@@ -21,7 +21,7 @@ Console.WriteLine("Goodbye, World!");
 
 namespace Test
 {
-    public sealed class Worker(DaprClient dapr) : BackgroundService
+    public sealed class Worker(ILogger<Worker> logger, DaprClient dapr) : BackgroundService
     {
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
@@ -30,9 +30,9 @@ namespace Test
             while (!stoppingToken.IsCancellationRequested)
             {
                 var state = await dapr.GetStateAsync<string?>(
-                    "statestore", "key", cancellationToken: stoppingToken);
+                    "statestore", "cache", cancellationToken: stoppingToken);
 
-                Console.WriteLine($"State: {state ?? "<null>"}");
+                logger.LogInformation("State: {0}", state ?? "<null>");
 
                 await Task.Delay(1000, stoppingToken);
             }
