@@ -61,7 +61,7 @@ public sealed class ResourceViewModel
         }
     }
 
-    private static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportViewModel> healthReports, KnownResourceState? state)
+    internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportViewModel> healthReports, KnownResourceState? state)
     {
         if (state != KnownResourceState.Running)
         {

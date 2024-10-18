@@ -1,11 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using Aspire.Dashboard.Model;
 using Aspire.ResourceService.Proto.V1;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
+using Enum = System.Enum;
+using HealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
 
 namespace Aspire.Dashboard.Tests.Model;
 
@@ -13,6 +16,19 @@ public sealed class ResourceViewModelTests
 {
     private static readonly DateTime s_dateTime = new(2000, 12, 30, 23, 59, 59, DateTimeKind.Utc);
     private static readonly BrowserTimeProvider s_timeProvider = new(NullLoggerFactory.Instance);
+
+    [Theory]
+    [InlineData(KnownResourceState.Starting, null, null)]
+    [InlineData(KnownResourceState.Starting, null, new string?[]{null})]
+    [InlineData(KnownResourceState.Running, HealthStatus.Healthy, new string?[] {"Healthy"})]
+    [InlineData(KnownResourceState.Running, HealthStatus.Unhealthy, new string?[] {null})]
+    [InlineData(KnownResourceState.Running, HealthStatus.Degraded, new string?[] {"Healthy", "Degraded"})]
+    public void Resource_WithHealthReportAndState_ReturnsCorrectHealthStatus(KnownResourceState? state, HealthStatus? expectedStatus, string?[]? healthStatusStrings)
+    {
+        var reports = healthStatusStrings?.Select<string?, HealthReportViewModel>((h, i) => new HealthReportViewModel(i.ToString(), h is null ? null : Enum.Parse<HealthStatus>(h), null, null)).ToImmutableArray() ?? [];
+        var actualStatus = ResourceViewModel.ComputeHealthStatus(reports, state);
+        Assert.Equal(expectedStatus, actualStatus);
+    }
 
     [Fact]
     public void ToViewModel_EmptyEnvVarName_Success()
