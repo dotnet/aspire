@@ -42,7 +42,6 @@ public static class PythonAppResourceBuilderExtensions
     /// You can instrument your project by adding the <c>opentelemetry-distro</c>, and <c>opentelemetry-exporter-otlp</c> to
     /// your Python project.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Add a python app or executable to the application model. In this example the python code entry point is located in the <c>PythonProject</c> directory
     /// if this path is relative then it is assumed to be relative to the AppHost directory, and the virtual environment path if relative
@@ -57,6 +56,7 @@ public static class PythonAppResourceBuilderExtensions
     /// builder.Build().Run(); 
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath, params string[] scriptArgs)
     {
@@ -91,7 +91,6 @@ public static class PythonAppResourceBuilderExtensions
     /// You can instrument your project by adding the <c>opentelemetry-distro</c>, and <c>opentelemetry-exporter-otlp</c> to
     /// your Python project.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Add a python app or executable to the application model. In this example the python code is located in the <c>PythonProject</c> directory
     /// if this path is relative then it is assumed to be relative to the AppHost directory, and the virtual environment path if relative
@@ -106,6 +105,7 @@ public static class PythonAppResourceBuilderExtensions
     /// builder.Build().Run(); 
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath,
         string virtualEnvironmentPath, params string[] scriptArgs)
