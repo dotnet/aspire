@@ -70,7 +70,10 @@ public sealed class ResourceViewModel
         return healthReports.Length == 0
             // If there are no health reports and the resource is running, assume it's healthy.
             ? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy
-            : healthReports.MinBy(r => r.HealthStatus)?.HealthStatus;
+            // If there are health reports, the health status is the minimum of the health status of the reports.
+            // If any of the reports is null (first health check has not returned), the health status is unhealthy.
+            : healthReports.MinBy(r => r.HealthStatus)?.HealthStatus
+              ?? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy;
     }
 
     internal bool MatchesFilter(string filter)
