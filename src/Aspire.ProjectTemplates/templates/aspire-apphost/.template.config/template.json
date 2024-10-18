@@ -17,7 +17,7 @@
     "type": "project"
   },
   "precedence": "9000",
-  "identity": "Aspire.AppHost.CSharp.8.8",
+  "identity": "Aspire.AppHost.CSharp.8.0",
   "thirdPartyNotices": "https://aka.ms/dotnet/aspire/third-party-notices",
   "groupIdentity": "Aspire.AppHost",
   "guids": [

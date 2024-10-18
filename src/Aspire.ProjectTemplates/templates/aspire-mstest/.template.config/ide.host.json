@@ -6,7 +6,8 @@
     {
       "id": "AspireVersion",
       "isVisible": true,
-      "persistenceScope": "templateGroup"
+      "persistenceScope": "shared",
+      "persistenceScopeName": "aspireTemplates"
     }
   ],
   "unsupportedHosts": [
