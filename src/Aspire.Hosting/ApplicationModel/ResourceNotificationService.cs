@@ -399,10 +399,11 @@ public class ResourceNotificationService
         var hasInitialSnapshot = resource.TryGetLastAnnotation<ResourceSnapshotAnnotation>(out _);
 
         // A resource is also healthy if it
+        // - has a null health status (wasn't set by a health check nor initial snapshot)
         // - has no health check annotations
         // - is in the running state
         // - was not started with an initial snapshot
-        if (previousState.HealthStatus is not HealthStatus.Healthy
+        if (previousState.HealthStatus is null
             && !hasHealthChecks
             && previousState.State?.Text == KnownResourceStates.Running
             && !hasInitialSnapshot)
