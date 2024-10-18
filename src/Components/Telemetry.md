@@ -5,9 +5,9 @@ Aspire.Azure.AI.OpenAI:
   - "Azure.Core"
   - "Azure.Identity"
 - Activity source names:
-  - "Azure.AI.OpenAI.*"
+  - "OpenAI.*"
 - Metric names:
-  - none (currently not supported by the Azure SDK)
+  - "OpenAI.*"
 
 Aspire.Azure.Data.Tables:
 - Log categories:
@@ -256,6 +256,14 @@ Aspire.Npgsql.EntityFrameworkCore.PostgreSQL:
     - "db.client.connections.pending_requests"
     - "db.client.connections.timeouts"
     - "db.client.connections.usage"
+
+Aspire.OpenAI:
+- Log categories:
+  - none  
+- Activity source names:
+  - "OpenAI.*"
+- Metric names:
+  - "OpenAI.*"
 
 Aspire.Oracle.EntityFrameworkCore:
 - Log categories:

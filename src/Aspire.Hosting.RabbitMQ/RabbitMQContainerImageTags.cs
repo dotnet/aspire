@@ -5,8 +5,15 @@ namespace Aspire.Hosting.RabbitMQ;
 
 internal static class RabbitMQContainerImageTags
 {
+    /// <summary>docker.io</summary>
     public const string Registry = "docker.io";
+
+    /// <summary>library/rabbitmq</summary>
     public const string Image = "library/rabbitmq";
-    public const string Tag = "3.13";
-    public const string TagManagement = $"{Tag}-management";
+
+    /// <summary>4.0</summary>
+    public const string Tag = "4.0";
+
+    /// <summary><inheritdoc cref="Tag"/>-management</summary>
+    public const string ManagementTag = $"{Tag}-management";
 }

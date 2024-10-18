@@ -20,14 +20,19 @@ partial class Resource
             StateStyle = snapshot.StateStyle ?? "",
         };
 
-        if (snapshot.HealthState is HealthStateKind healthState)
-        {
-            resource.HealthState = healthState;
-        }
-
         if (snapshot.CreationTimeStamp.HasValue)
         {
             resource.CreatedAt = Timestamp.FromDateTime(snapshot.CreationTimeStamp.Value.ToUniversalTime());
+        }
+
+        if (snapshot.StartTimeStamp.HasValue)
+        {
+            resource.StartedAt = Timestamp.FromDateTime(snapshot.StartTimeStamp.Value.ToUniversalTime());
+        }
+
+        if (snapshot.StopTimeStamp.HasValue)
+        {
+            resource.StoppedAt = Timestamp.FromDateTime(snapshot.StopTimeStamp.Value.ToUniversalTime());
         }
 
         foreach (var env in snapshot.Environment)
@@ -42,14 +47,14 @@ partial class Resource
 
         foreach (var property in snapshot.Properties)
         {
-            resource.Properties.Add(new ResourceProperty { Name = property.Name, Value = property.Value });
+            resource.Properties.Add(new ResourceProperty { Name = property.Name, Value = property.Value, IsSensitive = property.IsSensitive });
         }
 
         foreach (var volume in snapshot.Volumes)
         {
             resource.Volumes.Add(new Volume
             {
-                Source = volume.Source,
+                Source = volume.Source ?? string.Empty,
                 Target = volume.Target,
                 MountType = volume.MountType,
                 IsReadOnly = volume.IsReadOnly
@@ -58,10 +63,49 @@ partial class Resource
 
         foreach (var command in snapshot.Commands)
         {
-            resource.Commands.Add(new ResourceCommand { CommandType = command.Type, DisplayName = command.DisplayName, IconName = command.IconName, IsHighlighted = command.IsHighlighted, State = MapCommandState(command.State) });
+            resource.Commands.Add(new ResourceCommand { Name = command.Name, DisplayName = command.DisplayName, DisplayDescription = command.DisplayDescription ?? string.Empty, Parameter = ResourceSnapshot.ConvertToValue(command.Parameter), ConfirmationMessage = command.ConfirmationMessage ?? string.Empty, IconName = command.IconName ?? string.Empty, IconVariant = MapIconVariant(command.IconVariant), IsHighlighted = command.IsHighlighted, State = MapCommandState(command.State) });
+        }
+
+        if (snapshot.HealthStatus is not null)
+        {
+            resource.HealthStatus = MapHealthStatus(snapshot.HealthStatus.Value);
+        }
+
+        foreach (var report in snapshot.HealthReports)
+        {
+            var healthReport = new HealthReport { Key = report.Name, Description = report.Description ?? "", Exception = report.ExceptionText ?? "" };
+
+            if (report.Status is not null)
+            {
+                healthReport.Status = MapHealthStatus(report.Status.Value);
+            }
+
+            resource.HealthReports.Add(healthReport);
         }
 
         return resource;
+
+        static HealthStatus MapHealthStatus(Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus healthStatus)
+        {
+            return healthStatus switch
+            {
+                Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy => HealthStatus.Healthy,
+                Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded => HealthStatus.Degraded,
+                Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy => HealthStatus.Unhealthy,
+                _ => throw new InvalidOperationException("Unknown health status: " + healthStatus),
+            };
+        }
+    }
+
+    private static IconVariant MapIconVariant(Hosting.ApplicationModel.IconVariant? iconVariant)
+    {
+        return iconVariant switch
+        {
+            Hosting.ApplicationModel.IconVariant.Regular => IconVariant.Regular,
+            Hosting.ApplicationModel.IconVariant.Filled => IconVariant.Filled,
+            null => IconVariant.Regular,
+            _ => throw new InvalidOperationException("Unexpected icon variant: " + iconVariant)
+        };
     }
 
     private static ResourceCommandState MapCommandState(Hosting.ApplicationModel.ResourceCommandState state)
@@ -74,5 +118,4 @@ partial class Resource
             _ => throw new InvalidOperationException("Unexpected state: " + state)
         };
     }
-
 }

@@ -29,7 +29,7 @@ public static class AspireSqlServerSqlClientExtensions
     /// <remarks>Reads the configuration from "Aspire:Microsoft:Data:SqlClient" section.</remarks>
     /// <exception cref="InvalidOperationException">If required <see cref="MicrosoftDataSqlClientSettings.ConnectionString"/>  is not provided in configuration section.</exception>
     public static void AddSqlServerClient(this IHostApplicationBuilder builder, string connectionName, Action<MicrosoftDataSqlClientSettings>? configureSettings = null)
-        => AddSqlClient(builder, DefaultConfigSectionName, configureSettings, connectionName, serviceKey: null);
+        => AddSqlClient(builder, configureSettings, connectionName, serviceKey: null);
 
     /// <summary>
     /// Registers 'Scoped' <see cref="SqlConnection" /> factory for given <paramref name="name"/> for connecting Azure SQL, MsSQL database using Microsoft.Data.SqlClient.
@@ -44,16 +44,19 @@ public static class AspireSqlServerSqlClientExtensions
     {
         ArgumentNullException.ThrowIfNull(name);
 
-        AddSqlClient(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, connectionName: name, serviceKey: name);
+        AddSqlClient(builder, configureSettings, connectionName: name, serviceKey: name);
     }
 
-    private static void AddSqlClient(IHostApplicationBuilder builder, string configurationSectionName,
+    private static void AddSqlClient(IHostApplicationBuilder builder,
         Action<MicrosoftDataSqlClientSettings>? configure, string connectionName, object? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         MicrosoftDataSqlClientSettings settings = new();
-        builder.Configuration.GetSection(configurationSectionName).Bind(settings);
+        var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
+        configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {

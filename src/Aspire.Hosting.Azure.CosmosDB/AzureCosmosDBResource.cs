@@ -9,8 +9,8 @@ namespace Aspire.Hosting;
 /// <summary>
 /// A resource that represents an Azure Cosmos DB.
 /// </summary>
-public class AzureCosmosDBResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
-    AzureConstructResource(name, configureConstruct),
+public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
+    AzureProvisioningResource(name, configureInfrastructure),
     IResourceWithConnectionString,
     IResourceWithEndpoints
 {
@@ -33,7 +33,7 @@ public class AzureCosmosDBResource(string name, Action<ResourceModuleConstruct> 
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         IsEmulator
-        ? ReferenceExpression.Create($"{AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint.Port)}")
+        ? AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint)
         : ReferenceExpression.Create($"{ConnectionString}");
 }
 

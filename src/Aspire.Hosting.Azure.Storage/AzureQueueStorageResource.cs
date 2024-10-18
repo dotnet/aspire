@@ -30,11 +30,16 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
     {
         if (Parent.IsEmulator)
         {
-            target[connectionName] = Parent.GetEmulatorConnectionString();
+            var connectionString = Parent.GetEmulatorConnectionString();
+            target[connectionName] = connectionString;
+            target[$"{AzureStorageResource.QueuesConnectionKeyPrefix}__{connectionName}__ConnectionString"] = connectionString;
         }
         else
         {
+            // Injected to support Azure Functions listener.
             target[$"{connectionName}__queueServiceUri"] = Parent.QueueEndpoint;
+            // Injected to support Aspire client integration for Azure Storage Queues.
+            target[$"{AzureStorageResource.QueuesConnectionKeyPrefix}__{connectionName}__ServiceUri"] = Parent.QueueEndpoint;
         }
     }
 }

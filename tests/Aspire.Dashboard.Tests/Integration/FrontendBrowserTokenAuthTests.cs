@@ -36,7 +36,7 @@ public class FrontendBrowserTokenAuthTests
         });
         await app.StartAsync();
 
-        using var client = new HttpClient { BaseAddress = new Uri($"http://{app.FrontendEndPointAccessor().EndPoint}") };
+        using var client = new HttpClient { BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}") };
 
         // Act
         var response = await client.GetAsync("/");
@@ -58,7 +58,7 @@ public class FrontendBrowserTokenAuthTests
         });
         await app.StartAsync();
 
-        using var client = new HttpClient { BaseAddress = new Uri($"http://{app.FrontendEndPointAccessor().EndPoint}") };
+        using var client = new HttpClient { BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}") };
 
         // Act 1
         var response1 = await client.GetAsync(DashboardUrls.LoginUrl(returnUrl: DashboardUrls.TracesUrl(), token: apiKey));
@@ -113,7 +113,7 @@ public class FrontendBrowserTokenAuthTests
         });
         await app.StartAsync();
 
-        using var client = new HttpClient { BaseAddress = new Uri($"http://{app.FrontendEndPointAccessor().EndPoint}") };
+        using var client = new HttpClient { BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}") };
 
         // Act
         var response = await client.GetAsync(DashboardUrls.LoginUrl(returnUrl: DashboardUrls.TracesUrl(), token: "Wrong!"));
@@ -138,7 +138,7 @@ public class FrontendBrowserTokenAuthTests
         });
         await app.StartAsync();
 
-        using var client = new HttpClient { BaseAddress = new Uri($"http://{app.FrontendEndPointAccessor().EndPoint}") };
+        using var client = new HttpClient { BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}") };
 
         // Act
         var response = await client.PostAsync("/api/validatetoken?token=" + requestToken, content: null);
@@ -207,11 +207,63 @@ public class FrontendBrowserTokenAuthTests
                 Assert.Equal("OTLP server is unsecured. Untrusted apps can send telemetry to the dashboard. For more information, visit https://go.microsoft.com/fwlink/?linkid=2267030", GetValue(w.State, "{OriginalFormat}"));
                 Assert.Equal(LogLevel.Warning, w.LogLevel);
             });
+    }
 
-        object? GetValue(object? values, string key)
+    [Theory]
+    [InlineData("http://+:0", "localhost")]
+    [InlineData("http://0.0.0.0:0", "localhost")]
+    [InlineData("http://127.0.0.1:0", "127.0.0.1")]
+    [InlineData("http://aspire-test-hostname:0", "aspire-test-hostname")]
+    public async Task LogOutput_AnyIP_LoginLinkLocalhost(string frontendUrl, string linkHost)
+    {
+        // Arrange
+        var testSink = new TestSink();
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
         {
-            var list = values as IReadOnlyList<KeyValuePair<string, object>>;
-            return list?.SingleOrDefault(kvp => kvp.Key == key).Value;
-        }
+            config[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = frontendUrl;
+            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.BrowserToken.ToString();
+        }, testSink: testSink);
+
+        // Act
+        await app.StartAsync();
+
+        // Assert
+        var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName).ToList();
+
+        // Testing via the log template is kind of hacky. If this becomes a problem then consider adding proper log definitions and match via ID.
+        var loginLinkLog = l.Single(w => "Login to the dashboard at {DashboardLoginUrl}" == (string?)GetValue(w.State, "{OriginalFormat}"));
+
+        var uri = new Uri((string)GetValue(loginLinkLog.State, "DashboardLoginUrl")!, UriKind.Absolute);
+        var queryString = HttpUtility.ParseQueryString(uri.Query);
+        Assert.NotNull(queryString["t"]);
+
+        Assert.Equal(linkHost, uri.Host);
+    }
+
+    [Fact]
+    public async Task LogOutput_InContainer_LoginLinkContainerMessage()
+    {
+        // Arrange
+        var testSink = new TestSink();
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        {
+            config["DOTNET_RUNNING_IN_CONTAINER"] = "true";
+            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.BrowserToken.ToString();
+        }, testSink: testSink);
+
+        // Act
+        await app.StartAsync();
+
+        // Assert
+        var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName).ToList();
+
+        // Testing via the log template is kind of hacky. If this becomes a problem then consider adding proper log definitions and match via ID.
+        Assert.Single(l.Where(w => "Login to the dashboard at {DashboardLoginUrl}. The URL may need changes depending on how network access to the container is configured." == (string?)GetValue(w.State, "{OriginalFormat}")));
+    }
+
+    private static object? GetValue(object? values, string key)
+    {
+        var list = values as IReadOnlyList<KeyValuePair<string, object>>;
+        return list?.SingleOrDefault(kvp => kvp.Key == key).Value;
     }
 }

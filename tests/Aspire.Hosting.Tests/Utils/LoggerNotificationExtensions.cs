@@ -28,6 +28,14 @@ public static class LoggerNotificationExtensions
         return WaitForTextAsync(app, (log) => log.Contains(logText), resourceName, cancellationToken);
     }
 
+    public static async Task WaitForHealthyAsync<T>(this DistributedApplication app, IResourceBuilder<T> resource, CancellationToken cancellationToken = default) where T: IResource
+    {
+        ArgumentNullException.ThrowIfNull(app);
+        ArgumentNullException.ThrowIfNull(resource);
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cancellationToken);
+    }
+
     /// <summary>
     /// Waits for the specified text to be logged.
     /// </summary>

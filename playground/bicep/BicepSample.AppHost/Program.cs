@@ -11,7 +11,7 @@ AzureBicepResource? temp00 = null;
 
 var bicep1 = builder.AddBicepTemplate("test", "test.bicep")
                    .WithParameter("test", parameter)
-                   // This trick veries the output reference is working regardless of declaration order
+                   // This trick verifies the output reference is working regardless of declaration order
                    .WithParameter("p2", () => new BicepOutputReference("val0", temp00!))
                    .WithParameter("values", ["one", "two"]);
 
@@ -33,12 +33,12 @@ var blobs = storage.AddBlobs("blob");
 var tables = storage.AddTables("table");
 var queues = storage.AddQueues("queue");
 
-var sqlServer = builder.AddSqlServer("sql").AsAzureSqlDatabase().AddDatabase("db");
+var sqlServer = builder.AddAzureSqlServer("sql").AddDatabase("db");
 
 var administratorLogin = builder.AddParameter("administratorLogin");
 var administratorLoginPassword = builder.AddParameter("administratorLoginPassword", secret: true);
-var pg = builder.AddPostgres("postgres2", administratorLogin, administratorLoginPassword)
-                .AsAzurePostgresFlexibleServer()
+var pg = builder.AddAzurePostgresFlexibleServer("postgres2")
+                .WithPasswordAuthentication(administratorLogin, administratorLoginPassword)
                 .AddDatabase("db2");
 
 var cosmosDb = builder.AddAzureCosmosDB("cosmos")
@@ -51,8 +51,7 @@ var appInsights = builder.AddAzureApplicationInsights("ai", logAnalytics);
 builder.AddAzureApplicationInsights("aiwithoutlaw");
 
 // Redis takes forever to spin up...
-var redis = builder.AddRedis("redis")
-                   .AsAzureRedis();
+var redis = builder.AddAzureRedis("redis");
 
 var serviceBus = builder.AddAzureServiceBus("sb")
                         .AddQueue("queue1")

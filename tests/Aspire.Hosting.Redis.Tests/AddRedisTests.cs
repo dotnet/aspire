@@ -268,7 +268,7 @@ public class AddRedisTests
 
         var volumeAnnotation = redis.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
-        Assert.Equal("Aspire.Hosting.Tests-myRedis-data", volumeAnnotation.Source);
+        Assert.Equal($"{builder.GetVolumePrefix()}-myRedis-data", volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
@@ -390,20 +390,5 @@ public class AddRedisTests
 
         Assert.True(redis.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsAnnotations));
         Assert.NotNull(argsAnnotations.SingleOrDefault());
-    }
-
-    [Fact]
-    public void RedisInsightAcceptedEulaIsFalseByDefault()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        IResourceBuilder<RedisInsightResource>? redisInsightBuilder = null;
-        var redis = builder.AddRedis("redis").WithRedisInsight(c =>
-        {
-            redisInsightBuilder = c;
-        });
-
-        Assert.NotNull(redisInsightBuilder);
-        Assert.False(redisInsightBuilder.Resource.AcceptedEula);
     }
 }

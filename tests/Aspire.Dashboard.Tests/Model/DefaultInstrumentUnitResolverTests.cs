@@ -1,11 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Resources;
-using Microsoft.Extensions.Localization;
+using Aspire.Tests.Shared.Telemetry;
 using OpenTelemetry.Proto.Common.V1;
 using Xunit;
 
@@ -30,7 +29,7 @@ public sealed class DefaultInstrumentUnitResolverTests
         {
             Description = "Description!",
             Name = name,
-            Parent = new OtlpMeter(new InstrumentationScope { Name = "meter_name" }, new TelemetryLimitOptions()),
+            Parent = new OtlpMeter(new InstrumentationScope { Name = "meter_name" }, TelemetryTestHelpers.CreateContext()),
             Type = OtlpInstrumentType.Gauge,
             Unit = unit
         };
@@ -40,13 +39,5 @@ public sealed class DefaultInstrumentUnitResolverTests
 
         // Assert
         Assert.Equal(expected, result);
-    }
-
-    private sealed class TestStringLocalizer<T> : IStringLocalizer<T>
-    {
-        public LocalizedString this[string name] => new LocalizedString(name, $"Localized:{name}");
-        public LocalizedString this[string name, params object[] arguments] => new LocalizedString(name, $"Localized:{name}");
-
-        public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => [];
     }
 }

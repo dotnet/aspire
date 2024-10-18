@@ -1,13 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.Eventing;
 
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// This experimental event is published after all endpoints have been allocated.
+/// This event is published after all endpoints have been allocated.
 /// </summary>
 /// <param name="services">The <see cref="IServiceProvider"/> instance.</param>
 /// <param name="model">The <see cref="DistributedApplicationModel"/> instance.</param>
@@ -27,7 +26,6 @@ namespace Aspire.Hosting.ApplicationModel;
 /// });
 /// </code>
 /// </example>
-[Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
 public class AfterEndpointsAllocatedEvent(IServiceProvider services, DistributedApplicationModel model) : IDistributedApplicationEvent
 {
     /// <summary>

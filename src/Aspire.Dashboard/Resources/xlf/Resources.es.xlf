@@ -7,24 +7,44 @@
         <target state="new">Console logs</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceActionViewDetailsText">
-        <source>View details</source>
-        <target state="new">View details</target>
+      <trans-unit id="ResourceActionMetricsText">
+        <source>Metrics</source>
+        <target state="new">Metrics</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionStructuredLogsText">
+        <source>Structured logs</source>
+        <target state="new">Structured logs</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionTelemetryTooltip">
+        <source>No telemetry found for this resource.</source>
+        <target state="new">No telemetry found for this resource.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionTracesText">
+        <source>Traces</source>
+        <target state="new">Traces</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceCommandFailed">
-        <source>"{0}" command failed</source>
-        <target state="translated">Error del comando "{0}"</target>
-        <note>{0} is the display name of the command that failed</note>
+        <source>{0} "{1}" failed</source>
+        <target state="new">{0} "{1}" failed</target>
+        <note>{0} is the resource. {1} is the display name of the command.</note>
+      </trans-unit>
+      <trans-unit id="ResourceCommandStarting">
+        <source>{0} "{1}" starting</source>
+        <target state="new">{0} "{1}" starting</target>
+        <note>{0} is the resource. {1} is the display name of the command.</note>
       </trans-unit>
       <trans-unit id="ResourceCommandSuccess">
-        <source>"{0}" command succeeded</source>
-        <target state="translated">El comando "{0}" se ejecutó correctamente</target>
-        <note>{0} is the display name of the command that succeeded</note>
+        <source>{0} "{1}" succeeded</source>
+        <target state="new">{0} "{1}" succeeded</target>
+        <note>{0} is the resource. {1} is the display name of the command.</note>
       </trans-unit>
       <trans-unit id="ResourceCommandToastViewLogs">
-        <source>View Logs</source>
-        <target state="translated">Ver registros</target>
+        <source>View console logs</source>
+        <target state="needs-review-translation">Ver registros</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointUrl">
@@ -65,6 +85,11 @@
       <trans-unit id="ResourcesDetailsContainerImageProperty">
         <source>Container image</source>
         <target state="translated">Imagen de contenedor</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsContainerLifetimeProperty">
+        <source>Container lifetime</source>
+        <target state="new">Container lifetime</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerPortsProperty">
@@ -120,6 +145,11 @@
       <trans-unit id="ResourcesDetailsStateProperty">
         <source>State</source>
         <target state="translated">Estado</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsStopTimeProperty">
+        <source>Stop time</source>
+        <target state="translated">Hora de detención</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesEndpointsColumnHeader">
@@ -191,6 +221,16 @@
         <source>Type filter: Filtered</source>
         <target state="translated">Filtro de tipo: filtrado</target>
         <note />
+      </trans-unit>
+      <trans-unit id="WaitingForHealthDataMessage">
+        <source>Waiting for health data...</source>
+        <target state="new">Waiting for health data...</target>
+        <note>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
+      </trans-unit>
+      <trans-unit id="WaitingHealthDataStatusMessage">
+        <source>Waiting...</source>
+        <target state="new">Waiting...</target>
+        <note>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
       </trans-unit>
     </body>
   </file>

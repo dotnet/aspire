@@ -99,7 +99,7 @@ namespace Microsoft.CodeAnalysis.DotnetRuntime.Extensions
             switch (symbol.Kind)
             {
                 case SymbolKind.Alias:
-                    // Aliases are uber private.  They're only visible in the same file that they
+                    // Aliases are uber private. They're only visible in the same file that they
                     // were declared in.
                     return SymbolVisibility.Private;
 

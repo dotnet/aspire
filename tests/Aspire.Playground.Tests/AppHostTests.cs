@@ -138,19 +138,21 @@ public class AppHostTests
     {
         IList<TestEndpoints> candidates =
         [
-            new TestEndpoints("EventHubs.AppHost",
-                resourceEndpoints: new() { { "api", ["/alive", "/health"] } },
-                waitForTexts: [
-                    new ("eventhubns", "Emulator Service is Successfully Up"),
-                    new ("eventhubns-storage", "Azurite Table service is successfully listening"),
-                    new ("ehstorage", "Azurite Table service is successfully listening"),
-                    new ("consumer", "Completed retrieving properties for Event Hub")
-                ],
-                whenReady: TestEventHubsAppHost),
+            // Disable due to https://github.com/dotnet/aspire/issues/5959
+            //new TestEndpoints("EventHubs.AppHost",
+            //    resourceEndpoints: new() { { "api", ["/alive", "/health"] } },
+            //    waitForTexts: [
+            //        new ("eventhubns", "Emulator Service is Successfully Up"),
+            //        new ("eventhubns-storage", "Azurite Table service is successfully listening"),
+            //        new ("ehstorage", "Azurite Table service is successfully listening"),
+            //        new ("consumer", "Completed retrieving properties for Event Hub")
+            //    ],
+            //    whenReady: TestEventHubsAppHost),
             new TestEndpoints("Redis.AppHost",
-                resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/garnet/ping", "/garnet/get", "/garnet/set", "/redis/ping", "/redis/get", "/redis/set"] } },
+                resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/garnet/ping", "/garnet/get", "/garnet/set", "/redis/ping", "/redis/get", "/redis/set", "/valkey/ping", "/valkey/get", "/valkey/set"] } },
                 waitForTexts: [
                     new ("redis", "Ready to accept connections tcp"),
+                    new ("valkey", "Ready to accept connections tcp"),
                     new ("garnet", "Ready to accept connections"),
                     new ("apiservice", "Application started")
                 ]),
@@ -164,13 +166,14 @@ public class AppHostTests
                 waitForTexts: [
                     new ("milvus", "Milvus Proxy successfully initialized and ready to serve"),
                 ]),
-            new TestEndpoints("CosmosEndToEnd.AppHost",
-                resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
-                // "/ef" - disabled due to https://github.com/dotnet/aspire/issues/5415
-                waitForTexts: [
-                    new ("cosmos", "Started$"),
-                    new ("api", "Application started")
-                ]),
+            // Cosmos emulator is extremely slow to start up and unreliable in CI
+            //new TestEndpoints("CosmosEndToEnd.AppHost",
+            //    resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
+            //    // "/ef" - disabled due to https://github.com/dotnet/aspire/issues/5415
+            //    waitForTexts: [
+            //        new ("cosmos", "Started$"),
+            //        new ("api", "Application started")
+            //    ]),
             new TestEndpoints("Keycloak.AppHost",
                 resourceEndpoints: new() { { "apiservice", ["/alive", "/health"] } }),
             new TestEndpoints("Mongo.AppHost",

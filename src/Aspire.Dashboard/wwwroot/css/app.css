@@ -12,6 +12,7 @@ fluent-toolbar p {
 
 fluent-toolbar[orientation=horizontal] {
     width: 100%;
+    padding-right: calc(var(--design-unit)* 2px);
 }
 
 fluent-toolbar::part(positioning-region) {
@@ -182,6 +183,11 @@ h1 {
     /* we want less padding on mobile screens to preserve screen height for other elements */
     .page-header {
         padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 0.5px) 0;
+        width: fit-content;
+    }
+
+    .page-header > h1 {
+        white-space: normal;
     }
 
     .hidden-on-mobile {
@@ -298,6 +304,13 @@ fluent-data-grid-cell .long-inner-content {
 .version {
     text-align: end;
     font-size: small;
+    width: 100%;
+    flex-grow: 1;
+
+    /* right/bottom align the inner version text */
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: flex-end;
 }
 
 .anchor-no-padding::part(control) {
@@ -344,11 +357,16 @@ fluent-data-grid-cell .long-inner-content {
     margin-right: 3px;
 }
 
+.persistent-container-icon {
+    vertical-align: text-bottom;
+    margin-left: 4px;
+}
+
 .align-text-bottom {
     vertical-align: text-bottom;
 }
 
- .visually-hidden {
+.visually-hidden {
      top: 0;
      left: -2px;
      width: 1px;
@@ -513,6 +531,12 @@ fluent-data-grid-cell.no-ellipsis {
     padding: calc(((var(--design-unit) * 0.5) - var(--stroke-width)) * 1px) calc((var(--design-unit) - var(--stroke-width)) * 1px);
 }
 
+.telemetry-filter-button::part(content) {
+    max-width: 350px;
+    overflow: hidden;
+    text-overflow: ellipsis
+}
+
 .mobile-toolbar {
     width: 100%;
     height: max(5vh, 30px);
@@ -623,9 +647,24 @@ fluent-data-grid-cell.no-ellipsis {
 }
 
 .filter-input-container {
-    width: 75%;
+    width: 85%;
 }
 
 .layout fluent-toolbar > .fluent-input-label {
     margin-bottom: 0;
+}
+
+.action-divider {
+    display: inline;
+    height: 20px;
+}
+
+.grid-action-container {
+    display: inline-flex;
+    column-gap: 4px;
+    align-items: center;
+}
+
+.empty-data::before {
+    content: "-"
 }

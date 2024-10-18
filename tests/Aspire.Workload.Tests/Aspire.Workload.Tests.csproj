@@ -18,6 +18,13 @@
     <ExtractTestClassNamesPrefix>Aspire.Workload.Tests</ExtractTestClassNamesPrefix>
   </PropertyGroup>
 
+  <!-- Skipping the following tests classes due to https://github.com/dotnet/aspire/issues/6193 -->
+  <ItemGroup>
+    <TestClassNamesToSkipTests Include="Aspire.Workload.Tests.NewUpAndBuildStandaloneTemplateTests"/>
+    <TestClassNamesToSkipTests Include="Aspire.Workload.Tests.NewUpAndBuildSupportProjectTemplates"/>
+    <TestClassNamesToSkipTests Include="Aspire.Workload.Tests.NewUpTemplatesWithAlternateName"/>
+  </ItemGroup>
+
   <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />
 
   <ItemGroup>

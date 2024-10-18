@@ -31,7 +31,7 @@
       This is because we want to be able to re-spin the build if necessary without hitting issues of blob items clashing with each other. For this reason,
       We will pass SuppressFinalPackageVersion as true when fetching the package version so that we get back a version with a prerelease suffix.
     -->
-    <MSBuild Projects="$(RepoRoot)src\Microsoft.NET.Sdk.Aspire\Microsoft.NET.Sdk.Aspire.csproj"
+    <MSBuild Projects="$(RepoRoot)src\Aspire.Dashboard\Aspire.Dashboard.csproj"
       Targets="ReturnPackageVersion"
       SkipNonexistentProjects="false"
       Properties="SuppressFinalPackageVersion=true">
