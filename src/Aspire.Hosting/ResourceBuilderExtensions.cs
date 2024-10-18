@@ -896,4 +896,57 @@ public static class ResourceBuilderExtensions
 
         return builder.WithAnnotation(new ResourceCommandAnnotation(name, displayName, updateState ?? (c => ResourceCommandState.Enabled), executeCommand, displayDescription, parameter, confirmationMessage, iconName, iconVariant, isHighlighted));
     }
+
+    /// <summary>
+    /// Adds a probe to the resource to check its health state.
+    /// </summary>
+    /// <typeparam name="T">Type of resource.</typeparam>
+    /// <param name="builder">Resource builder.</param>
+    /// <param name="endpointName">The name of the endpoint to be used for the probe.</param>
+    /// <param name="type">The type of the health probe.</param>
+    /// <param name="path">The path to be used in case of a http endpoint.</param>
+    /// <param name="initialDelaySeconds">The initial delay before calling the probe endpoint for the first time.</param>
+    /// <param name="periodSeconds">The period between each probe.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithProbe<T>(this IResourceBuilder<T> builder, string endpointName, ProbeType type,
+        string? path = null, int initialDelaySeconds = 5, int periodSeconds = 5) where T : IResourceWithProbes
+    {
+        var endpoint = builder.Resource.GetEndpoint(endpointName);
+        if (builder.Resource.Annotations.OfType<ProbeAnnotation>().Any(a => a.ProbeType.Equals(type)))
+        {
+            throw new DistributedApplicationException($"Probe with type '{type}' already exists");
+        }
+
+        return builder.WithAnnotation(new ProbeAnnotation(type, endpoint, path, initialDelaySeconds, periodSeconds));
+    }
+
+    /// <summary>
+    /// Adds a readiness probe to the resource to check its health state.
+    /// </summary>
+    /// <typeparam name="T">Type of resource.</typeparam>
+    /// <param name="builder">Resource builder.</param>
+    /// <param name="endpointName">The name of the endpoint to be used for the probe.</param>
+    /// <param name="path">The path to be used in case of a http endpoint.</param>
+    /// <param name="initialDelaySeconds">The initial delay before calling the probe endpoint for the first time.</param>
+    /// <param name="periodSeconds">The period between each probe.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithReadinessProbe<T>(this IResourceBuilder<T> builder, string endpointName, string? path = null, int initialDelaySeconds = 5, int periodSeconds = 5) where T : IResourceWithProbes
+    {
+        return builder.WithProbe(endpointName, ProbeType.Readiness, path, initialDelaySeconds, periodSeconds);
+    }
+
+    /// <summary>
+    /// Adds a liveness probe to the resource to check its health state.
+    /// </summary>
+    /// <typeparam name="T">Type of resource.</typeparam>
+    /// <param name="builder">Resource builder.</param>
+    /// <param name="endpointName">The name of the endpoint to be used for the probe.</param>
+    /// <param name="path">The path to be used in case of a http endpoint.</param>
+    /// <param name="initialDelaySeconds">The initial delay before calling the probe endpoint for the first time.</param>
+    /// <param name="periodSeconds">The period between each probe.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithLivenessProbe<T>(this IResourceBuilder<T> builder, string endpointName, string? path = null, int initialDelaySeconds = 5, int periodSeconds = 5) where T : IResourceWithProbes
+    {
+        return builder.WithProbe(endpointName, ProbeType.Liveness, path, initialDelaySeconds, periodSeconds);
+    }
 }

@@ -78,7 +78,22 @@ Aspire.Hosting.ApplicationModel.ExecuteCommandResult.Success.init -> void
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation.HealthCheckAnnotation(string! key) -> void
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation.Key.get -> string!
+Aspire.Hosting.ApplicationModel.IResourceWithProbes
 Aspire.Hosting.ApplicationModel.IResourceWithWaitSupport
+Aspire.Hosting.ApplicationModel.ProbeAnnotation
+Aspire.Hosting.ApplicationModel.ProbeAnnotation.EndpointReference.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
+Aspire.Hosting.ApplicationModel.ProbeAnnotation.InitialDelaySeconds.get -> int
+Aspire.Hosting.ApplicationModel.ProbeAnnotation.Path.get -> string?
+Aspire.Hosting.ApplicationModel.ProbeAnnotation.PeriodSeconds.get -> int
+Aspire.Hosting.ApplicationModel.ProbeAnnotation.ProbeAnnotation(Aspire.Hosting.ApplicationModel.ProbeType type, Aspire.Hosting.ApplicationModel.EndpointReference! endpointReference) -> void
+Aspire.Hosting.ApplicationModel.ProbeAnnotation.ProbeAnnotation(Aspire.Hosting.ApplicationModel.ProbeType type, Aspire.Hosting.ApplicationModel.EndpointReference! endpointReference, int initialDelaySeconds, int periodSeconds) -> void
+Aspire.Hosting.ApplicationModel.ProbeAnnotation.ProbeAnnotation(Aspire.Hosting.ApplicationModel.ProbeType type, Aspire.Hosting.ApplicationModel.EndpointReference! endpointReference, string! path) -> void
+Aspire.Hosting.ApplicationModel.ProbeAnnotation.ProbeAnnotation(Aspire.Hosting.ApplicationModel.ProbeType type, Aspire.Hosting.ApplicationModel.EndpointReference! endpointReference, string? path, int initialDelaySeconds, int periodSeconds) -> void
+Aspire.Hosting.ApplicationModel.ProbeAnnotation.ProbeType.get -> Aspire.Hosting.ApplicationModel.ProbeType
+Aspire.Hosting.ApplicationModel.ProbeType
+Aspire.Hosting.ApplicationModel.ProbeType.Liveness = 2 -> Aspire.Hosting.ApplicationModel.ProbeType
+Aspire.Hosting.ApplicationModel.ProbeType.Readiness = 1 -> Aspire.Hosting.ApplicationModel.ProbeType
+Aspire.Hosting.ApplicationModel.ProbeType.Startup = 0 -> Aspire.Hosting.ApplicationModel.ProbeType
 Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.ConfirmationMessage.get -> string?
 Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.DisplayDescription.get -> string?
 Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.Name.get -> string!
@@ -211,6 +226,7 @@ static Aspire.Hosting.ApplicationModel.ResourceExtensions.GetEnvironmentVariable
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, string? targetState = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Collections.Generic.IEnumerable<string!>! targetStates, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetAnnotationsIncludingAncestorsOfType<T>(this Aspire.Hosting.ApplicationModel.IResource! resource, out System.Collections.Generic.IEnumerable<T>? result) -> bool
+static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetProbes(this Aspire.Hosting.ApplicationModel.IResource! resource, out System.Collections.Generic.IEnumerable<Aspire.Hosting.ApplicationModel.ProbeAnnotation!>? probes) -> bool
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithContainerName<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithLifetime<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, Aspire.Hosting.ApplicationModel.ContainerLifetime lifetime) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ParameterResourceBuilderExtensions.AddParameter(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, Aspire.Hosting.ApplicationModel.ParameterDefault! value, bool secret = false, bool persist = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>!
@@ -231,6 +247,9 @@ static Aspire.Hosting.ResourceBuilderExtensions.WithCommand<T>(this Aspire.Hosti
 static Aspire.Hosting.ResourceBuilderExtensions.WithHealthCheck<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! key) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithHttpHealthCheck<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string? path = null, int? statusCode = null, string? endpointName = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithHttpsHealthCheck<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string? path = null, int? statusCode = null, string? endpointName = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithLivenessProbe<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! endpointName, string? path = null, int initialDelaySeconds = 5, int periodSeconds = 5) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithProbe<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! endpointName, Aspire.Hosting.ApplicationModel.ProbeType type, string? path = null, int initialDelaySeconds = 5, int periodSeconds = 5) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithReadinessProbe<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! endpointName, string? path = null, int initialDelaySeconds = 5, int periodSeconds = 5) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Exited -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.FailedToStart -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Finished -> string!
