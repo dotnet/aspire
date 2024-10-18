@@ -105,7 +105,7 @@ public sealed record CustomResourceSnapshot
     /// </summary>
     public ImmutableArray<ResourceCommandSnapshot> Commands { get; init; } = [];
 
-    private static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportSnapshot> healthReports, string? state)
+    internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportSnapshot> healthReports, string? state)
     {
         if (state != KnownResourceStates.Running)
         {

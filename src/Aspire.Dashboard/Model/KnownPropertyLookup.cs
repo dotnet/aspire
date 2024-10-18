@@ -27,6 +27,7 @@ public sealed class KnownPropertyLookup : IKnownPropertyLookup
             new(KnownProperties.Resource.StartTime, loc[nameof(ResourcesDetailsStartTimeProperty)]),
             new(KnownProperties.Resource.StopTime, loc[nameof(ResourcesDetailsStopTimeProperty)]),
             new(KnownProperties.Resource.ExitCode, loc[nameof(ResourcesDetailsExitCodeProperty)]),
+            new(KnownProperties.Resource.HealthState, loc[nameof(ResourcesDetailsHealthStateProperty)])
         ];
 
         _projectProperties =

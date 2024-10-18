@@ -20,7 +20,7 @@ namespace Aspire.Dashboard.Model;
 [DebuggerDisplay("Name = {Name}, ResourceType = {ResourceType}, State = {State}, Properties = {Properties.Count}")]
 public sealed class ResourceViewModel
 {
-    private readonly ImmutableArray<HealthReportViewModel> _healthReports;
+    private readonly ImmutableArray<HealthReportViewModel> _healthReports = [];
     private readonly KnownResourceState? _knownState;
     public required string Name { get; init; }
     public required string ResourceType { get; init; }
