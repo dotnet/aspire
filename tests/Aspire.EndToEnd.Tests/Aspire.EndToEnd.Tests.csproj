@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
-    <ProductVersion>8.2.1</ProductVersion>
+    <ProductVersion>8.2.2</ProductVersion>
 
     <!-- no docker support on helix/windows yet -->
     <RunTestsOnHelix Condition="'$(OS)' == 'Windows_NT'">false</RunTestsOnHelix>
