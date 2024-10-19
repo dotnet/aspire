@@ -26,38 +26,40 @@ public static class AzureWebPubSubExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
             // Supported values are Free_F1 Standard_S1 Premium_P1
             var skuParameter = new ProvisioningParameter("sku", typeof(string))
             {
                 Value = new StringLiteral("Free_F1")
             };
-            construct.Add(skuParameter);
+            infrastructure.Add(skuParameter);
 
             // Supported values are 1 2 5 10 20 50 100
             var capacityParameter = new ProvisioningParameter("capacity", typeof(int))
             {
                 Value = new BicepValue<int>(1)
             };
-            construct.Add(capacityParameter);
+            infrastructure.Add(capacityParameter);
 
-            var service = new WebPubSubService(construct.Resource.GetBicepIdentifier())
+            var service = new WebPubSubService(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Sku = new BillingInfoSku()
                 {
                     Name = skuParameter,
                     Capacity = capacityParameter
                 },
-                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
             };
-            construct.Add(service);
+            infrastructure.Add(service);
 
-            construct.Add(new ProvisioningOutput("endpoint", typeof(string)) { Value = BicepFunction.Interpolate($"https://{service.HostName}") });
+            infrastructure.Add(new ProvisioningOutput("endpoint", typeof(string)) { Value = BicepFunction.Interpolate($"https://{service.HostName}") });
 
-            construct.Add(service.CreateRoleAssignment(WebPubSubBuiltInRole.WebPubSubServiceOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(service.CreateRoleAssignment(WebPubSubBuiltInRole.WebPubSubServiceOwner, principalTypeParameter, principalIdParameter));
 
-            var resource = (AzureWebPubSubResource)construct.Resource;
+            var resource = (AzureWebPubSubResource)infrastructure.AspireResource;
             foreach (var setting in resource.Hubs)
             {
                 var hubName = setting.Key;
@@ -89,7 +91,7 @@ public static class AzureWebPubSubExtensions
                     {
                         // otherwise add parameter to the construct
                         var parameter = new ProvisioningParameter($"{hubName}_url_{i}", typeof(string));
-                        construct.Add(parameter);
+                        infrastructure.Add(parameter);
                         resource.Parameters[parameter.IdentifierName] = urlExpression;
                         urlParameter = parameter;
                     }
@@ -100,11 +102,11 @@ public static class AzureWebPubSubExtensions
                 }
 
                 // add to construct
-                construct.Add(hub);
+                infrastructure.Add(hub);
             }
         };
 
-        var resource = new AzureWebPubSubResource(name, configureConstruct);
+        var resource = new AzureWebPubSubResource(name, configureInfrastructure);
         return builder.AddResource(resource)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)

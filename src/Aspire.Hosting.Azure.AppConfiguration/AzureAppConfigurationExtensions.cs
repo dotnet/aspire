@@ -23,22 +23,24 @@ public static class AzureAppConfigurationExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var store = new AppConfigurationStore(construct.Resource.GetBicepIdentifier())
+            var store = new AppConfigurationStore(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 SkuName = "standard",
                 DisableLocalAuth = true,
-                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
             };
-            construct.Add(store);
+            infrastructure.Add(store);
 
-            construct.Add(new ProvisioningOutput("appConfigEndpoint", typeof(string)) { Value = store.Endpoint });
+            infrastructure.Add(new ProvisioningOutput("appConfigEndpoint", typeof(string)) { Value = store.Endpoint });
 
-            construct.Add(store.CreateRoleAssignment(AppConfigurationBuiltInRole.AppConfigurationDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(store.CreateRoleAssignment(AppConfigurationBuiltInRole.AppConfigurationDataOwner, principalTypeParameter, principalIdParameter));
         };
 
-        var resource = new AzureAppConfigurationResource(name, configureConstruct);
+        var resource = new AzureAppConfigurationResource(name, configureInfrastructure);
         return builder.AddResource(resource)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
