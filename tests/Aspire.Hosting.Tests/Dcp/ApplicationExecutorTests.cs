@@ -560,7 +560,6 @@ public class ApplicationExecutorTests
         var exeResource = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
 
         // Start watching logs for container.
-        var watchCts = new CancellationTokenSource();
         var watchSubscribers = resourceLoggerService.WatchAnySubscribersAsync();
         var watchSubscribersEnumerator = watchSubscribers.GetAsyncEnumerator();
         var watchLogs1 = resourceLoggerService.WatchAsync(exeResource.Metadata.Name);

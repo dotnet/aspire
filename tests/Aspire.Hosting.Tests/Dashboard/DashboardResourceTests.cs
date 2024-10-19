@@ -7,6 +7,7 @@ using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -40,7 +41,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default);
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -64,7 +65,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default);
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -95,7 +96,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default);
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -103,7 +104,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         Assert.Same(container.Resource, dashboard);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Collection(config,
             e =>
@@ -165,13 +166,13 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default);
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var dashboard = Assert.Single(model.Resources.OfType<ExecutableResource>());
 
-        var args = await ArgumentEvaluator.GetArgumentListAsync(dashboard);
+        var args = await ArgumentEvaluator.GetArgumentListAsync(dashboard).DefaultTimeout();
 
         Assert.NotNull(dashboard);
         Assert.Equal("aspire-dashboard", dashboard.Name);
@@ -201,13 +202,13 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default);
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var dashboard = Assert.Single(model.Resources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("BrowserToken", config.Single(e => e.Key == DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName).Value);
         Assert.Equal("TestBrowserToken!", config.Single(e => e.Key == DashboardConfigNames.DashboardFrontendBrowserTokenName.EnvVarName).Value);
@@ -236,13 +237,13 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default);
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var dashboard = Assert.Single(model.Resources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("Unsecured", config.Single(e => e.Key == DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName).Value);
         Assert.Equal("Unsecured", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName).Value);
@@ -268,13 +269,13 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default);
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var dashboard = Assert.Single(model.Resources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("http://localhost:5000", config.Single(e => e.Key == DashboardConfigNames.ResourceServiceUrlName.EnvVarName).Value);
     }
@@ -301,7 +302,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default);
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -312,7 +313,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var dashboard = Assert.Single(model.Resources.Where(r => r.Name == "aspire-dashboard"));
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services).DefaultTimeout();
 
         Assert.Equal("http://localhost:8081,http://localhost:58080", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName).Value);
         Assert.Equal("*", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.EnvVarName).Value);
@@ -340,13 +341,13 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default);
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var dashboard = Assert.Single(model.Resources.Where(r => r.Name == "aspire-dashboard"));
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services).DefaultTimeout();
 
         Assert.DoesNotContain(config, e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName);
         Assert.DoesNotContain(config, e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.EnvVarName);
@@ -365,7 +366,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default);
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -381,7 +382,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default);
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -446,7 +447,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
             }
         });
 
-        await app.ExecuteBeforeStartHooksAsync(default).WaitAsync(TimeSpan.FromSeconds(15));
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
@@ -457,10 +458,10 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("aspire-dashboard", dashboard.Name);
 
         // Push a notification through to the dashboard resource.
-        await resourceNotificationService.PublishUpdateAsync(dashboard, "aspire-dashboard-0", s => s with { State = "Running" });
+        await resourceNotificationService.PublishUpdateAsync(dashboard, "aspire-dashboard-0", s => s with { State = "Running" }).DefaultTimeout();
 
         // Wait for logs to be subscribed to
-        await watchForLogSubs.WaitAsync(TimeSpan.FromSeconds(15));
+        await watchForLogSubs.DefaultTimeout();
 
         // Push some logs through to the dashboard resource.
         var logger = resourceLoggerService.GetLogger("aspire-dashboard-0");
@@ -481,12 +482,12 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         Assert.NotNull(testLogger);
 
         // Get the first log message that was logged
-        var log = await testLogger.FirstLogTask.WaitAsync(TimeSpan.FromSeconds(15));
+        var log = await testLogger.FirstLogTask.DefaultTimeout();
 
         Assert.Equal("Test dashboard message", log.Message);
         Assert.Equal(logLevel, log.LogLevel);
 
-        await app.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(15));
+        await app.DisposeAsync().AsTask().DefaultTimeout();
     }
 
     [Fact]
@@ -498,7 +499,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default);
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -507,7 +508,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         Assert.NotNull(dashboard);
         var annotation = Assert.Single(dashboard.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
 
-        var manifest = await ManifestUtils.GetManifestOrNull(dashboard);
+        var manifest = await ManifestUtils.GetManifestOrNull(dashboard).DefaultTimeout();
 
         Assert.Equal("aspire-dashboard", dashboard.Name);
         Assert.Same(ManifestPublishingCallbackAnnotation.Ignore, annotation);
