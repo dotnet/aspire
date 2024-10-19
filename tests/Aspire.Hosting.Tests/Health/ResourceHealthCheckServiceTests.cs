@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Tests.Health;
 
 public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
 {
-    [Fact(Skip = "Test")]
+    [Fact()]
     public async Task ResourcesWithoutHealthCheck_HealthyWhenRunning()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
@@ -42,7 +42,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
-    [Fact(Skip = "Test")]
+    [Fact()]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/6385")]
     public async Task ResourcesWithHealthCheck_NotHealthyUntilCheckSucceeds()
     {
@@ -79,7 +79,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
-    [Fact(Skip = "Test")]
+    [Fact()]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/6363")]
     public async Task HealthCheckIntervalSlowsAfterSteadyHealthyState()
     {
@@ -125,7 +125,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync(abortTokenSource.Token);
     }
 
-    [Fact(Skip = "Test")]
+    [Fact()]
     public async Task HealthCheckIntervalDoesNotSlowBeforeSteadyHealthyState()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
