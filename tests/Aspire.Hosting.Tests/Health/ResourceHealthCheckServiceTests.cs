@@ -13,6 +13,74 @@ namespace Aspire.Hosting.Tests.Health;
 public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
+    public async Task ResourcesWithoutHealthCheck_HealthyWhenRunning()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var resource = builder.AddResource(new ParentResource("resource"));
+
+        await using var app = await builder.BuildAsync();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await app.StartAsync();
+
+        await rns.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Starting, null)
+        });
+
+        var startingEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Starting);
+        Assert.Null(startingEvent.Snapshot.HealthStatus);
+
+        await rns.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
+        });
+
+        var runningEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running);
+        Assert.Equal(HealthStatus.Healthy, runningEvent.Snapshot.HealthStatus);
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/6385")]
+    public async Task ResourcesWithHealthCheck_NotHealthyUntilCheckSucceeds()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.Services.AddHealthChecks().AddCheck("healthcheck_a",  () => HealthCheckResult.Healthy());
+
+        var resource = builder.AddResource(new ParentResource("resource"))
+            .WithHealthCheck("healthcheck_a");
+
+        await using var app = await builder.BuildAsync();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await app.StartAsync();
+
+        await rns.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Starting, null)
+        });
+
+        var startingEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Starting);
+        Assert.Null(startingEvent.Snapshot.HealthStatus);
+
+        await rns.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
+        });
+
+        var runningEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running);
+        Assert.Null(runningEvent.Snapshot.HealthStatus);
+
+        var hasHealthReportsEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.HealthReports.Length > 0);
+        Assert.Equal(HealthStatus.Healthy, hasHealthReportsEvent.Snapshot.HealthStatus);
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/6363")]
     public async Task HealthCheckIntervalSlowsAfterSteadyHealthyState()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);

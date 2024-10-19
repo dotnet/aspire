@@ -27,7 +27,7 @@ message ApplicationInformationResponse {
 // using data from this message.
 message ResourceCommand {
     // Unique identifier for the command. Not intended for display.
-    string command_type = 1;
+    string name = 1;
     // The display name of the command, to be shown in the UI. May be localized.
     string display_name = 2;
     // When present, this message must be shown to the user and their confirmation obtained
@@ -64,7 +64,7 @@ enum IconVariant {
 message ResourceCommandRequest {
     // Unique identifier for the command.
     // Copied from the ResourceCommand that this request object is initialized from.
-    string command_type = 1;
+    string command_name = 1;
     // The name of the resource to apply the command to. Matches Resource.name.
     // Copied from the ResourceCommand that this request object is initialized from.
     string resource_name = 2;
@@ -146,8 +146,8 @@ message Volume {
 }
 
 message HealthReport {
-    // The health status of the resource.
-    HealthStatus status = 1;
+    // The health status of the resource. Not provided if we have not yet received an initial report from the check.
+    optional HealthStatus status = 1;
     // Identifies the health check that produced this report.
     string key = 2;
     // The reason for the health status.

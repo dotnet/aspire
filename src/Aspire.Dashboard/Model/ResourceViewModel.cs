@@ -94,13 +94,13 @@ public sealed class ResourceViewModelNameComparer : IComparer<ResourceViewModel>
     }
 }
 
-[DebuggerDisplay("CommandType = {CommandType}, DisplayName = {DisplayName}")]
+[DebuggerDisplay("Name = {Name}, DisplayName = {DisplayName}")]
 public sealed class CommandViewModel
 {
     private sealed record IconKey(string IconName, IconVariant IconVariant);
     private static readonly ConcurrentDictionary<IconKey, CustomIcon?> s_iconCache = new();
 
-    public string CommandType { get; }
+    public string Name { get; }
     public CommandViewModelState State { get; }
     public string DisplayName { get; }
     public string DisplayDescription { get; }
@@ -110,12 +110,12 @@ public sealed class CommandViewModel
     public string IconName { get; }
     public IconVariant IconVariant { get; }
 
-    public CommandViewModel(string commandType, CommandViewModelState state, string displayName, string displayDescription, string confirmationMessage, Value? parameter, bool isHighlighted, string iconName, IconVariant iconVariant)
+    public CommandViewModel(string name, CommandViewModelState state, string displayName, string displayDescription, string confirmationMessage, Value? parameter, bool isHighlighted, string iconName, IconVariant iconVariant)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(commandType);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
 
-        CommandType = commandType;
+        Name = name;
         State = state;
         DisplayName = displayName;
         DisplayDescription = displayDescription;
@@ -300,9 +300,9 @@ public sealed record class VolumeViewModel(int index, string Source, string Targ
         Target?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
 }
 
-public sealed record class HealthReportViewModel(string Name, HealthStatus HealthStatus, string? Description, string? ExceptionText)
+public sealed record class HealthReportViewModel(string Name, HealthStatus? HealthStatus, string? Description, string? ExceptionText)
 {
-    private readonly string _humanizedHealthStatus = HealthStatus.Humanize();
+    private readonly string? _humanizedHealthStatus = HealthStatus?.Humanize();
 
     public string? DisplayedDescription
     {
@@ -328,6 +328,6 @@ public sealed record class HealthReportViewModel(string Name, HealthStatus Healt
         return
             Name?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
             Description?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
-            _humanizedHealthStatus.Contains(filter, StringComparison.OrdinalIgnoreCase);
+            _humanizedHealthStatus?.Contains(filter, StringComparison.OrdinalIgnoreCase) is true;
     }
 }

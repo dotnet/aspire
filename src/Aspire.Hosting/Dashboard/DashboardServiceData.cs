@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
@@ -11,7 +12,7 @@ namespace Aspire.Hosting.Dashboard;
 /// Models the state for <see cref="DashboardService"/>, as that service is constructed
 /// for each gRPC request. This long-lived object holds state across requests.
 /// </summary>
-internal sealed class DashboardServiceData : IAsyncDisposable
+internal sealed class DashboardServiceData : IDisposable
 {
     private readonly CancellationTokenSource _cts = new();
     private readonly ResourcePublisher _resourcePublisher;
@@ -49,9 +50,31 @@ internal sealed class DashboardServiceData : IAsyncDisposable
                     State = snapshot.State?.Text,
                     StateStyle = snapshot.State?.Style,
                     HealthStatus = snapshot.HealthStatus,
-                    HealthReports = snapshot.HealthReports,
+                    HealthReports = GetOrCreateHealthReports(),
                     Commands = snapshot.Commands
                 };
+
+                ImmutableArray<HealthReportSnapshot> GetOrCreateHealthReports()
+                {
+                    if (!resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out var annotations))
+                    {
+                        return snapshot.HealthReports;
+                    }
+
+                    var enumeratedAnnotations = annotations.ToList();
+                    if (snapshot.HealthReports.Length == enumeratedAnnotations.Count)
+                    {
+                        return snapshot.HealthReports;
+                    }
+
+                    var reportsByKey = snapshot.HealthReports.ToDictionary(report => report.Name);
+                    foreach (var healthCheckAnnotation in enumeratedAnnotations.Where(annotation => !reportsByKey.ContainsKey(annotation.Key)))
+                    {
+                        reportsByKey.Add(healthCheckAnnotation.Key, new HealthReportSnapshot(healthCheckAnnotation.Key, null, null, null));
+                    }
+
+                    return [..reportsByKey.Values];
+                }
             }
 
             var timestamp = DateTime.UtcNow;
@@ -79,10 +102,9 @@ internal sealed class DashboardServiceData : IAsyncDisposable
         cancellationToken);
     }
 
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
-        await _cts.CancelAsync().ConfigureAwait(false);
-
+        _cts.Cancel();
         _cts.Dispose();
     }
 
@@ -93,7 +115,7 @@ internal sealed class DashboardServiceData : IAsyncDisposable
         logger.LogInformation("Executing command '{Type}'.", type);
         if (_resourcePublisher.TryGetResource(resourceId, out _, out var resource))
         {
-            var annotation = resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Type == type);
+            var annotation = resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Name == type);
             if (annotation != null)
             {
                 try

@@ -60,10 +60,10 @@ partial class Resource
 
         HealthReportViewModel ToHealthReportViewModel(HealthReport healthReport)
         {
-            return new HealthReportViewModel(healthReport.Key, MapHealthStatus(healthReport.Status, healthReport.Exception), healthReport.Description, healthReport.Exception);
+            return new HealthReportViewModel(healthReport.Key, healthReport.HasStatus ? MapHealthStatus(healthReport.Status) : null, healthReport.Description, healthReport.Exception);
         }
 
-        Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus MapHealthStatus(HealthStatus healthStatus, string? exceptionText = null)
+        Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus MapHealthStatus(HealthStatus healthStatus)
         {
             return healthStatus switch
             {
@@ -101,7 +101,7 @@ partial class Resource
         ImmutableArray<CommandViewModel> GetCommands()
         {
             return Commands
-                .Select(c => new CommandViewModel(c.CommandType, MapState(c.State), c.DisplayName, c.DisplayDescription, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.IconName, MapIconVariant(c.IconVariant)))
+                .Select(c => new CommandViewModel(c.Name, MapState(c.State), c.DisplayName, c.DisplayDescription, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.IconName, MapIconVariant(c.IconVariant)))
                 .ToImmutableArray();
             static CommandViewModelState MapState(ResourceCommandState state)
             {

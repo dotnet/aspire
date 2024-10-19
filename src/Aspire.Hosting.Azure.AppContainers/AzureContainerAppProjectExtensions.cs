@@ -1,5 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning.AppContainers;
@@ -24,13 +25,13 @@ public static class AzureContainerAppProjectExtensions
     /// </remarks>
     /// <example>
     /// <code>
-    /// builder.AddProject&lt;Projects.Api&gt;.PublishAsAzureContainerApp((module, app) =>
+    /// builder.AddProject&lt;Projects.Api&gt;.PublishAsAzureContainerApp((infrastructure, app) =>
     /// {
     ///     // Configure the container app here
     /// });
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> PublishAsAzureContainerApp<T>(this IResourceBuilder<T> project, Action<ResourceModuleConstruct, ContainerApp> configure)
+    public static IResourceBuilder<T> PublishAsAzureContainerApp<T>(this IResourceBuilder<T> project, Action<AzureResourceInfrastructure, ContainerApp> configure)
         where T : ProjectResource
     {
         if (!project.ApplicationBuilder.ExecutionContext.IsPublishMode)
@@ -38,9 +39,9 @@ public static class AzureContainerAppProjectExtensions
             return project;
         }
 
-        project.ApplicationBuilder.AddContainerAppsInfrastructure();
+        project.ApplicationBuilder.AddAzureContainerAppsInfrastructure();
 
-        project.WithAnnotation(new ContainerAppCustomizationAnnotation(configure));
+        project.WithAnnotation(new AzureContainerAppCustomizationAnnotation(configure));
 
         return project;
     }
