@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
 using System.Text;
+using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Utils;
@@ -69,7 +69,7 @@ public static class PostgresBuilderExtensions
             //
             //       https://github.com/npgsql/npgsql/blob/c3b31c393de66a4b03fba0d45708d46a2acb06d2/src/Npgsql/NpgsqlConnection.cs#L445
             //
-            connection.ConnectionString = connection.ConnectionString + ";Database=postgres;";
+            connection.ConnectionString += ";Database=postgres;";
         });
 
         return builder.AddResource(postgresServer)
@@ -183,7 +183,7 @@ public static class PostgresBuilderExtensions
                         // This will need to be refactored once updated service discovery APIs are available
                         writer.WriteString("Host", endpoint.Resource.Name);
                         writer.WriteNumber("Port", (int)endpoint.TargetPort!);
-                        writer.WriteString("Username", "postgres");
+                        writer.WriteString("Username", postgresInstance.UserNameParameter?.Value ?? "postgres");
                         writer.WriteString("SSLMode", "prefer");
                         writer.WriteString("MaintenanceDB", "postgres");
                         writer.WriteString("PasswordExecCommand", $"echo '{postgresInstance.PasswordParameter.Value}'"); // HACK: Generating a pass file and playing around with chmod is too painful.

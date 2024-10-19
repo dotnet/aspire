@@ -2,17 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
-using Aspire.Hosting.ApplicationModel;
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Xunit;
+using Xunit.Abstractions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using NATS.Client.Core;
 using NATS.Client.JetStream;
 using NATS.Client.JetStream.Models;
-using Polly;
-using Xunit;
-using Xunit.Abstractions;
+using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Aspire.Hosting.Tests.Utils;
 
 namespace Aspire.Hosting.Nats.Tests;
 
@@ -25,11 +26,6 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyNatsResource()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-        var pipeline = new ResiliencePipelineBuilder()
-                            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NatsException>() })
-                            .Build();
-
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var nats = builder.AddNats("nats")
@@ -38,6 +34,8 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
 
         await app.StartAsync();
+
+        await app.WaitForTextAsync("Listening for client connections", nats.Resource.Name);
 
         var hb = Host.CreateApplicationBuilder();
 
@@ -55,13 +53,10 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await host.StartAsync();
 
-        await pipeline.ExecuteAsync(async token =>
-        {
-            var jetStream = host.Services.GetRequiredService<INatsJSContext>();
+        var jetStream = host.Services.GetRequiredService<INatsJSContext>();
 
-            await CreateTestData(jetStream, token);
-            await ConsumeTestData(jetStream, token);
-        }, cts.Token);
+        await CreateTestData(jetStream, default);
+        await ConsumeTestData(jetStream, default);
     }
 
     [Theory]
@@ -73,10 +68,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
     public async Task AuthenticationShouldWork(string? user, string? password)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-        var pipeline = new ResiliencePipelineBuilder()
-                            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NatsException>() })
-                            .Build();
-
+      
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         builder.Configuration["Parameters:user"] = user;
         builder.Configuration["Parameters:pass"] = password;
@@ -121,9 +113,6 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
     public async Task AuthenticationShouldFailOnWrongOrMissingCredentials(string? user, string? password)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-        var pipeline = new ResiliencePipelineBuilder()
-                            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NatsException>() })
-                            .Build();
 
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         builder.Configuration["Parameters:user"] = "user";
@@ -173,10 +162,6 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
-        var pipeline = new ResiliencePipelineBuilder()
-                            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NatsException>() })
-                            .Build();
         string? volumeName = null;
         string? bindMountPath = null;
 
@@ -204,6 +189,8 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
             using (var app = builder1.Build())
             {
                 await app.StartAsync();
+
+                await app.WaitForTextAsync("Listening for client connections", nats1.Resource.Name);
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
@@ -222,13 +209,9 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
-                        await pipeline.ExecuteAsync(async token =>
-                        {
-                            var jetStream = host.Services.GetRequiredService<INatsJSContext>();
-                            await CreateTestData(jetStream, token);
-                            await ConsumeTestData(jetStream, token);
-
-                        }, cts.Token);
+                        var jetStream = host.Services.GetRequiredService<INatsJSContext>();
+                        await CreateTestData(jetStream, default);
+                        await ConsumeTestData(jetStream, default);
                     }
                 }
                 finally
@@ -254,6 +237,8 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
             using (var app = builder2.Build())
             {
                 await app.StartAsync();
+
+                await app.WaitForTextAsync("Listening for client connections", nats2.Resource.Name);
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
@@ -271,11 +256,8 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
-                        await pipeline.ExecuteAsync(async token =>
-                        {
-                            var jetStream = host.Services.GetRequiredService<INatsJSContext>();
-                            await ConsumeTestData(jetStream, token);
-                        });
+                        var jetStream = host.Services.GetRequiredService<INatsJSContext>();
+                        await ConsumeTestData(jetStream, default);
                     }
                 }
                 finally

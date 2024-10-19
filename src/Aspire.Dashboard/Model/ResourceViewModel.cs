@@ -94,13 +94,13 @@ public sealed class ResourceViewModelNameComparer : IComparer<ResourceViewModel>
     }
 }
 
-[DebuggerDisplay("CommandType = {CommandType}, DisplayName = {DisplayName}")]
+[DebuggerDisplay("Name = {Name}, DisplayName = {DisplayName}")]
 public sealed class CommandViewModel
 {
     private sealed record IconKey(string IconName, IconVariant IconVariant);
     private static readonly ConcurrentDictionary<IconKey, CustomIcon?> s_iconCache = new();
 
-    public string CommandType { get; }
+    public string Name { get; }
     public CommandViewModelState State { get; }
     public string DisplayName { get; }
     public string DisplayDescription { get; }
@@ -110,12 +110,12 @@ public sealed class CommandViewModel
     public string IconName { get; }
     public IconVariant IconVariant { get; }
 
-    public CommandViewModel(string commandType, CommandViewModelState state, string displayName, string displayDescription, string confirmationMessage, Value? parameter, bool isHighlighted, string iconName, IconVariant iconVariant)
+    public CommandViewModel(string name, CommandViewModelState state, string displayName, string displayDescription, string confirmationMessage, Value? parameter, bool isHighlighted, string iconName, IconVariant iconVariant)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(commandType);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
 
-        CommandType = commandType;
+        Name = name;
         State = state;
         DisplayName = displayName;
         DisplayDescription = displayDescription;
@@ -209,10 +209,12 @@ public sealed class ResourcePropertyViewModel : IPropertyGridItem
     public bool IsValueSensitive { get; }
     public bool IsValueMasked { get; set; }
     internal int Priority { get; }
+    private readonly string _key;
 
-    string? IPropertyGridItem.Name => KnownProperty?.DisplayName ?? Name;
-
+    string IPropertyGridItem.Name => KnownProperty?.DisplayName ?? Name;
     string? IPropertyGridItem.Value => _displayValue.Value;
+
+    object IPropertyGridItem.Key => _key;
 
     public ResourcePropertyViewModel(string name, Value value, bool isValueSensitive, KnownProperty? knownProperty, int priority, BrowserTimeProvider timeProvider)
     {
@@ -224,6 +226,9 @@ public sealed class ResourcePropertyViewModel : IPropertyGridItem
         KnownProperty = knownProperty;
         Priority = priority;
         IsValueMasked = isValueSensitive;
+
+        // Known and unknown properties are displayed together. Avoid any duplicate keys.
+        _key = KnownProperty != null ? KnownProperty.Key : $"unknown-{Name}";
 
         _tooltip = new(() => value.HasStringValue ? value.StringValue : value.ToString());
 
@@ -281,20 +286,23 @@ public sealed class UrlViewModel
     }
 }
 
-public sealed record class VolumeViewModel(string? Source, string Target, string MountType, bool IsReadOnly) : IPropertyGridItem
+public sealed record class VolumeViewModel(int index, string Source, string Target, string MountType, bool IsReadOnly) : IPropertyGridItem
 {
-    string? IPropertyGridItem.Name => Source;
-
+    string IPropertyGridItem.Name => Source;
     string? IPropertyGridItem.Value => Target;
+
+    // Source could be empty for an anomymous volume so it can't be used as a key.
+    // Because there is no good key in data, use index of the volume in results.
+    object IPropertyGridItem.Key => index;
 
     public bool MatchesFilter(string filter) =>
         Source?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
         Target?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
 }
 
-public sealed record class HealthReportViewModel(string Name, HealthStatus HealthStatus, string? Description, string? ExceptionText)
+public sealed record class HealthReportViewModel(string Name, HealthStatus? HealthStatus, string? Description, string? ExceptionText)
 {
-    private readonly string _humanizedHealthStatus = HealthStatus.Humanize();
+    private readonly string? _humanizedHealthStatus = HealthStatus?.Humanize();
 
     public string? DisplayedDescription
     {
@@ -320,6 +328,6 @@ public sealed record class HealthReportViewModel(string Name, HealthStatus Healt
         return
             Name?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
             Description?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
-            _humanizedHealthStatus.Contains(filter, StringComparison.OrdinalIgnoreCase);
+            _humanizedHealthStatus?.Contains(filter, StringComparison.OrdinalIgnoreCase) is true;
     }
 }
