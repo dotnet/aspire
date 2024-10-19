@@ -31,16 +31,16 @@ public static class AzureCosmosExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
             var kvNameParam = new ProvisioningParameter("keyVaultName", typeof(string));
-            construct.Add(kvNameParam);
+            infrastructure.Add(kvNameParam);
 
             var keyVault = KeyVaultService.FromExisting("keyVault");
             keyVault.Name = kvNameParam;
-            construct.Add(keyVault);
+            infrastructure.Add(keyVault);
 
-            var cosmosAccount = new CosmosDBAccount(construct.Resource.GetBicepIdentifier())
+            var cosmosAccount = new CosmosDBAccount(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Kind = CosmosDBAccountKind.GlobalDocumentDB,
                 ConsistencyPolicy = new ConsistencyPolicy()
@@ -56,11 +56,11 @@ public static class AzureCosmosExtensions
                         FailoverPriority = 0
                     }
                 },
-                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
             };
-            construct.Add(cosmosAccount);
+            infrastructure.Add(cosmosAccount);
 
-            var azureResource = (AzureCosmosDBResource)construct.Resource;
+            var azureResource = (AzureCosmosDBResource)infrastructure.AspireResource;
             var azureResourceBuilder = builder.CreateResourceBuilder(azureResource);
             List<CosmosDBSqlDatabase> cosmosSqlDatabases = new List<CosmosDBSqlDatabase>();
             foreach (var databaseName in azureResource.Databases)
@@ -74,7 +74,7 @@ public static class AzureCosmosExtensions
                         DatabaseName = databaseName
                     }
                 };
-                construct.Add(cosmosSqlDatabase);
+                infrastructure.Add(cosmosSqlDatabase);
                 cosmosSqlDatabases.Add(cosmosSqlDatabase);
             }
 
@@ -87,10 +87,10 @@ public static class AzureCosmosExtensions
                     Value = BicepFunction.Interpolate($"AccountEndpoint={cosmosAccount.DocumentEndpoint};AccountKey={cosmosAccount.GetKeys().PrimaryMasterKey}")
                 }
             };
-            construct.Add(secret);
+            infrastructure.Add(secret);
         };
 
-        var resource = new AzureCosmosDBResource(name, configureConstruct);
+        var resource = new AzureCosmosDBResource(name, configureInfrastructure);
         return builder.AddResource(resource)
                       .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
                       .WithManifestPublishingCallback(resource.WriteToManifest);

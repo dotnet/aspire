@@ -144,9 +144,9 @@ public class SchemaTests
                         var minReplicas = builder.AddParameter("minReplicas");
 
                         builder.AddProject<Projects.ServiceA>("project")
-                               .PublishAsAzureContainerApp((module, app) =>
+                               .PublishAsAzureContainerApp((infrastructure, app) =>
                                {
-                                   app.Template.Value!.Scale.Value!.MinReplicas = minReplicas.AsProvisioningParameter(module);
+                                   app.Template.Value!.Scale.Value!.MinReplicas = minReplicas.AsProvisioningParameter(infrastructure);
                                });
 
                     }
@@ -165,9 +165,9 @@ public class SchemaTests
                         var minReplicas = builder.AddParameter("minReplicas");
 
                         builder.AddContainer("mycontainer", "myimage")
-                               .PublishAsAzureContainerApp((module, app) =>
+                               .PublishAsAzureContainerApp((infrastructure, app) =>
                                {
-                                   app.Template.Value!.Scale.Value!.MinReplicas = minReplicas.AsProvisioningParameter(module);
+                                   app.Template.Value!.Scale.Value!.MinReplicas = minReplicas.AsProvisioningParameter(infrastructure);
                                });
 
                     }
@@ -175,10 +175,10 @@ public class SchemaTests
 
                 { "VanillaBicepResource", (IDistributedApplicationBuilder builder) =>
                     {
-                        builder.AddAzureConstruct("construct", module =>
+                        builder.AddAzureInfrastructure("infrastructure", infrastructure =>
                         {
                             var kv = KeyVaultService.FromExisting("doesnotexist");
-                            module.Add(kv);
+                            infrastructure.Add(kv);
                         });
                     }
                 },

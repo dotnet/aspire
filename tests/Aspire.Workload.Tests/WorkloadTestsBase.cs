@@ -218,10 +218,10 @@ public partial class WorkloadTestsBase
 
                 AssertEqual(expectedEndpoints.Length, endpointsFound.Count, $"#endpoints for {resourceName}");
 
-                // endpointsFound: ["foo", "https://localhost:7589/weatherforecast"]
+                // endpointsFound: ["foo", "https://localhost:7589/"]
                 foreach (var endpointFound in endpointsFound)
                 {
-                    // matchedEndpoints: ["https://localhost:7589/weatherforecast"]
+                    // matchedEndpoints: ["https://localhost:7589/"]
                     string[] matchedEndpoints = expectedEndpoints.Where(e => Regex.IsMatch(endpointFound, e)).ToArray();
                     if (matchedEndpoints.Length == 0)
                     {
@@ -296,8 +296,11 @@ public partial class WorkloadTestsBase
                 throw;
             }
 
-            string url = resourceRows.First(r => r.Name == "webfrontend").Endpoints[0];
-            await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckWebFrontendWorksAsync(context, url, _testOutput, project.LogPath);
+            string apiServiceUrl = resourceRows.First(r => r.Name == "apiservice").Endpoints[0];
+            await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckApiServiceWorksAsync(apiServiceUrl, _testOutput, project.LogPath);
+
+            string webFrontEnd = resourceRows.First(r => r.Name == "webfrontend").Endpoints[0];
+            await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckWebFrontendWorksAsync(context, webFrontEnd, _testOutput, project.LogPath);
         }
         else
         {
