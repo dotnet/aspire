@@ -172,7 +172,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync(abortTokenSource.Token);
     }
 
-    [Fact(Skip = "Test")]
+    [Fact()]
     public async Task ResourcesWithoutHealthCheckAnnotationsGetReadyEventFired()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
@@ -201,7 +201,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
-    [Fact(Skip = "Test")]
+    [Fact()]
     public async Task PoorlyImplementedHealthChecksDontCauseMonitoringLoopToCrashout()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
@@ -305,7 +305,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
-    [Fact(Skip = "Test")]
+    [Fact()]
     public async Task ResourceHealthCheckServiceOnlyRaisesResourceReadyOnce()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
