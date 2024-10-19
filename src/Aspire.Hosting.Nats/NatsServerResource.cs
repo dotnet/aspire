@@ -9,7 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A resource that represents a NATS server container.
 /// </summary>
-
+/// <param name="name">The name of the resource.</param>
 public class NatsServerResource(string name) : ContainerResource(ThrowIfNull(name)), IResourceWithConnectionString
 {
     internal const string PrimaryEndpointName = "tcp";
