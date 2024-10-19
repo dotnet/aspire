@@ -6,6 +6,7 @@ using static Microsoft.Playwright.Assertions;
 using Xunit;
 using Xunit.Abstractions;
 using Aspire.Hosting.Redis;
+using System.Net.Http.Json;
 
 namespace Aspire.Workload.Tests;
 
@@ -47,6 +48,34 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
         string url = resourceRows.First(r => r.Name == "webfrontend")
                         .Endpoints.First(e => e.StartsWith(urlPrefix));
         await CheckWebFrontendWorksAsync(context, url, _testOutput, _testFixture.Project.LogPath, hasRedisCache: HasRedisCache);
+    }
+
+    [Theory]
+    [InlineData("http://")]
+    [InlineData("https://")]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
+    public async Task ApiServiceWorks(string urlPrefix)
+    {
+        await using var context = await CreateNewBrowserContextAsync();
+        var resourceRows = await CheckDashboardHasResourcesAsync(
+            await _testFixture.Project!.OpenDashboardPageAsync(context),
+            GetExpectedResources(_testFixture.Project!, hasRedisCache: HasRedisCache),
+            timeoutSecs: DashboardResourcesWaitTimeoutSecs);
+
+        string url = resourceRows.First(r => r.Name == "apiservice")
+                        .Endpoints.First(e => e.StartsWith(urlPrefix));
+        await CheckApiServiceWorksAsync(url, _testOutput, _testFixture.Project.LogPath);
+    }
+
+    public static async Task CheckApiServiceWorksAsync(string url, ITestOutputHelper testOutput, string logPath)
+    {
+        var uri = new UriBuilder(url) { Path = "weatherforecast" }.Uri;
+
+        using var httpClient = new HttpClient();
+        var response = await httpClient.GetFromJsonAsync<WeatherForecast[]>(uri);
+
+        Assert.NotNull(response);
+        Assert.Equal(5, response.Length);
     }
 
     public static async Task CheckWebFrontendWorksAsync(IBrowserContext context, string url, ITestOutputHelper testOutput, string logPath, bool hasRedisCache = false)
@@ -103,7 +132,7 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
                     r => Assert.True(DateTime.TryParse(r, out _)),
                     r => Assert.True(int.TryParse(r, out var actualTempC) && actualTempC >= -20 && actualTempC <= 55),
                     r => Assert.True(int.TryParse(r, out var actualTempF) && actualTempF >= -5 && actualTempF <= 133),
-                    r => Assert.Contains(r, new HashSet<string>{"Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"}));
+                    r => Assert.Contains(r, new HashSet<string> { "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching" }));
             }
 
             return cellTexts;
@@ -112,22 +141,21 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
 
     public static List<ResourceRow> GetExpectedResources(AspireProject project, bool hasRedisCache)
     {
-        List<ResourceRow> expectedResources = new()
+        var expectedResources = new List<ResourceRow>
         {
-            new ResourceRow(
-                Type: "Project",
+            new(Type: "Project",
                 Name: "apiservice",
                 State: "Running",
                 Source: $"{project.Id}.ApiService.csproj",
-                Endpoints: ["http://localhost:\\d+/weatherforecast", "https://localhost:\\d+/weatherforecast"]),
+                Endpoints: ["^http://localhost:\\d+$", "^https://localhost:\\d+$"]),
 
-            new ResourceRow(
-                Type: "Project",
+            new(Type: "Project",
                 Name: "webfrontend",
                 State: "Running",
                 Source: $"{project.Id}.Web.csproj",
-                Endpoints: ["https://localhost:\\d+", "http://localhost:\\d+"])
+                Endpoints: ["^http://localhost:\\d+$", "^https://localhost:\\d+$"])
         };
+
         if (hasRedisCache)
         {
             expectedResources.Add(
@@ -143,3 +171,8 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
 }
 
 public sealed record ResourceRow(string Type, string Name, string State, string Source, string[] Endpoints);
+
+public sealed record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+{
+    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+}
