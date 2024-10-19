@@ -3,6 +3,7 @@
 
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Xunit.Abstractions;
@@ -23,7 +24,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         var dependingExecutableResource = builder.AddExecutable("dependingexecutableresource", "doesnotmatter", "alsodoesntmatter")
                                        .WaitFor(throwingResource);
 
-        var abortCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var abortCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
         using var app = builder.Build();
         await app.StartAsync(abortCts.Token);
 
@@ -95,13 +96,13 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // into a Running state, so rather than awaiting it we'll hold onto the
         // task so we can inspect the state of the Nginx resource which should
         // be in a waiting state if everything is working correctly.
-        var startupCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var startupCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
         var startTask = app.StartAsync(startupCts.Token);
 
         // We don't want to wait forever for Nginx to move into a waiting state,
-        // it should be super quick, but we'll allow 60 seconds just in case the
+        // it should be super quick, but we'll allow a long timeout just in case the
         // CI machine is chugging (also useful when collecting code coverage).
-        var waitingStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
         await rns.WaitForResourceAsync(nginx.Resource.Name, "Waiting", waitingStateCts.Token);
@@ -136,13 +137,13 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // into a Finished state, so rather than awaiting it we'll hold onto the
         // task so we can inspect the state of the Nginx resource which should
         // be in a waiting state if everything is working correctly.
-        var startupCts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+        var startupCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
         var startTask = app.StartAsync(startupCts.Token);
 
         // We don't want to wait forever for Nginx to move into a waiting state,
         // it should be super quick, but we'll allow 60 seconds just in case the
         // CI machine is chugging (also useful when collecting code coverage).
-        var waitingStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+        var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
         await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
@@ -159,7 +160,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // This time we want to wait for Nginx to move into a Running state to verify that
         // it successfully started after we moved the dependency resource into the Finished, but
         // we need to give it more time since we have to download the image in CI.
-        var runningStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var runningStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
         await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, runningStateCts.Token);
 
         await startTask;
@@ -184,13 +185,13 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // into a Finished state, so rather than awaiting it we'll hold onto the
         // task so we can inspect the state of the Nginx resource which should
         // be in a waiting state if everything is working correctly.
-        var startupCts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+        var startupCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
         var startTask = app.StartAsync(startupCts.Token);
 
         // We don't want to wait forever for Nginx to move into a waiting state,
         // it should be super quick, but we'll allow 60 seconds just in case the
         // CI machine is chugging (also useful when collecting code coverage).
-        var waitingStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+        var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
         await rns.WaitForResourceAsync(nginx.Resource.Name, "Waiting", waitingStateCts.Token);
@@ -207,7 +208,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // This time we want to wait for Nginx to move into a Running state to verify that
         // it successfully started after we moved the dependency resource into the Finished, but
         // we need to give it more time since we have to download the image in CI.
-        var runningStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var runningStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
         await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.FailedToStart, runningStateCts.Token);
 
         await startTask;
@@ -232,13 +233,13 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // into a Finished state, so rather than awaiting it we'll hold onto the
         // task so we can inspect the state of the Nginx resource which should
         // be in a waiting state if everything is working correctly.
-        var startupCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var startupCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
         var startTask = app.StartAsync(startupCts.Token);
 
         // We don't want to wait forever for Nginx to move into a waiting state,
         // it should be super quick, but we'll allow 60 seconds just in case the
         // CI machine is chugging (also useful when collecting code coverage).
-        var waitingStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
         await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
@@ -254,7 +255,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
 
         // This time we want to wait for Nginx to move into a FailedToStart state to verify that
         // it didn't start if the dependency resource didn't finish with the correct exit code.
-        var runningStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var runningStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
         await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.FailedToStart, runningStateCts.Token);
 
         await startTask;
@@ -281,13 +282,13 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // into a Finished state, so rather than awaiting it we'll hold onto the
         // task so we can inspect the state of the Nginx resource which should
         // be in a waiting state if everything is working correctly.
-        var startupCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var startupCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
         var startTask = app.StartAsync(startupCts.Token);
 
         // We don't want to wait forever for Nginx to move into a waiting state,
         // it should be super quick, but we'll allow 60 seconds just in case the
         // CI machine is chugging (also useful when collecting code coverage).
-        var waitingStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
         await rns.WaitForResourceAsync(nginx.Resource.Name, "FailedToStart", waitingStateCts.Token);
@@ -315,13 +316,13 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // into a Finished state, so rather than awaiting it we'll hold onto the
         // task so we can inspect the state of the Nginx resource which should
         // be in a waiting state if everything is working correctly.
-        var startupCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var startupCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
         var startTask = app.StartAsync(startupCts.Token);
 
         // We don't want to wait forever for Nginx to move into a waiting state,
         // it should be super quick, but we'll allow 60 seconds just in case the
         // CI machine is chugging (also useful when collecting code coverage).
-        var waitingStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
         await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
