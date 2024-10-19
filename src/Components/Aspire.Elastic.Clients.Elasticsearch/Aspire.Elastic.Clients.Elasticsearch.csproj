@@ -8,6 +8,7 @@
     <PackageIconFullPath>$(SharedDir)Elastic_logo.png</PackageIconFullPath>
     <!-- Disable package validation as this package hasn't shipped yet. -->
     <EnablePackageValidation>false</EnablePackageValidation>
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
   <PropertyGroup>
