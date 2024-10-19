@@ -43,6 +43,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact(Skip = "Test")]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/6385")]
     public async Task ResourcesWithHealthCheck_NotHealthyUntilCheckSucceeds()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);

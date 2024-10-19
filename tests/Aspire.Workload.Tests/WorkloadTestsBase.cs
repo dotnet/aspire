@@ -218,10 +218,10 @@ public partial class WorkloadTestsBase
 
                 AssertEqual(expectedEndpoints.Length, endpointsFound.Count, $"#endpoints for {resourceName}");
 
-                // endpointsFound: ["foo", "https://localhost:7589/weatherforecast"]
+                // endpointsFound: ["foo", "https://localhost:7589/"]
                 foreach (var endpointFound in endpointsFound)
                 {
-                    // matchedEndpoints: ["https://localhost:7589/weatherforecast"]
+                    // matchedEndpoints: ["https://localhost:7589/"]
                     string[] matchedEndpoints = expectedEndpoints.Where(e => Regex.IsMatch(endpointFound, e)).ToArray();
                     if (matchedEndpoints.Length == 0)
                     {
