@@ -81,6 +81,8 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await app.StartAsync();
 
+        await app.WaitForTextAsync("Listening for client connections", nats.Resource.Name);
+
         var hb = Host.CreateApplicationBuilder();
 
         var connectionString = await nats.Resource.ConnectionStringExpression.GetValueAsync(default);
@@ -96,9 +98,6 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await host.StartAsync();
 
-        var notificationService = app.Services.GetRequiredService<ResourceNotificationService>();
-
-        await notificationService.WaitForResourceAsync(nats.Resource.Name, cancellationToken: cts.Token);
         var natsConnection = host.Services.GetRequiredService<INatsConnection>();
         await natsConnection.ConnectAsync();
         Assert.Equal(NatsConnectionState.Open, natsConnection.ConnectionState);
@@ -126,6 +125,8 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await app.StartAsync();
 
+        await app.WaitForTextAsync("Listening for client connections", nats.Resource.Name);
+
         var hb = Host.CreateApplicationBuilder();
 
         var connectionString = await nats.Resource.ConnectionStringExpression.GetValueAsync(default);
@@ -144,10 +145,6 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
         using var host = hb.Build();
 
         await host.StartAsync();
-
-        var notificationService = app.Services.GetRequiredService<ResourceNotificationService>();
-
-        await notificationService.WaitForResourceAsync(nats.Resource.Name, cancellationToken: cts.Token);
 
         var natsConnection = host.Services.GetRequiredService<INatsConnection>();
 
