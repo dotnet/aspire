@@ -12,7 +12,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public sealed record CustomResourceSnapshot
 {
-    private readonly ImmutableArray<HealthReportSnapshot>? _healthReports;
+    private readonly ImmutableArray<HealthReportSnapshot> _healthReports = [];
     private readonly ResourceStateSnapshot? _state;
 
     /// <summary>
@@ -77,8 +77,8 @@ public sealed record CustomResourceSnapshot
     /// </remarks>
     public ImmutableArray<HealthReportSnapshot> HealthReports
     {
-        get => _healthReports ?? [];
-        init
+        get => _healthReports;
+        internal init
         {
             _healthReports = value;
             HealthStatus = ComputeHealthStatus(value, State?.Text);
@@ -105,19 +105,19 @@ public sealed record CustomResourceSnapshot
     /// </summary>
     public ImmutableArray<ResourceCommandSnapshot> Commands { get; init; } = [];
 
-    internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportSnapshot>? healthReports, string? state)
+    internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportSnapshot> healthReports, string? state)
     {
-        if (healthReports is null || state != KnownResourceStates.Running)
+        if (state != KnownResourceStates.Running)
         {
             return null;
         }
 
-        return healthReports.Value.Length == 0
+        return healthReports.Length == 0
             // If there are no health reports and the resource is running, assume it's healthy.
             ? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy
             // If there are health reports, the health status is the minimum of the health status of the reports.
             // If any of the reports is null (first health check has not returned), the health status is unhealthy.
-            : healthReports.Value.MinBy(r => r.Status)?.Status
+            : healthReports.MinBy(r => r.Status)?.Status
                 ?? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy;
     }
 }

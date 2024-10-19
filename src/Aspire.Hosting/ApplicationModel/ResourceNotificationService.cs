@@ -18,6 +18,7 @@ public class ResourceNotificationService
 {
     // Resource state is keyed by the resource and the unique name of the resource. This could be the name of the resource, or a replica ID.
     private readonly ConcurrentDictionary<(IResource, string), ResourceNotificationState> _resourceNotificationStates = new();
+    private readonly ConcurrentBag<(IResource, string)> _resourcesWithInitialHealthReportsSet = new();
     private readonly ILogger<ResourceNotificationService> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly CancellationToken _applicationStopping;
@@ -352,6 +353,7 @@ public class ResourceNotificationService
             var newState = stateFactory(previousState);
 
             newState = UpdateCommands(resource, newState);
+            newState = UpdateHealthReports(resource, resourceId, newState);
 
             notificationState.LastSnapshot = newState;
 
@@ -386,6 +388,27 @@ public class ResourceNotificationService
         }
 
         return Task.CompletedTask;
+    }
+
+    private CustomResourceSnapshot UpdateHealthReports(IResource resource, string resourceId, CustomResourceSnapshot previousState)
+    {
+        if (_resourcesWithInitialHealthReportsSet.Contains((resource, resourceId)))
+        {
+            return previousState;
+        }
+
+        _resourcesWithInitialHealthReportsSet.Add((resource, resourceId));
+
+        if (!resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out var annotations))
+        {
+            return previousState;
+        }
+
+        var reports = annotations.Select(annotation => new HealthReportSnapshot(annotation.Key, null, null, null));
+        return previousState with
+        {
+            HealthReports = [..reports]
+        };
     }
 
     /// <summary>
