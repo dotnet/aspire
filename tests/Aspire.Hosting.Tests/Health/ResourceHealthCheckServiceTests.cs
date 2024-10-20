@@ -364,7 +364,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
-    [Fact(Skip = "Test")]
+    [Fact]
     public async Task VerifyThatChildResourceWillBecomeHealthyOnceParentBecomesHealthy()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
