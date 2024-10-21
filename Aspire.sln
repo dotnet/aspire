@@ -635,11 +635,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureContainerApps.ApiServi
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.ProjectTemplates", "src\Aspire.ProjectTemplates\Aspire.ProjectTemplates.csproj", "{D07A8344-C61A-478A-92F0-E9B2DA00D647}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaitFor.Frontend", "playground\waitfor\WaitFor.Frontend\WaitFor.Frontend.csproj", "{C88BBF0B-7566-48BD-A2BC-05374B1A2B22}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WaitFor.Frontend", "playground\waitfor\WaitFor.Frontend\WaitFor.Frontend.csproj", "{C88BBF0B-7566-48BD-A2BC-05374B1A2B22}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "HealthChecks", "HealthChecks", "{B7345F72-712F-436C-AE18-CAF7CDD4A990}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HealthChecksSandbox.AppHost", "playground\HealthChecks\HealthChecksSandbox.AppHost\HealthChecksSandbox.AppHost.csproj", "{042DD8C6-A26C-4B06-80A1-FE7F8659C5BC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HealthChecksSandbox.AppHost", "playground\HealthChecks\HealthChecksSandbox.AppHost\HealthChecksSandbox.AppHost.csproj", "{042DD8C6-A26C-4B06-80A1-FE7F8659C5BC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DaprServiceC", "playground\dapr\ServiceC\DaprServiceC.csproj", "{B26653B9-439E-4850-A7F8-43C6E5121952}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1683,6 +1685,10 @@ Global
 		{042DD8C6-A26C-4B06-80A1-FE7F8659C5BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{042DD8C6-A26C-4B06-80A1-FE7F8659C5BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{042DD8C6-A26C-4B06-80A1-FE7F8659C5BC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B26653B9-439E-4850-A7F8-43C6E5121952}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B26653B9-439E-4850-A7F8-43C6E5121952}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B26653B9-439E-4850-A7F8-43C6E5121952}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B26653B9-439E-4850-A7F8-43C6E5121952}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1991,6 +1997,7 @@ Global
 		{C88BBF0B-7566-48BD-A2BC-05374B1A2B22} = {3FF3F00C-95C0-46FC-B2BE-A3920C71E393}
 		{B7345F72-712F-436C-AE18-CAF7CDD4A990} = {D173887B-AF42-4576-B9C1-96B9E9B3D9C0}
 		{042DD8C6-A26C-4B06-80A1-FE7F8659C5BC} = {B7345F72-712F-436C-AE18-CAF7CDD4A990}
+		{B26653B9-439E-4850-A7F8-43C6E5121952} = {57A42144-739E-49A7-BADB-BB8F5F20FA17}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
