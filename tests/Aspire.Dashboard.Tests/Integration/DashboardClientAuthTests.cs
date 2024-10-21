@@ -130,6 +130,7 @@ public sealed class DashboardClientAuthTests
             loggerFactory: loggerFactory,
             configuration: new ConfigurationManager(),
             dashboardOptions: Options.Create(options),
+            dashboardClientStatus: new TestDashboardClientStatus(),
             timeProvider: new BrowserTimeProvider(NullLoggerFactory.Instance),
             knownPropertyLookup: new MockKnownPropertyLookup(),
             configureHttpHandler: handler => handler.SslOptions.RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true);
@@ -157,6 +158,11 @@ public sealed class DashboardClientAuthTests
     private sealed class TestCalls
     {
         public Channel<ReceivedCallInfo<ApplicationInformationRequest>> ApplicationInformationCallsChannel { get; } = Channel.CreateUnbounded<ReceivedCallInfo<ApplicationInformationRequest>>();
+    }
+
+    private sealed class TestDashboardClientStatus : IDashboardClientStatus
+    {
+        public bool IsEnabled => true;
     }
 
     private sealed class MockDashboardService(TestCalls testCalls) : DashboardServiceBase
