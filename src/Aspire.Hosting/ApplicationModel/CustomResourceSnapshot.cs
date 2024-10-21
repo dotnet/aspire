@@ -69,6 +69,12 @@ public sealed record CustomResourceSnapshot
     public HealthStatus? HealthStatus { get; private set; }
 
     /// <summary>
+    /// Whether the health reports have been initialized in <see cref="ResourceNotificationService"/> to contain
+    /// the health check annotations for this resource.
+    /// </summary>
+    internal bool HealthAnnotationsInitialized { get; init; }
+
+    /// <summary>
     /// The health reports for this resource.
     /// </summary>
     /// <remarks>

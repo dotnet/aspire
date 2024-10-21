@@ -71,16 +71,14 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         });
 
         var runningEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running);
-        Assert.Null(runningEvent.Snapshot.HealthStatus);
+        Assert.Equal(HealthStatus.Unhealthy, runningEvent.Snapshot.HealthStatus);
 
-        var hasHealthReportsEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.HealthReports.Length > 0);
-        Assert.Equal(HealthStatus.Healthy, hasHealthReportsEvent.Snapshot.HealthStatus);
+        await rns.WaitForResourceHealthyAsync("resource");
 
         await app.StopAsync();
     }
 
     [Fact()]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/6363")]
     public async Task HealthCheckIntervalSlowsAfterSteadyHealthyState()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
@@ -201,7 +199,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
-    [Fact(Skip = "")]
+    [Fact()]
     public async Task PoorlyImplementedHealthChecksDontCauseMonitoringLoopToCrashout()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
@@ -240,7 +238,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
-    [Fact(Skip = "Test")]
+    [Fact()]
     public async Task ResourceHealthCheckServiceDoesNotRunHealthChecksUnlessResourceIsRunning()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
@@ -305,7 +303,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
-    [Fact(Skip = "")]
+    [Fact()]
     public async Task ResourceHealthCheckServiceOnlyRaisesResourceReadyOnce()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
@@ -364,7 +362,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
-    [Fact(Skip = "Test")]
+    [Fact()]
     public async Task VerifyThatChildResourceWillBecomeHealthyOnceParentBecomesHealthy()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);

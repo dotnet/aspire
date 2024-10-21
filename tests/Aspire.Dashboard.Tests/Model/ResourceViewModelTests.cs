@@ -28,7 +28,7 @@ public sealed class ResourceViewModelTests
     [InlineData(KnownResourceState.Running, HealthStatus.Degraded, new string?[] {"Healthy", "Degraded"})]
     public void Resource_WithHealthReportAndState_ReturnsCorrectHealthStatus(KnownResourceState? state, HealthStatus? expectedStatus, string?[]? healthStatusStrings)
     {
-        var reports = healthStatusStrings?.Select<string?, HealthReportViewModel>((h, i) => new HealthReportViewModel(i.ToString(), h is null ? null : Enum.Parse<HealthStatus>(h), null, null)).ToImmutableArray();
+        var reports = healthStatusStrings?.Select<string?, HealthReportViewModel>((h, i) => new HealthReportViewModel(i.ToString(), h is null ? null : Enum.Parse<HealthStatus>(h), null, null)).ToImmutableArray() ?? [];
         var actualStatus = ResourceViewModel.ComputeHealthStatus(reports, state);
         Assert.Equal(expectedStatus, actualStatus);
     }
