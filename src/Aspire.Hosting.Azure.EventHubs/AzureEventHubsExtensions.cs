@@ -34,7 +34,7 @@ public static class AzureEventHubsExtensions
         {
             var skuParameter = new ProvisioningParameter("sku", typeof(string))
             {
-                Value = new StringLiteral("Standard")
+                Value = new StringLiteralExpression("Standard")
             };
             infrastructure.Add(skuParameter);
 
@@ -58,7 +58,7 @@ public static class AzureEventHubsExtensions
 
             foreach (var hub in azureResource.Hubs)
             {
-                var hubResource = new EventHub(Infrastructure.NormalizeIdentifierName(hub))
+                var hubResource = new EventHub(Infrastructure.NormalizeBicepIdentifier(hub))
                 {
                     Parent = eventHubsNamespace,
                     Name = hub

@@ -23,7 +23,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
     /// Gets or sets the <see cref="Azure.Provisioning.ProvisioningContext"/> which contains common settings and
     /// functionality for building Azure resources.
     /// </summary>
-    public ProvisioningContext? ProvisioningContext { get; set; }
+    public ProvisioningBuildOptions? ProvisioningContext { get; set; }
 
     /// <inheritdoc/>
     public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
@@ -38,8 +38,8 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
         //          put them into a dictionary for quick lookup so we don't need to scan
         //          through the parameter enumerable each time.
         var infrastructureParameters = infrastructure.GetParameters();
-        var distinctInfrastructureParameters = infrastructureParameters.DistinctBy(p => p.IdentifierName);
-        var distinctInfrastructureParametersLookup = distinctInfrastructureParameters.ToDictionary(p => p.IdentifierName);
+        var distinctInfrastructureParameters = infrastructureParameters.DistinctBy(p => p.BicepIdentifier);
+        var distinctInfrastructureParametersLookup = distinctInfrastructureParameters.ToDictionary(p => p.BicepIdentifier);
 
         foreach (var aspireParameter in this.Parameters)
         {
