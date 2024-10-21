@@ -143,7 +143,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                     containerImageParam = AllocateContainerImageParameter();
                 }
 
-                var containerAppResource = new ContainerApp(Infrastructure.NormalizeIdentifierName(resource.Name))
+                var containerAppResource = new ContainerApp(Infrastructure.NormalizeBicepIdentifier(resource.Name))
                 {
                     Name = resource.Name.ToLowerInvariant()
                 };
@@ -701,7 +701,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 {
                     // We resolve the keyvault that represents the storage for secret outputs
                     var parameter = AllocateParameter(SecretOutputExpression.GetSecretOutputKeyVault(secretOutputReference.Resource));
-                    kv = KeyVaultService.FromExisting($"{parameter.IdentifierName}_kv");
+                    kv = KeyVaultService.FromExisting($"{parameter.BicepIdentifier}_kv");
                     kv.Name = parameter;
 
                     KeyVaultRefs[secretOutputReference.Resource.Name] = kv;
@@ -710,8 +710,8 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 if (!KeyVaultSecretRefs.TryGetValue(secretOutputReference.ValueExpression, out var secret))
                 {
                     // Now we resolve the secret
-                    var secretIdentifierName = Infrastructure.NormalizeIdentifierName($"{kv.IdentifierName}_{secretOutputReference.Name}");
-                    secret = KeyVaultSecret.FromExisting(secretIdentifierName);
+                    var secretBicepIdentifier = Infrastructure.NormalizeBicepIdentifier($"{kv.BicepIdentifier}_{secretOutputReference.Name}");
+                    secret = KeyVaultSecret.FromExisting(secretBicepIdentifier);
                     secret.Name = secretOutputReference.Name;
                     secret.Parent = kv;
 
@@ -721,7 +721,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 // TODO: There should be a better way to do this?
                 return new MemberExpression(
                             new MemberExpression(
-                               new IdentifierExpression(secret.IdentifierName), "properties"),
+                               new IdentifierExpression(secret.BicepIdentifier), "properties"),
                             "secretUri");
             }
 
