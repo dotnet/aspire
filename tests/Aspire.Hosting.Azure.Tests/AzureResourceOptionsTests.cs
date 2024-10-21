@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Azure.Tests;
 public class AzureResourceOptionsTests(ITestOutputHelper output)
 {
     /// <summary>
-    /// Ensures that an AzureProvisioningOptions can be configured to modify the ProvisioningContext
+    /// Ensures that an AzureProvisioningOptions can be configured to modify the ProvisioningBuildOptions
     /// used when building the bicep for an Azure resource.
     ///
     /// This uses the .NET Aspire v8.x naming policy, which always calls toLower, appends a unique string with no separator,
@@ -27,7 +27,7 @@ public class AzureResourceOptionsTests(ITestOutputHelper output)
         {
             builder.Services.Configure<AzureProvisioningOptions>(options =>
             {
-                options.ProvisioningContext.InfrastructureResolvers.Insert(0, new AspireV8ResourceNamePropertyResolver());
+                options.ProvisioningBuildOptions.InfrastructureResolvers.Insert(0, new AspireV8ResourceNamePropertyResolver());
             });
 
             var serviceBus = builder.AddAzureServiceBus("sb");
