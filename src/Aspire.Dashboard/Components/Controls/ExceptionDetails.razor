@@ -1,52 +1,35 @@
 ﻿@namespace Aspire.Dashboard.Components
 
 @using Aspire.Dashboard.Extensions
+@using Aspire.Dashboard.Components.Dialogs
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 
 @inject IStringLocalizer<ControlsStrings> Loc
 
-@{
-    var iconId = Guid.NewGuid().ToString();
-    @*
-     * We don't want a browser tooltip to display when hovering over the error icon.
-     * Use alt instead of title for screen readers. Also, the column has a title set
-     * so add a whitespace title to prevent a browser tooltip from displaying.
-     *@
-    var title = " ";
-}
-
 @if (!string.IsNullOrWhiteSpace(ExceptionText))
 {
-    <FluentIcon alt="@Loc[nameof(ControlsStrings.ExceptionDetailsTitle)]"
-                title="@title"
-                Style="flex-shrink: 0"
-                Id="@iconId"
-                Icon="Icons.Filled.Size16.DocumentError"
-                Color="Color.Accent"
-                Class="severity-icon" />
-
-    <FluentTooltip Anchor="@iconId" MaxWidth="650px">
-        <div style="padding: 10px">
-            <h4>@Loc[nameof(ControlsStrings.ExceptionDetailsTitle)]</h4>
-
-            <pre style="white-space: pre-wrap; overflow-wrap: break-word; max-height: 300px; overflow: auto;">@ExceptionText</pre>
-
-            <div style="float: right; margin-bottom: 10px;">
-                <FluentButton Id="@Guid.NewGuid().ToString()"
-                              Appearance="Appearance.Lightweight"
-                              AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ExceptionText, Loc[nameof(ControlsStrings.GridValueCopyToClipboard)].ToString(), Loc[nameof(ControlsStrings.GridValueCopied)].ToString())">
-                    @Loc[nameof(ControlsStrings.GridValueCopyToClipboard)]
-
-                    <FluentIcon Class="copy-icon align-text-bottom" Style="display:inline;" Icon="Icons.Regular.Size16.Copy" />
-                    <FluentIcon Class="checkmark-icon align-text-bottom" Style="display:none;" Icon="Icons.Regular.Size16.Checkmark" />
-                </FluentButton>
-            </div>
-        </div>
-    </FluentTooltip>
+    <FluentButton Appearance="Appearance.Lightweight"
+                  OnClick="OnExceptionDetailsClicked"
+                  Title="@Loc[nameof(ControlsStrings.ExceptionDetailsTitle)]"
+                  Class="exception-details-button">
+        <FluentIcon Icon="Icons.Filled.Size16.DocumentError"
+                    Color="Color.Accent" />
+    </FluentButton>
 }
 
 @code {
     [Parameter, EditorRequired]
     public required string ExceptionText { get; set; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+
+    [Inject]
+    public required IDialogService DialogService { get; set; }
+
+    private void OnExceptionDetailsClicked(MouseEventArgs e)
+    {
+        _ = TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, Loc[nameof(ControlsStrings.ExceptionDetailsTitle)], ExceptionText);
+    }
 }
