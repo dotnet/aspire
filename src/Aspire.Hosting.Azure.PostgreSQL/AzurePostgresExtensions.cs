@@ -119,11 +119,10 @@ public static class AzurePostgresExtensions
     /// <param name="name">The name of the resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzurePostgresFlexibleServerResource}"/> builder.</returns>
     /// <remarks>
-    /// By default, the Azure PostgreSQL Flexible Server resource is configured to use Microsoft Entra ID (Azure Active Directory) for authentication.
+    /// <para>By default, the Azure PostgreSQL Flexible Server resource is configured to use Microsoft Entra ID (Azure Active Directory) for authentication.
     /// This requires changes to the application code to use an azure credential to authenticate with the resource. See
-    /// https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-connect-with-managed-identity#connect-using-managed-identity-in-c for more information.
-    ///
-    /// You can use the <see cref="WithPasswordAuthentication"/> method to configure the resource to use password authentication.
+    /// https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-connect-with-managed-identity#connect-using-managed-identity-in-c for more information.</para>
+    /// <para>You can use the <see cref="WithPasswordAuthentication"/> method to configure the resource to use password authentication.</para>
     /// </remarks>
     /// <example>
     /// The following example creates an Azure PostgreSQL Flexible Server resource and referencing that resource in a .NET project.
