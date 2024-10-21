@@ -199,7 +199,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
-    [Fact(Skip = "")]
+    [Fact()]
     public async Task PoorlyImplementedHealthChecksDontCauseMonitoringLoopToCrashout()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
