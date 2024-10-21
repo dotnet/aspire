@@ -267,7 +267,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         });
 
         using var app = builder.Build();
-        var pendingStart = app.StartAsync().TimeoutAfter(TimeSpan.FromSeconds(20));
+        var pendingStart = app.StartAsync().DefaultTimeout(TestConstants.LongTimeoutDuration);
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
         // Verify that the health check does not get run before we move the resource into the
