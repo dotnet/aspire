@@ -7,22 +7,13 @@ namespace Aspire.Dashboard.Model;
 
 public static class TraceHelpers
 {
-    public sealed class OrderedApplication(OtlpApplication application, int index, DateTime firstDateTime, int totalSpans, int erroredSpans)
-    {
-        public OtlpApplication Application { get; } = application;
-        public int Index { get; } = index;
-        public DateTime FirstDateTime { get; set; } = firstDateTime;
-        public int TotalSpans { get; set; } = totalSpans;
-        public int ErroredSpans { get; set; } = erroredSpans;
-    }
-
     /// <summary>
     /// Recursively visit spans for a trace. Start visiting spans from unrooted spans.
     /// </summary>
     public static void VisitSpans<TState>(OtlpTrace trace, Func<OtlpSpan, TState, TState> spanAction, TState state)
     {
-        // TODO: Improve performance.
-        // Spans are stored in one collection and recursively iterated by matching the span id to its parent.
+        // TODO: Investigate performance.
+        // A trace's spans are stored in one collection and recursively iterated by matching the span id to its parent.
         // This behavior could could excessive iteration over the span collection in large traces. Consider improving if this causes performance issues.
 
         var orderByFunc = static (OtlpSpan s) => s.StartTime;
@@ -34,7 +25,7 @@ public static class TraceHelpers
             Visit(trace.Spans, unrootedSpan, spanAction, newState, orderByFunc);
         }
 
-        static void Visit(List<OtlpSpan> allSpans, OtlpSpan span, Func<OtlpSpan, TState, TState> spanAction, TState state, Func<OtlpSpan, DateTime> orderByFunc)
+        static void Visit(OtlpSpanCollection allSpans, OtlpSpan span, Func<OtlpSpan, TState, TState> spanAction, TState state, Func<OtlpSpan, DateTime> orderByFunc)
         {
             foreach (var childSpan in OtlpSpan.GetChildSpans(span, allSpans).OrderBy(orderByFunc))
             {
@@ -45,7 +36,7 @@ public static class TraceHelpers
         }
     }
 
-    private record struct OrderedApplicationsState(DateTime? CurrentMinDate);
+    private readonly record struct OrderedApplicationsState(DateTime? CurrentMinDate);
 
     /// <summary>
     /// Get applications for a trace, with grouped information, and ordered using min date.
@@ -90,4 +81,13 @@ public static class TraceHelpers
             .OrderBy(s => s.FirstDateTime)
             .ThenBy(s => s.Index);
     }
+}
+
+public sealed class OrderedApplication(OtlpApplication application, int index, DateTime firstDateTime, int totalSpans, int erroredSpans)
+{
+    public OtlpApplication Application { get; } = application;
+    public int Index { get; } = index;
+    public DateTime FirstDateTime { get; set; } = firstDateTime;
+    public int TotalSpans { get; set; } = totalSpans;
+    public int ErroredSpans { get; set; } = erroredSpans;
 }

@@ -42,7 +42,7 @@ public class OtlpSpan
     public TimeSpan Duration => EndTime - StartTime;
 
     public IEnumerable<OtlpSpan> GetChildSpans() => GetChildSpans(this, Trace.Spans);
-    public static IEnumerable<OtlpSpan> GetChildSpans(OtlpSpan parentSpan, List<OtlpSpan> spans) => spans.Where(s => s.ParentSpanId == parentSpan.SpanId);
+    public static IEnumerable<OtlpSpan> GetChildSpans(OtlpSpan parentSpan, OtlpSpanCollection spans) => spans.Where(s => s.ParentSpanId == parentSpan.SpanId);
     public OtlpSpan? GetParentSpan()
     {
         if (string.IsNullOrEmpty(ParentSpanId))

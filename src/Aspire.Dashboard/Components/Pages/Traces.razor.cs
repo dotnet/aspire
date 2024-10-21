@@ -92,7 +92,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         return tooltip;
     }
 
-    private string GetSpansTooltip(TraceHelpers.OrderedApplication applicationSpans)
+    private string GetSpansTooltip(OrderedApplication applicationSpans)
     {
         var count = applicationSpans.TotalSpans;
         var errorCount = applicationSpans.ErroredSpans;
