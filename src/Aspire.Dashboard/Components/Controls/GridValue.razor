@@ -5,13 +5,13 @@
 <div class="@GetContainerClass()" style="width: inherit;">
     @if (EnableMasking && IsMasked)
     {
-        <span class="cellText">
+        <span class="cellText" id="@_cellTextId">
             &#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;
         </span>
     }
-    else if (EnableHighlighting)
+    else if (EnableHighlighting && !string.IsNullOrEmpty(HighlightText))
     {
-        <span class="cellText" title="@(ToolTip ?? Value)">
+        <span class="cellText" title="@(ToolTip ?? Value)" id="@_cellTextId">
             @ContentBeforeValue
             <FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />
             @ContentAfterValue
@@ -19,9 +19,9 @@
     }
     else
     {
-        <span class="cellText" title="@(ToolTip ?? Value)">
+        <span class="cellText" title="@(ToolTip ?? Value)" id="@_cellTextId">
             @ContentBeforeValue
-            @(MaxDisplayLength.HasValue ? TrimLength(Value) : Value)
+            @((MarkupString)(_formattedValue ?? string.Empty))
             @ContentAfterValue
         </span>
     }
