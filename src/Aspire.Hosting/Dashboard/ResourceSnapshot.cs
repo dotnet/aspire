@@ -6,6 +6,7 @@ using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Google.Protobuf.WellKnownTypes;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -25,6 +26,7 @@ internal abstract class ResourceSnapshot
     public required ImmutableArray<EnvironmentVariableSnapshot> Environment { get; init; }
     public required ImmutableArray<VolumeSnapshot> Volumes { get; init; }
     public required ImmutableArray<UrlSnapshot> Urls { get; init; }
+    public required HealthStatus? HealthStatus { get; init; }
     public required ImmutableArray<HealthReportSnapshot> HealthReports { get; init; }
     public required ImmutableArray<ResourceCommandSnapshot> Commands { get; init; }
 

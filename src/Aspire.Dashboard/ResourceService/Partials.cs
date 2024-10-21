@@ -49,6 +49,7 @@ partial class Resource
                 KnownState = HasState ? Enum.TryParse(State, out KnownResourceState knownState) ? knownState : null : null,
                 StateStyle = HasStateStyle ? StateStyle : null,
                 Commands = GetCommands(),
+                HealthStatus = HasHealthStatus ? MapHealthStatus(HealthStatus) : null,
                 HealthReports = HealthReports.Select(ToHealthReportViewModel).OrderBy(vm => vm.Name).ToImmutableArray(),
             };
         }

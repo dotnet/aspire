@@ -48,6 +48,7 @@ internal sealed class DashboardServiceData : IDisposable
                     ExitCode = snapshot.ExitCode,
                     State = snapshot.State?.Text,
                     StateStyle = snapshot.State?.Style,
+                    HealthStatus = snapshot.HealthStatus,
                     HealthReports = snapshot.HealthReports,
                     Commands = snapshot.Commands
                 };

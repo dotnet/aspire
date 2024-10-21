@@ -20,9 +20,6 @@ namespace Aspire.Dashboard.Model;
 [DebuggerDisplay("Name = {Name}, ResourceType = {ResourceType}, State = {State}, Properties = {Properties.Count}")]
 public sealed class ResourceViewModel
 {
-    private readonly ImmutableArray<HealthReportViewModel> _healthReports = [];
-    private readonly KnownResourceState? _knownState;
-
     public required string Name { get; init; }
     public required string ResourceType { get; init; }
     public required string DisplayName { get; init; }
@@ -39,43 +36,11 @@ public sealed class ResourceViewModel
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
 
     /// <summary>The health status of the resource. <see langword="null"/> indicates that health status is expected but not yet available.</summary>
-    public HealthStatus? HealthStatus { get; private set; }
+    public required HealthStatus? HealthStatus { get; init; }
 
-    public required ImmutableArray<HealthReportViewModel> HealthReports
-    {
-        get => _healthReports;
-        init
-        {
-            _healthReports = value;
-            HealthStatus = ComputeHealthStatus(value, KnownState);
-        }
-    }
+    public required ImmutableArray<HealthReportViewModel> HealthReports { get; init; } = [];
 
-    public KnownResourceState? KnownState
-    {
-        get => _knownState;
-        init
-        {
-            _knownState = value;
-            HealthStatus = ComputeHealthStatus(_healthReports, value);
-        }
-    }
-
-    internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportViewModel> healthReports, KnownResourceState? state)
-    {
-        if (state != KnownResourceState.Running)
-        {
-            return null;
-        }
-
-        return healthReports.Length == 0
-            // If there are no health reports and the resource is running, assume it's healthy.
-            ? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy
-            // If there are health reports, the health status is the minimum of the health status of the reports.
-            // If any of the reports is null (first health check has not returned), the health status is unhealthy.
-            : healthReports.MinBy(r => r.HealthStatus)?.HealthStatus
-              ?? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy;
-    }
+    public KnownResourceState? KnownState { get; init; }
 
     internal bool MatchesFilter(string filter)
     {
