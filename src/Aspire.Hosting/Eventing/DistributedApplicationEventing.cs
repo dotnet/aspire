@@ -25,7 +25,7 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
     {
         if (_eventSubscriptionListLookup.TryGetValue(typeof(T), out var subscriptions))
         {
-            if (dispatchBehavior == EventDispatchBehavior.BlockingConcurrent || dispatchBehavior == EventDispatchBehavior.NonBlockingConcurrent)
+            if (dispatchBehavior is EventDispatchBehavior.BlockingConcurrent or EventDispatchBehavior.NonBlockingConcurrent)
             {
                 var pendingSubscriptionCallbacks = new List<Task>(subscriptions.Count);
                 foreach (var subscription in subscriptions.ToArray())
@@ -50,7 +50,7 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
             }
             else
             {
-                if (dispatchBehavior == EventDispatchBehavior.NonBlockingSequential)
+                if (dispatchBehavior is EventDispatchBehavior.NonBlockingSequential)
                 {
                     // Non-blocking sequential.
                     _ = Task.Run(async () =>
