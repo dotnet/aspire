@@ -209,7 +209,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         var hitCount = 0;
         builder.Services.AddHealthChecks().AddCheck("resource_check", (check) =>
         {
-            hitCount++;
+            Interlocked.Increment(ref hitCount);
             throw new InvalidOperationException("Random failure instead of result!");
         });
 
@@ -250,7 +250,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         var checkStatus = HealthCheckResult.Unhealthy();
         builder.Services.AddHealthChecks().AddCheck("parent_test", () =>
         {
-            hitCount++;
+            Interlocked.Increment(ref hitCount);
             return checkStatus;
         });
 
@@ -314,7 +314,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         var healthCheckHits = 0;
         builder.Services.AddHealthChecks().AddCheck("parent_test", () =>
         {
-            healthCheckHits++;
+            Interlocked.Increment(ref healthCheckHits);
             return HealthCheckResult.Healthy();
         });
 
@@ -327,7 +327,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         var resourceReadyEventFired = new TaskCompletionSource<ResourceReadyEvent>();
         builder.Eventing.Subscribe<ResourceReadyEvent>(parent.Resource, (@event, ct) =>
         {
-            eventHits++;
+            Interlocked.Increment(ref eventHits);
             return Task.CompletedTask;
         });
 
