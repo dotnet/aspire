@@ -1,9 +1,0 @@
-<Project>
-    <PropertyGroup>
-      <!-- This needs to be set to true before importing parent Directory.Build.props -->
-      <!-- In preview until the public API is validated and the Microsoft.Extensions.AI integration is designed.. -->
-      <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
-    </PropertyGroup>
-  
-    <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
-  </Project>

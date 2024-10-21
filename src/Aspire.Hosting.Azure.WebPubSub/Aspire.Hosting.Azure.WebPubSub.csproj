@@ -8,6 +8,8 @@
     <PackageIconFullPath>$(SharedDir)AzureWebPubSub_256x.png</PackageIconFullPath>
     <!-- Disable package validation as this package hasn't shipped yet. -->
     <EnablePackageValidation>false</EnablePackageValidation>
+    <!-- This library can't ship stable until Azure.Provisioning.WebPubSub ships stable. -->
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
   <PropertyGroup>

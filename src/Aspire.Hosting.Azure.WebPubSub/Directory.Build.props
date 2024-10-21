@@ -1,9 +1,0 @@
-<Project>
-  <PropertyGroup>
-    <!-- This needs to be set to true before importing parent Directory.Build.props -->
-     <!-- This library can't ship stable until Azure.Provisioning.WebPubSub ships stable. -->
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
-  </PropertyGroup>
-
-  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
-</Project>

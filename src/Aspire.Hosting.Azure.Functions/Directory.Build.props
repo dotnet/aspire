@@ -1,9 +1,0 @@
-<Project>
-    <PropertyGroup>
-      <!-- This needs to be set to true before importing parent Directory.Build.props -->
-      <!-- Azure Functions support is in preview until the full experience is implemented. -->
-      <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
-    </PropertyGroup>
-  
-    <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
-  </Project>

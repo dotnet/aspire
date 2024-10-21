@@ -7,6 +7,8 @@
     <Description>A Microsoft Azure Cosmos DB provider for Entity Framework Core that integrates with Aspire, including connection pooling, logging, and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzureCosmosDB_256x.png</PackageIconFullPath>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
+    <!-- We need to ingest the stable version of EF in order for us to produce stable  bits. -->
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
   <PropertyGroup>

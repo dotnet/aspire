@@ -5,8 +5,7 @@
     <MinorVersion>0</MinorVersion>
     <PatchVersion>0</PatchVersion>
     <VersionPrefix>$(MajorVersion).$(MinorVersion).$(PatchVersion)</VersionPrefix>
-    <PreReleaseVersionLabel Condition="'$(SuppressFinalPackageVersion)' != 'true'">rc.2</PreReleaseVersionLabel>
-    <PreReleaseVersionLabel Condition="'$(PreReleaseVersionLabel)' == ''">preview.5</PreReleaseVersionLabel>
+    <PreReleaseVersionLabel>preview.5</PreReleaseVersionLabel>
     <!--
       When running package validation as part of the build, we want to ensure we didn't break the API against the previous
       version of each package. The following property points to the package version that should be used as baseline.
@@ -21,7 +20,7 @@
     <DotNetSdkPreviousVersionForTesting>8.0.403</DotNetSdkPreviousVersionForTesting>
     <UseVSTestRunner>true</UseVSTestRunner>
     <!-- Enable to remove prerelease label. -->
-    <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">false</StabilizePackageVersion>
+    <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">true</StabilizePackageVersion>
     <DotNetFinalVersionKind Condition="'$(StabilizePackageVersion)' == 'true'">release</DotNetFinalVersionKind>
   </PropertyGroup>
   <PropertyGroup>
