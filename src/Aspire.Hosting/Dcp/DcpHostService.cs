@@ -72,7 +72,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
         EnsureDcpContainerRuntime(dcpInfo);
         EnsureDcpHostRunning();
-        await _appExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false);
+        _ = Task.Run(() => _appExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false), cancellationToken);
     }
 
     private void EnsureDcpContainerRuntime(DcpInfo? dcpInfo)
