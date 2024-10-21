@@ -2018,8 +2018,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         switch (matchingResource.DcpResource)
         {
             case Container c:
+                _logger.LogWarning("Stopping");
                 patch = CreatePatch(c, obj => obj.Spec.Stop = true);
                 await kubernetesService.PatchAsync(c, patch, cancellationToken).ConfigureAwait(false);
+                _logger.LogWarning("Stopped!");
                 break;
             case Executable e:
                 patch = CreatePatch(e, obj => obj.Spec.Stop = true);
@@ -2077,7 +2079,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             var resourceNotFound = false;
             try
             {
+                _logger.LogWarning("Starting delete of resource.");
                 await kubernetesService.DeleteAsync<T>(resourceName, cancellationToken: cancellationToken).ConfigureAwait(false);
+                _logger.LogWarning("Completed delete of resource.");
             }
             catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -2110,17 +2114,23 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     try
                     {
+                        _logger.LogWarning("Getting resource.");
                         await kubernetesService.GetAsync<T>(resource.Metadata.Name, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
+                        _logger.LogWarning("Resource got!.");
                         throw new DistributedApplicationException($"Failed to delete '{resource.Metadata.Name}' successfully before restart.");
                     }
                     catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
+                        _logger.LogWarning("Resource not found.");
+
                         // Success.
                     }
                 }, cancellationToken).ConfigureAwait(false);
             }
 
+            _logger.LogWarning("Creating");
             await kubernetesService.CreateAsync(resource, cancellationToken).ConfigureAwait(false);
+            _logger.LogWarning("Created!");
         }
     }
 }
