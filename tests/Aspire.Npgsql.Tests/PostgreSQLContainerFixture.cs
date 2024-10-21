@@ -20,7 +20,7 @@ public sealed class PostgreSQLContainerFixture : IAsyncLifetime
         if (RequiresDockerAttribute.IsSupported)
         {
             Container = new PostgreSqlBuilder()
-                .WithImage($"{TestConstants.AspireTestContainerRegistry}/{PostgresContainerImageTags.Image}:{PostgresContainerImageTags.Tag}")
+                .WithImage($"{ComponentTestConstants.AspireTestContainerRegistry}/{PostgresContainerImageTags.Image}:{PostgresContainerImageTags.Tag}")
                 .Build();
             await Container.StartAsync();
         }

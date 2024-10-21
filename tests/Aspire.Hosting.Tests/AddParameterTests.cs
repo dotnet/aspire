@@ -4,6 +4,7 @@
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -147,7 +148,7 @@ public class AddParameterTests
         Assert.Equal($"DefaultValue", parameterResource.Value);
 
         // The manifest should not include anything about the default value
-        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass"));
+        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass")).DefaultTimeout();
         var expectedManifest = $$"""
             {
               "type": "parameter.v0",
@@ -197,7 +198,7 @@ public class AddParameterTests
         Assert.Equal($"DefaultValue", parameterResource.Value);
 
         // The manifest should include the default value, since we passed publishValueAsDefault: true
-        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass"));
+        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass")).DefaultTimeout();
         var expectedManifest = $$"""
             {
               "type": "parameter.v0",
@@ -255,7 +256,7 @@ public class AddParameterTests
         Assert.Equal(10, parameterResource.Value.Length);
 
         // The manifest should include the fields for the generated default value
-        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass"));
+        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass")).DefaultTimeout();
         var expectedManifest = $$"""
             {
               "type": "parameter.v0",
@@ -310,7 +311,7 @@ public class AddParameterTests
         Assert.Equal($"MyAccessToken", parameterResource.Value);
 
         // The manifest is not affected by the custom configuration key
-        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "val"));
+        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "val")).DefaultTimeout();
         var expectedManifest = $$"""
                 {
                   "type": "parameter.v0",

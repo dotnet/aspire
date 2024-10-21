@@ -3,6 +3,7 @@
 
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
@@ -28,7 +29,7 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
         var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
         {
             await app.StartAsync();
-        });
+        }).DefaultTimeout();
 
         Assert.Equal(
             "The endpoint 'nonhttp' on resource 'resource' was not using the 'http' scheme.",
@@ -50,7 +51,7 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
         var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
         {
             await app.StartAsync();
-        });
+        }).DefaultTimeout();
 
         Assert.Equal(
             "The endpoint 'nonhttp' on resource 'resource' was not using the 'https' scheme.",
@@ -62,7 +63,6 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyWithHttpHealthCheckBlocksDependentResources()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
 
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
@@ -81,23 +81,23 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        var pendingStart = app.StartAsync(cts.Token);
+        var pendingStart = app.StartAsync();
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutDuration);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutDuration);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutDuration);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutDuration);
 
-        await pendingStart;
+        await pendingStart.DefaultTimeout();
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
         var ex = await Assert.ThrowsAsync<OptionsValidationException>(async () =>
         {
             await app.StartAsync();
-        });
+        }).DefaultTimeout();
 
         Assert.Equal("A health check registration is missing. Check logs for more details.", ex.Message);
 
