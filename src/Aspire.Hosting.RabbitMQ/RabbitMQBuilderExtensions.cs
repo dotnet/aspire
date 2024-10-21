@@ -16,9 +16,6 @@ public static class RabbitMQBuilderExtensions
     /// <summary>
     /// Adds a RabbitMQ container to the application model. This version of the package defaults to the <inheritdoc cref="RabbitMQContainerImageTags.Tag"/> tag of the <inheritdoc cref="RabbitMQContainerImageTags.Image"/> container image.
     /// </summary>
-    /// <remarks>
-    /// The default image and tag are "rabbitmq" and "3.13".
-    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="userName">The parameter used to provide the user name for the RabbitMQ resource. If <see langword="null"/> a default value will be used.</param>

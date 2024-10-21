@@ -13,7 +13,7 @@ namespace Aspire.Hosting;
 public static class SqlServerBuilderExtensions
 {
     /// <summary>
-    /// Adds a SQL Server resource to the application model. A container is used for local development.
+    /// Adds a SQL Server resource to the application model. A container is used for local development. This version of the package defaults to the <inheritdoc cref="SqlServerContainerImageTags.Tag"/> tag of the <inheritdoc cref="SqlServerContainerImageTags.Registry"/>/<inheritdoc cref="SqlServerContainerImageTags.Image"/> container image.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>

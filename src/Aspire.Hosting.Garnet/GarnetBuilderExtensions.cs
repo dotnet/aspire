@@ -17,7 +17,7 @@ public static class GarnetBuilderExtensions
     private const string GarnetContainerDataDirectory = "/data";
 
     /// <summary>
-    /// Adds a Garnet container to the application model.
+    /// Adds a Garnet container to the application model. This version of the package defaults to the <inheritdoc cref="GarnetContainerImageTags.Tag"/> tag of the <inheritdoc cref="GarnetContainerImageTags.Registry"/>/<inheritdoc cref="GarnetContainerImageTags.Image"/> container image.
     /// </summary>
     /// <example>
     /// Use in application host
