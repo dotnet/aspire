@@ -71,8 +71,8 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         });
 
         var runningEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running);
-        Assert.Equal(HealthStatus.Unhealthy, runningEvent.Snapshot.HealthStatus);
 
+        Assert.Equal(HealthStatus.Unhealthy, runningEvent.Snapshot.HealthStatus);
         await rns.WaitForResourceHealthyAsync("resource");
 
         await app.StopAsync();
