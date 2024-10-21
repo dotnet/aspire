@@ -16,9 +16,6 @@ public static class RabbitMQBuilderExtensions
     /// <summary>
     /// Adds a RabbitMQ container to the application model. This version of the package defaults to the <inheritdoc cref="RabbitMQContainerImageTags.Tag"/> tag of the <inheritdoc cref="RabbitMQContainerImageTags.Image"/> container image.
     /// </summary>
-    /// <remarks>
-    /// The default image and tag are "rabbitmq" and "3.13".
-    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="userName">The parameter used to provide the user name for the RabbitMQ resource. If <see langword="null"/> a default value will be used.</param>
@@ -125,6 +122,7 @@ public static class RabbitMQBuilderExtensions
     /// <inheritdoc cref="WithManagementPlugin(IResourceBuilder{RabbitMQServerResource})" />
     /// <param name="builder">The resource builder.</param>
     /// <param name="port">The host port that can be used to access the management UI page when running locally.</param>
+    /// <remarks>
     /// <example>
     /// Use <see cref="WithManagementPlugin(IResourceBuilder{RabbitMQServerResource}, int?)"/> to specify a port to access the RabbitMQ management UI page.
     /// <code>
@@ -133,6 +131,7 @@ public static class RabbitMQBuilderExtensions
     ///                       .WithManagementPlugin(port: 15672);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<RabbitMQServerResource> WithManagementPlugin(this IResourceBuilder<RabbitMQServerResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);
