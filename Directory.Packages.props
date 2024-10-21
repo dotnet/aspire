@@ -130,7 +130,7 @@
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(NpgsqlEntityFrameworkCorePostgreSQLPackageVersion)" />
     <PackageVersion Include="OpenAI" Version="2.0.0" />
     <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.23.50" />
-    <PackageVersion Include="Oracle.ManagedDataAccess.OpenTelemetry" Version="23.5.0" />
+    <PackageVersion Include="Oracle.ManagedDataAccess.OpenTelemetry" Version="23.6.0" />
     <PackageVersion Include="Polly.Core" Version="8.4.2" />
     <PackageVersion Include="Polly.Extensions" Version="8.4.2" />
     <PackageVersion Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
