@@ -18,5 +18,5 @@ public sealed class AzureProvisioningOptions
     /// Gets the <see cref="Azure.Provisioning.ProvisioningContext"/> which contains common settings and
     /// functionality for building Azure resources.
     /// </summary>
-    public ProvisioningContext ProvisioningContext { get; } = new ProvisioningContext();
+    public ProvisioningBuildOptions ProvisioningContext { get; } = new ProvisioningBuildOptions();
 }

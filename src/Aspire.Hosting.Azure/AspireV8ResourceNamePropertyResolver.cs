@@ -16,9 +16,9 @@ namespace Aspire.Hosting.Azure;
 public sealed class AspireV8ResourceNamePropertyResolver : DynamicResourceNamePropertyResolver
 {
     /// <inheritdoc/>
-    public override BicepValue<string>? ResolveName(ProvisioningContext context, Resource resource, ResourceNameRequirements requirements)
+    public override BicepValue<string>? ResolveName(ProvisioningBuildOptions context, ProvisionableResource resource, ResourceNameRequirements requirements)
     {
         var suffix = GetUniqueSuffix(context, resource);
-        return BicepFunction.ToLower(BicepFunction.Take(BicepFunction.Interpolate($"{resource.IdentifierName}{suffix}"), 24));
+        return BicepFunction.ToLower(BicepFunction.Take(BicepFunction.Interpolate($"{resource.BicepIdentifier}{suffix}"), 24));
     }
 }

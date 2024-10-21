@@ -47,12 +47,12 @@ public static class AzureOpenAIExtensions
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
-                Value = new InterpolatedString(
+                Value = new InterpolatedStringExpression(
                         "Endpoint={0}",
                         [
                             new MemberExpression(
                                 new MemberExpression(
-                                    new IdentifierExpression(cogServicesAccount.IdentifierName),
+                                    new IdentifierExpression(cogServicesAccount.BicepIdentifier),
                                     "properties"),
                                 "endpoint")
                         ])
@@ -71,7 +71,7 @@ public static class AzureOpenAIExtensions
             var cdkDeployments = new List<CognitiveServicesAccountDeployment>();
             foreach (var deployment in resource.Deployments)
             {
-                var cdkDeployment = new CognitiveServicesAccountDeployment(Infrastructure.NormalizeIdentifierName(deployment.Name))
+                var cdkDeployment = new CognitiveServicesAccountDeployment(Infrastructure.NormalizeBicepIdentifier(deployment.Name))
                 {
                     Name = deployment.Name,
                     Parent = cogServicesAccount,

@@ -65,7 +65,7 @@ public static class AzureCosmosExtensions
             List<CosmosDBSqlDatabase> cosmosSqlDatabases = new List<CosmosDBSqlDatabase>();
             foreach (var databaseName in azureResource.Databases)
             {
-                var cosmosSqlDatabase = new CosmosDBSqlDatabase(Infrastructure.NormalizeIdentifierName(databaseName))
+                var cosmosSqlDatabase = new CosmosDBSqlDatabase(Infrastructure.NormalizeBicepIdentifier(databaseName))
                 {
                     Parent = cosmosAccount,
                     Name = databaseName,
