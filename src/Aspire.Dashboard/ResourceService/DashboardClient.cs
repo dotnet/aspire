@@ -31,7 +31,7 @@ namespace Aspire.Dashboard.Model;
 /// If the <c>DOTNET_RESOURCE_SERVICE_ENDPOINT_URL</c> environment variable is not specified, then there's
 /// no known endpoint to connect to, and this dashboard client will be disabled. Calls to
 /// <see cref="IDashboardClient.SubscribeResourcesAsync"/> and <see cref="IDashboardClient.SubscribeConsoleLogs"/>
-/// will throw if <see cref="IDashboardClient.IsEnabled"/> is <see langword="false"/>. Callers should
+/// will throw if <see cref="IDashboardClientStatus.IsEnabled"/> is <see langword="false"/>. Callers should
 /// check this property first, before calling these methods.
 /// </para>
 /// </remarks>
@@ -47,6 +47,7 @@ internal sealed class DashboardClient : IDashboardClient
     private readonly object _lock = new();
 
     private readonly ILoggerFactory _loggerFactory;
+    private readonly IDashboardClientStatus _dashboardClientStatus;
     private readonly BrowserTimeProvider _timeProvider;
     private readonly IKnownPropertyLookup _knownPropertyLookup;
     private readonly DashboardOptions _dashboardOptions;
@@ -71,11 +72,13 @@ internal sealed class DashboardClient : IDashboardClient
         ILoggerFactory loggerFactory,
         IConfiguration configuration,
         IOptions<DashboardOptions> dashboardOptions,
+        IDashboardClientStatus dashboardClientStatus,
         BrowserTimeProvider timeProvider,
         IKnownPropertyLookup knownPropertyLookup,
         Action<SocketsHttpHandler>? configureHttpHandler = null)
     {
         _loggerFactory = loggerFactory;
+        _dashboardClientStatus = dashboardClientStatus;
         _timeProvider = timeProvider;
         _knownPropertyLookup = knownPropertyLookup;
         _dashboardOptions = dashboardOptions.Value;
@@ -85,9 +88,7 @@ internal sealed class DashboardClient : IDashboardClient
 
         _logger = loggerFactory.CreateLogger<DashboardClient>();
 
-        var address = _dashboardOptions.ResourceServiceClient.GetUri();
-
-        if (address is null)
+        if (!_dashboardClientStatus.IsEnabled)
         {
             _state = StateDisabled;
             _logger.LogDebug($"{DashboardConfigNames.ResourceServiceUrlName.ConfigKey} is not specified. Dashboard client services are unavailable.");
@@ -96,6 +97,7 @@ internal sealed class DashboardClient : IDashboardClient
             return;
         }
 
+        var address = _dashboardOptions.ResourceServiceClient.GetUri()!;
         _logger.LogDebug("Dashboard configured to connect to: {Address}", address);
 
         // Create the gRPC channel. This channel performs automatic reconnects.
