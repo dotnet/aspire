@@ -39,7 +39,7 @@
     <MicrosoftDotNetXUnitExtensionsPackageVersion>9.0.0-beta.24516.2</MicrosoftDotNetXUnitExtensionsPackageVersion>
     <MicrosoftDotNetBuildTasksInstallersPackageVersion>9.0.0-beta.24516.2</MicrosoftDotNetBuildTasksInstallersPackageVersion>
     <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>9.0.0-beta.24516.2</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
-    <MicrosoftExtensionsHttpResiliencePackageVersion>8.10.0</MicrosoftExtensionsHttpResiliencePackageVersion>
+    <MicrosoftExtensionsHttpResiliencePackageVersion>9.0.0-preview.9.24507.7</MicrosoftExtensionsHttpResiliencePackageVersion>
     <MicrosoftExtensionsDiagnosticsTestingPackageVersion>8.10.0</MicrosoftExtensionsDiagnosticsTestingPackageVersion>
     <MicrosoftExtensionsConfigurationAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsConfigurationAbstractionsPackageVersion>
     <MicrosoftExtensionsConfigurationBinderPackageVersion>8.0.2</MicrosoftExtensionsConfigurationBinderPackageVersion>
@@ -70,7 +70,7 @@
     <NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>8.0.8</NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>
     <!-- for templates -->
     <MicrosoftExtensionsHttpResiliencePackageVersionForNet8>$(MicrosoftExtensionsHttpResiliencePackageVersion)</MicrosoftExtensionsHttpResiliencePackageVersionForNet8>
-    <MicrosoftExtensionsHttpResiliencePackageVersionForNet9>9.0.0-preview.9.24507.7</MicrosoftExtensionsHttpResiliencePackageVersionForNet9>
+    <MicrosoftExtensionsHttpResiliencePackageVersionForNet9>$(MicrosoftExtensionsHttpResiliencePackageVersion)</MicrosoftExtensionsHttpResiliencePackageVersionForNet9>
     <MicrosoftAspNetCorePackageVersionForNet9>9.0.0-rc.2.24474.3</MicrosoftAspNetCorePackageVersionForNet9>
     <!-- System dependencies -->
     <SystemFormatsAsn1PackageVersion>8.0.1</SystemFormatsAsn1PackageVersion>
