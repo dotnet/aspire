@@ -38,7 +38,7 @@ public sealed class ResourceViewModel
     /// <summary>The health status of the resource. <see langword="null"/> indicates that health status is expected but not yet available.</summary>
     public required HealthStatus? HealthStatus { get; init; }
 
-    public required ImmutableArray<HealthReportViewModel> HealthReports { get; init; } = [];
+    public required ImmutableArray<HealthReportViewModel> HealthReports { get; init; }
 
     public KnownResourceState? KnownState { get; init; }
 
