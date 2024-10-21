@@ -63,8 +63,8 @@
     <MicrosoftExtensionsTimeProviderTestingVersion>8.10.0</MicrosoftExtensionsTimeProviderTestingVersion>
     <!-- EF -->
     <MicrosoftEntityFrameworkCoreCosmosPackageVersion>8.0.10</MicrosoftEntityFrameworkCoreCosmosPackageVersion>
-    <MicrosoftEntityFrameworkCoreDesignPackageVersion>8.0.10</MicrosoftEntityFrameworkCoreDesignPackageVersion>
-    <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>8.0.10</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
+    <MicrosoftEntityFrameworkCoreDesignPackageVersion>9.0.0-rc.2.24474.1</MicrosoftEntityFrameworkCoreDesignPackageVersion>
+    <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>9.0.0-rc.2.24474.1</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
     <MicrosoftEntityFrameworkCoreToolsPackageVersion>8.0.10</MicrosoftEntityFrameworkCoreToolsPackageVersion>
     <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.0-preview.5.24272.3</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
     <NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>8.0.8</NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>
