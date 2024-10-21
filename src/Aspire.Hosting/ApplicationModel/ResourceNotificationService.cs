@@ -352,6 +352,7 @@ public class ResourceNotificationService
             var newState = stateFactory(previousState);
 
             newState = UpdateCommands(resource, newState);
+            newState = UpdateHealthStatus(resource, newState);
 
             notificationState.LastSnapshot = newState;
 
@@ -390,6 +391,20 @@ public class ResourceNotificationService
     }
 
     /// <summary>
+    /// Update resource snapshot health status if the resource is running with no health checks.
+    /// </summary>
+    private static CustomResourceSnapshot UpdateHealthStatus(IResource resource, CustomResourceSnapshot previousState)
+    {
+        // A resource is also healthy if it has no health check annotations and is in the running state.
+        if (previousState.HealthStatus is not HealthStatus.Healthy && !resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out _) && previousState.State?.Text == KnownResourceStates.Running)
+        {
+            return previousState with { HealthStatus = HealthStatus.Healthy };
+        }
+
+        return previousState;
+    }
+
+    /// <summary>
     /// Use command annotations to update resource snapshot.
     /// </summary>
     private CustomResourceSnapshot UpdateCommands(IResource resource, CustomResourceSnapshot previousState)
@@ -398,7 +413,7 @@ public class ResourceNotificationService
 
         foreach (var annotation in resource.Annotations.OfType<ResourceCommandAnnotation>())
         {
-            var existingCommand = FindByType(previousState.Commands, annotation.Type);
+            var existingCommand = FindByName(previousState.Commands, annotation.Name);
 
             if (existingCommand == null)
             {
@@ -442,11 +457,11 @@ public class ResourceNotificationService
 
         return previousState with { Commands = builder.ToImmutable() };
 
-        static ResourceCommandSnapshot? FindByType(ImmutableArray<ResourceCommandSnapshot> commands, string type)
+        static ResourceCommandSnapshot? FindByName(ImmutableArray<ResourceCommandSnapshot> commands, string name)
         {
             for (var i = 0; i < commands.Length; i++)
             {
-                if (commands[i].Type == type)
+                if (commands[i].Name == name)
                 {
                     return commands[i];
                 }
@@ -459,7 +474,7 @@ public class ResourceNotificationService
         {
             var state = annotation.UpdateState(new UpdateCommandStateContext { ResourceSnapshot = previousState, ServiceProvider = serviceProvider });
 
-            return new ResourceCommandSnapshot(annotation.Type, state, annotation.DisplayName, annotation.DisplayDescription, annotation.Parameter, annotation.ConfirmationMessage, annotation.IconName, annotation.IconVariant, annotation.IsHighlighted);
+            return new ResourceCommandSnapshot(annotation.Name, state, annotation.DisplayName, annotation.DisplayDescription, annotation.Parameter, annotation.ConfirmationMessage, annotation.IconName, annotation.IconVariant, annotation.IsHighlighted);
         }
     }
 
@@ -492,10 +507,7 @@ public class ResourceNotificationService
             previousState ??= new CustomResourceSnapshot()
             {
                 ResourceType = resource.GetType().Name,
-                Properties = [],
-                HealthStatus = resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out _)
-                    ? null // Indicates that the resource has health check annotations but the health status is unknown.
-                    : HealthStatus.Healthy
+                Properties = []
             };
         }
 

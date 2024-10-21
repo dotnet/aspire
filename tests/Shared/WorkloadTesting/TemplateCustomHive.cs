@@ -30,7 +30,6 @@ public class TemplatesCustomHive
                                         : Path.Combine(AppContext.BaseDirectory, "templates");
         _customHiveDirectory = Path.Combine(customHiveBaseDirectory, customHiveDirName);
         _stampFilePath = Path.Combine(_customHiveDirectory, ".stamp-installed");
-
     }
 
     public async Task EnsureInstalledAsync(BuildEnvironment buildEnvironment)
@@ -53,7 +52,7 @@ public class TemplatesCustomHive
         {
             // Installation exists, but check if any of the packages have been updated since
             var dirWriteTime = Directory.GetLastWriteTimeUtc(_customHiveDirectory);
-            installTemplates = packageIdAndPaths.Where(t => new FileInfo(t.id).LastWriteTimeUtc > dirWriteTime).Any();
+            installTemplates = packageIdAndPaths.Where(t => new FileInfo(t.path).LastWriteTimeUtc > dirWriteTime).Any();
         }
 
         if (!installTemplates)
@@ -104,7 +103,9 @@ public class TemplatesCustomHive
         using var cmd = new ToolCommand(dotnet,
                                         new TestOutputWrapper(forceShowBuildOutput: true),
                                         label: "template install")
-                            .WithWorkingDirectory(Path.GetTempPath()); // avoid running from the repo
+                            .WithWorkingDirectory(BuildEnvironment.IsRunningOnCI
+                                ? Path.GetTempPath()
+                                : Path.Combine(BuildEnvironment.TempDir, "templates", "working")); // avoid running from the repo
 
         var res = await cmd.ExecuteAsync(installCmd);
         res.EnsureSuccessful();

@@ -15,20 +15,22 @@ public class TemplateAppFixture : IAsyncLifetime
     private readonly TestOutputWrapper _testOutput;
     private readonly string _dotnetNewArgs;
     private readonly string _config;
+    private readonly TestTargetFramework? _tfm;
 
     public AspireProject? Project { get; private set; }
 
     public string Id { get; init; }
     public string TemplateName { get; set; }
 
-    public TemplateAppFixture(IMessageSink diagnosticMessageSink, string templateName, string? dotnetNewArgs = null, string config = "Debug")
+    public TemplateAppFixture(IMessageSink diagnosticMessageSink, string templateName, string? dotnetNewArgs = null, string config = "Debug", TestTargetFramework tfm = TestTargetFramework.Current)
     {
         _diagnosticMessageSink = diagnosticMessageSink;
         _testOutput = new TestOutputWrapper(messageSink: _diagnosticMessageSink);
         _dotnetNewArgs = dotnetNewArgs ?? string.Empty;
         _config = config;
-        Id = WorkloadTestsBase.GetNewProjectId(prefix: templateName);
+        Id = WorkloadTestsBase.GetNewProjectId(prefix: $"{templateName}_{tfm.ToTFMString()}");
         TemplateName = templateName;
+        _tfm = tfm;
     }
 
     public async Task InitializeAsync()
@@ -38,7 +40,8 @@ public class TemplateAppFixture : IAsyncLifetime
             TemplateName,
             _testOutput,
             extraArgs: _dotnetNewArgs,
-            buildEnvironment: BuildEnvironment.ForDefaultFramework);
+            buildEnvironment: BuildEnvironment.ForDefaultFramework,
+            targetFramework: _tfm);
 
         await Project.BuildAsync(extraBuildArgs: [$"-c {_config}"]);
         await Project.StartAppHostAsync(extraArgs: [$"-c {_config}"]);

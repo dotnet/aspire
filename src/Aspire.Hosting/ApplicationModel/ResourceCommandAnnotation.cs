@@ -15,7 +15,7 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
     /// Initializes a new instance of the <see cref="ResourceCommandAnnotation"/> class.
     /// </summary>
     public ResourceCommandAnnotation(
-        string type,
+        string name,
         string displayName,
         Func<UpdateCommandStateContext, ResourceCommandState> updateState,
         Func<ExecuteCommandContext, Task<ExecuteCommandResult>> executeCommand,
@@ -26,12 +26,12 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
         IconVariant? iconVariant,
         bool isHighlighted)
     {
-        ArgumentNullException.ThrowIfNull(type);
+        ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(displayName);
         ArgumentNullException.ThrowIfNull(updateState);
         ArgumentNullException.ThrowIfNull(executeCommand);
 
-        Type = type;
+        Name = name;
         DisplayName = displayName;
         UpdateState = updateState;
         ExecuteCommand = executeCommand;
@@ -44,9 +44,9 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
     }
 
     /// <summary>
-    /// The type of command. The type uniquely identifies the command.
+    /// The name of command. The name uniquely identifies the command.
     /// </summary>
-    public string Type { get; }
+    public string Name { get; }
 
     /// <summary>
     /// The display name visible in UI.

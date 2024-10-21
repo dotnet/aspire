@@ -82,7 +82,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         _selectApplication = new SelectViewModel<ResourceTypeDetails>
         {
             Id = null,
-            Name = ControlsStringsLoc[ControlsStrings.LabelNone]
+            Name = ControlsStringsLoc[nameof(ControlsStrings.LabelNone)]
         };
 
         PageViewModel = new MetricsViewModel
