@@ -303,7 +303,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
-    [Fact(Skip = "")]
+    [Fact()]
     public async Task ResourceHealthCheckServiceOnlyRaisesResourceReadyOnce()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
