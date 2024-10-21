@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning.Storage;
+using Azure.Provisioning;
 
 namespace Aspire.Hosting;
 
@@ -50,9 +51,12 @@ public static class AzureFunctionsProjectResourceExtensions
             {
                 var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
                 {
+                    var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+                    var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+
                     var storageAccount = infrastructure.GetResources().OfType<StorageAccount>().FirstOrDefault(r => r.IdentifierName == storageResourceName)
                         ?? throw new InvalidOperationException($"Could not find storage account with '{storageResourceName}' name.");
-                    infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageAccountContributor, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
+                    infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageAccountContributor, principalTypeParameter, principalIdParameter));
                 };
                 storage = builder.AddAzureStorage(storageResourceName)
                     .ConfigureInfrastructure(configureInfrastructure)
@@ -96,6 +100,8 @@ public static class AzureFunctionsProjectResourceExtensions
                 context.EnvironmentVariables["OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY"] = "in_memory";
                 context.EnvironmentVariables["ASPNETCORE_FORWARDEDHEADERS_ENABLED"] = "true";
                 context.EnvironmentVariables["FUNCTIONS_WORKER_RUNTIME"] = "dotnet-isolated";
+                // Required to enable OpenTelemetry in the Azure Functions host.
+                context.EnvironmentVariables["AzureFunctionsJobHost__telemetryMode"] = "OpenTelemetry";
                 // Set ASPNETCORE_URLS to use the non-privileged port 8080 when running in publish mode.
                 // We can't use the newer ASPNETCORE_HTTP_PORTS environment variables here since the Azure
                 // Functions host is still initialized using the classic WebHostBuilder.

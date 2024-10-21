@@ -38,21 +38,23 @@ public static class AzureEventHubsExtensions
             };
             infrastructure.Add(skuParameter);
 
-            var eventHubsNamespace = new EventHubsNamespace(infrastructure.Resource.GetBicepIdentifier())
+            var eventHubsNamespace = new EventHubsNamespace(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Sku = new EventHubsSku()
                 {
                     Name = skuParameter
                 },
-                Tags = { { "aspire-resource-name", infrastructure.Resource.Name } }
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
             };
             infrastructure.Add(eventHubsNamespace);
 
-            infrastructure.Add(eventHubsNamespace.CreateRoleAssignment(EventHubsBuiltInRole.AzureEventHubsDataOwner, infrastructure.PrincipalTypeParameter, infrastructure.PrincipalIdParameter));
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(eventHubsNamespace.CreateRoleAssignment(EventHubsBuiltInRole.AzureEventHubsDataOwner, principalTypeParameter, principalIdParameter));
 
             infrastructure.Add(new ProvisioningOutput("eventHubsEndpoint", typeof(string)) { Value = eventHubsNamespace.ServiceBusEndpoint });
 
-            var azureResource = (AzureEventHubsResource)infrastructure.Resource;
+            var azureResource = (AzureEventHubsResource)infrastructure.AspireResource;
 
             foreach (var hub in azureResource.Hubs)
             {

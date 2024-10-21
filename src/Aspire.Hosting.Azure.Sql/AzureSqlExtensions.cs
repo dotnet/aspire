@@ -85,7 +85,7 @@ public static class AzureSqlExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var azureResource = (AzureSqlServerResource)infrastructure.Resource;
+            var azureResource = (AzureSqlServerResource)infrastructure.AspireResource;
             CreateSqlServer(infrastructure, builder, azureResource.Databases);
         };
 
@@ -211,20 +211,22 @@ public static class AzureSqlExtensions
         IDistributedApplicationBuilder distributedApplicationBuilder,
         IReadOnlyDictionary<string, string> databases)
     {
-        var sqlServer = new SqlServer(infrastructure.Resource.GetBicepIdentifier())
+        var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+        var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
+        var sqlServer = new SqlServer(infrastructure.AspireResource.GetBicepIdentifier())
         {
             Administrators = new ServerExternalAdministrator()
             {
                 AdministratorType = SqlAdministratorType.ActiveDirectory,
                 IsAzureADOnlyAuthenticationEnabled = true,
-                Sid = infrastructure.PrincipalIdParameter,
-                Login = infrastructure.PrincipalNameParameter,
+                Sid = principalIdParameter,
+                Login = principalNameParameter,
                 TenantId = BicepFunction.GetSubscription().TenantId
             },
             Version = "12.0",
             PublicNetworkAccess = ServerNetworkAccessFlag.Enabled,
             MinTlsVersion = SqlMinimalTlsVersion.Tls1_2,
-            Tags = { { "aspire-resource-name", infrastructure.Resource.Name } }
+            Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
         };
         infrastructure.Add(sqlServer);
 
@@ -240,7 +242,8 @@ public static class AzureSqlExtensions
         {
             // When in run mode we inject the users identity and we need to specify
             // the principalType.
-            sqlServer.Administrators.Value!.PrincipalType = infrastructure.PrincipalTypeParameter;
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            sqlServer.Administrators.Value!.PrincipalType = principalTypeParameter;
 
             infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps")
             {

@@ -11,15 +11,19 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
+using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Aspire.Hosting.Tests.Dashboard;
 
-public class DashboardResourceTests
+public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public async Task DashboardIsAutomaticallyAddedAsHiddenResource()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(options => options.DisableDashboard = false);
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
 
         // Ensure any ambient configuration doesn't impact this test.
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -52,7 +56,9 @@ public class DashboardResourceTests
     [Fact]
     public async Task DashboardIsAddedFirst()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(options => options.DisableDashboard = false);
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
 
         builder.AddContainer("my-container", "my-image");
 
@@ -71,7 +77,9 @@ public class DashboardResourceTests
     [Fact]
     public async Task DashboardDoesNotAddResource_ConfiguresExistingDashboard()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(options => options.DisableDashboard = false);
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
 
         builder.Services.AddSingleton<IDashboardEndpointProvider, MockDashboardEndpointProvider>();
 
@@ -144,7 +152,9 @@ public class DashboardResourceTests
     [Fact]
     public async Task DashboardWithDllPathLaunchesDotnet()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(options => options.DisableDashboard = false);
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
 
         var dashboardPath = Path.GetFullPath("dashboard.dll");
 
@@ -173,7 +183,9 @@ public class DashboardResourceTests
     public async Task DashboardAuthConfigured_EnvVarsPresent()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(options => options.DisableDashboard = false);
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
 
         builder.Services.AddSingleton<IDashboardEndpointProvider, MockDashboardEndpointProvider>();
 
@@ -208,7 +220,9 @@ public class DashboardResourceTests
     public async Task DashboardAuthRemoved_EnvVarsUnsecured()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(options => options.DisableDashboard = false);
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
 
         builder.Services.AddSingleton<IDashboardEndpointProvider, MockDashboardEndpointProvider>();
 
@@ -238,7 +252,9 @@ public class DashboardResourceTests
     public async Task DashboardResourceServiceUriIsSet()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(options => options.DisableDashboard = false);
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
 
         builder.Services.AddSingleton<IDashboardEndpointProvider, MockDashboardEndpointProvider>();
 
@@ -267,7 +283,10 @@ public class DashboardResourceTests
     public async Task DashboardResource_OtlpHttpEndpoint_CorsEnvVarSet()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(options => options.DisableDashboard = false);
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
+
         builder.AddContainer("my-container", "my-image").WithHttpEndpoint(port: 8080, targetPort: 58080);
 
         builder.Services.AddSingleton<IDashboardEndpointProvider, MockDashboardEndpointProvider>();
@@ -303,7 +322,10 @@ public class DashboardResourceTests
     public async Task DashboardResource_OtlpGrpcEndpoint_CorsEnvVarNotSet()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(options => options.DisableDashboard = false);
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
+
         builder.AddContainer("my-container", "my-image").WithHttpEndpoint(port: 8080, targetPort: 58080);
 
         builder.Services.AddSingleton<IDashboardEndpointProvider, MockDashboardEndpointProvider>();
@@ -333,11 +355,13 @@ public class DashboardResourceTests
     [Fact]
     public async Task DashboardIsNotAddedInPublishMode()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(options =>
-        {
-            options.DisableDashboard = false;
-            options.Args = ["--publisher", "manifest"];
-        });
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options =>
+            {
+                options.DisableDashboard = false;
+                options.Args = ["--publisher", "manifest"];
+            },
+            testOutputHelper: testOutputHelper);
 
         using var app = builder.Build();
 
@@ -351,7 +375,9 @@ public class DashboardResourceTests
     [Fact]
     public async Task DashboardIsNotAddedIfDisabled()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(options => options.DisableDashboard = true);
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = true,
+            testOutputHelper: testOutputHelper);
 
         var app = builder.Build();
 
@@ -366,11 +392,13 @@ public class DashboardResourceTests
     public void ContainerIsValidWithDashboardIsDisabled()
     {
         // Set the host environment to "Development" so that the container validates services.
-        using var builder = TestDistributedApplicationBuilder.Create(options =>
-        {
-            options.DisableDashboard = true;
-            options.Args = ["--environment", "Development"];
-        });
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options =>
+            {
+                options.DisableDashboard = true;
+                options.Args = ["--environment", "Development"];
+            },
+            testOutputHelper: testOutputHelper);
 
         // Container validation logic runs when the service provider is built.
         using var app = builder.Build();
@@ -385,7 +413,9 @@ public class DashboardResourceTests
     [InlineData(LogLevel.Trace)]
     public async Task DashboardLifecycleHookWatchesLogs(LogLevel logLevel)
     {
-        using var builder = TestDistributedApplicationBuilder.Create(o => o.DisableDashboard = false);
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
 
         var loggerProvider = new TestLoggerProvider();
 

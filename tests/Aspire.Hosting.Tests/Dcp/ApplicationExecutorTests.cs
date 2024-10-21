@@ -992,9 +992,9 @@ public class ApplicationExecutorTests
     {
         var commandAnnotations = resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
         Assert.Collection(commandAnnotations,
-            a => Assert.Equal(CommandsConfigurationExtensions.StartType, a.Type),
-            a => Assert.Equal(CommandsConfigurationExtensions.StopType, a.Type),
-            a => Assert.Equal(CommandsConfigurationExtensions.RestartType, a.Type));
+            a => Assert.Equal(CommandsConfigurationExtensions.StartCommandName, a.Name),
+            a => Assert.Equal(CommandsConfigurationExtensions.StopCommandName, a.Name),
+            a => Assert.Equal(CommandsConfigurationExtensions.RestartCommandName, a.Name));
     }
 
     private static ApplicationExecutor CreateAppExecutor(

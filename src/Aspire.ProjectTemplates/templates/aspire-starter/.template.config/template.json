@@ -11,10 +11,10 @@
     "Service",
     "Cloud"
   ],
-  "name": ".NET Aspire 9 Starter App",
+  "name": ".NET Aspire Starter App",
   "defaultName": "AspireApp",
-  "description": "A project template for creating a .NET Aspire 9 app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
-  "shortName": ["aspire-starter", "aspire-starter-9"],
+  "description": "A project template for creating a .NET Aspire app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
+  "shortName": "aspire-starter",
   "sourceName": "Aspire-StarterApplication.1",
   "preferNameDirectory": false,
   "tags": {
@@ -23,9 +23,9 @@
     "editorTreatAs": "solution"
   },
   "precedence": "9000",
-  "identity": "Aspire.Starter.CSharp.9.net9",
-  "thirdPartyNotices": "https://aka.ms/dotnet/aspire/8.0-third-party-notices",
-  "groupIdentity": "Aspire.Starter.9",
+  "identity": "Aspire.Starter.CSharp.8.0",
+  "thirdPartyNotices": "https://aka.ms/dotnet/aspire/third-party-notices",
+  "groupIdentity": "Aspire.Starter",
   "guids": [
     "80B24B1B-1E78-4FCB-BDC9-13678F1789F4",
     "DB7A3AC1-6E4F-4805-B710-2FCD1084E96E",
@@ -37,6 +37,28 @@
   ],
   "sources": [
     {
+      "source": "./9.0",
+      "target": "./",
+      "condition": "AspireVersionActual == 9.0",
+      "modifiers": [
+        {
+          "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
+          "exclude": [
+            "*.sln"
+          ]
+        },
+        {
+          "condition": "(TestFramework == None)",
+          "exclude": [
+            "Aspire-StarterApplication.1.Tests/**/*.*"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "./8.2",
+      "target": "./",
+      "condition": "AspireVersionActual == 8.2",
       "modifiers": [
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
@@ -60,12 +82,52 @@
       "datatype": "choice",
       "choices": [
         {
+          "choice": "net8.0",
+          "description": "Target net8.0"
+        },
+        {
           "choice": "net9.0",
           "description": "Target net9.0"
         }
       ],
-      "replaces": "net9.0",
+      "replaces": "net8.0",
       "defaultValue": "net9.0"
+    },
+    "AspireVersion": {
+      "type": "parameter",
+      "description": "The version of .NET Aspire to use.",
+      "displayName": ".NET Aspire version",
+      "datatype": "choice",
+      "isEnabled": "Framework == net8.0",
+      "choices": [
+          {
+             "choice": "9.0",
+             "displayName": "9.0",
+             "description": "Chooses .NET Aspire 9.0"
+          },
+          {
+            "choice": "8.2",
+            "displayName": "8.2",
+            "description": "Chooses .NET Aspire 8.2"
+         }
+      ],
+      "defaultValue": "9.0"
+    },
+    "AspireVersionDefault": {
+      "type": "generated",
+      "generator": "constant",
+      "parameters": {
+        "value": "9.0"
+      }
+    },
+    "AspireVersionActual": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "AspireVersion",
+        "fallbackVariableName": "AspireVersionDefault"
+      },
+      "replaces": "aspireVersion"
     },
     "hostIdentifier": {
       "type": "bind",

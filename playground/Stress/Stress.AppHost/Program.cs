@@ -10,7 +10,7 @@ for (var i = 0; i < 10; i++)
 
 var serviceBuilder = builder.AddProject<Projects.Stress_ApiService>("stress-apiservice", launchProfileName: null);
 serviceBuilder.WithCommand(
-    type: "icon-test",
+    name: "icon-test",
     displayName: "Icon test",
     executeCommand: (c) =>
     {
@@ -18,7 +18,7 @@ serviceBuilder.WithCommand(
     },
     iconName: "CloudDatabase");
 serviceBuilder.WithCommand(
-    type: "icon-test-highlighted",
+    name: "icon-test-highlighted",
     displayName: "Icon test highlighted",
     executeCommand: (c) =>
     {
