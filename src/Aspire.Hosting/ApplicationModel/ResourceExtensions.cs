@@ -228,6 +228,17 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Attempts to retrieve the probes for the given resource.
+    /// </summary>
+    /// <param name="resource">The resource to retrieve the probes for.</param>
+    /// <param name="probes">The probes for the given resource, if found.</param>
+    /// <returns></returns>
+    public static bool TryGetProbes(this IResource resource, [NotNullWhen(true)] out IEnumerable<ProbeAnnotation>? probes)
+    {
+        return TryGetAnnotationsOfType<ProbeAnnotation>(resource, out probes);
+    }
+
+    /// <summary>
     /// Attempts to get the container image name from the given resource.
     /// </summary>
     /// <param name="resource">The resource to get the container image name from.</param>
