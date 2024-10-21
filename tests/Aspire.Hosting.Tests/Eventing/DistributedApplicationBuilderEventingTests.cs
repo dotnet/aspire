@@ -87,14 +87,14 @@ public class DistributedApplicationBuilderEventingTests
         builder.Eventing.Subscribe<DummyEvent>(async (@event, ct) =>
         {
             await blockSubscriptionExecution.Task;
-            hitCount++;
+            Interlocked.Increment(ref hitCount);
             blockAssertionSub1.SetResult();
         });
 
         builder.Eventing.Subscribe<DummyEvent>(async (@event, ct) =>
         {
             await blockSubscriptionExecution.Task;
-            hitCount++;
+            Interlocked.Increment(ref hitCount);
             blockAssertionSub2.SetResult();
         });
 
