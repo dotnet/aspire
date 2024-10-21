@@ -7,6 +7,8 @@
     <Description>A Microsoft SQL Server provider for Entity Framework Core that integrates with Aspire, including connection pooling, health check, logging, and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)SQL_256x.png</PackageIconFullPath>
     <IsAotCompatible>false</IsAotCompatible>
+    <!-- We need to ingest the stable version of EF in order for us to produce stable  bits. -->
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
   <PropertyGroup>
