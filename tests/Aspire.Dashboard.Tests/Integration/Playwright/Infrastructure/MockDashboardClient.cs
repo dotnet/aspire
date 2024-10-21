@@ -8,9 +8,19 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
 
+public sealed class MockDashboardClientStatus : IDashboardClientStatus
+{
+    public bool IsEnabled => true;
+}
+
 public sealed class MockDashboardClient : IDashboardClient
 {
     private static readonly BrowserTimeProvider s_timeProvider = new(NullLoggerFactory.Instance);
+
+    public MockDashboardClient(IDashboardClientStatus dashboardClientStatus)
+    {
+        _dashboardClientStatus = dashboardClientStatus;
+    }
 
     public static readonly ResourceViewModel TestResource1 = ModelTestHelpers.CreateResource(
         appName: "TestResource",
@@ -32,7 +42,9 @@ public sealed class MockDashboardClient : IDashboardClient
         }.ToDictionary(),
         state: KnownResourceState.Running);
 
-    public bool IsEnabled => true;
+    private readonly IDashboardClientStatus _dashboardClientStatus;
+
+    public bool IsEnabled => _dashboardClientStatus.IsEnabled;
     public Task WhenConnected => Task.CompletedTask;
     public string ApplicationName => "IntegrationTestApplication";
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
