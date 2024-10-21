@@ -23,13 +23,13 @@ public class DistributedApplicationBuilderEventingTests
         builder.Eventing.Subscribe<DummyEvent>(async (@event, ct) =>
         {
             blockAssertionTcs.SetResult();
-            hitCount++;
+            Interlocked.Increment(ref hitCount);
             await blockFirstSubscriptionTcs.Task;
         });
 
         builder.Eventing.Subscribe<DummyEvent>((@event, ct) =>
         {
-            hitCount++;
+            Interlocked.Increment(ref hitCount);
             return Task.CompletedTask;
         });
 
@@ -54,14 +54,14 @@ public class DistributedApplicationBuilderEventingTests
 
         builder.Eventing.Subscribe<DummyEvent>(async (@event, ct) =>
         {
-            hitCount++;
+            Interlocked.Increment(ref hitCount);
             blockAssertionSub1.SetResult();
             await blockSubscriptionCompletion.Task;
         });
 
         builder.Eventing.Subscribe<DummyEvent>(async (@event, ct) =>
         {
-            hitCount++;
+            Interlocked.Increment(ref hitCount);
             blockAssertionSub2.SetResult();
             await blockSubscriptionCompletion.Task;
         });
@@ -122,14 +122,14 @@ public class DistributedApplicationBuilderEventingTests
         {
             blockAssert1.SetResult();
             await blockEventSub1.Task;
-            hitCount++;
+            Interlocked.Increment(ref hitCount);
             blockAssert2.SetResult();
             await blockEventSub2.Task;
         });
 
         builder.Eventing.Subscribe<DummyEvent>((@event, ct) =>
         {
-            hitCount++;
+            Interlocked.Increment(ref hitCount);
             blockAssert3.SetResult();
             return Task.CompletedTask;
         });
