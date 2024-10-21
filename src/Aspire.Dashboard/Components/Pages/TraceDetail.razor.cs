@@ -261,7 +261,7 @@ public partial class TraceDetail : ComponentBase
 
     public SpanDetailsViewModel? SelectedSpan { get; set; }
 
-    private void OnToggleCollapse(SpanWaterfallViewModel viewModel)
+    private async Task OnToggleCollapse(SpanWaterfallViewModel viewModel)
     {
         // View model data is recreated if the trace updates.
         // Persist the collapsed state in a separate list.
@@ -275,6 +275,8 @@ public partial class TraceDetail : ComponentBase
             viewModel.IsCollapsed = true;
             _collapsedSpanIds.Add(viewModel.Span.SpanId);
         }
+
+        await _dataGrid.SafeRefreshDataAsync();
     }
 
     private async Task OnShowPropertiesAsync(SpanWaterfallViewModel viewModel, string? buttonId)
