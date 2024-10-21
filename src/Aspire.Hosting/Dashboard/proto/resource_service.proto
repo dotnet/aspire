@@ -210,6 +210,7 @@ message Resource {
 
     // The aggregate health state of the resource. Generally reflects data from health_reports, but may differ.
     optional HealthStatus health_status = 16;
+
     // Reports from health checks, about this resource.
     repeated HealthReport health_reports = 17;
 
