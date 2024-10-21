@@ -238,7 +238,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
-    [Fact(Skip = "")]
+    [Fact()]
     public async Task ResourceHealthCheckServiceDoesNotRunHealthChecksUnlessResourceIsRunning()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
