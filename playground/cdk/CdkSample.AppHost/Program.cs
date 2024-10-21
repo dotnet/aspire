@@ -17,7 +17,7 @@ var locationOverride = builder.AddParameter("locationOverride");
 var storage = builder.AddAzureStorage("storage")
     .ConfigureInfrastructure(infrastructure =>
     {
-        var account = infrastructure.GetResources().OfType<StorageAccount>().Single();
+        var account = infrastructure.GetProvisionableResources().OfType<StorageAccount>().Single();
         account.Sku = new StorageSku() { Name = sku.AsProvisioningParameter(infrastructure) };
         account.Location = locationOverride.AsProvisioningParameter(infrastructure);
     });
@@ -30,7 +30,7 @@ var signaturesecret = builder.AddParameter("signaturesecret", secret: true);
 var keyvault = builder.AddAzureKeyVault("mykv")
     .ConfigureInfrastructure(infrastructure =>
 {
-    var keyVault = infrastructure.GetResources().OfType<KeyVaultService>().Single();
+    var keyVault = infrastructure.GetProvisionableResources().OfType<KeyVaultService>().Single();
     var secret = new KeyVaultSecret("mysecret")
     {
         Parent = keyVault,
@@ -55,24 +55,24 @@ var sb = builder.AddAzureServiceBus("servicebus")
     .AddQueue("queue1")
     .ConfigureInfrastructure(infrastructure =>
     {
-        var queue = infrastructure.GetResources().OfType<ServiceBusQueue>().Single(q => q.IdentifierName == "queue1");
+        var queue = infrastructure.GetProvisionableResources().OfType<ServiceBusQueue>().Single(q => q.BicepIdentifier == "queue1");
         queue.MaxDeliveryCount = 5;
-        queue.LockDuration = new StringLiteral("PT5M");
+        queue.LockDuration = new StringLiteralExpression("PT5M");
         // TODO: this should be
         // queue.LockDuration = TimeSpan.FromMinutes(5);
     })
     .AddTopic("topic1")
     .ConfigureInfrastructure(infrastructure =>
     {
-        var topic = infrastructure.GetResources().OfType<ServiceBusTopic>().Single(q => q.IdentifierName == "topic1");
+        var topic = infrastructure.GetProvisionableResources().OfType<ServiceBusTopic>().Single(q => q.BicepIdentifier == "topic1");
         topic.EnablePartitioning = true;
     })
     .AddTopic("topic2")
     .AddSubscription("topic1", "subscription1")
     .ConfigureInfrastructure(infrastructure =>
     {
-        var subscription = infrastructure.GetResources().OfType<ServiceBusSubscription>().Single(q => q.IdentifierName == "subscription1");
-        subscription.LockDuration = new StringLiteral("PT5M");
+        var subscription = infrastructure.GetProvisionableResources().OfType<ServiceBusSubscription>().Single(q => q.BicepIdentifier == "subscription1");
+        subscription.LockDuration = new StringLiteralExpression("PT5M");
         // TODO: this should be
         //subscription.LockDuration = TimeSpan.FromMinutes(5);
         subscription.RequiresSession = true;
@@ -89,7 +89,7 @@ var signalr = builder.AddAzureSignalR("signalr");
 var logAnalyticsWorkspace = builder.AddAzureLogAnalyticsWorkspace("logAnalyticsWorkspace")
     .ConfigureInfrastructure(infrastructure =>
     {
-        var logAnalyticsWorkspace = infrastructure.GetResources().OfType<OperationalInsightsWorkspace>().Single();
+        var logAnalyticsWorkspace = infrastructure.GetProvisionableResources().OfType<OperationalInsightsWorkspace>().Single();
         logAnalyticsWorkspace.Sku = new OperationalInsightsWorkspaceSku()
         {
             Name = OperationalInsightsWorkspaceSkuName.PerNode
@@ -99,7 +99,7 @@ var logAnalyticsWorkspace = builder.AddAzureLogAnalyticsWorkspace("logAnalyticsW
 var appInsights = builder.AddAzureApplicationInsights("appInsights", logAnalyticsWorkspace)
     .ConfigureInfrastructure(infrastructure =>
     {
-        var appInsights = infrastructure.GetResources().OfType<ApplicationInsightsComponent>().Single();
+        var appInsights = infrastructure.GetProvisionableResources().OfType<ApplicationInsightsComponent>().Single();
         appInsights.IngestionMode = ComponentIngestionMode.LogAnalytics;
     });
 

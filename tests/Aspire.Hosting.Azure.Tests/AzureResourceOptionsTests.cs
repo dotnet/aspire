@@ -27,7 +27,7 @@ public class AzureResourceOptionsTests(ITestOutputHelper output)
         {
             builder.Services.Configure<AzureProvisioningOptions>(options =>
             {
-                options.ProvisioningContext.PropertyResolvers.Insert(0, new AspireV8ResourceNamePropertyResolver());
+                options.ProvisioningContext.InfrastructureResolvers.Insert(0, new AspireV8ResourceNamePropertyResolver());
             });
 
             var serviceBus = builder.AddAzureServiceBus("sb");
