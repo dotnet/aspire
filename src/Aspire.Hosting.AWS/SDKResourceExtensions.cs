@@ -19,6 +19,8 @@ public static class SDKResourceExtensions
     /// <returns></returns>
     public static IAWSSDKConfig AddAWSSDKConfig(this IDistributedApplicationBuilder builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         var config = new AWSSDKConfig();
 
         return config;
@@ -32,6 +34,9 @@ public static class SDKResourceExtensions
     /// <returns></returns>
     public static IAWSSDKConfig WithProfile(this IAWSSDKConfig config, string profile)
     {
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentException.ThrowIfNullOrEmpty(profile);
+
         config.Profile = profile;
         return config;
     }
@@ -43,6 +48,9 @@ public static class SDKResourceExtensions
     /// <param name="region">The AWS region.</param>
     public static IAWSSDKConfig WithRegion(this IAWSSDKConfig config, RegionEndpoint region)
     {
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentNullException.ThrowIfNull(region);
+
         config.Region = region;
         return config;
     }
@@ -56,6 +64,9 @@ public static class SDKResourceExtensions
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IAWSSDKConfig awsSdkConfig)
         where TDestination : IResourceWithEnvironment
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(awsSdkConfig);
+
         builder.WithEnvironment(context =>
         {
             if (context.ExecutionContext.IsPublishMode)
