@@ -17,6 +17,37 @@ public static class TraceHelpers
     }
 
     /// <summary>
+    /// Recursively visit spans for a trace. Start visiting spans from unrooted spans.
+    /// </summary>
+    public static void VisitSpans<TState>(OtlpTrace trace, Func<OtlpSpan, TState, TState> spanAction, TState state)
+    {
+        // TODO: Improve performance.
+        // Spans are stored in one collection and recursively iterated by matching the span id to its parent.
+        // This behavior could could excessive iteration over the span collection in large traces. Consider improving if this causes performance issues.
+
+        var orderByFunc = static (OtlpSpan s) => s.StartTime;
+
+        foreach (var unrootedSpan in trace.Spans.Where(s => s.GetParentSpan() == null).OrderBy(orderByFunc))
+        {
+            var newState = spanAction(unrootedSpan, state);
+
+            Visit(trace.Spans, unrootedSpan, spanAction, newState, orderByFunc);
+        }
+
+        static void Visit(List<OtlpSpan> allSpans, OtlpSpan span, Func<OtlpSpan, TState, TState> spanAction, TState state, Func<OtlpSpan, DateTime> orderByFunc)
+        {
+            foreach (var childSpan in OtlpSpan.GetChildSpans(span, allSpans).OrderBy(orderByFunc))
+            {
+                var newState = spanAction(childSpan, state);
+
+                Visit(allSpans, childSpan, spanAction, newState, orderByFunc);
+            }
+        }
+    }
+
+    private record struct OrderedApplicationsState(DateTime? CurrentMinDate);
+
+    /// <summary>
     /// Get applications for a trace, with grouped information, and ordered using min date.
     /// It is possible for spans to arrive with dates that are out of order (i.e. child span has earlier
     /// start date than the parent) so ensure it isn't possible for a child to appear before parent.
@@ -25,22 +56,11 @@ public static class TraceHelpers
     {
         var appFirstTimes = new Dictionary<OtlpApplication, OrderedApplication>();
 
-        // Start from the unparented spans and visit children.
-        foreach (var item in trace.Spans.Where(s => s.GetParentSpan() == null))
+        VisitSpans(trace, (OtlpSpan span, OrderedApplicationsState state) =>
         {
-            Visit(appFirstTimes, currentMinDate: null, item);
-        }
-
-        return appFirstTimes.Select(kvp => kvp.Value)
-            .OrderBy(s => s.FirstDateTime)
-            .ThenBy(s => s.Index);
-
-        static void Visit(Dictionary<OtlpApplication, OrderedApplication> appFirstTimes, DateTime? currentMinDate, OtlpSpan span)
-        {
-            if (currentMinDate == null || currentMinDate < span.StartTime)
-            {
-                currentMinDate = span.StartTime;
-            }
+            var currentMinDate = (state.CurrentMinDate == null || state.CurrentMinDate < span.StartTime)
+                ? span.StartTime
+                : state.CurrentMinDate;
 
             if (appFirstTimes.TryGetValue(span.Source.Application, out var orderedApp))
             {
@@ -63,10 +83,11 @@ public static class TraceHelpers
                     new OrderedApplication(span.Source.Application, appFirstTimes.Count, currentMinDate.Value, totalSpans: 1, erroredSpans: span.Status == OtlpSpanStatusCode.Error ? 1 : 0));
             }
 
-            foreach (var childSpan in span.GetChildSpans())
-            {
-                Visit(appFirstTimes, currentMinDate.Value, childSpan);
-            }
-        }
+            return new OrderedApplicationsState(currentMinDate);
+        }, new OrderedApplicationsState(null));
+
+        return appFirstTimes.Select(kvp => kvp.Value)
+            .OrderBy(s => s.FirstDateTime)
+            .ThenBy(s => s.Index);
     }
 }
