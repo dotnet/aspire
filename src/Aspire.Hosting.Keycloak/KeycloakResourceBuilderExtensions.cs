@@ -18,7 +18,7 @@ public static class KeycloakResourceBuilderExtensions
     private const string RealmImportDirectory = "/opt/keycloak/data/import";
 
     /// <summary>
-    /// Adds a Keycloak container to the application model. This version of the package defaults to the <inheritdoc cref="KeycloakContainerImageTags.Tag"/> tag of the <inheritdoc cref="KeycloakContainerImageTags.Registry"/>/<inheritdoc cref="KeycloakContainerImageTags.Image"/> container image.
+    /// Adds a Keycloak container to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. </param>
@@ -28,6 +28,7 @@ public static class KeycloakResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// The container exposes port 8080 by default.
+    /// This version of the package defaults to the <inheritdoc cref="KeycloakContainerImageTags.Tag"/> tag of the <inheritdoc cref="KeycloakContainerImageTags.Registry"/>/<inheritdoc cref="KeycloakContainerImageTags.Image"/> container image.
     /// </remarks>
     /// <example>
     /// Use in application host
