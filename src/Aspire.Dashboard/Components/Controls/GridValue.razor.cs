@@ -31,6 +31,12 @@ public partial class GridValue
     public RenderFragment? ContentAfterValue { get; set; }
 
     /// <summary>
+    /// Content to include, if any, in button area to right. Intended for adding extra buttons.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ContentInButtonArea { get; set; }
+
+    /// <summary>
     /// If set, copies this value instead of <see cref="Value"/>.
     /// </summary>
     [Parameter]
@@ -67,9 +73,6 @@ public partial class GridValue
     public EventCallback<bool> IsMaskedChanged { get; set; }
 
     [Parameter]
-    public int? MaxDisplayLength { get; set; }
-
-    [Parameter]
     public string? ToolTip { get; set; }
 
     [Parameter]
@@ -97,16 +100,6 @@ public partial class GridValue
         IsMasked = !IsMasked;
 
         await IsMaskedChanged.InvokeAsync(IsMasked);
-    }
-
-    private string TrimLength(string? text)
-    {
-        if (text is not null && MaxDisplayLength is int maxLength && text.Length > maxLength)
-        {
-            return text[..maxLength];
-        }
-
-        return text ?? "";
     }
 
     private void ToggleMenuOpen()
