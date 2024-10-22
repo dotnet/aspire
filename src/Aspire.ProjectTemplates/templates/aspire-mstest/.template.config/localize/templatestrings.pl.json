@@ -1,6 +1,6 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire Test Project (MSTest)",
+  "name": "Projekt testowy platformy .NET Aspire (MSTest)",
   "description": "A project that contains MSTest integration tests of a .NET Aspire app host project.",
   "symbols/Framework/description": "Platforma docelowa dla tego projektu.",
   "symbols/Framework/choices/net8.0/description": "Target net8.0",
