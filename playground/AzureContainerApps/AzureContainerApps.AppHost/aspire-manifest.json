@@ -1,6 +1,24 @@
 {
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
+    "customDomain": {
+      "type": "parameter.v0",
+      "value": "{customDomain.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "certificateName": {
+      "type": "parameter.v0",
+      "value": "{certificateName.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
     "secretparam": {
       "type": "parameter.v0",
       "value": "{secretparam.inputs.value}",
@@ -32,7 +50,7 @@
       ],
       "volumes": [
         {
-          "name": "azurecontainerapps.apphost-b5fb0098a7-cache-data",
+          "name": "azurecontainerapps.apphost-43a728061e-cache-data",
           "target": "/data",
           "readOnly": false
         }
@@ -72,6 +90,10 @@
       "deployment": {
         "type": "azure.bicep.v0",
         "path": "api.module.bicep",
+        "params": {
+          "certificateName": "{certificateName.value}",
+          "customDomain": "{customDomain.value}"
+        },
         "params": {
           "api_containerport": "{api.containerPort}",
           "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",

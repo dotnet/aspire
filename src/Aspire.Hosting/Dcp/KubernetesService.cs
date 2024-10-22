@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.Dcp.Model;
 using k8s;
+using k8s.Autorest;
 using k8s.Exceptions;
 using k8s.Models;
 using Microsoft.Extensions.Logging;
@@ -90,6 +91,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
                 return KubernetesJson.Deserialize<T>(response.Body.ToString());
             },
+            RetryOnConnectivityAndConflictErrors,
             cancellationToken);
     }
 
@@ -122,6 +124,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
                return KubernetesJson.Deserialize<T>(response.Body.ToString());
            },
+           RetryOnConnectivityErrors,
            cancellationToken);
     }
 
@@ -156,6 +159,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
                return KubernetesJson.Deserialize<T>(response.Body.ToString());
            },
+           RetryOnConnectivityErrors,
            cancellationToken);
     }
 
@@ -185,6 +189,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
                 return KubernetesJson.Deserialize<CustomResourceList<T>>(response.Body.ToString()).Items;
             },
+            RetryOnConnectivityAndConflictErrors,
             cancellationToken);
     }
 
@@ -216,6 +221,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
                 return KubernetesJson.Deserialize<T>(response.Body.ToString());
             },
+            RetryOnConnectivityAndConflictErrors,
             cancellationToken);
     }
 
@@ -248,6 +254,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
                 return responseTask.WatchAsync<T, object>(null, cancellationToken);
             },
+            RetryOnConnectivityAndConflictErrors,
             cancellationToken).ConfigureAwait(false);
 
         await foreach (var item in result.ConfigureAwait(false))
@@ -290,6 +297,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
                 return response.Body;
             },
+            RetryOnConnectivityAndConflictErrors,
             cancellationToken
         );
     }
@@ -315,12 +323,14 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
         DcpApiOperationType operationType,
         string resourceType,
         Func<DcpKubernetesClient, TResult> operation,
+        Func<Exception, bool> isRetryable,
         CancellationToken cancellationToken)
     {
         return ExecuteWithRetry<TResult>(
             operationType,
             resourceType,
             (DcpKubernetesClient kubernetes) => Task.FromResult(operation(kubernetes)),
+            isRetryable,
             cancellationToken);
     }
 
@@ -328,6 +338,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
         DcpApiOperationType operationType,
         string resourceType,
         Func<DcpKubernetesClient, Task<TResult>> operation,
+        Func<Exception, bool> isRetryable,
         CancellationToken cancellationToken)
     {
         var currentTimestamp = DateTime.UtcNow;
@@ -344,7 +355,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
                     await EnsureKubernetesAsync(cancellationToken).ConfigureAwait(false);
                     return await operation(_kubernetes!).ConfigureAwait(false);
                 }
-                catch (Exception e) when (IsRetryable(e))
+                catch (Exception e) when (isRetryable(e))
                 {
                     if (DateTime.UtcNow.Subtract(currentTimestamp) > MaxRetryDuration)
                     {
@@ -364,7 +375,11 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
         }
     }
 
-    private static bool IsRetryable(Exception ex) => ex is HttpRequestException || ex is KubeConfigException;
+    private static bool RetryOnConnectivityErrors(Exception ex) => ex is HttpRequestException || ex is KubeConfigException;
+    private static bool RetryOnConnectivityAndConflictErrors(Exception ex) =>
+        ex is HttpRequestException ||
+        ex is KubeConfigException ||
+        (ex is HttpOperationException hoe && hoe.Response.StatusCode == System.Net.HttpStatusCode.Conflict);
 
     private ResiliencePipeline GetReadKubeconfigResiliencePipeline()
     {

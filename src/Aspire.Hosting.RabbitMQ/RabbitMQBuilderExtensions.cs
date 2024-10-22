@@ -103,10 +103,10 @@ public static class RabbitMQBuilderExtensions
     }
 
     /// <summary>
-    /// Configures the RabbitMQ container resource to enable the RabbitMQ management plugin. This version of the package defaults to the <inheritdoc cref="RabbitMQContainerImageTags.TagManagement"/> tag of the <inheritdoc cref="RabbitMQContainerImageTags.Image"/> container image.
+    /// Configures the RabbitMQ container resource to enable the RabbitMQ management plugin. This version of the package defaults to the <inheritdoc cref="RabbitMQContainerImageTags.ManagementTag"/> tag of the <inheritdoc cref="RabbitMQContainerImageTags.Image"/> container image.
     /// </summary>
     /// <remarks>
-    /// This method only supports the default RabbitMQ container image and tags, e.g. <c>3</c>, <c>3.12-alpine</c>, <c>3.12.13-management-alpine</c>, etc.<br />
+    /// This method only supports custom tags matching the default RabbitMQ ones for the corresponding management tag to be inferred automatically, e.g. <c>4</c>, <c>4.0-alpine</c>, <c>4.0.2-management-alpine</c>, etc.<br />
     /// Calling this method on a resource configured with an unrecognized image registry, name, or tag will result in a <see cref="DistributedApplicationException"/> being thrown.
     /// </remarks>
     /// <param name="builder">The resource builder.</param>
@@ -153,7 +153,7 @@ public static class RabbitMQBuilderExtensions
             if (string.IsNullOrEmpty(existingTag))
             {
                 // Set to default tag with management
-                annotation.Tag = RabbitMQContainerImageTags.TagManagement;
+                annotation.Tag = RabbitMQContainerImageTags.ManagementTag;
                 handled = true;
             }
             else if (existingTag.EndsWith(management, StringComparison.OrdinalIgnoreCase)

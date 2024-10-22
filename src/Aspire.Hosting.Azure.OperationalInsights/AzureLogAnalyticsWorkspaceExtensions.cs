@@ -23,9 +23,9 @@ public static class AzureLogAnalyticsWorkspaceExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var workspace = new OperationalInsightsWorkspace(construct.Resource.GetBicepIdentifier())
+            var workspace = new OperationalInsightsWorkspace(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Sku = new OperationalInsightsWorkspaceSku()
                 {
@@ -33,15 +33,15 @@ public static class AzureLogAnalyticsWorkspaceExtensions
                 },
                 Tags = { { "aspire-resource-name", name } }
             };
-            construct.Add(workspace);
+            infrastructure.Add(workspace);
 
-            construct.Add(new ProvisioningOutput("logAnalyticsWorkspaceId", typeof(string))
+            infrastructure.Add(new ProvisioningOutput("logAnalyticsWorkspaceId", typeof(string))
             {
                 Value = workspace.Id
             });
         };
 
-        var resource = new AzureLogAnalyticsWorkspaceResource(name, configureConstruct);
+        var resource = new AzureLogAnalyticsWorkspaceResource(name, configureInfrastructure);
         return builder.AddResource(resource)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
@@ -19,46 +20,36 @@ public class OtlpApplicationView
     {
         Application = application;
 
-        List<KeyValuePair<string, string>>? properties = null;
-        foreach (var attribute in attributes)
+        var properties = attributes.ToKeyValuePairs(application.Context, filter: attribute =>
         {
             switch (attribute.Key)
             {
                 case OtlpApplication.SERVICE_NAME:
                 case OtlpApplication.SERVICE_INSTANCE_ID:
-                    // Values passed in via ctor and set to members. Don't add to properties collection.
-                    break;
+                    // Explicitly ignore these
+                    return false;
                 default:
-                    properties ??= [];
-                    properties.Add(new KeyValuePair<string, string>(attribute.Key, attribute.Value.GetString()));
-                    break;
-
+                    return true;
             }
-        }
+        });
 
-        if (properties != null)
-        {
-            // Sort so keys are in a consistent order for equality check.
-            properties.Sort((p1, p2) => string.Compare(p1.Key, p2.Key, StringComparisons.OtlpAttribute));
-            Properties = properties.ToArray();
-        }
-        else
-        {
-            Properties = [];
-        }
+        // Sort so keys are in a consistent order for equality check.
+        Array.Sort(properties, (p1, p2) => string.Compare(p1.Key, p2.Key, StringComparisons.OtlpAttribute));
+
+        Properties = properties;
     }
 
-    public Dictionary<string, string> AllProperties()
+    public List<OtlpDisplayField> AllProperties()
     {
-        var props = new Dictionary<string, string>(StringComparers.OtlpAttribute)
+        var props = new List<OtlpDisplayField>
         {
-            { OtlpApplication.SERVICE_NAME, Application.ApplicationName },
-            { OtlpApplication.SERVICE_INSTANCE_ID, Application.InstanceId }
+            new OtlpDisplayField { DisplayName = "service.name", Key = KnownResourceFields.ServiceNameField, Value = Application.ApplicationName },
+            new OtlpDisplayField { DisplayName = "service.instance.id", Key = KnownResourceFields.ServiceInstanceIdField, Value = Application.InstanceId }
         };
 
         foreach (var kv in Properties)
         {
-            props.TryAdd(kv.Key, kv.Value);
+            props.Add(new OtlpDisplayField { DisplayName = kv.Key, Key = $"unknown-{kv.Key}", Value = kv.Value });
         }
 
         return props;

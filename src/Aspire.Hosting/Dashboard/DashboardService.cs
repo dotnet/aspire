@@ -160,7 +160,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
 
     public override async Task<ResourceCommandResponse> ExecuteResourceCommand(ResourceCommandRequest request, ServerCallContext context)
     {
-        var (result, errorMessage) = await serviceData.ExecuteCommandAsync(request.ResourceName, request.CommandType, context.CancellationToken).ConfigureAwait(false);
+        var (result, errorMessage) = await serviceData.ExecuteCommandAsync(request.ResourceName, request.CommandName, context.CancellationToken).ConfigureAwait(false);
         var responseKind = result switch
         {
             DashboardServiceData.ExecuteCommandResult.Success => ResourceCommandResponseKind.Succeeded,

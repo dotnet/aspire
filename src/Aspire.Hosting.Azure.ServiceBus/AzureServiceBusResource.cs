@@ -9,9 +9,9 @@ namespace Aspire.Hosting.Azure;
 /// Represents an Azure Service Bus resource.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="configureConstruct">Callback to configure the Azure Service Bus resource.</param>
-public class AzureServiceBusResource(string name, Action<ResourceModuleConstruct> configureConstruct)
-    : AzureConstructResource(name, configureConstruct), IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
+/// <param name="configureInfrastructure">Callback to configure the Azure Service Bus resource.</param>
+public class AzureServiceBusResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
+    : AzureProvisioningResource(name, configureInfrastructure), IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
     internal List<string> Queues { get; } = [];
     internal List<string> Topics { get; } = [];
