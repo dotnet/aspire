@@ -6,13 +6,29 @@ using Aspire.ResourceService.Proto.V1;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
-
+using DiagnosticsHealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
 namespace Aspire.Dashboard.Tests.Model;
 
 public sealed class ResourceViewModelTests
 {
     private static readonly DateTime s_dateTime = new(2000, 12, 30, 23, 59, 59, DateTimeKind.Utc);
     private static readonly BrowserTimeProvider s_timeProvider = new(NullLoggerFactory.Instance);
+
+        [Theory]
+        [InlineData(KnownResourceState.Starting, null, null)]
+        [InlineData(KnownResourceState.Starting, null, new string[]{})]
+        [InlineData(KnownResourceState.Starting, null, new string?[]{null})]
+        // we don't have a Running + HealthReports null case because that's not a valid state - by this point, we will have received the list of HealthReports
+        [InlineData(KnownResourceState.Running, DiagnosticsHealthStatus.Healthy, new string[]{})]
+        [InlineData(KnownResourceState.Running, DiagnosticsHealthStatus.Healthy, new string?[] {"Healthy"})]
+        [InlineData(KnownResourceState.Running, DiagnosticsHealthStatus.Unhealthy, new string?[] {null})]
+        [InlineData(KnownResourceState.Running, DiagnosticsHealthStatus.Degraded, new string?[] {"Healthy", "Degraded"})]
+        public void Resource_WithHealthReportAndState_ReturnsCorrectHealthStatus(KnownResourceState? state, DiagnosticsHealthStatus? expectedStatus, string?[]? healthStatusStrings)
+        {
+            var reports = healthStatusStrings?.Select<string?, HealthReportViewModel>((h, i) => new HealthReportViewModel(i.ToString(), h is null ? null : Enum.Parse<DiagnosticsHealthStatus>(h), null, null)).ToImmutableArray() ?? [];
+            var actualStatus = ResourceViewModel.ComputeHealthStatus(reports, state);
+            Assert.Equal(expectedStatus, actualStatus);
+        }
 
     [Fact]
     public void ToViewModel_EmptyEnvVarName_Success()
