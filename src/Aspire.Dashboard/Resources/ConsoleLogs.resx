@@ -135,4 +135,14 @@
   <data name="LogStatusLabel" xml:space="preserve">
     <value>Service log status</value>
   </data>
+  <data name="CopyLogs" xml:space="preserve">
+    <value>Copy logs</value>
+  </data>
+  <data name="DownloadLogs" xml:space="preserve">
+    <value>Download logs</value>
+  </data>
+  <data name="IndividualLogLine" xml:space="preserve">
+    <value>Line {0}</value>
+    <comment>{0} is a number</comment>
+  </data>
 </root>

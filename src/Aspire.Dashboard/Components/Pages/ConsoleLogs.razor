@@ -25,6 +25,24 @@
                 // This takes up too much horizontal space on mobile, so show on a new line on mobile
                 <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@PageViewModel.Status</FluentLabel>
             }
+
+            @if (PageViewModel.SelectedResource is not null)
+            {
+                <FluentMenuButton ButtonAppearance="@Appearance.Neutral"
+                                  Text="Actions">
+                    <FluentMenuItem Id="@($"console-logs-copy-button-{Guid.NewGuid():N}")"
+                                    Class="get-console-logs-button"
+                                    data-action="copy"
+                                    data-resource="@PageViewModel.SelectedResource.Name">
+                        @Loc[nameof(Dashboard.Resources.ConsoleLogs.CopyLogs)]
+                    </FluentMenuItem>
+                    <FluentMenuItem Class="get-console-logs-button"
+                                    data-action="download"
+                                    data-resource="@PageViewModel.SelectedResource.Name">
+                        @Loc[nameof(Dashboard.Resources.ConsoleLogs.DownloadLogs)]
+                    </FluentMenuItem>
+                </FluentMenuButton>
+            }
         </ToolbarSection>
 
         <MobilePageTitleToolbarSection>

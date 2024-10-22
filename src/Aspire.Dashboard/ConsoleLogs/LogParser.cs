@@ -31,6 +31,8 @@ internal sealed class LogParser
             timestamp = timestampParseResult.Value.Timestamp.UtcDateTime;
         }
 
+        var rawLogMessageContent = content;
+
         // 2. HTML Encode the raw text for security purposes
         content = WebUtility.HtmlEncode(content);
 
@@ -50,6 +52,7 @@ internal sealed class LogParser
         {
             Timestamp = timestamp,
             Content = content,
+            TextContent = WebUtility.HtmlEncode(rawLogMessageContent),
             Type = isErrorOutput ? LogEntryType.Error : LogEntryType.Default
         };
 

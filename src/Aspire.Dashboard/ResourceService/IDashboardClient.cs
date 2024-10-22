@@ -31,6 +31,11 @@ public interface IDashboardClient : IDashboardClientStatus, IAsyncDisposable
     Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken);
 
     /// <summary>
+    /// Gets console log messages for the specified resource up to the call time.
+    /// </summary>
+    IAsyncEnumerable<ResourceLogLine> GetConsoleLogsAsync(string resourceName, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Gets a stream of console log messages for the specified resource.
     /// Includes messages logged both before and after this method call.
     /// </summary>

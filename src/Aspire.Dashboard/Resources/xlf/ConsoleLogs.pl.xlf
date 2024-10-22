@@ -57,6 +57,21 @@
         <target state="translated">Trwa oglądanie dzienników...</target>
         <note />
       </trans-unit>
+      <trans-unit id="CopyLogs">
+        <source>Copy logs</source>
+        <target state="new">Copy logs</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DownloadLogs">
+        <source>Download logs</source>
+        <target state="new">Download logs</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IndividualLogLine">
+        <source>Line {0}</source>
+        <target state="new">Line {0}</target>
+        <note>{0} is a number</note>
+      </trans-unit>
       <trans-unit id="LogStatusLabel">
         <source>Service log status</source>
         <target state="translated">Stan dziennika usługi</target>

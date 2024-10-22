@@ -271,6 +271,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             options.Cookie.Name = DashboardAntiForgeryCookieName;
         });
 
+        builder.Services.AddControllers();
+
         _app = builder.Build();
 
         _dashboardOptionsMonitor = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
@@ -432,6 +434,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             _app.MapPost("/authentication/logout", () => TypedResults.SignOut(authenticationSchemes: [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]));
         }
+
+        _app.MapControllers();
     }
 
     internal static string[] GetSupportedCultures()

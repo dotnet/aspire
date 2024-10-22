@@ -3,31 +3,35 @@
 @inject IStringLocalizer<Dialogs> DialogsLoc
 
 <div class="@GetContainerClass()" style="width: inherit;">
-    @if (EnableMasking && IsMasked)
+    @if (ShowValue)
     {
-        <span class="cellText">
-            &#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;
-        </span>
-    }
-    else if (EnableHighlighting)
-    {
-        <span class="cellText" title="@(ToolTip ?? Value)">
-            @ContentBeforeValue
-            <FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />
-            @ContentAfterValue
-        </span>
-    }
-    else
-    {
-        <span class="cellText" title="@(ToolTip ?? Value)">
-            @ContentBeforeValue
-            @(MaxDisplayLength.HasValue ? TrimLength(Value) : Value)
-            @ContentAfterValue
-        </span>
+        @if (EnableMasking && IsMasked)
+        {
+            <span class="cellText">
+                &#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;
+            </span>
+        }
+        else if (EnableHighlighting)
+        {
+            <span class="cellText" title="@(ToolTip ?? Value)">
+                @ContentBeforeValue
+                <FluentHighlighter HighlightedText="@HighlightText" Text="@Value"/>
+                @ContentAfterValue
+            </span>
+        }
+        else
+        {
+            <span class="cellText" title="@(ToolTip ?? Value)">
+                @ContentBeforeValue
+                @(MaxDisplayLength.HasValue ? TrimLength(Value) : Value)
+                @ContentAfterValue
+            </span>
+        }
     }
 
     @{
-        (string, object)[] uncapturedCopyAttributes = [
+        (string, object)[] uncapturedCopyAttributes =
+        [
             ("alt", PreCopyToolTip),
             ("title", string.Empty),
             ("aria-label", Loc[nameof(ControlsStrings.GridValueCopyToClipboard)]),
@@ -41,7 +45,7 @@
                       Class="defaultHidden"
                       Style="float: right; flex-shrink: 0"
                       OnClick="@ToggleMenuOpen">
-            <FluentIcon Style="display:inline;" Icon="Icons.Regular.Size16.MoreHorizontal" />
+            <FluentIcon Style="display:inline;" Icon="Icons.Regular.Size16.MoreHorizontal"/>
         </FluentButton>
 
         <FluentMenu Anchor="@_menuAnchorId" @bind-Open="_isMenuOpen" VerticalThreshold="170" HorizontalPosition="HorizontalPosition.End">
@@ -49,8 +53,8 @@
                 Id="@_copyId"
                 AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, uncapturedCopyAttributes)">
                 <span slot="start">
-                    <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
-                    <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
+                    <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start"/>
+                    <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start"/>
                 </span>
                 @PreCopyToolTip
             </FluentMenuItem>
@@ -74,7 +78,7 @@
                           IconEnd="@(IsMasked ? _unmaskIcon : _maskIcon)"
                           Title="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])"
                           OnClick="ToggleMaskStateAsync"
-                          aria-label="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])" />
+                          aria-label="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])"/>
         </div>
     }
 </div>

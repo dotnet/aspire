@@ -40,6 +40,26 @@ public class TestDashboardClient : IDashboardClient
         throw new NotImplementedException();
     }
 
+    public async IAsyncEnumerable<ResourceLogLine> GetConsoleLogsAsync(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        if (_consoleLogsChannelProvider == null)
+        {
+            throw new InvalidOperationException("No channel provider set.");
+        }
+
+        var channel = _consoleLogsChannelProvider(resourceName);
+
+        await foreach (var logList in channel.Reader.ReadAllAsync(cancellationToken))
+        {
+            foreach (var logLine in logList)
+            {
+                yield return logLine;
+            }
+
+            break;
+        }
+    }
+
     public async IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> SubscribeConsoleLogs(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         if (_consoleLogsChannelProvider == null)

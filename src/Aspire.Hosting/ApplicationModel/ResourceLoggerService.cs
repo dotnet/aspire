@@ -550,7 +550,7 @@ public class ResourceLoggerService
                 var logMessage = formatter(state, exception) + (exception is null ? "" : $"\n{exception}");
                 var isErrorMessage = logLevel >= LogLevel.Error;
 
-                loggerState.AddLog(LogEntry.Create(logTime, logMessage, isErrorMessage), inMemorySource: true);
+                loggerState.AddLog(LogEntry.Create(logTime, logMessage, logMessage, isErrorMessage), inMemorySource: true);
             }
         }
     }

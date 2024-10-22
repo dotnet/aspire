@@ -1,9 +1,12 @@
 ﻿@namespace Aspire.Dashboard.Components
 @using System.Globalization
-@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using Aspire.Hosting.ConsoleLogs
+
 @inject IJSRuntime JS
+@inject IStringLocalizer<ConsoleLogs> Loc
+
 @implements IAsyncDisposable
 
 <div class="log-overflow console-overflow continuous-scroll-overflow">
@@ -31,6 +34,13 @@
                                 }
                                 @((MarkupString)((hasPrefix ? "&#32;" : string.Empty) + (context.Content ?? string.Empty)))
                             </span>
+
+                            @{
+                                var textContent = context.Timestamp is not null ? GetDisplayTimestamp(context.Timestamp.Value) : "";
+                                textContent += (hasPrefix ? "&#32;" : string.Empty) + (context.TextContent ?? string.Empty);
+                            }
+
+                            <GridValue ShowValue="false" Value="@textContent" ValueDescription="@string.Format(Loc[nameof(ConsoleLogs.IndividualLogLine)], context.LineNumber)" />
                         </span>
                     </div>
                 </div>
