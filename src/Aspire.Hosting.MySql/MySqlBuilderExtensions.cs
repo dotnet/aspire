@@ -87,7 +87,7 @@ public static class MySqlBuilderExtensions
     /// <remarks>
     /// This version of the package defaults to the <inheritdoc cref="MySqlContainerImageTags.PhpMyAdminTag"/> tag of the <inheritdoc cref="MySqlContainerImageTags.PhpMyAdminImage"/> container image.
     /// </remarks>
-    /// /// <param name="builder">The MySql server resource builder.</param>
+    /// <param name="builder">The MySql server resource builder.</param>
     /// <param name="configureContainer">Callback to configure PhpMyAdmin container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
