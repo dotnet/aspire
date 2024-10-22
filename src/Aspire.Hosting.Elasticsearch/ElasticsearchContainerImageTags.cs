@@ -5,13 +5,13 @@ namespace Aspire.Hosting.Elasticsearch;
 
 internal static class ElasticsearchContainerImageTags
 {
-    /// <summary>docker.io</summary>
+    /// <remarks>docker.io</remarks>
     public const string Registry = "docker.io";
 
-    /// <summary>library/elasticsearch</summary>
+    /// <remarks>library/elasticsearch</remarks>
     public const string Image = "library/elasticsearch";
 
-    /// <summary>8.15.2</summary>
+    /// <remarks>8.15.2</remarks>
     public const string Tag = "8.15.2";
 }
 
