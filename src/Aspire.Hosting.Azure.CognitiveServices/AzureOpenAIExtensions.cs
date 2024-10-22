@@ -48,8 +48,8 @@ public static class AzureOpenAIExtensions
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
                 Value = new InterpolatedStringExpression(
-                        "Endpoint={0}",
                         [
+                            new StringLiteralExpression("Endpoint="),
                             new MemberExpression(
                                 new MemberExpression(
                                     new IdentifierExpression(cogServicesAccount.BicepIdentifier),
