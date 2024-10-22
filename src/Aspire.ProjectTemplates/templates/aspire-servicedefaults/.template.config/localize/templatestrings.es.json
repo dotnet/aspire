@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire Service Defaults",
-  "description": "A project template for creating a .NET Aspire service defaults project.",
+  "name": "Valores predeterminados del servicio .NET Service",
+  "description": "Una plantilla de proyecto para crear un proyecto predeterminado del servicio .NET Aspire.",
   "symbols/Framework/description": "Marco de destino del proyecto.",
   "symbols/Framework/choices/net8.0/description": "Target net8.0",
   "symbols/Framework/choices/net9.0/description": "Net9.0 de destino",
