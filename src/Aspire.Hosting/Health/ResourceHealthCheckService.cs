@@ -103,7 +103,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                         {
                             if (!healthCheckNameToStatus.TryGetValue(key, out var checkReportSnapshot))
                             {
-                                continue;
+                                return true;
                             }
 
                             if (checkReportSnapshot.Status != value.Status
