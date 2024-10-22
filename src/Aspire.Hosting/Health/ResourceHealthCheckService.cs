@@ -95,6 +95,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
                     return s with
                     {
+                        // HealthStatus is automatically re-computed after health reports change.
                         HealthReports = healthReports
                     };
                 }).ConfigureAwait(false);
