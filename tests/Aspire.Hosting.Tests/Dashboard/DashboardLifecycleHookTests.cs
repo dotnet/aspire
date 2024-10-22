@@ -56,7 +56,7 @@ public class DashboardLifecycleHookTests
 
         // Act
         var dashboardLoggerState = resourceLoggerService.GetResourceLoggerState(resourceId);
-        dashboardLoggerState.AddLog(LogEntry.Create(timestamp, logMessage, isErrorMessage: false), inMemorySource: true);
+        dashboardLoggerState.AddLog(LogEntry.Create(timestamp, logMessage, logMessage, isErrorMessage: false), inMemorySource: true);
 
         // Assert
         var logContext = await logChannel.Reader.ReadAsync();
