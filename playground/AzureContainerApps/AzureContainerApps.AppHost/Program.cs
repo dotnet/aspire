@@ -1,6 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+
+#pragma warning disable ASPIREACADOMAINS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 var builder = DistributedApplication.CreateBuilder(args);
+
+var customDomain = builder.AddParameter("customDomain");
+var certificateName = builder.AddParameter("certificateName");
 
 // Testing secret parameters
 var param = builder.AddParameter("secretparam", "fakeSecret", secret: true);
@@ -28,6 +34,8 @@ builder.AddProject<Projects.AzureContainerApps_ApiService>("api")
        .WithEnvironment("VALUE", param)
        .PublishAsAzureContainerApp((module, app) =>
        {
+           app.ConfigureCustomDomain(customDomain, certificateName);
+
            // Scale to 0
            app.Template.Value!.Scale.Value!.MinReplicas = 0;
        });
@@ -43,4 +51,3 @@ builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard
 #endif
 
 builder.Build().Run();
-
