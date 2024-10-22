@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using System.Text;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
@@ -886,8 +885,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
     // This is a workaround to handle nested formattable strings until the bug is fixed.
     private static BicepValue<string> Interpolate(BicepValueFormattableString text)
     {
-        var formatStringBuilder = new StringBuilder();
-        var arguments = new List<BicepValue<string>>();
+        var bicepStringBuilder = new BicepStringBuilder();
 
         void ProcessFormattableString(BicepValueFormattableString formattableString, int argumentIndex)
         {
@@ -896,7 +894,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
 
             foreach (var match in Regex.EnumerateMatches(span, @"{\d+}"))
             {
-                formatStringBuilder.Append(span[..(match.Index - skip)]);
+                bicepStringBuilder.Append(span[..(match.Index - skip)].ToString());
 
                 var argument = formattableString.GetArgument(argumentIndex);
 
@@ -907,18 +905,17 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 }
                 else
                 {
-                    formatStringBuilder.Append(CultureInfo.InvariantCulture, $"{{{arguments.Count}}}");
                     if (argument is BicepValue<string> bicepValue)
                     {
-                        arguments.Add(bicepValue);
+                        bicepStringBuilder.Append($"{bicepValue}");
                     }
                     else if (argument is string s)
                     {
-                        arguments.Add(s);
+                        bicepStringBuilder.Append(s);
                     }
                     else if (argument is ProvisioningParameter provisioningParameter)
                     {
-                        arguments.Add(provisioningParameter);
+                        bicepStringBuilder.Append($"{provisioningParameter}");
                     }
                     else
                     {
@@ -931,19 +928,12 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 skip = match.Index + match.Length;
             }
 
-            formatStringBuilder.Append(span);
+            bicepStringBuilder.Append(span.ToString());
         }
 
         ProcessFormattableString(text, 0);
 
-        var formatString = formatStringBuilder.ToString();
-
-        if (formatString == "{0}")
-        {
-            return arguments[0];
-        }
-
-        return BicepFunction.Interpolate(new BicepValueFormattableString(formatString, [.. arguments]));
+        return bicepStringBuilder.Build();
     }
 
     /// <summary>

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Azure.Provisioning.ApplicationInsights;
-using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.OperationalInsights;
 using Azure.Provisioning.ServiceBus;
@@ -57,9 +56,7 @@ var sb = builder.AddAzureServiceBus("servicebus")
     {
         var queue = infrastructure.GetProvisionableResources().OfType<ServiceBusQueue>().Single(q => q.BicepIdentifier == "queue1");
         queue.MaxDeliveryCount = 5;
-        queue.LockDuration = new StringLiteralExpression("PT5M");
-        // TODO: this should be
-        // queue.LockDuration = TimeSpan.FromMinutes(5);
+        queue.LockDuration = TimeSpan.FromMinutes(5);
     })
     .AddTopic("topic1")
     .ConfigureInfrastructure(infrastructure =>
@@ -72,9 +69,7 @@ var sb = builder.AddAzureServiceBus("servicebus")
     .ConfigureInfrastructure(infrastructure =>
     {
         var subscription = infrastructure.GetProvisionableResources().OfType<ServiceBusSubscription>().Single(q => q.BicepIdentifier == "subscription1");
-        subscription.LockDuration = new StringLiteralExpression("PT5M");
-        // TODO: this should be
-        //subscription.LockDuration = TimeSpan.FromMinutes(5);
+        subscription.LockDuration = TimeSpan.FromMinutes(5);
         subscription.RequiresSession = true;
     })
     .AddSubscription("topic1", "subscription2")
