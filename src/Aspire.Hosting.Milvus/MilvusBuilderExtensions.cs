@@ -1,13 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Data.Common;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Milvus;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Milvus.Client;
 
 namespace Aspire.Hosting;
 
@@ -195,45 +191,5 @@ public static class MilvusBuilderExtensions
         // Attu assumes Milvus is being accessed over a default Aspire container network and hardcodes the resource address
         // This will need to be refactored once updated service discovery APIs are available
         context.EnvironmentVariables.Add("MILVUS_URL", $"{resource.PrimaryEndpoint.Scheme}://{resource.Name}:{resource.PrimaryEndpoint.TargetPort}");
-    }
-    internal static MilvusClient CreateMilvusClient(IServiceProvider sp, string? connectionString)
-    {
-        if (connectionString is null)
-        {
-            throw new InvalidOperationException("Connection string is unavailable");
-        }
-
-        Uri? endpoint = null;
-        string? key = null;
-        string? database = null;
-
-        if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
-        {
-            endpoint = uri;
-        }
-        else
-        {
-            var connectionBuilder = new DbConnectionStringBuilder
-            {
-                ConnectionString = connectionString
-            };
-
-            if (connectionBuilder.ContainsKey("Endpoint") && Uri.TryCreate(connectionBuilder["Endpoint"].ToString(), UriKind.Absolute, out var serviceUri))
-            {
-                endpoint = serviceUri;
-            }
-
-            if (connectionBuilder.ContainsKey("Key"))
-            {
-                key = connectionBuilder["Key"].ToString();
-            }
-
-            if (connectionBuilder.ContainsKey("Database"))
-            {
-                database = connectionBuilder["Database"].ToString();
-            }
-        }
-
-        return new MilvusClient(endpoint!, apiKey: key!, database: database, loggerFactory: sp.GetRequiredService<ILoggerFactory>());
     }
 }
