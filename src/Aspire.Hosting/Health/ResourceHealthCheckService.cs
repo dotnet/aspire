@@ -91,10 +91,28 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                     await SlowDownMonitoringAsync(latestEvent, cancellationToken).ConfigureAwait(false);
 
                     // If none of the health report statuses have changed, we should not update the resource health reports.
-                    var checkNameToStatus = latestEvent.Snapshot.HealthReports.ToDictionary(p => p.Name, p => p.Status);
-                    if (report.Entries.All(entry => checkNameToStatus.TryGetValue(entry.Key, out var status) && status == entry.Value.Status))
+                    if (!ContainsAnyHealthReportChange(report, latestEvent.Snapshot.HealthReports))
                     {
                         continue;
+                    }
+
+                    static bool ContainsAnyHealthReportChange(HealthReport report, ImmutableArray<HealthReportSnapshot> latestHealthReportSnapshots)
+                    {
+                        var healthCheckNameToStatus = latestHealthReportSnapshots.ToDictionary(p => p.Name);
+                        foreach (var (key, value) in report.Entries)
+                        {
+                            if (!healthCheckNameToStatus.TryGetValue(key, out var checkReportSnapshot))
+                            {
+                                continue;
+                            }
+
+                            if (checkReportSnapshot.Status != value.Status || checkReportSnapshot.Description != value.Description || checkReportSnapshot.ExceptionText != value.Exception?.ToString())
+                            {
+                                return true;
+                            }
+                        }
+
+                        return false;
                     }
                 }
 
