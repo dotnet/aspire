@@ -84,6 +84,9 @@ public partial class GridValue
     [Parameter]
     public string PostCopyToolTip { get; set; } = null!;
 
+    [Parameter]
+    public bool StopClickPropagation { get; set; }
+
     [Inject]
     public required IJSRuntime JS { get; init; }
 
@@ -126,7 +129,7 @@ public partial class GridValue
             // If the value and formatted value are different then there are hrefs in the text.
             // Add a click event to the cell text that stops propagation if a href is clicked.
             // This prevents details view from opening when the value is in a main page grid.
-            if (_value != _formattedValue)
+            if (StopClickPropagation && _value != _formattedValue)
             {
                 await JS.InvokeVoidAsync("setCellTextClickHandler", _cellTextId);
             }

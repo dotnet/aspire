@@ -217,7 +217,10 @@ JSON large content: {JsonLarge}
 JSON comment content: {JsonComment}
 JSON URL content: {JsonUrl}
 Long line content: {LongLines}
-URL content: {UrlContent}", xmlLarge, xmlWithComments, xmlWithUrl, jsonLarge, jsonWithComments, jsonWithUrl, sb.ToString(), "http://localhost:8080");
+URL content: {UrlContent}
+Empty content: {EmptyContent}
+Whitespace content: {WhitespaceContent}
+Null content: {NullContent}", xmlLarge, xmlWithComments, xmlWithUrl, jsonLarge, jsonWithComments, jsonWithUrl, sb.ToString(), "http://localhost:8080", "", "   ", null);
 
     return "Log with formatted data";
 });
