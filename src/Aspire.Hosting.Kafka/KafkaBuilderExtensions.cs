@@ -82,7 +82,7 @@ public static class KafkaBuilderExtensions
     /// <summary>
     /// Adds a Kafka UI container to the application.
     /// </summary>
-    /// </remarks>
+    /// <remarks>
     /// This version of the package defaults to the <inheritdoc cref="KafkaContainerImageTags.KafkaUiTag"/> tag of the <inheritdoc cref="KafkaContainerImageTags.KafkaUiImage"/> container image.
     /// </remarks>
     /// <param name="builder">The Kafka server resource builder.</param>
