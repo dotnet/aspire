@@ -137,7 +137,7 @@ public static class MilvusBuilderExtensions
     /// </summary>
     /// <remarks>
     /// This version of the package defaults to the <inheritdoc cref="MilvusContainerImageTags.AttuTag"/> tag of the <inheritdoc cref="MilvusContainerImageTags.AttuImage"/> container image.
-    /// </reamrks>
+    /// </remarks>
     /// <example>
     /// Use in application host with a Milvus resource
     /// <code lang="csharp">
