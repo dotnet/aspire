@@ -468,11 +468,31 @@ internal sealed class DashboardClient : IDashboardClient
         }
     }
 
+    async IAsyncEnumerable<ResourceLogLine> IDashboardClient.GetConsoleLogsAsync(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        await foreach (var logList in SubscribeConsoleLogs(resourceName, true, cancellationToken).ConfigureAwait(false))
+        {
+            foreach (var logLine in logList)
+            {
+                yield return logLine;
+            }
+        }
+    }
+
     async IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> IDashboardClient.SubscribeConsoleLogs(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        await foreach (var logLine in SubscribeConsoleLogs(resourceName, false, cancellationToken).ConfigureAwait(false))
+        {
+            yield return logLine;
+        }
+    }
+
+    private async IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> SubscribeConsoleLogs(string resourceName, bool cancelAfterInitialData, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         EnsureInitialized();
 
-        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
+        var initialDataCts = new CancellationTokenSource();
+        using var combinedTokens = GetCombinedTokens();
 
         var call = _client!.WatchResourceConsoleLogs(
             new WatchResourceConsoleLogsRequest() { ResourceName = resourceName },
@@ -517,9 +537,29 @@ internal sealed class DashboardClient : IDashboardClient
             {
                 yield return batch.SelectMany(batch => batch).ToList();
             }
+
+            if (cancelAfterInitialData)
+            {
+                await initialDataCts.CancelAsync().ConfigureAwait(false);
+                break;
+            }
         }
 
-        await readTask.ConfigureAwait(false);
+        try
+        {
+            await readTask.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancelAfterInitialData)
+        {
+            // ignored, can be cancelled after we receive initial data
+        }
+
+        CancellationTokenSource GetCombinedTokens()
+        {
+            return cancelAfterInitialData
+                ? CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken, initialDataCts.Token)
+                : CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
+        }
     }
 
     public async Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken)

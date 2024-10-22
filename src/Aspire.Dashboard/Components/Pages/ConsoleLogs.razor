@@ -28,15 +28,20 @@
 
             @if (PageViewModel.SelectedResource is not null)
             {
-                <FluentButton Id="@($"console-logs-copy-button-{Guid.NewGuid():N}")"
-                              Appearance="Appearance.Outline"
-                              AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(GetLogsCopyString(), ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)].ToString(), ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)].ToString(), ("data-needs-decode", "true"),  ("slot", "end"))">
-                    <span slot="start">
-                        <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
-                        <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
-                    </span>
-                    @Loc[nameof(Dashboard.Resources.ConsoleLogs.CopyLogs)]
-                </FluentButton>
+                <FluentMenuButton ButtonAppearance="@Appearance.Neutral"
+                                  Text="Actions">
+                    <FluentMenuItem Id="@($"console-logs-copy-button-{Guid.NewGuid():N}")"
+                                    Class="get-console-logs-button"
+                                    data-action="copy"
+                                    data-resource="@PageViewModel.SelectedResource.Name">
+                        @Loc[nameof(Dashboard.Resources.ConsoleLogs.CopyLogs)]
+                    </FluentMenuItem>
+                    <FluentMenuItem Class="get-console-logs-button"
+                                    data-action="download"
+                                    data-resource="@PageViewModel.SelectedResource.Name">
+                        @Loc[nameof(Dashboard.Resources.ConsoleLogs.DownloadLogs)]
+                    </FluentMenuItem>
+                </FluentMenuButton>
             }
         </ToolbarSection>
 

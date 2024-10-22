@@ -58,8 +58,13 @@
         <note />
       </trans-unit>
       <trans-unit id="CopyLogs">
-        <source>Copy console logs</source>
-        <target state="new">Copy console logs</target>
+        <source>Copy logs</source>
+        <target state="new">Copy logs</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DownloadLogs">
+        <source>Download logs</source>
+        <target state="new">Download logs</target>
         <note />
       </trans-unit>
       <trans-unit id="IndividualLogLine">

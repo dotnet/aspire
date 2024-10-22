@@ -48,8 +48,16 @@ function getFluentMenuItemForTarget(element) {
 document.addEventListener("click", function (e) {
     // The copy 'button' could either be a button or a menu item.
     const targetElement = isElementTagName(e.target, "fluent-button") ? e.target : getFluentMenuItemForTarget(e.target)
-    if (targetElement && targetElement.getAttribute("data-copybutton")) {
+    if (!targetElement) {
+        return;
+    }
+
+    if (targetElement.getAttribute("data-copybutton")) {
         buttonCopyTextToClipboard(targetElement);
+        e.stopPropagation();
+    }
+    else if (targetElement.classList.contains("get-console-logs-button") && targetElement.getAttribute("data-resource")) {
+        buttonGetConsoleLogs(targetElement);
         e.stopPropagation();
     }
 });
@@ -118,6 +126,43 @@ function isScrolledToBottom(container) {
     const difference = containerScrollBottom - container.scrollTop;
 
     return difference < marginOfError;
+}
+
+function copyUrlContentToClipboard(url) {
+    // code from https://wolfgangrittner.dev/how-to-use-clipboard-api-in-firefox/
+    if (typeof ClipboardItem && navigator.clipboard.write) {
+        // NOTE: Safari locks down the clipboard API to only work when triggered
+        //   by a direct user interaction. You can't use it async in a promise.
+        //   But! You can wrap the promise in a ClipboardItem, and give that to
+        //   the clipboard API.
+        //   Found this on https://developer.apple.com/forums/thread/691873
+        const text = new ClipboardItem({
+            "text/plain": fetch(url)
+                .then((response) => response.text())
+                .then((text) => new Blob([text], { type: "text/plain" }))
+        })
+        navigator.clipboard.write([text])
+    } else {
+        // NOTE: Firefox has support for ClipboardItem and navigator.clipboard.write,
+        //   but those are behind `dom.events.asyncClipboard.clipboardItem` preference.
+        //   Good news is that other than Safari, Firefox does not care about
+        //   Clipboard API being used async in a Promise.
+        fetch(url)
+            .then((response) => response.text())
+            .then((text) => navigator.clipboard.writeText(text))
+    }
+}
+
+window.buttonGetConsoleLogs = function(element) {
+    const resourceName = element.getAttribute("data-resource");
+    const action = element.getAttribute("data-action");
+
+    if (action === "download") {
+        window.open(`/api/logs/${resourceName}/download`, '_blank');
+    }
+    else if (action === "copy") {
+        copyUrlContentToClipboard(`/api/logs/${resourceName}`)
+    }
 }
 
 window.buttonCopyTextToClipboard = function(element) {

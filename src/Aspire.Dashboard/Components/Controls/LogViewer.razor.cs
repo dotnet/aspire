@@ -69,7 +69,7 @@ public sealed partial class LogViewer
         });
     }
 
-    public string GetDisplayTimestamp(DateTimeOffset timestamp)
+    private string GetDisplayTimestamp(DateTimeOffset timestamp)
     {
         var date = _convertTimestampsFromUtc ? TimeProvider.ToLocal(timestamp) : timestamp.DateTime;
 

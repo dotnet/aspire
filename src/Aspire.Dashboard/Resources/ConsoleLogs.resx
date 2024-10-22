@@ -136,7 +136,10 @@
     <value>Service log status</value>
   </data>
   <data name="CopyLogs" xml:space="preserve">
-    <value>Copy console logs</value>
+    <value>Copy logs</value>
+  </data>
+  <data name="DownloadLogs" xml:space="preserve">
+    <value>Download logs</value>
   </data>
   <data name="IndividualLogLine" xml:space="preserve">
     <value>Line {0}</value>

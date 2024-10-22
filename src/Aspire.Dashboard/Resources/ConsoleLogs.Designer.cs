@@ -159,11 +159,20 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Copy console logs.
+        ///   Looks up a localized string similar to Copy logs.
         /// </summary>
         public static string CopyLogs {
             get {
                 return ResourceManager.GetString("CopyLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Download logs.
+        /// </summary>
+        public static string DownloadLogs {
+            get {
+                return ResourceManager.GetString("DownloadLogs", resourceCulture);
             }
         }
         
