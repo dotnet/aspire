@@ -25,17 +25,29 @@ builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard
 
 builder.Build().Run();
 
-IResourceBuilder<TestResource> AddTestResource(string name, HealthStatus status, string? description = null, string? exceptionMessage = null)
+void AddTestResource(string name, HealthStatus status, string? description = null, string? exceptionMessage = null)
 {
+    var hasHealthyAfterFirstRunCheckRun = false;
     builder.Services.AddHealthChecks()
                     .AddCheck(
                         $"{name}_check",
                         () => new HealthCheckResult(status, description, new InvalidOperationException(exceptionMessage))
-                        );
+                        )
+                        .AddCheck($"{name}_resource_healthy_after_first_run_check", () =>
+                        {
+                            if (!hasHealthyAfterFirstRunCheckRun)
+                            {
+                                hasHealthyAfterFirstRunCheckRun = true;
+                                return new HealthCheckResult(HealthStatus.Unhealthy, "Initial failure state.");
+                            }
 
-    return builder
+                            return new HealthCheckResult(HealthStatus.Healthy, "Healthy beginning second health check run.");
+                        });
+
+    builder
         .AddResource(new TestResource(name))
         .WithHealthCheck($"{name}_check")
+        .WithHealthCheck($"{name}_resource_healthy_after_first_run_check")
         .WithInitialState(new()
         {
             ResourceType = "Test Resource",
@@ -43,6 +55,7 @@ IResourceBuilder<TestResource> AddTestResource(string name, HealthStatus status,
             Properties = [],
         })
         .ExcludeFromManifest();
+    return;
 }
 
 internal sealed class TestResource(string name) : Resource(name);
