@@ -5,9 +5,7 @@ using System.Data.Common;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Milvus;
 using Aspire.Hosting.Utils;
-using Aspire.Milvus.Client;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Milvus.Client;
 
@@ -56,27 +54,6 @@ public static class MilvusBuilderExtensions
             ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-key");
 
         var milvus = new MilvusServerResource(name, apiKeyParameter);
-
-        MilvusClient? milvusClient = null;
-
-        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(milvus, async (@event, ct) =>
-        {
-            var connectionString = await milvus.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false)
-            ?? throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{milvus.Name}' resource but the connection string was null.");
-            milvusClient = CreateMilvusClient(@event.Services, connectionString);
-        });
-
-        var healthCheckKey = $"{name}_check";
-        // TODO: Use health check from AspNetCore.Diagnostics.HealthChecks once it's implemented via this issue:
-        // https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks/issues/2214
-        builder.Services.AddHealthChecks()
-          .Add(new HealthCheckRegistration(
-              healthCheckKey,
-              sp => new MilvusHealthCheck(milvusClient!),
-              failureStatus: default,
-              tags: default,
-              timeout: default));
-
         return builder.AddResource(milvus)
             .WithImage(MilvusContainerImageTags.Image, MilvusContainerImageTags.Tag)
             .WithImageRegistry(MilvusContainerImageTags.Registry)
@@ -93,8 +70,7 @@ public static class MilvusBuilderExtensions
             {
                 ctx.EnvironmentVariables["COMMON_SECURITY_DEFAULTROOTPASSWORD"] = milvus.ApiKeyParameter;
             })
-            .WithArgs("milvus", "run", "standalone")
-            .WithHealthCheck(healthCheckKey);
+            .WithArgs("milvus", "run", "standalone");
     }
 
     /// <summary>
