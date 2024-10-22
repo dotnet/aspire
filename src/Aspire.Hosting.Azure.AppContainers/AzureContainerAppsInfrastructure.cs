@@ -530,7 +530,6 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 {
                     BicepValue<string> s => s,
                     string s => s,
-                    BicepValueFormattableString fs => Interpolate(fs),
                     ProvisioningParameter p => p,
                     _ => throw new NotSupportedException("Unsupported value type " + val.GetType())
                 };
@@ -697,7 +696,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                         args[index++] = val;
                     }
 
-                    return (new BicepValueFormattableString(expr.Format, args), finalSecretType);
+                    return (Interpolate(expr.Format, args), finalSecretType);
 
                 }
 
@@ -894,68 +893,45 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
         }
     }
 
-    // REVIEW: BicepFunction.Interpolate is buggy and doesn't handle nested formattable strings correctly
-    // This is a workaround to handle nested formattable strings until the bug is fixed.
-    private static BicepValue<string> Interpolate(BicepValueFormattableString text)
+    private static BicepValue<string> Interpolate(string format, object[] args)
     {
         var bicepStringBuilder = new BicepStringBuilder();
 
-        void ProcessFormattableString(BicepValueFormattableString formattableString, int argumentIndex)
+        var span = format.AsSpan();
+        var skip = 0;
+        var argumentIndex = 0;
+
+        foreach (var match in Regex.EnumerateMatches(span, @"{\d+}"))
         {
-            var span = formattableString.Format.AsSpan();
-            var skip = 0;
+            bicepStringBuilder.Append(span[..(match.Index - skip)].ToString());
 
-            foreach (var match in Regex.EnumerateMatches(span, @"{\d+}"))
+            var argument = args[argumentIndex];
+
+            if (argument is BicepValue<string> bicepValue)
             {
-                bicepStringBuilder.Append(span[..(match.Index - skip)].ToString());
-
-                var argument = formattableString.Values[argumentIndex];
-
-                if (argument is BicepValueFormattableString nested)
-                {
-                    // Inline the nested formattable string
-                    ProcessFormattableString(nested, 0);
-                }
-                else
-                {
-                    if (argument is BicepValue<string> bicepValue)
-                    {
-                        bicepStringBuilder.Append($"{bicepValue}");
-                    }
-                    else if (argument is string s)
-                    {
-                        bicepStringBuilder.Append(s);
-                    }
-                    else if (argument is ProvisioningParameter provisioningParameter)
-                    {
-                        bicepStringBuilder.Append($"{provisioningParameter}");
-                    }
-                    else
-                    {
-                        throw new NotSupportedException($"{argument} is not supported");
-                    }
-                }
-
-                argumentIndex++;
-                span = span[(match.Index + match.Length - skip)..];
-                skip = match.Index + match.Length;
+                bicepStringBuilder.Append($"{bicepValue}");
+            }
+            else if (argument is string s)
+            {
+                bicepStringBuilder.Append(s);
+            }
+            else if (argument is ProvisioningParameter provisioningParameter)
+            {
+                bicepStringBuilder.Append($"{provisioningParameter}");
+            }
+            else
+            {
+                throw new NotSupportedException($"{argument} is not supported");
             }
 
-            bicepStringBuilder.Append(span.ToString());
+            argumentIndex++;
+            span = span[(match.Index + match.Length - skip)..];
+            skip = match.Index + match.Length;
         }
 
-        ProcessFormattableString(text, 0);
+        bicepStringBuilder.Append(span.ToString());
 
         return bicepStringBuilder.Build();
-    }
-
-    /// <summary>
-    /// An object wrapping a format string and values that allows us to inline nested bicep interpolated strings.
-    /// </summary>
-    private sealed class BicepValueFormattableString(string format, object[] values)
-    {
-        public string Format => format;
-        public object[] Values => values;
     }
 
     /// <summary>
