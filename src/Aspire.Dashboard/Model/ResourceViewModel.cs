@@ -59,6 +59,7 @@ public sealed class ResourceViewModel
             HealthStatus = ComputeHealthStatus(_healthReports, value);
         }
     }
+
     internal bool MatchesFilter(string filter)
     {
         // TODO let ResourceType define the additional data values we include in searches
