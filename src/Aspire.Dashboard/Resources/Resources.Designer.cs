@@ -285,7 +285,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Health State.
+        ///   Looks up a localized string similar to Health state.
         /// </summary>
         public static string ResourcesDetailsHealthStateProperty {
             get {
