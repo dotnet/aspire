@@ -5,8 +5,6 @@
     <SkipArcadeNoWarnCS1591>true</SkipArcadeNoWarnCS1591>
     <EnablePackageValidation Condition="'$(EnablePackageValidation)' == ''">true</EnablePackageValidation>
     <PackageValidationBaselineVersion Condition="'$(EnablePackageValidation)' == 'true' and '$(PackageValidationBaselineVersion)' == ''">$(BaselineVersionForPackageValidation)</PackageValidationBaselineVersion>
-    <!-- For Aspire.Hosting.Azure* packages, we need to ingest the new Azure.Provisioning stable packages in order for us to produce stable  bits. -->
-    <SuppressFinalPackageVersion Condition="$(MSBuildProjectName.StartsWith('Aspire.Hosting.Azure'))">true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
