@@ -268,24 +268,27 @@ public static class RedisBuilderExtensions
 
                 try
                 {
-                    await pipeline.ExecuteAsync(async (ctx) =>
+                    if (databasesToDelete.Any())
                     {
-                        // Create a DELETE request to send to the existing instance of
-                        // RedisInsight with the IDs of the database to delete.
-                        var deleteContent = JsonContent.Create(new
+                        await pipeline.ExecuteAsync(async (ctx) =>
                         {
-                            ids = databasesToDelete
-                        });
+                            // Create a DELETE request to send to the existing instance of
+                            // RedisInsight with the IDs of the database to delete.
+                            var deleteContent = JsonContent.Create(new
+                            {
+                                ids = databasesToDelete
+                            });
 
-                        var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, databasesPath)
-                        {
-                            Content = deleteContent
-                        };
+                            var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, databasesPath)
+                            {
+                                Content = deleteContent
+                            };
 
-                        var deleteResponse = await client.SendAsync(deleteRequest, cancellationToken).ConfigureAwait(false);
-                        deleteResponse.EnsureSuccessStatusCode();
+                            var deleteResponse = await client.SendAsync(deleteRequest, cancellationToken).ConfigureAwait(false);
+                            deleteResponse.EnsureSuccessStatusCode();
 
-                    }, cancellationToken).ConfigureAwait(false);
+                        }, cancellationToken).ConfigureAwait(false);
+                    }
 
                     await pipeline.ExecuteAsync(async (ctx) =>
                     {
