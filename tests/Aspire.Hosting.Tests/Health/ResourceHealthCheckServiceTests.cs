@@ -36,8 +36,8 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
             State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
         });
 
-        var runningEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running);
-        Assert.Equal(HealthStatus.Healthy, runningEvent.Snapshot.HealthStatus);
+        var healthyEvent = await rns.WaitForResourceHealthyAsync("resource");
+        Assert.Equal(HealthStatus.Healthy, healthyEvent.Snapshot.HealthStatus);
 
         await app.StopAsync();
     }
@@ -71,16 +71,14 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         });
 
         var runningEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running);
-        Assert.Null(runningEvent.Snapshot.HealthStatus);
 
-        var hasHealthReportsEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.HealthReports.Length > 0);
-        Assert.Equal(HealthStatus.Healthy, hasHealthReportsEvent.Snapshot.HealthStatus);
+        Assert.Equal(HealthStatus.Unhealthy, runningEvent.Snapshot.HealthStatus);
+        await rns.WaitForResourceHealthyAsync("resource");
 
         await app.StopAsync();
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/6363")]
     public async Task HealthCheckIntervalSlowsAfterSteadyHealthyState()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);

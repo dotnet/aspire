@@ -128,8 +128,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsHealthStateProperty">
-        <source>Health State</source>
-        <target state="translated">Stav</target>
+        <source>Health state</source>
+        <target state="needs-review-translation">Stav</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
