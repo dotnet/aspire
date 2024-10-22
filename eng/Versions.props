@@ -75,12 +75,18 @@
     <SystemTextJsonPackageVersion>8.0.5</SystemTextJsonPackageVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <!-- Other -->
+    <!-- Runtime -->
+    <MicrosoftExtensionsHostingAbstractionsPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsHostingAbstractionsPackageVersion>
+    <MicrosoftExtensionsHostingPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsHostingPackageVersion>
     <MicrosoftExtensionsConfigurationAbstractionsPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsConfigurationAbstractionsPackageVersion>
     <MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>
     <MicrosoftExtensionsLoggingAbstractionsPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsLoggingAbstractionsPackageVersion>
     <MicrosoftExtensionsOptionsPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsOptionsPackageVersion>
     <MicrosoftExtensionsPrimitivesPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsPrimitivesPackageVersion>
+    <MicrosoftExtensionsConfigurationBinderPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsConfigurationBinderPackageVersion>
+    <MicrosoftExtensionsHttpPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsHttpPackageVersion>
+    <!-- ASP.NET Core -->
+    <MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>9.0.0-rc.2.24474.3</MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>
     <!-- EF -->
     <MicrosoftEntityFrameworkCoreCosmosPackageVersion>9.0.0-rc.2.24474.1</MicrosoftEntityFrameworkCoreCosmosPackageVersion>
     <MicrosoftEntityFrameworkCoreDesignPackageVersion>9.0.0-rc.2.24474.1</MicrosoftEntityFrameworkCoreDesignPackageVersion>
