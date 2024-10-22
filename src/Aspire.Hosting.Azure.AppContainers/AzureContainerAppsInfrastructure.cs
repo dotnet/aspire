@@ -909,7 +909,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
             {
                 bicepStringBuilder.Append(span[..(match.Index - skip)].ToString());
 
-                var argument = formattableString.GetArgument(argumentIndex);
+                var argument = formattableString.Values[argumentIndex];
 
                 if (argument is BicepValueFormattableString nested)
                 {
@@ -950,16 +950,12 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
     }
 
     /// <summary>
-    /// A custom FormattableString implementation that allows us to inline nested formattable strings.
+    /// An object wrapping a format string and values that allows us to inline nested bicep interpolated strings.
     /// </summary>
-    private sealed class BicepValueFormattableString(string formatString, object[] values) : FormattableString
+    private sealed class BicepValueFormattableString(string format, object[] values)
     {
-        public override int ArgumentCount => values.Length;
-        public override string Format => formatString;
-        public override object? GetArgument(int index) => values[index];
-        public override object?[] GetArguments() => values;
-        public override string ToString(IFormatProvider? formatProvider) => Format;
-        public override string ToString() => formatString;
+        public string Format => format;
+        public object[] Values => values;
     }
 
     /// <summary>
