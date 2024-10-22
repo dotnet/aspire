@@ -71,7 +71,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private Task? _resourceSubscriptionTask;
     private ConsoleLogsSubscription? _consoleLogsSubscription;
     internal LogEntries _logEntries = null!;
-    private LogViewer? _logViewer;
 
     // UI
     private SelectViewModel<ResourceTypeDetails> _noSelection = null!;
