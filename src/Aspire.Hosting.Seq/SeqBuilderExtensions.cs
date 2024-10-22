@@ -15,8 +15,11 @@ public static class SeqBuilderExtensions
     const string SeqContainerDataDirectory = "/data";
 
     /// <summary>
-    /// Adds a Seq server resource to the application model. A container is used for local development. This version of the package defaults to the <inheritdoc cref="SeqContainerImageTags.Tag"/> tag of the <inheritdoc cref="SeqContainerImageTags.Image"/> container image.
+    /// Adds a Seq server resource to the application model. A container is used for local development.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="SeqContainerImageTags.Tag"/> tag of the <inheritdoc cref="SeqContainerImageTags.Image"/> container image.
+    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name to give the resource.</param>
     /// <param name="port">The host port for the Seq server.</param>
