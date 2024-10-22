@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Testing;
+using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -21,7 +22,7 @@ public class SlimTestProgramTests
     {
         var testProgram = _slimTestProgramFixture.TestProgram;
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
         // Make sure each service is running
         await EnsureServicesAreRunning(testProgram, cts.Token);
@@ -45,7 +46,7 @@ public class SlimTestProgramTests
     {
         var testProgram = _slimTestProgramFixture.TestProgram;
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
         // Make sure each service is running
         await EnsureServicesAreRunning(testProgram, cts.Token);
@@ -63,7 +64,7 @@ public class SlimTestProgramTests
     {
         var testProgram = _slimTestProgramFixture.TestProgram;
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
         // Make sure each service is running
         await EnsureServicesAreRunning(testProgram, cts.Token);

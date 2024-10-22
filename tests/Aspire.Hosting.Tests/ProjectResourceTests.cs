@@ -6,6 +6,7 @@ using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -17,7 +18,7 @@ public class ProjectResourceTests
     [Fact]
     public async Task AddProjectWithInvalidLaunchSettingsShouldThrowSpecificError()
     {
-        var projectDetails = await PrepareProjectWithMalformedLaunchSettingsAsync();
+        var projectDetails = await PrepareProjectWithMalformedLaunchSettingsAsync().DefaultTimeout();
 
         var ex = Assert.Throws<DistributedApplicationException>(() =>
         {
@@ -46,10 +47,10 @@ public class ProjectResourceTests
             var launchSettingsFilePath = Path.Combine(propertiesDirectoryPath, "launchSettings.json");
 
             Directory.CreateDirectory(projectDirectoryPath);
-            await File.WriteAllTextAsync(projectFilePath, csProjContent);
+            await File.WriteAllTextAsync(projectFilePath, csProjContent).DefaultTimeout();
 
             Directory.CreateDirectory(propertiesDirectoryPath);
-            await File.WriteAllTextAsync(launchSettingsFilePath, launchSettingsContent);
+            await File.WriteAllTextAsync(launchSettingsFilePath, launchSettingsContent).DefaultTimeout();
 
             return (projectFilePath, launchSettingsFilePath);
         }
@@ -74,7 +75,7 @@ public class ProjectResourceTests
         var serviceMetadata = Assert.Single(resource.Annotations.OfType<IProjectMetadata>());
         Assert.IsType<TestProject>(serviceMetadata);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Collection(config,
             env =>
@@ -185,7 +186,7 @@ public class ProjectResourceTests
         var resource = Assert.Single(projectResources);
         Assert.Equal("projectName", resource.Name);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         if (hasHeader)
         {
@@ -314,7 +315,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Publish);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Publish).DefaultTimeout();
 
         Assert.False(config.ContainsKey("ASPNETCORE_URLS"));
         Assert.False(config.ContainsKey("ASPNETCORE_HTTPS_PORT"));
@@ -357,7 +358,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("http://localhost:p0;https://localhost:p1", config["ASPNETCORE_URLS"]);
         Assert.Equal("5001", config["ASPNETCORE_HTTPS_PORT"]);
@@ -379,7 +380,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.False(config.ContainsKey("ASPNETCORE_URLS"));
         Assert.False(config.ContainsKey("ASPNETCORE_HTTPS_PORT"));
@@ -404,7 +405,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("http://localhost:p0", config["ASPNETCORE_URLS"]);
         Assert.False(config.ContainsKey("ASPNETCORE_HTTPS_PORT"));
@@ -431,7 +432,7 @@ public class ProjectResourceTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var projectResources = appModel.GetProjectResources();
         var resource = Assert.Single(projectResources);
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("https://localhost:p2;http://localhost:p0;http://localhost:p1;https://localhost:p3;https://localhost:p4", config["ASPNETCORE_URLS"]);
 
@@ -477,7 +478,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var manifest = await ManifestUtils.GetManifest(resource);
+        var manifest = await ManifestUtils.GetManifest(resource).DefaultTimeout();
 
         var fordwardedHeadersEnvVar = disableForwardedHeaders
             ? ""
@@ -527,7 +528,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var manifest = await ManifestUtils.GetManifest(resource);
+        var manifest = await ManifestUtils.GetManifest(resource).DefaultTimeout();
 
         var expectedManifest = $$"""
             {
@@ -583,7 +584,7 @@ public class ProjectResourceTests
 
         using var app = appBuilder.Build();
 
-        var args = await ArgumentEvaluator.GetArgumentListAsync(project.Resource);
+        var args = await ArgumentEvaluator.GetArgumentListAsync(project.Resource).DefaultTimeout();
 
         Assert.Collection(args,
             arg => Assert.Equal("arg1", arg),
@@ -618,7 +619,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         var http = resource.GetEndpoint("http");
         var https = resource.GetEndpoint("https");

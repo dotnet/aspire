@@ -8,6 +8,7 @@ using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Tests.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -42,12 +43,12 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         var hook = CreateHook(resourceLoggerService, resourceNotificationService, configuration, loggerFactory: factory);
 
         var model = new DistributedApplicationModel(new ResourceCollection());
-        await hook.BeforeStartAsync(model, CancellationToken.None);
+        await hook.BeforeStartAsync(model, CancellationToken.None).DefaultTimeout();
 
-        await resourceNotificationService.PublishUpdateAsync(model.Resources.Single(), s => s);
+        await resourceNotificationService.PublishUpdateAsync(model.Resources.Single(), s => s).DefaultTimeout();
 
         string resourceId = default!;
-        await foreach (var item in resourceLoggerService.WatchAnySubscribersAsync())
+        await foreach (var item in resourceLoggerService.WatchAnySubscribersAsync().DefaultTimeout())
         {
             if (item.Name.StartsWith(KnownResourceNames.AspireDashboard) && item.AnySubscribers)
             {
@@ -61,10 +62,9 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         dashboardLoggerState.AddLog(LogEntry.Create(timestamp, logMessage, isErrorMessage: false), inMemorySource: true);
 
         // Assert
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        while (!cts.IsCancellationRequested)
+        while (true)
         {
-            var logContext = await logChannel.Reader.ReadAsync(cts.Token);
+            var logContext = await logChannel.Reader.ReadAsync().DefaultTimeout();
             if (logContext.LoggerName == expectedCategory)
             {
                 Assert.Equal(expectedMessage, logContext.Message);
@@ -86,7 +86,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         var model = new DistributedApplicationModel(new ResourceCollection());
 
         // Act
-        await hook.BeforeStartAsync(model, CancellationToken.None);
+        await hook.BeforeStartAsync(model, CancellationToken.None).DefaultTimeout();
         var dashboardResource = model.Resources.Single(r => string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName));
         dashboardResource.AddLifeCycleCommands();
 

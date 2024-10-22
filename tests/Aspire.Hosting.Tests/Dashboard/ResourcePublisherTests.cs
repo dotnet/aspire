@@ -3,6 +3,7 @@
 
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dashboard;
+using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
 
 namespace Aspire.Hosting.Tests.Dashboard;
@@ -19,8 +20,8 @@ public class ResourcePublisherTests
         var b = CreateResourceSnapshot("B");
         var c = CreateResourceSnapshot("C");
 
-        await publisher.IntegrateAsync(new TestResource("A"), a, ResourceSnapshotChangeType.Upsert);
-        await publisher.IntegrateAsync(new TestResource("B"), b, ResourceSnapshotChangeType.Upsert);
+        await publisher.IntegrateAsync(new TestResource("A"), a, ResourceSnapshotChangeType.Upsert).DefaultTimeout();
+        await publisher.IntegrateAsync(new TestResource("B"), b, ResourceSnapshotChangeType.Upsert).DefaultTimeout();
 
         Assert.Equal(0, publisher.OutgoingSubscriberCount);
 
@@ -42,17 +43,17 @@ public class ResourcePublisherTests
             }
         });
 
-        await publisher.IntegrateAsync(new TestResource("C"), c, ResourceSnapshotChangeType.Upsert);
+        await publisher.IntegrateAsync(new TestResource("C"), c, ResourceSnapshotChangeType.Upsert).DefaultTimeout();
 
-        var change = Assert.Single(await tcs.Task);
+        var change = Assert.Single(await tcs.Task.DefaultTimeout());
         Assert.Equal(ResourceSnapshotChangeType.Upsert, change.ChangeType);
         Assert.Equal("C", change.Resource.Name);
 
-        await cts.CancelAsync();
+        await cts.CancelAsync().DefaultTimeout();
 
         try
         {
-            await task;
+            await task.DefaultTimeout();
         }
         catch (OperationCanceledException)
         {
@@ -72,8 +73,8 @@ public class ResourcePublisherTests
         var b = CreateResourceSnapshot("B");
         var c = CreateResourceSnapshot("C");
 
-        await publisher.IntegrateAsync(new TestResource("A"), a, ResourceSnapshotChangeType.Upsert);
-        await publisher.IntegrateAsync(new TestResource("B"), b, ResourceSnapshotChangeType.Upsert);
+        await publisher.IntegrateAsync(new TestResource("A"), a, ResourceSnapshotChangeType.Upsert).DefaultTimeout();
+        await publisher.IntegrateAsync(new TestResource("B"), b, ResourceSnapshotChangeType.Upsert).DefaultTimeout();
 
         Assert.Equal(0, publisher.OutgoingSubscriberCount);
 
@@ -85,13 +86,13 @@ public class ResourcePublisherTests
         Assert.Equal(2, snapshot1.Length);
         Assert.Equal(2, snapshot2.Length);
 
-        await publisher.IntegrateAsync(new TestResource("C"), c, ResourceSnapshotChangeType.Upsert);
+        await publisher.IntegrateAsync(new TestResource("C"), c, ResourceSnapshotChangeType.Upsert).DefaultTimeout();
 
         var enumerator1 = subscription1.GetAsyncEnumerator(cts.Token);
         var enumerator2 = subscription2.GetAsyncEnumerator(cts.Token);
 
-        await enumerator1.MoveNextAsync();
-        await enumerator2.MoveNextAsync();
+        await enumerator1.MoveNextAsync().DefaultTimeout();
+        await enumerator2.MoveNextAsync().DefaultTimeout();
 
         var v1 = Assert.Single(enumerator1.Current);
         var v2 = Assert.Single(enumerator2.Current);
@@ -101,10 +102,10 @@ public class ResourcePublisherTests
         Assert.Equal("C", v1.Resource.Name);
         Assert.Equal("C", v2.Resource.Name);
 
-        await cts.CancelAsync();
+        await cts.CancelAsync().DefaultTimeout();
 
-        Assert.False(await enumerator1.MoveNextAsync());
-        Assert.False(await enumerator2.MoveNextAsync());
+        Assert.False(await enumerator1.MoveNextAsync().DefaultTimeout());
+        Assert.False(await enumerator2.MoveNextAsync().DefaultTimeout());
 
         Assert.Equal(0, publisher.OutgoingSubscriberCount);
     }
@@ -119,15 +120,15 @@ public class ResourcePublisherTests
         var a2 = CreateResourceSnapshot("A");
         var a3 = CreateResourceSnapshot("A");
 
-        await publisher.IntegrateAsync(new TestResource("A"), a1, ResourceSnapshotChangeType.Upsert);
-        await publisher.IntegrateAsync(new TestResource("A"), a2, ResourceSnapshotChangeType.Upsert);
-        await publisher.IntegrateAsync(new TestResource("A"), a3, ResourceSnapshotChangeType.Upsert);
+        await publisher.IntegrateAsync(new TestResource("A"), a1, ResourceSnapshotChangeType.Upsert).DefaultTimeout();
+        await publisher.IntegrateAsync(new TestResource("A"), a2, ResourceSnapshotChangeType.Upsert).DefaultTimeout();
+        await publisher.IntegrateAsync(new TestResource("A"), a3, ResourceSnapshotChangeType.Upsert).DefaultTimeout();
 
         var (snapshot, _) = publisher.Subscribe();
 
         Assert.Equal("A", Assert.Single(snapshot).Name);
 
-        await cts.CancelAsync();
+        await cts.CancelAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -139,15 +140,15 @@ public class ResourcePublisherTests
         var a = CreateResourceSnapshot("A");
         var b = CreateResourceSnapshot("B");
 
-        await publisher.IntegrateAsync(new TestResource("A"), a, ResourceSnapshotChangeType.Upsert);
-        await publisher.IntegrateAsync(new TestResource("B"), b, ResourceSnapshotChangeType.Upsert);
-        await publisher.IntegrateAsync(new TestResource("A"), a, ResourceSnapshotChangeType.Delete);
+        await publisher.IntegrateAsync(new TestResource("A"), a, ResourceSnapshotChangeType.Upsert).DefaultTimeout();
+        await publisher.IntegrateAsync(new TestResource("B"), b, ResourceSnapshotChangeType.Upsert).DefaultTimeout();
+        await publisher.IntegrateAsync(new TestResource("A"), a, ResourceSnapshotChangeType.Delete).DefaultTimeout();
 
         var (snapshot, _) = publisher.Subscribe();
 
         Assert.Equal("B", Assert.Single(snapshot).Name);
 
-        await cts.CancelAsync();
+        await cts.CancelAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -168,15 +169,15 @@ public class ResourcePublisherTests
                 called = true;
 
                 // Now we've received something, cancel.
-                await cts.CancelAsync();
+                await cts.CancelAsync().DefaultTimeout();
             }
         });
 
         // Push through an update.
-        await publisher.IntegrateAsync(new TestResource("A"), CreateResourceSnapshot("A"), ResourceSnapshotChangeType.Upsert);
+        await publisher.IntegrateAsync(new TestResource("A"), CreateResourceSnapshot("A"), ResourceSnapshotChangeType.Upsert).DefaultTimeout();
 
         // Let the subscriber exit.
-        await task;
+        await task.DefaultTimeout();
     }
 
     private static GenericResourceSnapshot CreateResourceSnapshot(string name)

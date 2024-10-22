@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -98,7 +99,7 @@ public class ResourceExtensionsTests
              context.EnvironmentVariables["ELASTIC_PASSWORD"] = "p@ssw0rd1";
          });
 
-        var env = await container.Resource.GetEnvironmentVariableValuesAsync();
+        var env = await container.Resource.GetEnvironmentVariableValuesAsync().DefaultTimeout();
 
         Assert.Collection(env,
             env =>
@@ -131,7 +132,7 @@ public class ResourceExtensionsTests
          .WithEnvironment("xpack.security.enabled", "true")
          .WithEnvironment("ELASTIC_PASSWORD", passwordParameter);
 
-        var env = await container.Resource.GetEnvironmentVariableValuesAsync();
+        var env = await container.Resource.GetEnvironmentVariableValuesAsync().DefaultTimeout();
 
         Assert.Collection(env,
             env =>
@@ -164,7 +165,7 @@ public class ResourceExtensionsTests
          .WithEnvironment("xpack.security.enabled", "true")
          .WithEnvironment("ELASTIC_PASSWORD", passwordParameter);
 
-        var env = await container.Resource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Publish);
+        var env = await container.Resource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Publish).DefaultTimeout();
 
         Assert.Collection(env,
             env =>

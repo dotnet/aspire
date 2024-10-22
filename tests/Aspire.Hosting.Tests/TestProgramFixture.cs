@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -29,7 +30,7 @@ public abstract class TestProgramFixture : IAsyncLifetime
 
         _app = _testProgram.Build();
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
         await _app.StartAsync(cts.Token);
 

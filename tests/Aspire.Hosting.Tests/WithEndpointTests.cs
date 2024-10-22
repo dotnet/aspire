@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -211,7 +212,7 @@ public class WithEndpointTests
 
         var resource = Assert.Single(exeResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("foo", resource.Name);
         var endpoints = resource.Annotations.OfType<EndpointAnnotation>().ToArray();
@@ -268,7 +269,7 @@ public class WithEndpointTests
         var container = builder.AddContainer("app", "image")
                                .WithEndpoint(name: "ep0", port: 8080, targetPort: 3000);
 
-        var manifest = await ManifestUtils.GetManifest(container.Resource);
+        var manifest = await ManifestUtils.GetManifest(container.Resource).DefaultTimeout();
         var expectedManifest =
             """
             {
@@ -296,7 +297,7 @@ public class WithEndpointTests
         var container = builder.AddContainer("app", "image")
                                .WithHttpEndpoint(name: "h1", targetPort: 3001);
 
-        var manifest = await ManifestUtils.GetManifest(container.Resource);
+        var manifest = await ManifestUtils.GetManifest(container.Resource).DefaultTimeout();
         var expectedManifest =
             """
             {
@@ -323,7 +324,7 @@ public class WithEndpointTests
         var container = builder.AddContainer("app", "image")
                                .WithHttpsEndpoint(name: "h2", targetPort: 3001);
 
-        var manifest = await ManifestUtils.GetManifest(container.Resource);
+        var manifest = await ManifestUtils.GetManifest(container.Resource).DefaultTimeout();
         var expectedManifest =
             """
             {
@@ -350,7 +351,7 @@ public class WithEndpointTests
         var container = builder.AddContainer("app", "image")
                                .WithHttpEndpoint(name: "h3");
 
-        var manifest = await ManifestUtils.GetManifest(container.Resource);
+        var manifest = await ManifestUtils.GetManifest(container.Resource).DefaultTimeout();
         var expectedManifest =
             """
             {
@@ -377,7 +378,7 @@ public class WithEndpointTests
         var container = builder.AddContainer("app", "image")
                                .WithHttpsEndpoint(name: "h4");
 
-        var manifest = await ManifestUtils.GetManifest(container.Resource);
+        var manifest = await ManifestUtils.GetManifest(container.Resource).DefaultTimeout();
         var expectedManifest =
             """
             {
@@ -404,7 +405,7 @@ public class WithEndpointTests
         var container = builder.AddContainer("app", "image")
                                .WithHttpEndpoint(name: "otlp", port: 1004);
 
-        var manifest = await ManifestUtils.GetManifest(container.Resource);
+        var manifest = await ManifestUtils.GetManifest(container.Resource).DefaultTimeout();
         var expectedManifest =
             """
             {
@@ -431,7 +432,7 @@ public class WithEndpointTests
         var container = builder.AddContainer("app", "image")
                                .WithEndpoint(name: "custom");
 
-        var manifest = await ManifestUtils.GetManifest(container.Resource);
+        var manifest = await ManifestUtils.GetManifest(container.Resource).DefaultTimeout();
         var expectedManifest =
             """
             {
@@ -462,7 +463,7 @@ public class WithEndpointTests
             .WithHttpsEndpoint(name: "hps2")   // Will get a targetPort
             .WithEndpoint(scheme: "tcp", name: "tcp0");  // Will get a targetPort
 
-        var manifest = await ManifestUtils.GetManifest(project.Resource);
+        var manifest = await ManifestUtils.GetManifest(project.Resource).DefaultTimeout();
 
         var expectedManifest =
             """
@@ -532,7 +533,7 @@ public class WithEndpointTests
             // Should not be included in HTTP_PORTS
             .WithEndpointsInEnvironment(e => e.Name != "dontinjectme");
 
-        var manifest = await ManifestUtils.GetManifest(project.Resource);
+        var manifest = await ManifestUtils.GetManifest(project.Resource).DefaultTimeout();
 
         var expectedEnv =
             """
@@ -559,7 +560,7 @@ public class WithEndpointTests
         var container1 = builder.AddContainer("app1", "image")
                                .WithEndpoint(name: "custom");
 
-        var manifests = await ManifestUtils.GetManifests([container0.Resource, container1.Resource]);
+        var manifests = await ManifestUtils.GetManifests([container0.Resource, container1.Resource]).DefaultTimeout();
         var expectedManifest0 =
             """
             {
