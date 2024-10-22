@@ -83,10 +83,23 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                         cancellationToken).ConfigureAwait(false);
                 }
 
-                if (_latestEvents[resource.Name] is { } latestEvent && latestEvent.Snapshot.HealthStatus == report.Status)
+                var latestEvent = _latestEvents.GetValueOrDefault(resource.Name);
+                if (latestEvent is not null
+                    && !latestEvent.Snapshot.HealthReports.Any(r => r.Status is null) // don't count events before we have health reports
+                    && latestEvent.Snapshot.HealthStatus == report.Status)
                 {
                     await SlowDownMonitoringAsync(latestEvent, cancellationToken).ConfigureAwait(false);
-                    continue;
+                }
+
+                // If none of the health report statuses have changed, we should not update the resource health reports.
+                if (latestEvent is not null)
+                {
+                    var checkNameToStatus = latestEvent.Snapshot.HealthReports.ToDictionary(p => p.Name, p => p.Status);
+
+                    if (report.Entries.All(entry => checkNameToStatus.TryGetValue(entry.Key, out var status) && status == entry.Value.Status))
+                    {
+                        continue;
+                    }
                 }
 
                 await resourceNotificationService.PublishUpdateAsync(resource, s =>
