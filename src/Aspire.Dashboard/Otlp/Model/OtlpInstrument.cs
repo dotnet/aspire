@@ -75,8 +75,8 @@ public class OtlpInstrument
 
         var comparableAttributes = tempAttributes.AsMemory(0, copyCount);
 
-        // Can't use CollectionsMarshal.GetValueRefOrAddDefault here because comparableAttributes here are a view over mutable data.
-        // Need to add dimensions using durable attributes instance. Could improve this .NET 9+ with alternative dictionary views.
+        // Can't use CollectionsMarshal.GetValueRefOrAddDefault here because comparableAttributes is a view over mutable data.
+        // Need to add dimensions using durable attributes instance after scope is created.
         if (!Dimensions.TryGetValue(comparableAttributes, out var dimension))
         {
             dimension = CreateDimensionScope(comparableAttributes);
