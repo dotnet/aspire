@@ -20,7 +20,7 @@ internal partial class ContainerReferenceParser
 
         if (!match.Success)
         {
-            throw new ArgumentOutOfRangeException(nameof(input), input, "invalid reference format");
+            throw new ArgumentOutOfRangeException(nameof(input), input, "invalid reference format: could not parse container image name");
         }
 
         return new(
