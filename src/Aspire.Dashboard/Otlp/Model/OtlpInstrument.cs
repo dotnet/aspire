@@ -95,6 +95,7 @@ public class OtlpInstrument
         foreach (var key in keys)
         {
             ref var values = ref CollectionsMarshal.GetValueRefOrAddDefault(KnownAttributeValues, key, out _);
+            // Adds to dictionary if not present.
             if (values == null)
             {
                 values = new List<string?>();

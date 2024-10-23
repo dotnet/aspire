@@ -295,13 +295,13 @@ public sealed class TelemetryRepository
             // an empty instrumentation scope name (unknown).
             var name = scope?.Name ?? string.Empty;
             ref var scopeRef = ref CollectionsMarshal.GetValueRefOrAddDefault(scopes, name, out _);
+            // Adds to dictionary if not present.
             scopeRef ??= (scope != null) ? new OtlpScope(scope, _otlpContext) : OtlpScope.Empty;
             s = scopeRef;
             return true;
         }
         catch (Exception ex)
         {
-            //context.FailureCount += sl.LogRecords.Count;
             _otlpContext.Logger.LogInformation(ex, "Error adding scope.");
             s = null;
             return false;
@@ -353,6 +353,7 @@ public sealed class TelemetryRepository
                             if (!_logSubscriptions.Any(s => s.SubscriptionType == SubscriptionType.Read && (s.ApplicationKey == applicationView.ApplicationKey || s.ApplicationKey == null)))
                             {
                                 ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(_applicationUnviewedErrorLogs, applicationView.ApplicationKey, out _);
+                                // Adds to dictionary if not present.
                                 count++;
                             }
                         }
@@ -580,6 +581,7 @@ public sealed class TelemetryRepository
                     if (value != null)
                     {
                         ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(attributesValues, value, out _);
+                        // Adds to dictionary if not present.
                         count++;
                     }
                 }
@@ -607,6 +609,7 @@ public sealed class TelemetryRepository
                 if (value != null)
                 {
                     ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(attributesValues, value, out _);
+                    // Adds to dictionary if not present.
                     count++;
                 }
             }
@@ -1085,6 +1088,7 @@ public sealed class TelemetryRepository
                 foreach (var knownAttributeValues in instrument.KnownAttributeValues)
                 {
                     ref var values = ref CollectionsMarshal.GetValueRefOrAddDefault(allKnownAttributes, knownAttributeValues.Key, out _);
+                    // Adds to dictionary if not present.
                     if (values != null)
                     {
                         values = values.Union(knownAttributeValues.Value).ToList();
