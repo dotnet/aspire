@@ -43,7 +43,6 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/6385")]
     public async Task ResourcesWithHealthCheck_NotHealthyUntilCheckSucceeds()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
@@ -74,6 +73,57 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
 
         Assert.Equal(HealthStatus.Unhealthy, runningEvent.Snapshot.HealthStatus);
         await rns.WaitForResourceHealthyAsync("resource");
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task ResourcesWithHealthCheck_CancelsHealthChecksWhenResourceIsNoLongerRunning()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.Services.AddHealthChecks().AddCheck("healthcheck_a",  () => HealthCheckResult.Healthy());
+
+        var resource = builder.AddResource(new ParentResource("resource"))
+            .WithHealthCheck("healthcheck_a");
+
+        await using var app = await builder.BuildAsync();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await app.StartAsync();
+
+        await rns.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Starting, null)
+        });
+
+        var startingEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Starting);
+        Assert.Null(startingEvent.Snapshot.HealthStatus);
+
+        await rns.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
+        });
+
+        var healthyEvent = await rns.WaitForResourceHealthyAsync("resource");
+        Assert.Equal(HealthStatus.Healthy, healthyEvent.Snapshot.HealthStatus);
+
+        // simulate "stopping" resource
+        await rns.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Finished, null)
+        });
+
+        // we should see the health reports' statuses now being set back to null
+        await rns.WaitForResourceAsync("resource", e => e.Snapshot.HealthReports.All(report => report.Status is null));
+
+        // if we start the resource again, we should see the health checks being run again
+        await rns.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
+        });
+
+        var healthyAfterRestartingEvent = await rns.WaitForResourceHealthyAsync("resource");
+        Assert.Equal(HealthStatus.Healthy, healthyAfterRestartingEvent.Snapshot.HealthStatus);
 
         await app.StopAsync();
     }
