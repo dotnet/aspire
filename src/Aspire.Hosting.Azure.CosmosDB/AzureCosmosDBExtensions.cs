@@ -31,16 +31,16 @@ public static class AzureCosmosExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
             var kvNameParam = new ProvisioningParameter("keyVaultName", typeof(string));
-            construct.Add(kvNameParam);
+            infrastructure.Add(kvNameParam);
 
             var keyVault = KeyVaultService.FromExisting("keyVault");
             keyVault.Name = kvNameParam;
-            construct.Add(keyVault);
+            infrastructure.Add(keyVault);
 
-            var cosmosAccount = new CosmosDBAccount(construct.Resource.GetBicepIdentifier())
+            var cosmosAccount = new CosmosDBAccount(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Kind = CosmosDBAccountKind.GlobalDocumentDB,
                 ConsistencyPolicy = new ConsistencyPolicy()
@@ -56,11 +56,11 @@ public static class AzureCosmosExtensions
                         FailoverPriority = 0
                     }
                 },
-                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
             };
-            construct.Add(cosmosAccount);
+            infrastructure.Add(cosmosAccount);
 
-            var azureResource = (AzureCosmosDBResource)construct.Resource;
+            var azureResource = (AzureCosmosDBResource)infrastructure.AspireResource;
             var azureResourceBuilder = builder.CreateResourceBuilder(azureResource);
             List<CosmosDBSqlDatabase> cosmosSqlDatabases = new List<CosmosDBSqlDatabase>();
             foreach (var databaseName in azureResource.Databases)
@@ -74,7 +74,7 @@ public static class AzureCosmosExtensions
                         DatabaseName = databaseName
                     }
                 };
-                construct.Add(cosmosSqlDatabase);
+                infrastructure.Add(cosmosSqlDatabase);
                 cosmosSqlDatabases.Add(cosmosSqlDatabase);
             }
 
@@ -87,10 +87,10 @@ public static class AzureCosmosExtensions
                     Value = BicepFunction.Interpolate($"AccountEndpoint={cosmosAccount.DocumentEndpoint};AccountKey={cosmosAccount.GetKeys().PrimaryMasterKey}")
                 }
             };
-            construct.Add(secret);
+            infrastructure.Add(secret);
         };
 
-        var resource = new AzureCosmosDBResource(name, configureConstruct);
+        var resource = new AzureCosmosDBResource(name, configureInfrastructure);
         return builder.AddResource(resource)
                       .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
@@ -98,14 +98,15 @@ public static class AzureCosmosExtensions
 
     /// <summary>
     /// Configures an Azure Cosmos DB resource to be emulated using the Azure Cosmos DB emulator with the NoSQL API. This resource requires an <see cref="AzureCosmosDBResource"/> to be added to the application model.
-    /// For more information on the Azure Cosmos DB emulator, see <a href="https://learn.microsoft.com/azure/cosmos-db/emulator#authentication"></a>
+    /// For more information on the Azure Cosmos DB emulator, see <a href="https://learn.microsoft.com/azure/cosmos-db/emulator#authentication"></a>.
     /// </summary>
     /// <param name="builder">The Azure Cosmos DB resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// When using the Azure Cosmos DB emulator, the container requires a TLS/SSL certificate.
-    /// For more information, see <a href="https://learn.microsoft.com/azure/cosmos-db/how-to-develop-emulator?tabs=docker-linux#export-the-emulators-tlsssl-certificate"></a>
+    /// For more information, see <a href="https://learn.microsoft.com/azure/cosmos-db/how-to-develop-emulator?tabs=docker-linux#export-the-emulators-tlsssl-certificate"></a>.
+    /// This version of the package defaults to the <inheritdoc cref="CosmosDBEmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="CosmosDBEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="CosmosDBEmulatorContainerImageTags.Image"/> container image.
     /// </remarks>
     public static IResourceBuilder<AzureCosmosDBResource> RunAsEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, Action<IResourceBuilder<AzureCosmosDBEmulatorResource>>? configureContainer = null)
     {
@@ -117,9 +118,9 @@ public static class AzureCosmosExtensions
         builder.WithEndpoint(name: "emulator", targetPort: 8081)
                .WithAnnotation(new ContainerImageAnnotation
                {
-                   Registry = "mcr.microsoft.com",
-                   Image = "cosmosdb/linux/azure-cosmos-emulator",
-                   Tag = "latest"
+                   Registry = CosmosDBEmulatorContainerImageTags.Registry,
+                   Image = CosmosDBEmulatorContainerImageTags.Image,
+                   Tag = CosmosDBEmulatorContainerImageTags.Tag
                });
 
         CosmosClient? cosmosClient = null;

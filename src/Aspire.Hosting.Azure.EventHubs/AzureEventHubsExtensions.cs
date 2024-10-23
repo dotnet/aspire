@@ -30,29 +30,31 @@ public static class AzureEventHubsExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = static (ResourceModuleConstruct construct) =>
+        var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
             var skuParameter = new ProvisioningParameter("sku", typeof(string))
             {
                 Value = new StringLiteral("Standard")
             };
-            construct.Add(skuParameter);
+            infrastructure.Add(skuParameter);
 
-            var eventHubsNamespace = new EventHubsNamespace(construct.Resource.GetBicepIdentifier())
+            var eventHubsNamespace = new EventHubsNamespace(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Sku = new EventHubsSku()
                 {
                     Name = skuParameter
                 },
-                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
             };
-            construct.Add(eventHubsNamespace);
+            infrastructure.Add(eventHubsNamespace);
 
-            construct.Add(eventHubsNamespace.CreateRoleAssignment(EventHubsBuiltInRole.AzureEventHubsDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(eventHubsNamespace.CreateRoleAssignment(EventHubsBuiltInRole.AzureEventHubsDataOwner, principalTypeParameter, principalIdParameter));
 
-            construct.Add(new ProvisioningOutput("eventHubsEndpoint", typeof(string)) { Value = eventHubsNamespace.ServiceBusEndpoint });
+            infrastructure.Add(new ProvisioningOutput("eventHubsEndpoint", typeof(string)) { Value = eventHubsNamespace.ServiceBusEndpoint });
 
-            var azureResource = (AzureEventHubsResource)construct.Resource;
+            var azureResource = (AzureEventHubsResource)infrastructure.AspireResource;
 
             foreach (var hub in azureResource.Hubs)
             {
@@ -61,11 +63,11 @@ public static class AzureEventHubsExtensions
                     Parent = eventHubsNamespace,
                     Name = hub
                 };
-                construct.Add(hubResource);
+                infrastructure.Add(hubResource);
             }
         };
 
-        var resource = new AzureEventHubsResource(name, configureConstruct);
+        var resource = new AzureEventHubsResource(name, configureInfrastructure);
         return builder.AddResource(resource)
                       // These ambient parameters are only available in development time.
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
@@ -76,6 +78,9 @@ public static class AzureEventHubsExtensions
     /// <summary>
     /// Adds an Azure Event Hubs hub resource to the application model. This resource requires an <see cref="AzureEventHubsResource"/> to be added to the application model.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="EventHubsEmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="EventHubsEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="EventHubsEmulatorContainerImageTags.Image"/> container image.
+    /// </remarks>
     /// <param name="builder">The Azure Event Hubs resource builder.</param>
     /// <param name="name">The name of the Event Hub.</param>
     public static IResourceBuilder<AzureEventHubsResource> AddEventHub(this IResourceBuilder<AzureEventHubsResource> builder, [ResourceName] string name)

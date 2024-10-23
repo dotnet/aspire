@@ -17,6 +17,7 @@ public class OtlpSpanEvent(OtlpSpan span) : IPropertyGridItem
     public required string Name { get; init; }
     public required DateTime Time { get; init; }
     public required KeyValuePair<string, string>[] Attributes { get; init; }
-    string? IPropertyGridItem.Name => DurationFormatter.FormatDuration(Time - span.StartTime);
+    string IPropertyGridItem.Name => DurationFormatter.FormatDuration(Time - span.StartTime);
+    object IPropertyGridItem.Key => InternalId;
     string? IPropertyGridItem.Value => Name;
 }

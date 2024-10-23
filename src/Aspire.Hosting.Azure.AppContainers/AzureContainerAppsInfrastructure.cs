@@ -1,13 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Expressions;
@@ -81,11 +79,11 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
         {
             var context = await ProcessResourceAsync(resource, executionContext, cancellationToken).ConfigureAwait(false);
 
-            var construct = new AzureConstructResource(resource.Name, context.BuildContainerApp);
+            var provisioningResource = new AzureProvisioningResource(resource.Name, context.BuildContainerApp);
 
-            construct.Annotations.Add(new ManifestPublishingCallbackAnnotation(c => context.WriteToManifest(c, construct)));
+            provisioningResource.Annotations.Add(new ManifestPublishingCallbackAnnotation(provisioningResource.WriteToManifest));
 
-            return construct;
+            return provisioningResource;
         }
 
         private async Task<ContainerAppContext> ProcessResourceAsync(IResource resource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
@@ -132,36 +130,13 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
             public Dictionary<string, KeyVaultService> KeyVaultRefs { get; } = [];
             public Dictionary<string, KeyVaultSecret> KeyVaultSecretRefs { get; } = [];
 
-            public void WriteToManifest(ManifestPublishingContext context, AzureConstructResource construct)
-            {
-                // Assert that the construct has no parameters
-                Debug.Assert(construct.Parameters.Count == 0);
-
-                construct.WriteToManifest(context);
-
-                // We're handling custom resource writing here instead of in the AzureConstructResource
-                // this is because we're tracking the ProvisioningParameter instances as we process the resource
-                if (Parameters.Count > 0)
-                {
-                    context.Writer.WriteStartObject("params");
-                    foreach (var (key, value) in Parameters)
-                    {
-                        context.Writer.WriteString(key, value.ValueExpression);
-
-                        context.TryAddDependentResources(value);
-                    }
-
-                    context.Writer.WriteEndObject();
-                }
-            }
-
-            public void BuildContainerApp(ResourceModuleConstruct c)
+            public void BuildContainerApp(AzureResourceInfrastructure c)
             {
                 var containerAppIdParam = AllocateParameter(_containerAppEnvironmentContext.ContainerAppEnvironmentId);
 
                 ProvisioningParameter? containerImageParam = null;
 
-                if (!resource.TryGetContainerImageName(out var containerImageName))
+                if (!TryGetContainerImageName(resource, out var containerImageName))
                 {
                     AllocateContainerRegistryParameters();
 
@@ -215,7 +190,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                     containerAppContainer.VolumeMounts.Add(mountedVolume);
                 }
 
-                // Add parameters to the construct
+                // Add parameters to the provisioningResource
                 foreach (var (_, parameter) in _provisioningParameters)
                 {
                     c.Add(parameter);
@@ -234,13 +209,32 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
 
                 c.Add(containerAppResource);
 
-                if (resource.TryGetAnnotationsOfType<ContainerAppCustomizationAnnotation>(out var annotations))
+                // Write the parameters we generated to the construct so they are included in the manifest
+                foreach (var (key, value) in Parameters)
+                {
+                    c.AspireResource.Parameters[key] = value;
+                }
+
+                if (resource.TryGetAnnotationsOfType<AzureContainerAppCustomizationAnnotation>(out var annotations))
                 {
                     foreach (var a in annotations)
                     {
                         a.Configure(c, containerAppResource);
                     }
                 }
+            }
+
+            private static bool TryGetContainerImageName(IResource resource, out string? containerImageName)
+            {
+                // If the resource has a Dockerfile build annotation, we don't have the image name
+                // it will come as a parameter
+                if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _))
+                {
+                    containerImageName = null;
+                    return false;
+                }
+
+                return resource.TryGetContainerImageName(out containerImageName);
             }
 
             public async Task ProcessResourceAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
@@ -745,10 +739,10 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
             }
 
             private ProvisioningParameter AllocateContainerImageParameter()
-                => AllocateParameter(ProjectResourceExpression.GetContainerImageExpression((ProjectResource)resource));
+                => AllocateParameter(ResourceExpression.GetContainerImageExpression(resource));
 
             private BicepValue<int> AllocateContainerPortParameter()
-                => AllocateParameter(ProjectResourceExpression.GetContainerPortExpression((ProjectResource)resource));
+                => AllocateParameter(ResourceExpression.GetContainerPortExpression(resource));
 
             private ProvisioningParameter AllocateManagedIdentityIdParameter()
                 => _managedIdentityIdParameter ??= AllocateParameter(_containerAppEnvironmentContext.ManagedIdentityId);
@@ -1005,15 +999,15 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
             new SecretOutputExpression(resource);
     }
 
-    private sealed class ProjectResourceExpression(ProjectResource projectResource, string propertyExpression) : IManifestExpressionProvider
+    private sealed class ResourceExpression(IResource resource, string propertyExpression) : IManifestExpressionProvider
     {
-        public string ValueExpression => $"{{{projectResource.Name}.{propertyExpression}}}";
+        public string ValueExpression => $"{{{resource.Name}.{propertyExpression}}}";
 
-        public static IManifestExpressionProvider GetContainerImageExpression(ProjectResource p) =>
-            new ProjectResourceExpression(p, "containerImage");
+        public static IManifestExpressionProvider GetContainerImageExpression(IResource p) =>
+            new ResourceExpression(p, "containerImage");
 
-        public static IManifestExpressionProvider GetContainerPortExpression(ProjectResource p) =>
-            new ProjectResourceExpression(p, "containerPort");
+        public static IManifestExpressionProvider GetContainerPortExpression(IResource p) =>
+            new ResourceExpression(p, "containerPort");
     }
 
     /// <summary>

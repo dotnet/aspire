@@ -19,7 +19,7 @@ namespace Aspire.Hosting;
 public static class RedisBuilderExtensions
 {
     /// <summary>
-    /// Adds a Redis container to the application model. This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.Tag"/> tag of the <inheritdoc cref="RedisContainerImageTags.Image"/> container image.
+    /// Adds a Redis container to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -32,6 +32,7 @@ public static class RedisBuilderExtensions
     /// extension method then the dependent resource will wait until the Redis resource is able to service
     /// requests.
     /// </para>
+    /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.Tag"/> tag of the <inheritdoc cref="RedisContainerImageTags.Image"/> container image.
     /// </remarks>
     public static IResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, [ResourceName] string name, int? port = null)
     {
@@ -63,8 +64,10 @@ public static class RedisBuilderExtensions
 
     /// <summary>
     /// Configures a container resource for Redis Commander which is pre-configured to connect to the <see cref="RedisResource"/> that this method is used on.
-    /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.RedisCommanderTag"/> tag of the <inheritdoc cref="RedisContainerImageTags.RedisCommanderImage"/> container image.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.RedisCommanderTag"/> tag of the <inheritdoc cref="RedisContainerImageTags.RedisCommanderImage"/> container image.
+    /// </remarks>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the <see cref="RedisResource"/>.</param>
     /// <param name="configureContainer">Configuration callback for Redis Commander container resource.</param>
     /// <param name="containerName">Override the container name used for Redis Commander.</param>
@@ -126,8 +129,10 @@ public static class RedisBuilderExtensions
 
     /// <summary>
     /// Configures a container resource for Redis Insight which is pre-configured to connect to the <see cref="RedisResource"/> that this method is used on.
-    /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.RedisInsightTag"/> tag of the <inheritdoc cref="RedisContainerImageTags.RedisInsightImage"/> container image.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.RedisInsightTag"/> tag of the <inheritdoc cref="RedisContainerImageTags.RedisInsightImage"/> container image.
+    /// </remarks>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the <see cref="RedisResource"/>.</param>
     /// <param name="configureContainer">Configuration callback for Redis Insight container resource.</param>
     /// <param name="containerName">Override the container name used for Redis Insight.</param>
@@ -153,7 +158,16 @@ public static class RedisBuilderExtensions
                                       .WithHttpEndpoint(targetPort: 5540, name: "http")
                                       .ExcludeFromManifest();
 
-            builder.ApplicationBuilder.Eventing.Subscribe<AfterResourcesCreatedEvent>(async (e, ct) =>
+            // We need to wait for all endpoints to be allocated before attempting to import databases
+            var endpointsAllocatedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+            {
+                endpointsAllocatedTcs.TrySetResult();
+                return Task.CompletedTask;
+            });
+
+            builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(resource, async (e, ct) =>
             {
                 var redisInstances = builder.ApplicationBuilder.Resources.OfType<RedisResource>();
 
@@ -162,6 +176,9 @@ public static class RedisBuilderExtensions
                     // No-op if there are no Redis resources present.
                     return;
                 }
+
+                // Wait for all endpoints to be allocated before attempting to import databases
+                await endpointsAllocatedTcs.Task.ConfigureAwait(false);
 
                 var redisInsightResource = builder.ApplicationBuilder.Resources.OfType<RedisInsightResource>().Single();
                 var insightEndpoint = redisInsightResource.PrimaryEndpoint;

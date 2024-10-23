@@ -17,6 +17,11 @@
         <target state="new">Structured logs</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceActionTelemetryTooltip">
+        <source>No telemetry found for this resource.</source>
+        <target state="new">No telemetry found for this resource.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceActionTracesText">
         <source>Traces</source>
         <target state="new">Traces</target>
@@ -123,8 +128,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsHealthStateProperty">
-        <source>Health State</source>
-        <target state="translated">Stan kondycji</target>
+        <source>Health state</source>
+        <target state="needs-review-translation">Stan kondycji</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
@@ -220,7 +225,12 @@
       <trans-unit id="WaitingForHealthDataMessage">
         <source>Waiting for health data...</source>
         <target state="new">Waiting for health data...</target>
-        <note>A message shown in the UI as a placeholder to indicate that health checks are expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
+        <note>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
+      </trans-unit>
+      <trans-unit id="WaitingHealthDataStatusMessage">
+        <source>Waiting...</source>
+        <target state="new">Waiting...</target>
+        <note>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
       </trans-unit>
     </body>
   </file>

@@ -232,6 +232,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         // Data from the server.
         builder.Services.TryAddScoped<IDashboardClient, DashboardClient>();
+        builder.Services.TryAddSingleton<IDashboardClientStatus, DashboardClientStatus>();
 
         // OTLP services.
         builder.Services.AddGrpc();
@@ -248,7 +249,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         builder.Services.AddFluentUIComponents();
 
-        builder.Services.AddScoped<IEffectiveThemeResolver, BrowserEffectiveThemeResolver>();
+        builder.Services.AddScoped<IThemeResolver, BrowserThemeResolver>();
         builder.Services.AddScoped<ThemeManager>();
         // ShortcutManager is scoped because we want shortcuts to apply one browser window.
         builder.Services.AddScoped<ShortcutManager>();
@@ -340,7 +341,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             if (context.Request.Path.Equals(TargetLocationInterceptor.ResourcesPath, StringComparisons.UrlPath))
             {
-                var client = context.RequestServices.GetRequiredService<IDashboardClient>();
+                var client = context.RequestServices.GetRequiredService<IDashboardClientStatus>();
                 if (!client.IsEnabled)
                 {
                     context.Response.Redirect(TargetLocationInterceptor.StructuredLogsPath);

@@ -16,7 +16,10 @@ public static class ModelTestHelpers
         string? displayName = null,
         ImmutableArray<UrlViewModel>? urls = null,
         Dictionary<string, ResourcePropertyViewModel>? properties = null,
-        string? resourceType = null)
+        string? resourceType = null,
+        string? stateStyle = null,
+        HealthStatus? reportHealthStatus = null,
+        bool createNullHealthReport = false)
     {
         return new ResourceViewModel
         {
@@ -33,9 +36,8 @@ public static class ModelTestHelpers
             Properties = properties?.ToFrozenDictionary() ?? FrozenDictionary<string, ResourcePropertyViewModel>.Empty,
             State = state?.ToString(),
             KnownState = state,
-            StateStyle = null,
-            HealthStatus = HealthStatus.Healthy,
-            HealthReports = [],
+            StateStyle = stateStyle,
+            HealthReports = reportHealthStatus is null && !createNullHealthReport ? [] : [new HealthReportViewModel("healthcheck", reportHealthStatus, null, null)],
             Commands = []
         };
     }

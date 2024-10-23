@@ -19,12 +19,12 @@ public static class AzureSqlExtensions
     {
         builder.ApplicationBuilder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            CreateSqlServer(construct, builder.ApplicationBuilder, builder.Resource.Databases);
+            CreateSqlServer(infrastructure, builder.ApplicationBuilder, builder.Resource.Databases);
         };
 
-        var resource = new AzureSqlServerResource(builder.Resource, configureConstruct);
+        var resource = new AzureSqlServerResource(builder.Resource, configureInfrastructure);
         var azureSqlDatabase = builder.ApplicationBuilder.CreateResourceBuilder(resource);
         azureSqlDatabase.WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                         .WithParameter(AzureBicepResource.KnownParameters.PrincipalName)
@@ -79,17 +79,17 @@ public static class AzureSqlExtensions
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlServerResource}"/> builder.</returns>
-    public static IResourceBuilder<AzureSqlServerResource> AddAzureSqlServer(this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<AzureSqlServerResource> AddAzureSqlServer(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var azureResource = (AzureSqlServerResource)construct.Resource;
-            CreateSqlServer(construct, builder, azureResource.Databases);
+            var azureResource = (AzureSqlServerResource)infrastructure.AspireResource;
+            CreateSqlServer(infrastructure, builder, azureResource.Databases);
         };
 
-        var resource = new AzureSqlServerResource(name, configureConstruct);
+        var resource = new AzureSqlServerResource(name, configureInfrastructure);
         var azureSqlServer = builder.AddResource(resource)
             .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
             .WithParameter(AzureBicepResource.KnownParameters.PrincipalName)
@@ -112,7 +112,7 @@ public static class AzureSqlExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureSqlDatabaseResource> AddDatabase(this IResourceBuilder<AzureSqlServerResource> builder, string name, string? databaseName = null)
+    public static IResourceBuilder<AzureSqlDatabaseResource> AddDatabase(this IResourceBuilder<AzureSqlServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
@@ -207,28 +207,30 @@ public static class AzureSqlExtensions
     }
 
     private static void CreateSqlServer(
-        ResourceModuleConstruct construct,
+        AzureResourceInfrastructure infrastructure,
         IDistributedApplicationBuilder distributedApplicationBuilder,
         IReadOnlyDictionary<string, string> databases)
     {
-        var sqlServer = new SqlServer(construct.Resource.GetBicepIdentifier())
+        var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+        var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
+        var sqlServer = new SqlServer(infrastructure.AspireResource.GetBicepIdentifier())
         {
             Administrators = new ServerExternalAdministrator()
             {
                 AdministratorType = SqlAdministratorType.ActiveDirectory,
                 IsAzureADOnlyAuthenticationEnabled = true,
-                Sid = construct.PrincipalIdParameter,
-                Login = construct.PrincipalNameParameter,
+                Sid = principalIdParameter,
+                Login = principalNameParameter,
                 TenantId = BicepFunction.GetSubscription().TenantId
             },
             Version = "12.0",
             PublicNetworkAccess = ServerNetworkAccessFlag.Enabled,
             MinTlsVersion = SqlMinimalTlsVersion.Tls1_2,
-            Tags = { { "aspire-resource-name", construct.Resource.Name } }
+            Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
         };
-        construct.Add(sqlServer);
+        infrastructure.Add(sqlServer);
 
-        construct.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllAzureIps")
+        infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllAzureIps")
         {
             Parent = sqlServer,
             Name = "AllowAllAzureIps",
@@ -240,9 +242,10 @@ public static class AzureSqlExtensions
         {
             // When in run mode we inject the users identity and we need to specify
             // the principalType.
-            sqlServer.Administrators.Value!.PrincipalType = construct.PrincipalTypeParameter;
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            sqlServer.Administrators.Value!.PrincipalType = principalTypeParameter;
 
-            construct.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps")
+            infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps")
             {
                 Parent = sqlServer,
                 Name = "AllowAllIps",
@@ -260,9 +263,9 @@ public static class AzureSqlExtensions
                 Parent = sqlServer,
                 Name = databaseName
             };
-            construct.Add(sqlDatabase);
+            infrastructure.Add(sqlDatabase);
         }
 
-        construct.Add(new ProvisioningOutput("sqlServerFqdn", typeof(string)) { Value = sqlServer.FullyQualifiedDomainName });
+        infrastructure.Add(new ProvisioningOutput("sqlServerFqdn", typeof(string)) { Value = sqlServer.FullyQualifiedDomainName });
     }
 }
