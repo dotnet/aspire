@@ -8,9 +8,9 @@ namespace Aspire.Hosting.ApplicationModel;
 
 internal static class CommandsConfigurationExtensions
 {
-    internal const string StartType = "resource-start";
-    internal const string StopType = "resource-stop";
-    internal const string RestartType = "resource-restart";
+    internal const string StartCommandName = "resource-start";
+    internal const string StopCommandName = "resource-stop";
+    internal const string RestartCommandName = "resource-restart";
 
     internal static void AddLifeCycleCommands(this IResource resource)
     {
@@ -20,7 +20,7 @@ internal static class CommandsConfigurationExtensions
         }
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
-            type: StartType,
+            name: StartCommandName,
             displayName: "Start",
             executeCommand: async context =>
             {
@@ -52,7 +52,7 @@ internal static class CommandsConfigurationExtensions
             isHighlighted: true));
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
-            type: StopType,
+            name: StopCommandName,
             displayName: "Stop",
             executeCommand: async context =>
             {
@@ -84,7 +84,7 @@ internal static class CommandsConfigurationExtensions
             isHighlighted: true));
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
-            type: RestartType,
+            name: RestartCommandName,
             displayName: "Restart",
             executeCommand: async context =>
             {
@@ -115,6 +115,6 @@ internal static class CommandsConfigurationExtensions
         static bool IsStopped(string? state) => state is "Exited" or "Finished" or "FailedToStart";
         static bool IsStopping(string? state) => state is "Stopping";
         static bool IsStarting(string? state) => state is "Starting";
-        static bool IsWaiting(string? state) => state is "Waiting";
+        static bool IsWaiting(string? state) => state is "Waiting" or "RuntimeUnhealthy";
     }
 }

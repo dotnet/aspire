@@ -18,9 +18,6 @@ public partial class TraceActions : ComponentBase
     private AspireMenuButton? _menuButton;
 
     [Inject]
-    public required IStringLocalizer<Resources.StructuredLogs> Loc { get; set; }
-
-    [Inject]
     public required IStringLocalizer<Resources.ControlsStrings> ControlsLoc { get; set; }
 
     [Inject]

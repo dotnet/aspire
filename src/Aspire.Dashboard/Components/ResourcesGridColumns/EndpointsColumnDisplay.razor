@@ -1,7 +1,11 @@
 ﻿@using Aspire.Dashboard.Model
 @namespace Aspire.Dashboard.Components
 
-@if (DisplayedEndpoints.Count == 1)
+@if (DisplayedEndpoints.Count == 0)
+{
+    <span class="empty-data"></span>
+}
+else if (DisplayedEndpoints.Count == 1)
 {
     @WriteEndpoint(DisplayedEndpoints[0])
 }
@@ -12,16 +16,10 @@ else if (DisplayedEndpoints.Count > 1)
             @for (var i = 0; i < DisplayedEndpoints.Count; i++)
             {
                 var displayedEndpoint = DisplayedEndpoints[i];
-                var isLast = i == DisplayedEndpoints.Count - 1;
 
                  // Always display the first item by setting a fixed value.
-                <FluentOverflowItem Data="displayedEndpoint" Fixed="@((i == 0) ? OverflowItemFixed.Ellipsis : OverflowItemFixed.None)">
+                <FluentOverflowItem Data="displayedEndpoint" Fixed="@(i == 0 ? OverflowItemFixed.Ellipsis : OverflowItemFixed.None)">
                     @WriteEndpoint(displayedEndpoint)
-
-                    @if (!isLast)
-                    {
-                        <span>,</span>
-                    }
                 </FluentOverflowItem>
             }
         </ChildContent>
@@ -39,7 +37,7 @@ else if (DisplayedEndpoints.Count > 1)
             <div @onclick:stopPropagation="true">
                 <FluentPopover AnchorId="@overflow.IdMoreButton" @bind-Open="_popoverVisible" VerticalThreshold="200" AutoFocus="false">
                     <Header>
-                        @Loc[Resources.Columns.EndpointsColumnDisplayOverflowTitle]
+                        @Loc[nameof(Resources.Columns.EndpointsColumnDisplayOverflowTitle)]
                     </Header>
                     <Body>
                         <div class="endpoint-popup">

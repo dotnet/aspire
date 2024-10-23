@@ -9,9 +9,9 @@ namespace Aspire.Hosting.Azure;
 /// Represents an resource for Azure Postgres Flexible Server.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="configureConstruct">Callback to configure construct.</param>
-public class AzurePostgresFlexibleServerResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
-    AzureConstructResource(name, configureConstruct),
+/// <param name="configureInfrastructure">Callback to configure infrastructure.</param>
+public class AzurePostgresFlexibleServerResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
+    AzureProvisioningResource(name, configureInfrastructure),
     IResourceWithConnectionString
 {
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
@@ -35,7 +35,10 @@ public class AzurePostgresFlexibleServerResource(string name, Action<ResourceMod
     /// 
     /// This is set when RunAsContainer is called on the AzurePostgresFlexibleServerResource resource to create a local PostgreSQL container.
     /// </summary>
-    internal PostgresServerResource? InnerResource { get; set; }
+    internal PostgresServerResource? InnerResource { get; private set; }
+
+    /// <inheritdoc />
+    public override ResourceAnnotationCollection Annotations => InnerResource?.Annotations ?? base.Annotations;
 
     /// <summary>
     /// Gets or sets the parameter that contains the PostgreSQL server user name.
@@ -63,6 +66,17 @@ public class AzurePostgresFlexibleServerResource(string name, Action<ResourceMod
     internal void AddDatabase(string name, string databaseName)
     {
         _databases.TryAdd(name, databaseName);
+    }
+
+    internal void SetInnerResource(PostgresServerResource innerResource)
+    {
+        // Copy the annotations to the inner resource before making it the inner resource
+        foreach (var annotation in Annotations)
+        {
+            innerResource.Annotations.Add(annotation);
+        }
+
+        InnerResource = innerResource;
     }
 
     internal ReferenceExpression GetDatabaseConnectionString(string databaseResourceName, string databaseName)

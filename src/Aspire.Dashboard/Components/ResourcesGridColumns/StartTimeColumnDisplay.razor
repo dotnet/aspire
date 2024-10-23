@@ -8,6 +8,10 @@
     // Don't include milliseconds as resource server returned time stamp is second precision.
     @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, timeStamp)
 }
+else
+{
+    <span class="empty-data"></span>
+}
 
 @code {
     [Inject]

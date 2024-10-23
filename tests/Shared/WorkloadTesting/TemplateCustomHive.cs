@@ -9,14 +9,7 @@ public class TemplatesCustomHive
 {
     private static readonly string s_tmpDirSuffix = Guid.NewGuid().ToString()[..8];
 
-    public static TemplatesCustomHive With9_0_Net8 { get; } = new([TemplatePackageIdNames.AspireProjectTemplates_net8], "templates-with-9-net8");
-
-    public static TemplatesCustomHive With9_0_Net9 { get; } = new([TemplatePackageIdNames.AspireProjectTemplates], "templates-with-9-net9");
-    public static TemplatesCustomHive With9_0_Net9_And_Net8 => new(
-            [
-                TemplatePackageIdNames.AspireProjectTemplates,
-                TemplatePackageIdNames.AspireProjectTemplates_net8
-            ], "templates-with-9-net8-net9");
+    public static TemplatesCustomHive TemplatesHive { get; } = new([TemplatePackageIdNames.AspireProjectTemplates], "templates");
 
     private readonly string _stampFilePath;
     private readonly string _customHiveDirectory;
@@ -37,7 +30,6 @@ public class TemplatesCustomHive
                                         : Path.Combine(AppContext.BaseDirectory, "templates");
         _customHiveDirectory = Path.Combine(customHiveBaseDirectory, customHiveDirName);
         _stampFilePath = Path.Combine(_customHiveDirectory, ".stamp-installed");
-
     }
 
     public async Task EnsureInstalledAsync(BuildEnvironment buildEnvironment)
@@ -60,7 +52,7 @@ public class TemplatesCustomHive
         {
             // Installation exists, but check if any of the packages have been updated since
             var dirWriteTime = Directory.GetLastWriteTimeUtc(_customHiveDirectory);
-            installTemplates = packageIdAndPaths.Where(t => new FileInfo(t.id).LastWriteTimeUtc > dirWriteTime).Any();
+            installTemplates = packageIdAndPaths.Where(t => new FileInfo(t.path).LastWriteTimeUtc > dirWriteTime).Any();
         }
 
         if (!installTemplates)
@@ -90,7 +82,7 @@ public class TemplatesCustomHive
 
     public static string GetPackagePath(string builtNuGetsPath, string templatePackageId)
     {
-        var packageNameRegex = new Regex($@"{templatePackageId}\.\d+\.\d+\.\d+(-[A-z]*\.*\d*)?\.nupkg");
+        var packageNameRegex = new Regex($@"{templatePackageId}\.\d+\.\d+\.\d+(-[A-z\.\d]*\.*\d*)?\.nupkg");
         var packages = Directory.EnumerateFiles(builtNuGetsPath, $"{templatePackageId}*.nupkg")
                         .Where(p => packageNameRegex.IsMatch(Path.GetFileName(p)));
 
@@ -111,7 +103,9 @@ public class TemplatesCustomHive
         using var cmd = new ToolCommand(dotnet,
                                         new TestOutputWrapper(forceShowBuildOutput: true),
                                         label: "template install")
-                            .WithWorkingDirectory(Path.GetTempPath()); // avoid running from the repo
+                            .WithWorkingDirectory(BuildEnvironment.IsRunningOnCI
+                                ? Path.GetTempPath()
+                                : Path.Combine(BuildEnvironment.TempDir, "templates", "working")); // avoid running from the repo
 
         var res = await cmd.ExecuteAsync(installCmd);
         res.EnsureSuccessful();

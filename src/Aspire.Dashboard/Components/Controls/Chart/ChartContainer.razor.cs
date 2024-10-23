@@ -45,14 +45,16 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     public string? PreviousMeterName { get; set; }
     public string? PreviousInstrumentName { get; set; }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        await ThemeManager.EnsureInitializedAsync();
+
         // Update the graph every 200ms. This displays the latest data and moves time forward.
         _tickTimer = new PeriodicTimer(TimeSpan.FromSeconds(0.2));
         _tickTask = Task.Run(UpdateDataAsync);
         _themeChangedSubscription = ThemeManager.OnThemeChanged(async () =>
         {
-            _instrumentViewModel.Theme = ThemeManager.Theme;
+            _instrumentViewModel.Theme = ThemeManager.EffectiveTheme;
             await InvokeAsync(StateHasChanged);
         });
     }
@@ -208,8 +210,8 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                 {
                     var text = v switch
                     {
-                        null => Loc[ControlsStrings.LabelUnset],
-                        { Length: 0 } => Loc[ControlsStrings.LabelEmpty],
+                        null => Loc[nameof(ControlsStrings.LabelUnset)],
+                        { Length: 0 } => Loc[nameof(ControlsStrings.LabelEmpty)],
                         _ => v
                     };
                     return new DimensionValueViewModel

@@ -3,7 +3,6 @@
 
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dashboard;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Xunit;
 
 namespace Aspire.Hosting.Tests.Dashboard;
@@ -200,7 +199,6 @@ public class ResourcePublisherTests
             Urls = [],
             Volumes = [],
             Environment = [],
-            HealthStatus = HealthStatus.Healthy,
             HealthReports = [],
             Commands = []
         };

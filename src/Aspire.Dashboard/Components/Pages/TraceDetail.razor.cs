@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -53,12 +54,6 @@ public partial class TraceDetail : ComponentBase
 
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
-
-    [Inject]
-    public required DimensionManager DimensionManager { get; init; }
-
-    [CascadingParameter]
-    public required ViewportInformation ViewportInformation { get; set; }
 
     protected override void OnInitialized()
     {
@@ -267,7 +262,7 @@ public partial class TraceDetail : ComponentBase
 
     public SpanDetailsViewModel? SelectedSpan { get; set; }
 
-    private void OnToggleCollapse(SpanWaterfallViewModel viewModel)
+    private async Task OnToggleCollapse(SpanWaterfallViewModel viewModel)
     {
         // View model data is recreated if the trace updates.
         // Persist the collapsed state in a separate list.
@@ -281,6 +276,8 @@ public partial class TraceDetail : ComponentBase
             viewModel.IsCollapsed = true;
             _collapsedSpanIds.Add(viewModel.Span.SpanId);
         }
+
+        await _dataGrid.SafeRefreshDataAsync();
     }
 
     private async Task OnShowPropertiesAsync(SpanWaterfallViewModel viewModel, string? buttonId)
@@ -294,7 +291,7 @@ public partial class TraceDetail : ComponentBase
         else
         {
             var entryProperties = viewModel.Span.AllProperties()
-                .Select(kvp => new SpanPropertyViewModel { Name = kvp.Key, Value = kvp.Value })
+                .Select(f => new TelemetryPropertyViewModel { Name = f.DisplayName, Key = f.Key, Value = f.Value })
                 .ToList();
 
             var traceCache = new Dictionary<string, OtlpTrace>(StringComparer.Ordinal);
@@ -318,14 +315,9 @@ public partial class TraceDetail : ComponentBase
 
     private SpanLinkViewModel CreateLinkViewModel(string traceId, string spanId, KeyValuePair<string, string>[] attributes, Dictionary<string, OtlpTrace> traceCache)
     {
-        if (!traceCache.TryGetValue(traceId, out var trace))
-        {
-            trace = TelemetryRepository.GetTrace(traceId);
-            if (trace != null)
-            {
-                traceCache[traceId] = trace;
-            }
-        }
+        ref var trace = ref CollectionsMarshal.GetValueRefOrAddDefault(traceCache, traceId, out _);
+        // Adds to dictionary if not present.
+        trace ??= TelemetryRepository.GetTrace(traceId);
 
         var linkSpan = trace?.Spans.FirstOrDefault(s => s.SpanId == spanId);
 
