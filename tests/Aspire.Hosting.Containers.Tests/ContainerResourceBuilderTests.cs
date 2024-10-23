@@ -35,7 +35,7 @@ public class ContainerResourceBuilderTests
 
         container.WithImage("new-image");
         Assert.Equal("new-image", container.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Image);
-        Assert.Equal("latest", container.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Tag);
+        Assert.Null(container.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Tag);
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public class ContainerResourceBuilderTests
 
         container.WithImage("new-image");
         Assert.Equal("new-image", container.Resource.Annotations.OfType<ContainerImageAnnotation>().Last().Image);
-        Assert.Equal("latest", container.Resource.Annotations.OfType<ContainerImageAnnotation>().Last().Tag);
+        Assert.Null(container.Resource.Annotations.OfType<ContainerImageAnnotation>().Last().Tag);
     }
 
     [Fact]
@@ -105,8 +105,9 @@ public class ContainerResourceBuilderTests
     }
 
     [Theory]
-    [InlineData("redis", null, "redis", "latest", null)]
-    [InlineData("registry.io/library/rabbitmq", "registry.io", "library/rabbitmq", "latest", null)]
+    [InlineData("redis", null, "redis", null, null)]
+    [InlineData("redis:latest", null, "redis", "latest", null)]
+    [InlineData("registry.io/library/rabbitmq", "registry.io", "library/rabbitmq", null, null)]
     [InlineData("postgres:tag", null, "postgres", "tag", null)]
     [InlineData("kafka@sha256:01234567890abcdef01234567890abcdef01234567890abcdef01234567890ab", null, "kafka", null, "01234567890abcdef01234567890abcdef01234567890abcdef01234567890ab")]
     [InlineData("registry.io/image:tag", "registry.io", "image", "tag", null)]

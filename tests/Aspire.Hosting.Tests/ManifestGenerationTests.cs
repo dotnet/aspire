@@ -100,7 +100,7 @@ public class ManifestGenerationTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "image": "myprivateregistry.company.com/redis:latest"
+              "image": "myprivateregistry.company.com/redis"
             }
             """;
         Assert.Equal(expectedManifest, redisManifest.ToString());

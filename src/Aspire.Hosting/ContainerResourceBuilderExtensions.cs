@@ -188,11 +188,6 @@ public static class ContainerResourceBuilderExtensions
             imageAnnotation.Tag = tag;
         }
 
-        if (imageAnnotation.Tag is null && imageAnnotation.SHA256 is null)
-        {
-            imageAnnotation.Tag = "latest";
-        }
-
         return builder;
     }
 
@@ -358,8 +353,7 @@ public static class ContainerResourceBuilderExtensions
         var annotation = new DockerfileBuildAnnotation(fullyQualifiedContextPath, fullyQualifiedDockerfilePath, stage);
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
                       .WithImageRegistry(null!)
-                      .WithImage(imageName)
-                      .WithImageTag("latest");
+                      .WithImage(imageName);
     }
 
     /// <summary>

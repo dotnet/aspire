@@ -314,7 +314,7 @@ public class SchemaTests
               "resources": {
                 "mycontainer": {
                   "type": "container.v0",
-                  "image": "myimage:latest"
+                  "image": "myimage"
                 }
               }
             }
@@ -331,7 +331,7 @@ public class SchemaTests
               "resources": {
                 "mycontainer": {
                   "type": "container.v0",
-                  "image": "myimage:latest",
+                  "image": "myimage",
                   "build": {
                     "context": "relativepath",
                     "dockerfile": "relativepath/Dockerfile"
@@ -354,7 +354,7 @@ public class SchemaTests
               "resources": {
                 "mycontainer": {
                   "type": "container.v1",
-                  "image": "myimage:latest",
+                  "image": "myimage",
                   "build": {
                     "context": "relativepath",
                     "dockerfile": "relativepath/Dockerfile"
@@ -441,7 +441,7 @@ public class SchemaTests
               "resources": {
                 "mycontainer": {
                   "type": "container.v1",
-                  "image": "myimage:latest"
+                  "image": "myimage"
                 }
               }
             }
