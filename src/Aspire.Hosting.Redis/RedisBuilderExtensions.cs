@@ -131,7 +131,7 @@ public static class RedisBuilderExtensions
     /// Configures a container resource for Redis Insight which is pre-configured to connect to the <see cref="RedisResource"/> that this method is used on.
     /// </summary>
     /// <remarks>
-    /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.RedisInsightTag"/> tag of the <inheritdoc cref="RedisContaineAddrImageTags.RedisInsightImage"/> container image.
+    /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.RedisInsightTag"/> tag of the <inheritdoc cref="RedisContainerImageTags.RedisInsightImage"/> container image.
     /// </remarks>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the <see cref="RedisResource"/>.</param>
     /// <param name="configureContainer">Configuration callback for Redis Insight container resource.</param>
