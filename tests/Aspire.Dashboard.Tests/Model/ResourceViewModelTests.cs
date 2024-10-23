@@ -17,6 +17,8 @@ public sealed class ResourceViewModelTests
 
     [Theory]
     [InlineData(KnownResourceState.Starting, null, null)]
+    [InlineData(KnownResourceState.Stopping, null, null)]
+    [InlineData(KnownResourceState.RuntimeUnhealthy, null, null)]
     [InlineData(KnownResourceState.Starting, null, new string[]{})]
     [InlineData(KnownResourceState.Starting, null, new string?[]{null})]
     // we don't have a Running + HealthReports null case because that's not a valid state - by this point, we will have received the list of HealthReports
