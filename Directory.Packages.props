@@ -126,7 +126,7 @@
     <PackageVersion Include="MySqlConnector.DependencyInjection" Version="2.3.6" />
     <PackageVersion Include="MySqlConnector.Logging.Microsoft.Extensions.Logging" Version="2.1.0" />
     <PackageVersion Include="NATS.Net" Version="2.4.0" />
-    <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.4" />
+    <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.5" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(NpgsqlEntityFrameworkCorePostgreSQLPackageVersion)" />
     <PackageVersion Include="OpenAI" Version="2.0.0" />
     <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.23.50" />
@@ -140,7 +140,7 @@
     <PackageVersion Include="System.IO.Hashing" Version="8.0.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.2.0" />
     <!-- Open Telemetry -->
-    <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.4" />
+    <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.5" />
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.9.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.9.0" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.9.0" />
