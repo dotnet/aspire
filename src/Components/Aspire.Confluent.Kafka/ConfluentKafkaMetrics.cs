@@ -27,9 +27,9 @@ internal sealed class ConfluentKafkaMetrics
     {
         _meter = meterFactory.Create(ConfluentKafkaCommon.MeterName);
 
-        _meter.CreateObservableGauge(Gauges.ReplyQueue, GetReplyQMeasurements, Descriptions.ReplyQueue);
-        _meter.CreateObservableGauge(Gauges.MessageCount, GetMessageCountMeasurements, Descriptions.MessageCount);
-        _meter.CreateObservableGauge(Gauges.MessageSize, GetMessageSizeMeasurements, Descriptions.MessageSize);
+        _meter.CreateObservableGauge(Gauges.ReplyQueue, GetReplyQMeasurements, description: Descriptions.ReplyQueue);
+        _meter.CreateObservableGauge(Gauges.MessageCount, GetMessageCountMeasurements, description: Descriptions.MessageCount);
+        _meter.CreateObservableGauge(Gauges.MessageSize, GetMessageSizeMeasurements, description: Descriptions.MessageSize);
 
         Tx = _meter.CreateCounter<long>(Counters.Tx, Descriptions.Tx);
         TxBytes = _meter.CreateCounter<long>(Counters.TxBytes, Descriptions.TxBytes);
