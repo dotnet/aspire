@@ -1,7 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.DependencyInjection;
+
 var builder = DistributedApplication.CreateBuilder(args);
+builder.Services.AddHttpClient();
 
 for (var i = 0; i < 10; i++)
 {
@@ -27,11 +30,18 @@ serviceBuilder.WithCommand(
     iconName: "CloudDatabase",
     isHighlighted: true);
 
-for (var i = 0; i < 30; i++)
+serviceBuilder.WithHttpEndpoint(5180, name: $"http");
+for (var i = 1; i <= 30; i++)
 {
     var port = 5180 + i;
     serviceBuilder.WithHttpEndpoint(port, name: $"http-{port}");
 }
+
+serviceBuilder.WithHttpCommand("/write-console", "Write to console", method: HttpMethod.Get);
+serviceBuilder.WithHttpCommand("/increment-counter", "Increment counter", method: HttpMethod.Get);
+serviceBuilder.WithHttpCommand("/big-trace", "Big trace", method: HttpMethod.Get);
+serviceBuilder.WithHttpCommand("/trace-limit", "Trace limit", method: HttpMethod.Get);
+serviceBuilder.WithHttpCommand("/log-message", "Log message", method: HttpMethod.Get);
 
 builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice");
 
