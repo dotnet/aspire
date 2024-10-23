@@ -1,5 +1,13 @@
 #nullable enable
 Aspire.Hosting.ApplicationModel.ContainerLifetime.Session = 0 -> Aspire.Hosting.ApplicationModel.ContainerLifetime
+Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.get -> Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus?
+Aspire.Hosting.ApplicationModel.DockerfileBuildAnnotation
+Aspire.Hosting.ApplicationModel.DockerfileBuildAnnotation.BuildArguments.get -> System.Collections.Generic.Dictionary<string!, object!>!
+Aspire.Hosting.ApplicationModel.DockerfileBuildAnnotation.BuildSecrets.get -> System.Collections.Generic.Dictionary<string!, object!>!
+Aspire.Hosting.ApplicationModel.DockerfileBuildAnnotation.ContextPath.get -> string!
+Aspire.Hosting.ApplicationModel.DockerfileBuildAnnotation.DockerfileBuildAnnotation(string! contextPath, string! dockerfilePath, string? stage) -> void
+Aspire.Hosting.ApplicationModel.DockerfileBuildAnnotation.DockerfilePath.get -> string!
+Aspire.Hosting.ApplicationModel.DockerfileBuildAnnotation.Stage.get -> string?
 Aspire.Hosting.ApplicationModel.EndpointNameAttribute
 Aspire.Hosting.ApplicationModel.EndpointNameAttribute.EndpointNameAttribute() -> void
 Aspire.Hosting.ApplicationModel.HealthReportSnapshot
@@ -46,7 +54,6 @@ Aspire.Hosting.ApplicationModel.ContainerNameAnnotation.Name.get -> string!
 Aspire.Hosting.ApplicationModel.ContainerNameAnnotation.Name.set -> void
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Commands.get -> System.Collections.Immutable.ImmutableArray<Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot!>
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Commands.init -> void
-Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.get -> Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus?
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.init -> void
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthReports.get -> System.Collections.Immutable.ImmutableArray<Aspire.Hosting.ApplicationModel.HealthReportSnapshot!>
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthReports.init -> void
