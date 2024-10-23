@@ -20,9 +20,9 @@
             {
                 <FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />
             }
-            else
+            else if (_formattedValue != null)
             {
-                @((MarkupString)(_formattedValue ?? string.Empty))
+                @((MarkupString)_formattedValue)
             }
             @ContentAfterValue
         </span>

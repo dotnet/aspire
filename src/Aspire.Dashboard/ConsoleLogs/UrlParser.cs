@@ -75,6 +75,8 @@ public static partial class UrlParser
     // https?://                      - http:// or https://
     // [-A-Za-z0-9+&@#/%?=~_|$!:,.;]* - Any character in the list, matched zero or more times.
     // [A-Za-z0-9+&@#/%=~_|$]         - Any character in the list, matched exactly once
-    [GeneratedRegex("(?<=m|\\b)https?://[-A-Za-z0-9+&@#/%?=~_|$!:,.;]*[A-Za-z0-9+&@#/%=~_|$]")]
+    [GeneratedRegex(
+        "(?<=m|\\b)https?://[-A-Za-z0-9+&@#/%?=~_|$!:,.;]*[A-Za-z0-9+&@#/%=~_|$]",
+        RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     public static partial Regex GenerateUrlRegEx();
 }
