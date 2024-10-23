@@ -76,6 +76,8 @@ public class UrlParserTests
     // thequickhttp://localhost:80#brownfox
     // mhttp://localhost:80#brownfox
     // httphttp://localhost:80#brownfox
+    // http://WWW.localhost:80#brownfox
+    // HTTP://www.localhost:80#brownfox
     [Theory]
     [InlineData("http://www.localhost:8080")]
     [InlineData("HTTP://WWW.LOCALHOST:8080")]
