@@ -20,6 +20,11 @@ var blobs = builder.AddAzureStorage("storage")
                    .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent))
                    .AddBlobs("blobs");
 
+// Testing docker files
+
+builder.AddDockerfile("pythonapp", "AppWithDocker");
+
+// Testing projects
 builder.AddProject<Projects.AzureContainerApps_ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithReference(blobs)

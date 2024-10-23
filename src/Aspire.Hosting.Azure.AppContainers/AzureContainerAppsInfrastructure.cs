@@ -136,7 +136,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
 
                 ProvisioningParameter? containerImageParam = null;
 
-                if (!resource.TryGetContainerImageName(out var containerImageName))
+                if (!TryGetContainerImageName(resource, out var containerImageName))
                 {
                     AllocateContainerRegistryParameters();
 
@@ -222,6 +222,19 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                         a.Configure(c, containerAppResource);
                     }
                 }
+            }
+
+            private static bool TryGetContainerImageName(IResource resource, out string? containerImageName)
+            {
+                // If the resource has a Dockerfile build annotation, we don't have the image name
+                // it will come as a parameter
+                if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _))
+                {
+                    containerImageName = null;
+                    return false;
+                }
+
+                return resource.TryGetContainerImageName(out containerImageName);
             }
 
             public async Task ProcessResourceAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
@@ -726,10 +739,10 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
             }
 
             private ProvisioningParameter AllocateContainerImageParameter()
-                => AllocateParameter(ProjectResourceExpression.GetContainerImageExpression((ProjectResource)resource));
+                => AllocateParameter(ResourceExpression.GetContainerImageExpression(resource));
 
             private BicepValue<int> AllocateContainerPortParameter()
-                => AllocateParameter(ProjectResourceExpression.GetContainerPortExpression((ProjectResource)resource));
+                => AllocateParameter(ResourceExpression.GetContainerPortExpression(resource));
 
             private ProvisioningParameter AllocateManagedIdentityIdParameter()
                 => _managedIdentityIdParameter ??= AllocateParameter(_containerAppEnvironmentContext.ManagedIdentityId);
@@ -986,15 +999,15 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
             new SecretOutputExpression(resource);
     }
 
-    private sealed class ProjectResourceExpression(ProjectResource projectResource, string propertyExpression) : IManifestExpressionProvider
+    private sealed class ResourceExpression(IResource resource, string propertyExpression) : IManifestExpressionProvider
     {
-        public string ValueExpression => $"{{{projectResource.Name}.{propertyExpression}}}";
+        public string ValueExpression => $"{{{resource.Name}.{propertyExpression}}}";
 
-        public static IManifestExpressionProvider GetContainerImageExpression(ProjectResource p) =>
-            new ProjectResourceExpression(p, "containerImage");
+        public static IManifestExpressionProvider GetContainerImageExpression(IResource p) =>
+            new ResourceExpression(p, "containerImage");
 
-        public static IManifestExpressionProvider GetContainerPortExpression(ProjectResource p) =>
-            new ProjectResourceExpression(p, "containerPort");
+        public static IManifestExpressionProvider GetContainerPortExpression(IResource p) =>
+            new ResourceExpression(p, "containerPort");
     }
 
     /// <summary>
