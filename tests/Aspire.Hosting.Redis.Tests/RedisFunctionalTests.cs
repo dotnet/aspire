@@ -165,11 +165,11 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         using var client1 = app1.CreateHttpClient($"{redis1.Resource.Name}-insight", "http");
         var firstRunDatabases = await client1.GetFromJsonAsync<RedisInsightDatabaseModel[]>("/api/databases", cts.Token);
 
-        await app1.StopAsync(cts.Token);
-
         Assert.NotNull(firstRunDatabases);
         Assert.Single(firstRunDatabases);
         Assert.Equal($"{redis1.Resource.Name}", firstRunDatabases[0].Name);
+
+        await app1.StopAsync(cts.Token);
 
         using var builder2 = TestDistributedApplicationBuilder.Create(configure, testOutputHelper);
         builder2.Configuration[$"DcpPublisher:ResourceNameSuffix"] = randomResourceSuffix;
@@ -202,14 +202,12 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         using var client2 = app2.CreateHttpClient($"{redis2.Resource.Name}-insight", "http");
         var secondRunDatabases = await client2.GetFromJsonAsync<RedisInsightDatabaseModel[]>("/api/databases", cts.Token);
 
-        await app2.StopAsync(cts.Token);
-
         Assert.NotNull(secondRunDatabases);
         Assert.Single(secondRunDatabases);
         Assert.Equal($"{redis2.Resource.Name}", secondRunDatabases[0].Name);
         Assert.NotEqual(secondRunDatabases.Single().Id, firstRunDatabases.Single().Id);
 
-        // TODO: Make sure we don't leave the persistent container running around.
+        await app2.StopAsync(cts.Token);
     }
 
     [Fact]
