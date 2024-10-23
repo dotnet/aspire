@@ -24,4 +24,8 @@
     <ProjectReference Include="..\AzureContainerApps.ApiService\AzureContainerApps.ApiService.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="AppWithDocker\" />
+  </ItemGroup>
+
 </Project>
