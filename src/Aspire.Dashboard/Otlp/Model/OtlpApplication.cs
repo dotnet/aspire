@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
@@ -52,21 +53,20 @@ public class OtlpApplication
                     try
                     {
                         var instrumentKey = new OtlpInstrumentKey(sm.Scope.Name, metric.Name);
-                        if (!_instruments.TryGetValue(instrumentKey, out var instrument))
+                        ref var instrument = ref CollectionsMarshal.GetValueRefOrAddDefault(_instruments, instrumentKey, out _);
+                        // Adds to dictionary if not present.
+                        instrument ??= new OtlpInstrument
                         {
-                            _instruments.Add(instrumentKey, instrument = new OtlpInstrument
+                            Summary = new OtlpInstrumentSummary
                             {
-                                Summary = new OtlpInstrumentSummary
-                                {
-                                    Name = metric.Name,
-                                    Description = metric.Description,
-                                    Unit = metric.Unit,
-                                    Type = MapMetricType(metric.DataCase),
-                                    Parent = GetMeter(sm.Scope)
-                                },
-                                Context = Context
-                            });
-                        }
+                                Name = metric.Name,
+                                Description = metric.Description,
+                                Unit = metric.Unit,
+                                Type = MapMetricType(metric.DataCase),
+                                Parent = GetMeter(sm.Scope)
+                            },
+                            Context = Context
+                        };
 
                         instrument.AddMetrics(metric, ref tempAttributes);
                     }
@@ -97,10 +97,10 @@ public class OtlpApplication
 
     private OtlpMeter GetMeter(InstrumentationScope scope)
     {
-        if (!_meters.TryGetValue(scope.Name, out var meter))
-        {
-            _meters.Add(scope.Name, meter = new OtlpMeter(scope, Context));
-        }
+        ref var meter = ref CollectionsMarshal.GetValueRefOrAddDefault(_meters, scope.Name, out _);
+        // Adds to dictionary if not present.
+        meter ??= new OtlpMeter(scope, Context);
+
         return meter;
     }
 

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -314,14 +315,9 @@ public partial class TraceDetail : ComponentBase
 
     private SpanLinkViewModel CreateLinkViewModel(string traceId, string spanId, KeyValuePair<string, string>[] attributes, Dictionary<string, OtlpTrace> traceCache)
     {
-        if (!traceCache.TryGetValue(traceId, out var trace))
-        {
-            trace = TelemetryRepository.GetTrace(traceId);
-            if (trace != null)
-            {
-                traceCache[traceId] = trace;
-            }
-        }
+        ref var trace = ref CollectionsMarshal.GetValueRefOrAddDefault(traceCache, traceId, out _);
+        // Adds to dictionary if not present.
+        trace ??= TelemetryRepository.GetTrace(traceId);
 
         var linkSpan = trace?.Spans.FirstOrDefault(s => s.SpanId == spanId);
 
