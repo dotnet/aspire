@@ -122,6 +122,98 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    public async Task VerifyDatabasesAreNotDuplicatedForPersistentRedisInsightContainer()
+    {
+        var randomResourceSuffix = Random.Shared.Next(10000).ToString();
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+
+        var configure = (DistributedApplicationOptions options) =>
+        {
+            options.ContainerRegistryOverride = TestConstants.AspireTestContainerRegistry;
+        };
+
+        using var builder1 = TestDistributedApplicationBuilder.Create(configure, testOutputHelper);
+        builder1.Configuration[$"DcpPublisher:ResourceNameSuffix"] = randomResourceSuffix;
+
+        IResourceBuilder<RedisInsightResource>? redisInsightBuilder = null;
+        var redis1 = builder1.AddRedis("redisForInsightPersistence")
+                .WithRedisInsight(c =>
+                    {
+                        redisInsightBuilder = c;
+                        c.WithLifetime(ContainerLifetime.Persistent);
+                    });
+
+        // Wire up an additional event subcription to ResourceReadyEvent on the RedisInsightResource
+        // instance. This works because the ResourceReadyEvent fires non-blocking sequential so the
+        // wire-up that WithRedisInsight does is guaranteed to execute before this one does. So we then
+        // use this to block pulling the list of databases until we know they've been updated. This
+        // will repeated below for the second app.
+        Assert.NotNull(redisInsightBuilder);
+        var redisInsightsReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        builder1.Eventing.Subscribe<ResourceReadyEvent>(redisInsightBuilder.Resource, (evt, ct) =>
+        {
+            redisInsightsReady.TrySetResult();
+            return Task.CompletedTask;
+        });
+
+        using var app1 = builder1.Build();
+
+        await app1.StartAsync(cts.Token);
+
+        await redisInsightsReady.Task.WaitAsync(cts.Token);
+
+        using var client1 = app1.CreateHttpClient($"{redis1.Resource.Name}-insight", "http");
+        var firstRunDatabases = await client1.GetFromJsonAsync<RedisInsightDatabaseModel[]>("/api/databases", cts.Token);
+
+        await app1.StopAsync(cts.Token);
+
+        Assert.NotNull(firstRunDatabases);
+        Assert.Single(firstRunDatabases);
+        Assert.Equal($"{redis1.Resource.Name}", firstRunDatabases[0].Name);
+
+        using var builder2 = TestDistributedApplicationBuilder.Create(configure, testOutputHelper);
+        builder2.Configuration[$"DcpPublisher:ResourceNameSuffix"] = randomResourceSuffix;
+
+        var redis2 = builder2.AddRedis("redisForInsightPersistence")
+                .WithRedisInsight(c =>
+                {
+                    redisInsightBuilder = c;
+                    c.WithLifetime(ContainerLifetime.Persistent);
+                });
+
+        // Wire up an additional event subcription to ResourceReadyEvent on the RedisInsightResource
+        // instance. This works because the ResourceReadyEvent fires non-blocking sequential so the
+        // wire-up that WithRedisInsight does is guaranteed to execute before this one does. So we then
+        // use this to block pulling the list of databases until we know they've been updated. This
+        // will repeated below for the second app.
+        Assert.NotNull(redisInsightBuilder);
+        redisInsightsReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        builder2.Eventing.Subscribe<ResourceReadyEvent>(redisInsightBuilder.Resource, (evt, ct) =>
+        {
+            redisInsightsReady.TrySetResult();
+            return Task.CompletedTask;
+        });
+
+        using var app2 = builder2.Build();
+        await app2.StartAsync(cts.Token);
+
+        await redisInsightsReady.Task.WaitAsync(cts.Token);
+
+        using var client2 = app2.CreateHttpClient($"{redis2.Resource.Name}-insight", "http");
+        var secondRunDatabases = await client2.GetFromJsonAsync<RedisInsightDatabaseModel[]>("/api/databases", cts.Token);
+
+        await app2.StopAsync(cts.Token);
+
+        Assert.NotNull(secondRunDatabases);
+        Assert.Single(secondRunDatabases);
+        Assert.Equal($"{redis2.Resource.Name}", secondRunDatabases[0].Name);
+        Assert.NotEqual(secondRunDatabases.Single().Id, firstRunDatabases.Single().Id);
+
+        // TODO: Make sure we don't leave the persistent container running around.
+    }
+
+    [Fact]
+    [RequiresDocker]
     public async Task VerifyWithRedisInsightImportDatabases()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
