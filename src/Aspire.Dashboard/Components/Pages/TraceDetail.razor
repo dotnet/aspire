@@ -26,7 +26,7 @@
                     <h1>
                         <span>@GetResourceName(headerSpan.Source): @headerSpan.Name</span>
                         <span class="trace-id">@OtlpHelpers.ToShortenedId(trace.TraceId)</span>
-                    </h1>                    
+                    </h1>
                 </div>
             </PageTitleSection>
             <ToolbarSection>
@@ -77,7 +77,6 @@
                                             RowClass="@GetRowClass"
                                             GridTemplateColumns="@_manager.GetGridTemplateColumns()"
                                             ShowHover="true"
-                                            ItemKey="@(r => r.Span.SpanId)"
                                             OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, buttonId: null)))">
                                 <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" UseCustomHeaderTemplate="false" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailNameHeader)]">
                                     <div class="col-long-content" title="@context.GetTooltip(_applications)">
