@@ -15,6 +15,7 @@ using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 using Xunit;
 using Xunit.Abstractions;
+using Aspire.Hosting.Tests.Dcp;
 
 namespace Aspire.Hosting.Redis.Tests;
 
@@ -148,6 +149,8 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         // wire-up that WithRedisInsight does is guaranteed to execute before this one does. So we then
         // use this to block pulling the list of databases until we know they've been updated. This
         // will repeated below for the second app.
+        //
+        // Issue: https://github.com/dotnet/aspire/issues/6455
         Assert.NotNull(redisInsightBuilder);
         var redisInsightsReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         builder1.Eventing.Subscribe<ResourceReadyEvent>(redisInsightBuilder.Resource, (evt, ct) =>
@@ -199,13 +202,26 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await redisInsightsReady.Task.WaitAsync(cts.Token);
 
-        using var client2 = app2.CreateHttpClient($"{redis2.Resource.Name}-insight", "http");
+        using var client2 = app2.CreateHttpClient($"{redisInsightBuilder.Resource.Name}", "http");
         var secondRunDatabases = await client2.GetFromJsonAsync<RedisInsightDatabaseModel[]>("/api/databases", cts.Token);
 
         Assert.NotNull(secondRunDatabases);
         Assert.Single(secondRunDatabases);
         Assert.Equal($"{redis2.Resource.Name}", secondRunDatabases[0].Name);
         Assert.NotEqual(secondRunDatabases.Single().Id, firstRunDatabases.Single().Id);
+
+        // HACK: This is a workaround for the fact that ApplicationExecutor is not a public type. What I have
+        //       done here is I get the latest event from RNS for the insights instance which gives me the resource
+        //       name as known from a DCP perspective. I then use the ApplicationExecutorProxy (introduced with this
+        //       change to call the ApplicationExecutor stop method. The proxy is a public type with an internal
+        //       constructor inside the Aspire.Hosting.Tests package. This is a short term solution for 9.0 to
+        //       make sure that we have good test coverage for WithRedisInsight behavior, but we need a better
+        //       long term solution in 9.x for folks that will want to do things like execute commands against
+        //       resources to stop specific containers.
+        var rns = app2.Services.GetRequiredService<ResourceNotificationService>();
+        var latestEvent = await rns.WaitForResourceHealthyAsync(redisInsightBuilder.Resource.Name, cts.Token);
+        var executorProxy = app2.Services.GetRequiredService<ApplicationExecutorProxy>();
+        await executorProxy.StopResourceAsync(latestEvent.ResourceId, cts.Token);
 
         await app2.StopAsync(cts.Token);
     }
