@@ -65,18 +65,17 @@ public static partial class UrlParser
     }
 
     // Regular expression that detects http/https URLs in a log entry
-    // Based on the RegEx used in Windows Terminal for the same purpose, but limited
-    // to only http/https URLs
+    // Based on the RegEx used in Windows Terminal for the same purpose. Some modifications:
+    // - Can start at a non word boundary. This behavior is similar to how GitHub matches URLs in pretty printed code.
+    // - Limited to only http/https URLs.
+    // - Ignore case. That means it matches URLs starting with http and HTTP.
     //
     // Explanation:
-    // (?<=m|\\b)                     - Match must start at a word boundary (after whitespace or at the start of the text) or "m".
-    //                                  "m" is a trailing character of ANSI escape sequences.
-    //                                  Required because URLs are matched before processing ANSI escape sequences.
     // https?://                      - http:// or https://
     // [-A-Za-z0-9+&@#/%?=~_|$!:,.;]* - Any character in the list, matched zero or more times.
     // [A-Za-z0-9+&@#/%=~_|$]         - Any character in the list, matched exactly once
     [GeneratedRegex(
-        "(?<=m|\\b)https?://[-A-Za-z0-9+&@#/%?=~_|$!:,.;]*[A-Za-z0-9+&@#/%=~_|$]",
-        RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+        "https?://[-A-Za-z0-9+&@#/%?=~_|$!:,.;]*[A-Za-z0-9+&@#/%=~_|$]",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     public static partial Regex GenerateUrlRegEx();
 }

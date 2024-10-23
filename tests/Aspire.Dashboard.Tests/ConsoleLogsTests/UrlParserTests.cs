@@ -71,17 +71,11 @@ public class UrlParserTests
         Assert.Equal(expectedOutput, modifiedText);
     }
 
-    // thequickhttp://localhost:80brownfox
-    // thequickhttp://localhost:80 brownfox
-    // thequickhttp://localhost:80#brownfox
-    // mhttp://localhost:80#brownfox
-    // httphttp://localhost:80#brownfox
-    // http://WWW.localhost:80#brownfox
-    // HTTP://www.localhost:80#brownfox
     [Theory]
     [InlineData("http://www.localhost:8080")]
     [InlineData("HTTP://WWW.LOCALHOST:8080")]
     [InlineData("mhttp://www.localhost:8080")]
+    [InlineData("httphttp://www.localhost:8080")]
     [InlineData(" http://www.localhost:8080")]
     public void GenerateUrlRegEx_MatchUrlAfterContent(string content)
     {
