@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
@@ -161,8 +162,9 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             var otlpGrpcEndpointUrl = options.OtlpGrpcEndpointUrl;
             var otlpHttpEndpointUrl = options.OtlpHttpEndpointUrl;
 
-            var environment = options.AspNetCoreEnvironment;
+            var dashboardAuthMode = options.DashboardAuthMode;
             var browserToken = options.DashboardToken;
+            var environment = options.AspNetCoreEnvironment;
             var otlpApiKey = options.OtlpApiKey;
 
             var resourceServiceUrl = await dashboardEndpointProvider.GetResourceServiceUriAsync(context.CancellationToken).ConfigureAwait(false);
@@ -214,15 +216,55 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                 }
             }
 
-            // Configure frontend browser token
-            if (!string.IsNullOrEmpty(browserToken))
+            // Configure frontend auth
+            context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName] = dashboardAuthMode.ToString();
+
+            if (dashboardAuthMode == FrontendAuthMode.OpenIdConnect)
             {
-                context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName] = "BrowserToken";
-                context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendBrowserTokenName.EnvVarName] = browserToken;
+                if (options.OpenIdConnect != null)
+                {
+                    context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendOpenIdConnectNameClaimType.EnvVarName] = options.OpenIdConnect.NameClaimType;
+                    context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendOpenIdConnectUsernameClaimType.EnvVarName] = options.OpenIdConnect.UsernameClaimType;
+                    context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendOpenIdConnectRequiredClaimType.EnvVarName] = options.OpenIdConnect.RequiredClaimType;
+                    context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendOpenIdConnectRequiredClaimValue.EnvVarName] = options.OpenIdConnect.RequiredClaimValue;
+                }
+
+                if (options.OpenIdConnectOptions != null)
+                {
+                    var prefix = "AUTHENTICATION__SCHEMES__OPENIDCONNECT__";
+
+                    if (!string.IsNullOrWhiteSpace(options.OpenIdConnectOptions.Authority))
+                    {
+                        context.EnvironmentVariables[$"{prefix}AUTHORITY"] = options.OpenIdConnectOptions.Authority;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(options.OpenIdConnectOptions.ClientId))
+                    {
+                        context.EnvironmentVariables[$"{prefix}CLIENTID"] = options.OpenIdConnectOptions.ClientId;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(options.OpenIdConnectOptions.ClientSecret))
+                    {
+                        context.EnvironmentVariables[$"{prefix}CLIENTSECRET"] = options.OpenIdConnectOptions.ClientSecret;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(options.OpenIdConnectOptions.MetadataAddress))
+                    {
+                        context.EnvironmentVariables[$"{prefix}METADATAADDRESS"] = options.OpenIdConnectOptions.MetadataAddress;
+                    }
+
+                    var i = 0;
+                    foreach (var scope in options.OpenIdConnectOptions.Scope)
+                    {
+                        context.EnvironmentVariables[$"{prefix}SCOPE__{i}"] = scope;
+                        i++;
+                    }
+                }
             }
-            else
+            else if (dashboardAuthMode == FrontendAuthMode.BrowserToken && !string.IsNullOrEmpty(browserToken))
             {
-                context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName] = "Unsecured";
+                // Configure frontend browser token
+                context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendBrowserTokenName.EnvVarName] = browserToken;
             }
 
             // Configure resource service API key

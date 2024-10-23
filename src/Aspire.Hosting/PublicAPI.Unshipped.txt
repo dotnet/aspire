@@ -1,4 +1,20 @@
 #nullable enable
+Aspire.Dashboard.Configuration.FrontendAuthMode
+Aspire.Dashboard.Configuration.FrontendAuthMode.BrowserToken = 2 -> Aspire.Dashboard.Configuration.FrontendAuthMode
+Aspire.Dashboard.Configuration.FrontendAuthMode.OpenIdConnect = 1 -> Aspire.Dashboard.Configuration.FrontendAuthMode
+Aspire.Dashboard.Configuration.FrontendAuthMode.Unsecured = 0 -> Aspire.Dashboard.Configuration.FrontendAuthMode
+Aspire.Dashboard.Configuration.OpenIdConnectOptions
+Aspire.Dashboard.Configuration.OpenIdConnectOptions.GetNameClaimTypes() -> string![]!
+Aspire.Dashboard.Configuration.OpenIdConnectOptions.GetUsernameClaimTypes() -> string![]!
+Aspire.Dashboard.Configuration.OpenIdConnectOptions.NameClaimType.get -> string!
+Aspire.Dashboard.Configuration.OpenIdConnectOptions.NameClaimType.set -> void
+Aspire.Dashboard.Configuration.OpenIdConnectOptions.OpenIdConnectOptions() -> void
+Aspire.Dashboard.Configuration.OpenIdConnectOptions.RequiredClaimType.get -> string!
+Aspire.Dashboard.Configuration.OpenIdConnectOptions.RequiredClaimType.set -> void
+Aspire.Dashboard.Configuration.OpenIdConnectOptions.RequiredClaimValue.get -> string!
+Aspire.Dashboard.Configuration.OpenIdConnectOptions.RequiredClaimValue.set -> void
+Aspire.Dashboard.Configuration.OpenIdConnectOptions.UsernameClaimType.get -> string!
+Aspire.Dashboard.Configuration.OpenIdConnectOptions.UsernameClaimType.set -> void
 Aspire.Hosting.ApplicationModel.ContainerLifetime.Session = 0 -> Aspire.Hosting.ApplicationModel.ContainerLifetime
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.get -> Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus?
 Aspire.Hosting.ApplicationModel.DockerfileBuildAnnotation

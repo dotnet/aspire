@@ -20,6 +20,10 @@ internal static class DashboardConfigNames
     public static readonly ConfigName DashboardOtlpCorsAllowedHeadersKeyName = new("Dashboard:Otlp:Cors:AllowedHeaders", "DASHBOARD__OTLP__CORS__ALLOWEDHEADERS");
     public static readonly ConfigName DashboardOtlpAllowedCertificatesName = new("Dashboard:Otlp:AllowedCertificates", "DASHBOARD__OTLP__ALLOWEDCERTIFICATES");
     public static readonly ConfigName DashboardFrontendAuthModeName = new("Dashboard:Frontend:AuthMode", "DASHBOARD__FRONTEND__AUTHMODE");
+    public static readonly ConfigName DashboardFrontendOpenIdConnectNameClaimType = new("Dashboard:Frontend:OpenIdConnect:NameClaimType", "DASHBOARD__FRONTEND__OPENIDCONNECT__NAMECLAIMTYPE");
+    public static readonly ConfigName DashboardFrontendOpenIdConnectUsernameClaimType = new("Dashboard:Frontend:OpenIdConnect:UsernameClaimType", "DASHBOARD__FRONTEND__OPENIDCONNECT__USERNAMECLAIMTYPE");
+    public static readonly ConfigName DashboardFrontendOpenIdConnectRequiredClaimType = new("Dashboard:Frontend:OpenIdConnect:RequiredClaimType", "DASHBOARD__FRONTEND__OPENIDCONNECT__REQUIREDCLAIMTYPE");
+    public static readonly ConfigName DashboardFrontendOpenIdConnectRequiredClaimValue = new("Dashboard:Frontend:OpenIdConnect:RequiredClaimValue", "DASHBOARD__FRONTEND__OPENIDCONNECT__REQUIREDCLAIMVALUE");
     public static readonly ConfigName DashboardFrontendBrowserTokenName = new("Dashboard:Frontend:BrowserToken", "DASHBOARD__FRONTEND__BROWSERTOKEN");
     public static readonly ConfigName DashboardFrontendMaxConsoleLogCountName = new("Dashboard:Frontend:MaxConsoleLogCount", "DASHBOARD__FRONTEND__MAXCONSOLELOGCOUNT");
     public static readonly ConfigName ResourceServiceClientAuthModeName = new("Dashboard:ResourceServiceClient:AuthMode", "DASHBOARD__RESOURCESERVICECLIENT__AUTHMODE");
