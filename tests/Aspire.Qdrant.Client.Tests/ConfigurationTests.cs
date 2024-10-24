@@ -9,4 +9,8 @@ public class ConfigurationTests
     [Fact]
     public void EndpointIsNullByDefault()
     => Assert.Null(new QdrantClientSettings().Endpoint);
+
+    [Fact]
+    public void HealthChecksEnabledByDefault() =>
+     Assert.False(new QdrantClientSettings().DisableHealthChecks);
 }
