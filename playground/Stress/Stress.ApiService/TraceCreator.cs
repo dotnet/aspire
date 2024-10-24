@@ -14,15 +14,16 @@ public class TraceCreator
 
     private readonly List<Activity> _allActivities = new List<Activity>();
 
-    public Activity? CreateActivity(string name, string? id)
+    public Activity? CreateActivity(string name, string? spandId)
     {
         var activity = s_activitySource.StartActivity(name, ActivityKind.Client);
         if (activity != null)
         {
-            if (id != null)
+            if (spandId != null)
             {
                 // Gross but it's the only way.
-                typeof(Activity).GetField("_id", BindingFlags.NonPublic | BindingFlags.NonPublic)!.SetValue(activity, id);
+                typeof(Activity).GetField("_spanId", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(activity, spandId);
+                typeof(Activity).GetField("_traceId", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(activity, activity.TraceId.ToString());
             }
         }
 
