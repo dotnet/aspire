@@ -37,5 +37,6 @@ internal static class Dcp
         Schema.Add<Service>(ServiceKind, "services");
         Schema.Add<Endpoint>(EndpointKind, "endpoints");
         Schema.Add<ExecutableReplicaSet>(ExecutableReplicaSetKind, "executablereplicasets");
+        Schema.Add<ContainerExec>(ContainerExecKind, "containerexecs");
     }
 }

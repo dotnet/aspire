@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.DependencyInjection;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 var db = builder.AddAzurePostgresFlexibleServer("pg")
@@ -8,6 +10,7 @@ var db = builder.AddAzurePostgresFlexibleServer("pg")
                 .RunAsContainer(c =>
                 {
                     c.WithPgAdmin();
+                    c.WithPgDumpCommands();
                 })
                 .AddDatabase("db");
 
@@ -35,3 +38,32 @@ builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard
 #endif
 
 builder.Build().Run();
+
+public static class PgDumpExtensions
+{
+    public static IResourceBuilder<PostgresServerResource> WithPgDumpCommands(this IResourceBuilder<PostgresServerResource> builder)
+    {
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((e, ct) =>
+        {
+            var executor = e.Services.GetRequiredService<ContainerCommandExecutor>();
+
+            var databases = e.Model.Resources.OfType<IResourceWithParent<PostgresServerResource>>().Where(r => r.Parent == builder.Resource).ToList();
+            foreach (var db in databases)
+            {
+                var dbBuilder = builder.ApplicationBuilder.CreateResourceBuilder(db);
+                dbBuilder.WithCommand(
+                    "pg-dump", // Just testing a command for now.
+                    "Backup",
+                    async (context) =>
+                    {
+                        await executor.ExecuteAsync(db.Parent, $"touch", ["/foo"], context.CancellationToken);
+                        return new ExecuteCommandResult { Success = true };
+                    });
+            }
+
+            return Task.CompletedTask;
+        });
+
+        return builder;
+    }
+}
