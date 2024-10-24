@@ -52,10 +52,10 @@ public class OtlpTrace
 
     public void AddSpan(OtlpSpan span)
     {
-        if (Spans.Any(s => s.SpanId == span.SpanId))
-        {
-            throw new InvalidOperationException($"Duplicate span id '{span.SpanId}' detected.");
-        }
+        //if (Spans.Any(s => s.SpanId == span.SpanId))
+        //{
+        //    throw new InvalidOperationException($"Duplicate span id '{span.SpanId}' detected.");
+        //}
 
         var added = false;
         for (var i = Spans.Count - 1; i >= 0; i--)

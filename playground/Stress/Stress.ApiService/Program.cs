@@ -210,4 +210,19 @@ Long line content: {LongLines}", xmlLarge, xmlWithComments, jsonLarge, jsonWithC
     return "Log with formatted data";
 });
 
+app.MapGet("/duplicate-spanid", async () =>
+{
+    var traceCreator = new TraceCreator();
+
+    var span1 = traceCreator.CreateActivity("Test 1", "customid");
+    await Task.Delay(1000);
+    span1?.Stop();
+
+    var span2 = traceCreator.CreateActivity("Test 2", "customid");
+    await Task.Delay(1000);
+    span2?.Stop();
+
+    return $"Created duplicate span IDs.";
+});
+
 app.Run();
