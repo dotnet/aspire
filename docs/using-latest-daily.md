@@ -28,6 +28,7 @@ If you use [Package Source Mapping](https://learn.microsoft.com/en-us/nuget/cons
   <packageSource key="dotnet9">
     <package pattern="Aspire.*" />
     <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
+    <package pattern="Microsoft.Extensions.Http.Resilience" />
   </packageSource>
 </packageSourceMapping>
 ```
