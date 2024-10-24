@@ -21,6 +21,22 @@ parameters:
     default: false
 
 steps:
+  - task: PowerShell@2
+    displayName: Setup Private Feeds Credentials
+    condition: eq(variables['Agent.OS'], 'Windows_NT')
+    inputs:
+      filePath: $(Build.SourcesDirectory)/eng/common/SetupNugetSources.ps1
+      arguments: -ConfigFile $(Build.SourcesDirectory)/NuGet.config -Password $Env:Token
+    env:
+      Token: $(dn-bot-dnceng-artifact-feeds-rw)
+  - task: Bash@3
+    displayName: Setup Private Feeds Credentials
+    condition: ne(variables['Agent.OS'], 'Windows_NT')
+    inputs:
+      filePath: $(Build.SourcesDirectory)/eng/common/SetupNugetSources.sh
+      arguments: $(Build.SourcesDirectory)/NuGet.config $Token
+    env:
+      Token: $(dn-bot-dnceng-artifact-feeds-rw)
   # Internal pipeline: Build with pack+sign
   - ${{ if ne(parameters.runAsPublic, 'true') }}:
     - script: ${{ parameters.buildScript }}
