@@ -225,4 +225,16 @@ Null content: {NullContent}", xmlLarge, xmlWithComments, xmlWithUrl, jsonLarge, 
     return "Log with formatted data";
 });
 
+app.MapGet("/duplicate-spanid", async () =>
+{
+    var traceCreator = new TraceCreator();
+    var span1 = traceCreator.CreateActivity("Test 1", "0485b1947fe788bb");
+    await Task.Delay(1000);
+    span1?.Stop();
+    var span2 = traceCreator.CreateActivity("Test 2", "0485b1947fe788bb");
+    await Task.Delay(1000);
+    span2?.Stop();
+    return $"Created duplicate span IDs.";
+});
+
 app.Run();
