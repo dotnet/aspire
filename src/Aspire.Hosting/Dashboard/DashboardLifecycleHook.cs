@@ -229,32 +229,32 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                     context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendOpenIdConnectRequiredClaimValue.EnvVarName] = options.OpenIdConnect.RequiredClaimValue;
                 }
 
-                if (options.OpenIdConnectOptions != null)
+                if (options.OpenIdConnectSettings != null)
                 {
                     var prefix = "AUTHENTICATION__SCHEMES__OPENIDCONNECT__";
 
-                    if (!string.IsNullOrWhiteSpace(options.OpenIdConnectOptions.Authority))
+                    if (!string.IsNullOrWhiteSpace(options.OpenIdConnectSettings.Authority))
                     {
-                        context.EnvironmentVariables[$"{prefix}AUTHORITY"] = options.OpenIdConnectOptions.Authority;
+                        context.EnvironmentVariables[$"{prefix}AUTHORITY"] = options.OpenIdConnectSettings.Authority;
                     }
 
-                    if (!string.IsNullOrWhiteSpace(options.OpenIdConnectOptions.ClientId))
+                    if (!string.IsNullOrWhiteSpace(options.OpenIdConnectSettings.ClientId))
                     {
-                        context.EnvironmentVariables[$"{prefix}CLIENTID"] = options.OpenIdConnectOptions.ClientId;
+                        context.EnvironmentVariables[$"{prefix}CLIENTID"] = options.OpenIdConnectSettings.ClientId;
                     }
 
-                    if (!string.IsNullOrWhiteSpace(options.OpenIdConnectOptions.ClientSecret))
+                    if (!string.IsNullOrWhiteSpace(options.OpenIdConnectSettings.ClientSecret))
                     {
-                        context.EnvironmentVariables[$"{prefix}CLIENTSECRET"] = options.OpenIdConnectOptions.ClientSecret;
+                        context.EnvironmentVariables[$"{prefix}CLIENTSECRET"] = options.OpenIdConnectSettings.ClientSecret;
                     }
 
-                    if (!string.IsNullOrWhiteSpace(options.OpenIdConnectOptions.MetadataAddress))
+                    if (!string.IsNullOrWhiteSpace(options.OpenIdConnectSettings.MetadataAddress))
                     {
-                        context.EnvironmentVariables[$"{prefix}METADATAADDRESS"] = options.OpenIdConnectOptions.MetadataAddress;
+                        context.EnvironmentVariables[$"{prefix}METADATAADDRESS"] = options.OpenIdConnectSettings.MetadataAddress;
                     }
 
                     var i = 0;
-                    foreach (var scope in options.OpenIdConnectOptions.Scope)
+                    foreach (var scope in options.OpenIdConnectSettings.Scope)
                     {
                         context.EnvironmentVariables[$"{prefix}SCOPE__{i}"] = scope;
                         i++;

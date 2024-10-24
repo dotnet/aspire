@@ -15,11 +15,20 @@ internal class DashboardOptions
     public FrontendAuthMode DashboardAuthMode { get; set; }
     public string? DashboardToken { get; set; }
     public OpenIdConnectOptions? OpenIdConnect { get; set; } = new();
-    public Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectOptions? OpenIdConnectOptions { get; set; } = new();
+    public OpenIdConnectSettings? OpenIdConnectSettings { get; set; } = new();
     public string? OtlpGrpcEndpointUrl { get; set; }
     public string? OtlpHttpEndpointUrl { get; set; }
     public string? OtlpApiKey { get; set; }
     public string AspNetCoreEnvironment { get; set; } = "Production";
+}
+
+internal class OpenIdConnectSettings
+{
+    public string? Authority { get; set; }
+    public string? MetadataAddress { get; set; }
+    public string? ClientId { get; set; }
+    public string? ClientSecret { get; set; }
+    public ICollection<string> Scope { get; } = [];
 }
 
 internal class ConfigureDefaultDashboardOptions(IConfiguration configuration, IOptions<DcpOptions> dcpOptions) : IConfigureOptions<DashboardOptions>
@@ -36,7 +45,7 @@ internal class ConfigureDefaultDashboardOptions(IConfiguration configuration, IO
 
         options.DashboardToken = configuration["AppHost:BrowserToken"];
         configuration.Bind("Dashboard:Frontend:OpenIdConnect", options.OpenIdConnect);
-        configuration.Bind("Authentication:Schemes:OpenIdConnect", options.OpenIdConnectOptions);
+        configuration.Bind("Authentication:Schemes:OpenIdConnect", options.OpenIdConnectSettings);
         options.OtlpGrpcEndpointUrl = configuration[KnownConfigNames.DashboardOtlpGrpcEndpointUrl];
         options.OtlpHttpEndpointUrl = configuration[KnownConfigNames.DashboardOtlpHttpEndpointUrl];
         options.OtlpApiKey = configuration["AppHost:OtlpApiKey"];

@@ -46,7 +46,6 @@
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="KubernetesClient" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Polly.Core" />
     <PackageReference Include="JsonPatch.Net" />
