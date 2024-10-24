@@ -227,7 +227,24 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         // Publish the initial state of the resources that have a snapshot annotation.
         foreach (var resource in _model.Resources)
         {
-            await notificationService.PublishUpdateAsync(resource, s => s).ConfigureAwait(false);
+            await notificationService.PublishUpdateAsync(resource, s =>
+            {
+                return s with
+                {
+                    HealthReports = GetInitialHealthReports(resource)
+                };
+            }).ConfigureAwait(false);
+        }
+
+        static ImmutableArray<HealthReportSnapshot> GetInitialHealthReports(IResource resource)
+        {
+            if (!resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out var annotations))
+            {
+                return [];
+            }
+
+            var reports = annotations.Select(annotation => new HealthReportSnapshot(annotation.Key, null, null, null));
+            return [..reports];
         }
     }
 
