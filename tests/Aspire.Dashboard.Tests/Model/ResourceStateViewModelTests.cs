@@ -36,7 +36,7 @@ public class ResourceStateViewModelTests
         /* state */ KnownResourceState.Running, null, "Healthy", null,
         /* expected output */ "Running", "CheckmarkCircle", Color.Success, "Running")]
     [InlineData(
-        /* state */ KnownResourceState.Running, null, null, null,
+        /* state */ KnownResourceState.Running, null, "", null,
         /* expected output */ $"Localized:{nameof(Columns.RunningAndUnhealthyResourceStateToolTip)}", "CheckmarkCircleWarning", Color.Warning, "Running (Unhealthy)")]
     [InlineData(
         /* state */ KnownResourceState.Running, null, "Unhealthy", null,
@@ -61,7 +61,7 @@ public class ResourceStateViewModelTests
         string expectedText)
     {
         // Arrange
-        HealthStatus? healthStatus = healthStatusString is null ? null : Enum.Parse<HealthStatus>(healthStatusString);
+        HealthStatus? healthStatus = string.IsNullOrEmpty(healthStatusString) ? null : Enum.Parse<HealthStatus>(healthStatusString);
         var propertiesDictionary = new Dictionary<string, ResourcePropertyViewModel>();
         if (exitCode is not null)
         {
@@ -70,7 +70,8 @@ public class ResourceStateViewModelTests
 
         var resource = ModelTestHelpers.CreateResource(
             state: state,
-            healthStatus: healthStatus,
+            reportHealthStatus: healthStatus,
+            createNullHealthReport: healthStatusString == "",
             stateStyle: stateStyle,
             resourceType: ResourceType,
             properties: propertiesDictionary);

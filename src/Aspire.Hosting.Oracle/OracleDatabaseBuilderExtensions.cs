@@ -15,8 +15,11 @@ public static class OracleDatabaseBuilderExtensions
     private const string PasswordEnvVarName = "ORACLE_PWD";
 
     /// <summary>
-    /// Adds a Oracle Server resource to the application model. A container is used for local development. This version of the package defaults to the <inheritdoc cref="OracleContainerImageTags.Tag"/> tag of the <inheritdoc cref="OracleContainerImageTags.Registry"/>/<inheritdoc cref="OracleContainerImageTags.Image"/> container image.
+    /// Adds a Oracle Server resource to the application model. A container is used for local development.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="OracleContainerImageTags.Tag"/> tag of the <inheritdoc cref="OracleContainerImageTags.Registry"/>/<inheritdoc cref="OracleContainerImageTags.Image"/> container image.
+    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="password">The parameter used to provide the administrator password for the Oracle Server resource. If <see langword="null"/> a random password will be generated.</param>

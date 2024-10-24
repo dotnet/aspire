@@ -227,7 +227,24 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         // Publish the initial state of the resources that have a snapshot annotation.
         foreach (var resource in _model.Resources)
         {
-            await notificationService.PublishUpdateAsync(resource, s => s).ConfigureAwait(false);
+            await notificationService.PublishUpdateAsync(resource, s =>
+            {
+                return s with
+                {
+                    HealthReports = GetInitialHealthReports(resource)
+                };
+            }).ConfigureAwait(false);
+        }
+
+        static ImmutableArray<HealthReportSnapshot> GetInitialHealthReports(IResource resource)
+        {
+            if (!resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out var annotations))
+            {
+                return [];
+            }
+
+            var reports = annotations.Select(annotation => new HealthReportSnapshot(annotation.Key, null, null, null));
+            return [..reports];
         }
     }
 
@@ -2088,14 +2105,16 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             // Ensure resource is deleted. DeleteAsync returns before the resource is completely deleted so we must poll
             // to discover when it is safe to recreate the resource. This is required because the resources share the same name.
+            // Deleting a resource might take a while (more than 10 seconds), because DCP tries to gracefully shut it down first
+            // before resorting to more extreme measures.
             if (!resourceNotFound)
             {
                 var ensureDeleteRetryStrategy = new RetryStrategyOptions()
                 {
-                    BackoffType = DelayBackoffType.Linear,
-                    MaxDelay = TimeSpan.FromSeconds(0.5),
+                    BackoffType = DelayBackoffType.Exponential,
+                    Delay = TimeSpan.FromMilliseconds(200),
                     UseJitter = true,
-                    MaxRetryAttempts = 5,
+                    MaxRetryAttempts = 6, // Cumulative time for all attempts amounts to about 12 seconds
                     ShouldHandle = new PredicateBuilder().Handle<Exception>(),
                     OnRetry = (retry) =>
                     {
