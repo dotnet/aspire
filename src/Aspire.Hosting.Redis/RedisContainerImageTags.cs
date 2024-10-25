@@ -21,7 +21,7 @@ internal static class RedisContainerImageTags
     public const string RedisCommanderImage = "rediscommander/redis-commander";
 
     /// <summary>latest</summary>
-    public const string RedisCommanderTag = "latest";
+    public const string RedisCommanderTag = "latest"; // There isn't a better tag than 'latest' which is 3 years old.
 
     /// <summary>docker.io</summary>
     public const string RedisInsightRegistry = "docker.io";

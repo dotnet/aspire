@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
@@ -74,26 +75,30 @@ public class OtlpInstrument
 
         var comparableAttributes = tempAttributes.AsMemory(0, copyCount);
 
+        // Can't use CollectionsMarshal.GetValueRefOrAddDefault here because comparableAttributes is a view over mutable data.
+        // Need to add dimensions using durable attributes instance after scope is created.
         if (!Dimensions.TryGetValue(comparableAttributes, out var dimension))
         {
-            dimension = AddDimensionScope(comparableAttributes);
+            dimension = CreateDimensionScope(comparableAttributes);
+            Dimensions.Add(dimension.Attributes, dimension);
         }
         return dimension;
     }
 
-    private DimensionScope AddDimensionScope(Memory<KeyValuePair<string, string>> comparableAttributes)
+    private DimensionScope CreateDimensionScope(Memory<KeyValuePair<string, string>> comparableAttributes)
     {
         var isFirst = Dimensions.Count == 0;
         var durableAttributes = comparableAttributes.ToArray();
         var dimension = new DimensionScope(Context.Options.MaxMetricsCount, durableAttributes);
-        Dimensions.Add(durableAttributes, dimension);
 
         var keys = KnownAttributeValues.Keys.Union(durableAttributes.Select(a => a.Key)).Distinct();
         foreach (var key in keys)
         {
-            if (!KnownAttributeValues.TryGetValue(key, out var values))
+            ref var values = ref CollectionsMarshal.GetValueRefOrAddDefault(KnownAttributeValues, key, out _);
+            // Adds to dictionary if not present.
+            if (values == null)
             {
-                KnownAttributeValues.Add(key, values = new List<string?>());
+                values = new List<string?>();
 
                 // If the key is new and there are already dimensions, add an empty value because there are dimensions without this key.
                 if (!isFirst)

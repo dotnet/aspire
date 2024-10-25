@@ -79,8 +79,11 @@ public static class AzureStorageExtensions
     }
 
     /// <summary>
-    /// Configures an Azure Storage resource to be emulated using Azurite. This resource requires an <see cref="AzureStorageResource"/> to be added to the application model. This version of the package defaults to the <inheritdoc cref="StorageEmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="StorageEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="StorageEmulatorContainerImageTags.Image"/> container image.
+    /// Configures an Azure Storage resource to be emulated using Azurite. This resource requires an <see cref="AzureStorageResource"/> to be added to the application model.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="StorageEmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="StorageEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="StorageEmulatorContainerImageTags.Image"/> container image.
+    /// </remarks>
     /// <param name="builder">The Azure storage resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>

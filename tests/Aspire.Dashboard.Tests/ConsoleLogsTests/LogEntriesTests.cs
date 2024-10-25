@@ -233,4 +233,17 @@ public class LogEntriesTests
             l => Assert.Equal("2", l.Content),
             l => Assert.Equal("3", l.Content));
     }
+
+    [Fact]
+    public void CreateLogEntry_AnsiAndUrl_HasUrlAnchor()
+    {
+        // Arrange
+        var parser = new LogParser();
+
+        // Act
+        var entry = parser.CreateLogEntry("\x1b[36mhttps://www.example.com\u001b[0m", isErrorOutput: false);
+
+        // Assert
+        Assert.Equal("<span class=\"ansi-fg-cyan\"></span><a target=\"_blank\" href=\"https://www.example.com\">https://www.example.com</a>", entry.Content);
+    }
 }
