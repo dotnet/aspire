@@ -19,6 +19,26 @@ public sealed class AspireV8ResourceNamePropertyResolver : DynamicResourceNamePr
     public override BicepValue<string>? ResolveName(ProvisioningBuildOptions options, ProvisionableResource resource, ResourceNameRequirements requirements)
     {
         var suffix = GetUniqueSuffix(options, resource);
-        return BicepFunction.ToLower(BicepFunction.Take(BicepFunction.Interpolate($"{resource.BicepIdentifier}{suffix}"), 24));
+        var prefix = GetNamePrefix(resource);
+
+        return BicepFunction.ToLower(BicepFunction.Take(BicepFunction.Interpolate($"{prefix}{suffix}"), 24));
+    }
+
+    /// <summary>
+    /// Use the 'aspire-resource-name' tag to get the prefix for the resource name, if available.
+    /// </summary>
+    /// <remarks>
+    /// The BicepIdentifier has already had any dashes changed to underscores, which we don't want to use since .NET Aspire 8.x used the dashes.
+    /// </remarks>
+    private static string GetNamePrefix(ProvisionableResource resource)
+    {
+        BicepValue<string>? aspireResourceName = null;
+        if (resource.ProvisionableProperties.TryGetValue("Tags", out var tags) &&
+            tags is BicepDictionary<string> tagDictionary)
+        {
+            tagDictionary.TryGetValue("aspire-resource-name", out aspireResourceName);
+        }
+
+        return aspireResourceName?.Value ?? resource.BicepIdentifier;
     }
 }
