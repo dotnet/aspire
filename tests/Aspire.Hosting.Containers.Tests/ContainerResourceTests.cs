@@ -25,7 +25,7 @@ public class ContainerResourceTests
         var containerResource = Assert.Single(containerResources);
         Assert.Equal("container", containerResource.Name);
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Null(containerAnnotation.Tag);
         Assert.Equal("none", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }
@@ -86,7 +86,7 @@ public class ContainerResourceTests
         """
         {
           "type": "container.v0",
-          "image": "none:latest",
+          "image": "none",
           "args": [
             "arg1",
             "{c1.bindings.ep.url}",
@@ -116,7 +116,7 @@ public class ContainerResourceTests
             """
             {
               "type": "container.v0",
-              "image": "grafana/grafana:latest",
+              "image": "grafana/grafana",
               "bindings": {
                 "http": {
                   "scheme": "http",
@@ -150,7 +150,7 @@ public class ContainerResourceTests
             """
             {
               "type": "container.v0",
-              "image": "grafana/grafana:latest",
+              "image": "grafana/grafana",
               "entrypoint": "custom"
             }
             """;
@@ -196,7 +196,7 @@ public class ContainerResourceTests
         var expectedManifest = """
             {
               "type": "container.v0",
-              "image": "image/name:latest",
+              "image": "image/name",
               "volumes": [
                 {
                   "name": "myvolume",
@@ -245,7 +245,7 @@ public class ContainerResourceTests
         var expectedManifest = """
             {
               "type": "container.v0",
-              "image": "image/name:latest",
+              "image": "image/name",
               "bindMounts": [
                 {
                   "source": "some/source",
