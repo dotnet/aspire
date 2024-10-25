@@ -56,10 +56,12 @@
 				"ms-azuretools.azure-dev"
 			],
 			"settings": {
-				"remote.autoForwardPorts": false
+				"remote.autoForwardPorts": false,
+				"dotnet.defaultSolution": "Aspire.sln"
 			}
 		}
 	},
+	"postCreateCommand": "dotnet restore",
 	"postStartCommand": "dotnet dev-certs https --trust"
 
 	// Configure tool-specific properties.
