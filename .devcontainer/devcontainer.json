@@ -7,7 +7,12 @@
 	"features": {
 		"ghcr.io/devcontainers/features/azure-cli:1": {},
 		"ghcr.io/azure/azure-dev/azd:0": {},
-		"ghcr.io/devcontainers/features/docker-in-docker": {}
+		"ghcr.io/devcontainers/features/docker-in-docker": {},
+		"ghcr.io/devcontainers/features/dotnet": {
+			"additionalVersions": [
+				"8.0.403"
+			]
+		}
 	},
 
 	"containerEnv": {
@@ -18,12 +23,25 @@
 	// "features": {},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [5000, 5001],
-	// "portsAttributes": {
-	//		"5001": {
-	//			"protocol": "https"
-	//		}
-	// }
+	"forwardPorts": [
+		15887, // playground/waitfor/WaitForSandbox.AppHost
+		5180, // playground/waitfor/WaitForSandbox.ApiService
+		7024 // playground/waitfor/WaitFor.Frontend
+	],
+	"portsAttributes": {
+		"15887": {
+			"label": "WaitForSandbox.AppHost",
+			"protocol": "https"
+		},
+		"5180": {
+			"label": "WaitForSandbox.ApiService",
+			"protocol": "http"
+		},
+		"7024": {
+			"label": "WaitFor.Frontend",
+			"protocol": "https"
+		}
+	},
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "rm -rf .dotnet && sudo chmod +x dotnet.sh && ./dotnet.sh restore",
