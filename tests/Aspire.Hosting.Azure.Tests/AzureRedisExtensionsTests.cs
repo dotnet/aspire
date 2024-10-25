@@ -116,7 +116,6 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
                 }
                 enableNonSslPort: false
                 minimumTlsVersion: '1.2'
-                redisConfiguration: { }
               }
               tags: {
                 'aspire-resource-name': 'redis-cache'

@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure;
+using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Expressions;
-using Azure.Provisioning;
-using System.Diagnostics.CodeAnalysis;
-using Aspire.Hosting.Azure;
 
 namespace Aspire.Hosting;
 
@@ -64,12 +64,12 @@ public static class ContainerAppExtensions
 
         var containerAppManagedEnvironmentIdParameter = module.GetProvisionableResources().OfType<ProvisioningParameter>().Single(
             p => p.BicepIdentifier == "outputs_azure_container_apps_environment_id");
-        var certificatNameParameter = certificateName.AsProvisioningParameter(module);
+        var certificateNameParameter = certificateName.AsProvisioningParameter(module);
         var customDomainParameter = customDomain.AsProvisioningParameter(module);
 
         var bindingTypeConditional = new ConditionalExpression(
             new BinaryExpression(
-                new IdentifierExpression(certificatNameParameter.BicepIdentifier),
+                new IdentifierExpression(certificateNameParameter.BicepIdentifier),
                 BinaryBicepOperator.NotEqual,
                 new StringLiteralExpression(string.Empty)),
             new StringLiteralExpression("SniEnabled"),
@@ -78,24 +78,24 @@ public static class ContainerAppExtensions
 
         var certificateOrEmpty = new ConditionalExpression(
             new BinaryExpression(
-                new IdentifierExpression(certificatNameParameter.BicepIdentifier),
+                new IdentifierExpression(certificateNameParameter.BicepIdentifier),
                 BinaryBicepOperator.NotEqual,
                 new StringLiteralExpression(string.Empty)),
             new InterpolatedStringExpression(
                 [
                     new IdentifierExpression(containerAppManagedEnvironmentIdParameter.BicepIdentifier),
                     new StringLiteralExpression("/managedCertificates/"),
-                    new IdentifierExpression(certificatNameParameter.BicepIdentifier)
+                    new IdentifierExpression(certificateNameParameter.BicepIdentifier)
                  ]),
             new NullLiteralExpression()
             );
 
-        app.Configuration.Value!.Ingress!.Value!.CustomDomains = new BicepList<ContainerAppCustomDomain>()
+        app.Configuration.Ingress.CustomDomains = new BicepList<ContainerAppCustomDomain>()
            {
                 new ContainerAppCustomDomain()
                 {
                     BindingType = bindingTypeConditional,
-                    Name = new IdentifierExpression(customDomainParameter.BicepIdentifier),
+                    Name = customDomainParameter,
                     CertificateId = certificateOrEmpty
                 }
            };

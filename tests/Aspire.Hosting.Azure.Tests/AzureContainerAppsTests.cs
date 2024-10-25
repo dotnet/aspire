@@ -365,8 +365,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                        Value = value.AsProvisioningParameter(module)
                    };
 
-                   c.Template.Value!.Containers[0].Value!.Env.Add(val);
-                   c.Template.Value!.Scale.Value!.MinReplicas = minReplicas.AsProvisioningParameter(module);
+                   c.Template.Containers[0].Value!.Env.Add(val);
+                   c.Template.Scale.MinReplicas = minReplicas.AsProvisioningParameter(module);
                });
 
         using var app = builder.Build();
@@ -761,7 +761,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             {
                 Assert.Contains(c, module.GetProvisionableResources());
 
-                c.Template.Value!.Scale.Value!.MinReplicas = 0;
+                c.Template.Scale.MinReplicas = 0;
             });
 
         using var app = builder.Build();

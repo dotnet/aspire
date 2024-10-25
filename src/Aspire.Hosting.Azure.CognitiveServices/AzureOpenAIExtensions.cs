@@ -5,7 +5,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.CognitiveServices;
-using Azure.Provisioning.Expressions;
 using static Azure.Provisioning.Expressions.BicepFunction;
 
 namespace Aspire.Hosting;
@@ -47,17 +46,7 @@ public static class AzureOpenAIExtensions
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
-                Value = new InterpolatedStringExpression(
-                        [
-                            new StringLiteralExpression("Endpoint="),
-                            new MemberExpression(
-                                new MemberExpression(
-                                    new IdentifierExpression(cogServicesAccount.BicepIdentifier),
-                                    "properties"),
-                                "endpoint")
-                        ])
-                // TODO This should be
-                // Value = BicepFunction.Interpolate($"Endpoint={cogServicesAccount.Endpoint}")
+                 Value = Interpolate($"Endpoint={cogServicesAccount.Properties.Endpoint}")
             });
 
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));

@@ -5,7 +5,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.ApplicationInsights;
-using Azure.Provisioning.Expressions;
 using Azure.Provisioning.OperationalInsights;
 
 namespace Aspire.Hosting;
@@ -41,13 +40,13 @@ public static class AzureApplicationInsightsExtensions
         {
             var appTypeParameter = new ProvisioningParameter("applicationType", typeof(string))
             {
-                Value = new StringLiteralExpression("web")
+                Value = "web"
             };
             infrastructure.Add(appTypeParameter);
 
             var kindParameter = new ProvisioningParameter("kind", typeof(string))
             {
-                Value = new StringLiteralExpression("web")
+                Value = "web"
             };
             infrastructure.Add(kindParameter);
 
@@ -89,7 +88,7 @@ public static class AzureApplicationInsightsExtensions
                 infrastructure.AspireResource.Parameters.TryAdd(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, null);
                 var logAnalyticsWorkspaceParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, typeof(string))
                 {
-                    Value = new StringLiteralExpression("web")
+                    Value = "web"
                 };
                 infrastructure.Add(kindParameter);
                 appInsights.WorkspaceResourceId = logAnalyticsWorkspaceParameter;
