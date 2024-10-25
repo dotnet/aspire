@@ -146,7 +146,7 @@ public class SchemaTests
                         builder.AddProject<Projects.ServiceA>("project")
                                .PublishAsAzureContainerApp((infrastructure, app) =>
                                {
-                                   app.Template.Value!.Scale.Value!.MinReplicas = minReplicas.AsProvisioningParameter(infrastructure);
+                                   app.Template.Scale.MinReplicas = minReplicas.AsProvisioningParameter(infrastructure);
                                });
 
                     }
@@ -167,7 +167,7 @@ public class SchemaTests
                         builder.AddContainer("mycontainer", "myimage")
                                .PublishAsAzureContainerApp((infrastructure, app) =>
                                {
-                                   app.Template.Value!.Scale.Value!.MinReplicas = minReplicas.AsProvisioningParameter(infrastructure);
+                                   app.Template.Scale.MinReplicas = minReplicas.AsProvisioningParameter(infrastructure);
                                });
 
                     }

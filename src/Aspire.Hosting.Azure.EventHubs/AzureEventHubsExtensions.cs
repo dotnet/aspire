@@ -9,7 +9,6 @@ using Aspire.Hosting.Utils;
 using Azure.Messaging.EventHubs.Producer;
 using Azure.Provisioning;
 using Azure.Provisioning.EventHubs;
-using Azure.Provisioning.Expressions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
@@ -34,7 +33,7 @@ public static class AzureEventHubsExtensions
         {
             var skuParameter = new ProvisioningParameter("sku", typeof(string))
             {
-                Value = new StringLiteralExpression("Standard")
+                Value = "Standard"
             };
             infrastructure.Add(skuParameter);
 

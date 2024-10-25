@@ -179,7 +179,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 var containerAppContainer = new ContainerAppContainer();
                 template.Containers = [containerAppContainer];
 
-                containerAppContainer.Image = containerImageParam is null ? containerImageName : containerImageParam;
+                containerAppContainer.Image = containerImageParam is null ? containerImageName! : containerImageParam;
                 containerAppContainer.Name = resource.Name;
 
                 AddEnvironmentVariablesAndCommandLineArgs(containerAppContainer);
@@ -483,7 +483,8 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                             {
                                 var managedIdentityParameter = AllocateManagedIdentityIdParameter();
                                 secret.Identity = managedIdentityParameter;
-                                secret.KeyVaultUri = new BicepValue<Uri>(argValue.Expression!);
+                                // TODO: this should be able to use ToUri(), but it hit an issue
+                                secret.KeyVaultUri = new BicepValue<Uri>(((BicepExpression?)argValue)!);
                             }
                             else
                             {
@@ -716,11 +717,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                     KeyVaultSecretRefs[secretOutputReference.ValueExpression] = secret;
                 }
 
-                // TODO: There should be a better way to do this?
-                return new MemberExpression(
-                            new MemberExpression(
-                               new IdentifierExpression(secret.BicepIdentifier), "properties"),
-                            "secretUri");
+                return secret.Properties.SecretUri;
             }
 
             private ProvisioningParameter AllocateContainerImageParameter()

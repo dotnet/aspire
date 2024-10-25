@@ -31,7 +31,7 @@ public static class AzureWebPubSubExtensions
             // Supported values are Free_F1 Standard_S1 Premium_P1
             var skuParameter = new ProvisioningParameter("sku", typeof(string))
             {
-                Value = new StringLiteralExpression("Free_F1")
+                Value = "Free_F1"
             };
             infrastructure.Add(skuParameter);
 
@@ -73,7 +73,7 @@ public static class AzureWebPubSubExtensions
                     Properties = new WebPubSubHubProperties()
                 };
 
-                var hubProperties = hub.Properties.Value!;
+                var hubProperties = hub.Properties;
 
                 // invoke the configure from AddEventHandler
                 for (var i = 0; i < hubResource.EventHandlers.Count; i++)
@@ -183,7 +183,7 @@ public static class AzureWebPubSubExtensions
 
         if (authSettings != null)
         {
-            handler.Auth = new BicepValue<UpstreamAuthSettings>(authSettings);
+            handler.Auth = authSettings;
         }
         return handler;
     }

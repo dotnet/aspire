@@ -2641,7 +2641,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 if (overrideLocalAuthDefault)
                 {
                     var account = infrastructure.GetProvisionableResources().OfType<CognitiveServicesAccount>().Single();
-                    account.Properties.Value!.DisableLocalAuth = false;
+                    account.Properties.DisableLocalAuth = false;
                 }
             })
             .AddDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4))
@@ -2786,14 +2786,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             r.Add(new ProvisioningOutput("vaultUri", typeof(string))
             {
-                Value =
-                    new MemberExpression(
-                        new MemberExpression(
-                            new IdentifierExpression(vault.BicepIdentifier),
-                            "properties"),
-                        "vaultUri")
-                // TODO: this should be
-                //Value = keyVault.VaultUri
+                Value = vault.Properties.VaultUri
             });
         })
         .ConfigureInfrastructure(r =>

@@ -240,8 +240,8 @@ public static class AzureRedisExtensions
                keyVault.Name = kvNameParam;
                infrastructure.Add(keyVault);
 
-               redis.RedisConfiguration.Value!.IsAadEnabled.Kind = BicepValueKind.Unset;
-               redis.IsAccessKeyAuthenticationDisabled.Kind = BicepValueKind.Unset;
+               redis.RedisConfiguration.IsAadEnabled.ClearValue();
+               redis.IsAccessKeyAuthenticationDisabled.ClearValue();
 
                var secret = new KeyVaultSecret("connectionString")
                {

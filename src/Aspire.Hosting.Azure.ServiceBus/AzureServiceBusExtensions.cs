@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
-using Azure.Provisioning.Expressions;
 using Azure.Provisioning.ServiceBus;
 
 namespace Aspire.Hosting;
@@ -28,7 +27,7 @@ public static class AzureServiceBusExtensions
         {
             var skuParameter = new ProvisioningParameter("sku", typeof(string))
             {
-                Value = new StringLiteralExpression("Standard")
+                Value = "Standard"
             };
             infrastructure.Add(skuParameter);
 
