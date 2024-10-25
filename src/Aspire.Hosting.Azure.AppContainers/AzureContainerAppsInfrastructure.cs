@@ -11,6 +11,7 @@ using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.Resources;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure;
 
@@ -18,7 +19,10 @@ namespace Aspire.Hosting.Azure;
 /// Represents the infrastructure for Azure Container Apps within the Aspire Hosting environment.
 /// Implements the <see cref="IDistributedApplicationLifecycleHook"/> interface to provide lifecycle hooks for distributed applications.
 /// </summary>
-internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerAppsInfrastructure> logger, DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
+internal sealed class AzureContainerAppsInfrastructure(
+    ILogger<AzureContainerAppsInfrastructure> logger,
+    IOptions<AzureProvisioningOptions> provisioningOptions,
+    DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
 {
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
@@ -48,7 +52,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 continue;
             }
 
-            var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
+            var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, provisioningOptions.Value, executionContext, cancellationToken).ConfigureAwait(false);
 
             r.Annotations.Add(new DeploymentTargetAnnotation(containerApp));
         }
@@ -74,11 +78,12 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
 
         private readonly Dictionary<IResource, ContainerAppContext> _containerApps = [];
 
-        public async Task<AzureBicepResource> CreateContainerAppAsync(IResource resource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+        public async Task<AzureBicepResource> CreateContainerAppAsync(IResource resource, AzureProvisioningOptions provisioningOptions, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
         {
             var context = await ProcessResourceAsync(resource, executionContext, cancellationToken).ConfigureAwait(false);
 
             var provisioningResource = new AzureProvisioningResource(resource.Name, context.BuildContainerApp);
+            provisioningResource.ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions;
 
             provisioningResource.Annotations.Add(new ManifestPublishingCallbackAnnotation(provisioningResource.WriteToManifest));
 
