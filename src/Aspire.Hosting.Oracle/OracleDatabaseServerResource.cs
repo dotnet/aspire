@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -15,9 +18,9 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
     /// </summary>
     /// <param name="name">The name of the resource.</param>
     /// <param name="password">A parameter that contains the Oracle Database server password.</param>
-    public OracleDatabaseServerResource(string name, ParameterResource password) : base(name)
+    public OracleDatabaseServerResource(string name, ParameterResource password) : base(ThrowIfNullOrEmpty(name))
     {
-        ArgumentNullException.ThrowIfNull(password);
+        ThrowIfNullOrEmpty(password);
 
         PrimaryEndpoint = new(this, PrimaryEndpointName);
         PasswordParameter = password;
@@ -50,5 +53,19 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
     internal void AddDatabase(string name, string databaseName)
     {
         _databases.TryAdd(name, databaseName);
+    }
+
+    private static T ThrowIfNullOrEmpty<T>([NotNull] T? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+    {
+        ArgumentNullException.ThrowIfNull(argument, paramName);
+
+        if (argument is not string str)
+        {
+            return argument;
+        }
+
+        ArgumentException.ThrowIfNullOrEmpty(str, paramName);
+        return argument;
+
     }
 }
