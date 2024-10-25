@@ -146,13 +146,13 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
             new(Type: "Project",
                 Name: "apiservice",
                 State: "Running",
-                Source: $"{project.Id}.ApiService.csproj",
+                SourceContains: $"{project.Id}.ApiService.csproj",
                 Endpoints: ["^http://localhost:\\d+$", "^https://localhost:\\d+$"]),
 
             new(Type: "Project",
                 Name: "webfrontend",
                 State: "Running",
-                Source: $"{project.Id}.Web.csproj",
+                SourceContains: $"{project.Id}.Web.csproj",
                 Endpoints: ["^http://localhost:\\d+$", "^https://localhost:\\d+$"])
         };
 
@@ -162,7 +162,7 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
                 new ResourceRow(Type: "Container",
                                 Name: "cache",
                                 State: "Running",
-                                Source: $"{RedisContainerImageTags.Registry}/{RedisContainerImageTags.Image}:{RedisContainerImageTags.Tag}",
+                                SourceContains: $"{RedisContainerImageTags.Registry}/{RedisContainerImageTags.Image}:{RedisContainerImageTags.Tag}",
                                 Endpoints: ["tcp://localhost:\\d+"]));
         }
 
@@ -170,7 +170,7 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
     }
 }
 
-public sealed record ResourceRow(string Type, string Name, string State, string Source, string[] Endpoints);
+public sealed record ResourceRow(string Type, string Name, string State, string SourceContains, string[] Endpoints);
 
 public sealed record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {

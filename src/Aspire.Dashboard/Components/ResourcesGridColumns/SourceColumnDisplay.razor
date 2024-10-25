@@ -4,8 +4,9 @@
 @inject IStringLocalizer<Columns> Loc
 @inject IStringLocalizer<Resources> ResourcesLoc
 
-<GridValue Value="@Value"
+<GridValue  Value="@Value"
             ValueToCopy="@ValueToCopy"
+            ValueToVisualize="@ValueToCopy"
             ValueDescription="@ResourcesLoc[nameof(Resources.ResourcesSourceColumnHeader)]"
             EnableHighlighting="true"
             HighlightText="@FilterText"
