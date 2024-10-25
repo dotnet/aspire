@@ -556,6 +556,50 @@ public class ManifestGenerationTests
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
+    [Fact]
+    public async Task EnsureResourceWithProbesEmitsProbes()
+    {
+        const string endpointName = "http";
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        var resource = program.AppBuilder.AddResource(new CustomResourceWithProbes("resourceWithProbes"))
+            .WithImage("image/name");
+        // resource.WithHttpEndpoint(8000, 8000, endpointName); // Throws when calling GetEndpoint() ???
+        resource.WithEndpoint(endpointName, e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 8000));
+        resource.WithProbe(endpointName, ProbeType.Liveness, "/health");
+
+        program.Build();
+
+        var manifest = await ManifestUtils.GetManifest(resource.Resource);
+
+        var expectedManifest = """
+                               {
+                                 "type": "container.v0",
+                                 "image": "image/name:latest",
+                                 "bindings": {
+                                   "http": {
+                                     "scheme": "tcp",
+                                     "protocol": "tcp",
+                                     "transport": "tcp",
+                                     "targetPort": 8000
+                                   }
+                                 },
+                                 "probes": [
+                                   {
+                                     "type": "liveness",
+                                     "tcpSocket": {
+                                       "port": 8000
+                                     },
+                                     "initialDelaySeconds": 5,
+                                     "periodSeconds": 5
+                                   }
+                                 ]
+                               }
+                               """;
+
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
     private static TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeIntegrationServices = false, bool includeNodeApp = false)
     {
         var program = TestProgram.Create<ManifestGenerationTests>(GetManifestArgs(), includeIntegrationServices, includeNodeApp);
