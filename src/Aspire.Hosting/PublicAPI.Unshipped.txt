@@ -160,6 +160,8 @@ Aspire.Hosting.ApplicationModel.WaitAnnotation.WaitType.get -> Aspire.Hosting.Ap
 Aspire.Hosting.ApplicationModel.WaitType
 Aspire.Hosting.ApplicationModel.WaitType.WaitForCompletion = 1 -> Aspire.Hosting.ApplicationModel.WaitType
 Aspire.Hosting.ApplicationModel.WaitType.WaitUntilHealthy = 0 -> Aspire.Hosting.ApplicationModel.WaitType
+Aspire.Hosting.ContainerCommandExecutor
+Aspire.Hosting.ContainerCommandExecutor.ExecuteAsync(Aspire.Hosting.ApplicationModel.ContainerResource! resource, string! command, string![]! args, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Aspire.Hosting.DistributedApplicationBuilder.AppHostPath.get -> string!
 Aspire.Hosting.DistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
 Aspire.Hosting.Eventing.DistributedApplicationEventing
