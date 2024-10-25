@@ -30,5 +30,5 @@ public static class AzureResourceExtensions
     /// <param name="resource">The Azure resource.</param>
     /// <returns>A valid Bicep identifier.</returns>
     public static string GetBicepIdentifier(this IAzureResource resource) =>
-        Infrastructure.NormalizeIdentifierName(resource.Name);
+        Infrastructure.NormalizeBicepIdentifier(resource.Name);
 }

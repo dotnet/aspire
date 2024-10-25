@@ -256,9 +256,9 @@ public static class AzureSqlExtensions
 
         foreach (var databaseNames in databases)
         {
-            var identifierName = Infrastructure.NormalizeIdentifierName(databaseNames.Key);
+            var BicepIdentifier = Infrastructure.NormalizeBicepIdentifier(databaseNames.Key);
             var databaseName = databaseNames.Value;
-            var sqlDatabase = new SqlDatabase(identifierName)
+            var sqlDatabase = new SqlDatabase(BicepIdentifier)
             {
                 Parent = sqlServer,
                 Name = databaseName

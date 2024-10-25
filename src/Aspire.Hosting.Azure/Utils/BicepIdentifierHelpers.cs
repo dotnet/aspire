@@ -10,7 +10,7 @@ internal static class BicepIdentifierHelpers
 {
     internal static string ThrowIfInvalid(string name, [CallerArgumentExpression(nameof(name))] string? paramName = null)
     {
-        Infrastructure.ValidateIdentifierName(name, paramName);
+        Infrastructure.ValidateBicepIdentifier(name, paramName);
         return name;
     }
 }

@@ -46,7 +46,7 @@ public static class AzureKeyVaultResourceExtensions
                 Value =
                     new MemberExpression(
                         new MemberExpression(
-                            new IdentifierExpression(keyVault.IdentifierName),
+                            new IdentifierExpression(keyVault.BicepIdentifier),
                             "properties"),
                         "vaultUri")
                 // TODO: this should be
