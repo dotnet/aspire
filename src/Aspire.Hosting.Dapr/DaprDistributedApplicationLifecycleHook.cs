@@ -190,12 +190,10 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                     {
                         updatedArgs.AddRange(daprCommandLine.Arguments);
                         var endPoint = GetEndpointReference(sidecarOptions, resource);
-                        if (endPoint is not null)
+
+                        if (sidecarOptions?.AppPort is null && endPoint is { appEndpoint.IsAllocated: true })
                         {
-                            if (endPoint.Value.appEndpoint.IsAllocated && sidecarOptions?.AppPort is null)
-                            {
-                                updatedArgs.AddRange(daprAppPortArg(endPoint.Value.appEndpoint.Port)());
-                            }
+                            updatedArgs.AddRange(daprAppPortArg(endPoint.Value.appEndpoint.Port)());
                         }
 
                         var grpc = daprCli.GetEndpoint("grpc");
@@ -213,11 +211,11 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                             updatedArgs.AddRange(daprProfilePortArg(profiling.Property(EndpointProperty.TargetPort))());
                         }
 
-                        if (sidecarOptions?.AppChannelAddress is null && endPoint is not null)
+                        if (sidecarOptions?.AppChannelAddress is null && endPoint is { appEndpoint.IsAllocated: true })
                         {
                             updatedArgs.AddRange(daprAppChannelAddressArg(endPoint.Value.appEndpoint.Host)());
                         }
-                        if (sidecarOptions?.AppProtocol is null && endPoint is not null)
+                        if (sidecarOptions?.AppProtocol is null && endPoint is { appEndpoint.IsAllocated: true }) 
                         {
                             updatedArgs.AddRange(daprAppProtocol(endPoint.Value.protocol)());
                         }
