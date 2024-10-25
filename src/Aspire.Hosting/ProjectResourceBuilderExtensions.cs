@@ -60,6 +60,9 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name) where TProject : IProjectMetadata, new()
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         return builder.AddProject<TProject>(name, _ => { });
     }
 
@@ -90,6 +93,10 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(projectPath);
+
         return builder.AddProject(name, projectPath, _ => { });
     }
 
@@ -133,6 +140,9 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name, string? launchProfileName) where TProject : IProjectMetadata, new()
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         return builder.AddProject<TProject>(name, options =>
         {
             options.ExcludeLaunchProfile = launchProfileName is null;
@@ -168,6 +178,10 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath, string? launchProfileName)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(projectPath);
+
         return builder.AddProject(name, projectPath, options =>
         {
             options.ExcludeLaunchProfile = launchProfileName is null;
@@ -213,6 +227,10 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<ProjectResourceOptions> configure) where TProject : IProjectMetadata, new()
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(configure);
+
         var options = new ProjectResourceOptions();
         configure(options);
 
@@ -249,6 +267,11 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath, Action<ProjectResourceOptions> configure)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(projectPath);
+        ArgumentNullException.ThrowIfNull(configure);
+
         var options = new ProjectResourceOptions();
         configure(options);
 
@@ -539,6 +562,8 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> WithReplicas(this IResourceBuilder<ProjectResource> builder, int replicas)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.WithAnnotation(new ReplicaAnnotation(replicas));
         return builder;
     }
@@ -571,6 +596,8 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> DisableForwardedHeaders(this IResourceBuilder<ProjectResource> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.WithAnnotation<DisableForwardedHeadersAnnotation>(ResourceAnnotationMutationBehavior.Replace);
         return builder;
     }
@@ -585,6 +612,9 @@ public static class ProjectResourceBuilderExtensions
     public static IResourceBuilder<ProjectResource> WithEndpointsInEnvironment(
         this IResourceBuilder<ProjectResource> builder, Func<EndpointAnnotation, bool> filter)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(filter);
+
         builder.Resource.Annotations.Add(new EndpointEnvironmentInjectionFilterAnnotation(filter));
 
         return builder;

@@ -17,6 +17,8 @@ public static class ContainerResourceExtensions
     /// <returns>A collection of container resources in the specified distributed application model.</returns>
     public static IEnumerable<IResource> GetContainerResources(this DistributedApplicationModel model)
     {
+        ArgumentNullException.ThrowIfNull(model);
+
         foreach (var resource in model.Resources)
         {
             if (resource.Annotations.OfType<ContainerImageAnnotation>().Any())
@@ -33,6 +35,8 @@ public static class ContainerResourceExtensions
     /// <returns>true if the specified resource is a container resource; otherwise, false.</returns>
     public static bool IsContainer(this IResource resource)
     {
+        ArgumentNullException.ThrowIfNull(resource);
+
         return resource.Annotations.OfType<ContainerImageAnnotation>().Any();
     }
 }
