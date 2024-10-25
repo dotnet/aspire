@@ -17,7 +17,7 @@ namespace Microsoft.Extensions.Hosting;
 /// </summary>
 public static class AspireAzureOpenAIChatClientExtensions
 {
-    private const string DeployentKey = "Deployment";
+    private const string DeploymentKey = "Deployment";
     private const string ModelKey = "Model";
 
     /// <summary>
@@ -64,19 +64,19 @@ public static class AspireAzureOpenAIChatClientExtensions
         if (configuration.GetConnectionString(connectionName) is string connectionString)
         {
             var connectionBuilder = new DbConnectionStringBuilder { ConnectionString = connectionString };
-            deploymentName = (connectionBuilder[DeployentKey] ?? connectionBuilder[ModelKey]).ToString();
+            deploymentName = (connectionBuilder[DeploymentKey] ?? connectionBuilder[ModelKey]).ToString();
         }
 
         var configurationSectionName = AspireAzureOpenAIExtensions.DefaultConfigSectionName;
         if (string.IsNullOrEmpty(deploymentName))
         {
             var configSection = configuration.GetSection(configurationSectionName);
-            deploymentName = configSection[DeployentKey];
+            deploymentName = configSection[DeploymentKey];
         }
 
         if (string.IsNullOrEmpty(deploymentName))
         {
-            throw new InvalidOperationException($"An {nameof(IChatClient)} could not be configured. Ensure a '{DeployentKey}' or '{ModelKey}' value is provided in 'ConnectionStrings:{connectionName}', or specify a '{DeployentKey}' in the '{configurationSectionName}' configuration section, or specify a '{nameof(deploymentName)}' in the call to {nameof(AddAzureOpenAIChatClient)}.");
+            throw new InvalidOperationException($"An {nameof(IChatClient)} could not be configured. Ensure a '{DeploymentKey}' or '{ModelKey}' value is provided in 'ConnectionStrings:{connectionName}', or specify a '{DeploymentKey}' in the '{configurationSectionName}' configuration section, or specify a '{nameof(deploymentName)}' in the call to {nameof(AddAzureOpenAIChatClient)}.");
         }
 
         return deploymentName;
