@@ -64,8 +64,15 @@ public static class AspireAzureOpenAIChatClientExtensions
         if (configuration.GetConnectionString(connectionName) is string connectionString)
         {
             var connectionBuilder = new DbConnectionStringBuilder { ConnectionString = connectionString };
-            deploymentName = ConnectionStringValue(connectionBuilder, DeploymentKey)
-                ?? ConnectionStringValue(connectionBuilder, ModelKey);
+            var deploymentValue = ConnectionStringValue(connectionBuilder, DeploymentKey);
+            var modelValue = ConnectionStringValue(connectionBuilder, ModelKey);
+            if (deploymentValue is not null && modelValue is not null)
+            {
+                throw new InvalidOperationException(
+                    $"The connection string '{connectionName}' contains both '{DeploymentKey}' and '{ModelKey}' keys. Either of these may be specified, but not both.");
+            }
+
+            deploymentName = deploymentValue ?? modelValue;
         }
 
         var configurationSectionName = AspireAzureOpenAIExtensions.DefaultConfigSectionName;
