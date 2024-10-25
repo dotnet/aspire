@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddAzureOpenAIChatClient("openai");
+builder.AddAzureOpenAIClient("openai").AddChatClient();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

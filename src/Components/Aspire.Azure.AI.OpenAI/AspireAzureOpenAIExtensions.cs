@@ -34,7 +34,7 @@ public static class AspireAzureOpenAIExtensions
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureOpenAISettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{AzureOpenAIClient, AzureOpenAIClientOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire.Azure.AI.OpenAI" section.</remarks>
-    public static void AddAzureOpenAIClient(
+    public static AspireAzureOpenAIClientBuilder AddAzureOpenAIClient(
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<AzureOpenAISettings>? configureSettings = null,
@@ -44,6 +44,8 @@ public static class AspireAzureOpenAIExtensions
 
         // Add the AzureOpenAIClient service as OpenAIClient. That way the service can be resolved by both service Types.
         builder.Services.TryAddSingleton(typeof(OpenAIClient), static provider => provider.GetRequiredService<AzureOpenAIClient>());
+
+        return new AspireAzureOpenAIClientBuilder(builder, connectionName, serviceKey: null);
     }
 
     /// <summary>
@@ -56,7 +58,7 @@ public static class AspireAzureOpenAIExtensions
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureOpenAISettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{AzureOpenAIClient, OpenAIClientOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire.Azure.AI.OpenAI:{name}" section.</remarks>
-    public static void AddKeyedAzureOpenAIClient(
+    public static AspireAzureOpenAIClientBuilder AddKeyedAzureOpenAIClient(
         this IHostApplicationBuilder builder,
         string name,
         Action<AzureOpenAISettings>? configureSettings = null,
@@ -68,6 +70,8 @@ public static class AspireAzureOpenAIExtensions
 
         // Add the AzureOpenAIClient service as OpenAIClient. That way the service can be resolved by both service Types.
         builder.Services.TryAddKeyedSingleton(typeof(OpenAIClient), serviceKey: name, static (provider, key) => provider.GetRequiredKeyedService<AzureOpenAIClient>(key));
+
+        return new AspireAzureOpenAIClientBuilder(builder, name, name);
     }
 
     private sealed class OpenAIComponent : AzureComponent<AzureOpenAISettings, AzureOpenAIClient, AzureOpenAIClientOptions>
