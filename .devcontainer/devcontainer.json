@@ -15,43 +15,52 @@
 		}
 	},
 
-	"containerEnv": {
-		"DOTNET_ROOT": "/workspaces/aspire/.dotnet"
-	},
-
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [
-		15887, // playground/waitfor/WaitForSandbox.AppHost
-		5180, // playground/waitfor/WaitForSandbox.ApiService
-		7024 // playground/waitfor/WaitFor.Frontend
+		15887, // playground/waitfor AppHost
+		5180, // playground/waitfor ApiService
+		7024, // playground/waitfor Frontend
+		15551 // playground/waitfor PGAdmin
 	],
 	"portsAttributes": {
 		"15887": {
-			"label": "WaitForSandbox.AppHost",
+			"label": "WaitFor Playground: AppHost",
 			"protocol": "https"
 		},
 		"5180": {
-			"label": "WaitForSandbox.ApiService",
+			"label": "WaitFor Playground: ApiService",
 			"protocol": "http"
 		},
 		"7024": {
-			"label": "WaitFor.Frontend",
+			"label": "WaitFor Playground: Frontend",
 			"protocol": "https"
+		},
+		"15551": {
+			"label": "WaitFor Playground: PGAdmin",
+			"protocol": "http"
 		}
+	},
+	"otherPortsAttributes": {
+		"onAutoForward": "ignore"
 	},
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "rm -rf .dotnet && sudo chmod +x dotnet.sh && ./dotnet.sh restore",
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"ms-dotnettools.csdevkit"
-			]
+				"ms-dotnettools.csdevkit",
+				"ms-azuretools.vscode-bicep",
+				"ms-azuretools.azure-dev"
+			],
+			"settings": {
+				"remote.autoForwardPorts": false
+			}
 		}
-	}
+	},
+	"postStartCommand": "dotnet dev-certs https --trust"
 
 	// Configure tool-specific properties.
 	// "customizations": {},
