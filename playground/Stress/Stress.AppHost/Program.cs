@@ -37,11 +37,12 @@ for (var i = 1; i <= 30; i++)
     serviceBuilder.WithHttpEndpoint(port, name: $"http-{port}");
 }
 
-serviceBuilder.WithHttpCommand("/write-console", "Write to console", method: HttpMethod.Get);
-serviceBuilder.WithHttpCommand("/increment-counter", "Increment counter", method: HttpMethod.Get);
-serviceBuilder.WithHttpCommand("/big-trace", "Big trace", method: HttpMethod.Get);
-serviceBuilder.WithHttpCommand("/trace-limit", "Trace limit", method: HttpMethod.Get);
-serviceBuilder.WithHttpCommand("/log-message", "Log message", method: HttpMethod.Get);
+serviceBuilder.WithHttpCommand("/write-console", "Write to console", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
+serviceBuilder.WithHttpCommand("/increment-counter", "Increment counter", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
+serviceBuilder.WithHttpCommand("/big-trace", "Big trace", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
+serviceBuilder.WithHttpCommand("/trace-limit", "Trace limit", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
+serviceBuilder.WithHttpCommand("/log-message", "Log message", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
+serviceBuilder.WithHttpCommand("/log-message-limit", "Log message limit", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
 
 builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice");
 
