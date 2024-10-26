@@ -42,7 +42,7 @@ builder.AddProject<Projects.AzureContainerApps_ApiService>("api")
            app.ConfigureCustomDomain(customDomain, certificateName);
 
            // Scale to 0
-           app.Template.Value!.Scale.Value!.MinReplicas = 0;
+           app.Template.Scale.MinReplicas = 0;
        });
 
 #if !SKIP_DASHBOARD_REFERENCE

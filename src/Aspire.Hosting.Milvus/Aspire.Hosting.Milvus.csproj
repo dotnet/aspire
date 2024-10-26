@@ -10,8 +10,6 @@
     
     <!-- Disable package validation as this package hasn't shipped yet. -->
     <EnablePackageValidation>false</EnablePackageValidation>
-    <!-- We need to ingest a stable version of Milvus.Client in order for us to produce stable bits. -->
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -21,7 +19,6 @@
   <ItemGroup>
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
     <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
-    <Compile Include="$(ComponentsDir)Aspire.Milvus.Client\MilvusHealthCheck.cs" Link="MilvusHealthCheck.cs"></Compile>
   </ItemGroup>
 
   <ItemGroup>
@@ -30,9 +27,5 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Aspire.Hosting.Milvus.Tests"></InternalsVisibleTo>
-  </ItemGroup>
-  
-  <ItemGroup>
-    <PackageReference Include="Milvus.Client" />
   </ItemGroup>
 </Project>

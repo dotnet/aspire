@@ -67,7 +67,7 @@
     <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>8.0.11</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
     <MicrosoftEntityFrameworkCoreToolsPackageVersion>8.0.11</MicrosoftEntityFrameworkCoreToolsPackageVersion>
     <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.0-preview.5.24272.3</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
-    <NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>8.0.8</NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>
+    <NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>8.0.10</NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>
     <!-- for templates -->
     <MicrosoftAspNetCorePackageVersionForNet9>9.0.0</MicrosoftAspNetCorePackageVersionForNet9>
     <!-- System dependencies -->

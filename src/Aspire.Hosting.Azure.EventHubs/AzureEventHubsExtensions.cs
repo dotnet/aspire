@@ -9,7 +9,6 @@ using Aspire.Hosting.Utils;
 using Azure.Messaging.EventHubs.Producer;
 using Azure.Provisioning;
 using Azure.Provisioning.EventHubs;
-using Azure.Provisioning.Expressions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
@@ -34,7 +33,7 @@ public static class AzureEventHubsExtensions
         {
             var skuParameter = new ProvisioningParameter("sku", typeof(string))
             {
-                Value = new StringLiteral("Standard")
+                Value = "Standard"
             };
             infrastructure.Add(skuParameter);
 
@@ -58,7 +57,7 @@ public static class AzureEventHubsExtensions
 
             foreach (var hub in azureResource.Hubs)
             {
-                var hubResource = new EventHub(Infrastructure.NormalizeIdentifierName(hub))
+                var hubResource = new EventHub(Infrastructure.NormalizeBicepIdentifier(hub))
                 {
                     Parent = eventHubsNamespace,
                     Name = hub

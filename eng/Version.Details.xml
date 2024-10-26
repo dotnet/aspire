@@ -49,25 +49,25 @@
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
       <Sha>eddf880ac57b7f2c79a77592e3e6d24d1d02f112</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0">
+    <Dependency Name="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
-      <Sha>9cb3b725e3ad2b57ddc9fb2dd48d2d170563a8f5</Sha>
+      <Sha>81cabf2857a01351e5ab578947c7403a5b128ad1</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0">
+    <Dependency Name="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.1">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
-      <Sha>9cb3b725e3ad2b57ddc9fb2dd48d2d170563a8f5</Sha>
+      <Sha>81cabf2857a01351e5ab578947c7403a5b128ad1</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Hosting" Version="8.0.0">
+    <Dependency Name="Microsoft.Extensions.Hosting" Version="8.0.1">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
-      <Sha>9cb3b725e3ad2b57ddc9fb2dd48d2d170563a8f5</Sha>
+      <Sha>81cabf2857a01351e5ab578947c7403a5b128ad1</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Http" Version="8.0.0">
+    <Dependency Name="Microsoft.Extensions.Http" Version="8.0.1">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
-      <Sha>9cb3b725e3ad2b57ddc9fb2dd48d2d170563a8f5</Sha>
+      <Sha>81cabf2857a01351e5ab578947c7403a5b128ad1</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0">
+    <Dependency Name="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
-      <Sha>9cb3b725e3ad2b57ddc9fb2dd48d2d170563a8f5</Sha>
+      <Sha>81cabf2857a01351e5ab578947c7403a5b128ad1</Sha>
     </Dependency>
     <Dependency Name="Microsoft.Extensions.Options" Version="8.0.2">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
