@@ -455,9 +455,9 @@ public static class AzurePostgresExtensions
 
         foreach (var databaseNames in databases)
         {
-            var BicepIdentifier = Infrastructure.NormalizeBicepIdentifier(databaseNames.Key);
+            var bicepIdentifier = Infrastructure.NormalizeBicepIdentifier(databaseNames.Key);
             var databaseName = databaseNames.Value;
-            var pgsqlDatabase = new PostgreSqlFlexibleServerDatabase(BicepIdentifier)
+            var pgsqlDatabase = new PostgreSqlFlexibleServerDatabase(bicepIdentifier)
             {
                 Parent = postgres,
                 Name = databaseName
