@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure;
+using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Expressions;
-using Azure.Provisioning;
-using System.Diagnostics.CodeAnalysis;
-using Aspire.Hosting.Azure;
 
 namespace Aspire.Hosting;
 
@@ -62,40 +62,40 @@ public static class ContainerAppExtensions
             throw new ArgumentException("Cannot configure custom domain when resource is not parented by ResourceModuleConstruct.", nameof(app));
         }
 
-        var containerAppManagedEnvironmentIdParameter = module.GetResources().OfType<ProvisioningParameter>().Single(
-            p => p.IdentifierName == "outputs_azure_container_apps_environment_id");
-        var certificatNameParameter = certificateName.AsProvisioningParameter(module);
+        var containerAppManagedEnvironmentIdParameter = module.GetProvisionableResources().OfType<ProvisioningParameter>().Single(
+            p => p.BicepIdentifier == "outputs_azure_container_apps_environment_id");
+        var certificateNameParameter = certificateName.AsProvisioningParameter(module);
         var customDomainParameter = customDomain.AsProvisioningParameter(module);
 
         var bindingTypeConditional = new ConditionalExpression(
             new BinaryExpression(
-                new IdentifierExpression(certificatNameParameter.IdentifierName),
-                BinaryOperator.NotEqual,
-                new StringLiteral(string.Empty)),
-            new StringLiteral("SniEnabled"),
-            new StringLiteral("Disabled")
+                new IdentifierExpression(certificateNameParameter.BicepIdentifier),
+                BinaryBicepOperator.NotEqual,
+                new StringLiteralExpression(string.Empty)),
+            new StringLiteralExpression("SniEnabled"),
+            new StringLiteralExpression("Disabled")
             );
 
         var certificateOrEmpty = new ConditionalExpression(
             new BinaryExpression(
-                new IdentifierExpression(certificatNameParameter.IdentifierName),
-                BinaryOperator.NotEqual,
-                new StringLiteral(string.Empty)),
-            new InterpolatedString(
-                "{0}/managedCertificates/{1}",
+                new IdentifierExpression(certificateNameParameter.BicepIdentifier),
+                BinaryBicepOperator.NotEqual,
+                new StringLiteralExpression(string.Empty)),
+            new InterpolatedStringExpression(
                 [
-                 new IdentifierExpression(containerAppManagedEnvironmentIdParameter.IdentifierName),
-                    new IdentifierExpression(certificatNameParameter.IdentifierName)
+                    new IdentifierExpression(containerAppManagedEnvironmentIdParameter.BicepIdentifier),
+                    new StringLiteralExpression("/managedCertificates/"),
+                    new IdentifierExpression(certificateNameParameter.BicepIdentifier)
                  ]),
-            new NullLiteral()
+            new NullLiteralExpression()
             );
 
-        app.Configuration.Value!.Ingress!.Value!.CustomDomains = new BicepList<ContainerAppCustomDomain>()
+        app.Configuration.Ingress.CustomDomains = new BicepList<ContainerAppCustomDomain>()
            {
                 new ContainerAppCustomDomain()
                 {
                     BindingType = bindingTypeConditional,
-                    Name = new IdentifierExpression(customDomainParameter.IdentifierName),
+                    Name = customDomainParameter,
                     CertificateId = certificateOrEmpty
                 }
            };
