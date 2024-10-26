@@ -129,7 +129,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsHealthStateProperty">
         <source>Health state</source>
-        <target state="new">Health state</target>
+        <target state="translated">运行状况状态</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
