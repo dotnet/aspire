@@ -15,11 +15,11 @@ resource cache 'Microsoft.Cache/redis@2024-03-01' = {
       capacity: 1
     }
     enableNonSslPort: false
+    disableAccessKeyAuthentication: true
     minimumTlsVersion: '1.2'
     redisConfiguration: {
       'aad-enabled': 'true'
     }
-    disableAccessKeyAuthentication: 'true'
   }
   tags: {
     'aspire-resource-name': 'cache'
