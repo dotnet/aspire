@@ -11,6 +11,6 @@ internal static class QdrantContainerImageTags
     /// <summary>qdrant/qdrant</summary>
     public const string Image = "qdrant/qdrant";
 
-    /// <summary>v1.11.5</summary>
-    public const string Tag = "v1.11.5";
+    /// <summary>v1.12.1</summary>
+    public const string Tag = "v1.12.1";
 }
