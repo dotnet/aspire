@@ -36,8 +36,8 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
             State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
         });
 
-        var runningEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running);
-        Assert.Equal(HealthStatus.Healthy, runningEvent.Snapshot.HealthStatus);
+        var healthyEvent = await rns.WaitForResourceHealthyAsync("resource");
+        Assert.Equal(HealthStatus.Healthy, healthyEvent.Snapshot.HealthStatus);
 
         await app.StopAsync();
     }
@@ -71,16 +71,14 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         });
 
         var runningEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running);
-        Assert.Null(runningEvent.Snapshot.HealthStatus);
 
-        var hasHealthReportsEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.HealthReports.Length > 0);
-        Assert.Equal(HealthStatus.Healthy, hasHealthReportsEvent.Snapshot.HealthStatus);
+        Assert.Equal(HealthStatus.Unhealthy, runningEvent.Snapshot.HealthStatus);
+        await rns.WaitForResourceHealthyAsync("resource");
 
         await app.StopAsync();
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/6363")]
     public async Task HealthCheckIntervalSlowsAfterSteadyHealthyState()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
@@ -209,7 +207,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         var hitCount = 0;
         builder.Services.AddHealthChecks().AddCheck("resource_check", (check) =>
         {
-            hitCount++;
+            Interlocked.Increment(ref hitCount);
             throw new InvalidOperationException("Random failure instead of result!");
         });
 
@@ -250,7 +248,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         var checkStatus = HealthCheckResult.Unhealthy();
         builder.Services.AddHealthChecks().AddCheck("parent_test", () =>
         {
-            hitCount++;
+            Interlocked.Increment(ref hitCount);
             return checkStatus;
         });
 
@@ -314,7 +312,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         var healthCheckHits = 0;
         builder.Services.AddHealthChecks().AddCheck("parent_test", () =>
         {
-            healthCheckHits++;
+            Interlocked.Increment(ref healthCheckHits);
             return HealthCheckResult.Healthy();
         });
 
@@ -327,7 +325,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         var resourceReadyEventFired = new TaskCompletionSource<ResourceReadyEvent>();
         builder.Eventing.Subscribe<ResourceReadyEvent>(parent.Resource, (@event, ct) =>
         {
-            eventHits++;
+            Interlocked.Increment(ref eventHits);
             return Task.CompletedTask;
         });
 

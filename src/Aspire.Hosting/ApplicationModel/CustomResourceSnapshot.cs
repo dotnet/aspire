@@ -12,6 +12,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public sealed record CustomResourceSnapshot
 {
+    private readonly ImmutableArray<HealthReportSnapshot> _healthReports = [];
+    private readonly ResourceStateSnapshot? _state;
+
     /// <summary>
     /// The type of the resource.
     /// </summary>
@@ -40,7 +43,15 @@ public sealed record CustomResourceSnapshot
     /// <summary>
     /// Represents the state of the resource.
     /// </summary>
-    public ResourceStateSnapshot? State { get; init; }
+    public ResourceStateSnapshot? State
+    {
+        get => _state;
+        init
+        {
+            _state = value;
+            HealthStatus = ComputeHealthStatus(_healthReports, value?.Text);
+        }
+    }
 
     /// <summary>
     /// The exit code of the resource.
@@ -52,11 +63,10 @@ public sealed record CustomResourceSnapshot
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This value is derived from <see cref="HealthReports"/>. If a resource is known to have a health check
-    /// and no reports exist, or if a resource does not have a health check, then this value is <see langword="null"/>.
+    /// This value is derived from <see cref="HealthReports"/>.
     /// </para>
     /// </remarks>
-    public HealthStatus? HealthStatus { get; init; }
+    public HealthStatus? HealthStatus { get; private set; }
 
     /// <summary>
     /// The health reports for this resource.
@@ -65,7 +75,15 @@ public sealed record CustomResourceSnapshot
     /// May be zero or more. If there are no health reports, the resource is considered healthy
     /// so long as no heath checks are registered for the resource.
     /// </remarks>
-    public ImmutableArray<HealthReportSnapshot> HealthReports { get; init; } = [];
+    public ImmutableArray<HealthReportSnapshot> HealthReports
+    {
+        get => _healthReports;
+        internal init
+        {
+            _healthReports = value;
+            HealthStatus = ComputeHealthStatus(value, State?.Text);
+        }
+    }
 
     /// <summary>
     /// The environment variables that should show up in the dashboard for this resource.
@@ -86,6 +104,22 @@ public sealed record CustomResourceSnapshot
     /// The commands available in the dashboard for this resource.
     /// </summary>
     public ImmutableArray<ResourceCommandSnapshot> Commands { get; init; } = [];
+
+    internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportSnapshot> healthReports, string? state)
+    {
+        if (state != KnownResourceStates.Running)
+        {
+            return null;
+        }
+
+        return healthReports.Length == 0
+            // If there are no health reports and the resource is running, assume it's healthy.
+            ? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy
+            // If there are health reports, the health status is the minimum of the health status of the reports.
+            // If any of the reports is null (first health check has not returned), the health status is unhealthy.
+            : healthReports.MinBy(r => r.Status)?.Status
+                ?? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy;
+    }
 }
 
 /// <summary>

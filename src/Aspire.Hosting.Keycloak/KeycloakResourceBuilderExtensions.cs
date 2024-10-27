@@ -27,8 +27,8 @@ public static class KeycloakResourceBuilderExtensions
     /// <param name="adminPassword">The parameter used as the admin password for the Keycloak resource. If <see langword="null"/> a default password will be used.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
-    /// The container is based on the quay.io/keycloak/keycloak container image.
-    /// The default tag is 24.0. The container exposes port 8080 by default.
+    /// The container exposes port 8080 by default.
+    /// This version of the package defaults to the <inheritdoc cref="KeycloakContainerImageTags.Tag"/> tag of the <inheritdoc cref="KeycloakContainerImageTags.Registry"/>/<inheritdoc cref="KeycloakContainerImageTags.Image"/> container image.
     /// </remarks>
     /// <example>
     /// Use in application host

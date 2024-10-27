@@ -19,7 +19,7 @@ public static class PostgresBuilderExtensions
     private const string PasswordEnvVarName = "POSTGRES_PASSWORD";
 
     /// <summary>
-    /// Adds a PostgreSQL resource to the application model. A container is used for local development. This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.Tag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.Image"/> container image.
+    /// Adds a PostgreSQL resource to the application model. A container is used for local development.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -34,6 +34,7 @@ public static class PostgresBuilderExtensions
     /// extension method then the dependent resource will wait until the Postgres resource is able to service
     /// requests.
     /// </para>
+    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.Tag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.Image"/> container image.
     /// </remarks>
     public static IResourceBuilder<PostgresServerResource> AddPostgres(this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
@@ -120,8 +121,11 @@ public static class PostgresBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a pgAdmin 4 administration and development platform for PostgreSQL to the application model. This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgAdminTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgAdminImage"/> container image.
+    /// Adds a pgAdmin 4 administration and development platform for PostgreSQL to the application model.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgAdminTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgAdminImage"/> container image.
+    /// </remarks>
     /// <param name="builder">The PostgreSQL server resource builder.</param>
     /// <param name="configureContainer">Callback to configure PgAdmin container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
@@ -238,6 +242,9 @@ public static class PostgresBuilderExtensions
     /// <summary>
     /// Adds an administration and development platform for PostgreSQL to the application model using pgweb.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgWebTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgWebImage"/> container image.
+    /// </remarks>
     /// <param name="builder">The Postgres server resource builder.</param>
     /// <param name="configureContainer">Configuration callback for pgweb container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
@@ -256,9 +263,6 @@ public static class PostgresBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    /// <remarks>
-    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgWebTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgWebImage"/> container image.
-    /// </remarks>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<PostgresServerResource> WithPgWeb(this IResourceBuilder<PostgresServerResource> builder, Action<IResourceBuilder<PgWebContainerResource>>? configureContainer = null, string? containerName = null)
     {
