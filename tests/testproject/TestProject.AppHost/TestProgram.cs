@@ -83,11 +83,6 @@ public class TestProgram : IDisposable
                     .AddDatabase(postgresDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(postgres);
             }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
-            {
-                var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(cosmos);
-            }
         }
 
         AppBuilder.Services.AddHostedService<ResourceLoggerForwarderService>();

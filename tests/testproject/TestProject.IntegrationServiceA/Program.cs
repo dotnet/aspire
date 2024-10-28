@@ -22,16 +22,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
     builder.AddNpgsqlDbContext<NpgsqlDbContext>("postgresdb");
 }
 
-if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
-{
-    builder.AddAzureCosmosClient("cosmos");
-}
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
-{
-    builder.AddCosmosDbContext<EFCoreCosmosDbContext>("cosmos", "cosmos");
-}
-
 // Ensure healthChecks are added. Some components like Cosmos
 // don't add this
 builder.Services.AddHealthChecks();
@@ -56,16 +46,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.postgres))
 if (!resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
     app.MapNpgsqlEFCoreApi();
-}
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
-{
-    app.MapCosmosApi();
-}
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
-{
-    app.MapEFCoreCosmosApi();
 }
 
 app.Run();

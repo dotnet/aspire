@@ -417,9 +417,7 @@ public class ManifestGenerationTests
                     "HTTP_PORTS": "{integrationservicea.bindings.http.targetPort}",
                     "SKIP_RESOURCES": "None",
                     "ConnectionStrings__redis": "{redis.connectionString}",
-                    "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
-                    "ConnectionStrings__cosmos": "{cosmos.connectionString}",
-                    "ConnectionStrings__eventhubns": "{eventhubns.connectionString}"
+                    "ConnectionStrings__postgresdb": "{postgresdb.connectionString}"
                   },
                   "bindings": {
                     "http": {
@@ -470,23 +468,6 @@ public class ManifestGenerationTests
                 "postgresdb": {
                   "type": "value.v0",
                   "connectionString": "{postgres.connectionString};Database=postgresdb"
-                },
-                "cosmos": {
-                  "type": "azure.bicep.v0",
-                  "connectionString": "{cosmos.secretOutputs.connectionString}",
-                  "path": "cosmos.module.bicep",
-                  "params": {
-                    "keyVaultName": ""
-                  }
-                },
-                "eventhubns": {
-                  "type": "azure.bicep.v0",
-                  "connectionString": "{eventhubns.outputs.eventHubsEndpoint}",
-                  "path": "eventhubns.module.bicep",
-                  "params": {
-                    "principalId": "",
-                    "principalType": ""
-                  }
                 },
                 "postgres-password": {
                   "type": "parameter.v0",

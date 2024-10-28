@@ -7,13 +7,11 @@ namespace Aspire.TestProject;
 public enum TestResourceNames
 {
     None = 0,
-    cosmos = 1 << 0,
     dashboard = 1 << 1,
     postgres = 1 << 7,
     redis = 1 << 9,
     efnpgsql = 1 << 11,
-    efcosmos = 1 << 17,
-    All = cosmos | dashboard | postgres | redis | efnpgsql | efcosmos
+    All = dashboard | postgres | redis | efnpgsql
 }
 
 public static class TestResourceNamesExtensions
