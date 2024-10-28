@@ -43,14 +43,7 @@ public static class AzureKeyVaultResourceExtensions
 
             infrastructure.Add(new ProvisioningOutput("vaultUri", typeof(string))
             {
-                Value =
-                    new MemberExpression(
-                        new MemberExpression(
-                            new IdentifierExpression(keyVault.IdentifierName),
-                            "properties"),
-                        "vaultUri")
-                // TODO: this should be
-                //Value = keyVault.VaultUri
+                Value = keyVault.Properties.VaultUri
             });
 
             keyVault.Tags["aspire-resource-name"] = infrastructure.AspireResource.Name;

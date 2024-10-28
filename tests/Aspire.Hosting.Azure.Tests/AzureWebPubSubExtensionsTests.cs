@@ -29,7 +29,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         WebPubSubHub? realHub = null;
         var wps = builder.AddAzureWebPubSub("wps1").ConfigureInfrastructure(infrastructure =>
         {
-            realHub = infrastructure.GetResources().OfType<WebPubSubHub>().Single();
+            realHub = infrastructure.GetProvisionableResources().OfType<WebPubSubHub>().Single();
         });
         var hubName = "a-b-c";
         var hub = wps.AddHub(hubName);
@@ -38,7 +38,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
         Assert.NotNull(realHub);
         Assert.Equal(hubName, realHub.Name.Value);
-        Assert.Equal("a_b_c", realHub.IdentifierName);
+        Assert.Equal("a_b_c", realHub.BicepIdentifier);
     }
 
     [Fact]
@@ -74,9 +74,9 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             param sku string = 'Free_F1'
 
             param capacity int = 1
-            
+
             param principalId string
-            
+
             param principalType string
 
             resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
@@ -103,7 +103,6 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
             resource abc 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
               name: 'abc'
-              properties: { }
               parent: wps1
             }
 
@@ -119,8 +118,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         var hubName = "abc";
         var wps = builder.AddAzureWebPubSub("wps1").ConfigureInfrastructure(infrastructure =>
         {
-            var hub = infrastructure.GetResources().OfType<WebPubSubHub>().First(i => i.IdentifierName == hubName);
-            hub.Properties.Value!.AnonymousConnectPolicy = "allow";
+            var hub = infrastructure.GetProvisionableResources().OfType<WebPubSubHub>().First(i => i.BicepIdentifier == hubName);
+            hub.Properties.AnonymousConnectPolicy = "allow";
         });
         wps.AddHub(hubName);
 
@@ -150,9 +149,9 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
             param sku string = 'Free_F1'
 
             param capacity int = 1
-            
+
             param principalId string
-            
+
             param principalType string
 
             resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
@@ -280,8 +279,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         var serviceA = builder.AddProject<ProjectA>("serviceA", o => o.ExcludeLaunchProfile = true).WithHttpsEndpoint();
         var wps = builder.AddAzureWebPubSub("wps1").ConfigureInfrastructure(infrastructure =>
         {
-            var hub = infrastructure.GetResources().OfType<WebPubSubHub>().First(i => string.Equals(i.IdentifierName, "abc", StringComparison.OrdinalIgnoreCase));
-            hub.Properties.Value!.EventHandlers.Add(new WebPubSubEventHandler() { UrlTemplate = "http://fake.com" });
+            var hub = infrastructure.GetProvisionableResources().OfType<WebPubSubHub>().First(i => string.Equals(i.BicepIdentifier, "abc", StringComparison.OrdinalIgnoreCase));
+            hub.Properties.EventHandlers.Add(new WebPubSubEventHandler() { UrlTemplate = "http://fake.com" });
         });
         wps.AddHub("ABC").AddEventHandler($"http://fake1.com");
         // Hub name is case insensitive
@@ -358,10 +357,10 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         var url1 = "fake3.com";
         var wps = builder.AddAzureWebPubSub("wps1").ConfigureInfrastructure(infrastructure =>
         {
-            var hub = infrastructure.GetResources().OfType<WebPubSubHub>().First(i => i.IdentifierName == "hub1");
-            hub.Properties.Value!.AnonymousConnectPolicy = "allow";
+            var hub = infrastructure.GetProvisionableResources().OfType<WebPubSubHub>().First(i => i.BicepIdentifier == "hub1");
+            hub.Properties.AnonymousConnectPolicy = "allow";
             // allow directly event handler set
-            hub.Properties.Value!.EventHandlers.Add(new WebPubSubEventHandler() { UrlTemplate = "http://fake1.com" });
+            hub.Properties.EventHandlers.Add(new WebPubSubEventHandler() { UrlTemplate = "http://fake1.com" });
         });
         // allow event handler set using a separate call
         // allow mulitple calls, and order matters
@@ -448,7 +447,6 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
                   {
                     urlTemplate: 'http://fake2.com'
                     userEventPattern: 'event1'
-                    auth: { }
                   }
                   {
                     urlTemplate: 'http://fake3.com'

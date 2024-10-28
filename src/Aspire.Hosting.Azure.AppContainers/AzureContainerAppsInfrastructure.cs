@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using System.Text;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
@@ -12,6 +11,7 @@ using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.Resources;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure;
 
@@ -19,7 +19,10 @@ namespace Aspire.Hosting.Azure;
 /// Represents the infrastructure for Azure Container Apps within the Aspire Hosting environment.
 /// Implements the <see cref="IDistributedApplicationLifecycleHook"/> interface to provide lifecycle hooks for distributed applications.
 /// </summary>
-internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerAppsInfrastructure> logger, DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
+internal sealed class AzureContainerAppsInfrastructure(
+    ILogger<AzureContainerAppsInfrastructure> logger,
+    IOptions<AzureProvisioningOptions> provisioningOptions,
+    DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
 {
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
@@ -49,7 +52,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 continue;
             }
 
-            var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
+            var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, provisioningOptions.Value, executionContext, cancellationToken).ConfigureAwait(false);
 
             r.Annotations.Add(new DeploymentTargetAnnotation(containerApp));
         }
@@ -75,11 +78,12 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
 
         private readonly Dictionary<IResource, ContainerAppContext> _containerApps = [];
 
-        public async Task<AzureBicepResource> CreateContainerAppAsync(IResource resource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+        public async Task<AzureBicepResource> CreateContainerAppAsync(IResource resource, AzureProvisioningOptions provisioningOptions, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
         {
             var context = await ProcessResourceAsync(resource, executionContext, cancellationToken).ConfigureAwait(false);
 
             var provisioningResource = new AzureProvisioningResource(resource.Name, context.BuildContainerApp);
+            provisioningResource.ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions;
 
             provisioningResource.Annotations.Add(new ManifestPublishingCallbackAnnotation(provisioningResource.WriteToManifest));
 
@@ -143,7 +147,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                     containerImageParam = AllocateContainerImageParameter();
                 }
 
-                var containerAppResource = new ContainerApp(Infrastructure.NormalizeIdentifierName(resource.Name))
+                var containerAppResource = new ContainerApp(Infrastructure.NormalizeBicepIdentifier(resource.Name))
                 {
                     Name = resource.Name.ToLowerInvariant()
                 };
@@ -180,7 +184,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 var containerAppContainer = new ContainerAppContainer();
                 template.Containers = [containerAppContainer];
 
-                containerAppContainer.Image = containerImageParam is null ? containerImageName : containerImageParam;
+                containerAppContainer.Image = containerImageParam is null ? containerImageName! : containerImageParam;
                 containerAppContainer.Name = resource.Name;
 
                 AddEnvironmentVariablesAndCommandLineArgs(containerAppContainer);
@@ -497,7 +501,8 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                             {
                                 var managedIdentityParameter = AllocateManagedIdentityIdParameter();
                                 secret.Identity = managedIdentityParameter;
-                                secret.KeyVaultUri = new BicepValue<Uri>(argValue.Expression!);
+                                // TODO: this should be able to use ToUri(), but it hit an issue
+                                secret.KeyVaultUri = new BicepValue<Uri>(((BicepExpression?)argValue)!);
                             }
                             else
                             {
@@ -531,7 +536,6 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 {
                     BicepValue<string> s => s,
                     string s => s,
-                    BicepValueFormattableString fs => Interpolate(fs),
                     ProvisioningParameter p => p,
                     _ => throw new NotSupportedException("Unsupported value type " + val.GetType())
                 };
@@ -698,7 +702,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                         args[index++] = val;
                     }
 
-                    return (new BicepValueFormattableString(expr.Format, args), finalSecretType);
+                    return (Interpolate(expr.Format, args), finalSecretType);
 
                 }
 
@@ -714,7 +718,7 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 {
                     // We resolve the keyvault that represents the storage for secret outputs
                     var parameter = AllocateParameter(SecretOutputExpression.GetSecretOutputKeyVault(secretOutputReference.Resource));
-                    kv = KeyVaultService.FromExisting($"{parameter.IdentifierName}_kv");
+                    kv = KeyVaultService.FromExisting($"{parameter.BicepIdentifier}_kv");
                     kv.Name = parameter;
 
                     KeyVaultRefs[secretOutputReference.Resource.Name] = kv;
@@ -723,19 +727,15 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
                 if (!KeyVaultSecretRefs.TryGetValue(secretOutputReference.ValueExpression, out var secret))
                 {
                     // Now we resolve the secret
-                    var secretIdentifierName = Infrastructure.NormalizeIdentifierName($"{kv.IdentifierName}_{secretOutputReference.Name}");
-                    secret = KeyVaultSecret.FromExisting(secretIdentifierName);
+                    var secretBicepIdentifier = Infrastructure.NormalizeBicepIdentifier($"{kv.BicepIdentifier}_{secretOutputReference.Name}");
+                    secret = KeyVaultSecret.FromExisting(secretBicepIdentifier);
                     secret.Name = secretOutputReference.Name;
                     secret.Parent = kv;
 
                     KeyVaultSecretRefs[secretOutputReference.ValueExpression] = secret;
                 }
 
-                // TODO: There should be a better way to do this?
-                return new MemberExpression(
-                            new MemberExpression(
-                               new IdentifierExpression(secret.IdentifierName), "properties"),
-                            "secretUri");
+                return secret.Properties.SecretUri;
             }
 
             private ProvisioningParameter AllocateContainerImageParameter()
@@ -895,81 +895,45 @@ internal sealed class AzureContainerAppsInfrastructure(ILogger<AzureContainerApp
         }
     }
 
-    // REVIEW: BicepFunction.Interpolate is buggy and doesn't handle nested formattable strings correctly
-    // This is a workaround to handle nested formattable strings until the bug is fixed.
-    private static BicepValue<string> Interpolate(BicepValueFormattableString text)
+    private static BicepValue<string> Interpolate(string format, object[] args)
     {
-        var formatStringBuilder = new StringBuilder();
-        var arguments = new List<BicepValue<string>>();
+        var bicepStringBuilder = new BicepStringBuilder();
 
-        void ProcessFormattableString(BicepValueFormattableString formattableString, int argumentIndex)
+        var span = format.AsSpan();
+        var skip = 0;
+        var argumentIndex = 0;
+
+        foreach (var match in Regex.EnumerateMatches(span, @"{\d+}"))
         {
-            var span = formattableString.Format.AsSpan();
-            var skip = 0;
+            bicepStringBuilder.Append(span[..(match.Index - skip)].ToString());
 
-            foreach (var match in Regex.EnumerateMatches(span, @"{\d+}"))
+            var argument = args[argumentIndex];
+
+            if (argument is BicepValue<string> bicepValue)
             {
-                formatStringBuilder.Append(span[..(match.Index - skip)]);
-
-                var argument = formattableString.GetArgument(argumentIndex);
-
-                if (argument is BicepValueFormattableString nested)
-                {
-                    // Inline the nested formattable string
-                    ProcessFormattableString(nested, 0);
-                }
-                else
-                {
-                    formatStringBuilder.Append(CultureInfo.InvariantCulture, $"{{{arguments.Count}}}");
-                    if (argument is BicepValue<string> bicepValue)
-                    {
-                        arguments.Add(bicepValue);
-                    }
-                    else if (argument is string s)
-                    {
-                        arguments.Add(s);
-                    }
-                    else if (argument is ProvisioningParameter provisioningParameter)
-                    {
-                        arguments.Add(provisioningParameter);
-                    }
-                    else
-                    {
-                        throw new NotSupportedException($"{argument} is not supported");
-                    }
-                }
-
-                argumentIndex++;
-                span = span[(match.Index + match.Length - skip)..];
-                skip = match.Index + match.Length;
+                bicepStringBuilder.Append($"{bicepValue}");
+            }
+            else if (argument is string s)
+            {
+                bicepStringBuilder.Append(s);
+            }
+            else if (argument is ProvisioningParameter provisioningParameter)
+            {
+                bicepStringBuilder.Append($"{provisioningParameter}");
+            }
+            else
+            {
+                throw new NotSupportedException($"{argument} is not supported");
             }
 
-            formatStringBuilder.Append(span);
+            argumentIndex++;
+            span = span[(match.Index + match.Length - skip)..];
+            skip = match.Index + match.Length;
         }
 
-        ProcessFormattableString(text, 0);
+        bicepStringBuilder.Append(span.ToString());
 
-        var formatString = formatStringBuilder.ToString();
-
-        if (formatString == "{0}")
-        {
-            return arguments[0];
-        }
-
-        return BicepFunction.Interpolate(new BicepValueFormattableString(formatString, [.. arguments]));
-    }
-
-    /// <summary>
-    /// A custom FormattableString implementation that allows us to inline nested formattable strings.
-    /// </summary>
-    private sealed class BicepValueFormattableString(string formatString, object[] values) : FormattableString
-    {
-        public override int ArgumentCount => values.Length;
-        public override string Format => formatString;
-        public override object? GetArgument(int index) => values[index];
-        public override object?[] GetArguments() => values;
-        public override string ToString(IFormatProvider? formatProvider) => Format;
-        public override string ToString() => formatString;
+        return bicepStringBuilder.Build();
     }
 
     /// <summary>
