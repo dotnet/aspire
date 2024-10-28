@@ -26,27 +26,43 @@
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [
-		15887, // playground/waitfor AppHost
-		5180, // playground/waitfor ApiService
-		7024, // playground/waitfor Frontend
-		15551 // playground/waitfor PGAdmin
+		15887,
+		5180,
+		7024,
+		15551,
+		33803,
+		5350,
+		41567,
+		15306
 	],
 	"portsAttributes": {
-		"15887": {
-			"label": "WaitFor Playground: AppHost",
-			"protocol": "https"
-		},
 		"5180": {
 			"label": "WaitFor Playground: ApiService",
 			"protocol": "http"
+		},
+		"5350": {
+			"label": "Redis Playground: Api Service"
 		},
 		"7024": {
 			"label": "WaitFor Playground: Frontend",
 			"protocol": "https"
 		},
+		"15306": {
+			"label": "Redis Playground: App Host"
+		},
 		"15551": {
 			"label": "WaitFor Playground: PGAdmin",
 			"protocol": "http"
+		},
+		"15887": {
+			"label": "WaitFor Playground: AppHost",
+			"protocol": "https"
+		},
+		"33803": {
+			"label": "Redis Playground: Redis Commander"
+		},
+		"41567": {
+			"label": "Redis Playground: Redis Insight"
 		}
 	},
 	"otherPortsAttributes": {

@@ -2,8 +2,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var redis = builder.AddRedis("redis")
     .WithDataVolume()
-    .WithRedisCommander()
-    .WithRedisInsight();
+    .WithRedisCommander(c => c.WithHostPort(33803))
+    .WithRedisInsight(c => c.WithHostPort(41567));
 
 var garnet = builder.AddGarnet("garnet")
     .WithDataVolume();
