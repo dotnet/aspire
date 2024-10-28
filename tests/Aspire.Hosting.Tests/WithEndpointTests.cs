@@ -273,7 +273,7 @@ public class WithEndpointTests
             """
             {
               "type": "container.v0",
-              "image": "image:latest",
+              "image": "image",
               "bindings": {
                 "ep0": {
                   "scheme": "tcp",
@@ -301,7 +301,7 @@ public class WithEndpointTests
             """
             {
               "type": "container.v0",
-              "image": "image:latest",
+              "image": "image",
               "bindings": {
                 "h1": {
                   "scheme": "http",
@@ -328,7 +328,7 @@ public class WithEndpointTests
             """
             {
               "type": "container.v0",
-              "image": "image:latest",
+              "image": "image",
               "bindings": {
                 "h2": {
                   "scheme": "https",
@@ -355,7 +355,7 @@ public class WithEndpointTests
             """
             {
               "type": "container.v0",
-              "image": "image:latest",
+              "image": "image",
               "bindings": {
                 "h3": {
                   "scheme": "http",
@@ -382,7 +382,7 @@ public class WithEndpointTests
             """
             {
               "type": "container.v0",
-              "image": "image:latest",
+              "image": "image",
               "bindings": {
                 "h4": {
                   "scheme": "https",
@@ -409,7 +409,7 @@ public class WithEndpointTests
             """
             {
               "type": "container.v0",
-              "image": "image:latest",
+              "image": "image",
               "bindings": {
                 "otlp": {
                   "scheme": "http",
@@ -436,7 +436,7 @@ public class WithEndpointTests
             """
             {
               "type": "container.v0",
-              "image": "image:latest",
+              "image": "image",
               "bindings": {
                 "custom": {
                   "scheme": "tcp",
@@ -564,7 +564,7 @@ public class WithEndpointTests
             """
             {
               "type": "container.v0",
-              "image": "image:latest",
+              "image": "image",
               "bindings": {
                 "custom": {
                   "scheme": "tcp",
@@ -580,7 +580,7 @@ public class WithEndpointTests
             """
             {
               "type": "container.v0",
-              "image": "image:latest",
+              "image": "image",
               "bindings": {
                 "custom": {
                   "scheme": "tcp",

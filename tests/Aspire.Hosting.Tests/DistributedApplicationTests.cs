@@ -259,7 +259,7 @@ public class DistributedApplicationTests
         Assert.Collection(list,
             item =>
             {
-                Assert.Equal("redis:latest", item.Spec.Image);
+                Assert.Equal("redis", item.Spec.Image);
                 Assert.Equal(["redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR"], item.Spec.Args);
                 Assert.Equal(["--add-host", "testlocalhost:127.0.0.1"], item.Spec.RunArgs);
             });
@@ -381,7 +381,7 @@ public class DistributedApplicationTests
         var nodeApp = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, $"nodeapp-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null, token);
         Assert.NotNull(nodeApp);
 
-        Assert.Equal("redis:latest", redisContainer.Spec.Image);
+        Assert.Equal("redis", redisContainer.Spec.Image);
         Assert.Equal("6379", GetEnv(redisContainer.Spec.Env, "REDIS_PORT"));
         Assert.Equal("6379", GetEnv(redisContainer.Status!.EffectiveEnv, "REDIS_PORT"));
 
@@ -511,7 +511,7 @@ public class DistributedApplicationTests
             token);
 
         Assert.NotNull(redisContainer);
-        Assert.Equal("redis:latest", redisContainer.Spec.Image);
+        Assert.Equal("redis", redisContainer.Spec.Image);
         Assert.Equal("bob", redisContainer.Spec.Command);
 
         await app.StopAsync();

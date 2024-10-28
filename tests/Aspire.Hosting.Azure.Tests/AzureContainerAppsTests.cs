@@ -81,7 +81,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             template: {
               containers: [
                 {
-                  image: 'myimage:latest'
+                  image: 'myimage'
                   name: 'api'
                   env: [
                     {
@@ -431,7 +431,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             template: {
               containers: [
                 {
-                  image: 'myimage:latest'
+                  image: 'myimage'
                   name: 'api'
                   env: [
                     {
@@ -821,7 +821,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             template: {
               containers: [
                 {
-                  image: 'myimage:latest'
+                  image: 'myimage'
                   name: 'api'
                   env: [
                     {
@@ -937,7 +937,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             template: {
               containers: [
                 {
-                  image: 'myimage:latest'
+                  image: 'myimage'
                   name: 'api'
                   env: [
                     {
@@ -1040,7 +1040,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             template: {
               containers: [
                 {
-                  image: 'myimage:latest'
+                  image: 'myimage'
                   name: 'api'
                   env: [
                     {
@@ -1228,7 +1228,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             template: {
               containers: [
                 {
-                  image: 'image:latest'
+                  image: 'image'
                   name: 'api'
                   env: [
                     {
@@ -1434,7 +1434,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             template: {
               containers: [
                 {
-                  image: 'myimage:latest'
+                  image: 'myimage'
                   name: 'api'
                   env: [
                     {
@@ -1538,7 +1538,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             template: {
               containers: [
                 {
-                  image: 'myimage:latest'
+                  image: 'myimage'
                   name: 'api'
                   env: [
                     {
@@ -1637,7 +1637,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             template: {
               containers: [
                 {
-                  image: 'myimage:latest'
+                  image: 'myimage'
                   name: 'api'
                   env: [
                     {
