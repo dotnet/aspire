@@ -6,6 +6,9 @@
     <PatchVersion>0</PatchVersion>
     <VersionPrefix>$(MajorVersion).$(MinorVersion).$(PatchVersion)</VersionPrefix>
     <PreReleaseVersionLabel>preview.5</PreReleaseVersionLabel>
+    <!-- Aspire.Npgsql.EntityFrameworkCore.PostgreSQL will ship right after our November release, but it has already shipped as rc.1 so
+    we can't 'downgrade' it to preview.5. We will ship it as rc.2 in November and will mark it stable once EF Npgsql dependency ships stable. -->
+    <PrereleaseVersionLabel Condition="'$(MSBuildProjectName)' == 'Aspire.Npgsql.EntityFrameworkCore.PostgreSQL'">rc.2</PrereleaseVersionLabel>
     <!--
       When running package validation as part of the build, we want to ensure we didn't break the API against the previous
       version of each package. The following property points to the package version that should be used as baseline.
