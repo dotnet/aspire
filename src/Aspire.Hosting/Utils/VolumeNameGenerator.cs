@@ -5,8 +5,19 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Utils;
 
-internal static class VolumeNameGenerator
+/// <summary>
+/// Utility class for generating volume names
+/// </summary>
+public static class VolumeNameGenerator
 {
+    /// <summary>
+    /// Creates a volume name with the form <c>{applicationName}-{sha256 of apphost path}-{resourceName}-{suffix}</c>, e.g. <c>myapplication-a345f2451-postgres-data</c>.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="suffix">The suffix to append to the volume name.</param>
+    /// <returns>The volume name.</returns>
+    /// <exception cref="ArgumentException"></exception>
     public static string CreateVolumeName<T>(IResourceBuilder<T> builder, string suffix) where T : IResource
     {
         if (!HasOnlyValidChars(suffix))
@@ -14,7 +25,6 @@ internal static class VolumeNameGenerator
             throw new ArgumentException($"The suffix '{suffix}' contains invalid characters. Only [a-zA-Z0-9_.-] are allowed.", nameof(suffix));
         }
 
-        // Creates a volume name with the form < c > $"{applicationName}-{sha256 of apphost path}-{resourceName}-{suffix}</c>, e.g. <c>"myapplication-a345f2451-postgres-data"</c>.
         // Create volume name like "{Sanitize(appname).Lower()}-{sha256.Lower()}-postgres-data"
 
         // Compute a short hash of the content root path to differentiate between multiple AppHost projects with similar volume names
@@ -24,6 +34,11 @@ internal static class VolumeNameGenerator
         return $"{safeApplicationName}-{applicationHash}-{resourceName}-{suffix}";
     }
 
+    /// <summary>
+    /// Sanitizes the application name to be used in the volume name.
+    /// </summary>
+    /// <param name="name">The application name to be sanitized.</param>
+    /// <returns>The sanitized application name.</returns>
     public static string Sanitize(string name)
     {
         return string.Create(name.Length, name, static (s, name) =>
