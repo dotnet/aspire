@@ -36,7 +36,7 @@ public class CodespacesOptions
     /// Maps to the CODESPACE_NAME environment variable.
     /// </remarks>
     [MemberNotNullWhenAttribute(true, nameof(IsCodespace))]
-    public string? CodespaceName { get; set; } = null;
+    public string? CodespaceName { get; set; };
 }
 
 internal class ConfigureCodespacesOptions(IConfiguration configuration) : IConfigureOptions<CodespacesOptions>
