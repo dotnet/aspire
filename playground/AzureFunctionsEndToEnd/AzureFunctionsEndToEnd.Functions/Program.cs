@@ -1,6 +1,8 @@
+using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Hosting;
 
-var builder = FunctionsWebApplicationBuilder.CreateBuilder();
+var builder = FunctionsApplication.CreateBuilder(args);
+builder.ConfigureFunctionsWebApplication();
 
 builder.AddServiceDefaults();
 builder.AddAzureQueueClient("queue");
