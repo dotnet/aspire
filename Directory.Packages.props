@@ -35,7 +35,7 @@
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.22.2" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.20.1" />
     <PackageVersion Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="8.0.0" />
-    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.44.1" />
+    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.45.0" />
     <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.28.0" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.7.6" />
     <!-- Azure Management SDK for .NET dependencies -->
@@ -184,8 +184,8 @@
     <PackageVersion Include="Microsoft.Orleans.Server" Version="8.2.0" />
     <PackageVersion Include="Microsoft.Orleans.Sdk" Version="8.2.0" />
     <!-- playground apps dependencies for AzureFunctionsEndToEnd -->
-    <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="1.23.0" />
-    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.0.0-preview1" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="2.0.0-preview4" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.0.0-preview4" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Blobs" Version="6.6.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues" Version="5.5.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.22.0" />
@@ -195,7 +195,7 @@
     <PackageVersion Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
     <!-- Pinned versions for Component Governance - Remove when root dependencies are updated -->
     <PackageVersion Include="Azure.Core" Version="1.44.1" />
-    <PackageVersion Include="Azure.Identity" Version="1.12.1" />
+    <PackageVersion Include="Azure.Identity" Version="1.13.1" />
     <!-- https://github.com/Azure/azure-cosmos-dotnet-v3/pull/3313 -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageVersion Include="System.Formats.Asn1" Version="$(SystemFormatsAsn1PackageVersion)" />
