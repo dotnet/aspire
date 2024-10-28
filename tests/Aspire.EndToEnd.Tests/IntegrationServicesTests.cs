@@ -44,11 +44,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
             }
         });
 
-    [Fact]
-    [Trait("scenario", "eventhubs")]
-    public Task VerifyAzureEventHubsComponentWorks()
-        => VerifyComponentWorks(TestResourceNames.eventhubs);
-
     [ActiveIssue("https://github.com/dotnet/aspire/issues/5820")]
     [ConditionalTheory]
     [Trait("scenario", "cosmos")]

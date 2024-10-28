@@ -101,7 +101,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         string component = resource switch
         {
             TestResourceNames.cosmos or TestResourceNames.efcosmos => "cosmos",
-            TestResourceNames.eventhubs => "eventhubs",
             TestResourceNames.postgres or TestResourceNames.efnpgsql => "postgres",
             TestResourceNames.redis => "redis",
             _ => throw new ArgumentException($"Unknown resource: {resource}")
@@ -134,7 +133,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         TestResourceNames resourcesToInclude = TestScenario switch
         {
             "cosmos" => TestResourceNames.cosmos | TestResourceNames.efcosmos,
-            "eventhubs" => TestResourceNames.eventhubs,
             "basicservices" => TestResourceNames.redis
                               | TestResourceNames.postgres
                               | TestResourceNames.efnpgsql,

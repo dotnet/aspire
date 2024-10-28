@@ -21,11 +21,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
     builder.AddNpgsqlDbContext<NpgsqlDbContext>("postgresdb");
 }
-if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
-{
-    builder.AddAzureEventHubProducerClient("eventhubsns", settings => settings.EventHubName = "hub");
-    builder.AddAzureEventHubConsumerClient("eventhubsns", settings => settings.EventHubName = "hub");
-}
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
 {
@@ -35,19 +30,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFl
 if (!resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
 {
     builder.AddCosmosDbContext<EFCoreCosmosDbContext>("cosmos", "cosmos");
-}
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
-{
-    builder.AddAzureEventHubProducerClient("eventhubns", settings =>
-    {
-        settings.EventHubName = "hub";
-    });
-
-    builder.AddAzureEventHubConsumerClient("eventhubns", settings =>
-    {
-        settings.EventHubName = "hub";
-    });
 }
 
 // Ensure healthChecks are added. Some components like Cosmos
@@ -84,11 +66,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
 if (!resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
 {
     app.MapEFCoreCosmosApi();
-}
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
-{
-    app.MapEventHubsApi();
 }
 
 app.Run();

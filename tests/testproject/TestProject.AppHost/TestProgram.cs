@@ -88,11 +88,6 @@ public class TestProgram : IDisposable
                 var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(cosmos);
             }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
-            {
-                var eventHub = AppBuilder.AddAzureEventHubs("eventhubns").RunAsEmulator().AddEventHub("hub");
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(eventHub);
-            }
         }
 
         AppBuilder.Services.AddHostedService<ResourceLoggerForwarderService>();
