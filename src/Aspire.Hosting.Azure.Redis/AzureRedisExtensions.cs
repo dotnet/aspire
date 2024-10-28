@@ -129,14 +129,11 @@ public static class AzureRedisExtensions
             {
                 IsAadEnabled = "true"
             };
-
-            // TODO: This property should be available from the CDK in the latest version.
-            var disableAccessKeys = BicepValue<string>.DefineProperty(redis, "DisableAccessKeyAuthentication", ["properties", "disableAccessKeyAuthentication"], isOutput: false, isRequired: false);
-            disableAccessKeys.Assign("true");
+            redis.IsAccessKeyAuthenticationDisabled = true;
 
             var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
             var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
-            infrastructure.Add(new RedisCacheAccessPolicyAssignment($"{redis.IdentifierName}_contributor")
+            infrastructure.Add(new RedisCacheAccessPolicyAssignment($"{redis.BicepIdentifier}_contributor")
             {
                 Parent = redis,
                 AccessPolicyName = "Data Contributor",
@@ -233,7 +230,7 @@ public static class AzureRedisExtensions
            {
                RemoveActiveDirectoryAuthResources(infrastructure);
 
-               var redis = infrastructure.GetResources().OfType<CdkRedisResource>().FirstOrDefault(r => r.IdentifierName == builder.Resource.GetBicepIdentifier())
+               var redis = infrastructure.GetProvisionableResources().OfType<CdkRedisResource>().FirstOrDefault(r => r.BicepIdentifier == builder.Resource.GetBicepIdentifier())
                    ?? throw new InvalidOperationException($"Could not find a RedisResource with name {builder.Resource.Name}.");
 
                var kvNameParam = new ProvisioningParameter("keyVaultName", typeof(string));
@@ -243,11 +240,8 @@ public static class AzureRedisExtensions
                keyVault.Name = kvNameParam;
                infrastructure.Add(keyVault);
 
-               redis.RedisConfiguration.Value!.IsAadEnabled.Kind = BicepValueKind.Unset;
-
-               // TODO: This property should be available from the CDK in the latest version.
-               var disableAccessKeys = BicepValue<string>.DefineProperty(redis, "DisableAccessKeyAuthentication", ["properties", "disableAccessKeyAuthentication"], isOutput: false, isRequired: false);
-               disableAccessKeys.Kind = BicepValueKind.Unset;
+               redis.RedisConfiguration.IsAadEnabled.ClearValue();
+               redis.IsAccessKeyAuthenticationDisabled.ClearValue();
 
                var secret = new KeyVaultSecret("connectionString")
                {
@@ -292,14 +286,14 @@ public static class AzureRedisExtensions
     private static void RemoveActiveDirectoryAuthResources(AzureResourceInfrastructure infrastructure)
     {
         var resourcesToRemove = new List<Provisionable>();
-        foreach (var resource in infrastructure.GetResources())
+        foreach (var resource in infrastructure.GetProvisionableResources())
         {
             if (resource is RedisCacheAccessPolicyAssignment accessPolicy &&
-                accessPolicy.IdentifierName == $"{infrastructure.AspireResource.GetBicepIdentifier()}_contributor")
+                accessPolicy.BicepIdentifier == $"{infrastructure.AspireResource.GetBicepIdentifier()}_contributor")
             {
                 resourcesToRemove.Add(resource);
             }
-            else if (resource is ProvisioningOutput output && output.IdentifierName == "connectionString")
+            else if (resource is ProvisioningOutput output && output.BicepIdentifier == "connectionString")
             {
                 resourcesToRemove.Add(resource);
             }

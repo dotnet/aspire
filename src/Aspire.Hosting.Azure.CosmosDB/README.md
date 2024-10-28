@@ -13,7 +13,7 @@ Provides extension methods and resource definitions for a .NET Aspire AppHost to
 In your AppHost project, install the .NET Aspire Azure Cosmos DB Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.Azure.Cosmos
+dotnet add package Aspire.Hosting.Azure.CosmosDB
 ```
 
 ## Configure Azure Provisioning for local development

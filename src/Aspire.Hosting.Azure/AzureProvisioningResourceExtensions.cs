@@ -69,11 +69,11 @@ public static class AzureProvisioningResourceExtensions
         ArgumentNullException.ThrowIfNull(parameterResourceBuilder);
         ArgumentNullException.ThrowIfNull(infrastructure);
 
-        parameterName ??= Infrastructure.NormalizeIdentifierName(parameterResourceBuilder.Resource.Name);
+        parameterName ??= Infrastructure.NormalizeBicepIdentifier(parameterResourceBuilder.Resource.Name);
 
         infrastructure.AspireResource.Parameters[parameterName] = parameterResourceBuilder.Resource;
 
-        var parameter = infrastructure.GetParameters().FirstOrDefault(p => p.IdentifierName == parameterName);
+        var parameter = infrastructure.GetParameters().FirstOrDefault(p => p.BicepIdentifier == parameterName);
         if (parameter is null)
         {
             parameter = new ProvisioningParameter(parameterName, typeof(string))
@@ -112,7 +112,7 @@ public static class AzureProvisioningResourceExtensions
 
         infrastructure.AspireResource.Parameters[parameterName] = outputReference;
 
-        var parameter = infrastructure.GetParameters().FirstOrDefault(p => p.IdentifierName == parameterName);
+        var parameter = infrastructure.GetParameters().FirstOrDefault(p => p.BicepIdentifier == parameterName);
         if (parameter is null)
         {
             parameter = new ProvisioningParameter(parameterName, typeof(string));
