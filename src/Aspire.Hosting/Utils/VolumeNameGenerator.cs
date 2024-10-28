@@ -22,7 +22,7 @@ public static class VolumeNameGenerator
     {
         if (!HasOnlyValidChars(suffix))
         {
-            throw new ArgumentException($"The suffix '{suffix}' contains invalid characters. It must match [a-zA-Z0-9][a-zA-Z0-9_.-]*.", nameof(suffix));
+            throw new ArgumentException($"The suffix '{suffix}' contains invalid characters. Only [a-zA-Z0-9_.-] are allowed.", nameof(suffix));
         }
 
         // Create volume name like "{Sanitize(appname).Lower()}-{sha256.Lower()}-postgres-data"
