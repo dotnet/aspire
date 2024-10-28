@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 namespace Aspire.Hosting.Codespaces;
 
 /// <summary>
-/// GitHub Codespaces configuration valies.
+/// GitHub Codespaces configuration values.
 /// </summary>
 public class CodespacesOptions
 {
