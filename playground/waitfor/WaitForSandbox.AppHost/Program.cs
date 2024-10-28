@@ -10,11 +10,6 @@ var db = builder.AddAzurePostgresFlexibleServer("pg")
                     c.WithPgAdmin(c =>
                     {
                         c.WithHostPort(15551);
-
-                        // Variables that we are going to need to set when we detect that
-                        // we are run run mode with codespaces.
-                        c.WithEnvironment("PGADMIN_CONFIG_PROXY_X_HOST_COUNT", "1");
-                        c.WithEnvironment("PGADMIN_CONFIG_PROXY_X_PREFIX_COUNT", "1");
                     });
                 })
                 .AddDatabase("db");
