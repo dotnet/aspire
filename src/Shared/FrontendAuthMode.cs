@@ -6,7 +6,7 @@ namespace Aspire.Dashboard.Configuration;
 /// <summary>
 /// The valid authentication modes for the dashboard frontend
 /// </summary>
-public enum FrontendAuthMode
+internal enum FrontendAuthMode
 {
     /// <summary>
     /// Unsecured should only be used during local development

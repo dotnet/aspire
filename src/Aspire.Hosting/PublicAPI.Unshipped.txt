@@ -1,8 +1,4 @@
 #nullable enable
-Aspire.Dashboard.Configuration.FrontendAuthMode
-Aspire.Dashboard.Configuration.FrontendAuthMode.BrowserToken = 2 -> Aspire.Dashboard.Configuration.FrontendAuthMode
-Aspire.Dashboard.Configuration.FrontendAuthMode.OpenIdConnect = 1 -> Aspire.Dashboard.Configuration.FrontendAuthMode
-Aspire.Dashboard.Configuration.FrontendAuthMode.Unsecured = 0 -> Aspire.Dashboard.Configuration.FrontendAuthMode
 Aspire.Dashboard.Configuration.OpenIdConnectOptions
 Aspire.Dashboard.Configuration.OpenIdConnectOptions.GetNameClaimTypes() -> string![]!
 Aspire.Dashboard.Configuration.OpenIdConnectOptions.GetUsernameClaimTypes() -> string![]!

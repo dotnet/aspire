@@ -12,7 +12,7 @@ internal class DashboardOptions
 {
     public string? DashboardPath { get; set; }
     public string? DashboardUrl { get; set; }
-    public FrontendAuthMode DashboardAuthMode { get; set; }
+    public DashboardAuthMode DashboardAuthMode { get; set; }
     public string? DashboardToken { get; set; }
     public OpenIdConnectOptions? OpenIdConnect { get; set; } = new();
     public OpenIdConnectSettings? OpenIdConnectSettings { get; set; } = new();
@@ -20,6 +20,13 @@ internal class DashboardOptions
     public string? OtlpHttpEndpointUrl { get; set; }
     public string? OtlpApiKey { get; set; }
     public string AspNetCoreEnvironment { get; set; } = "Production";
+}
+
+internal enum DashboardAuthMode
+{
+    Unsecured,
+    OpenIdConnect,
+    BrowserToken
 }
 
 internal class OpenIdConnectSettings
@@ -38,7 +45,7 @@ internal class ConfigureDefaultDashboardOptions(IConfiguration configuration, IO
         options.DashboardPath = dcpOptions.Value.DashboardPath;
         options.DashboardUrl = configuration[KnownConfigNames.AspNetCoreUrls];
 
-        if (Enum.TryParse<FrontendAuthMode>(configuration[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey], out var dashboardAuthMode))
+        if (Enum.TryParse<DashboardAuthMode>(configuration[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey], out var dashboardAuthMode))
         {
             options.DashboardAuthMode = dashboardAuthMode;
         }

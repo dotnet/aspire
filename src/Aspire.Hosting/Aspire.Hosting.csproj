@@ -18,7 +18,6 @@
     <Compile Include="$(SharedDir)ChannelExtensions.cs" Link="ChannelExtensions.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="CircularBuffer.cs" />
     <Compile Include="$(SharedDir)CompareHelpers.cs" Link="Utils\CompareHelpers.cs" />
-    <Compile Include="$(SharedDir)FrontendAuthMode.cs" Link="Dashboard\FrontendAuthMode.cs" />
     <Compile Include="$(SharedDir)Model\KnownProperties.cs" Link="Dashboard\KnownProperties.cs" />
     <Compile Include="$(SharedDir)Model\KnownResourceTypes.cs" Link="Dashboard\KnownResourceTypes.cs" />
     <Compile Include="$(SharedDir)OpenIdConnectOptions.cs" Link="Dashboard\OpenIdConnectOptions.cs" />

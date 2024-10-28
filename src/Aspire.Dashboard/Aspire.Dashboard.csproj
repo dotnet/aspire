@@ -227,7 +227,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)FrontendAuthMode.cs" Link="Configuration\FrontendAuthMode.cs" />
     <Compile Include="$(SharedDir)OpenIdConnectOptions.cs" Link="Configuration\OpenIdConnectOptions.cs" />
     <Compile Include="$(SharedDir)ChannelExtensions.cs" Link="Extensions\ChannelExtensions.cs" />
     <Compile Include="$(SharedDir)CompareHelpers.cs" Link="Utils\CompareHelpers.cs" />

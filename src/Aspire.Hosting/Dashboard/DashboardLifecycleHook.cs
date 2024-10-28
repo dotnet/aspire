@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
@@ -219,7 +218,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             // Configure frontend auth
             context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName] = dashboardAuthMode.ToString();
 
-            if (dashboardAuthMode == FrontendAuthMode.OpenIdConnect)
+            if (dashboardAuthMode == DashboardAuthMode.OpenIdConnect)
             {
                 if (options.OpenIdConnect != null)
                 {
@@ -261,7 +260,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                     }
                 }
             }
-            else if (dashboardAuthMode == FrontendAuthMode.BrowserToken && !string.IsNullOrEmpty(browserToken))
+            else if (dashboardAuthMode == DashboardAuthMode.BrowserToken && !string.IsNullOrEmpty(browserToken))
             {
                 // Configure frontend browser token
                 context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendBrowserTokenName.EnvVarName] = browserToken;
