@@ -26,7 +26,7 @@ public class CodespacesOptions
     /// <remarks>
     /// Maps to the GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN environment variable.
     /// </remarks>
-    [MemberNotNullWhenAttribute(true, nameof(IsCodespace))]
+    [MemberNotNullWhen(true, nameof(IsCodespace))]
     public string? PortForwardingDomain { get; set; } = null;
 
     /// <summary>
