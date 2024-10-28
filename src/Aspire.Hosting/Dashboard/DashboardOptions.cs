@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Configuration;
 using Aspire.Hosting.Dcp;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
@@ -14,7 +13,7 @@ internal class DashboardOptions
     public string? DashboardUrl { get; set; }
     public DashboardAuthMode DashboardAuthMode { get; set; }
     public string? DashboardToken { get; set; }
-    public OpenIdConnectOptions? OpenIdConnect { get; set; } = new();
+    public OpenIdConnectPolicyOptions? OpenIdConnect { get; set; } = new();
     public OpenIdConnectSettings? OpenIdConnectSettings { get; set; } = new();
     public string? OtlpGrpcEndpointUrl { get; set; }
     public string? OtlpHttpEndpointUrl { get; set; }
@@ -27,6 +26,26 @@ internal enum DashboardAuthMode
     Unsecured,
     OpenIdConnect,
     BrowserToken
+}
+
+internal sealed class OpenIdConnectPolicyOptions
+{
+    public string NameClaimType { get; set; } = "name";
+    public string UsernameClaimType { get; set; } = "preferred_username";
+
+    /// <summary>
+    /// Gets the optional name of a claim that users authenticated via OpenID Connect are required to have.
+    /// If specified, users without this claim will be rejected. If <see cref="RequiredClaimValue"/>
+    /// is also specified, then the value of this claim must also match <see cref="RequiredClaimValue"/>.
+    /// </summary>
+    public string RequiredClaimType { get; set; } = "";
+
+    /// <summary>
+    /// Gets the optional value of the <see cref="RequiredClaimType"/> claim for users authenticated via
+    /// OpenID Connect. If specified, users not having this value for the corresponding claim type are
+    /// rejected.
+    /// </summary>
+    public string RequiredClaimValue { get; set; } = "";
 }
 
 internal class OpenIdConnectSettings
