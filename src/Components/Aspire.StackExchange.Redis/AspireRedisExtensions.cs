@@ -36,7 +36,11 @@ public static class AspireRedisExtensions
         string connectionName,
         Action<StackExchangeRedisSettings>? configureSettings = null,
         Action<ConfigurationOptions>? configureOptions = null)
-        => AddRedisClient(builder, configureSettings, configureOptions, connectionName, serviceKey: null);
+    {
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        AddRedisClient(builder, configureSettings, configureOptions, connectionName, serviceKey: null);
+    }
 
     /// <summary>
     /// Registers <see cref="IConnectionMultiplexer"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.

@@ -9,7 +9,6 @@ using HealthChecks.RabbitMQ;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
 using RabbitMQ.Client;
@@ -40,7 +39,11 @@ public static class AspireRabbitMQExtensions
         string connectionName,
         Action<RabbitMQClientSettings>? configureSettings = null,
         Action<ConnectionFactory>? configureConnectionFactory = null)
-        => AddRabbitMQClient(builder, configureSettings, configureConnectionFactory, connectionName, serviceKey: null);
+    {
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        AddRabbitMQClient(builder, configureSettings, configureConnectionFactory, connectionName, serviceKey: null);
+    }
 
     /// <summary>
     /// Registers <see cref="IConnection"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
