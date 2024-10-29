@@ -34,11 +34,6 @@ public static class VolumeNameGenerator
         return $"{safeApplicationName}-{applicationHash}-{resourceName}-{suffix}";
     }
 
-    /// <summary>
-    /// Sanitizes the application name to be used in the volume name.
-    /// </summary>
-    /// <param name="name">The application name to be sanitized.</param>
-    /// <returns>The sanitized application name.</returns>
     internal static string Sanitize(string name)
     {
         return string.Create(name.Length, name, static (s, name) =>
