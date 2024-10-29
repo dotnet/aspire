@@ -39,7 +39,7 @@ public static class VolumeNameGenerator
     /// </summary>
     /// <param name="name">The application name to be sanitized.</param>
     /// <returns>The sanitized application name.</returns>
-    public static string Sanitize(string name)
+    internal static string Sanitize(string name)
     {
         return string.Create(name.Length, name, static (s, name) =>
         {
