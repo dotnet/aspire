@@ -18,6 +18,11 @@ builder.AddProject<Projects.DaprServiceB>("serviceb")
        .WithDaprSidecar()
        .WithReference(pubSub);
 
+// console app with no appPort (sender only)
+builder.AddProject<Projects.DaprServiceC>("servicec")
+       .WithReference(stateStore)
+       .WithDaprSidecar();
+
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

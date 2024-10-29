@@ -2,9 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Tests.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
+
 public class ExpressionResolverTests
 {
     [Theory]
@@ -49,7 +51,7 @@ public class ExpressionResolverTests
 
         // First test ExpressionResolver directly
         var csRef = new ConnectionStringReference(target.Resource, false);
-        var connectionString = await ExpressionResolver.ResolveAsync(sourceIsContainer, csRef, "ContainerHostName", CancellationToken.None);
+        var connectionString = await ExpressionResolver.ResolveAsync(sourceIsContainer, csRef, "ContainerHostName", CancellationToken.None).DefaultTimeout();
         Assert.Equal(expectedConnectionString, connectionString);
 
         // Then test it indirectly with a resource reference, which exercises a more complete code path
@@ -60,7 +62,7 @@ public class ExpressionResolverTests
             source = source.WithImage("someimage");
         }
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(source.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName");
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(source.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName").DefaultTimeout();
         Assert.Equal(expectedConnectionString, config["ConnectionStrings__testresource"]);
     }
 
@@ -92,7 +94,7 @@ public class ExpressionResolverTests
             test = test.WithImage("someimage");
         }
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName");
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName").DefaultTimeout();
         Assert.Equal(expectedValue, config["envname"]);
     }
 
@@ -111,7 +113,7 @@ public class ExpressionResolverTests
             test = test.WithImage("someimage");
         }
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName");
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName").DefaultTimeout();
         Assert.Equal(expectedValue, config["OTEL_EXPORTER_OTLP_ENDPOINT"]);
     }
 }

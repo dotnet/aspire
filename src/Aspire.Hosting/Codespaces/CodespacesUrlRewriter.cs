@@ -3,34 +3,21 @@
 
 using System.Collections.Immutable;
 using Aspire.Hosting.ApplicationModel;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Codespaces;
 
-internal sealed class CodespacesUrlRewriter(ILogger<CodespacesUrlRewriter> logger, IConfiguration configuration, ResourceNotificationService resourceNotificationService) : BackgroundService
+internal sealed class CodespacesUrlRewriter(ILogger<CodespacesUrlRewriter> logger, IOptions<CodespacesOptions> options, ResourceNotificationService resourceNotificationService) : BackgroundService
 {
-    private const string CodespacesEnvironmentVariable = "CODESPACES";
-    private const string CodespaceNameEnvironmentVariable = "CODESPACE_NAME";
-    private const string GitHubCodespacesPortForwardingDomain = "GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN";
-
-    private string GetRequiredCodespacesConfigurationValue(string key)
-    {
-        ArgumentNullException.ThrowIfNullOrEmpty(key);
-        return configuration.GetValue<string>(key) ?? throw new DistributedApplicationException($"Codespaces was detected but {key} environment missing.");
-    }
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!configuration.GetValue<bool>(CodespacesEnvironmentVariable, false))
+        if (!options.Value.IsCodespace)
         {
             logger.LogTrace("Not running in Codespaces, skipping URL rewriting.");
             return;
         }
-
-        var gitHubCodespacesPortForwardingDomain = GetRequiredCodespacesConfigurationValue(GitHubCodespacesPortForwardingDomain);
-        var codespaceName = GetRequiredCodespacesConfigurationValue(CodespaceNameEnvironmentVariable);
 
         do
         {
@@ -58,7 +45,7 @@ internal sealed class CodespacesUrlRewriter(ILogger<CodespacesUrlRewriter> logge
                                 // which is typically ".app.github.dev". The VSCode instance is typically
                                 // hosted at codespacename.github.dev whereas the forwarded ports
                                 // would be at codespacename-port.app.github.dev.
-                                Url = $"{uri.Scheme}://{codespaceName}-{uri.Port}.{gitHubCodespacesPortForwardingDomain}{uri.AbsolutePath}"
+                                Url = $"{uri.Scheme}://{options.Value.CodespaceName}-{uri.Port}.{options.Value.PortForwardingDomain}{uri.AbsolutePath}"
                             };
 
                             remappedUrls.Add(originalUrlSnapshot, newUrlSnapshot);
