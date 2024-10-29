@@ -36,7 +36,7 @@ public class NatsServerResource(string name) : ContainerResource(ThrowIfNull(nam
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
     /// <summary>
-    /// user name for the NATS server
+    /// Gets or sets the user name for the NATS server.
     /// </summary>
     public ParameterResource? UserNameParameter { get; set; }
 
