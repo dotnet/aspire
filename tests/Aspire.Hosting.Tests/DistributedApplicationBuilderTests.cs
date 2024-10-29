@@ -103,7 +103,7 @@ public class DistributedApplicationBuilderTests
         using var app = appBuilder.Build();
 
         var config = app.Services.GetRequiredService<IConfiguration>();
-        Assert.Equal(nameof(ResourceServiceAuthMode.Unsecured), config["AppHost:ResourceService:AuthMode"]);
+        Assert.Equal(nameof(ResourceServiceAuthMode.ApiKey), config["AppHost:ResourceService:AuthMode"]);
         Assert.False(string.IsNullOrEmpty(config["AppHost:ResourceService:ApiKey"]));
     }
 
