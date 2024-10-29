@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Codespaces;
 /// <summary>
 /// GitHub Codespaces configuration values.
 /// </summary>
-public class CodespacesOptions
+internal class CodespacesOptions
 {
     /// <summary>
     /// When set to true, the app host is running in a GitHub Codespace.

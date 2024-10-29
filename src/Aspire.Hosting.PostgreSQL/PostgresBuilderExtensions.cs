@@ -4,11 +4,10 @@
 using System.Text;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Codespaces;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
@@ -339,8 +338,8 @@ public static class PostgresBuilderExtensions
         // When running in the context of Codespaces we need to set some additional environment
         // varialbes so that PGAdmin will trust the forwarded headers that Codespaces port
         // forwarding will send.
-        var codespaceOptions = context.ExecutionContext.ServiceProvider.GetRequiredService<IOptions<CodespacesOptions>>();
-        if (context.ExecutionContext.IsRunMode && codespaceOptions.Value.IsCodespace)
+        var config = context.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
+        if (context.ExecutionContext.IsRunMode && config.GetValue<bool>("CODESPACES", false))
         {
             context.EnvironmentVariables["PGADMIN_CONFIG_PROXY_X_HOST_COUNT"] = "1";
             context.EnvironmentVariables["PGADMIN_CONFIG_PROXY_X_PREFIX_COUNT"] = "1";

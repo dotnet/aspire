@@ -160,14 +160,6 @@ Aspire.Hosting.ApplicationModel.WaitAnnotation.WaitType.get -> Aspire.Hosting.Ap
 Aspire.Hosting.ApplicationModel.WaitType
 Aspire.Hosting.ApplicationModel.WaitType.WaitForCompletion = 1 -> Aspire.Hosting.ApplicationModel.WaitType
 Aspire.Hosting.ApplicationModel.WaitType.WaitUntilHealthy = 0 -> Aspire.Hosting.ApplicationModel.WaitType
-Aspire.Hosting.Codespaces.CodespacesOptions
-Aspire.Hosting.Codespaces.CodespacesOptions.CodespaceName.get -> string?
-Aspire.Hosting.Codespaces.CodespacesOptions.CodespaceName.set -> void
-Aspire.Hosting.Codespaces.CodespacesOptions.CodespacesOptions() -> void
-Aspire.Hosting.Codespaces.CodespacesOptions.IsCodespace.get -> bool
-Aspire.Hosting.Codespaces.CodespacesOptions.IsCodespace.set -> void
-Aspire.Hosting.Codespaces.CodespacesOptions.PortForwardingDomain.get -> string?
-Aspire.Hosting.Codespaces.CodespacesOptions.PortForwardingDomain.set -> void
 Aspire.Hosting.DistributedApplicationBuilder.AppHostPath.get -> string!
 Aspire.Hosting.DistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
 Aspire.Hosting.Eventing.DistributedApplicationEventing
