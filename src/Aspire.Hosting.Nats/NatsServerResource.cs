@@ -46,7 +46,7 @@ public class NatsServerResource(string name) : ContainerResource(ThrowIfNull(nam
             ReferenceExpression.Create($"{DefaultUserName}");
 
     /// <summary>
-    /// password for the NATS server
+    /// Gets or sets the password for the NATS server.
     /// </summary>
     public ParameterResource? PasswordParameter { get; set; }
 
