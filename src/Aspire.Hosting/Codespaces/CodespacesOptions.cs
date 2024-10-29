@@ -27,7 +27,7 @@ public class CodespacesOptions
     /// Maps to the GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN environment variable.
     /// </remarks>
     [MemberNotNullWhen(true, nameof(IsCodespace))]
-    public string? PortForwardingDomain { get; set; };
+    public string? PortForwardingDomain { get; set; }
 
     /// <summary>
     /// When set it is the name of the GitHub Codespace in which the app host is running.
@@ -36,7 +36,7 @@ public class CodespacesOptions
     /// Maps to the CODESPACE_NAME environment variable.
     /// </remarks>
     [MemberNotNullWhen(true, nameof(IsCodespace))]
-    public string? CodespaceName { get; set; };
+    public string? CodespaceName { get; set; }
 }
 
 internal class ConfigureCodespacesOptions(IConfiguration configuration) : IConfigureOptions<CodespacesOptions>
