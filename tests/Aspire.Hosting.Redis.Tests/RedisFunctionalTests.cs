@@ -130,7 +130,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var configure = (DistributedApplicationOptions options) =>
         {
-            options.ContainerRegistryOverride = TestConstants.AspireTestContainerRegistry;
+            options.ContainerRegistryOverride = ComponentTestConstants.AspireTestContainerRegistry;
         };
 
         using var builder1 = TestDistributedApplicationBuilder.Create(configure, testOutputHelper);
