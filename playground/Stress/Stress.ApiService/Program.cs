@@ -95,13 +95,19 @@ app.MapGet("/http-client-requests", async (HttpClient client) =>
     return $"Sent requests to {string.Join(';', urls)}";
 });
 
-app.MapGet("/log-message-limit", ([FromServices] ILogger<Program> logger) =>
+app.MapGet("/log-message-limit", async ([FromServices] ILogger<Program> logger) =>
 {
-    const int LogCount = 20_000;
+    const int LogCount = 10_000;
+    const int BatchSize = 10;
 
-    for (var i = 0; i < LogCount; i++)
+    for (var i = 0; i < LogCount / BatchSize; i++)
     {
-        logger.LogInformation("Log entry {LogEntryIndex}", i);
+        for (var j = 0; j < BatchSize; j++)
+        {
+            logger.LogInformation("Log entry {BatchIndex}-{LogEntryIndex}", i, j);
+        }
+
+        await Task.Delay(100);
     }
 
     return $"Created {LogCount} logs.";

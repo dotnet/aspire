@@ -34,7 +34,7 @@ public class TraceCreator
     {
         var activityStack = new Stack<Activity>();
 
-        for (var i = 0; i < 10; i++)
+        for (var i = 0; i < count; i++)
         {
             if (i > 0)
             {
@@ -54,8 +54,6 @@ public class TraceCreator
             {
                 await CreateChildActivityAsync(name);
             }
-
-            await Task.Delay(Random.Shared.Next(10, 50));
         }
 
         while (activityStack.Count > 0)
