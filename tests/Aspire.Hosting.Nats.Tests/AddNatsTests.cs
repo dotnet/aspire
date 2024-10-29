@@ -145,11 +145,8 @@ public class AddNatsTests
         var path = OperatingSystem.IsWindows() ? @"C:\tmp\dev-data" : "/tmp/dev-data";
 
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:user"] = "usr";
-        appBuilder.Configuration["Parameters:pass"] = "pass";
-
-        var user = appBuilder.AddParameter("user");
-        var pass = appBuilder.AddParameter("pass");
+        var user = appBuilder.AddParameter("user", "usr");
+        var pass = appBuilder.AddParameter("pass", "pass");
 
         appBuilder.AddNats("nats", 1234, user, pass).WithJetStream().WithDataBindMount(path);
 
