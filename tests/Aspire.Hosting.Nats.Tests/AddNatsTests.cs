@@ -32,40 +32,15 @@ public class AddNatsTests
     }
 
     [Fact]
-    public void AddNatsSetsDefaultUserNameAndPasswordOnNatsServerResource()
-    {
-        using var appBuilder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        var nats = appBuilder.AddNats("nats");
-
-        Assert.NotNull(nats.Resource.PasswordParameter);
-        Assert.False(string.IsNullOrEmpty(nats.Resource.PasswordParameter!.Value));
-    }
-
-    [Fact]
-    public void AddNatsSetsUserNameAndPasswordOnNatsServerResource()
-    {
-        using var appBuilder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        var userParameters = appBuilder.AddParameter("user", "usr");
-        var passwordParameters = appBuilder.AddParameter("pass", "password");
-
-        var nats = appBuilder.AddNats("nats", userName: userParameters, password: passwordParameters);
-
-        Assert.NotNull(nats.Resource.UserNameParameter);
-        Assert.NotNull(nats.Resource.PasswordParameter);
-
-        Assert.Equal("usr", nats.Resource.UserNameParameter!.Value);
-        Assert.Equal("password", nats.Resource.PasswordParameter!.Value);
-    }
-
-    [Fact]
-    public async Task AddNatsCreatesConnectionStringWithDefaultUserAndPassword()
+    public async Task AddNatsSetsDefaultUserNameAndPasswordAndIncludesThemInConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        appBuilder.AddNats("nats")
+        var nats = appBuilder.AddNats("nats")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 4222));
+
+        Assert.NotNull(nats.Resource.PasswordParameter);
+        Assert.False(string.IsNullOrEmpty(nats.Resource.PasswordParameter!.Value));
 
         using var app = appBuilder.Build();
 
@@ -81,14 +56,20 @@ public class AddNatsTests
     }
 
     [Fact]
-    public async Task AddNatsCreatesConnectionStringWithUserAndPassword()
+    public async Task AddNatsSetsUserNameAndPasswordAndIncludesThemInConnection()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var userParameters = appBuilder.AddParameter("user", "usr");
         var passwordParameters = appBuilder.AddParameter("pass", "password");
 
-        appBuilder.AddNats("nats", userName: userParameters, password: passwordParameters)
+        var nats = appBuilder.AddNats("nats", userName: userParameters, password: passwordParameters)
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 4222));
+
+        Assert.NotNull(nats.Resource.UserNameParameter);
+        Assert.NotNull(nats.Resource.PasswordParameter);
+
+        Assert.Equal("usr", nats.Resource.UserNameParameter!.Value);
+        Assert.Equal("password", nats.Resource.PasswordParameter!.Value);
 
         using var app = appBuilder.Build();
 
@@ -129,7 +110,7 @@ public class AddNatsTests
         Assert.Equal(NatsContainerImageTags.Image, containerAnnotation.Image);
         Assert.Equal(NatsContainerImageTags.Registry, containerAnnotation.Registry);
 
-        var args = await CommandLineArgumentsEvaluator.GetCommandLineArgumentsAsync(containerResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var args = await ArgumentEvaluator.GetArgumentListAsync(containerResource);
 
         Assert.Collection(args,
             arg => Assert.Equal("--user", arg),
@@ -175,7 +156,7 @@ public class AddNatsTests
         Assert.Equal(NatsContainerImageTags.Image, containerAnnotation.Image);
         Assert.Equal(NatsContainerImageTags.Registry, containerAnnotation.Registry);
 
-        var args = await CommandLineArgumentsEvaluator.GetCommandLineArgumentsAsync(containerResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var args = await ArgumentEvaluator.GetArgumentListAsync(containerResource);
 
         Assert.Collection(args,
             arg => Assert.Equal("--user", arg),
