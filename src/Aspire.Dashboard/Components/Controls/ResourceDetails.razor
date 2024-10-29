@@ -71,19 +71,6 @@
                     HighlightText="@_filter"
                     GridTemplateColumns="1fr 1.5fr" />
             </FluentAccordionItem>
-            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsEnvironmentVariablesHeader)]" Expanded="@_isEnvironmentVariablesExpanded">
-                <div slot="end">
-                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
-                        @FilteredEnvironmentVariables.Count()
-                    </FluentBadge>
-                </div>
-                <PropertyGrid
-                    TItem="EnvironmentVariableViewModel"
-                    Items="@FilteredEnvironmentVariables"
-                    IsValueMaskedChanged="@OnValueMaskedChanged"
-                    HighlightText="@_filter"
-                    GridTemplateColumns="1fr 1.5fr" />
-            </FluentAccordionItem>
             @if (Resource.IsContainer())
             {
                 <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsVolumesHeader)]" Expanded="@_isVolumesExpanded">
@@ -172,6 +159,18 @@
                         </GridValue>
                     </AspireTemplateColumn>
                 </FluentDataGrid>
+            </FluentAccordionItem>
+            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsEnvironmentVariablesHeader)]" Expanded="@_isEnvironmentVariablesExpanded">
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
+                        @FilteredEnvironmentVariables.Count()
+                    </FluentBadge>
+                </div>
+                <PropertyGrid TItem="EnvironmentVariableViewModel"
+                              Items="@FilteredEnvironmentVariables"
+                              IsValueMaskedChanged="@OnValueMaskedChanged"
+                              HighlightText="@_filter"
+                              GridTemplateColumns="1fr 1.5fr" />
             </FluentAccordionItem>
         </FluentAccordion>
     </div>
