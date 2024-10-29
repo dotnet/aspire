@@ -268,7 +268,7 @@ public static class AzureEventHubsExtensions
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <returns>A builder for the <see cref="AzureEventHubsEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureEventHubsEmulatorResource> WithDataVolume(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string? name = null)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data", isReadOnly: false);
+        => builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/data", isReadOnly: false);
 
     /// <summary>
     /// Configures the gateway port for the Azure Event Hubs emulator.

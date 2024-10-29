@@ -99,7 +99,7 @@ public static class QdrantBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/qdrant/storage",
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/qdrant/storage",
             isReadOnly);
     }
 

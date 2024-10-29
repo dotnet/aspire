@@ -178,7 +178,7 @@ public static class KafkaBuilderExtensions
 
         return builder
             .WithEnvironment(ConfigureLogDirs)
-            .WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), Target, isReadOnly);
+            .WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), Target, isReadOnly);
     }
 
     /// <summary>

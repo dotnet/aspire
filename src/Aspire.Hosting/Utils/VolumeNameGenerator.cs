@@ -11,14 +11,14 @@ namespace Aspire.Hosting.Utils;
 public static class VolumeNameGenerator
 {
     /// <summary>
-    /// Creates a volume name with the form <c>{applicationName}-{sha256 of apphost path}-{resourceName}-{suffix}</c>, e.g. <c>myapplication-a345f2451-postgres-data</c>.
+    /// Generates a volume name with the form <c>{applicationName}-{sha256 of apphost path}-{resourceName}-{suffix}</c>, e.g. <c>myapplication-a345f2451-postgres-data</c>.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="suffix">The suffix to append to the volume name.</param>
     /// <returns>The volume name.</returns>
     /// <exception cref="ArgumentException"></exception>
-    public static string CreateVolumeName<T>(IResourceBuilder<T> builder, string suffix) where T : IResource
+    public static string Generate<T>(IResourceBuilder<T> builder, string suffix) where T : IResource
     {
         if (!HasOnlyValidChars(suffix))
         {

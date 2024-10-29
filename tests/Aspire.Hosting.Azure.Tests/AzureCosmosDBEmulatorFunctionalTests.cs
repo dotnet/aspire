@@ -142,7 +142,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         var cosmos1 = builder1.AddAzureCosmosDB("cosmos");
 
         // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
-        var volumeName = VolumeNameGenerator.CreateVolumeName(cosmos1, nameof(WithDataVolumeShouldPersistStateBetweenUsages));
+        var volumeName = VolumeNameGenerator.Generate(cosmos1, nameof(WithDataVolumeShouldPersistStateBetweenUsages));
 
         var db1 = cosmos1.AddDatabase(databaseName)
                        .RunAsEmulator(emulator => emulator.WithDataVolume(volumeName));

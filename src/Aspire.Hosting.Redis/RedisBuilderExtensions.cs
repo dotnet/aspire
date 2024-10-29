@@ -370,7 +370,7 @@ public static class RedisBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data", isReadOnly);
+        builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/data", isReadOnly);
         if (!isReadOnly)
         {
             builder.WithPersistence();

@@ -184,7 +184,7 @@ public static class AzureCosmosExtensions
     /// <returns>A builder for the <see cref="AzureCosmosDBEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureCosmosDBEmulatorResource> WithDataVolume(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, string? name = null)
         => builder.WithEnvironment("AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE", "true")
-                  .WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/tmp/cosmos/appdata", isReadOnly: false);
+                  .WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/tmp/cosmos/appdata", isReadOnly: false);
 
     /// <summary>
     /// Configures the gateway port for the Azure Cosmos DB emulator.

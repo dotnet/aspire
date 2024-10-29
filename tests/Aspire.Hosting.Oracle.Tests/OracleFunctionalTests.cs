@@ -103,7 +103,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
             if (useVolume)
             {
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
-                volumeName = VolumeNameGenerator.CreateVolumeName(oracle1, nameof(WithDataShouldPersistStateBetweenUsages));
+                volumeName = VolumeNameGenerator.Generate(oracle1, nameof(WithDataShouldPersistStateBetweenUsages));
 
                 // If the volume already exists (because of a crashing previous run), try to delete it
                 DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
