@@ -56,10 +56,9 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="target">The target path where the volume is mounted in the container.</param>
     /// <param name="isReadOnly">A flag that indicates if the volume should be mounted as read-only.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, string name, string target, bool isReadOnly = false) where T : ContainerResource
+    public static IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, string? name, string target, bool isReadOnly = false) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(target);
 
         var annotation = new ContainerMountAnnotation(name, target, ContainerMountType.Volume, isReadOnly);
@@ -145,10 +144,9 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">Builder for the container resource.</param>
     /// <param name="registry">Registry value.</param>
     /// <returns></returns>
-    public static IResourceBuilder<T> WithImageRegistry<T>(this IResourceBuilder<T> builder, string registry) where T : ContainerResource
+    public static IResourceBuilder<T> WithImageRegistry<T>(this IResourceBuilder<T> builder, string? registry) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(registry);
 
         if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } existingImageAnnotation)
         {
@@ -363,7 +361,7 @@ public static class ContainerResourceBuilderExtensions
         var imageName = builder.GenerateImageName();
         var annotation = new DockerfileBuildAnnotation(fullyQualifiedContextPath, fullyQualifiedDockerfilePath, stage);
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
-                      .WithImageRegistry(null!)
+                      .WithImageRegistry(registry: null)
                       .WithImage(imageName)
                       .WithImageTag("latest");
     }

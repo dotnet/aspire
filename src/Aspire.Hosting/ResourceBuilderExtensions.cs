@@ -985,7 +985,7 @@ public static class ResourceBuilderExtensions
         bool isHighlighted = false) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(type);
+        ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(displayName);
         ArgumentNullException.ThrowIfNull(executeCommand);
 
