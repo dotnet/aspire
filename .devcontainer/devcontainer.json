@@ -83,7 +83,7 @@
 			}
 		}
 	},
-	"postCreateCommand": "dotnet restore",
+	"onCreateCommand": "dotnet restore",
 	"postStartCommand": "dotnet dev-certs https --trust"
 
 	// Configure tool-specific properties.
