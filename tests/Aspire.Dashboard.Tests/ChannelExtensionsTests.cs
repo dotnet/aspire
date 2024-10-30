@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Threading.Channels;
 using Aspire.Dashboard.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests;
@@ -31,7 +32,7 @@ public class ChannelExtensionsTests
         });
 
         // Assert
-        await TaskHelpers.WaitIgnoreCancelAsync(readTask);
+        await TaskHelpers.WaitIgnoreCancelAsync(readTask).DefaultTimeout();
     }
 
     [Fact]
@@ -55,7 +56,7 @@ public class ChannelExtensionsTests
         });
 
         // Assert
-        await TaskHelpers.WaitIgnoreCancelAsync(readTask);
+        await TaskHelpers.WaitIgnoreCancelAsync(readTask).DefaultTimeout();
     }
 
     [Fact]
@@ -87,19 +88,19 @@ public class ChannelExtensionsTests
 
         // Assert
         var stopwatch = Stopwatch.StartNew();
-        var read1 = await resultChannel.Reader.ReadAsync();
+        var read1 = await resultChannel.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(["a", "b", "c"], read1.Single());
 
         channel.Writer.TryWrite(["d", "e", "f"]);
 
-        var read2 = await resultChannel.Reader.ReadAsync();
+        var read2 = await resultChannel.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(["d", "e", "f"], read2.Single());
 
         var elapsed = stopwatch.Elapsed;
         CustomAssert.AssertExceedsMinInterval(elapsed, minReadInterval);
 
         channel.Writer.Complete();
-        await TaskHelpers.WaitIgnoreCancelAsync(readTask);
+        await TaskHelpers.WaitIgnoreCancelAsync(readTask).DefaultTimeout();
     }
 
     [Fact]
@@ -131,18 +132,18 @@ public class ChannelExtensionsTests
 
         // Assert
         var stopwatch = Stopwatch.StartNew();
-        var read1 = await resultChannel.Reader.ReadAsync();
+        var read1 = await resultChannel.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(["a", "b", "c"], read1.Single());
 
         channel.Writer.TryWrite(["d", "e", "f"]);
 
-        var read2Task = resultChannel.Reader.ReadAsync();
+        var read2Task = resultChannel.Reader.ReadAsync().DefaultTimeout();
         cts.Cancel();
 
-        await TaskHelpers.WaitIgnoreCancelAsync(readTask);
+        await TaskHelpers.WaitIgnoreCancelAsync(readTask).DefaultTimeout();
         try
         {
-            await read2Task;
+            await read2Task.DefaultTimeout();
         }
         catch (ChannelClosedException)
         {

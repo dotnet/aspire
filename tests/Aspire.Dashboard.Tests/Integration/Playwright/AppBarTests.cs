@@ -24,11 +24,11 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
         // Arrange
         await RunTestAsync(async page =>
         {
-            await PlaywrightFixture.GoToHomeAndWaitForDataGridLoad(page);
+            await PlaywrightFixture.GoToHomeAndWaitForDataGridLoad(page).DefaultTimeout();
 
-            await SetAndVerifyTheme(Dialogs.SettingsDialogSystemTheme, null); // don't guess system theme
-            await SetAndVerifyTheme(Dialogs.SettingsDialogLightTheme, "light");
-            await SetAndVerifyTheme(Dialogs.SettingsDialogDarkTheme, "dark");
+            await SetAndVerifyTheme(Dialogs.SettingsDialogSystemTheme, null).DefaultTimeout(); // don't guess system theme
+            await SetAndVerifyTheme(Dialogs.SettingsDialogLightTheme, "light").DefaultTimeout();
+            await SetAndVerifyTheme(Dialogs.SettingsDialogDarkTheme, "dark").DefaultTimeout();
 
             async Task SetAndVerifyTheme(string checkboxText, string? expected)
             {
@@ -70,9 +70,9 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
         // Arrange
         await RunTestAsync(async page =>
         {
-            await SetAndVerifyTheme(Dialogs.SettingsDialogSystemTheme, null); // don't guess system theme
-            await SetAndVerifyTheme(Dialogs.SettingsDialogLightTheme, "light");
-            await SetAndVerifyTheme(Dialogs.SettingsDialogDarkTheme, "dark");
+            await SetAndVerifyTheme(Dialogs.SettingsDialogSystemTheme, null).DefaultTimeout(); // don't guess system theme
+            await SetAndVerifyTheme(Dialogs.SettingsDialogLightTheme, "light").DefaultTimeout();
+            await SetAndVerifyTheme(Dialogs.SettingsDialogDarkTheme, "dark").DefaultTimeout();
 
             async Task SetAndVerifyTheme(string checkboxText, string? expected)
             {

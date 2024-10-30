@@ -8,6 +8,7 @@ using Aspire.Dashboard.Authentication;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Xunit;
@@ -34,12 +35,12 @@ public class FrontendBrowserTokenAuthTests
             config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.BrowserToken.ToString();
             config[DashboardConfigNames.DashboardFrontendBrowserTokenName.ConfigKey] = apiKey;
         });
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         using var client = new HttpClient { BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}") };
 
         // Act
-        var response = await client.GetAsync("/");
+        var response = await client.GetAsync("/").DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -56,19 +57,19 @@ public class FrontendBrowserTokenAuthTests
             config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.BrowserToken.ToString();
             config[DashboardConfigNames.DashboardFrontendBrowserTokenName.ConfigKey] = apiKey;
         });
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         using var client = new HttpClient { BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}") };
 
         // Act 1
-        var response1 = await client.GetAsync(DashboardUrls.LoginUrl(returnUrl: DashboardUrls.TracesUrl(), token: apiKey));
+        var response1 = await client.GetAsync(DashboardUrls.LoginUrl(returnUrl: DashboardUrls.TracesUrl(), token: apiKey)).DefaultTimeout();
 
         // Assert 1
         Assert.Equal(HttpStatusCode.OK, response1.StatusCode);
         Assert.Equal(DashboardUrls.TracesUrl(), response1.RequestMessage!.RequestUri!.PathAndQuery);
 
         // Act 2
-        var response2 = await client.GetAsync(DashboardUrls.StructuredLogsUrl());
+        var response2 = await client.GetAsync(DashboardUrls.StructuredLogsUrl()).DefaultTimeout();
 
         // Assert 2
         Assert.Equal(HttpStatusCode.OK, response2.StatusCode);
@@ -87,12 +88,12 @@ public class FrontendBrowserTokenAuthTests
             config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.BrowserToken.ToString();
             config[DashboardConfigNames.DashboardFrontendBrowserTokenName.ConfigKey] = apiKey;
         }, testSink: testSink);
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         using var client = new HttpClient { BaseAddress = new Uri($"http://{app.OtlpServiceHttpEndPointAccessor().EndPoint}") };
 
         // Act
-        var response = await client.GetAsync(DashboardUrls.LoginUrl(returnUrl: DashboardUrls.TracesUrl(), token: apiKey));
+        var response = await client.GetAsync(DashboardUrls.LoginUrl(returnUrl: DashboardUrls.TracesUrl(), token: apiKey)).DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -111,12 +112,12 @@ public class FrontendBrowserTokenAuthTests
             config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.BrowserToken.ToString();
             config[DashboardConfigNames.DashboardFrontendBrowserTokenName.ConfigKey] = apiKey;
         });
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         using var client = new HttpClient { BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}") };
 
         // Act
-        var response = await client.GetAsync(DashboardUrls.LoginUrl(returnUrl: DashboardUrls.TracesUrl(), token: "Wrong!"));
+        var response = await client.GetAsync(DashboardUrls.LoginUrl(returnUrl: DashboardUrls.TracesUrl(), token: "Wrong!")).DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -136,12 +137,12 @@ public class FrontendBrowserTokenAuthTests
             config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = authMode.ToString();
             config[DashboardConfigNames.DashboardFrontendBrowserTokenName.ConfigKey] = apiKey;
         });
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         using var client = new HttpClient { BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}") };
 
         // Act
-        var response = await client.PostAsync("/api/validatetoken?token=" + requestToken, content: null);
+        var response = await client.PostAsync("/api/validatetoken?token=" + requestToken, content: null).DefaultTimeout();
 
         // Assert
         Assert.Equal(statusCode, response.StatusCode);
@@ -164,7 +165,7 @@ public class FrontendBrowserTokenAuthTests
         }, testSink: testSink);
 
         // Act
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         // Assert
         var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName).ToList();
@@ -225,7 +226,7 @@ public class FrontendBrowserTokenAuthTests
         }, testSink: testSink);
 
         // Act
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         // Assert
         var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName).ToList();
@@ -252,7 +253,7 @@ public class FrontendBrowserTokenAuthTests
         }, testSink: testSink);
 
         // Act
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         // Assert
         var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName).ToList();
