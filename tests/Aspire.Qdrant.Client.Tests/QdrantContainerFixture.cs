@@ -32,7 +32,7 @@ public sealed class QdrantContainerFixture : IAsyncLifetime
             _apiKey = PasswordGenerator.Generate(minLength: 16, lower: true, upper: true, numeric: true, special: false, minLower: 1, minUpper: 1, minNumeric: 1, minSpecial: 0);
 
             Container = new ContainerBuilder()
-              .WithImage($"{TestConstants.AspireTestContainerRegistry}/{QdrantContainerImageTags.Image}:{QdrantContainerImageTags.Tag}")
+              .WithImage($"{ComponentTestConstants.AspireTestContainerRegistry}/{QdrantContainerImageTags.Image}:{QdrantContainerImageTags.Tag}")
               .WithPortBinding(6333, true)
               .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(6333)))
               .WithEnvironment("QDRANT__SERVICE__API_KEY", _apiKey)

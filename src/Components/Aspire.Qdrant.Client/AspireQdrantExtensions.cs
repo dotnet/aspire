@@ -84,33 +84,13 @@ public static class AspireQdrantExtensions
 
         if (!settings.DisableHealthChecks)
         {
-            // use http client for register health check
-            var httpClientName = serviceKey is null ? "qdrant-healthchecks" : $"qdrant-healthchecks_{connectionName}";
-            builder.Services.AddHttpClient(
-                 httpClientName,
-                 client =>
-                 {
-                     if (settings.Endpoint is null)
-                     {
-                         throw new InvalidOperationException(
-                                 $"A QdrantClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
-                                 $"{nameof(settings.Endpoint)} must be provided " +
-                                 $"in the '{DefaultConfigSectionName}' or '{DefaultConfigSectionName}:{connectionName}' configuration section.");
-                     }
-
-                     client.BaseAddress = settings.Endpoint;
-
-                     if (settings.Key is not null)
-                     {
-                         client.DefaultRequestHeaders.Add("Api-Key", settings.Key);
-                     }
-                 });
-
             var healthCheckName = serviceKey is null ? "Qdrant.Client" : $"Qdrant.Client_{connectionName}";
 
             builder.TryAddHealthCheck(new HealthCheckRegistration(
                 healthCheckName,
-                sp => new QdrantHealthCheck(sp.GetRequiredService<IHttpClientFactory>().CreateClient(httpClientName)),
+                sp => new QdrantHealthCheck(serviceKey is null ?
+                    sp.GetRequiredService<QdrantClient>() :
+                    sp.GetRequiredKeyedService<QdrantClient>(serviceKey)),
                 failureStatus: null,
                 tags: null,
                 timeout: settings.HealthCheckTimeout > 0 ? TimeSpan.FromMilliseconds(settings.HealthCheckTimeout.Value) : null
