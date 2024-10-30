@@ -6,7 +6,9 @@
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
+using Azure.Provisioning.Primitives;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Xunit.Abstractions;
@@ -80,6 +82,114 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
               containers: [
                 {
                   image: 'myimage:latest'
+                  name: 'api'
+                  env: [
+                    {
+                      name: 'AZURE_CLIENT_ID'
+                      value: outputs_managed_identity_client_id
+                    }
+                  ]
+                }
+              ]
+              scale: {
+                minReplicas: 1
+              }
+            }
+          }
+          identity: {
+            type: 'UserAssigned'
+            userAssignedIdentities: {
+              '${outputs_azure_container_registry_managed_identity_id}': { }
+            }
+          }
+        }
+        """;
+        output.WriteLine(bicep);
+        Assert.Equal(expectedBicep, bicep);
+    }
+
+    [Fact]
+    public async Task AddDockerfileWithAppsInfrastructureAddsDeploymentTargetWithContainerAppToContainerResources()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppsInfrastructure();
+
+        var directory = Directory.CreateTempSubdirectory(".aspire-test");
+
+        // Contents of the Dockerfile are not important for this test
+        File.WriteAllText(Path.Combine(directory.FullName, "Dockerfile"), "");
+
+        builder.AddDockerfile("api", directory.FullName);
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await ManifestUtils.GetManifestWithBicep(resource);
+
+        var m = manifest.ToString();
+
+        var expectedManifest =
+        """
+        {
+          "type": "azure.bicep.v0",
+          "path": "api.module.bicep",
+          "params": {
+            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+            "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+            "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+            "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+            "api_containerimage": "{api.containerImage}"
+          }
+        }
+        """;
+
+        Assert.Equal(expectedManifest, m);
+
+        var expectedBicep =
+        """
+        @description('The location for the resource(s) to be deployed.')
+        param location string = resourceGroup().location
+
+        param outputs_azure_container_registry_managed_identity_id string
+
+        param outputs_managed_identity_client_id string
+
+        param outputs_azure_container_apps_environment_id string
+
+        param outputs_azure_container_registry_endpoint string
+
+        param api_containerimage string
+
+        resource api 'Microsoft.App/containerApps@2024-03-01' = {
+          name: 'api'
+          location: location
+          properties: {
+            configuration: {
+              activeRevisionsMode: 'Single'
+              registries: [
+                {
+                  server: outputs_azure_container_registry_endpoint
+                  identity: outputs_azure_container_registry_managed_identity_id
+                }
+              ]
+            }
+            environmentId: outputs_azure_container_apps_environment_id
+            template: {
+              containers: [
+                {
+                  image: api_containerimage
                   name: 'api'
                   env: [
                     {
@@ -257,8 +367,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                        Value = value.AsProvisioningParameter(module)
                    };
 
-                   c.Template.Value!.Containers[0].Value!.Env.Add(val);
-                   c.Template.Value!.Scale.Value!.MinReplicas = minReplicas.AsProvisioningParameter(module);
+                   c.Template.Containers[0].Value!.Env.Add(val);
+                   c.Template.Scale.MinReplicas = minReplicas.AsProvisioningParameter(module);
                });
 
         using var app = builder.Build();
@@ -651,9 +761,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         builder.AddContainer("api", "myimage")
             .PublishAsAzureContainerApp((module, c) =>
             {
-                Assert.Contains(c, module.GetResources());
+                Assert.Contains(c, module.GetProvisionableResources());
 
-                c.Template.Value!.Scale.Value!.MinReplicas = 0;
+                c.Template.Scale.MinReplicas = 0;
             });
 
         using var app = builder.Build();
@@ -1163,6 +1273,94 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         """;
         output.WriteLine(bicep);
         Assert.Equal(expectedBicep, bicep);
+    }
+
+    [Fact]
+    public async Task CanCustomizeWithProvisioningBuildOptions()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.Services.Configure<AzureProvisioningOptions>(options => options.ProvisioningBuildOptions.InfrastructureResolvers.Insert(0, new MyResourceNamePropertyResolver()));
+        builder.AddAzureContainerAppsInfrastructure();
+
+        builder.AddContainer("api1", "myimage");
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (_, bicep) = await ManifestUtils.GetManifestWithBicep(resource);
+
+        var expectedBicep =
+        """
+        @description('The location for the resource(s) to be deployed.')
+        param location string = resourceGroup().location
+
+        param outputs_azure_container_registry_managed_identity_id string
+
+        param outputs_managed_identity_client_id string
+
+        param outputs_azure_container_apps_environment_id string
+
+        resource api1 'Microsoft.App/containerApps@2024-03-01' = {
+          name: 'api1-my'
+          location: location
+          properties: {
+            configuration: {
+              activeRevisionsMode: 'Single'
+            }
+            environmentId: outputs_azure_container_apps_environment_id
+            template: {
+              containers: [
+                {
+                  image: 'myimage:latest'
+                  name: 'api1'
+                  env: [
+                    {
+                      name: 'AZURE_CLIENT_ID'
+                      value: outputs_managed_identity_client_id
+                    }
+                  ]
+                }
+              ]
+              scale: {
+                minReplicas: 1
+              }
+            }
+          }
+          identity: {
+            type: 'UserAssigned'
+            userAssignedIdentities: {
+              '${outputs_azure_container_registry_managed_identity_id}': { }
+            }
+          }
+        }
+        """;
+        output.WriteLine(bicep);
+        Assert.Equal(expectedBicep, bicep);
+    }
+
+    private sealed class MyResourceNamePropertyResolver : DynamicResourceNamePropertyResolver
+    {
+        public override void ResolveProperties(ProvisionableConstruct construct, ProvisioningBuildOptions options)
+        {
+            if (construct is ContainerApp app)
+            {
+                app.Name = app.Name.Value + "-my";
+            }
+
+            base.ResolveProperties(construct, options);
+        }
     }
 
     [Fact]

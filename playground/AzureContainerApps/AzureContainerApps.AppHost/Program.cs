@@ -26,6 +26,11 @@ var blobs = builder.AddAzureStorage("storage")
                    .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent))
                    .AddBlobs("blobs");
 
+// Testing docker files
+
+builder.AddDockerfile("pythonapp", "AppWithDocker");
+
+// Testing projects
 builder.AddProject<Projects.AzureContainerApps_ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithReference(blobs)
@@ -37,7 +42,7 @@ builder.AddProject<Projects.AzureContainerApps_ApiService>("api")
            app.ConfigureCustomDomain(customDomain, certificateName);
 
            // Scale to 0
-           app.Template.Value!.Scale.Value!.MinReplicas = 0;
+           app.Template.Scale.MinReplicas = 0;
        });
 
 #if !SKIP_DASHBOARD_REFERENCE

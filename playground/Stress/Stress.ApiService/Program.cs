@@ -3,7 +3,9 @@
 
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Threading.Channels;
+using System.Xml.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Stress.ApiService;
 
@@ -93,13 +95,19 @@ app.MapGet("/http-client-requests", async (HttpClient client) =>
     return $"Sent requests to {string.Join(';', urls)}";
 });
 
-app.MapGet("/log-message-limit", ([FromServices] ILogger<Program> logger) =>
+app.MapGet("/log-message-limit", async ([FromServices] ILogger<Program> logger) =>
 {
-    const int LogCount = 20_000;
+    const int LogCount = 10_000;
+    const int BatchSize = 10;
 
-    for (var i = 0; i < LogCount; i++)
+    for (var i = 0; i < LogCount / BatchSize; i++)
     {
-        logger.LogInformation("Log entry {LogEntryIndex}", i);
+        for (var j = 0; j < BatchSize; j++)
+        {
+            logger.LogInformation("Log entry {BatchIndex}-{LogEntryIndex}", i, j);
+        }
+
+        await Task.Delay(100);
     }
 
     return $"Created {LogCount} logs.";
@@ -184,6 +192,8 @@ app.MapGet("/log-formatting", (ILoggerFactory loggerFactory) =>
 
     var xmlWithComments = @"<hello><!-- world --></hello>";
 
+    var xmlWithUrl = new XElement(new XElement("url", "http://localhost:8080")).ToString();
+
     // From https://microsoftedge.github.io/Demos/json-dummy-data/
     var jsonLarge = File.ReadAllText(Path.Combine("content", "example.json"));
 
@@ -194,6 +204,11 @@ app.MapGet("/log-formatting", (ILoggerFactory loggerFactory) =>
     1
 ]";
 
+    var jsonWithUrl = new JsonObject
+    {
+        ["url"] = "http://localhost:8080"
+    }.ToString();
+
     var sb = new StringBuilder();
     for (int i = 0; i < 26; i++)
     {
@@ -203,11 +218,29 @@ app.MapGet("/log-formatting", (ILoggerFactory loggerFactory) =>
 
     logger.LogInformation(@"XML large content: {XmlLarge}
 XML comment content: {XmlComment}
+XML URL content: {XmlUrl}
 JSON large content: {JsonLarge}
 JSON comment content: {JsonComment}
-Long line content: {LongLines}", xmlLarge, xmlWithComments, jsonLarge, jsonWithComments, sb.ToString());
+JSON URL content: {JsonUrl}
+Long line content: {LongLines}
+URL content: {UrlContent}
+Empty content: {EmptyContent}
+Whitespace content: {WhitespaceContent}
+Null content: {NullContent}", xmlLarge, xmlWithComments, xmlWithUrl, jsonLarge, jsonWithComments, jsonWithUrl, sb.ToString(), "http://localhost:8080", "", "   ", null);
 
     return "Log with formatted data";
+});
+
+app.MapGet("/duplicate-spanid", async () =>
+{
+    var traceCreator = new TraceCreator();
+    var span1 = traceCreator.CreateActivity("Test 1", "0485b1947fe788bb");
+    await Task.Delay(1000);
+    span1?.Stop();
+    var span2 = traceCreator.CreateActivity("Test 2", "0485b1947fe788bb");
+    await Task.Delay(1000);
+    span2?.Stop();
+    return $"Created duplicate span IDs.";
 });
 
 app.Run();

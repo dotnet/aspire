@@ -178,7 +178,7 @@ message ResourceProperty {
 
 // Models the full state of an resource (container, executable, project, etc) at a particular point in time.
 message Resource {
-    reserved 8, 9, 10;
+    reserved 8, 9, 10, 16;
     string name = 1;
     string resource_type = 2;
     string display_name = 3;
@@ -208,8 +208,6 @@ message Resource {
     // The set of volumes mounted to the resource. Only applies to containers.
     repeated Volume volumes = 15;
 
-    // The aggregate health state of the resource. Generally reflects data from health_reports, but may differ.
-    optional HealthStatus health_status = 16;
     // Reports from health checks, about this resource.
     repeated HealthReport health_reports = 17;
 

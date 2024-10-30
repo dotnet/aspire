@@ -233,7 +233,7 @@
     <value>View console logs</value>
   </data>
   <data name="ResourcesDetailsHealthStateProperty" xml:space="preserve">
-    <value>Health State</value>
+    <value>Health state</value>
   </data>
   <data name="ResourcesDetailsStopTimeProperty" xml:space="preserve">
     <value>Stop time</value>

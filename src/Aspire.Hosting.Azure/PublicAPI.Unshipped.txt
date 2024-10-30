@@ -17,18 +17,18 @@ Aspire.Hosting.Azure.AspireV8ResourceNamePropertyResolver
 Aspire.Hosting.Azure.AspireV8ResourceNamePropertyResolver.AspireV8ResourceNamePropertyResolver() -> void
 Aspire.Hosting.Azure.AzureProvisioningOptions
 Aspire.Hosting.Azure.AzureProvisioningOptions.AzureProvisioningOptions() -> void
-Aspire.Hosting.Azure.AzureProvisioningOptions.ProvisioningContext.get -> Azure.Provisioning.ProvisioningContext!
+Aspire.Hosting.Azure.AzureProvisioningOptions.ProvisioningBuildOptions.get -> Azure.Provisioning.ProvisioningBuildOptions!
 Aspire.Hosting.Azure.AzureProvisioningResource.AzureProvisioningResource(string! name, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureInfrastructure) -> void
 Aspire.Hosting.Azure.AzureProvisioningResource.ConfigureInfrastructure.get -> System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>!
 Aspire.Hosting.Azure.AzureProvisioningResource
-Aspire.Hosting.Azure.AzureProvisioningResource.ProvisioningContext.get -> Azure.Provisioning.ProvisioningContext?
-Aspire.Hosting.Azure.AzureProvisioningResource.ProvisioningContext.set -> void
+Aspire.Hosting.Azure.AzureProvisioningResource.ProvisioningBuildOptions.get -> Azure.Provisioning.ProvisioningBuildOptions?
+Aspire.Hosting.Azure.AzureProvisioningResource.ProvisioningBuildOptions.set -> void
 Aspire.Hosting.Azure.AzureResourceInfrastructure
 Aspire.Hosting.Azure.AzureResourceInfrastructure.AspireResource.get -> Aspire.Hosting.Azure.AzureProvisioningResource!
 Aspire.Hosting.Azure.IResourceWithAzureFunctionsConfig
 Aspire.Hosting.Azure.IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string!, object!>! target, string! connectionName) -> void
 Aspire.Hosting.AzureProvisioningResourceExtensions
-override Aspire.Hosting.Azure.AspireV8ResourceNamePropertyResolver.ResolveName(Azure.Provisioning.ProvisioningContext! context, Azure.Provisioning.Primitives.Resource! resource, Azure.Provisioning.Primitives.ResourceNameRequirements requirements) -> Azure.Provisioning.BicepValue<string!>?
+override Aspire.Hosting.Azure.AspireV8ResourceNamePropertyResolver.ResolveName(Azure.Provisioning.ProvisioningBuildOptions! options, Azure.Provisioning.Primitives.ProvisionableResource! resource, Azure.Provisioning.Primitives.ResourceNameRequirements requirements) -> Azure.Provisioning.BicepValue<string!>?
 override Aspire.Hosting.Azure.AzureProvisioningResource.GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true) -> Aspire.Hosting.Azure.BicepTemplateFile
 override Aspire.Hosting.Azure.AzureProvisioningResource.GetBicepTemplateString() -> string!
 static Aspire.Hosting.AzureBicepResourceExtensions.WithParameter<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, Aspire.Hosting.ApplicationModel.EndpointReference! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!

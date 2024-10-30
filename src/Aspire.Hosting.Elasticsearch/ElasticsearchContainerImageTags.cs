@@ -11,7 +11,7 @@ internal static class ElasticsearchContainerImageTags
     /// <summary>library/elasticsearch</summary>
     public const string Image = "library/elasticsearch";
 
-    /// <summary>8.15.2</summary>
-    public const string Tag = "8.15.2";
+    /// <summary>8.15.3</summary>
+    public const string Tag = "8.15.3";
 }
 
