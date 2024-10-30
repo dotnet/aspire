@@ -153,7 +153,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                 };
 
                 // TODO: Add managed identities only when required
-                AddManagedIdentites(containerAppResource);
+                AddManagedIdentities(containerAppResource);
 
                 containerAppResource.EnvironmentId = containerAppIdParam;
 
@@ -857,7 +857,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                 }
             }
 
-            private void AddManagedIdentites(ContainerApp app)
+            private void AddManagedIdentities(ContainerApp app)
             {
                 if (_managedIdentityIdParameter is null)
                 {
