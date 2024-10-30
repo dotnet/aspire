@@ -29,6 +29,8 @@ public class ConformanceTests : ConformanceTests<QdrantClient, QdrantClientSetti
 
     protected override string ActivitySourceName => "";
 
+    protected override string? ConfigurationSectionName => "Aspire:Qdrant:Client";
+
     public ConformanceTests(QdrantContainerFixture containerFixture)
     {
         _containerFixture = containerFixture;
@@ -55,7 +57,6 @@ public class ConformanceTests : ConformanceTests<QdrantClient, QdrantClientSetti
             [
              new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Qdrant:Client", key, "Endpoint"), GetConnectionStringKeyValue(_connectionString,"Endpoint")),
              new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Qdrant:Client", key, "Key"), GetConnectionStringKeyValue(_connectionString,"Key")),
-             new KeyValuePair<string, string?>($"ConnectionStrings:{key}",_connectionString)
             ]);
     }
 

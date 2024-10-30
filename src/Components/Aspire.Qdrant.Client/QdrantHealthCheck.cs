@@ -21,7 +21,7 @@ internal sealed class QdrantHealthCheck : IHealthCheck
         {
             var response = await _client.HealthAsync(cancellationToken).ConfigureAwait(false);
 
-            return !(response is null || response.Title is null)
+            return response?.Title is not null
                 ? HealthCheckResult.Healthy()
                 : new HealthCheckResult(HealthStatus.Unhealthy);
         }
