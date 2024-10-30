@@ -140,6 +140,11 @@ public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem
     [Parameter]
     public GenerateHeaderOption GenerateHeader { get; set; } = GenerateHeaderOption.Sticky;
 
+    // Return null if empty so GridValue knows there is no template.
+    private RenderFragment? GetContentAfterValue(TItem context) => ContentAfterValue == s_emptyChildContent
+        ? null
+        : ContentAfterValue(context);
+
     private async Task OnIsValueMaskedChanged(TItem item, bool isValueMasked)
     {
         item.IsValueMasked = isValueMasked;
