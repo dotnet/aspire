@@ -6,6 +6,7 @@ using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
@@ -19,7 +20,7 @@ public static class PostgresBuilderExtensions
     private const string PasswordEnvVarName = "POSTGRES_PASSWORD";
 
     /// <summary>
-    /// Adds a PostgreSQL resource to the application model. A container is used for local development. This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.Tag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.Image"/> container image.
+    /// Adds a PostgreSQL resource to the application model. A container is used for local development.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -34,6 +35,7 @@ public static class PostgresBuilderExtensions
     /// extension method then the dependent resource will wait until the Postgres resource is able to service
     /// requests.
     /// </para>
+    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.Tag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.Image"/> container image.
     /// </remarks>
     public static IResourceBuilder<PostgresServerResource> AddPostgres(this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
@@ -120,8 +122,11 @@ public static class PostgresBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a pgAdmin 4 administration and development platform for PostgreSQL to the application model. This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgAdminTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgAdminImage"/> container image.
+    /// Adds a pgAdmin 4 administration and development platform for PostgreSQL to the application model.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgAdminTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgAdminImage"/> container image.
+    /// </remarks>
     /// <param name="builder">The PostgreSQL server resource builder.</param>
     /// <param name="configureContainer">Callback to configure PgAdmin container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
@@ -243,6 +248,7 @@ public static class PostgresBuilderExtensions
     /// <param name="configureContainer">Configuration callback for pgweb container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
     /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgWebTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgWebImage"/> container image.
     /// <example>
     /// Use in application host with a Postgres resource
     /// <code lang="csharp">
@@ -329,6 +335,16 @@ public static class PostgresBuilderExtensions
         // You need to define the PGADMIN_DEFAULT_EMAIL and PGADMIN_DEFAULT_PASSWORD or PGADMIN_DEFAULT_PASSWORD_FILE environment variables.
         context.EnvironmentVariables.Add("PGADMIN_DEFAULT_EMAIL", "admin@domain.com");
         context.EnvironmentVariables.Add("PGADMIN_DEFAULT_PASSWORD", "admin");
+
+        // When running in the context of Codespaces we need to set some additional environment
+        // varialbes so that PGAdmin will trust the forwarded headers that Codespaces port
+        // forwarding will send.
+        var config = context.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
+        if (context.ExecutionContext.IsRunMode && config.GetValue<bool>("CODESPACES", false))
+        {
+            context.EnvironmentVariables["PGADMIN_CONFIG_PROXY_X_HOST_COUNT"] = "1";
+            context.EnvironmentVariables["PGADMIN_CONFIG_PROXY_X_PREFIX_COUNT"] = "1";
+        }
     }
 
     /// <summary>
@@ -342,7 +358,7 @@ public static class PostgresBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"),
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"),
             "/var/lib/postgresql/data", isReadOnly);
     }
 

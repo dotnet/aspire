@@ -20,7 +20,7 @@ public static class ElasticsearchBuilderExtensions
     private const int ElasticsearchInternalPort = 9300;
 
     /// <summary>
-    /// Adds an Elasticsearch container resource to the application model. This version of the package defaults to the <inheritdoc cref="ElasticsearchContainerImageTags.Tag"/> tag of the <inheritdoc cref="ElasticsearchContainerImageTags.Image"/> container image.
+    /// Adds an Elasticsearch container resource to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -28,6 +28,7 @@ public static class ElasticsearchBuilderExtensions
     /// <param name="password">The parameter used to provide the superuser password for the elasticsearch. If <see langword="null"/> a random password will be generated.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="ElasticsearchContainerImageTags.Tag"/> tag of the <inheritdoc cref="ElasticsearchContainerImageTags.Image"/> container image.
     /// <example>
     /// Add an Elasticsearch container to the application model and reference it in a .NET project.
     /// <code lang="csharp">
@@ -36,8 +37,8 @@ public static class ElasticsearchBuilderExtensions
     /// var elasticsearch = builder.AddElasticsearch("elasticsearch");
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithReference(elasticsearch);
-    ///  
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     /// </remarks>
@@ -109,8 +110,8 @@ public static class ElasticsearchBuilderExtensions
     /// .WithDataVolume();
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithReference(elasticsearch);
-    ///  
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     /// </remarks>
@@ -118,7 +119,7 @@ public static class ElasticsearchBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/usr/share/elasticsearch/data");
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/usr/share/elasticsearch/data");
     }
 
     /// <summary>
@@ -138,8 +139,8 @@ public static class ElasticsearchBuilderExtensions
     /// .WithDataBindMount("./data/elasticsearch/data");
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithReference(elasticsearch);
-    ///  
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     /// </remarks>

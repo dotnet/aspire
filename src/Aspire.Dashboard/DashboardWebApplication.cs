@@ -232,6 +232,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         // Data from the server.
         builder.Services.TryAddScoped<IDashboardClient, DashboardClient>();
+        builder.Services.TryAddSingleton<IDashboardClientStatus, DashboardClientStatus>();
 
         // OTLP services.
         builder.Services.AddGrpc();
@@ -340,7 +341,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             if (context.Request.Path.Equals(TargetLocationInterceptor.ResourcesPath, StringComparisons.UrlPath))
             {
-                var client = context.RequestServices.GetRequiredService<IDashboardClient>();
+                var client = context.RequestServices.GetRequiredService<IDashboardClientStatus>();
                 if (!client.IsEnabled)
                 {
                     context.Response.Redirect(TargetLocationInterceptor.StructuredLogsPath);

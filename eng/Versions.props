@@ -2,11 +2,10 @@
   <PropertyGroup>
     <!-- This repo version -->
     <MajorVersion>9</MajorVersion>
-    <MinorVersion>0</MinorVersion>
+    <MinorVersion>1</MinorVersion>
     <PatchVersion>0</PatchVersion>
     <VersionPrefix>$(MajorVersion).$(MinorVersion).$(PatchVersion)</VersionPrefix>
-    <PreReleaseVersionLabel Condition="'$(SuppressFinalPackageVersion)' != 'true'">rc.2</PreReleaseVersionLabel>
-    <PreReleaseVersionLabel Condition="'$(PreReleaseVersionLabel)' == ''">preview.5</PreReleaseVersionLabel>
+    <PreReleaseVersionLabel>preview.1</PreReleaseVersionLabel>
     <!--
       When running package validation as part of the build, we want to ensure we didn't break the API against the previous
       version of each package. The following property points to the package version that should be used as baseline.
@@ -40,8 +39,8 @@
     <MicrosoftDotNetXUnitExtensionsPackageVersion>9.0.0-beta.24516.2</MicrosoftDotNetXUnitExtensionsPackageVersion>
     <MicrosoftDotNetBuildTasksInstallersPackageVersion>9.0.0-beta.24516.2</MicrosoftDotNetBuildTasksInstallersPackageVersion>
     <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>9.0.0-beta.24516.2</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
-    <MicrosoftExtensionsHttpResiliencePackageVersion>8.10.0</MicrosoftExtensionsHttpResiliencePackageVersion>
-    <MicrosoftExtensionsDiagnosticsTestingPackageVersion>8.10.0</MicrosoftExtensionsDiagnosticsTestingPackageVersion>
+    <MicrosoftExtensionsHttpResiliencePackageVersion>9.0.0-preview.9.24524.6</MicrosoftExtensionsHttpResiliencePackageVersion>
+    <MicrosoftExtensionsDiagnosticsTestingPackageVersion>9.0.0-preview.9.24524.6</MicrosoftExtensionsDiagnosticsTestingPackageVersion>
     <MicrosoftExtensionsConfigurationAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsConfigurationAbstractionsPackageVersion>
     <MicrosoftExtensionsConfigurationBinderPackageVersion>8.0.2</MicrosoftExtensionsConfigurationBinderPackageVersion>
     <MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>8.0.2</MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>
@@ -61,29 +60,33 @@
     <MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>8.0.10</MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>
     <MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>8.0.10</MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>
     <MicrosoftExtensionsFeaturesPackageVersion>8.0.10</MicrosoftExtensionsFeaturesPackageVersion>
-    <MicrosoftExtensionsTimeProviderTestingVersion>8.10.0</MicrosoftExtensionsTimeProviderTestingVersion>
+    <MicrosoftExtensionsTimeProviderTestingVersion>9.0.0-preview.9.24524.6</MicrosoftExtensionsTimeProviderTestingVersion>
     <!-- EF -->
     <MicrosoftEntityFrameworkCoreCosmosPackageVersion>8.0.10</MicrosoftEntityFrameworkCoreCosmosPackageVersion>
     <MicrosoftEntityFrameworkCoreDesignPackageVersion>8.0.10</MicrosoftEntityFrameworkCoreDesignPackageVersion>
     <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>8.0.10</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
     <MicrosoftEntityFrameworkCoreToolsPackageVersion>8.0.10</MicrosoftEntityFrameworkCoreToolsPackageVersion>
     <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.0-preview.5.24272.3</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
-    <NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>8.0.8</NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>
+    <NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>8.0.10</NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>
     <!-- for templates -->
-    <MicrosoftExtensionsHttpResiliencePackageVersionForNet8>$(MicrosoftExtensionsHttpResiliencePackageVersion)</MicrosoftExtensionsHttpResiliencePackageVersionForNet8>
-    <MicrosoftExtensionsHttpResiliencePackageVersionForNet9>9.0.0-preview.9.24507.7</MicrosoftExtensionsHttpResiliencePackageVersionForNet9>
     <MicrosoftAspNetCorePackageVersionForNet9>9.0.0-rc.2.24474.3</MicrosoftAspNetCorePackageVersionForNet9>
     <!-- System dependencies -->
     <SystemFormatsAsn1PackageVersion>8.0.1</SystemFormatsAsn1PackageVersion>
     <SystemTextJsonPackageVersion>8.0.5</SystemTextJsonPackageVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <!-- Other -->
+    <!-- Runtime -->
+    <MicrosoftExtensionsHostingAbstractionsPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsHostingAbstractionsPackageVersion>
+    <MicrosoftExtensionsHostingPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsHostingPackageVersion>
     <MicrosoftExtensionsConfigurationAbstractionsPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsConfigurationAbstractionsPackageVersion>
     <MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>
     <MicrosoftExtensionsLoggingAbstractionsPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsLoggingAbstractionsPackageVersion>
     <MicrosoftExtensionsOptionsPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsOptionsPackageVersion>
     <MicrosoftExtensionsPrimitivesPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsPrimitivesPackageVersion>
+    <MicrosoftExtensionsConfigurationBinderPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsConfigurationBinderPackageVersion>
+    <MicrosoftExtensionsHttpPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsHttpPackageVersion>
+    <!-- ASP.NET Core -->
+    <MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>9.0.0-rc.2.24474.3</MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>
     <!-- EF -->
     <MicrosoftEntityFrameworkCoreCosmosPackageVersion>9.0.0-rc.2.24474.1</MicrosoftEntityFrameworkCoreCosmosPackageVersion>
     <MicrosoftEntityFrameworkCoreDesignPackageVersion>9.0.0-rc.2.24474.1</MicrosoftEntityFrameworkCoreDesignPackageVersion>

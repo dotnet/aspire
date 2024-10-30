@@ -19,6 +19,9 @@ public static class ValkeyBuilderExtensions
     /// <summary>
     /// Adds a Valkey container to the application model.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="ValkeyContainerImageTags.Tag"/> tag of the <inheritdoc cref="ValkeyContainerImageTags.Image"/> container image.
+    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port to bind the underlying container to.</param>
@@ -31,8 +34,8 @@ public static class ValkeyBuilderExtensions
     /// var valkey = builder.AddValkey("valkey");
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api)
     ///                  .WithReference(valkey);
-    ///  
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     /// <example>
@@ -43,7 +46,7 @@ public static class ValkeyBuilderExtensions
     ///
     /// var multiplexer = builder.Services.BuildServiceProvider()
     ///                                   .GetRequiredService&lt;IConnectionMultiplexer&gt;();
-    /// 
+    ///
     /// var db = multiplexer.GetDatabase();
     /// db.HashSet("key", [new HashEntry("hash", "value")]);
     /// var value = db.HashGet("key", "hash");
@@ -103,7 +106,7 @@ public static class ValkeyBuilderExtensions
     public static IResourceBuilder<ValkeyResource> WithDataVolume(this IResourceBuilder<ValkeyResource> builder,
         string? name = null, bool isReadOnly = false)
     {
-        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), ValkeyContainerDataDirectory,
+        builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), ValkeyContainerDataDirectory,
             isReadOnly);
         if (!isReadOnly)
         {

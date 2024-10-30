@@ -15,7 +15,6 @@
   <ItemGroup>
     <Compile Include="..\Shared\Cosmos\CosmosConstants.cs" Link="Shared\CosmosConstants.cs" />
     <Compile Include="..\Shared\Cosmos\CosmosUtils.cs" Link="Shared\CosmosUtils.cs" />
-    <Compile Include="..\Shared\VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -10,7 +10,8 @@
             EnableHighlighting="true"
             HighlightText="@FilterText"
             PreCopyToolTip="@Loc[nameof(Columns.SourceColumnDisplayCopyCommandToClipboard)]"
-            ToolTip="@Tooltip">
+            ToolTip="@Tooltip"
+            StopClickPropagation="true">
     <ContentAfterValue>
         @if (ContentAfterValue is not null)
         {

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Reflection;
 
 namespace Stress.ApiService;
 
@@ -13,11 +14,27 @@ public class TraceCreator
 
     private readonly List<Activity> _allActivities = new List<Activity>();
 
+    public Activity? CreateActivity(string name, string? spandId)
+    {
+        var activity = s_activitySource.StartActivity(name, ActivityKind.Client);
+        if (activity != null)
+        {
+            if (spandId != null)
+            {
+                // Gross but it's the only way.
+                typeof(Activity).GetField("_spanId", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(activity, spandId);
+                typeof(Activity).GetField("_traceId", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(activity, activity.TraceId.ToString());
+            }
+        }
+
+        return activity;
+    }
+
     public async Task CreateTraceAsync(int count, bool createChildren)
     {
         var activityStack = new Stack<Activity>();
 
-        for (var i = 0; i < 10; i++)
+        for (var i = 0; i < count; i++)
         {
             if (i > 0)
             {
@@ -37,8 +54,6 @@ public class TraceCreator
             {
                 await CreateChildActivityAsync(name);
             }
-
-            await Task.Delay(Random.Shared.Next(10, 50));
         }
 
         while (activityStack.Count > 0)

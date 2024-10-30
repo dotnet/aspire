@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Dashboard.Model;
 using Aspire.Tests.Shared.DashboardModel;
+using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests;
@@ -138,17 +139,17 @@ public class ResourceOutgoingPeerResolverTests
             GetChanges()));
 
         // Assert 1
-        readValue = await resultChannel.Reader.ReadAsync();
+        readValue = await resultChannel.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(1, readValue);
 
         // Act 2
         await sourceChannel.Writer.WriteAsync(new ResourceViewModelChange(ResourceViewModelChangeType.Upsert, CreateResource("test2")));
 
         // Assert 2
-        readValue = await resultChannel.Reader.ReadAsync();
+        readValue = await resultChannel.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(2, readValue);
 
-        await resolver.DisposeAsync();
+        await resolver.DisposeAsync().DefaultTimeout();
 
         async IAsyncEnumerable<IReadOnlyList<ResourceViewModelChange>> GetChanges([EnumeratorCancellation] CancellationToken cancellationToken = default)
         {

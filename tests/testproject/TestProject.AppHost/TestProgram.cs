@@ -83,16 +83,6 @@ public class TestProgram : IDisposable
                     .AddDatabase(postgresDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(postgres);
             }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
-            {
-                var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(cosmos);
-            }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
-            {
-                var eventHub = AppBuilder.AddAzureEventHubs("eventhubns").RunAsEmulator().AddEventHub("hub");
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(eventHub);
-            }
         }
 
         AppBuilder.Services.AddHostedService<ResourceLoggerForwarderService>();

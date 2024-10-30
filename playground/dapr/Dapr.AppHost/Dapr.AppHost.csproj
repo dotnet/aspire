@@ -19,6 +19,7 @@
 
     <ProjectReference Include="..\ServiceA\DaprServiceA.csproj" />
     <ProjectReference Include="..\ServiceB\DaprServiceB.csproj" />
+    <ProjectReference Include="..\ServiceC\DaprServiceC.csproj" />
   </ItemGroup>
 
 </Project>

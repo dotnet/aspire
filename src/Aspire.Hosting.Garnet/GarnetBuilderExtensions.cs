@@ -20,6 +20,7 @@ public static class GarnetBuilderExtensions
     /// Adds a Garnet container to the application model.
     /// </summary>
     /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="GarnetContainerImageTags.Tag"/> tag of the <inheritdoc cref="GarnetContainerImageTags.Registry"/>/<inheritdoc cref="GarnetContainerImageTags.Image"/> container image.
     /// <example>
     /// Use in application host
     /// <code lang="csharp">
@@ -28,8 +29,8 @@ public static class GarnetBuilderExtensions
     /// var garnet = builder.AddGarnet("garnet");
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api)
     ///                  .WithReference(garnet);
-    ///  
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     /// <example>
@@ -40,7 +41,7 @@ public static class GarnetBuilderExtensions
     ///
     /// var multiplexer = builder.Services.BuildServiceProvider()
     ///                                   .GetRequiredService&lt;IConnectionMultiplexer&gt;();
-    /// 
+    ///
     /// var db = multiplexer.GetDatabase();
     /// db.HashSet("key", [new HashEntry("hash", "value")]);
     /// var value = db.HashGet("key", "hash");
@@ -106,7 +107,7 @@ public static class GarnetBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), GarnetContainerDataDirectory,
+        builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), GarnetContainerDataDirectory,
             isReadOnly);
         if (!isReadOnly)
         {

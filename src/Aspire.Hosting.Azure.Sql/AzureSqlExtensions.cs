@@ -243,7 +243,7 @@ public static class AzureSqlExtensions
             // When in run mode we inject the users identity and we need to specify
             // the principalType.
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-            sqlServer.Administrators.Value!.PrincipalType = principalTypeParameter;
+            sqlServer.Administrators.PrincipalType = principalTypeParameter;
 
             infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps")
             {
@@ -256,9 +256,9 @@ public static class AzureSqlExtensions
 
         foreach (var databaseNames in databases)
         {
-            var identifierName = Infrastructure.NormalizeIdentifierName(databaseNames.Key);
+            var bicepIdentifier = Infrastructure.NormalizeBicepIdentifier(databaseNames.Key);
             var databaseName = databaseNames.Value;
-            var sqlDatabase = new SqlDatabase(identifierName)
+            var sqlDatabase = new SqlDatabase(bicepIdentifier)
             {
                 Parent = sqlServer,
                 Name = databaseName
