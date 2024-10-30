@@ -108,6 +108,9 @@ public sealed class SpanWaterfallViewModel
     private void UpdateHidden(bool isParentCollapsed = false)
     {
         IsHidden = isParentCollapsed;
-        Children.ForEach(child => child.UpdateHidden(isParentCollapsed || IsCollapsed));
+        foreach (var child in Children)
+        {
+            child.UpdateHidden(isParentCollapsed || IsCollapsed);
+        }
     }
 }

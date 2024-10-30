@@ -66,6 +66,19 @@ public sealed class ResourceViewModel
         return Name.Contains(filter, StringComparisons.UserTextSearch);
     }
 
+    public string? GetResourcePropertyValue(string propertyName)
+    {
+        if (Properties.TryGetValue(propertyName, out var value))
+        {
+            if (value.Value.TryConvertToString(out var s))
+            {
+                return s;
+            }
+        }
+
+        return null;
+    }
+
     internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportViewModel> healthReports, KnownResourceState? state)
     {
         if (state != KnownResourceState.Running)
