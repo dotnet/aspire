@@ -9,7 +9,8 @@
 <GridValue Value="@LogEntry.Message"
            ValueDescription="@Loc[nameof(StructuredLogs.StructuredLogsMessageColumnHeader)]"
            EnableHighlighting="true"
-           HighlightText="@FilterText">
+           HighlightText="@FilterText"
+           StopClickPropagation="true">
     <ContentInButtonArea>
         <ExceptionDetails ExceptionText="@_exceptionText" />
     </ContentInButtonArea>

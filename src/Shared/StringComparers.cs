@@ -24,6 +24,7 @@ internal static class StringComparers
     public static StringComparer OtlpAttribute => StringComparer.Ordinal;
     public static StringComparer OtlpFieldValue => StringComparer.OrdinalIgnoreCase;
     public static StringComparer OtlpSpanId => StringComparer.Ordinal;
+    public static StringComparer HealthReportPropertyValue => StringComparer.Ordinal;
 }
 
 internal static class StringComparisons
@@ -45,4 +46,5 @@ internal static class StringComparisons
     public static StringComparison OtlpAttribute => StringComparison.Ordinal;
     public static StringComparison OtlpFieldValue => StringComparison.OrdinalIgnoreCase;
     public static StringComparison OtlpSpanId => StringComparison.Ordinal;
+    public static StringComparison HealthReportPropertyValue => StringComparison.Ordinal;
 }

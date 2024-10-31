@@ -352,7 +352,6 @@ public class ResourceNotificationService
             var newState = stateFactory(previousState);
 
             newState = UpdateCommands(resource, newState);
-            newState = UpdateHealthStatus(resource, newState);
 
             notificationState.LastSnapshot = newState;
 
@@ -377,31 +376,16 @@ public class ResourceNotificationService
             {
                 _logger.LogTrace("Resource {Resource}/{ResourceId} update published: " +
                     "ResourceType = {ResourceType}, CreationTimeStamp = {CreationTimeStamp:s}, State = {{ Text = {StateText}, Style = {StateStyle} }}, " +
-                    "HealthStatus = {HealthStatus} " +
                     "ExitCode = {ExitCode}, EnvironmentVariables = {{ {EnvironmentVariables} }}, Urls = {{ {Urls} }}, " +
                     "Properties = {{ {Properties} }}",
                     resource.Name, resourceId,
-                    newState.ResourceType, newState.CreationTimeStamp, newState.State?.Text, newState.State?.Style, newState.HealthStatus,
+                    newState.ResourceType, newState.CreationTimeStamp, newState.State?.Text, newState.State?.Style,
                     newState.ExitCode, string.Join(", ", newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")), string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
                     string.Join(", ", newState.Properties.Select(p => $"{p.Name} = {p.Value}")));
             }
         }
 
         return Task.CompletedTask;
-    }
-
-    /// <summary>
-    /// Update resource snapshot health status if the resource is running with no health checks.
-    /// </summary>
-    private static CustomResourceSnapshot UpdateHealthStatus(IResource resource, CustomResourceSnapshot previousState)
-    {
-        // A resource is also healthy if it has no health check annotations and is in the running state.
-        if (previousState.HealthStatus is not HealthStatus.Healthy && !resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out _) && previousState.State?.Text == KnownResourceStates.Running)
-        {
-            return previousState with { HealthStatus = HealthStatus.Healthy };
-        }
-
-        return previousState;
     }
 
     /// <summary>

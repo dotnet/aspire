@@ -8,21 +8,21 @@
 
     @if (EnableMasking && IsMasked)
     {
-        <span class="grid-value masked">
+        <span class="grid-value masked" id="@_cellTextId">
             &#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;
         </span>
     }
     else
     {
-        <span class="grid-value" title="@(ToolTip ?? Value)">
+        <span class="grid-value" title="@(ToolTip ?? Value)" id="@_cellTextId">
             @ContentBeforeValue
             @if (EnableHighlighting && !string.IsNullOrEmpty(HighlightText))
             {
                 <FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />
             }
-            else
+            else if (_formattedValue != null)
             {
-                @Value
+                @((MarkupString)_formattedValue)
             }
             @ContentAfterValue
         </span>

@@ -12,6 +12,7 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Google.Protobuf.Collections;
 using Microsoft.Extensions.Options;
+using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;
@@ -285,6 +286,28 @@ public sealed class TelemetryRepository
         RaiseSubscriptionChanged(_logSubscriptions);
     }
 
+    private bool TryAddScope(Dictionary<string, OtlpScope> scopes, InstrumentationScope? scope, [NotNullWhen(true)] out OtlpScope? s)
+    {
+        try
+        {
+            // The instrumentation scope information for the spans in this message.
+            // Semantically when InstrumentationScope isn't set, it is equivalent with
+            // an empty instrumentation scope name (unknown).
+            var name = scope?.Name ?? string.Empty;
+            ref var scopeRef = ref CollectionsMarshal.GetValueRefOrAddDefault(scopes, name, out _);
+            // Adds to dictionary if not present.
+            scopeRef ??= (scope != null) ? new OtlpScope(scope, _otlpContext) : OtlpScope.Empty;
+            s = scopeRef;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _otlpContext.Logger.LogInformation(ex, "Error adding scope.");
+            s = null;
+            return false;
+        }
+    }
+
     public void AddLogsCore(AddContext context, OtlpApplicationView applicationView, RepeatedField<ScopeLogs> scopeLogs)
     {
         _logsLock.EnterWriteLock();
@@ -293,23 +316,9 @@ public sealed class TelemetryRepository
         {
             foreach (var sl in scopeLogs)
             {
-                OtlpScope? scope;
-                try
-                {
-                    // The instrumentation scope information for the spans in this message.
-                    // Semantically when InstrumentationScope isn't set, it is equivalent with
-                    // an empty instrumentation scope name (unknown).
-                    var name = sl.Scope?.Name ?? string.Empty;
-                    if (!_logScopes.TryGetValue(name, out scope))
-                    {
-                        scope = (sl.Scope != null) ? new OtlpScope(sl.Scope, _otlpContext) : OtlpScope.Empty;
-                        _logScopes.Add(name, scope);
-                    }
-                }
-                catch (Exception ex)
+                if (!TryAddScope(_logScopes, sl.Scope, out var scope))
                 {
                     context.FailureCount += sl.LogRecords.Count;
-                    _otlpContext.Logger.LogInformation(ex, "Error adding scope.");
                     continue;
                 }
 
@@ -343,14 +352,9 @@ public sealed class TelemetryRepository
                         {
                             if (!_logSubscriptions.Any(s => s.SubscriptionType == SubscriptionType.Read && (s.ApplicationKey == applicationView.ApplicationKey || s.ApplicationKey == null)))
                             {
-                                if (_applicationUnviewedErrorLogs.TryGetValue(applicationView.ApplicationKey, out var count))
-                                {
-                                    _applicationUnviewedErrorLogs[applicationView.ApplicationKey] = ++count;
-                                }
-                                else
-                                {
-                                    _applicationUnviewedErrorLogs.Add(applicationView.ApplicationKey, 1);
-                                }
+                                ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(_applicationUnviewedErrorLogs, applicationView.ApplicationKey, out _);
+                                // Adds to dictionary if not present.
+                                count++;
                             }
                         }
 
@@ -577,6 +581,7 @@ public sealed class TelemetryRepository
                     if (value != null)
                     {
                         ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(attributesValues, value, out _);
+                        // Adds to dictionary if not present.
                         count++;
                     }
                 }
@@ -604,6 +609,7 @@ public sealed class TelemetryRepository
                 if (value != null)
                 {
                     ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(attributesValues, value, out _);
+                    // Adds to dictionary if not present.
                     count++;
                 }
             }
@@ -770,23 +776,9 @@ public sealed class TelemetryRepository
         {
             foreach (var scopeSpan in scopeSpans)
             {
-                OtlpScope? scope;
-                try
-                {
-                    // The instrumentation scope information for the spans in this message.
-                    // Semantically when InstrumentationScope isn't set, it is equivalent with
-                    // an empty instrumentation scope name (unknown).
-                    var name = scopeSpan.Scope?.Name ?? string.Empty;
-                    if (!_traceScopes.TryGetValue(name, out scope))
-                    {
-                        scope = (scopeSpan.Scope != null) ? new OtlpScope(scopeSpan.Scope, _otlpContext) : OtlpScope.Empty;
-                        _traceScopes.Add(name, scope);
-                    }
-                }
-                catch (Exception ex)
+                if (!TryAddScope(_traceScopes, scopeSpan.Scope, out var scope))
                 {
                     context.FailureCount += scopeSpan.Spans.Count;
-                    _otlpContext.Logger.LogInformation(ex, "Error adding scope.");
                     continue;
                 }
 
@@ -1095,13 +1087,15 @@ public sealed class TelemetryRepository
 
                 foreach (var knownAttributeValues in instrument.KnownAttributeValues)
                 {
-                    if (allKnownAttributes.TryGetValue(knownAttributeValues.Key, out var values))
+                    ref var values = ref CollectionsMarshal.GetValueRefOrAddDefault(allKnownAttributes, knownAttributeValues.Key, out _);
+                    // Adds to dictionary if not present.
+                    if (values != null)
                     {
-                        allKnownAttributes[knownAttributeValues.Key] = values.Union(knownAttributeValues.Value).ToList();
+                        values = values.Union(knownAttributeValues.Value).ToList();
                     }
                     else
                     {
-                        allKnownAttributes[knownAttributeValues.Key] = knownAttributeValues.Value.ToList();
+                        values = knownAttributeValues.Value.ToList();
                     }
                 }
             }

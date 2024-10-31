@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
+using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Dashboard.Tests.Model;
 
@@ -49,7 +50,7 @@ public sealed class DashboardClientTests
 
         Assert.Equal(0, instance.OutgoingResourceSubscriberCount);
 
-        var (_, subscription) = await client.SubscribeResourcesAsync(CancellationToken.None);
+        var (_, subscription) = await client.SubscribeResourcesAsync(CancellationToken.None).DefaultTimeout();
 
         Assert.Equal(1, instance.OutgoingResourceSubscriberCount);
 
@@ -60,9 +61,9 @@ public sealed class DashboardClientTests
             }
         });
 
-        await cts.CancelAsync();
+        cts.Cancel();
 
-        await TaskHelpers.WaitIgnoreCancelAsync(readTask);
+        await TaskHelpers.WaitIgnoreCancelAsync(readTask).DefaultTimeout();
 
         Assert.Equal(0, instance.OutgoingResourceSubscriberCount);
     }
@@ -77,7 +78,7 @@ public sealed class DashboardClientTests
 
         Assert.Equal(0, instance.OutgoingResourceSubscriberCount);
 
-        var (_, subscription) = await client.SubscribeResourcesAsync(CancellationToken.None);
+        var (_, subscription) = await client.SubscribeResourcesAsync(CancellationToken.None).DefaultTimeout();
 
         Assert.Equal(1, instance.OutgoingResourceSubscriberCount);
 
@@ -88,11 +89,11 @@ public sealed class DashboardClientTests
             }
         });
 
-        await instance.DisposeAsync();
+        await instance.DisposeAsync().DefaultTimeout();
 
         Assert.Equal(0, instance.OutgoingResourceSubscriberCount);
 
-        await TaskHelpers.WaitIgnoreCancelAsync(readTask);
+        await TaskHelpers.WaitIgnoreCancelAsync(readTask).DefaultTimeout();
     }
 
     [Fact]
@@ -100,9 +101,9 @@ public sealed class DashboardClientTests
     {
         await using IDashboardClient client = CreateResourceServiceClient();
 
-        await client.DisposeAsync();
+        await client.DisposeAsync().DefaultTimeout();
 
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => client.SubscribeResourcesAsync(CancellationToken.None));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => client.SubscribeResourcesAsync(CancellationToken.None)).DefaultTimeout();
     }
 
     [Fact]
@@ -115,11 +116,11 @@ public sealed class DashboardClientTests
 
         Assert.Equal(0, instance.OutgoingResourceSubscriberCount);
 
-        _ = await client.SubscribeResourcesAsync(CancellationToken.None);
+        _ = await client.SubscribeResourcesAsync(CancellationToken.None).DefaultTimeout();
 
         Assert.Equal(1, instance.OutgoingResourceSubscriberCount);
 
-        await instance.DisposeAsync();
+        await instance.DisposeAsync().DefaultTimeout();
 
         Assert.Equal(0, instance.OutgoingResourceSubscriberCount);
     }
@@ -144,7 +145,7 @@ public sealed class DashboardClientTests
             CreatedAt = Timestamp.FromDateTime(DateTime.UtcNow),
         }]);
 
-        var (initialData, subscription) = await subscribeTask;
+        var (initialData, subscription) = await subscribeTask.DefaultTimeout();
 
         Assert.Single(initialData);
     }

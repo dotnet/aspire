@@ -11,12 +11,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Microsoft.Azure.Cosmos" />
     <AspireProjectOrPackageReference Include="Aspire.Npgsql" />
     <AspireProjectOrPackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
     <AspireProjectOrPackageReference Include="Aspire.StackExchange.Redis" />
-    <AspireProjectOrPackageReference Include="Aspire.Azure.Messaging.EventHubs" />
-    <AspireProjectOrPackageReference Include="Aspire.Microsoft.EntityFrameworkCore.Cosmos" />
   </ItemGroup>
 
   <ItemGroup>

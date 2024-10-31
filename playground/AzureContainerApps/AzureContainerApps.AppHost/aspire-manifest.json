@@ -50,7 +50,7 @@
       ],
       "volumes": [
         {
-          "name": "azurecontainerapps.apphost-43a728061e-cache-data",
+          "name": "azurecontainerapps.apphost-a01ec9bc8d-cache-data",
           "target": "/data",
           "readOnly": false
         }
@@ -84,16 +84,30 @@
       "type": "value.v0",
       "connectionString": "{storage.outputs.blobEndpoint}"
     },
+    "pythonapp": {
+      "type": "container.v1",
+      "build": {
+        "context": "AppWithDocker",
+        "dockerfile": "AppWithDocker/Dockerfile"
+      },
+      "deployment": {
+        "type": "azure.bicep.v0",
+        "path": "pythonapp.module.bicep",
+        "params": {
+          "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+          "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+          "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+          "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+          "pythonapp_containerimage": "{pythonapp.containerImage}"
+        }
+      }
+    },
     "api": {
       "type": "project.v1",
       "path": "../AzureContainerApps.ApiService/AzureContainerApps.ApiService.csproj",
       "deployment": {
         "type": "azure.bicep.v0",
         "path": "api.module.bicep",
-        "params": {
-          "certificateName": "{certificateName.value}",
-          "customDomain": "{customDomain.value}"
-        },
         "params": {
           "api_containerport": "{api.containerPort}",
           "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
@@ -103,7 +117,9 @@
           "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
           "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
           "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
-          "api_containerimage": "{api.containerImage}"
+          "api_containerimage": "{api.containerImage}",
+          "certificateName": "{certificateName.value}",
+          "customDomain": "{customDomain.value}"
         }
       },
       "env": {

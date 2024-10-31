@@ -83,22 +83,48 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                         cancellationToken).ConfigureAwait(false);
                 }
 
-                if (_latestEvents[resource.Name] is { } latestEvent && latestEvent.Snapshot.HealthStatus == report.Status)
+                var latestEvent = _latestEvents.GetValueOrDefault(resource.Name);
+                if (latestEvent is not null
+                    && !latestEvent.Snapshot.HealthReports.Any(r => r.Status is null) // don't count events before we have health reports
+                    && latestEvent.Snapshot.HealthStatus == report.Status)
                 {
                     await SlowDownMonitoringAsync(latestEvent, cancellationToken).ConfigureAwait(false);
-                    continue;
+
+                    // If none of the health report statuses have changed, we should not update the resource health reports.
+                    if (!ContainsAnyHealthReportChange(report, latestEvent.Snapshot.HealthReports))
+                    {
+                        continue;
+                    }
+
+                    static bool ContainsAnyHealthReportChange(HealthReport report, ImmutableArray<HealthReportSnapshot> latestHealthReportSnapshots)
+                    {
+                        var healthCheckNameToStatus = latestHealthReportSnapshots.ToDictionary(p => p.Name);
+                        foreach (var (key, value) in report.Entries)
+                        {
+                            if (!healthCheckNameToStatus.TryGetValue(key, out var checkReportSnapshot))
+                            {
+                                return true;
+                            }
+
+                            if (checkReportSnapshot.Status != value.Status
+                                || !StringComparers.HealthReportPropertyValue.Equals(checkReportSnapshot.Description, value.Description)
+                                || !StringComparers.HealthReportPropertyValue.Equals(checkReportSnapshot.ExceptionText, value.Exception?.ToString()))
+                            {
+                                return true;
+                            }
+                        }
+
+                        return false;
+                    }
                 }
 
                 await resourceNotificationService.PublishUpdateAsync(resource, s =>
                 {
                     var healthReports = MergeHealthReports(s.HealthReports, report);
 
-                    // Matches the logic in ASP.NET Core's private HealthReport.CalculateAggregateStatus
-                    var healthStatus = healthReports.MinBy(r => r.Status)?.Status ?? s.HealthStatus;
-
                     return s with
                     {
-                        HealthStatus = healthStatus,
+                        // HealthStatus is automatically re-computed after health reports change.
                         HealthReports = healthReports
                     };
                 }).ConfigureAwait(false);

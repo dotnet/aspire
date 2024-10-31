@@ -20,6 +20,10 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
     public static IResourceBuilder<ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, [ResourceName] string name, string image)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(image);
+
         return builder.AddContainer(name, image, "latest");
     }
 
@@ -33,6 +37,11 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
     public static IResourceBuilder<ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, [ResourceName] string name, string image, string tag)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(tag);
+
         var container = new ContainerResource(name);
         return builder.AddResource(container)
                       .WithImage(image, tag);
@@ -47,8 +56,11 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="target">The target path where the volume is mounted in the container.</param>
     /// <param name="isReadOnly">A flag that indicates if the volume should be mounted as read-only.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, string name, string target, bool isReadOnly = false) where T : ContainerResource
+    public static IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, string? name, string target, bool isReadOnly = false) where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(target);
+
         var annotation = new ContainerMountAnnotation(name, target, ContainerMountType.Volume, isReadOnly);
         return builder.WithAnnotation(annotation);
     }
@@ -62,6 +74,9 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, string target) where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(target);
+
         var annotation = new ContainerMountAnnotation(null, target, ContainerMountType.Volume, false);
         return builder.WithAnnotation(annotation);
     }
@@ -77,6 +92,10 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithBindMount<T>(this IResourceBuilder<T> builder, string source, string target, bool isReadOnly = false) where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(target);
+
         var annotation = new ContainerMountAnnotation(Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory), target, ContainerMountType.BindMount, isReadOnly);
         return builder.WithAnnotation(annotation);
     }
@@ -90,6 +109,9 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithEntrypoint<T>(this IResourceBuilder<T> builder, string entrypoint) where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(entrypoint);
+
         builder.Resource.Entrypoint = entrypoint;
         return builder;
     }
@@ -103,6 +125,9 @@ public static class ContainerResourceBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<T> WithImageTag<T>(this IResourceBuilder<T> builder, string tag) where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(tag);
+
         if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } existingImageAnnotation)
         {
             existingImageAnnotation.Tag = tag;
@@ -119,8 +144,10 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">Builder for the container resource.</param>
     /// <param name="registry">Registry value.</param>
     /// <returns></returns>
-    public static IResourceBuilder<T> WithImageRegistry<T>(this IResourceBuilder<T> builder, string registry) where T : ContainerResource
+    public static IResourceBuilder<T> WithImageRegistry<T>(this IResourceBuilder<T> builder, string? registry) where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } existingImageAnnotation)
         {
             existingImageAnnotation.Registry = registry;
@@ -140,6 +167,10 @@ public static class ContainerResourceBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<T> WithImage<T>(this IResourceBuilder<T> builder, string image, string tag = "latest") where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(tag);
+
         if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } existingImageAnnotation)
         {
             existingImageAnnotation.Image = image;
@@ -162,6 +193,9 @@ public static class ContainerResourceBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<T> WithImageSHA256<T>(this IResourceBuilder<T> builder, string sha256) where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(sha256);
+
         if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } existingImageAnnotation)
         {
             existingImageAnnotation.SHA256 = sha256;
@@ -183,6 +217,8 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithContainerRuntimeArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithContainerRuntimeArgs(context => context.Args.AddRange(args));
     }
 
@@ -198,6 +234,9 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithContainerRuntimeArgs<T>(this IResourceBuilder<T> builder, Action<ContainerRuntimeArgsCallbackContext> callback) where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
         return builder.WithContainerRuntimeArgs(context =>
         {
             callback(context);
@@ -217,6 +256,9 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithContainerRuntimeArgs<T>(this IResourceBuilder<T> builder, Func<ContainerRuntimeArgsCallbackContext, Task> callback) where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
         var annotation = new ContainerRuntimeArgsCallbackAnnotation(callback);
         return builder.WithAnnotation(annotation);
     }
@@ -238,6 +280,8 @@ public static class ContainerResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<T> WithLifetime<T>(this IResourceBuilder<T> builder, ContainerLifetime lifetime) where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithAnnotation(new ContainerLifetimeAnnotation { Lifetime = lifetime }, ResourceAnnotationMutationBehavior.Replace);
     }
 
@@ -253,6 +297,8 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> PublishAsContainer<T>(this IResourceBuilder<T> builder) where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
     }
 
@@ -293,6 +339,7 @@ public static class ContainerResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<T> WithDockerfile<T>(this IResourceBuilder<T> builder, string contextPath, string? dockerfilePath = null, string? stage = null) where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(contextPath);
 
         var fullyQualifiedContextPath = Path.GetFullPath(contextPath, builder.ApplicationBuilder.AppHostDirectory);
@@ -314,7 +361,7 @@ public static class ContainerResourceBuilderExtensions
         var imageName = builder.GenerateImageName();
         var annotation = new DockerfileBuildAnnotation(fullyQualifiedContextPath, fullyQualifiedDockerfilePath, stage);
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
-                      .WithImageRegistry(null!)
+                      .WithImageRegistry(registry: null)
                       .WithImage(imageName)
                       .WithImageTag("latest");
     }
@@ -350,6 +397,10 @@ public static class ContainerResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, string? dockerfilePath = null, string? stage = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(contextPath);
+
         return builder.AddContainer(name, "placeholder") // Image name will be replaced by WithDockerfile.
                       .WithDockerfile(contextPath, dockerfilePath, stage);
     }
@@ -369,6 +420,9 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The resource bulder for the container resource.</returns>
     public static IResourceBuilder<T> WithContainerName<T>(this IResourceBuilder<T> builder, string name) where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         return builder.WithAnnotation(new ContainerNameAnnotation { Name = name }, ResourceAnnotationMutationBehavior.Replace);
     }
 
@@ -402,6 +456,7 @@ public static class ContainerResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<T> WithBuildArg<T>(this IResourceBuilder<T> builder, string name, object value) where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentNullException.ThrowIfNull(value);
 
@@ -448,6 +503,10 @@ public static class ContainerResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<T> WithBuildArg<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> value) where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(value);
+
         if (value.Resource.Secret)
         {
             throw new InvalidOperationException("Cannot add secret parameter as a build argument. Use WithSecretBuildArg instead.");
@@ -487,6 +546,7 @@ public static class ContainerResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<T> WithBuildSecret<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> value) where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentNullException.ThrowIfNull(value);
 
