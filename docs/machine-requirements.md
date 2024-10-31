@@ -45,5 +45,3 @@ Just start the Codespaces in your fork. The initialisation of the code space tak
 This will take on the free version of Codespace around 10 mins.
 
 > :warning: With the free version of Codespaces the development experience is not nice. We recommend using at least a Codespace with 16GB of RAM or use your local VS Code / DevContainers instance.
-
-> :warning: Currently the codespaces can not be used to try / debug the Aspire dashboard. This is a known issue. If you want to debug it, use Visual Studio or your local VS Code and the DevContainers.
