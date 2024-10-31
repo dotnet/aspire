@@ -450,7 +450,7 @@ public static class RedisBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data");
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/data");
     }
 
     /// <summary>
