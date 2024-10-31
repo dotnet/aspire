@@ -71,6 +71,15 @@ public class UrlParserTests
         Assert.Equal(expectedOutput, modifiedText);
     }
 
+    [Fact]
+    public void TryParse_QueryString()
+    {
+        var result = UrlParser.TryParse("https://www.example.com?query=string&param=value", WebUtility.HtmlEncode, out var modifiedText);
+        Assert.True(result);
+
+        Assert.Equal("<a target=\"_blank\" href=\"https://www.example.com?query=string&param=value\">https://www.example.com?query=string&amp;param=value</a>", modifiedText);
+    }
+
     [Theory]
     [InlineData("http://www.localhost:8080")]
     [InlineData("HTTP://WWW.LOCALHOST:8080")]

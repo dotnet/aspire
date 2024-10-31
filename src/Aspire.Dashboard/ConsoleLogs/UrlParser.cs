@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -34,7 +35,7 @@ public static partial class UrlParser
                 nextCharIndex = urlMatch.Index + urlMatch.Length;
                 var url = text[urlStart..nextCharIndex];
 
-                builder.Append(CultureInfo.InvariantCulture, $"<a target=\"_blank\" href=\"{url}\">{url}</a>");
+                builder.Append(CultureInfo.InvariantCulture, $"<a target=\"_blank\" href=\"{url}\">{WebUtility.HtmlEncode(url)}</a>");
                 urlMatch = urlMatch.NextMatch();
             }
 
