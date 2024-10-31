@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RunSettings>
-  <xunit>
+  <xUnit>
     <ShowLiveOutput>true</ShowLiveOutput>
-  </xunit>
+  </xUnit>
   <RunConfiguration>
     <!-- Timeout in ms, 15 minutes -->
     <TestSessionTimeout>900000</TestSessionTimeout>
