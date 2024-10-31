@@ -15,7 +15,7 @@ using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 using Xunit;
 using Xunit.Abstractions;
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace Aspire.Hosting.Redis.Tests;
 
@@ -446,22 +446,6 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             IResourceBuilder<RedisInsightResource>? redisInsightBuilder1 = null;
             var redis1 = builder1.AddRedis("redis")
                 .WithRedisInsight(c => { redisInsightBuilder1 = c; });
-            Assert.NotNull(redisInsightBuilder1);
-
-            if (useVolume)
-            {
-                // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
-                volumeName = VolumeNameGenerator.CreateVolumeName(redisInsightBuilder1, nameof(RedisInsightWithDataShouldPersistStateBetweenUsages));
-
-                // if the volume already exists (because of a crashing previous run), delete it
-                DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
-                redisInsightBuilder1.WithDataVolume(volumeName);
-            }
-            else
-            {
-                bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-                redisInsightBuilder1.WithDataBindMount(bindMountPath);
-            }
 
             using (var app = builder1.Build())
             {
@@ -561,14 +545,15 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var content = await response.Content.ReadAsStringAsync(ct);
 
-        var jo = JObject.Parse(content);
+        var jo = JsonObject.Parse(content);
+        Assert.NotNull(jo);
         var agreements = jo["agreements"];
 
         Assert.NotNull(agreements);
-        Assert.False(agreements["analytics"]!.Value<bool>());
-        Assert.False(agreements["notifications"]!.Value<bool>());
-        Assert.False(agreements["encryption"]!.Value<bool>());
-        Assert.True(agreements["eula"]!.Value<bool>());
+        Assert.False(agreements["analytics"]!.GetValue<bool>());
+        Assert.False(agreements["notifications"]!.GetValue<bool>());
+        Assert.False(agreements["encryption"]!.GetValue<bool>());
+        Assert.True(agreements["eula"]!.GetValue<bool>());
     }
 
     static async Task AcceptRedisInsightEula(HttpClient client, CancellationToken ct)
@@ -586,8 +571,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var apiUrl = $"/api/settings";
 
-        var response = await client.PatchAsync(apiUrl, jsonContent, ct)
-                            .ConfigureAwait(false);
+        var response = await client.PatchAsync(apiUrl, jsonContent, ct);
 
         response.EnsureSuccessStatusCode();
 
