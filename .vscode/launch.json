@@ -8,17 +8,6 @@
             "request": "launch",
             "name": "C#: WaitFor (Debug)",
             "type": "dotnet",
-            "serverReadyAction": {
-                "action": "openExternally",
-
-                // The purpose of this pattern is to extract the dashboard URL from the console output and
-                // use that the launch the dashboard.
-                // Login to the dashboard at https://codespacename-port.app.github.dev/login?t=thetoken
-                "pattern": "Login to the dashboard at (https:\\/\\/[^\\s]+)",
-
-                // This uses the whole captured value to launch the browser.
-                "uriFormat": "%s"
-            },
             "projectPath": "${workspaceFolder}/playground/waitfor/WaitForSandbox.AppHost/WaitForSandbox.AppHost.csproj"
         }
     ]
