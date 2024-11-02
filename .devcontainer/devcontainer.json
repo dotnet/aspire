@@ -76,7 +76,9 @@
 				"ms-dotnettools.vscodeintellicode-csharp",
 				"ms-azuretools.vscode-bicep",
 				"EditorConfig.EditorConfig",
-				"ms-azuretools.azure-dev"
+				"ms-azuretools.azure-dev",
+				"GitHub.copilot",
+				"GitHub.copilot-chat"
 			],
 			"settings": {
 				"remote.autoForwardPorts": false,
