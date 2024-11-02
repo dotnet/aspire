@@ -9,6 +9,7 @@ using System.Text.Json.Serialization;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Codespaces;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
@@ -29,7 +30,9 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              ResourceLoggerService resourceLoggerService,
                                              ILoggerFactory loggerFactory,
                                              DcpNameGenerator nameGenerator,
-                                             IHostApplicationLifetime hostApplicationLifetime) : IDistributedApplicationLifecycleHook, IAsyncDisposable
+                                             IHostApplicationLifetime hostApplicationLifetime,
+                                             IOptions<CodespacesOptions> codespacesOptions,
+                                             CodespacesUrlRewriter codespaceUrlRewriter) : IDistributedApplicationLifecycleHook, IAsyncDisposable
 {
     private Task? _dashboardLogsTask;
     private CancellationTokenSource? _dashboardLogsCts;
@@ -235,14 +238,23 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
             // We need to print out the url so that dotnet watch can launch the dashboard
             // technically this is too early, but it's late ne
-            if (StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
+            if (!StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
             {
-                distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", firstDashboardUrl.ToString().TrimEnd('/'));
+                return;
             }
+
+            var dashboardUrl = firstDashboardUrl.ToString();
+
+            if (codespacesOptions.Value.IsCodespace)
+            {
+                dashboardUrl = codespaceUrlRewriter.RewriteUrl(dashboardUrl);
+            }
+
+            distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl.TrimEnd('/'));
 
             if (!string.IsNullOrEmpty(browserToken))
             {
-                LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrls, browserToken, isContainer: false);
+                LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrl, browserToken, isContainer: false);
             }
         }));
     }
