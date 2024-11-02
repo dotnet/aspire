@@ -13,7 +13,7 @@ internal sealed class CodespacesUrlRewriter(IOptions<CodespacesOptions> options)
 
         if (!options.Value.IsCodespace)
         {
-            throw new InvalidOperationException("Cannot translate URL because not currently running in a GitHub Codespace.");
+            return url;
         }
 
         return RewriteUrl(new Uri(url, UriKind.Absolute));
@@ -23,7 +23,7 @@ internal sealed class CodespacesUrlRewriter(IOptions<CodespacesOptions> options)
     {
         if (!options.Value.IsCodespace)
         {
-            throw new InvalidOperationException("Cannot translate URL because not currently running in a GitHub Codespace.");
+            return uri.ToString();
         }
 
         var codespacesUrl = $"{uri.Scheme}://{options.Value.CodespaceName}-{uri.Port}.{options.Value.PortForwardingDomain}{uri.AbsolutePath}";

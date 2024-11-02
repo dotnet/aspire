@@ -31,7 +31,6 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              ILoggerFactory loggerFactory,
                                              DcpNameGenerator nameGenerator,
                                              IHostApplicationLifetime hostApplicationLifetime,
-                                             IOptions<CodespacesOptions> codespacesOptions,
                                              CodespacesUrlRewriter codespaceUrlRewriter) : IDistributedApplicationLifecycleHook, IAsyncDisposable
 {
     private Task? _dashboardLogsTask;
@@ -243,12 +242,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                 return;
             }
 
-            var dashboardUrl = firstDashboardUrl.ToString();
-
-            if (codespacesOptions.Value.IsCodespace)
-            {
-                dashboardUrl = codespaceUrlRewriter.RewriteUrl(dashboardUrl);
-            }
+            var dashboardUrl = codespaceUrlRewriter.RewriteUrl(firstDashboardUrl.ToString());
 
             distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl.TrimEnd('/'));
 
