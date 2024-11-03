@@ -15,16 +15,23 @@
     else
     {
         <span class="grid-value" title="@(ToolTip ?? Value)" id="@_cellTextId">
-            @ContentBeforeValue
-            @if (EnableHighlighting && !string.IsNullOrEmpty(HighlightText))
+            @if (ContentBeforeValue == null && ContentAfterValue == null && string.IsNullOrEmpty(Value))
             {
-                <FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />
+                <span class="empty-data"></span>
             }
-            else if (_formattedValue != null)
+            else
             {
-                @((MarkupString)_formattedValue)
-            }
-            @ContentAfterValue
+                @ContentBeforeValue
+                if (EnableHighlighting && !string.IsNullOrEmpty(HighlightText))
+                {
+                    <FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />
+                }
+                else if (_formattedValue != null)
+                {
+                    @((MarkupString)_formattedValue)
+                }
+                @ContentAfterValue
+            }            
         </span>
     }
 
@@ -49,18 +56,17 @@
             </FluentButton>
 
             <FluentMenu Anchor="@_menuAnchorId" @bind-Open="_isMenuOpen" VerticalThreshold="170" HorizontalPosition="HorizontalPosition.End">
-                <FluentMenuItem
-                    Id="@_copyId"
-                    AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, uncapturedCopyAttributes)">
+                <FluentMenuItem Id="@_copyId"
+                                Disabled="@(ValueToCopy is null && Value is null)"
+                                AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, uncapturedCopyAttributes)">
                     <span slot="start">
                         <FluentIcon Style="vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" />
                     </span>
                     @PreCopyToolTip
                 </FluentMenuItem>
 
-                <FluentMenuItem
-                    Disabled="@(ValueToVisualize is null && Value is null)"
-                    AdditionalAttributes="@FluentUIExtensions.GetOpenTextVisualizerAdditionalAttributes(ValueToVisualize ?? Value!, !string.IsNullOrEmpty(TextVisualizerTitle) ? TextVisualizerTitle : ValueDescription)">
+                <FluentMenuItem Disabled="@(ValueToVisualize is null && Value is null)"
+                                AdditionalAttributes="@FluentUIExtensions.GetOpenTextVisualizerAdditionalAttributes(ValueToVisualize ?? Value!, !string.IsNullOrEmpty(TextVisualizerTitle) ? TextVisualizerTitle : ValueDescription)">
                     <span slot="start">
                         <FluentIcon Style="vertical-align: text-bottom" Icon="Icons.Regular.Size16.Open" />
                     </span>
