@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -34,7 +35,7 @@ public static partial class UrlParser
                 nextCharIndex = urlMatch.Index + urlMatch.Length;
                 var url = text[urlStart..nextCharIndex];
 
-                builder.Append(CultureInfo.InvariantCulture, $"<a target=\"_blank\" href=\"{url}\">{url}</a>");
+                builder.Append(CultureInfo.InvariantCulture, $"<a target=\"_blank\" href=\"{url}\">{WebUtility.HtmlEncode(url)}</a>");
                 urlMatch = urlMatch.NextMatch();
             }
 
@@ -65,17 +66,9 @@ public static partial class UrlParser
     }
 
     // Regular expression that detects http/https URLs in a log entry
-    // Based on the RegEx used in Windows Terminal for the same purpose. Some modifications:
-    // - Can start at a non word boundary. This behavior is similar to how GitHub matches URLs in pretty printed code.
-    // - Limited to only http/https URLs.
-    // - Ignore case. That means it matches URLs starting with http and HTTP.
-    //
-    // Explanation:
-    // https?://                      - http:// or https://
-    // [-A-Za-z0-9+&@#/%?=~_|$!:,.;]* - Any character in the list, matched zero or more times.
-    // [A-Za-z0-9+&@#/%=~_|$]         - Any character in the list, matched exactly once
+    // Based on the RegEx used by GitHub to detect links in content.
     [GeneratedRegex(
-        "https?://[-A-Za-z0-9+&@#/%?=~_|$!:,.;]*[A-Za-z0-9+&@#/%=~_|$]",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+        @"((?<!\+)https?:\/\/(?:www\.)?(?:[-\p{L}.]+?[.@][a-zA-Z\d]{2,}|localhost)(?:[-\w\p{L}.:%+~#*$!?&/=@]*(?:,(?!\s))*?)*)",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
     public static partial Regex GenerateUrlRegEx();
 }
