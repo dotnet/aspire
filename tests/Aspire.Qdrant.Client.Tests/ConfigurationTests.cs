@@ -13,4 +13,8 @@ public class ConfigurationTests
     [Fact]
     public void HealthChecksEnabledByDefault() =>
      Assert.False(new QdrantClientSettings().DisableHealthChecks);
+
+    [Fact]
+    public void HealthCheckTimeoutNullByDefault() =>
+     Assert.Null(new QdrantClientSettings().HealthCheckTimeout);
 }

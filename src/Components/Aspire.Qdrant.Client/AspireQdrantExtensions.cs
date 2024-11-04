@@ -93,7 +93,7 @@ public static class AspireQdrantExtensions
                     sp.GetRequiredKeyedService<QdrantClient>(serviceKey)),
                 failureStatus: null,
                 tags: null,
-                timeout: settings.HealthCheckTimeout > 0 ? TimeSpan.FromMilliseconds(settings.HealthCheckTimeout.Value) : null
+                timeout: settings.HealthCheckTimeout
                 ));
         }
 

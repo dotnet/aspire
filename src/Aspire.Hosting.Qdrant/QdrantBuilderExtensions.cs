@@ -62,7 +62,7 @@ public static class QdrantBuilderExtensions
         builder.Services.AddHealthChecks()
           .Add(new HealthCheckRegistration(
               healthCheckKey,
-              sp => new QdrantHealthCheck(qdrantClient!),
+              sp => new QdrantHealthCheck(qdrantClient ?? throw new InvalidOperationException("Qdrant Client is unavailable")),
               failureStatus: default,
               tags: default,
               timeout: default));

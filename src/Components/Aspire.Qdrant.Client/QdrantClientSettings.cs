@@ -32,9 +32,12 @@ public sealed class QdrantClientSettings
     public bool DisableHealthChecks { get; set; }
 
     /// <summary>
-    /// Gets or sets a integer value that indicates the Qdrant health check timeout in milliseconds.
+    /// Gets or sets the timeout duration for the health check.
     /// </summary>
-    public int? HealthCheckTimeout { get; set; }
+    /// <value>
+    /// The default value is <see langword="null"/>.
+    /// </value>
+    public TimeSpan? HealthCheckTimeout { get; set; }
 
     internal void ParseConnectionString(string? connectionString)
     {
