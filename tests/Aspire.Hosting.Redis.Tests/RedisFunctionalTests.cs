@@ -599,7 +599,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
             IResourceBuilder<RedisInsightResource>? redisInsightBuilder2 = null;
-            var redis2 = builder1.AddRedis("redis")
+            var redis2 = builder2.AddRedis("redis")
                 .WithRedisInsight(c => { redisInsightBuilder2 = c; });
             Assert.NotNull(redisInsightBuilder2);
 
@@ -619,7 +619,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
                 // RedisInsight will import databases when it is ready, this task will run after the initial databases import
                 // so we will use that to know when the databases have been successfully imported
                 var redisInsightsReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-                builder1.Eventing.Subscribe<ResourceReadyEvent>(redisInsightBuilder1.Resource, (evt, ct) =>
+                builder2.Eventing.Subscribe<ResourceReadyEvent>(redisInsightBuilder2.Resource, (evt, ct) =>
                 {
                     redisInsightsReady.TrySetResult();
                     return Task.CompletedTask;
