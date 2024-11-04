@@ -158,6 +158,15 @@ public sealed record DaprSidecarOptions
     public string? RuntimePath { get; init; }
 
     /// <summary>
+    /// Gets or sets the address of the scheduler service.
+    /// </summary>
+    /// <remarks>
+    /// The format is either "hostname" for the default port or "hostname:port" for a custom port.
+    /// The default is "localhost".
+    /// </remarks>
+    public string? SchedulerHostAddress { get; init; }
+
+    /// <summary>
     /// Gets or sets the path to a Unix Domain Socket (UDS) directory.
     /// </summary>
     /// <remarks>

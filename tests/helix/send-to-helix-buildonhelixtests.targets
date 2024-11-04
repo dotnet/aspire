@@ -35,7 +35,7 @@
       <_TestBlameArguments Include="--blame-crash-dump-type full" />
 
       <!-- Using `dotnet test` for the project directly here -->
-      <_TestRunCommandArguments Include="dotnet test -s .runsettings --results-directory $(_HelixLogsPath)" />
+      <_TestRunCommandArguments Include="dotnet test -s .runsettings --results-directory $(_HelixLogsPath) -v:n" />
       <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
     </ItemGroup>
 

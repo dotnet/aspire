@@ -3,27 +3,28 @@
 {
 	"name": "C# (.NET)",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/dotnet:1-9.0",
+	"image": "mcr.microsoft.com/devcontainers/dotnet:1-9.0-bookworm",
 	"features": {
 		"ghcr.io/devcontainers/features/azure-cli:1": {},
 		"ghcr.io/azure/azure-dev/azd:0": {},
-		"ghcr.io/devcontainers/features/docker-in-docker": {},
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {},
+		"ghcr.io/devcontainers/features/powershell:1": {},
 		"ghcr.io/devcontainers/features/dotnet": {
 			"additionalVersions": [
 				"8.0.403"
 			]
+		},
+		"ghcr.io/dapr/cli/dapr-cli": {
+			"version": "1.12.0"
 		}
 	},
-
 	"hostRequirements": {
 		"cpus": 8,
 		"memory": "32gb",
 		"storage": "64gb"
 	},
-
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
-
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [
 		15887,
@@ -68,14 +69,16 @@
 	"otherPortsAttributes": {
 		"onAutoForward": "ignore"
 	},
-
 	// Use 'postCreateCommand' to run commands after the container is created.
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"ms-dotnettools.csdevkit",
+				"ms-dotnettools.vscodeintellicode-csharp",
 				"ms-azuretools.vscode-bicep",
-				"ms-azuretools.azure-dev"
+				"EditorConfig.EditorConfig",
+				"ms-azuretools.azure-dev",
+				"GitHub.copilot",
+				"GitHub.copilot-chat"
 			],
 			"settings": {
 				"remote.autoForwardPorts": false,
@@ -84,11 +87,10 @@
 		}
 	},
 	"onCreateCommand": "dotnet restore",
+	"postCreateCommand": "dapr init",
 	"postStartCommand": "dotnet dev-certs https --trust"
-
 	// Configure tool-specific properties.
 	// "customizations": {},
-
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
 	// "remoteUser": "root"
 }
