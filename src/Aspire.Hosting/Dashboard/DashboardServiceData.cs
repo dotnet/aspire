@@ -84,7 +84,7 @@ internal sealed class DashboardServiceData : IDisposable
         _cts.Dispose();
     }
 
-    internal async Task<(ExecuteCommandResult result, string? errorMessage)> ExecuteCommandAsync(string resourceId, string type, CancellationToken cancellationToken)
+    internal async Task<ExecuteCommandResult> ExecuteCommandAsync(string resourceId, string type, CancellationToken cancellationToken)
     {
         var logger = _resourceLoggerService.GetLogger(resourceId);
 
@@ -100,31 +100,31 @@ internal sealed class DashboardServiceData : IDisposable
                     if (result.Success)
                     {
                         logger.LogInformation("Successfully executed command '{Type}'.", type);
-                        return (ExecuteCommandResult.Success, null);
+                        return result;
                     }
                     else
                     {
                         logger.LogInformation("Failure executed command '{Type}'. Error message: {ErrorMessage}", type, result.ErrorMessage);
-                        return (ExecuteCommandResult.Failure, result.ErrorMessage);
+                        return result;
                     }
                 }
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Error executing command '{Type}'.", type);
-                    return (ExecuteCommandResult.Failure, "Unhandled exception thrown.");
+                    return new ExecuteCommandResult
+                    {
+                        Success = false,
+                        ErrorMessage = ex.Message
+                    };
                 }
             }
         }
 
         logger.LogInformation("Command '{Type}' not available.", type);
-        return (ExecuteCommandResult.Canceled, null);
-    }
-
-    internal enum ExecuteCommandResult
-    {
-        Success,
-        Failure,
-        Canceled
+        return new CancelledExecuteCommandResult
+        {
+            Success = false
+        };
     }
 
     internal ResourceSnapshotSubscription SubscribeResources()

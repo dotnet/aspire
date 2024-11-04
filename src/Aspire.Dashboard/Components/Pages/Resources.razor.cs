@@ -353,6 +353,10 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             toastParameters.Intent = ToastIntent.Success;
             toastParameters.Icon = GetIntentIcon(ToastIntent.Success);
         }
+        else if (response.Kind == ResourceCommandResponseKind.Action && response.ActionKind == ResourceCommandResponseActionKind.OpenExternal)
+        {
+            await JS.InvokeVoidAsync("window.open", response.Url);
+        }
         else
         {
             toastParameters.Title = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandFailed)], messageResourceName, command.DisplayName);

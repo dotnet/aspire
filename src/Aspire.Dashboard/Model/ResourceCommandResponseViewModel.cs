@@ -6,6 +6,11 @@ namespace Aspire.Dashboard.Model;
 public class ResourceCommandResponseViewModel
 {
     public required ResourceCommandResponseKind Kind { get; init; }
+
+    public ResourceCommandResponseActionKind? ActionKind { get; init; }
+
+    public string? Url { get; init; }
+
     public string? ErrorMessage { get; init; }
 }
 
@@ -15,5 +20,11 @@ public enum ResourceCommandResponseKind
     Undefined = 0,
     Succeeded = 1,
     Failed = 2,
-    Cancelled = 3
+    Cancelled = 3,
+    Action = 4
+}
+
+public enum ResourceCommandResponseActionKind
+{
+    OpenExternal = 0
 }

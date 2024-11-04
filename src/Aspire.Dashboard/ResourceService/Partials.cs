@@ -140,9 +140,11 @@ partial class ResourceCommandResponse
     public ResourceCommandResponseViewModel ToViewModel()
     {
         return new ResourceCommandResponseViewModel()
-        {
-            ErrorMessage = ErrorMessage,
-            Kind = (Dashboard.Model.ResourceCommandResponseKind)Kind
-        };
+                {
+                    ActionKind = (Dashboard.Model.ResourceCommandResponseActionKind)ActionKind,
+                    ErrorMessage = ErrorMessage,
+                    Kind = (Dashboard.Model.ResourceCommandResponseKind)Kind,
+                    Url = Url ?? string.Empty
+                };
     }
 }

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.RegularExpressions;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.ResourceService.Proto.V1;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
@@ -68,7 +69,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
 
             foreach (var resource in initialData)
             {
-                data.Resources.Add(Resource.FromSnapshot(resource));
+                data.Resources.Add(Aspire.ResourceService.Proto.V1.Resource.FromSnapshot(resource));
             }
 
             await responseStream.WriteAsync(new() { InitialData = data }, cancellationToken).ConfigureAwait(false);
@@ -83,7 +84,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
 
                     if (update.ChangeType is ResourceSnapshotChangeType.Upsert)
                     {
-                        change.Upsert = Resource.FromSnapshot(update.Resource);
+                        change.Upsert = Aspire.ResourceService.Proto.V1.Resource.FromSnapshot(update.Resource);
                     }
                     else if (update.ChangeType is ResourceSnapshotChangeType.Delete)
                     {
@@ -160,19 +161,14 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
 
     public override async Task<ResourceCommandResponse> ExecuteResourceCommand(ResourceCommandRequest request, ServerCallContext context)
     {
-        var (result, errorMessage) = await serviceData.ExecuteCommandAsync(request.ResourceName, request.CommandName, context.CancellationToken).ConfigureAwait(false);
-        var responseKind = result switch
+        var result = await serviceData.ExecuteCommandAsync(request.ResourceName, request.CommandName, context.CancellationToken).ConfigureAwait(false);
+        return result switch
         {
-            DashboardServiceData.ExecuteCommandResult.Success => ResourceCommandResponseKind.Succeeded,
-            DashboardServiceData.ExecuteCommandResult.Canceled => ResourceCommandResponseKind.Cancelled,
-            DashboardServiceData.ExecuteCommandResult.Failure => ResourceCommandResponseKind.Failed,
-            _ => ResourceCommandResponseKind.Undefined
-        };
-
-        return new ResourceCommandResponse
-        {
-            Kind = responseKind,
-            ErrorMessage = errorMessage ?? string.Empty
+            OpenExternalExecuteCommandResult openExternal => new ResourceCommandResponse { Kind = ResourceCommandResponseKind.Action, ActionKind = ResourceCommandResponseActionKind.OpenExternal, Url = openExternal.Url },
+            CancelledExecuteCommandResult => new ResourceCommandResponse { Kind = ResourceCommandResponseKind.Cancelled },
+            { Success: true } => new ResourceCommandResponse { Kind = ResourceCommandResponseKind.Succeeded },
+            { Success: false } => new ResourceCommandResponse { Kind = ResourceCommandResponseKind.Failed, ErrorMessage = result.ErrorMessage ?? string.Empty },
+            _ => new ResourceCommandResponse { Kind = ResourceCommandResponseKind.Undefined }
         };
     }
 

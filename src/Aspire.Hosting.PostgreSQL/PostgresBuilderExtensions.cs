@@ -139,6 +139,19 @@ public static class PostgresBuilderExtensions
         {
             var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingPgAdminResource);
             configureContainer?.Invoke(builderForExistingResource);
+
+            builder.WithCommand("open-pgadmin", "Open PgAdmin", (context) => {
+                var endpoint = builderForExistingResource.GetEndpoint("http");
+
+                var result = new OpenExternalExecuteCommandResult()
+                {
+                    Success = true,
+                    Url = endpoint.Url
+                };
+
+                return Task.FromResult((ExecuteCommandResult)result);
+            });
+
             return builder;
         }
         else
@@ -154,6 +167,18 @@ public static class PostgresBuilderExtensions
                                                  .WithBindMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
                                                  .WithHttpHealthCheck("/browser")
                                                  .ExcludeFromManifest();
+
+                builder.WithCommand("open-pgadmin", "Open PgAdmin", (context) => {
+                    var endpoint = pgAdminContainerBuilder.GetEndpoint("http");
+
+                    var result = new OpenExternalExecuteCommandResult()
+                    {
+                        Success = true,
+                        Url = endpoint.Url
+                    };
+
+                    return Task.FromResult((ExecuteCommandResult)result);
+                });
 
             builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
             {

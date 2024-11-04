@@ -128,7 +128,7 @@ public static class CommandResults
 /// <summary>
 /// The result of executing a command. Returned from <see cref="ResourceCommandAnnotation.ExecuteCommand"/>.
 /// </summary>
-public sealed class ExecuteCommandResult
+public class ExecuteCommandResult
 {
     /// <summary>
     /// A flag that indicates whether the command was successful.
@@ -139,6 +139,24 @@ public sealed class ExecuteCommandResult
     /// An optional error message that can be set when the command is unsuccessful.
     /// </summary>
     public string? ErrorMessage { get; init; }
+}
+
+/// <summary>
+/// TODO:
+/// </summary>
+public sealed class OpenExternalExecuteCommandResult : ExecuteCommandResult
+{
+    /// <summary>
+    /// TODO
+    /// </summary>
+    public required string Url { get; init; }
+}
+
+/// <summary>
+/// TODO:
+/// </summary>
+public sealed class CancelledExecuteCommandResult : ExecuteCommandResult
+{
 }
 
 /// <summary>

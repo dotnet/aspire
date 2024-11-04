@@ -87,11 +87,18 @@ enum ResourceCommandResponseKind {
     SUCCEEDED = 1;
     FAILED = 2;
     CANCELLED = 3;
+    ACTION = 4;
+}
+
+enum ResourceCommandResponseActionKind {
+    OPEN_EXTERNAL = 0;
 }
 
 message ResourceCommandResponse {
     ResourceCommandResponseKind kind = 1;
     optional string error_message = 2;
+    optional ResourceCommandResponseActionKind actionKind = 3;
+    optional string url = 4;
 }
 
 ////////////////////////////////////////////
