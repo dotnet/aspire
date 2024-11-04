@@ -35,8 +35,8 @@ public class ConformanceTests : ConformanceTests<QdrantClient, QdrantClientSetti
     {
         _containerFixture = containerFixture;
         _connectionString = RequiresDockerAttribute.IsSupported ?
-        $"{_containerFixture.GetConnectionString()}" :
-        "Endpoint=http://localhost:6334;Key=pass";
+            $"{_containerFixture.GetConnectionString()}" :
+            "Endpoint=http://localhost:6334;Key=pass";
     }
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<QdrantClientSettings>? configure = null, string? key = null)
