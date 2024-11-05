@@ -6,7 +6,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.AddNpgsqlDbContext<CatalogDbContext>("catalogdb");
 
-builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
