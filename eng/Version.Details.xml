@@ -81,10 +81,6 @@
       <Uri>https://github.com/dotnet/runtime</Uri>
       <Sha>b83186a969946f61c71ad0da034936fac9947752</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.AspNetCore.OpenApi" Version="8.0.10">
-      <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>c2a442982e736e17ae6bcadbfd8ccba278ee1be6</Sha>
-    </Dependency>
     <Dependency Name="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" Version="8.0.10">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
       <Sha>c2a442982e736e17ae6bcadbfd8ccba278ee1be6</Sha>
