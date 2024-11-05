@@ -79,7 +79,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
             host.Services.GetRequiredKeyedService<INatsConnection>("nats") :
             host.Services.GetRequiredService<INatsConnection>();
 
-        Assert.Equal("nats://nats:***@aspire-host:4222/", connection.Opts.Url);
+        Assert.Equal("nats://nats:password@aspire-host:4222", connection.Opts.Url);
         Assert.Equal("nats", connection.Opts.AuthOpts.Username);
         Assert.Equal("password", connection.Opts.AuthOpts.Password);
     }

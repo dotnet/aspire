@@ -125,7 +125,7 @@
     <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="1.5.0" />
     <PackageVersion Include="MySqlConnector.DependencyInjection" Version="2.3.6" />
     <PackageVersion Include="MySqlConnector.Logging.Microsoft.Extensions.Logging" Version="2.1.0" />
-    <PackageVersion Include="NATS.Net" Version="2.4.0" />
+    <PackageVersion Include="NATS.Net" Version="2.5.3" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.4" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(NpgsqlEntityFrameworkCorePostgreSQLPackageVersion)" />
     <PackageVersion Include="OpenAI" Version="2.0.0" />
@@ -189,11 +189,10 @@
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Blobs" Version="6.6.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues" Version="5.5.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.22.0" />
-    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.EventHubs" Version="6.3.6"/>
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.EventHubs" Version="6.3.6" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.OpenTelemetry" Version="1.0.0-preview1" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="1.18.1" />
     <PackageVersion Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
-
     <!-- Pinned versions for Component Governance - Remove when root dependencies are updated -->
     <PackageVersion Include="Azure.Core" Version="1.44.1" />
     <PackageVersion Include="Azure.Identity" Version="1.12.1" />
