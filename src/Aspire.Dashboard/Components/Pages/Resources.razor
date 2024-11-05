@@ -55,7 +55,7 @@
         </ToolbarSection>
 
         <MainSection>
-            <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isTypeFilterVisible" AutoFocus="true">
+            <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isTypeFilterVisible" AutoFocus="true" FixedPlacement="true">
                 <Header>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)]</Header>
                 <Body>
                     <SelectResourceTypes
