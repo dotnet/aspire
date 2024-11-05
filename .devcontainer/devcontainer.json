@@ -87,7 +87,6 @@
 		}
 	},
 	"onCreateCommand": "dotnet restore",
-	"postCreateCommand": "dapr init",
 	"postStartCommand": "dotnet dev-certs https --trust"
 	// Configure tool-specific properties.
 	// "customizations": {},
