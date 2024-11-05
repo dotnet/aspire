@@ -209,8 +209,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
                             if (_allResourceTypes.TryAdd(resource.ResourceType, true))
                             {
-                                // If someone has filtered out a resource type then don't display it again because it has been updated.
-                                // Only automatically set resource to visible if it is a new resource.
+                                // If someone has filtered out a resource type then don't remove filter because an update was received.
+                                // Only automatically set resource type to visible if it is a new resource.
                                 _visibleResourceTypes[resource.ResourceType] = true;
                             }
                         }
