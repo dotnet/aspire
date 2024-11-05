@@ -62,12 +62,6 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
             icon = new Icons.Filled.Size16.Circle();
             color = Color.Info;
         }
-        else if (resource.HealthStatus is null)
-        {
-            // If we are waiting for a health check, show a progress bar and consider the resource unhealthy
-            icon = new Icons.Filled.Size16.CheckmarkCircleWarning();
-            color = Color.Warning;
-        }
         else if (resource.HealthStatus is not HealthStatus.Healthy)
         {
             icon = new Icons.Filled.Size16.CheckmarkCircleWarning();

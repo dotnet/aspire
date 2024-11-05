@@ -83,12 +83,12 @@ internal sealed class AzureProvisioner(
             return;
         }
 
-        // set the ProvisioningContext on the resource, if necessary
+        // set the ProvisioningBuildOptions on the resource, if necessary
         foreach (var r in azureResources)
         {
             if (r.AzureResource is AzureProvisioningResource provisioningResource)
             {
-                provisioningResource.ProvisioningContext = provisioningOptions.Value.ProvisioningContext;
+                provisioningResource.ProvisioningBuildOptions = provisioningOptions.Value.ProvisioningBuildOptions;
             }
         }
 

@@ -3,7 +3,7 @@
 
 namespace Aspire.Components.Common.Tests;
 
-public static class TestConstants
+public static class ComponentTestConstants
 {
     public const string AspireTestContainerRegistry = "netaspireci.azurecr.io";
 }

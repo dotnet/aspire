@@ -21,6 +21,9 @@ public static class NatsBuilderExtensions
     /// Adds a NATS server resource to the application model. A container is used for local development.
     /// This configures a default user name and password for the NATS server.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="NatsContainerImageTags.Tag"/> tag of the <inheritdoc cref="NatsContainerImageTags.Image"/> container image.
+    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port for NATS server.</param>
@@ -141,7 +144,7 @@ public static class NatsBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/nats",
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/var/lib/nats",
                 isReadOnly)
             .WithArgs("-sd", "/var/lib/nats");
     }

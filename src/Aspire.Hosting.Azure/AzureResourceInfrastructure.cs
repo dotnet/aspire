@@ -30,5 +30,5 @@ public sealed class AzureResourceInfrastructure : Infrastructure
     /// </summary>
     public AzureProvisioningResource AspireResource { get; }
 
-    internal IEnumerable<ProvisioningParameter> GetParameters() => GetResources().OfType<ProvisioningParameter>();
+    internal IEnumerable<ProvisioningParameter> GetParameters() => GetProvisionableResources().OfType<ProvisioningParameter>();
 }

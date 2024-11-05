@@ -435,6 +435,7 @@ fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=stea
 
 .property-grid-container fluent-accordion {
     gap: calc(var(--design-unit) * 2px);
+    margin-bottom: calc(var(--design-unit) * 1px);
     --fill-color: var(--neutral-layer-1);
 }
 

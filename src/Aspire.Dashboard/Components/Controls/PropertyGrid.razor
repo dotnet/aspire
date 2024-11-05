@@ -23,7 +23,7 @@
         <GridValue
             ValueDescription="@(ValueColumnTitle ?? Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)])"
             Value="@context.Value"
-            ContentAfterValue="@ContentAfterValue(context)"
+            ContentAfterValue="@GetContentAfterValue(context)"
             EnableHighlighting="@(!string.IsNullOrEmpty(HighlightText))"
             HighlightText="@HighlightText"
             EnableMasking="@context.IsValueSensitive"
