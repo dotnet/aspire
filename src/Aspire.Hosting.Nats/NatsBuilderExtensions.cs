@@ -19,6 +19,19 @@ public static class NatsBuilderExtensions
 {
     /// <summary>
     /// Adds a NATS server resource to the application model. A container is used for local development.
+    /// This configures a default user name and password for the NATS server.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="port">The host port for NATS server.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<NatsServerResource> AddNats(this IDistributedApplicationBuilder builder, [ResourceName] string name, int? port)
+    {
+        return AddNats(builder, name, port, null);
+    }
+
+    /// <summary>
+    /// Adds a NATS server resource to the application model. A container is used for local development.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
