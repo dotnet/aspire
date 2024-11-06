@@ -53,7 +53,6 @@
     <MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>8.0.10</MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>
     <MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>8.0.10</MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>
     <MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion>8.0.10</MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion>
-    <MicrosoftAspNetCoreOpenApiPackageVersion>8.0.10</MicrosoftAspNetCoreOpenApiPackageVersion>
     <MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>8.0.10</MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>
     <MicrosoftAspNetCoreTestHostPackageVersion>8.0.10</MicrosoftAspNetCoreTestHostPackageVersion>
     <MicrosoftExtensionsCachingStackExchangeRedisPackageVersion>8.0.10</MicrosoftExtensionsCachingStackExchangeRedisPackageVersion>
