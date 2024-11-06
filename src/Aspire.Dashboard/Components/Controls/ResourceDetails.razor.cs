@@ -127,7 +127,7 @@ public partial class ResourceDetails
         }
     }
 
-    private void OnValueMaskedChanged(IPropertyGridItem changed)
+    private void OnValueMaskedChanged(IPropertyGridItem vm)
     {
         // Check the "Mask All" checkbox if all sensitive values are masked.
         var valueMaskedValues = SensitiveGridItems.Select(i => i.IsValueMasked).Distinct().ToList();
@@ -140,13 +140,13 @@ public partial class ResourceDetails
         {
             _isMaskAllChecked = null;
 
-            if (changed.IsValueMasked)
+            if (vm.IsValueMasked)
             {
-                _unmaskedItemNames.Remove(changed.Name);
+                _unmaskedItemNames.Remove(vm.Name);
             }
             else
             {
-                _unmaskedItemNames.Add(changed.Name);
+                _unmaskedItemNames.Add(vm.Name);
             }
         }
     }
