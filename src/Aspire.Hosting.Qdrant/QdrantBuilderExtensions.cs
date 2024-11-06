@@ -176,7 +176,12 @@ public static class QdrantBuilderExtensions
             }
         }
 
-        var client = new QdrantClient(endpoint!, key);
+        if (endpoint is null)
+        {
+            throw new InvalidOperationException("Endpoint is unavailable");
+        }
+        
+        var client = new QdrantClient(endpoint, key);
         return client;
     }
 }
