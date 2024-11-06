@@ -25,13 +25,14 @@
                               slot="end"/>
         }
 
-        <FluentIconSwitch @bind-Value="@_isMaskAllChecked"
+        <FluentIconSwitch @bind-Value="@IsMaskAllChecked"
                           Appearance="Appearance.Lightweight"
                           CheckedTitle="@ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesShowVariableValues)]"
                           UncheckedTitle="@ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesHideVariableValues)]"
                           OnToggle="@OnMaskAllCheckedChanged"
                           CheckedIcon="@(new Icons.Regular.Size16.Eye())"
                           UncheckedIcon="@(new Icons.Regular.Size16.EyeOff())"
+                          class="mask-all-switch"
                           slot="end" />
 
         <FluentSearch Placeholder="@ControlStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
@@ -170,7 +171,8 @@
                               Items="@FilteredEnvironmentVariables"
                               IsValueMaskedChanged="@OnValueMaskedChanged"
                               HighlightText="@_filter"
-                              GridTemplateColumns="1fr 1.5fr" />
+                              GridTemplateColumns="1fr 1.5fr"
+                              Class="env-var-properties" />
             </FluentAccordionItem>
         </FluentAccordion>
     </div>

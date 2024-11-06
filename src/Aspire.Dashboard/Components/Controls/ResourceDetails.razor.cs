@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Dashboard.Model;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Components;
@@ -23,28 +24,29 @@ public partial class ResourceDetails
 
     private bool _showAll;
     private ResourceViewModel? _resource;
+    private readonly HashSet<string> _unmaskedItemNames = new();
 
-    private IQueryable<EnvironmentVariableViewModel> FilteredEnvironmentVariables =>
+    internal IQueryable<EnvironmentVariableViewModel> FilteredEnvironmentVariables =>
         Resource.Environment
             .Where(vm => (_showAll || vm.FromSpec) && ((IPropertyGridItem)vm).MatchesFilter(_filter))
             .AsQueryable();
 
-    private IQueryable<DisplayedEndpoint> FilteredEndpoints =>
+    internal IQueryable<DisplayedEndpoint> FilteredEndpoints =>
         GetEndpoints()
             .Where(vm => vm.MatchesFilter(_filter))
             .AsQueryable();
 
-    private IQueryable<VolumeViewModel> FilteredVolumes =>
+    internal IQueryable<VolumeViewModel> FilteredVolumes =>
         Resource.Volumes
             .Where(vm => vm.MatchesFilter(_filter))
             .AsQueryable();
 
-    private IQueryable<HealthReportViewModel> FilteredHealthReports =>
+    internal IQueryable<HealthReportViewModel> FilteredHealthReports =>
         Resource.HealthReports
             .Where(vm => vm.MatchesFilter(_filter))
             .AsQueryable();
 
-    private IQueryable<ResourcePropertyViewModel> FilteredResourceProperties =>
+    internal IQueryable<ResourcePropertyViewModel> FilteredResourceProperties =>
         GetResourceProperties(ordered: true)
             .Where(vm => (_showAll || vm.KnownProperty != null) && vm.MatchesFilter(_filter))
             .AsQueryable();
@@ -55,7 +57,13 @@ public partial class ResourceDetails
     private bool _isHealthChecksExpanded;
 
     private string _filter = "";
-    private bool _isMaskAllChecked = true;
+    private bool? _isMaskAllChecked;
+
+    private bool IsMaskAllChecked
+    {
+        get => _isMaskAllChecked ?? false;
+        set { _isMaskAllChecked = value; }
+    }
 
     private readonly GridSort<DisplayedEndpoint> _endpointValueSort = GridSort<DisplayedEndpoint>.ByAscending(vm => vm.Url ?? vm.Text);
 
@@ -63,6 +71,13 @@ public partial class ResourceDetails
     {
         if (!ReferenceEquals(Resource, _resource))
         {
+            // Reset masking when the resource changes.
+            if (!string.Equals(Resource.Name, _resource?.Name, StringComparisons.ResourceName))
+            {
+                _isMaskAllChecked = true;
+                _unmaskedItemNames.Clear();
+            }
+
             _resource = Resource;
 
             // Collapse details sections when they have no data.
@@ -73,7 +88,14 @@ public partial class ResourceDetails
 
             foreach (var item in SensitiveGridItems)
             {
-                item.IsValueMasked = _isMaskAllChecked;
+                if (_isMaskAllChecked != null)
+                {
+                    item.IsValueMasked = _isMaskAllChecked.Value;
+                }
+                else if (_unmaskedItemNames.Count > 0)
+                {
+                    item.IsValueMasked = !_unmaskedItemNames.Contains(item.Name);
+                }
             }
         }
     }
@@ -95,25 +117,37 @@ public partial class ResourceDetails
 
     private void OnMaskAllCheckedChanged()
     {
+        Debug.Assert(_isMaskAllChecked != null);
+
+        _unmaskedItemNames.Clear();
+
         foreach (var vm in SensitiveGridItems)
         {
-            vm.IsValueMasked = _isMaskAllChecked;
+            vm.IsValueMasked = _isMaskAllChecked.Value;
         }
     }
 
-    private void OnValueMaskedChanged()
+    private void OnValueMaskedChanged(IPropertyGridItem changed)
     {
         // Check the "Mask All" checkbox if all sensitive values are masked.
-
-        foreach (var item in SensitiveGridItems)
+        var valueMaskedValues = SensitiveGridItems.Select(i => i.IsValueMasked).Distinct().ToList();
+        if (valueMaskedValues.Count == 1)
         {
-            if (!item.IsValueMasked)
+            _isMaskAllChecked = valueMaskedValues[0];
+            _unmaskedItemNames.Clear();
+        }
+        else
+        {
+            _isMaskAllChecked = null;
+
+            if (changed.IsValueMasked)
             {
-                _isMaskAllChecked = false;
-                return;
+                _unmaskedItemNames.Remove(changed.Name);
+            }
+            else
+            {
+                _unmaskedItemNames.Add(changed.Name);
             }
         }
-
-        _isMaskAllChecked = true;
     }
 }
