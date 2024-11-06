@@ -31,11 +31,6 @@ updates:
       AspNetCoreHealthChecks:
         patterns:
           - "AspNetCore.HealthChecks.*"
-      AWS:
-        patterns:
-          - "AWS.*"
-          - "AWSSDK.*"
-          - "OpenTelemetry.*.AWS"
       EntityFrameworkCore:
         patterns:
           - "Microsoft.EntityFrameworkCore.*"
