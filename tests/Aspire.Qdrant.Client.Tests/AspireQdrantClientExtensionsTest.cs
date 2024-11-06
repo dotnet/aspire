@@ -37,17 +37,11 @@ public class AspireQdrantClientExtensionsTest : IClassFixture<QdrantContainerFix
 
         if (useKeyed)
         {
-            builder.AddKeyedQdrantClient(key, settings =>
-            {
-                settings.DisableHealthChecks = false;
-            });
+            builder.AddKeyedQdrantClient(key);
         }
         else
         {
-            builder.AddQdrantClient(DefaultConnectionName, settings =>
-            {
-                settings.DisableHealthChecks = false;
-            });
+            builder.AddQdrantClient(DefaultConnectionName);
         }
 
         using var host = builder.Build();
