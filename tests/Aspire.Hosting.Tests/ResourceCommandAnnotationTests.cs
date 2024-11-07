@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Tests.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -56,5 +58,79 @@ public class ResourceCommandAnnotationTests
 
         // Assert
         Assert.Equal(commandState, state);
+    }
+
+    [Fact]
+    public async Task RunLifeCycleCommandAsync_Match_Success()
+    {
+        // Arrange
+        var testResource = new TestResource("test-resource-name");
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var services = new ServiceCollection();
+        services.AddSingleton(resourceNotificationService);
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Act
+        var task = CommandsConfigurationExtensions.RunLifeCycleCommandAsync(
+            (serviceProvider, ct) =>
+            {
+                return Task.CompletedTask;
+            },
+            serviceProvider,
+            "test-resource-name",
+            state => state == "Running",
+            TimeSpan.FromSeconds(1),
+            CancellationToken.None
+        );
+
+        Assert.False(task.IsCompletedSuccessfully);
+
+        await resourceNotificationService.PublishUpdateAsync(
+            testResource,
+            "test-resource-name",
+            s => s with { State = "Running" }).DefaultTimeout();
+
+        // Assert
+        var result = await task.DefaultTimeout();
+        Assert.True(result.Success);
+    }
+
+    [Fact]
+    public async Task RunLifeCycleCommandAsync_NoMatch_Failure()
+    {
+        // Arrange
+        var testResource = new TestResource("test-resource-name");
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var services = new ServiceCollection();
+        services.AddSingleton(resourceNotificationService);
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Act
+        var task = CommandsConfigurationExtensions.RunLifeCycleCommandAsync(
+            (serviceProvider, ct) =>
+            {
+                return Task.CompletedTask;
+            },
+            serviceProvider,
+            "test-resource-name",
+            state => state == "Running",
+            TimeSpan.FromSeconds(1),
+            CancellationToken.None
+        );
+
+        await resourceNotificationService.PublishUpdateAsync(
+            testResource,
+            "test-resource-name",
+            s => s with { State = "FailedToStart" }).DefaultTimeout();
+
+        // Assert
+        var result = await task.DefaultTimeout();
+        Assert.False(result.Success);
+    }
+
+    private sealed class TestResource(string resourceName) : Resource(resourceName)
+    {
     }
 }

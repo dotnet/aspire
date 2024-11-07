@@ -1,6 +1,7 @@
 ﻿@using Aspire.Dashboard.Components.CustomIcons
 @using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 @inherits LayoutComponentBase
 
 <div class="layout" style="@(_isNavMenuOpen ? "overflow: hidden;" : string.Empty)">
@@ -66,7 +67,7 @@
         <FluentMessageBarProvider Section="@MessageBarSection" Class="top-messagebar"/>
     </div>
     <FluentBodyContent Class="custom-body-content body-content">
-        <FluentToastProvider MaxToastCount="3" Timeout="5000" />
+        <FluentToastProvider MaxToastCount="3" Timeout="@ToastHelpers.TimeoutMilliseconds" />
         @Body
     </FluentBodyContent>
 
