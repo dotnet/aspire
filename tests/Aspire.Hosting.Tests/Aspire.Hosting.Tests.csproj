@@ -29,7 +29,7 @@
 
     <Compile Include="$(RepoRoot)tests\Aspire.Hosting.Testing.Tests\DistributedApplicationHttpClientExtensionsForTests.cs" />
 
-    <Content Include="$(RepoRoot)src\Schema\aspire-8.0.json" Link="Schema\aspire-8.0.json">
+    <Content Include="$(RepoRoot)src\Schema\aspire-9.0.json" Link="Schema\aspire-9.0.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

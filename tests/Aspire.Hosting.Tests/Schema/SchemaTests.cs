@@ -194,7 +194,7 @@ public class SchemaTests
     {
         if (s_schema == null)
         {
-            var relativePath = Path.Combine("Schema", "aspire-8.0.json");
+            var relativePath = Path.Combine("Schema", "aspire-9.0.json");
             var schemaPath = Path.GetFullPath(relativePath);
             s_schema = JsonSchema.FromFile(schemaPath);
         }
