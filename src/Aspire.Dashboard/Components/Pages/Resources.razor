@@ -23,11 +23,19 @@
         </PageTitleSection>
 
         <ToolbarSection>
+            <FluentSearch Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
+                          Immediate="true"
+                          ImmediateDelay="@FluentUIExtensions.InputDelay"
+                          @bind-Value="_filter"
+                          slot="end"
+                          Label="@(ViewportInformation.IsDesktop ? null : ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)].Value)"
+                          @bind-Value:after="HandleSearchFilterChangedAsync" />
+            <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             @if (ViewportInformation.IsDesktop)
             {
                 <FluentButton id="typeFilterButton" slot="end"
                               Appearance="@(AreAllTypesVisible is true ? Appearance.Stealth : Appearance.Accent)"
-                              IconEnd="@(new Icons.Regular.Size24.Filter())"
+                              IconEnd="@(new Icons.Regular.Size20.Filter())"
                               @onclick="() => _isTypeFilterVisible = !_isTypeFilterVisible"
                               Title="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])"
                               aria-label="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])" />
@@ -37,26 +45,17 @@
                 <div>
                     <h5>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)]</h5>
 
-                    <SelectResourceTypes
-                        AllResourceTypes="_allResourceTypes"
-                        VisibleResourceTypes="_visibleResourceTypes"
-                        OnAllResourceTypesCheckedChanged="@(b => AreAllTypesVisible = b)"
-                        AreAllTypesVisible="@(() => AreAllTypesVisible)"
-                        OnResourceTypeVisibilityChangedAsync="@OnResourceTypeVisibilityChangedAsync" />
+                    <SelectResourceTypes AllResourceTypes="_allResourceTypes"
+                                         VisibleResourceTypes="_visibleResourceTypes"
+                                         OnAllResourceTypesCheckedChanged="@(b => AreAllTypesVisible = b)"
+                                         AreAllTypesVisible="@(() => AreAllTypesVisible)"
+                                         OnResourceTypeVisibilityChangedAsync="@OnResourceTypeVisibilityChangedAsync" />
                 </div>
             }
-            <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-            <FluentSearch Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
-                          Immediate="true"
-                          ImmediateDelay="@FluentUIExtensions.InputDelay"
-                          @bind-Value="_filter"
-                          slot="end"
-                          Label="@(ViewportInformation.IsDesktop ? null : ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)].Value)"
-                          @bind-Value:after="HandleSearchFilterChangedAsync" />
         </ToolbarSection>
 
         <MainSection>
-            <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isTypeFilterVisible" AutoFocus="true">
+            <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isTypeFilterVisible" AutoFocus="true" FixedPlacement="true">
                 <Header>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)]</Header>
                 <Body>
                     <SelectResourceTypes
