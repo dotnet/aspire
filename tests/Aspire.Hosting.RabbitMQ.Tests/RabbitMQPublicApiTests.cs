@@ -21,15 +21,19 @@ public class RabbitMQPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddRabbitMQContainerShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddRabbitMQContainerShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var builder = DistributedApplication.CreateBuilder([]);
-        string name = null!;
+        var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddRabbitMQ(name);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
@@ -56,16 +60,20 @@ public class RabbitMQPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void WithDataBindMountShouldThrowWhenSourceIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithDataBindMountShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
     {
         var builderResource = TestDistributedApplicationBuilder.Create();
         var rabbitMQ = builderResource.AddRabbitMQ("rabbitMQ");
-        string source = null!;
+        var source = isNull ? null! : string.Empty;
 
         var action = () => rabbitMQ.WithDataBindMount(source);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(source), exception.ParamName);
     }
 
@@ -91,23 +99,26 @@ public class RabbitMQPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void CtorRabbitMQServerResourceShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorRabbitMQServerResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
-        string name = null!;
+        var name = isNull ? null! : string.Empty;
         var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(distributedApplicationBuilder, "password", special: false);
 
         var action = () => new RabbitMQServerResource(name: name, userName: null, password: password);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
     [Fact]
     public void CtorRabbitMQServerResourceShouldThrowWhenPasswordIsNull()
     {
-        var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
         string name = "rabbitMQ";
         ParameterResource password = null!;
 

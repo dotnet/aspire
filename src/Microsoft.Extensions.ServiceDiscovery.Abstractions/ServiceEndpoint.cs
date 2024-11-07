@@ -28,5 +28,10 @@ public abstract class ServiceEndpoint
     /// <param name="endPoint">The endpoint being represented.</param>
     /// <param name="features">Features of the endpoint.</param>
     /// <returns>A newly initialized <see cref="ServiceEndpoint"/>.</returns>
-    public static ServiceEndpoint Create(EndPoint endPoint, IFeatureCollection? features = null) => new ServiceEndpointImpl(endPoint, features);
+    public static ServiceEndpoint Create(EndPoint endPoint, IFeatureCollection? features = null)
+    {
+        ArgumentNullException.ThrowIfNull(endPoint);
+
+        return new ServiceEndpointImpl(endPoint, features);
+    }
 }

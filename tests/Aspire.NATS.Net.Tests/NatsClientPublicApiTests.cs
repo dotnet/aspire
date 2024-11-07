@@ -6,6 +6,8 @@ using Xunit;
 
 namespace Aspire.NATS.Net.Tests;
 
+#pragma warning disable IDE0200 //Remove unnecessary lambda expression
+
 public class NatsClientPublicApiTests
 {
     [Fact]
@@ -21,29 +23,20 @@ public class NatsClientPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddNatsClientShouldThrowWhenConnectionNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddNatsClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
-        string connectionName = null!;
+        var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddNatsClient(connectionName);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(connectionName), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddNatsClientShouldThrowWhenConnectionNameIsEmpty()
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-
-        var connectionName = "";
-
-        var action = () => builder.AddNatsClient(connectionName);
-
-        var exception = Assert.Throws<ArgumentException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(connectionName), exception.ParamName);
     }
 
@@ -60,29 +53,20 @@ public class NatsClientPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKeyedNatsClientShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddKeyedNatsClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
-        string name = null!;
+        var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedNatsClient(name);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKeyedNatsClientShouldThrowWhenNameIsEmpty()
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-
-        var name = "";
-
-        var action = () => builder.AddKeyedNatsClient(name);
-
-        var exception = Assert.Throws<ArgumentException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
@@ -91,7 +75,7 @@ public class NatsClientPublicApiTests
     {
         IHostApplicationBuilder builder = null!;
 
-        var action = builder.AddNatsJetStream;
+        var action = () => builder.AddNatsJetStream();
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);

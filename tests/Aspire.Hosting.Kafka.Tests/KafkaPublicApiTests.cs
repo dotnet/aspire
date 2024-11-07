@@ -21,15 +21,19 @@ public class KafkaPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKafkaContainerShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddKafkaContainerShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var builder = DistributedApplication.CreateBuilder([]);
-        string name = null!;
+        var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKafka(name);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
@@ -56,16 +60,20 @@ public class KafkaPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void WithDataBindMountShouldThrowWhenSourceIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithDataBindMountShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
     {
         var builderResource = TestDistributedApplicationBuilder.Create();
-        var Kafka = builderResource.AddKafka("Kafka");
-        string source = null!;
+        var kafka = builderResource.AddKafka("Kafka");
+        var source = isNull ? null! : string.Empty;
 
-        var action = () => Kafka.WithDataBindMount(source);
+        var action = () => kafka.WithDataBindMount(source);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(source), exception.ParamName);
     }
 
@@ -73,7 +81,7 @@ public class KafkaPublicApiTests
     public void WithKafkaUIShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<KafkaServerResource> builder = null!;
-        
+
         var action = () => builder.WithKafkaUI();
 
         var exception = Assert.Throws<ArgumentNullException>(action);
@@ -91,25 +99,33 @@ public class KafkaPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void CtorKafkaServerResourceShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorKafkaServerResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        string name = null!;
+        var name = isNull ? null! : string.Empty;
 
         var action = () => new KafkaServerResource(name);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
-    [Fact]
-    public void CtorKafkaUIContainerResourceShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorKafkaUIContainerResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        string name = null!;
+        var name = isNull ? null! : string.Empty;
 
         var action = () => new KafkaUIContainerResource(name);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 }

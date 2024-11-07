@@ -21,15 +21,19 @@ public class SqlServerPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddSqlServerContainerShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddSqlServerContainerShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var builder = DistributedApplication.CreateBuilder([]);
-        string name = null!;
+        var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddSqlServer(name);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
@@ -45,29 +49,20 @@ public class SqlServerPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddDatabaseShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddDatabaseShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var builder = DistributedApplication.CreateBuilder([])
             .AddSqlServer("sqlserver");
-        string name = null!;
+        var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddDatabase(name);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddDatabaseShouldThrowWhenNameIsEmpty()
-    {
-        var builder = DistributedApplication.CreateBuilder([])
-            .AddSqlServer("sqlserver");
-        string name = "";
-
-        var action = () => builder.AddDatabase(name);
-
-        var exception = Assert.Throws<ArgumentException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
@@ -94,102 +89,86 @@ public class SqlServerPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void WithDataBindMountShouldThrowWhenSourceIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithDataBindMountShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
     {
         var builderResource = TestDistributedApplicationBuilder.Create();
-        var SqlServer = builderResource.AddSqlServer("SqlServer");
-        string source = null!;
+        var sqlServer = builderResource.AddSqlServer("SqlServer");
+        var source = isNull ? null! : string.Empty;
 
-        var action = () => SqlServer.WithDataBindMount(source);
+        var action = () => sqlServer.WithDataBindMount(source);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(source), exception.ParamName);
     }
 
-    [Fact]
-    public void CtorSqlServerServerResourceShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorSqlServerServerResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
-        string name = null!;
+        var name = isNull ? null! : string.Empty;
         const string key = nameof(key);
         var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(distributedApplicationBuilder, key, special: false);
 
         var action = () => new SqlServerServerResource(name, password);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
-    [Fact]
-    public void CtorSqlServerDatabaseResourceShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorSqlServerDatabaseResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
-
-        string name = null!;
-        var databaseName = "db1";
-        var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(distributedApplicationBuilder, "password", special: false);
-        var parent = new SqlServerServerResource("sqlserver",password);
-        var action = () => new SqlServerDatabaseResource(name, databaseName, parent);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void CtorSqlServerDatabaseResourceShouldThrowWhenNameIsEmpty()
-    {
-        var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
-
-        string name = "";
+        var name = isNull ? null! : string.Empty;
         var databaseName = "db1";
         var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(distributedApplicationBuilder, "password", special: false);
         var parent = new SqlServerServerResource("sqlserver", password);
+
         var action = () => new SqlServerDatabaseResource(name, databaseName, parent);
 
-        var exception = Assert.Throws<ArgumentException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
-    [Fact]
-    public void CtorSqlServerDatabaseResourceShouldThrowWhenDatabaseNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorSqlServerDatabaseResourceShouldThrowWhenDatabaseNameIsNullOrEmpty(bool isNull)
     {
         var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
-
-        string name = "sqlserver";
-        string databaseName = null!;
+        var name = "sqlserver";
+        var databaseName = isNull ? null! : string.Empty;
         var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(distributedApplicationBuilder, "password", special: false);
         var parent = new SqlServerServerResource("sqlserver", password);
+
         var action = () => new SqlServerDatabaseResource(name, databaseName, parent);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(databaseName), exception.ParamName);
-    }
-
-    [Fact]
-    public void CtorSqlServerDatabaseResourceShouldThrowWhenDatabaseNameIsEmpty()
-    {
-        var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
-
-        string name = "sqlserver";
-        string databaseName = null!;
-        var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(distributedApplicationBuilder, "password", special: false);
-        var parent = new SqlServerServerResource("sqlserver", password);
-        var action = () => new SqlServerDatabaseResource(name, databaseName, parent);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(databaseName), exception.ParamName);
     }
 
     [Fact]
     public void CtorSqlServerDatabaseResourceShouldThrowWhenParentIsNull()
     {
-        var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
-
-        string name = "sqlserver";
-        string databaseName = "db1";
-        var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(distributedApplicationBuilder, "password", special: false);
+        var name = "sqlserver";
+        var databaseName = "db1";
         SqlServerServerResource parent = null!;
+
         var action = () => new SqlServerDatabaseResource(name, databaseName, parent);
 
         var exception = Assert.Throws<ArgumentNullException>(action);

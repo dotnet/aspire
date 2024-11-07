@@ -21,29 +21,20 @@ public class MilvusClientPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddMilvusClientShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddMilvusClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
-        string connectionName = null!;
+        var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddMilvusClient(connectionName);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(connectionName), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddMilvusClientShouldThrowWhenNameIsEmpty()
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-
-        string connectionName = "";
-
-        var action = () => builder.AddMilvusClient(connectionName);
-
-        var exception = Assert.Throws<ArgumentException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(connectionName), exception.ParamName);
     }
 
@@ -60,29 +51,20 @@ public class MilvusClientPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKeyedMilvusClientShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddKeyedMilvusClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
-        string name = null!;
+        var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedMilvusClient(name);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKeyedMilvusClientShouldThrowWhenNameIsEmpty()
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-
-        string name = "";
-
-        var action = () => builder.AddKeyedMilvusClient(name);
-
-        var exception = Assert.Throws<ArgumentException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 }

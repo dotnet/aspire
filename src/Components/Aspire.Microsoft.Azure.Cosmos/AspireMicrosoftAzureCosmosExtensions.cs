@@ -33,7 +33,14 @@ public static class AspireMicrosoftAzureCosmosExtensions
         Action<MicrosoftAzureCosmosSettings>? configureSettings = null,
         Action<CosmosClientOptions>? configureClientOptions = null)
     {
-        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, connectionName, serviceKey: null);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        AddAzureCosmosClient(
+            builder,
+            configureSettings,
+            configureClientOptions,
+            connectionName,
+            serviceKey: null);
     }
 
     /// <summary>
@@ -52,7 +59,14 @@ public static class AspireMicrosoftAzureCosmosExtensions
         Action<MicrosoftAzureCosmosSettings>? configureSettings = null,
         Action<CosmosClientOptions>? configureClientOptions = null)
     {
-        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, connectionName: name, serviceKey: name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        AddAzureCosmosClient(
+            builder,
+            configureSettings,
+            configureClientOptions,
+            connectionName: name,
+            serviceKey: name);
     }
 
     private static void AddAzureCosmosClient(
