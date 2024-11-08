@@ -43,6 +43,8 @@ internal sealed class AzureContainerAppsInfrastructure(
             AzureContainerAppsEnvironment.AZURE_CONTAINER_REGISTRY_ENDPOINT,
             AzureContainerAppsEnvironment.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID);
 
+        var roleAssignments = new List<AzureBicepResource>();
+
         foreach (var r in appModel.Resources)
         {
             if (r.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) && lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore)
@@ -55,9 +57,19 @@ internal sealed class AzureContainerAppsInfrastructure(
                 continue;
             }
 
-            var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, provisioningOptions.Value, executionContext, cancellationToken).ConfigureAwait(false);
+            var (containerApp, containerAppRoleAssignments) = await containerAppEnvironmentContext.CreateContainerAppAsync(r, provisioningOptions.Value, executionContext, cancellationToken).ConfigureAwait(false);
 
             r.Annotations.Add(new DeploymentTargetAnnotation(containerApp));
+
+            if (containerAppRoleAssignments is { })
+            {
+                roleAssignments.Add(containerAppRoleAssignments);
+            }
+        }
+
+        foreach (var roleAssignment in roleAssignments)
+        {
+            appModel.Resources.Add(roleAssignment);
         }
     }
 
@@ -79,7 +91,7 @@ internal sealed class AzureContainerAppsInfrastructure(
 
         private readonly Dictionary<IResource, ContainerAppContext> _containerApps = [];
 
-        public async Task<AzureBicepResource> CreateContainerAppAsync(IResource resource, AzureProvisioningOptions provisioningOptions, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+        public async Task<(AzureBicepResource, AzureBicepResource?)> CreateContainerAppAsync(IResource resource, AzureProvisioningOptions provisioningOptions, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
         {
             var context = await ProcessResourceAsync(resource, executionContext, cancellationToken).ConfigureAwait(false);
 
@@ -88,7 +100,21 @@ internal sealed class AzureContainerAppsInfrastructure(
 
             provisioningResource.Annotations.Add(new ManifestPublishingCallbackAnnotation(provisioningResource.WriteToManifest));
 
-            return provisioningResource;
+            if (context.AnyProcessRoleAssignments())
+            {
+                var roleAssignmentsResource = new AzureProvisioningResource($"{resource.Name}-roles", context.AddRoleAssignments);
+                roleAssignmentsResource.ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions;
+                roleAssignmentsResource.Annotations.Add(new ManifestPublishingCallbackAnnotation(roleAssignmentsResource.WriteToManifest));
+
+                context.UserAssignedIdentity = (
+                    new BicepOutputReference("id", roleAssignmentsResource),
+                    new("clientId", roleAssignmentsResource)
+                );
+
+                return (provisioningResource, roleAssignmentsResource);
+            }
+
+            return (provisioningResource, null);
         }
 
         private async Task<ContainerAppContext> ProcessResourceAsync(IResource resource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
@@ -137,6 +163,8 @@ internal sealed class AzureContainerAppsInfrastructure(
 
             public List<IAzureResource> AzureResourceReferences { get; } = [];
 
+            public (BicepOutputReference Id, BicepOutputReference ClientId)? UserAssignedIdentity { get; set; }
+
             public void BuildContainerApp(AzureResourceInfrastructure c)
             {
                 AllocateManagedIdentityIdParameter();
@@ -162,8 +190,16 @@ internal sealed class AzureContainerAppsInfrastructure(
                     }
                 };
 
-                // Add user assigned identity and role assignments for this container app
-                AddRoleAssignments(c, containerAppResource);
+                if (UserAssignedIdentity is not null)
+                {
+                    var (userAssignedIdentityId, clientId) = UserAssignedIdentity.Value;
+
+                    var id = BicepFunction.Interpolate($"{userAssignedIdentityId.AsProvisioningParameter(c)}").Compile().ToString();
+
+                    containerAppResource.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
+
+                    EnvironmentVariables.Add(new ContainerAppEnvironmentVariable { Name = "AZURE_CLIENT_ID", Value = clientId.AsProvisioningParameter(c) });
+                }
 
                 // TODO: Add managed identities only when required
                 AddContainerRegistryManagedIdentity(containerAppResource);
@@ -241,7 +277,12 @@ internal sealed class AzureContainerAppsInfrastructure(
                 }
             }
 
-            private void AddRoleAssignments(AzureResourceInfrastructure infra, ContainerApp app)
+            public bool AnyProcessRoleAssignments()
+            {
+                return resource.TryGetLastAnnotation<RoleAssignmentAnnotation>(out _) || AzureResourceReferences.OfType<AzureProvisioningResource>().Any();
+            }
+
+            public void AddRoleAssignments(AzureResourceInfrastructure infra)
             {
                 UserAssignedIdentity? userAssignedIdentity = null;
 
@@ -260,13 +301,13 @@ internal sealed class AzureContainerAppsInfrastructure(
                         }
 
                         var prefix = g.Key.GetBicepIdentifier();
-                        var name = new BicepOutputReference("id", g.Key).AsProvisioningParameter(infra, $"{prefix}_name");
+                        var name = new BicepOutputReference("name", g.Key).AsProvisioningParameter(infra, $"{prefix}_name");
                         var provisionable = g.Key.GetExistingResource(name);
                         infra.Add(provisionable);
 
                         foreach (var role in g.SelectMany(r => r.RoleGuids))
                         {
-                            var roleAssignment = CreateRoleAssignment(prefix, provisionable, role, RoleManagementPrincipalType.ServicePrincipal, userAssignedIdentity.PrincipalId);
+                            var roleAssignment = CreateRoleAssignment(prefix, provisionable, role, userAssignedIdentity.Id, RoleManagementPrincipalType.ServicePrincipal, userAssignedIdentity.PrincipalId);
                             infra.Add(roleAssignment);
                         }
                     }
@@ -296,7 +337,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                         {
                             foreach (var role in d.RoleGuids)
                             {
-                                var roleAssignment = CreateRoleAssignment(prefix, provisionable, role, RoleManagementPrincipalType.ServicePrincipal, userAssignedIdentity.PrincipalId);
+                                var roleAssignment = CreateRoleAssignment(prefix, provisionable, role, userAssignedIdentity.Id, RoleManagementPrincipalType.ServicePrincipal, userAssignedIdentity.PrincipalId);
                                 infra.Add(roleAssignment);
                             }
                         }
@@ -305,22 +346,19 @@ internal sealed class AzureContainerAppsInfrastructure(
 
                 if (userAssignedIdentity is not null)
                 {
-                    var id = BicepFunction.Interpolate($"{userAssignedIdentity.Id}").Compile().ToString();
-
-                    app.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
-
-                    EnvironmentVariables.Add(new ContainerAppEnvironmentVariable { Name = "AZURE_CLIENT_ID", Value = userAssignedIdentity.ClientId });
+                    infra.Add(new ProvisioningOutput("id", typeof(string)) { Value = userAssignedIdentity.Id });
+                    infra.Add(new ProvisioningOutput("clientId", typeof(string)) { Value = userAssignedIdentity.ClientId });
                 }
             }
 
-            public static RoleAssignment CreateRoleAssignment(string prefix, ProvisionableResource scope, string role, BicepValue<RoleManagementPrincipalType> principalType, BicepValue<Guid> principalId)
+            public static RoleAssignment CreateRoleAssignment(string prefix, ProvisionableResource scope, string role, BicepValue<string> userAssignedIdentityId, BicepValue<RoleManagementPrincipalType> principalType, BicepValue<Guid> principalId)
             {
                 var guid = Infrastructure.NormalizeBicepIdentifier(Guid.NewGuid().ToString("d")[..8]);
                 var id = new MemberExpression(new IdentifierExpression(scope.BicepIdentifier), "id");
 
                 return new RoleAssignment($"{prefix}_{guid}")
                 {
-                    Name = BicepFunction.CreateGuid(id, principalId, BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", role)),
+                    Name = BicepFunction.CreateGuid(id, userAssignedIdentityId, BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", role)),
                     Scope = new IdentifierExpression(scope.BicepIdentifier),
                     PrincipalType = principalType,
                     RoleDefinitionId = BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", role),

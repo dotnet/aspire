@@ -107,7 +107,8 @@
         "type": "azure.bicep.v0",
         "path": "api.module.bicep",
         "params": {
-          "storage_name": "{storage.outputs.id}",
+          "api_roles_outputs_id": "{api-roles.outputs.id}",
+          "api_roles_outputs_clientid": "{api-roles.outputs.clientId}",
           "api_containerport": "{api.containerPort}",
           "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
           "account_secretoutputs": "{account.secretOutputs}",
@@ -116,8 +117,8 @@
           "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
           "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
           "api_containerimage": "{api.containerImage}",
-          "certificateName": "{certificateName.value}",
-          "customDomain": "{customDomain.value}"
+          "certificatename_value": "{certificateName.value}",
+          "customdomain_value": "{customDomain.value}"
         }
       },
       "env": {
@@ -144,6 +145,13 @@
           "transport": "http",
           "external": true
         }
+      }
+    },
+    "api-roles": {
+      "type": "azure.bicep.v0",
+      "path": "api-roles.module.bicep",
+      "params": {
+        "storage_name": "{storage.outputs.name}"
       }
     }
   }

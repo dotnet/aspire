@@ -1,7 +1,9 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param storage_name string
+param api_roles_outputs_id string
+
+param api_roles_outputs_clientid string
 
 param api_containerport string
 
@@ -20,28 +22,9 @@ param outputs_azure_container_registry_endpoint string
 
 param api_containerimage string
 
-param certificateName string
+param certificatename_value string
 
-param customDomain string
-
-resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: take('identity-${uniqueString(resourceGroup().id)}', 128)
-  location: location
-}
-
-resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
-  name: storage_name
-}
-
-resource storage_a5cd3dcd 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storage.id, identity.properties.principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
-  properties: {
-    principalId: identity.properties.principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
-    principalType: 'ServicePrincipal'
-  }
-  scope: storage
-}
+param customdomain_value string
 
 resource account_secretoutputs_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
   name: account_secretoutputs
@@ -75,9 +58,9 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
         transport: 'http'
         customDomains: [
           {
-            name: customDomain
-            bindingType: (certificateName != '') ? 'SniEnabled' : 'Disabled'
-            certificateId: (certificateName != '') ? '${outputs_azure_container_apps_environment_id}/managedCertificates/${certificateName}' : null
+            name: customdomain_value
+            bindingType: (certificatename_value != '') ? 'SniEnabled' : 'Disabled'
+            certificateId: (certificatename_value != '') ? '${outputs_azure_container_apps_environment_id}/managedCertificates/${certificatename_value}' : null
           }
         ]
       }
@@ -133,7 +116,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               name: 'AZURE_CLIENT_ID'
-              value: identity.properties.clientId
+              value: api_roles_outputs_clientid
             }
           ]
         }
@@ -146,7 +129,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '${identity.id}': { }
+      '${api_roles_outputs_id}': { }
       '${outputs_azure_container_registry_managed_identity_id}': { }
     }
   }
