@@ -25,7 +25,7 @@ var cosmosDb = builder.AddAzureCosmosDB("account")
 
 // Testing a connection string
 var blobs = builder.AddAzureStorage("storage")
-                   // .RemoveDefaultRoleAssignments()
+                   .RemoveDefaultRoleAssignments()
                    .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent))
                    .AddBlobs("blobs");
 

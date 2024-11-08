@@ -353,10 +353,10 @@ internal sealed class AzureContainerAppsInfrastructure(
 
             public static RoleAssignment CreateRoleAssignment(string prefix, ProvisionableResource scope, string role, BicepValue<string> userAssignedIdentityId, BicepValue<RoleManagementPrincipalType> principalType, BicepValue<Guid> principalId)
             {
-                var guid = Infrastructure.NormalizeBicepIdentifier(Guid.NewGuid().ToString("d")[..8]);
+                var raName = Infrastructure.NormalizeBicepIdentifier($"{prefix}_{role}");
                 var id = new MemberExpression(new IdentifierExpression(scope.BicepIdentifier), "id");
 
-                return new RoleAssignment($"{prefix}_{guid}")
+                return new RoleAssignment(raName)
                 {
                     Name = BicepFunction.CreateGuid(id, userAssignedIdentityId, BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", role)),
                     Scope = new IdentifierExpression(scope.BicepIdentifier),

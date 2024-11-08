@@ -12,7 +12,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
   name: storage_name
 }
 
-resource storage__9f03d18a 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource storage_ba92f5b4_2d11_453d_a403_e96b0029c9fe 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(storage.id, identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
   properties: {
     principalId: identity.properties.principalId

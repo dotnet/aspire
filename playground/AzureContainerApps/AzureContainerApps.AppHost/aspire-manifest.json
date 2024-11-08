@@ -73,11 +73,7 @@
     },
     "storage": {
       "type": "azure.bicep.v0",
-      "path": "storage.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "storage.module.bicep"
     },
     "blobs": {
       "type": "value.v0",
