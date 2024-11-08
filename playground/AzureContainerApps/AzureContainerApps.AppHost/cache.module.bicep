@@ -5,8 +5,6 @@ param cache_volumes_0_storage string
 
 param outputs_azure_container_registry_managed_identity_id string
 
-param outputs_managed_identity_client_id string
-
 param outputs_azure_container_apps_environment_id string
 
 resource cache 'Microsoft.App/containerApps@2024-03-01' = {
@@ -31,12 +29,6 @@ resource cache 'Microsoft.App/containerApps@2024-03-01' = {
             '--save'
             '60'
             '1'
-          ]
-          env: [
-            {
-              name: 'AZURE_CLIENT_ID'
-              value: outputs_managed_identity_client_id
-            }
           ]
           volumeMounts: [
             {

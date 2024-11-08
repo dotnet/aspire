@@ -1,15 +1,19 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Data;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
+using Azure.Provisioning.Authorization;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
+using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Resources;
+using Azure.Provisioning.Roles;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -37,8 +41,7 @@ internal sealed class AzureContainerAppsInfrastructure(
             AzureContainerAppsEnvironment.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN,
             AzureContainerAppsEnvironment.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID,
             AzureContainerAppsEnvironment.AZURE_CONTAINER_REGISTRY_ENDPOINT,
-            AzureContainerAppsEnvironment.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID,
-            AzureContainerAppsEnvironment.MANAGED_IDENTITY_CLIENT_ID);
+            AzureContainerAppsEnvironment.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID);
 
         foreach (var r in appModel.Resources)
         {
@@ -64,8 +67,7 @@ internal sealed class AzureContainerAppsInfrastructure(
         IManifestExpressionProvider containerAppDomain,
         IManifestExpressionProvider managedIdentityId,
         IManifestExpressionProvider containerRegistryUrl,
-        IManifestExpressionProvider containerRegistryManagedIdentityId,
-        IManifestExpressionProvider clientId
+        IManifestExpressionProvider containerRegistryManagedIdentityId
         )
     {
         private ILogger Logger => logger;
@@ -74,7 +76,6 @@ internal sealed class AzureContainerAppsInfrastructure(
         private IManifestExpressionProvider ManagedIdentityId => managedIdentityId;
         private IManifestExpressionProvider ContainerRegistryUrl => containerRegistryUrl;
         private IManifestExpressionProvider ContainerRegistryManagedIdentityId => containerRegistryManagedIdentityId;
-        private IManifestExpressionProvider ClientId => clientId;
 
         private readonly Dictionary<IResource, ContainerAppContext> _containerApps = [];
 
@@ -134,8 +135,12 @@ internal sealed class AzureContainerAppsInfrastructure(
             public Dictionary<string, KeyVaultService> KeyVaultRefs { get; } = [];
             public Dictionary<string, KeyVaultSecret> KeyVaultSecretRefs { get; } = [];
 
+            public List<IAzureResource> AzureResourceReferences { get; } = [];
+
             public void BuildContainerApp(AzureResourceInfrastructure c)
             {
+                AllocateManagedIdentityIdParameter();
+
                 var containerAppIdParam = AllocateParameter(_containerAppEnvironmentContext.ContainerAppEnvironmentId);
 
                 ProvisioningParameter? containerImageParam = null;
@@ -149,11 +154,19 @@ internal sealed class AzureContainerAppsInfrastructure(
 
                 var containerAppResource = new ContainerApp(Infrastructure.NormalizeBicepIdentifier(resource.Name))
                 {
-                    Name = resource.Name.ToLowerInvariant()
+                    Name = resource.Name.ToLowerInvariant(),
+                    Identity = new ManagedServiceIdentity()
+                    {
+                        ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned,
+                        UserAssignedIdentities = []
+                    }
                 };
 
+                // Add user assigned identity and role assignments for this container app
+                AddRoleAssignments(c, containerAppResource);
+
                 // TODO: Add managed identities only when required
-                AddManagedIdentities(containerAppResource);
+                AddContainerRegistryManagedIdentity(containerAppResource);
 
                 containerAppResource.EnvironmentId = containerAppIdParam;
 
@@ -226,6 +239,93 @@ internal sealed class AzureContainerAppsInfrastructure(
                         a.Configure(c, containerAppResource);
                     }
                 }
+            }
+
+            private void AddRoleAssignments(AzureResourceInfrastructure infra, ContainerApp app)
+            {
+                UserAssignedIdentity? userAssignedIdentity = null;
+
+                var set = new HashSet<string>();
+
+                if (resource.TryGetAnnotationsOfType<RoleAssignmentAnnotation>(out var roleAssignments))
+                {
+                    userAssignedIdentity = new UserAssignedIdentity("identity");
+                    infra.Add(userAssignedIdentity);
+
+                    foreach (var g in roleAssignments.GroupBy(r => r.Target))
+                    {
+                        if (!set.Add(g.Key.Name))
+                        {
+                            continue;
+                        }
+
+                        var prefix = g.Key.GetBicepIdentifier();
+                        var name = new BicepOutputReference("id", g.Key).AsProvisioningParameter(infra, $"{prefix}_name");
+                        var provisionable = g.Key.GetExistingResource(name);
+                        infra.Add(provisionable);
+
+                        foreach (var role in g.SelectMany(r => r.RoleGuids))
+                        {
+                            var roleAssignment = CreateRoleAssignment(prefix, provisionable, role, RoleManagementPrincipalType.ServicePrincipal, userAssignedIdentity.PrincipalId);
+                            infra.Add(roleAssignment);
+                        }
+                    }
+                }
+
+                foreach (var a in AzureResourceReferences.OfType<AzureProvisioningResource>())
+                {
+                    if (!set.Add(a.Name))
+                    {
+                        continue;
+                    }
+
+                    if (userAssignedIdentity is null)
+                    {
+                        userAssignedIdentity = new UserAssignedIdentity("identity");
+                        infra.Add(userAssignedIdentity);
+                    }
+
+                    if (a.TryGetAnnotationsOfType<DefaultRoleAssignmentsAnnotation>(out var defaults))
+                    {
+                        var prefix = a.GetBicepIdentifier();
+                        var name = new BicepOutputReference("name", a).AsProvisioningParameter(infra, $"{prefix}_name");
+                        var provisionable = a.GetExistingResource(name);
+                        infra.Add(provisionable);
+
+                        foreach (var d in defaults)
+                        {
+                            foreach (var role in d.RoleGuids)
+                            {
+                                var roleAssignment = CreateRoleAssignment(prefix, provisionable, role, RoleManagementPrincipalType.ServicePrincipal, userAssignedIdentity.PrincipalId);
+                                infra.Add(roleAssignment);
+                            }
+                        }
+                    }
+                }
+
+                if (userAssignedIdentity is not null)
+                {
+                    var id = BicepFunction.Interpolate($"{userAssignedIdentity.Id}").Compile().ToString();
+
+                    app.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
+
+                    EnvironmentVariables.Add(new ContainerAppEnvironmentVariable { Name = "AZURE_CLIENT_ID", Value = userAssignedIdentity.ClientId });
+                }
+            }
+
+            public static RoleAssignment CreateRoleAssignment(string prefix, ProvisionableResource scope, string role, BicepValue<RoleManagementPrincipalType> principalType, BicepValue<Guid> principalId)
+            {
+                var guid = Infrastructure.NormalizeBicepIdentifier(Guid.NewGuid().ToString("d")[..8]);
+                var id = new MemberExpression(new IdentifierExpression(scope.BicepIdentifier), "id");
+
+                return new RoleAssignment($"{prefix}_{guid}")
+                {
+                    Name = BicepFunction.CreateGuid(id, principalId, BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", role)),
+                    Scope = new IdentifierExpression(scope.BicepIdentifier),
+                    PrincipalType = principalType,
+                    RoleDefinitionId = BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", role),
+                    PrincipalId = principalId
+                };
             }
 
             private static bool TryGetContainerImageName(IResource resource, out string? containerImageName)
@@ -523,11 +623,6 @@ internal sealed class AzureContainerAppsInfrastructure(
                         });
                     }
                 }
-
-                // TODO: Add managed identity only if needed
-                AllocateManagedIdentityIdParameter();
-                var clientIdParameter = AllocateParameter(_containerAppEnvironmentContext.ClientId);
-                EnvironmentVariables.Add(new ContainerAppEnvironmentVariable { Name = "AZURE_CLIENT_ID", Value = clientIdParameter });
             }
 
             private static BicepValue<string> ResolveValue(object val)
@@ -635,11 +730,21 @@ internal sealed class AzureContainerAppsInfrastructure(
 
                 if (value is ConnectionStringReference cs)
                 {
+                    if (cs.Resource is IAzureResource ar)
+                    {
+                        AzureResourceReferences.Add(ar);
+                    }
+
                     return await ProcessValueAsync(cs.Resource.ConnectionStringExpression, executionContext, cancellationToken, secretType: secretType, parent: parent).ConfigureAwait(false);
                 }
 
                 if (value is IResourceWithConnectionString csrs)
                 {
+                    if (csrs is IAzureResource ar)
+                    {
+                        AzureResourceReferences.Add(ar);
+                    }
+
                     return await ProcessValueAsync(csrs.ConnectionStringExpression, executionContext, cancellationToken, secretType: secretType, parent: parent).ConfigureAwait(false);
                 }
 
@@ -652,11 +757,15 @@ internal sealed class AzureContainerAppsInfrastructure(
 
                 if (value is BicepOutputReference output)
                 {
+                    AzureResourceReferences.Add(output.Resource);
+
                     return (AllocateParameter(output, secretType: secretType), secretType);
                 }
 
                 if (value is BicepSecretOutputReference secretOutputReference)
                 {
+                    AzureResourceReferences.Add(secretOutputReference.Resource);
+
                     if (parent is null)
                     {
                         return (AllocateKeyVaultSecretUriReference(secretOutputReference), SecretType.KeyVault);
@@ -857,24 +966,12 @@ internal sealed class AzureContainerAppsInfrastructure(
                 }
             }
 
-            private void AddManagedIdentities(ContainerApp app)
+            private void AddContainerRegistryManagedIdentity(ContainerApp app)
             {
-                if (_managedIdentityIdParameter is null)
-                {
-                    return;
-                }
-
                 // REVIEW: This is is a little hacky, we should probably have a better way to do this
                 var id = BicepFunction.Interpolate($"{_managedIdentityIdParameter}").Compile().ToString();
 
-                app.Identity = new ManagedServiceIdentity()
-                {
-                    ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned,
-                    UserAssignedIdentities = new()
-                    {
-                        [id] = new UserAssignedIdentityDetails()
-                    }
-                };
+                app.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
             }
 
             private void AddContainerRegistryParameters(ContainerAppConfiguration app)

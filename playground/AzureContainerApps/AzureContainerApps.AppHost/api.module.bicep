@@ -1,6 +1,8 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
+param storage_name string
+
 param api_containerport string
 
 param storage_outputs_blobendpoint string
@@ -12,8 +14,6 @@ param outputs_azure_container_registry_managed_identity_id string
 @secure()
 param secretparam_value string
 
-param outputs_managed_identity_client_id string
-
 param outputs_azure_container_apps_environment_id string
 
 param outputs_azure_container_registry_endpoint string
@@ -23,6 +23,25 @@ param api_containerimage string
 param certificateName string
 
 param customDomain string
+
+resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: take('identity-${uniqueString(resourceGroup().id)}', 128)
+  location: location
+}
+
+resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
+  name: storage_name
+}
+
+resource storage_a5cd3dcd 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storage.id, identity.properties.principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
+  properties: {
+    principalId: identity.properties.principalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+    principalType: 'ServicePrincipal'
+  }
+  scope: storage
+}
 
 resource account_secretoutputs_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
   name: account_secretoutputs
@@ -114,7 +133,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               name: 'AZURE_CLIENT_ID'
-              value: outputs_managed_identity_client_id
+              value: identity.properties.clientId
             }
           ]
         }
@@ -127,6 +146,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
+      '${identity.id}': { }
       '${outputs_azure_container_registry_managed_identity_id}': { }
     }
   }

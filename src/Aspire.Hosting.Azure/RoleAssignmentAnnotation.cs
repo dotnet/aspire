@@ -10,12 +10,12 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="target"></param>
 /// <param name="roleGuids"></param>
-public class RoleAssignmentAnnotation(IAzureResource target, IEnumerable<string> roleGuids) : IResourceAnnotation
+public class RoleAssignmentAnnotation(AzureProvisioningResource target, IEnumerable<string> roleGuids) : IResourceAnnotation
 {
     /// <summary>
     /// 
     /// </summary>
-    public IAzureResource Target { get; } = target;
+    public AzureProvisioningResource Target { get; } = target;
 
     /// <summary>
     /// 

@@ -59,7 +59,8 @@ public static class AzureStorageExtensions
             };
             infrastructure.Add(blobs);
 
-            if (infrastructure.AspireResource.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var defaultRoleAssignments))
+            if (infrastructure.AspireResource.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var defaultRoleAssignments) &&
+                defaultRoleAssignments.RoleGuids.Any())
             {
                 var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
                 var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
@@ -76,6 +77,9 @@ public static class AzureStorageExtensions
             infrastructure.Add(new ProvisioningOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.BlobUri });
             infrastructure.Add(new ProvisioningOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.QueueUri });
             infrastructure.Add(new ProvisioningOutput("tableEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.TableUri });
+
+            // We need to name to externalize role assignments.
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = storageAccount.Name });
         };
 
         var resource = new AzureStorageResource(name, configureInfrastructure);

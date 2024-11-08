@@ -31,9 +31,9 @@ Aspire.Hosting.Azure.DefaultRoleAssignmentsAnnotation.RoleGuids.get -> System.Co
 Aspire.Hosting.Azure.IResourceWithAzureFunctionsConfig
 Aspire.Hosting.Azure.IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string!, object!>! target, string! connectionName) -> void
 Aspire.Hosting.Azure.RoleAssignmentAnnotation
-Aspire.Hosting.Azure.RoleAssignmentAnnotation.RoleAssignmentAnnotation(Aspire.Hosting.ApplicationModel.IAzureResource! target, System.Collections.Generic.IEnumerable<string!>! roleGuids) -> void
+Aspire.Hosting.Azure.RoleAssignmentAnnotation.RoleAssignmentAnnotation(Aspire.Hosting.Azure.AzureProvisioningResource! target, System.Collections.Generic.IEnumerable<string!>! roleGuids) -> void
 Aspire.Hosting.Azure.RoleAssignmentAnnotation.RoleGuids.get -> System.Collections.Generic.IEnumerable<string!>!
-Aspire.Hosting.Azure.RoleAssignmentAnnotation.Target.get -> Aspire.Hosting.ApplicationModel.IAzureResource!
+Aspire.Hosting.Azure.RoleAssignmentAnnotation.Target.get -> Aspire.Hosting.Azure.AzureProvisioningResource!
 Aspire.Hosting.AzureProvisioningResourceExtensions
 override Aspire.Hosting.Azure.AspireV8ResourceNamePropertyResolver.ResolveName(Azure.Provisioning.ProvisioningBuildOptions! options, Azure.Provisioning.Primitives.ProvisionableResource! resource, Azure.Provisioning.Primitives.ResourceNameRequirements requirements) -> Azure.Provisioning.BicepValue<string!>?
 override Aspire.Hosting.Azure.AzureProvisioningResource.GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true) -> Aspire.Hosting.Azure.BicepTemplateFile
@@ -47,3 +47,4 @@ static Aspire.Hosting.AzureProvisioningResourceExtensions.AsProvisioningParamete
 static Aspire.Hosting.AzureProvisioningResourceExtensions.AsProvisioningParameter(this Aspire.Hosting.Azure.BicepOutputReference! outputReference, Aspire.Hosting.Azure.AzureResourceInfrastructure! infrastructure, string? parameterName = null) -> Azure.Provisioning.ProvisioningParameter!
 static Aspire.Hosting.AzureProvisioningResourceExtensions.ConfigureInfrastructure<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.AzureResourceExtensions.GetBicepIdentifier(this Aspire.Hosting.ApplicationModel.IAzureResource! resource) -> string!
+virtual Aspire.Hosting.Azure.AzureProvisioningResource.GetExistingResource(Azure.Provisioning.BicepValue<string!>! name) -> Azure.Provisioning.Primitives.ProvisionableResource!
