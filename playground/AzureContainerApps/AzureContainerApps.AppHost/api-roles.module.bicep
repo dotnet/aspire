@@ -1,7 +1,7 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param storage_name string
+param storage_outputs_name string
 
 resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: take('identity-${uniqueString(resourceGroup().id)}', 128)
@@ -9,7 +9,7 @@ resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' 
 }
 
 resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
-  name: storage_name
+  name: storage_outputs_name
 }
 
 resource storage_ba92f5b4_2d11_453d_a403_e96b0029c9fe 'Microsoft.Authorization/roleAssignments@2022-04-01' = {

@@ -95,19 +95,24 @@ internal sealed class AzureContainerAppsInfrastructure(
         {
             var context = await ProcessResourceAsync(resource, executionContext, cancellationToken).ConfigureAwait(false);
 
-            var provisioningResource = new AzureProvisioningResource(resource.Name, context.BuildContainerApp);
-            provisioningResource.ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions;
+            var provisioningResource = new AzureProvisioningResource(resource.Name, context.BuildContainerApp)
+            {
+                ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions
+            };
 
             provisioningResource.Annotations.Add(new ManifestPublishingCallbackAnnotation(provisioningResource.WriteToManifest));
 
-            if (context.AnyProcessRoleAssignments())
+            if (context.AnyRoleAssignments())
             {
-                var roleAssignmentsResource = new AzureProvisioningResource($"{resource.Name}-roles", context.AddRoleAssignments);
-                roleAssignmentsResource.ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions;
+                var roleAssignmentsResource = new AzureProvisioningResource($"{resource.Name}-roles", context.AddRoleAssignments)
+                {
+                    ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions
+                };
+
                 roleAssignmentsResource.Annotations.Add(new ManifestPublishingCallbackAnnotation(roleAssignmentsResource.WriteToManifest));
 
                 context.UserAssignedIdentity = (
-                    new BicepOutputReference("id", roleAssignmentsResource),
+                    new("id", roleAssignmentsResource),
                     new("clientId", roleAssignmentsResource)
                 );
 
@@ -277,7 +282,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                 }
             }
 
-            public bool AnyProcessRoleAssignments()
+            public bool AnyRoleAssignments()
             {
                 return resource.TryGetLastAnnotation<RoleAssignmentAnnotation>(out _) || AzureResourceReferences.OfType<AzureProvisioningResource>().Any();
             }
@@ -286,7 +291,7 @@ internal sealed class AzureContainerAppsInfrastructure(
             {
                 UserAssignedIdentity? userAssignedIdentity = null;
 
-                var set = new HashSet<string>();
+                var processedResources = new HashSet<string>();
 
                 if (resource.TryGetAnnotationsOfType<RoleAssignmentAnnotation>(out var roleAssignments))
                 {
@@ -295,13 +300,13 @@ internal sealed class AzureContainerAppsInfrastructure(
 
                     foreach (var g in roleAssignments.GroupBy(r => r.Target))
                     {
-                        if (!set.Add(g.Key.Name))
+                        if (!processedResources.Add(g.Key.Name))
                         {
                             continue;
                         }
 
                         var prefix = g.Key.GetBicepIdentifier();
-                        var name = new BicepOutputReference("name", g.Key).AsProvisioningParameter(infra, $"{prefix}_name");
+                        var name = new BicepOutputReference("name", g.Key).AsProvisioningParameter(infra);
                         var provisionable = g.Key.GetExistingResource(name);
                         infra.Add(provisionable);
 
@@ -315,7 +320,7 @@ internal sealed class AzureContainerAppsInfrastructure(
 
                 foreach (var a in AzureResourceReferences.OfType<AzureProvisioningResource>())
                 {
-                    if (!set.Add(a.Name))
+                    if (!processedResources.Add(a.Name))
                     {
                         continue;
                     }
@@ -326,20 +331,17 @@ internal sealed class AzureContainerAppsInfrastructure(
                         infra.Add(userAssignedIdentity);
                     }
 
-                    if (a.TryGetAnnotationsOfType<DefaultRoleAssignmentsAnnotation>(out var defaults))
+                    if (a.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var defaults))
                     {
                         var prefix = a.GetBicepIdentifier();
-                        var name = new BicepOutputReference("name", a).AsProvisioningParameter(infra, $"{prefix}_name");
+                        var name = new BicepOutputReference("name", a).AsProvisioningParameter(infra);
                         var provisionable = a.GetExistingResource(name);
                         infra.Add(provisionable);
 
-                        foreach (var d in defaults)
+                        foreach (var role in defaults.RoleGuids)
                         {
-                            foreach (var role in d.RoleGuids)
-                            {
-                                var roleAssignment = CreateRoleAssignment(prefix, provisionable, role, userAssignedIdentity.Id, RoleManagementPrincipalType.ServicePrincipal, userAssignedIdentity.PrincipalId);
-                                infra.Add(roleAssignment);
-                            }
+                            var roleAssignment = CreateRoleAssignment(prefix, provisionable, role, userAssignedIdentity.Id, RoleManagementPrincipalType.ServicePrincipal, userAssignedIdentity.PrincipalId);
+                            infra.Add(roleAssignment);
                         }
                     }
                 }
