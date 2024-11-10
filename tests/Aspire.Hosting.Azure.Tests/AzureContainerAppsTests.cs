@@ -746,8 +746,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         param storage_outputs_name string
 
-        resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-          name: take('identity-${uniqueString(resourceGroup().id)}', 128)
+        resource api_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+          name: take('api_identity-${uniqueString(resourceGroup().id)}', 128)
           location: location
         }
 
@@ -756,9 +756,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         }
 
         resource storage_StorageBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-          name: guid(storage.id, identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
+          name: guid(storage.id, api_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
           properties: {
-            principalId: identity.properties.principalId
+            principalId: api_identity.properties.principalId
             roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
             principalType: 'ServicePrincipal'
           }
@@ -766,9 +766,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         }
 
         resource storage_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-          name: guid(storage.id, identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
+          name: guid(storage.id, api_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
           properties: {
-            principalId: identity.properties.principalId
+            principalId: api_identity.properties.principalId
             roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
             principalType: 'ServicePrincipal'
           }
@@ -776,18 +776,18 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         }
 
         resource storage_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-          name: guid(storage.id, identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
+          name: guid(storage.id, api_identity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
           properties: {
-            principalId: identity.properties.principalId
+            principalId: api_identity.properties.principalId
             roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
             principalType: 'ServicePrincipal'
           }
           scope: storage
         }
 
-        output id string = identity.id
+        output id string = api_identity.id
 
-        output clientId string = identity.properties.clientId
+        output clientId string = api_identity.properties.clientId
         """;
 
         output.WriteLine(rolesBicep);

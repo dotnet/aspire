@@ -317,7 +317,8 @@ internal sealed class AzureContainerAppsInfrastructure(
 
             public void AddRoleAssignments(AzureResourceInfrastructure infra)
             {
-                var userAssignedIdentity = new UserAssignedIdentity("identity");
+                var identityName = Infrastructure.NormalizeBicepIdentifier($"{resource.Name}-identity");
+                var userAssignedIdentity = new UserAssignedIdentity(identityName);
                 infra.Add(userAssignedIdentity);
 
                 foreach (var (a, roles) in RoleAssignments)
