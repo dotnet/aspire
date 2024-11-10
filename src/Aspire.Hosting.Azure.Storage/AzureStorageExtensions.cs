@@ -60,14 +60,14 @@ public static class AzureStorageExtensions
             infrastructure.Add(blobs);
 
             if (infrastructure.AspireResource.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var defaultRoleAssignments) &&
-                defaultRoleAssignments.RoleGuids.Any())
+                defaultRoleAssignments.Roles.Any())
             {
                 var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
                 var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
 
-                foreach (var role in defaultRoleAssignments.RoleGuids)
+                foreach (var role in defaultRoleAssignments.Roles)
                 {
-                    infrastructure.Add(storageAccount.CreateRoleAssignment(new(role), principalTypeParameter, principalIdParameter));
+                    infrastructure.Add(storageAccount.CreateRoleAssignment(new(role.Id), principalTypeParameter, principalIdParameter));
                 }
 
                 infrastructure.AspireResource.Parameters[AzureBicepResource.KnownParameters.PrincipalType] = null;
@@ -272,7 +272,7 @@ public static class AzureStorageExtensions
         IResourceBuilder<AzureBlobStorageResource> destination, params StorageBuiltInRole[] role)
         where T : IResource
     {
-        return builder.WithAnnotation(new RoleAssignmentAnnotation(destination.Resource.Parent, role.Select(r => r.ToString())));
+        return builder.WithRoleAssignments(destination.Resource.Parent, role);
     }
 
     /// <summary>
@@ -287,7 +287,7 @@ public static class AzureStorageExtensions
         IResourceBuilder<AzureTableStorageResource> destination, params StorageBuiltInRole[] role)
         where T : IResource
     {
-        return builder.WithAnnotation(new RoleAssignmentAnnotation(destination.Resource.Parent, role.Select(r => r.ToString())));
+        return builder.WithRoleAssignments(destination.Resource.Parent, role);
     }
 
     /// <summary>
@@ -302,7 +302,14 @@ public static class AzureStorageExtensions
         IResourceBuilder<AzureQueueStorageResource> destination, params StorageBuiltInRole[] role)
         where T : IResource
     {
-        return builder.WithAnnotation(new RoleAssignmentAnnotation(destination.Resource.Parent, role.Select(r => r.ToString())));
+        return builder.WithRoleAssignments(destination.Resource.Parent, role);
+    }
+
+    private static IResourceBuilder<T> WithRoleAssignments<T>(this IResourceBuilder<T> builder,
+        AzureStorageResource destination, params StorageBuiltInRole[] role)
+        where T : IResource
+    {
+        return builder.WithAnnotation(new RoleAssignmentAnnotation(destination, CreateRoleAssignmentTuple(role)));
     }
 
     /// <summary>
@@ -313,7 +320,7 @@ public static class AzureStorageExtensions
     /// <returns></returns>
     public static IResourceBuilder<AzureStorageResource> WithDefaultRoleAssignments(this IResourceBuilder<AzureStorageResource> builder, params StorageBuiltInRole[] roles)
     {
-        return builder.WithAnnotation(new DefaultRoleAssignmentsAnnotation(roles.Select(r => r.ToString()).ToArray()));
+        return builder.WithAnnotation(new DefaultRoleAssignmentsAnnotation(CreateRoleAssignmentTuple(roles)));
     }
 
     /// <summary>
@@ -337,10 +344,15 @@ public static class AzureStorageExtensions
         builder.Resource.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var annotation);
 
         // Return the list of default roles if they exist, otherwise return an empty list.
-        var roles = annotation?.RoleGuids.Select(id => new StorageBuiltInRole(id)).ToList() ?? [];
+        var roles = annotation?.Roles.Select(r => new StorageBuiltInRole(r.Id)).ToList() ?? [];
 
         callback(roles);
 
-        return builder.WithAnnotation(new DefaultRoleAssignmentsAnnotation(roles.Select(r => r.ToString()).ToArray()));
+        return builder.WithAnnotation(new DefaultRoleAssignmentsAnnotation(CreateRoleAssignmentTuple(roles)));
+    }
+
+    private static IReadOnlyList<(string, string)> CreateRoleAssignmentTuple(IReadOnlyList<StorageBuiltInRole> role)
+    {
+        return [.. role.Select(r => (r.ToString(), StorageBuiltInRole.GetBuiltInRoleName(r)))];
     }
 }

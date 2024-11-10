@@ -26,13 +26,13 @@ Aspire.Hosting.Azure.AzureProvisioningResource.ProvisioningBuildOptions.set -> v
 Aspire.Hosting.Azure.AzureResourceInfrastructure
 Aspire.Hosting.Azure.AzureResourceInfrastructure.AspireResource.get -> Aspire.Hosting.Azure.AzureProvisioningResource!
 Aspire.Hosting.Azure.DefaultRoleAssignmentsAnnotation
-Aspire.Hosting.Azure.DefaultRoleAssignmentsAnnotation.DefaultRoleAssignmentsAnnotation(System.Collections.Generic.IReadOnlyList<string!>! roleGuids) -> void
-Aspire.Hosting.Azure.DefaultRoleAssignmentsAnnotation.RoleGuids.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Aspire.Hosting.Azure.DefaultRoleAssignmentsAnnotation.DefaultRoleAssignmentsAnnotation(System.Collections.Generic.IReadOnlyList<(string!, string!)>! roles) -> void
+Aspire.Hosting.Azure.DefaultRoleAssignmentsAnnotation.Roles.get -> System.Collections.Generic.IReadOnlyList<(string! Id, string! Description)>!
 Aspire.Hosting.Azure.IResourceWithAzureFunctionsConfig
 Aspire.Hosting.Azure.IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string!, object!>! target, string! connectionName) -> void
 Aspire.Hosting.Azure.RoleAssignmentAnnotation
-Aspire.Hosting.Azure.RoleAssignmentAnnotation.RoleAssignmentAnnotation(Aspire.Hosting.Azure.AzureProvisioningResource! target, System.Collections.Generic.IEnumerable<string!>! roleGuids) -> void
-Aspire.Hosting.Azure.RoleAssignmentAnnotation.RoleGuids.get -> System.Collections.Generic.IEnumerable<string!>!
+Aspire.Hosting.Azure.RoleAssignmentAnnotation.RoleAssignmentAnnotation(Aspire.Hosting.Azure.AzureProvisioningResource! target, System.Collections.Generic.IReadOnlyList<(string!, string!)>! roles) -> void
+Aspire.Hosting.Azure.RoleAssignmentAnnotation.Roles.get -> System.Collections.Generic.IReadOnlyList<(string! Id, string! Description)>!
 Aspire.Hosting.Azure.RoleAssignmentAnnotation.Target.get -> Aspire.Hosting.Azure.AzureProvisioningResource!
 Aspire.Hosting.AzureProvisioningResourceExtensions
 override Aspire.Hosting.Azure.AspireV8ResourceNamePropertyResolver.ResolveName(Azure.Provisioning.ProvisioningBuildOptions! options, Azure.Provisioning.Primitives.ProvisionableResource! resource, Azure.Provisioning.Primitives.ResourceNameRequirements requirements) -> Azure.Provisioning.BicepValue<string!>?

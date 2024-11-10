@@ -9,8 +9,8 @@ namespace Aspire.Hosting.Azure;
 /// 
 /// </summary>
 /// <param name="target"></param>
-/// <param name="roleGuids"></param>
-public class RoleAssignmentAnnotation(AzureProvisioningResource target, IEnumerable<string> roleGuids) : IResourceAnnotation
+/// <param name="roles"></param>
+public class RoleAssignmentAnnotation(AzureProvisioningResource target, IReadOnlyList<(string, string)> roles) : IResourceAnnotation
 {
     /// <summary>
     /// 
@@ -20,5 +20,5 @@ public class RoleAssignmentAnnotation(AzureProvisioningResource target, IEnumera
     /// <summary>
     /// 
     /// </summary>
-    public IEnumerable<string> RoleGuids { get; } = roleGuids;
+    public IReadOnlyList<(string Id, string Description)> Roles { get; } = roles;
 }
