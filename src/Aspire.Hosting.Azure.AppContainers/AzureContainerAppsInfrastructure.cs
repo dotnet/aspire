@@ -170,7 +170,7 @@ internal sealed class AzureContainerAppsInfrastructure(
 
             public (BicepOutputReference Id, BicepOutputReference ClientId)? UserAssignedIdentity { get; set; }
 
-            public Dictionary<AzureProvisioningResource, IEnumerable<(string Id, string Description)>> RoleAssignments { get; } = [];
+            public Dictionary<AzureProvisioningResource, IEnumerable<RoleDefinition>> RoleAssignments { get; } = [];
 
             public void BuildContainerApp(AzureResourceInfrastructure c)
             {
@@ -288,6 +288,7 @@ internal sealed class AzureContainerAppsInfrastructure(
             {
                 var processedResources = new HashSet<string>();
 
+                // First we process per reference role assignments
                 if (resource.TryGetAnnotationsOfType<RoleAssignmentAnnotation>(out var roleAssignments))
                 {
                     foreach (var g in roleAssignments.GroupBy(r => r.Target))
@@ -301,6 +302,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                     }
                 }
 
+                // Then we process default role assignments for the target azure resource
                 foreach (var a in AzureResourceReferences.OfType<AzureProvisioningResource>())
                 {
                     if (!processedResources.Add(a.Name))

@@ -309,7 +309,7 @@ public static class AzureStorageExtensions
         AzureStorageResource destination, params StorageBuiltInRole[] role)
         where T : IResource
     {
-        return builder.WithAnnotation(new RoleAssignmentAnnotation(destination, CreateRoleAssignmentTuple(role)));
+        return builder.WithAnnotation(new RoleAssignmentAnnotation(destination, CreateRoleDefinitions(role)));
     }
 
     /// <summary>
@@ -320,7 +320,7 @@ public static class AzureStorageExtensions
     /// <returns></returns>
     public static IResourceBuilder<AzureStorageResource> WithDefaultRoleAssignments(this IResourceBuilder<AzureStorageResource> builder, params StorageBuiltInRole[] roles)
     {
-        return builder.WithAnnotation(new DefaultRoleAssignmentsAnnotation(CreateRoleAssignmentTuple(roles)));
+        return builder.WithAnnotation(new DefaultRoleAssignmentsAnnotation(CreateRoleDefinitions(roles)));
     }
 
     /// <summary>
@@ -348,11 +348,11 @@ public static class AzureStorageExtensions
 
         callback(roles);
 
-        return builder.WithAnnotation(new DefaultRoleAssignmentsAnnotation(CreateRoleAssignmentTuple(roles)));
+        return builder.WithAnnotation(new DefaultRoleAssignmentsAnnotation(CreateRoleDefinitions(roles)));
     }
 
-    private static IReadOnlyList<(string, string)> CreateRoleAssignmentTuple(IReadOnlyList<StorageBuiltInRole> role)
+    private static IReadOnlyList<RoleDefinition> CreateRoleDefinitions(IReadOnlyList<StorageBuiltInRole> role)
     {
-        return [.. role.Select(r => (r.ToString(), StorageBuiltInRole.GetBuiltInRoleName(r)))];
+        return [.. role.Select(r => new RoleDefinition(r.ToString(), StorageBuiltInRole.GetBuiltInRoleName(r)))];
     }
 }

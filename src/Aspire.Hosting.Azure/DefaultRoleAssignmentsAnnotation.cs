@@ -9,10 +9,10 @@ namespace Aspire.Hosting.Azure;
 /// 
 /// </summary>
 /// <param name="roles"></param>
-public class DefaultRoleAssignmentsAnnotation(IReadOnlyList<(string, string)> roles) : IResourceAnnotation
+public class DefaultRoleAssignmentsAnnotation(IReadOnlyList<RoleDefinition> roles) : IResourceAnnotation
 {
     /// <summary>
     /// 
     /// </summary>
-    public IReadOnlyList<(string Id, string Description)> Roles { get; } = roles;
+    public IReadOnlyList<RoleDefinition> Roles { get; } = roles;
 }

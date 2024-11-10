@@ -26,14 +26,21 @@ Aspire.Hosting.Azure.AzureProvisioningResource.ProvisioningBuildOptions.set -> v
 Aspire.Hosting.Azure.AzureResourceInfrastructure
 Aspire.Hosting.Azure.AzureResourceInfrastructure.AspireResource.get -> Aspire.Hosting.Azure.AzureProvisioningResource!
 Aspire.Hosting.Azure.DefaultRoleAssignmentsAnnotation
-Aspire.Hosting.Azure.DefaultRoleAssignmentsAnnotation.DefaultRoleAssignmentsAnnotation(System.Collections.Generic.IReadOnlyList<(string!, string!)>! roles) -> void
-Aspire.Hosting.Azure.DefaultRoleAssignmentsAnnotation.Roles.get -> System.Collections.Generic.IReadOnlyList<(string! Id, string! Description)>!
+Aspire.Hosting.Azure.DefaultRoleAssignmentsAnnotation.DefaultRoleAssignmentsAnnotation(System.Collections.Generic.IReadOnlyList<Aspire.Hosting.Azure.RoleDefinition>! roles) -> void
+Aspire.Hosting.Azure.DefaultRoleAssignmentsAnnotation.Roles.get -> System.Collections.Generic.IReadOnlyList<Aspire.Hosting.Azure.RoleDefinition>!
 Aspire.Hosting.Azure.IResourceWithAzureFunctionsConfig
 Aspire.Hosting.Azure.IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string!, object!>! target, string! connectionName) -> void
 Aspire.Hosting.Azure.RoleAssignmentAnnotation
-Aspire.Hosting.Azure.RoleAssignmentAnnotation.RoleAssignmentAnnotation(Aspire.Hosting.Azure.AzureProvisioningResource! target, System.Collections.Generic.IReadOnlyList<(string!, string!)>! roles) -> void
-Aspire.Hosting.Azure.RoleAssignmentAnnotation.Roles.get -> System.Collections.Generic.IReadOnlyList<(string! Id, string! Description)>!
+Aspire.Hosting.Azure.RoleAssignmentAnnotation.RoleAssignmentAnnotation(Aspire.Hosting.Azure.AzureProvisioningResource! target, System.Collections.Generic.IReadOnlyList<Aspire.Hosting.Azure.RoleDefinition>! roles) -> void
+Aspire.Hosting.Azure.RoleAssignmentAnnotation.Roles.get -> System.Collections.Generic.IReadOnlyList<Aspire.Hosting.Azure.RoleDefinition>!
 Aspire.Hosting.Azure.RoleAssignmentAnnotation.Target.get -> Aspire.Hosting.Azure.AzureProvisioningResource!
+Aspire.Hosting.Azure.RoleDefinition
+Aspire.Hosting.Azure.RoleDefinition.Description.get -> string!
+Aspire.Hosting.Azure.RoleDefinition.Description.set -> void
+Aspire.Hosting.Azure.RoleDefinition.Id.get -> string!
+Aspire.Hosting.Azure.RoleDefinition.Id.set -> void
+Aspire.Hosting.Azure.RoleDefinition.RoleDefinition() -> void
+Aspire.Hosting.Azure.RoleDefinition.RoleDefinition(string! Id, string! Description) -> void
 Aspire.Hosting.AzureProvisioningResourceExtensions
 override Aspire.Hosting.Azure.AspireV8ResourceNamePropertyResolver.ResolveName(Azure.Provisioning.ProvisioningBuildOptions! options, Azure.Provisioning.Primitives.ProvisionableResource! resource, Azure.Provisioning.Primitives.ResourceNameRequirements requirements) -> Azure.Provisioning.BicepValue<string!>?
 override Aspire.Hosting.Azure.AzureProvisioningResource.GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true) -> Aspire.Hosting.Azure.BicepTemplateFile
