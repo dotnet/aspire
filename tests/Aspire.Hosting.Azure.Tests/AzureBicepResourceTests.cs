@@ -776,14 +776,14 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.NotNull(moduleInfrastructure);
         var infrastructureParameters = moduleInfrastructure.GetParameters().DistinctBy(x => x.BicepIdentifier);
         var infrastructureParametersLookup = infrastructureParameters.ToDictionary(p => p.BicepIdentifier);
-        Assert.True(infrastructureParametersLookup.ContainsKey("skuName"));
+        Assert.True(infrastructureParametersLookup.ContainsKey("skuname_value"));
 
         var expectedManifest = """
             {
               "type": "azure.bicep.v0",
               "path": "infrastructure1.module.bicep",
               "params": {
-                "skuName": "{skuName.value}"
+                "skuname_value": "{skuName.value}"
               }
             }
             """;
@@ -1902,7 +1902,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "params": {
                 "principalId": "",
                 "principalType": "",
-                "storagesku": "{storagesku.value}"
+                "storagesku_value": "{storagesku.value}"
               }
             }
             """;
@@ -1912,7 +1912,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param storagesku string
+            param storagesku_value string
 
             param principalId string
 
@@ -1923,7 +1923,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               kind: 'StorageV2'
               location: location
               sku: {
-                name: storagesku
+                name: storagesku_value
               }
               properties: {
                 accessTier: 'Hot'
@@ -1978,6 +1978,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             output queueEndpoint string = storage.properties.primaryEndpoints.queue
 
             output tableEndpoint string = storage.properties.primaryEndpoints.table
+
+            output name string = storage.name
             """;
         output.WriteLine(storageManifest.BicepText);
         Assert.Equal(expectedBicep, storageManifest.BicepText);
@@ -2061,7 +2063,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "params": {
                 "principalId": "",
                 "principalType": "",
-                "storagesku": "{storagesku.value}"
+                "storagesku_value": "{storagesku.value}"
               }
             }
             """;
@@ -2071,7 +2073,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param storagesku string
+            param storagesku_value string
 
             param principalId string
 
@@ -2082,7 +2084,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               kind: 'StorageV2'
               location: location
               sku: {
-                name: storagesku
+                name: storagesku_value
               }
               properties: {
                 accessTier: 'Hot'
@@ -2137,6 +2139,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             output queueEndpoint string = storage.properties.primaryEndpoints.queue
 
             output tableEndpoint string = storage.properties.primaryEndpoints.table
+
+            output name string = storage.name
             """;
         output.WriteLine(storageManifest.BicepText);
         Assert.Equal(expectedBicep, storageManifest.BicepText);
@@ -2219,7 +2223,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "params": {
                 "principalId": "",
                 "principalType": "",
-                "storagesku": "{storagesku.value}"
+                "storagesku_value": "{storagesku.value}"
               }
             }
             """;
@@ -2229,7 +2233,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param storagesku string
+            param storagesku_value string
 
             param principalId string
 
@@ -2240,7 +2244,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               kind: 'StorageV2'
               location: location
               sku: {
-                name: storagesku
+                name: storagesku_value
               }
               properties: {
                 accessTier: 'Hot'
@@ -2295,6 +2299,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             output queueEndpoint string = storage.properties.primaryEndpoints.queue
 
             output tableEndpoint string = storage.properties.primaryEndpoints.table
+
+            output name string = storage.name
             """;
         output.WriteLine(storageManifest.BicepText);
         Assert.Equal(expectedBicep, storageManifest.BicepText);
@@ -2378,17 +2384,20 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "params": {
                 "principalId": "",
                 "principalType": "",
-                "storagesku": "{storagesku.value}"
+                "storagesku_value": "{storagesku.value}"
               }
             }
             """;
+
+        var m = storageManifest.ManifestNode.ToString();
+
         Assert.Equal(expectedStorageManifest, storageManifest.ManifestNode.ToString());
 
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param storagesku string
+            param storagesku_value string
 
             param principalId string
 
@@ -2399,7 +2408,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               kind: 'StorageV2'
               location: location
               sku: {
-                name: storagesku
+                name: storagesku_value
               }
               properties: {
                 accessTier: 'Hot'
@@ -2454,6 +2463,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             output queueEndpoint string = storage.properties.primaryEndpoints.queue
 
             output tableEndpoint string = storage.properties.primaryEndpoints.table
+
+            output name string = storage.name
             """;
         output.WriteLine(storageManifest.BicepText);
         Assert.Equal(expectedBicep, storageManifest.BicepText);
@@ -2541,7 +2552,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "params": {
                 "principalId": "",
                 "principalType": "",
-                "searchSku": "{searchSku.value}"
+                "searchsku_value": "{searchSku.value}"
               }
             }
             """;
@@ -2551,7 +2562,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param searchSku string
+            param searchsku_value string
 
             param principalId string
 
@@ -2567,7 +2578,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 replicaCount: 1
               }
               sku: {
-                name: searchSku
+                name: searchsku_value
               }
               tags: {
                 'aspire-resource-name': 'search'

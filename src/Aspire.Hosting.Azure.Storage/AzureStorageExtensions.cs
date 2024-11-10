@@ -70,8 +70,8 @@ public static class AzureStorageExtensions
                     infrastructure.Add(storageAccount.CreateRoleAssignment(new(role.Id), principalTypeParameter, principalIdParameter));
                 }
 
-                infrastructure.AspireResource.Parameters[AzureBicepResource.KnownParameters.PrincipalType] = null;
                 infrastructure.AspireResource.Parameters[AzureBicepResource.KnownParameters.PrincipalId] = null;
+                infrastructure.AspireResource.Parameters[AzureBicepResource.KnownParameters.PrincipalType] = null;
             }
 
             infrastructure.Add(new ProvisioningOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.BlobUri });
@@ -86,8 +86,8 @@ public static class AzureStorageExtensions
         return builder.AddResource(resource)
                       .WithDefaultRoleAssignments(
                         StorageBuiltInRole.StorageBlobDataContributor,
-                        StorageBuiltInRole.StorageQueueDataContributor,
-                        StorageBuiltInRole.StorageTableDataContributor)
+                        StorageBuiltInRole.StorageTableDataContributor,
+                        StorageBuiltInRole.StorageQueueDataContributor)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
