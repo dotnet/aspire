@@ -58,12 +58,11 @@
             <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isTypeFilterVisible" AutoFocus="true" FixedPlacement="true">
                 <Header>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)]</Header>
                 <Body>
-                    <SelectResourceTypes
-                    AllResourceTypes="_allResourceTypes"
-                    VisibleResourceTypes="_visibleResourceTypes"
-                    OnAllResourceTypesCheckedChangedAsync="@OnAllResourceTypesCheckedChangedAsync"
-                    AreAllTypesVisible="@(() => AreAllTypesVisible)"
-                    OnResourceTypeVisibilityChangedAsync="@OnResourceTypeVisibilityChangedAsync" />
+                    <SelectResourceTypes AllResourceTypes="_allResourceTypes"
+                                         VisibleResourceTypes="_visibleResourceTypes"
+                                         OnAllResourceTypesCheckedChangedAsync="@OnAllResourceTypesCheckedChangedAsync"
+                                         AreAllTypesVisible="@(() => AreAllTypesVisible)"
+                                         OnResourceTypeVisibilityChangedAsync="@OnResourceTypeVisibilityChangedAsync" />
                 </Body>
             </FluentPopover>
 
@@ -76,21 +75,21 @@
                 <Summary>
                     <GridColumnManager @ref="_manager" Columns="@_gridColumns">
                         <FluentDataGrid @ref="_dataGrid"
-                        ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
-                        ResizeType="DataGridResizeType.Discrete"
-                        Virtualize="true"
-                        GenerateHeader="GenerateHeaderOption.Sticky"
-                        ItemSize="46"
-                        ItemsProvider="@GetData"
-                        ResizableColumns="true"
-                        GridTemplateColumns="@_manager.GetGridTemplateColumns()"
-                        RowClass="@(r => GetRowClass(r.Resource))"
-                        Loading="_isLoading"
-                        ShowHover="true"
-                        TGridItem="ResourceGridViewModel"
-                        ItemKey="@(r => r.Resource.Name)"
-                        OnRowClick="@(r => r.ExecuteOnDefault(d => ShowResourceDetailsAsync(d.Resource, buttonId: null)))"
-                        Class="main-grid enable-row-click">
+                                        ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
+                                        ResizeType="DataGridResizeType.Discrete"
+                                        Virtualize="true"
+                                        GenerateHeader="GenerateHeaderOption.Sticky"
+                                        ItemSize="46"
+                                        ItemsProvider="@GetData"
+                                        ResizableColumns="true"
+                                        GridTemplateColumns="@_manager.GetGridTemplateColumns()"
+                                        RowClass="@(r => GetRowClass(r.Resource))"
+                                        Loading="_isLoading"
+                                        ShowHover="true"
+                                        TGridItem="ResourceGridViewModel"
+                                        ItemKey="@(r => r.Resource.Name)"
+                                        OnRowClick="@(r => r.ExecuteOnDefault(d => ShowResourceDetailsAsync(d.Resource, buttonId: null)))"
+                                        Class="main-grid enable-row-click">
                             <ChildContent>
                                 <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort" Tooltip="true" TooltipText="@(c => GetResourceName(c.Resource))" Class="expand-col">
                                     @{
