@@ -317,6 +317,49 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Get the arguments from the given resource.
+    /// </summary>
+    /// <remarks>
+    /// This method is useful when you want to make sure the arguments are added properly to resources, mostly in test situations.
+    /// This method has asynchronous behavior when arguments were provided from <see cref="IValueProvider"/> otherwise it will be synchronous.
+    /// </remarks>
+    /// <param name="resource">The resource to get the arguments from.</param>
+    /// <returns>The arguments retrieved from the resource.</returns>
+    public static async ValueTask<IReadOnlyList<string>> GetArgumentListAsync(this IResourceWithArgs resource)
+    {
+        var finalArgs = new List<string>();
+
+        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var exeArgsCallbacks))
+        {
+            var args = new List<object>();
+            var commandLineContext = new CommandLineArgsCallbackContext(args, default);
+
+            foreach (var exeArgsCallback in exeArgsCallbacks)
+            {
+                await exeArgsCallback.Callback(commandLineContext).ConfigureAwait(false);
+            }
+
+            foreach (var arg in args)
+            {
+                var value = arg switch
+                {
+                    string s => s,
+                    IValueProvider valueProvider => await valueProvider.GetValueAsync().ConfigureAwait(false),
+                    null => null,
+                    _ => throw new InvalidOperationException($"Unexpected value for {arg}")
+                };
+
+                if (value is not null)
+                {
+                    finalArgs.Add(value);
+                }
+            }
+        }
+
+        return finalArgs;
+    }
+
+    /// <summary>
     /// Gets the lifetime type of the container for the specified resource.
     /// Defaults to <see cref="ContainerLifetime.Session"/> if no <see cref="ContainerLifetimeAnnotation"/> is found.
     /// </summary>
