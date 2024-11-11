@@ -67,11 +67,11 @@
             </FluentPopover>
 
             <SummaryDetailsView DetailsTitle="@(SelectedResource != null ? $"{SelectedResource.ResourceType}: {GetResourceName(SelectedResource)}" : null)"
-            ShowDetails="@showDetailsView"
-            OnDismiss="@(() => ClearSelectedResourceAsync(causedByUserAction: true))"
-            SelectedValue="@SelectedResource"
-            ViewKey="ResourcesList"
-            OnResize="@(r => _manager.SetWidthFraction(r.Orientation == Orientation.Horizontal ? r.Panel1Fraction : 1))">
+                                ShowDetails="@showDetailsView"
+                                OnDismiss="@(() => ClearSelectedResourceAsync(causedByUserAction: true))"
+                                SelectedValue="@SelectedResource"
+                                ViewKey="ResourcesList"
+                                OnResize="@(r => _manager.SetWidthFraction(r.Orientation == Orientation.Horizontal ? r.Panel1Fraction : 1))">
                 <Summary>
                     <GridColumnManager @ref="_manager" Columns="@_gridColumns">
                         <FluentDataGrid @ref="_dataGrid"
