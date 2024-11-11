@@ -140,6 +140,9 @@ public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem
     [Parameter]
     public GenerateHeaderOption GenerateHeader { get; set; } = GenerateHeaderOption.Sticky;
 
+    [Parameter]
+    public string? Class { get; set; }
+
     // Return null if empty so GridValue knows there is no template.
     private RenderFragment? GetContentAfterValue(TItem context) => ContentAfterValue == s_emptyChildContent
         ? null
