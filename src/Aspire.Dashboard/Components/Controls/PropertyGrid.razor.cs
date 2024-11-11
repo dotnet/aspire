@@ -140,6 +140,9 @@ public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem
     [Parameter]
     public GenerateHeaderOption GenerateHeader { get; set; } = GenerateHeaderOption.Sticky;
 
+    [Parameter]
+    public string? Class { get; set; }
+
     private async Task OnIsValueMaskedChanged(TItem item, bool isValueMasked)
     {
         item.IsValueMasked = isValueMasked;
