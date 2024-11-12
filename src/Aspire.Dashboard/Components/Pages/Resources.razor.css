@@ -32,3 +32,12 @@
 ::deep fluent-data-grid {
     overflow-x: clip;
 }
+
+::deep .resources-name-container {
+    height: 24px;
+    display: inline-block;
+}
+
+::deep .resource-name-text {
+    vertical-align: middle;
+}

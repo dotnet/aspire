@@ -105,7 +105,7 @@ public static class GarnetBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), GarnetContainerDataDirectory,
+        builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), GarnetContainerDataDirectory,
             isReadOnly);
         if (!isReadOnly)
         {

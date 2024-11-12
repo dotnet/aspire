@@ -142,6 +142,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         ModelNamedArg("--resources-path", aggregateResourcesPaths),
                         ModelNamedArg("--run-file", NormalizePath(sidecarOptions?.RunFile)),
                         ModelNamedArg("--runtime-path", NormalizePath(sidecarOptions?.RuntimePath)),
+                        ModelNamedArg("--scheduler-host-address", sidecarOptions?.SchedulerHostAddress),
                         ModelNamedArg("--unix-domain-socket", sidecarOptions?.UnixDomainSocket),
                         PostOptionsArgs(Args(sidecarOptions?.Command)));
 
@@ -262,6 +263,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         context.Writer.TryWriteStringArray("resourcesPath", sidecarOptions?.ResourcesPaths.Select(path => context.GetManifestRelativePath(path)));
                         context.Writer.TryWriteString("runFile", context.GetManifestRelativePath(sidecarOptions?.RunFile));
                         context.Writer.TryWriteString("runtimePath", context.GetManifestRelativePath(sidecarOptions?.RuntimePath));
+                        context.Writer.TryWriteString("schedulerHostAddress", sidecarOptions?.SchedulerHostAddress);
                         context.Writer.TryWriteString("unixDomainSocket", sidecarOptions?.UnixDomainSocket);
 
                         context.Writer.WriteEndObject();

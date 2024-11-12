@@ -179,9 +179,17 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // account for the path the AppHost is running from to disambiguate between different projects
         // with the same name as seen in https://github.com/dotnet/aspire/issues/5413. For publish scenarios,
         // we want to use a stable hash based only on the project name.
-        var appHostShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath));
-        var appHostNameShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostName));
-        var appHostSha = ExecutionContext.IsPublishMode ? Convert.ToHexString(appHostNameShaBytes) : Convert.ToHexString(appHostShaBytes);
+        string appHostSha;
+        if (ExecutionContext.IsPublishMode)
+        {
+            var appHostNameShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostName));
+            appHostSha = Convert.ToHexString(appHostNameShaBytes);
+        }
+        else
+        {
+            var appHostShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath));
+            appHostSha = Convert.ToHexString(appHostShaBytes);
+        }
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["AppHost:Sha256"] = appHostSha
@@ -244,6 +252,16 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                         }
                     );
                 }
+                else
+                {
+                    // The dashboard is enabled but is unsecured. Set auth mode config setting to reflect this state.
+                    _innerBuilder.Configuration.AddInMemoryCollection(
+                        new Dictionary<string, string?>
+                        {
+                            ["AppHost:ResourceService:AuthMode"] = nameof(ResourceServiceAuthMode.Unsecured)
+                        }
+                    );
+                }
 
                 _innerBuilder.Services.AddSingleton<DashboardCommandExecutor>();
                 _innerBuilder.Services.AddOptions<TransportOptions>().ValidateOnStart().PostConfigure(MapTransportOptionsFromCustomKeys);
@@ -269,7 +287,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
 
             // Codespaces
-            _innerBuilder.Services.AddHostedService<CodespacesUrlRewriter>();
+            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CodespacesOptions>, ConfigureCodespacesOptions>());
+            _innerBuilder.Services.AddSingleton<CodespacesUrlRewriter>();
+            _innerBuilder.Services.AddHostedService<CodespacesResourceUrlRewriterService>();
 
             Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
         }

@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO.Pipelines;
 using System.Text;
 using System.Threading.Channels;
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Eventing;
@@ -560,7 +561,6 @@ public class ApplicationExecutorTests
         var exeResource = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
 
         // Start watching logs for container.
-        var watchCts = new CancellationTokenSource();
         var watchSubscribers = resourceLoggerService.WatchAnySubscribersAsync();
         var watchSubscribersEnumerator = watchSubscribers.GetAsyncEnumerator();
         var watchLogs1 = resourceLoggerService.WatchAsync(exeResource.Metadata.Name);
@@ -988,6 +988,50 @@ public class ApplicationExecutorTests
         HasKnownCommandAnnotations(project.Resource);
     }
 
+    [Fact]
+    public async Task ParentPropertySetOnChildResource()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var parentResource = builder.AddContainer("database", "image");
+        var childResource = builder.AddResource(new CustomChildResource("child", parentResource.Resource));
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService, resourceNotificationService: resourceNotificationService);
+        await appExecutor.RunApplicationAsync();
+
+        string? parentResourceId = null;
+        string? childParentResourceId = null;
+        var watchResourceTask = Task.Run(async () =>
+        {
+            await foreach (var item in resourceNotificationService.WatchAsync())
+            {
+                if (item.Resource == parentResource.Resource)
+                {
+                    parentResourceId = item.ResourceId;
+                }
+                else if (item.Resource == childResource.Resource)
+                {
+                    childParentResourceId = item.Snapshot.Properties.SingleOrDefault(p => p.Name == KnownProperties.Resource.ParentName)?.Value?.ToString();
+                }
+
+                if (parentResourceId != null && childParentResourceId != null)
+                {
+                    return;
+                }
+            }
+        });
+
+        await watchResourceTask.DefaultTimeout();
+
+        Assert.Equal(parentResourceId, childParentResourceId);
+    }
+
     private static void HasKnownCommandAnnotations(IResource resource)
     {
         var commandAnnotations = resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
@@ -1051,5 +1095,10 @@ public class ApplicationExecutorTests
     {
         public string ProjectPath => "TestProject";
         public LaunchSettings LaunchSettings { get; } = new();
+    }
+
+    private sealed class CustomChildResource(string name, IResource parent) : Resource(name), IResourceWithParent
+    {
+        public IResource Parent => parent;
     }
 }

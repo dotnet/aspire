@@ -158,6 +158,11 @@ public class TextVisualizerDialogTests : TestContext
             builder.CloseComponent();
         });
 
+        // Setting a provider ID on menu service is required to simulate <FluentMenuProvider> on the page.
+        // This makes FluentMenu render without error.
+        var menuService = Services.GetRequiredService<IMenuService>();
+        menuService.ProviderId = "Test";
+
         dialogService = Services.GetRequiredService<IDialogService>();
         return cut;
     }

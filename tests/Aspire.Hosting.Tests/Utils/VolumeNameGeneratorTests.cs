@@ -18,7 +18,7 @@ public class VolumeNameGeneratorTests
 
         var resource = builder.AddResource(new TestResource("myresource"));
 
-        var volumeName = CreateVolumeName(resource, "data");
+        var volumeName = Generate(resource, "data");
 
         Assert.Equal($"{volumePrefix}-{resource.Resource.Name}-data", volumeName);
     }
@@ -30,7 +30,7 @@ public class VolumeNameGeneratorTests
         var builder = DistributedApplication.CreateBuilder();
         var resource = builder.AddResource(new TestResource("myresource"));
 
-        Assert.Throws<ArgumentException>(nameof(suffix), () => CreateVolumeName(resource, suffix));
+        Assert.Throws<ArgumentException>(nameof(suffix), () => Generate(resource, suffix));
     }
 
     public static object[][] InvalidNameParts => [
@@ -61,8 +61,8 @@ public class VolumeNameGeneratorTests
         var runResource = runBuilder.AddResource(new TestResource("myresource"));
         var publishResource = publishBuilder.AddResource(new TestResource("myresource"));
 
-        var runVolumeName = CreateVolumeName(runResource, "data");
-        var publishVolumeName = CreateVolumeName(publishResource, "data");
+        var runVolumeName = Generate(runResource, "data");
+        var publishVolumeName = Generate(publishResource, "data");
 
         Assert.Equal($"{runVolumePrefix}-{runResource.Resource.Name}-data", runVolumeName);
         Assert.Equal($"{publishVolumePrefix}-{publishResource.Resource.Name}-data", publishVolumeName);

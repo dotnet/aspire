@@ -9,7 +9,6 @@ using Aspire.Hosting.Utils;
 using Azure.Messaging.EventHubs.Producer;
 using Azure.Provisioning;
 using Azure.Provisioning.EventHubs;
-using Azure.Provisioning.Expressions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
@@ -34,7 +33,7 @@ public static class AzureEventHubsExtensions
         {
             var skuParameter = new ProvisioningParameter("sku", typeof(string))
             {
-                Value = new StringLiteral("Standard")
+                Value = "Standard"
             };
             infrastructure.Add(skuParameter);
 
@@ -58,7 +57,7 @@ public static class AzureEventHubsExtensions
 
             foreach (var hub in azureResource.Hubs)
             {
-                var hubResource = new EventHub(Infrastructure.NormalizeIdentifierName(hub))
+                var hubResource = new EventHub(Infrastructure.NormalizeBicepIdentifier(hub))
                 {
                     Parent = eventHubsNamespace,
                     Name = hub
@@ -269,7 +268,7 @@ public static class AzureEventHubsExtensions
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <returns>A builder for the <see cref="AzureEventHubsEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureEventHubsEmulatorResource> WithDataVolume(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string? name = null)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data", isReadOnly: false);
+        => builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/data", isReadOnly: false);
 
     /// <summary>
     /// Configures the gateway port for the Azure Event Hubs emulator.

@@ -15,8 +15,8 @@ namespace Aspire.Hosting.Azure;
 public sealed class AzureProvisioningOptions
 {
     /// <summary>
-    /// Gets the <see cref="Azure.Provisioning.ProvisioningContext"/> which contains common settings and
+    /// Gets the <see cref="global::Azure.Provisioning.ProvisioningBuildOptions"/> which contains common settings and
     /// functionality for building Azure resources.
     /// </summary>
-    public ProvisioningContext ProvisioningContext { get; } = new ProvisioningContext();
+    public ProvisioningBuildOptions ProvisioningBuildOptions { get; } = new ProvisioningBuildOptions();
 }

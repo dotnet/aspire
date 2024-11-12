@@ -246,7 +246,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var cosmos = builder.AddAzureCosmosDB("cosmos")
             .ConfigureInfrastructure(infrastructure =>
             {
-                callbackDatabases = infrastructure.GetResources().OfType<CosmosDBSqlDatabase>();
+                callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
             });
         cosmos.AddDatabase("mydatabase");
 
@@ -340,7 +340,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var cosmos = builder.AddAzureCosmosDB("cosmos")
             .ConfigureInfrastructure(infrastructure =>
             {
-                callbackDatabases = infrastructure.GetResources().OfType<CosmosDBSqlDatabase>();
+                callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
             });
         cosmos.AddDatabase("mydatabase");
 
@@ -774,8 +774,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var manifest = await ManifestUtils.GetManifest(infrastructure1.Resource);
 
         Assert.NotNull(moduleInfrastructure);
-        var infrastructureParameters = moduleInfrastructure.GetParameters().DistinctBy(x => x.IdentifierName);
-        var infrastructureParametersLookup = infrastructureParameters.ToDictionary(p => p.IdentifierName);
+        var infrastructureParameters = moduleInfrastructure.GetParameters().DistinctBy(x => x.BicepIdentifier);
+        var infrastructureParametersLookup = infrastructureParameters.ToDictionary(p => p.BicepIdentifier);
         Assert.True(infrastructureParametersLookup.ContainsKey("skuName"));
 
         var expectedManifest = """
@@ -813,8 +813,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var manifest = await ManifestUtils.GetManifest(infrastructure1.Resource);
 
         Assert.NotNull(moduleInfrastructure);
-        var infrastructureParameters = moduleInfrastructure.GetParameters().DistinctBy(x => x.IdentifierName);
-        var infrastructureParametersLookup = infrastructureParameters.ToDictionary(p => p.IdentifierName);
+        var infrastructureParameters = moduleInfrastructure.GetParameters().DistinctBy(x => x.BicepIdentifier);
+        var infrastructureParametersLookup = infrastructureParameters.ToDictionary(p => p.BicepIdentifier);
         Assert.True(infrastructureParametersLookup.ContainsKey("sku"));
 
         var expectedManifest = """
@@ -1879,7 +1879,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var storage = builder.AddAzureStorage("storage")
             .ConfigureInfrastructure(infrastructure =>
             {
-                var sa = infrastructure.GetResources().OfType<StorageAccount>().Single();
+                var sa = infrastructure.GetProvisionableResources().OfType<StorageAccount>().Single();
                 sa.Sku = new StorageSku()
                 {
                     Name = storagesku.AsProvisioningParameter(infrastructure)
@@ -2037,7 +2037,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var storage = builder.AddAzureStorage("storage")
             .ConfigureInfrastructure(infrastructure =>
             {
-                var sa = infrastructure.GetResources().OfType<StorageAccount>().Single();
+                var sa = infrastructure.GetProvisionableResources().OfType<StorageAccount>().Single();
                 sa.Sku = new StorageSku()
                 {
                     Name = storagesku.AsProvisioningParameter(infrastructure)
@@ -2196,7 +2196,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var storage = builder.AddAzureStorage("storage")
             .ConfigureInfrastructure(infrastructure =>
             {
-                var sa = infrastructure.GetResources().OfType<StorageAccount>().Single();
+                var sa = infrastructure.GetProvisionableResources().OfType<StorageAccount>().Single();
                 sa.Sku = new StorageSku()
                 {
                     Name = storagesku.AsProvisioningParameter(infrastructure)
@@ -2354,7 +2354,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var storage = builder.AddAzureStorage("storage")
             .ConfigureInfrastructure(infrastructure =>
             {
-                var sa = infrastructure.GetResources().OfType<StorageAccount>().Single();
+                var sa = infrastructure.GetProvisionableResources().OfType<StorageAccount>().Single();
                 sa.Sku = new StorageSku()
                 {
                     Name = storagesku.AsProvisioningParameter(infrastructure)
@@ -2514,7 +2514,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var search = builder.AddAzureSearch("search")
             .ConfigureInfrastructure(infrastructure =>
             {
-                var search = infrastructure.GetResources().OfType<SearchService>().Single();
+                var search = infrastructure.GetProvisionableResources().OfType<SearchService>().Single();
                 search.SearchSkuName = sku.AsProvisioningParameter(infrastructure);
             });
 
@@ -2636,12 +2636,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var openai = builder.AddAzureOpenAI("openai")
             .ConfigureInfrastructure(infrastructure =>
             {
-                aiDeployments = infrastructure.GetResources().OfType<CognitiveServicesAccountDeployment>();
+                aiDeployments = infrastructure.GetProvisionableResources().OfType<CognitiveServicesAccountDeployment>();
 
                 if (overrideLocalAuthDefault)
                 {
-                    var account = infrastructure.GetResources().OfType<CognitiveServicesAccount>().Single();
-                    account.Properties.Value!.DisableLocalAuth = false;
+                    var account = infrastructure.GetProvisionableResources().OfType<CognitiveServicesAccount>().Single();
+                    account.Properties.DisableLocalAuth = false;
                 }
             })
             .AddDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4))
@@ -2781,24 +2781,17 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         })
         .ConfigureInfrastructure(r =>
         {
-            var vault = r.GetResources().OfType<KeyVaultService>().Single();
+            var vault = r.GetProvisionableResources().OfType<KeyVaultService>().Single();
             Assert.NotNull(vault);
 
             r.Add(new ProvisioningOutput("vaultUri", typeof(string))
             {
-                Value =
-                    new MemberExpression(
-                        new MemberExpression(
-                            new IdentifierExpression(vault.IdentifierName),
-                            "properties"),
-                        "vaultUri")
-                // TODO: this should be
-                //Value = keyVault.VaultUri
+                Value = vault.Properties.VaultUri
             });
         })
         .ConfigureInfrastructure(r =>
         {
-            var vault = r.GetResources().OfType<KeyVaultService>().Single();
+            var vault = r.GetProvisionableResources().OfType<KeyVaultService>().Single();
             Assert.NotNull(vault);
 
             r.Add(new KeyVaultSecret("secret")

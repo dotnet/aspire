@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
-using Azure.Provisioning.Expressions;
 using Azure.Provisioning.ServiceBus;
 
 namespace Aspire.Hosting;
@@ -28,7 +27,7 @@ public static class AzureServiceBusExtensions
         {
             var skuParameter = new ProvisioningParameter("sku", typeof(string))
             {
-                Value = new StringLiteral("Standard")
+                Value = "Standard"
             };
             infrastructure.Add(skuParameter);
 
@@ -53,7 +52,7 @@ public static class AzureServiceBusExtensions
 
             foreach (var queue in azureResource.Queues)
             {
-                var queueResource = new ServiceBusQueue(Infrastructure.NormalizeIdentifierName(queue))
+                var queueResource = new ServiceBusQueue(Infrastructure.NormalizeBicepIdentifier(queue))
                 {
                     Parent = serviceBusNamespace,
                     Name = queue
@@ -63,7 +62,7 @@ public static class AzureServiceBusExtensions
             var topicDictionary = new Dictionary<string, ServiceBusTopic>();
             foreach (var topic in azureResource.Topics)
             {
-                var topicResource = new ServiceBusTopic(Infrastructure.NormalizeIdentifierName(topic))
+                var topicResource = new ServiceBusTopic(Infrastructure.NormalizeBicepIdentifier(topic))
                 {
                     Parent = serviceBusNamespace,
                     Name = topic
@@ -74,7 +73,7 @@ public static class AzureServiceBusExtensions
             foreach (var subscription in azureResource.Subscriptions)
             {
                 var topic = topicDictionary[subscription.TopicName];
-                var subscriptionResource = new ServiceBusSubscription(Infrastructure.NormalizeIdentifierName(subscription.Name))
+                var subscriptionResource = new ServiceBusSubscription(Infrastructure.NormalizeBicepIdentifier(subscription.Name))
                 {
                     Parent = topic,
                     Name = subscription.Name
