@@ -218,7 +218,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 State = state,
                 StartTimeStamp = startTimeStamp,
                 StopTimeStamp = stopTimeStamp,
-                Properties = CustomResourceSnapshot.SetResourceProperty(s.Properties, KnownProperties.Resource.ParentName, parentName)
+                Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, parentName)
             }).ConfigureAwait(false);
         }
     }
