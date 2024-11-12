@@ -14,7 +14,7 @@ public static class TraceHelpers
     {
         // TODO: Investigate performance.
         // A trace's spans are stored in one collection and recursively iterated by matching the span id to its parent.
-        // This behavior could could excessive iteration over the span collection in large traces. Consider improving if this causes performance issues.
+        // This behavior could cause excessive iteration over the span collection in large traces. Consider improving if this causes performance issues.
 
         var orderByFunc = static (OtlpSpan s) => s.StartTime;
 
