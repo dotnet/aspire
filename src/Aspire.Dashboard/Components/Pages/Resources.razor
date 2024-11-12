@@ -47,7 +47,7 @@
 
                     <SelectResourceTypes AllResourceTypes="_allResourceTypes"
                                          VisibleResourceTypes="_visibleResourceTypes"
-                                         OnAllResourceTypesCheckedChanged="@(b => AreAllTypesVisible = b)"
+                                         OnAllResourceTypesCheckedChangedAsync="@OnAllResourceTypesCheckedChangedAsync"
                                          AreAllTypesVisible="@(() => AreAllTypesVisible)"
                                          OnResourceTypeVisibilityChangedAsync="@OnResourceTypeVisibilityChangedAsync" />
                 </div>
@@ -58,12 +58,11 @@
             <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isTypeFilterVisible" AutoFocus="true" FixedPlacement="true">
                 <Header>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)]</Header>
                 <Body>
-                    <SelectResourceTypes
-                        AllResourceTypes="_allResourceTypes"
-                        VisibleResourceTypes="_visibleResourceTypes"
-                        OnAllResourceTypesCheckedChanged="@(b => AreAllTypesVisible = b)"
-                        AreAllTypesVisible="@(() => AreAllTypesVisible)"
-                        OnResourceTypeVisibilityChangedAsync="@OnResourceTypeVisibilityChangedAsync" />
+                    <SelectResourceTypes AllResourceTypes="_allResourceTypes"
+                                         VisibleResourceTypes="_visibleResourceTypes"
+                                         OnAllResourceTypesCheckedChangedAsync="@OnAllResourceTypesCheckedChangedAsync"
+                                         AreAllTypesVisible="@(() => AreAllTypesVisible)"
+                                         OnResourceTypeVisibilityChangedAsync="@OnResourceTypeVisibilityChangedAsync" />
                 </Body>
             </FluentPopover>
 
@@ -75,34 +74,48 @@
                                 OnResize="@(r => _manager.SetWidthFraction(r.Orientation == Orientation.Horizontal ? r.Panel1Fraction : 1))">
                 <Summary>
                     <GridColumnManager @ref="_manager" Columns="@_gridColumns">
-                        <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
+                        <FluentDataGrid @ref="_dataGrid"
+                                        ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
                                         ResizeType="DataGridResizeType.Discrete"
                                         Virtualize="true"
                                         GenerateHeader="GenerateHeaderOption.Sticky"
                                         ItemSize="46"
-                                        Items="@FilteredResources"
+                                        ItemsProvider="@GetData"
                                         ResizableColumns="true"
                                         GridTemplateColumns="@_manager.GetGridTemplateColumns()"
-                                        RowClass="GetRowClass"
+                                        RowClass="@(r => GetRowClass(r.Resource))"
                                         Loading="_isLoading"
                                         ShowHover="true"
-                                        TGridItem="ResourceViewModel"
-                                        ItemKey="@(r => r.Name)"
-                                        OnRowClick="@(r => r.ExecuteOnDefault(d => ShowResourceDetailsAsync(d, buttonId: null)))"
-                                        Class="enable-row-click">
+                                        TGridItem="ResourceGridViewModel"
+                                        ItemKey="@(r => r.Resource.Name)"
+                                        OnRowClick="@(r => r.ExecuteOnDefault(d => ShowResourceDetailsAsync(d.Resource, buttonId: null)))"
+                                        Class="main-grid enable-row-click">
                             <ChildContent>
-                                <AspirePropertyColumn ColumnId="@TypeColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeColumnHeader)]" Property="@(c => c.ResourceType)" Sortable="true" Tooltip="true" TooltipText="@(c => c.ResourceType)" />
-                                <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort" Tooltip="true" TooltipText="@(c => GetResourceName(c))">
-                                    <ResourceNameDisplay Resource="context" FilterText="@_filter" FormatName="GetResourceName" />
+                                <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort" Tooltip="true" TooltipText="@(c => GetResourceName(c.Resource))" Class="expand-col">
+                                    @{
+                                        var indent = context.Depth * 16;
+                                    }
+                                    <span class="resources-name-container" style="margin-left: @(indent)px;">
+                                        <span @onclick:stopPropagation="true" class="main-grid-expand-container @(context.IsCollapsed ? "main-grid-collapsed" : "main-grid-expanded")">
+                                            @if (context.Children.Count > 0)
+                                            {
+                                                <FluentButton Appearance="Appearance.Lightweight" Class="main-grid-expand-button" OnClick="@(() => OnToggleCollapse(context))">
+                                                    <FluentIcon Icon="Icons.Regular.Size12.ChevronRight" Color="Color.Neutral" />
+                                                </FluentButton>
+                                            }
+                                        </span>
+                                        <ResourceNameDisplay Resource="context.Resource" FilterText="@_filter" FormatName="GetResourceName" />
+                                    </span>
                                 </AspireTemplateColumn>
-                                <AspireTemplateColumn ColumnId="@StateColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStateColumnHeader)]" Sortable="true" SortBy="@_stateSort" Tooltip="true" TooltipText="@(c => ResourceStateViewModel.GetResourceStateTooltip(c, ColumnsLoc))">
-                                    <StateColumnDisplay Resource="@context" UnviewedErrorCounts="@_applicationUnviewedErrorCounts" />
+                                <AspireTemplateColumn ColumnId="@StateColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStateColumnHeader)]" Sortable="true" SortBy="@_stateSort" Tooltip="true" TooltipText="@(c => ResourceStateViewModel.GetResourceStateTooltip(c.Resource, ColumnsLoc))">
+                                    <StateColumnDisplay Resource="@context.Resource" UnviewedErrorCounts="@_applicationUnviewedErrorCounts" />
                                 </AspireTemplateColumn>
-                                <AspireTemplateColumn ColumnId="@StartTimeColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStartTimeColumnHeader)]" Sortable="true" SortBy="@_startTimeSort" TooltipText="@(context => context.CreationTimeStamp != null ? FormatHelpers.FormatDateTime(TimeProvider, context.CreationTimeStamp.Value, MillisecondsDisplay.None, CultureInfo.CurrentCulture) : null)" Tooltip="true">
-                                    <StartTimeColumnDisplay Resource="@context" />
+                                <AspireTemplateColumn ColumnId="@StartTimeColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStartTimeColumnHeader)]" Sortable="true" SortBy="@_startTimeSort" TooltipText="@(context => context.Resource.CreationTimeStamp != null ? FormatHelpers.FormatDateTime(TimeProvider, context.Resource.CreationTimeStamp.Value, MillisecondsDisplay.None, CultureInfo.CurrentCulture) : null)" Tooltip="true">
+                                    <StartTimeColumnDisplay Resource="@context.Resource" />
                                 </AspireTemplateColumn>
-                                <AspireTemplateColumn ColumnId="@SourceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesSourceColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetSourceColumnValueAndTooltip(ctx)?.Tooltip)">
-                                    @if (GetSourceColumnValueAndTooltip(context) is { } columnDisplay)
+                                <AspirePropertyColumn ColumnId="@TypeColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeColumnHeader)]" Property="@(c => c.Resource.ResourceType)" Sortable="true" SortBy="@_typeSort" IsDefaultSortColumn="true" Tooltip="true" TooltipText="@(c => c.Resource.ResourceType)" />
+                                <AspireTemplateColumn ColumnId="@SourceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesSourceColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetSourceColumnValueAndTooltip(ctx.Resource)?.Tooltip)">
+                                    @if (GetSourceColumnValueAndTooltip(context.Resource) is { } columnDisplay)
                                     {
                                         <SourceColumnDisplay FilterText="@_filter" Value="@columnDisplay.Value" ContentAfterValue="@columnDisplay.ContentAfterValue" ValueToCopy="@columnDisplay.ValueToCopy" Tooltip="@columnDisplay.Tooltip" />
                                     }
@@ -111,17 +124,17 @@
                                         <span class="empty-data"></span>
                                     }
                                 </AspireTemplateColumn>
-                                <AspireTemplateColumn ColumnId="@EndpointsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEndpointsColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetEndpointsTooltip(ctx))">
-                                    <EndpointsColumnDisplay Resource="context"
-                                                            HasMultipleReplicas="HasMultipleReplicas(context)"
-                                                            DisplayedEndpoints="GetDisplayedEndpoints(context)" />
+                                <AspireTemplateColumn ColumnId="@EndpointsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEndpointsColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetEndpointsTooltip(ctx.Resource))">
+                                    <EndpointsColumnDisplay Resource="context.Resource"
+                                                            HasMultipleReplicas="HasMultipleReplicas(context.Resource)"
+                                                            DisplayedEndpoints="GetDisplayedEndpoints(context.Resource)" />
                                 </AspireTemplateColumn>
                                 <AspireTemplateColumn ColumnId="@ActionsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesActionsColumnHeader)]" Class="no-ellipsis">
                                     <div class="grid-action-container" @onclick:stopPropagation="true">
-                                        <ResourceActions Commands="@context.Commands"
-                                                         CommandSelected="async (command) => await ExecuteResourceCommandAsync(context, command)"
-                                                         OnViewDetails="@((buttonId) => ShowResourceDetailsAsync(context, buttonId))"
-                                                         Resource="context"
+                                        <ResourceActions Commands="@context.Resource.Commands"
+                                                         CommandSelected="async (command) => await ExecuteResourceCommandAsync(context.Resource, command)"
+                                                         OnViewDetails="@((buttonId) => ShowResourceDetailsAsync(context.Resource, buttonId))"
+                                                         Resource="context.Resource"
                                                          GetResourceName="GetResourceName"
                                                          MaxHighlightedCount="_maxHighlightedCount" />
                                     </div>

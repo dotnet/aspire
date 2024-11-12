@@ -26,6 +26,7 @@ internal static class KnownProperties
         public const string Source = "resource.source";
         public const string HealthState = "resource.healthState";
         public const string ConnectionString = "resource.connectionString";
+        public const string ParentName = "resource.parentName";
     }
 
     public static class Container

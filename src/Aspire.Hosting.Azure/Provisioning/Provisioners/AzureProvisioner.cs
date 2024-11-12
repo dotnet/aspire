@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Utils;
@@ -126,7 +127,11 @@ internal sealed class AzureProvisioner(
             var childResources = _parentChildLookup[resource.Resource];
             foreach (var child in childResources)
             {
-                await notificationService.PublishUpdateAsync(child, stateFactory).ConfigureAwait(false);
+                await notificationService.PublishUpdateAsync(child, s =>
+                {
+                    s = s with { Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, resource.Resource.Name) };
+                    return stateFactory(s);
+                }).ConfigureAwait(false);
             }
         }
 
