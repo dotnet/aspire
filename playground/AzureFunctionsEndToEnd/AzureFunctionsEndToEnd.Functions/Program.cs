@@ -11,6 +11,8 @@ builder.AddAzureEventHubProducerClient("eventhubs", static settings => settings.
 builder.AddAzureServiceBusClient("messaging");
 #endif
 
+builder.ConfigureFunctionsWebApplication();
+
 var host = builder.Build();
 
 host.Run();
