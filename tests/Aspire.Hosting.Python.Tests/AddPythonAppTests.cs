@@ -4,7 +4,6 @@
 using Xunit;
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Hosting.Utils;
-using Aspire.Hosting.Tests.Utils;
 using System.Diagnostics;
 using Aspire.Components.Common.Tests;
 using Xunit.Abstractions;
@@ -154,7 +153,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             Assert.Equal(Path.Join(projectDirectory, ".venv", "bin", "python"), pythonProjectResource.Command);
         }
 
-        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource);
+        var commandArguments = await pythonProjectResource.GetArgumentListAsync();
 
         Assert.Equal(scriptName, commandArguments[0]);
 
@@ -177,7 +176,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var executableResources = appModel.GetExecutableResources();
 
         var pythonProjectResource = Assert.Single(executableResources);
-        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource);
+        var commandArguments = await pythonProjectResource.GetArgumentListAsync();
 
         if (OperatingSystem.IsWindows())
         {
@@ -229,7 +228,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             Assert.Equal(Path.Join(projectDirectory, ".venv", "bin", "python"), pythonProjectResource.Command);
         }
 
-        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource);
+        var commandArguments = await pythonProjectResource.GetArgumentListAsync();
 
         Assert.Equal(scriptName, commandArguments[0]);
         Assert.Equal("test", commandArguments[1]);

@@ -172,7 +172,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var dashboard = Assert.Single(model.Resources.OfType<ExecutableResource>());
 
-        var args = await ArgumentEvaluator.GetArgumentListAsync(dashboard).DefaultTimeout();
+        var args = await dashboard.GetArgumentListAsync().DefaultTimeout();
 
         Assert.NotNull(dashboard);
         Assert.Equal("aspire-dashboard", dashboard.Name);

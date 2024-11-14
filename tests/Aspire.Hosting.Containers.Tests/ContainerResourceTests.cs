@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -73,7 +72,7 @@ public class ContainerResourceTests
 
         using var app = appBuilder.Build();
 
-        var args = await ArgumentEvaluator.GetArgumentListAsync(c2.Resource);
+        var args = await c2.Resource.GetArgumentListAsync();
 
         Assert.Collection(args,
             arg => Assert.Equal("arg1", arg),

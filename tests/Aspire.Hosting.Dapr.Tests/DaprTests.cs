@@ -57,7 +57,7 @@ public class DaprTests
         }
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(container, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
-        var sidecarArgs = await ArgumentEvaluator.GetArgumentListAsync(sideCarCli);
+        var sidecarArgs = await sideCarCli.GetArgumentListAsync();
 
         Assert.Equal("3500", config["DAPR_HTTP_PORT"]);
         Assert.Equal("50001", config["DAPR_GRPC_PORT"]);
@@ -156,7 +156,7 @@ public class DaprTests
         }
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(container, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
-        var sidecarArgs = await ArgumentEvaluator.GetArgumentListAsync(sideCarCli);
+        var sidecarArgs = await sideCarCli.GetArgumentListAsync();
 
         Assert.Equal("http://host.docker.internal:3500", config["DAPR_HTTP_ENDPOINT"]);
         Assert.Equal("http://host.docker.internal:50001", config["DAPR_GRPC_ENDPOINT"]);
