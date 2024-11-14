@@ -6,6 +6,7 @@
     <PackageTags>aspire integration hosting keycloak</PackageTags>
     <Description>Keycloak support for .NET Aspire.</Description>
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <DisablePackageBaselineValidation>true</DisablePackageBaselineValidation>
   </PropertyGroup>
 
   <PropertyGroup>
