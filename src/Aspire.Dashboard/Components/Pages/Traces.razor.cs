@@ -110,7 +110,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     private async ValueTask<GridItemsProviderResult<OtlpTrace>> GetData(GridItemsProviderRequest<OtlpTrace> request)
     {
         TracesViewModel.StartIndex = request.StartIndex;
-        TracesViewModel.Count = request.Count;
+        TracesViewModel.Count = request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount;
         var traces = TracesViewModel.GetTraces();
 
         if (DashboardOptions.Value.TelemetryLimits.MaxTraceCount == traces.TotalItemCount && !TelemetryRepository.HasDisplayedMaxTraceLimitMessage)
