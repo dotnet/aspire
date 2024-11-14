@@ -98,7 +98,7 @@ public sealed class ResourceViewModelTests
 
         // Assert
         Assert.Collection(
-            viewModel.Properties,
+            viewModel.Properties.OrderBy(p => p.Key),
             p =>
             {
                 Assert.Equal("Property1", p.Key);
