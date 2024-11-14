@@ -288,7 +288,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
             // Codespaces
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CodespacesOptions>, ConfigureCodespacesOptions>());
-            _innerBuilder.Services.AddHostedService<CodespacesUrlRewriter>();
+            _innerBuilder.Services.AddSingleton<CodespacesUrlRewriter>();
+            _innerBuilder.Services.AddHostedService<CodespacesResourceUrlRewriterService>();
 
             Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
         }

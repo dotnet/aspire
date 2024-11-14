@@ -1,13 +1,18 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Utils;
-using Aspire.Hosting.Azure.EventHubs;
-using Xunit;
+using System.Text;
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.EventHubs;
+using Aspire.Hosting.Utils;
+using Azure.Messaging.EventHubs;
+using Azure.Messaging.EventHubs.Consumer;
+using Azure.Messaging.EventHubs.Producer;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Aspire.Components.Common.Tests;
+using Microsoft.Extensions.Hosting;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
@@ -57,6 +62,40 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresDocker]
+    public async Task VerifyAzureEventHubsEmulatorResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+        var eventHub = builder.AddAzureEventHubs("eventhubns")
+            .RunAsEmulator()
+            .AddEventHub("hub");
+
+        using var app = builder.Build();
+        await app.StartAsync();
+
+        var hb = Host.CreateApplicationBuilder();
+        hb.Configuration["ConnectionStrings:eventhubns"] = await eventHub.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        hb.AddAzureEventHubProducerClient("eventhubns", settings => settings.EventHubName = "hub");
+        hb.AddAzureEventHubConsumerClient("eventhubns", settings => settings.EventHubName = "hub");
+
+        using var host = hb.Build();
+        await host.StartAsync();
+
+        var producerClient = host.Services.GetRequiredService<EventHubProducerClient>();
+        var consumerClient = host.Services.GetRequiredService<EventHubConsumerClient>();
+
+        // If no exception is thrown when awaited, the Event Hubs service has acknowledged
+        // receipt and assumed responsibility for delivery of the set of events to its partition.
+        await producerClient.SendAsync([new EventData(Encoding.UTF8.GetBytes("hello worlds"))]);
+
+        await foreach (var partitionEvent in consumerClient.ReadEventsAsync(new ReadEventOptions { MaximumWaitTime = TimeSpan.FromSeconds(5) }))
+        {
+            Assert.Equal("hello worlds", Encoding.UTF8.GetString(partitionEvent.Data.EventBody.ToArray()));
+            break;
+        }
+    }
+
+    [Fact]
     public void AzureEventHubsUseEmulatorCallbackWithWithDataBindMountResultsInBindMountAnnotationWithDefaultPath()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -79,7 +118,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create();
         var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
-               builder.WithDataBindMount("mydata");
+            builder.WithDataBindMount("mydata");
         });
 
         // Ignoring the annotation created for the custom Config.json file

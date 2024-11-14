@@ -11,6 +11,7 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,10 +41,10 @@ public sealed class DashboardClientAuthTests
     public async Task ConnectsToResourceService_Unsecured(bool useHttps)
     {
         var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(_testOutputHelper);
-        await using var server = await CreateResourceServiceServerAsync(loggerFactory, useHttps);
-        await using var client = await CreateDashboardClientAsync(loggerFactory, server.Url, authMode: ResourceClientAuthMode.Unsecured);
+        await using var server = await CreateResourceServiceServerAsync(loggerFactory, useHttps).DefaultTimeout();
+        await using var client = await CreateDashboardClientAsync(loggerFactory, server.Url, authMode: ResourceClientAuthMode.Unsecured).DefaultTimeout();
 
-        var call = await server.Calls.ApplicationInformationCallsChannel.Reader.ReadAsync();
+        var call = await server.Calls.ApplicationInformationCallsChannel.Reader.ReadAsync().DefaultTimeout();
 
         Assert.NotNull(call.Request);
         Assert.NotNull(call.RequestHeaders);
@@ -56,10 +57,10 @@ public sealed class DashboardClientAuthTests
     public async Task ConnectsToResourceService_ApiKey(bool useHttps)
     {
         var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(_testOutputHelper);
-        await using var server = await CreateResourceServiceServerAsync(loggerFactory, useHttps);
-        await using var client = await CreateDashboardClientAsync(loggerFactory, server.Url, authMode: ResourceClientAuthMode.ApiKey, configureOptions: options => options.ResourceServiceClient.ApiKey = "TestApiKey!");
+        await using var server = await CreateResourceServiceServerAsync(loggerFactory, useHttps).DefaultTimeout();
+        await using var client = await CreateDashboardClientAsync(loggerFactory, server.Url, authMode: ResourceClientAuthMode.ApiKey, configureOptions: options => options.ResourceServiceClient.ApiKey = "TestApiKey!").DefaultTimeout();
 
-        var call = await server.Calls.ApplicationInformationCallsChannel.Reader.ReadAsync();
+        var call = await server.Calls.ApplicationInformationCallsChannel.Reader.ReadAsync().DefaultTimeout();
 
         Assert.NotNull(call.Request);
         Assert.NotNull(call.RequestHeaders);

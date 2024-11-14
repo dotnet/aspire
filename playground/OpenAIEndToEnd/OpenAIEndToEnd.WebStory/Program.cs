@@ -9,8 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddAzureOpenAIClient("openaiA")
-    .AddChatClient();
+builder.AddAzureOpenAIClient("openaiA").AddChatClient();
 
 // Examples using multiple OpenAI resources and multiple models
 

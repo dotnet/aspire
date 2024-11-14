@@ -8,6 +8,7 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Tests.Integration;
 using Google.Protobuf.Collections;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Proto.Logs.V1;
 using Xunit;
@@ -434,7 +435,7 @@ public class LogTests
 
         // Assert 1
         Assert.Equal(0, addContext1.FailureCount);
-        await newApplicationsTcs.Task;
+        await newApplicationsTcs.Task.DefaultTimeout();
 
         var applications = repository.GetApplications();
         Assert.Collection(applications,
@@ -469,7 +470,7 @@ public class LogTests
             }
         });
 
-        await newLogsTcs.Task;
+        await newLogsTcs.Task.DefaultTimeout();
 
         // Assert 2
         Assert.Equal(0, addContext2.FailureCount);
@@ -563,10 +564,10 @@ public class LogTests
             });
         }
 
-        await task;
+        await task.DefaultTimeout();
 
         // Assert
-        var callbackValue = await tcs.Task;
+        var callbackValue = await tcs.Task.DefaultTimeout();
         Assert.Equal("CustomValue", callbackValue);
     }
 
@@ -704,7 +705,7 @@ public class LogTests
         });
 
         // Assert
-        var read1 = await resultChannel.Reader.ReadAsync();
+        var read1 = await resultChannel.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(1, read1);
         logger.LogInformation("Received log 1 callback");
 
@@ -725,7 +726,7 @@ public class LogTests
             }
         });
 
-        var read2 = await resultChannel.Reader.ReadAsync();
+        var read2 = await resultChannel.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(2, read2);
         logger.LogInformation("Received log 2 callback");
 

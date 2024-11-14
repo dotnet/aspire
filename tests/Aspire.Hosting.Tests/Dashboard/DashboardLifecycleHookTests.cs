@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Threading.Channels;
+using Aspire.Hosting.Codespaces;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
@@ -99,8 +100,13 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         ResourceLoggerService resourceLoggerService,
         ResourceNotificationService resourceNotificationService,
         IConfiguration configuration,
-        ILoggerFactory? loggerFactory = null)
+        ILoggerFactory? loggerFactory = null,
+        IOptions<CodespacesOptions>? codespacesOptions = null
+        )
     {
+        codespacesOptions ??= Options.Create(new CodespacesOptions());
+        var rewriter = new CodespacesUrlRewriter(codespacesOptions);
+
         return new DashboardLifecycleHook(
             configuration,
             Options.Create(new DashboardOptions { DashboardPath = "test.dll" }),
@@ -111,7 +117,9 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             resourceLoggerService,
             loggerFactory ?? NullLoggerFactory.Instance,
             new DcpNameGenerator(configuration, Options.Create(new DcpOptions())),
-            new TestHostApplicationLifetime());
+            new TestHostApplicationLifetime(),
+            rewriter
+            );
     }
 
     public static IEnumerable<object?[]> Data()

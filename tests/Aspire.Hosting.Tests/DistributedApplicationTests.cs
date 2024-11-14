@@ -611,9 +611,7 @@ public class DistributedApplicationTests
         var expectedContainerResources = new HashSet<string>()
         {
             "redis",
-            "postgres",
-            "cosmos",
-            "eventhubns"
+            "postgres"
         };
 
         await foreach (var resource in s.WatchAsync<Container>().DefaultTimeout())

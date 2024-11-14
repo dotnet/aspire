@@ -455,7 +455,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Changes an existing creates a new endpoint if it doesn't exist and invokes callback to modify the defaults.
+    /// Changes an existing endpoint or creates a new endpoint if it doesn't exist and invokes callback to modify the defaults.
     /// </summary>
     /// <param name="builder">Resource builder for resource with endpoints.</param>
     /// <param name="endpointName">Name of endpoint to change.</param>

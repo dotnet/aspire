@@ -17,6 +17,9 @@
     <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessResult.cs" Link="Provisioning\Utils\ProcessResult.cs" />
     <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessSpec.cs" Link="Provisioning\Utils\ProcessSpec.cs" />
     <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessUtil.cs" Link="Provisioning\Utils\ProcessUtil.cs" />
+    <Compile Include="$(SharedDir)Model\KnownProperties.cs" Link="Provisioning\Utils\KnownProperties.cs" />
+    <Compile Include="$(SharedDir)CustomResourceSnapshotExtensions.cs" Link="Provisioning\Utils\CustomResourceSnapshotExtensions.cs" />
+    <Compile Include="$(SharedDir)StringComparers.cs" Link="Provisioning\Utils\StringComparers.cs" />
   </ItemGroup>
 
   <ItemGroup>

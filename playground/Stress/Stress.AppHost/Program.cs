@@ -8,7 +8,16 @@ builder.Services.AddHttpClient();
 
 for (var i = 0; i < 10; i++)
 {
-    builder.AddTestResource($"test-{i:0000}");
+    var name = $"test-{i:0000}";
+    var rb = builder.AddTestResource(name);
+    IResource parent = rb.Resource;
+
+    for (int j = 0; j < 3; j++)
+    {
+        name = name + $"-n{j}";
+        var nestedRb = builder.AddNestedResource(name, parent);
+        parent = nestedRb.Resource;
+    }
 }
 
 var serviceBuilder = builder.AddProject<Projects.Stress_ApiService>("stress-apiservice", launchProfileName: null);

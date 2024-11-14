@@ -82,7 +82,7 @@ public static class OracleDatabaseBuilderExtensions
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<OracleDatabaseServerResource> WithDataVolume(this IResourceBuilder<OracleDatabaseServerResource> builder, string? name = null)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/opt/oracle/oradata", false);
+        => builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/opt/oracle/oradata", false);
 
     /// <summary>
     /// Adds a bind mount for the data folder to a Oracle Database server container resource.

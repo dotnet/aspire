@@ -48,7 +48,7 @@ public static class SeqBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SeqResource> WithDataVolume(this IResourceBuilder<SeqResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), SeqContainerDataDirectory, isReadOnly);
+        => builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), SeqContainerDataDirectory, isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the data folder to a Seq container resource.
