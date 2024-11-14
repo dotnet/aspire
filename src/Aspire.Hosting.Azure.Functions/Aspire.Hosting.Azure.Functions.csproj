@@ -5,7 +5,6 @@
     <IsPackable>true</IsPackable>
     <!-- Azure Functions support is in preview until the full experience is implemented. -->
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
-    <DisablePackageBaselineValidation>true</DisablePackageBaselineValidation>
     <PackageTags>aspire hosting azure functions</PackageTags>
     <Description>Azure Functions resource types for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)Azure_256x.png</PackageIconFullPath>
