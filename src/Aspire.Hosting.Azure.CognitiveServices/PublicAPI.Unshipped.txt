@@ -5,4 +5,6 @@
 Aspire.Hosting.ApplicationModel.AzureOpenAIDeployment.AzureOpenAIDeployment(string! name, string! modelName, string! modelVersion, string? skuName = null, int? skuCapacity = null) -> void
 Aspire.Hosting.ApplicationModel.AzureOpenAIDeployment.SkuCapacity.set -> void
 Aspire.Hosting.ApplicationModel.AzureOpenAIDeployment.SkuName.set -> void
+Aspire.Hosting.ApplicationModel.AzureOpenAIResource.AddDeployment(Aspire.Hosting.ApplicationModel.AzureOpenAIDeployment! deployment) -> void
 Aspire.Hosting.ApplicationModel.AzureOpenAIResource.AzureOpenAIResource(string! name, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureInfrastructure) -> void
+static Aspire.Hosting.AzureOpenAIExtensions.WithReference<TDestination>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.AzureOpenAIResource!>! source, string? resourceName = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>!

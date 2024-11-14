@@ -11,7 +11,8 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="configureInfrastructure">Configures the underlying Azure resource using the CDK.</param>
 public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
     AzureProvisioningResource(name, configureInfrastructure),
-    IResourceWithConnectionString
+    IResourceWithConnectionString,
+    IResourceWithEnvironment
 {
     private readonly List<AzureOpenAIDeployment> _deployments = [];
 
@@ -31,7 +32,11 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
     /// </summary>
     public IReadOnlyList<AzureOpenAIDeployment> Deployments => _deployments;
 
-    internal void AddDeployment(AzureOpenAIDeployment deployment)
+    /// <summary>
+    /// Adds an <see cref="AzureOpenAIDeployment"/> instance to the list of deployments.
+    /// </summary>
+    /// <param name="deployment">The <see cref="AzureOpenAIDeployment"/> instance to add.</param>
+    public void AddDeployment(AzureOpenAIDeployment deployment)
     {
         ArgumentNullException.ThrowIfNull(deployment);
 
