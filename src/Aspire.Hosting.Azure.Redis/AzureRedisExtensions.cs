@@ -9,7 +9,6 @@ using Azure.Provisioning.Redis;
 using Azure.Provisioning.KeyVault;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
-using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting;
 
@@ -121,33 +120,7 @@ public static class AzureRedisExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
-        {
-            var redis = CreateRedisResource(infrastructure);
-
-            redis.RedisConfiguration = new RedisCommonConfiguration()
-            {
-                IsAadEnabled = "true"
-            };
-            redis.IsAccessKeyAuthenticationDisabled = true;
-
-            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-            var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
-            infrastructure.Add(new RedisCacheAccessPolicyAssignment($"{redis.BicepIdentifier}_contributor")
-            {
-                Parent = redis,
-                AccessPolicyName = "Data Contributor",
-                ObjectId = principalIdParameter,
-                ObjectIdAlias = principalNameParameter
-            });
-
-            infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
-            {
-                Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true")
-            });
-        };
-
-        var resource = new AzureRedisCacheResource(name, configureInfrastructure);
+        var resource = new AzureRedisCacheResource(name, ConfigureRedisInfrastructure);
         return builder.AddResource(resource)
             .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
             .WithParameter(AzureBicepResource.KnownParameters.PrincipalName)
@@ -225,40 +198,12 @@ public static class AzureRedisExtensions
 
         return builder
            .RemoveActiveDirectoryParameters()
-           .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
-           .ConfigureInfrastructure(infrastructure =>
-           {
-               RemoveActiveDirectoryAuthResources(infrastructure);
-
-               var redis = infrastructure.GetProvisionableResources().OfType<CdkRedisResource>().FirstOrDefault(r => r.BicepIdentifier == builder.Resource.GetBicepIdentifier())
-                   ?? throw new InvalidOperationException($"Could not find a RedisResource with name {builder.Resource.Name}.");
-
-               var kvNameParam = new ProvisioningParameter("keyVaultName", typeof(string));
-               infrastructure.Add(kvNameParam);
-
-               var keyVault = KeyVaultService.FromExisting("keyVault");
-               keyVault.Name = kvNameParam;
-               infrastructure.Add(keyVault);
-
-               redis.RedisConfiguration.IsAadEnabled.ClearValue();
-               redis.IsAccessKeyAuthenticationDisabled.ClearValue();
-
-               var secret = new KeyVaultSecret("connectionString")
-               {
-                   Parent = keyVault,
-                   Name = "connectionString",
-                   Properties = new SecretProperties
-                   {
-                       Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true,password={redis.GetKeys().PrimaryKey}")
-                   }
-               };
-               infrastructure.Add(secret);
-           });
+           .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName);
     }
 
-    private static CdkRedisResource CreateRedisResource(AzureResourceInfrastructure Infrastructure)
+    private static CdkRedisResource CreateRedisResource(AzureResourceInfrastructure infrastructure)
     {
-        var redisCache = new CdkRedisResource(Infrastructure.AspireResource.GetBicepIdentifier())
+        var redisCache = new CdkRedisResource(infrastructure.AspireResource.GetBicepIdentifier())
         {
             Sku = new RedisSku()
             {
@@ -268,9 +213,9 @@ public static class AzureRedisExtensions
             },
             EnableNonSslPort = false,
             MinimumTlsVersion = RedisTlsVersion.Tls1_2,
-            Tags = { { "aspire-resource-name", Infrastructure.AspireResource.Name } }
+            Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
         };
-        Infrastructure.Add(redisCache);
+        infrastructure.Add(redisCache);
 
         return redisCache;
     }
@@ -283,25 +228,53 @@ public static class AzureRedisExtensions
         return builder;
     }
 
-    private static void RemoveActiveDirectoryAuthResources(AzureResourceInfrastructure infrastructure)
+    private static void ConfigureRedisInfrastructure(AzureResourceInfrastructure infrastructure)
     {
-        var resourcesToRemove = new List<Provisionable>();
-        foreach (var resource in infrastructure.GetProvisionableResources())
-        {
-            if (resource is RedisCacheAccessPolicyAssignment accessPolicy &&
-                accessPolicy.BicepIdentifier == $"{infrastructure.AspireResource.GetBicepIdentifier()}_contributor")
-            {
-                resourcesToRemove.Add(resource);
-            }
-            else if (resource is ProvisioningOutput output && output.BicepIdentifier == "connectionString")
-            {
-                resourcesToRemove.Add(resource);
-            }
-        }
+        var redis = CreateRedisResource(infrastructure);
 
-        foreach (var resourceToRemove in resourcesToRemove)
+        var redisResource = (AzureRedisCacheResource)infrastructure.AspireResource;
+        if (redisResource.UseAccessKeyAuthentication)
         {
-            infrastructure.Remove(resourceToRemove);
+            var kvNameParam = new ProvisioningParameter("keyVaultName", typeof(string));
+            infrastructure.Add(kvNameParam);
+
+            var keyVault = KeyVaultService.FromExisting("keyVault");
+            keyVault.Name = kvNameParam;
+            infrastructure.Add(keyVault);
+
+            var secret = new KeyVaultSecret("connectionString")
+            {
+                Parent = keyVault,
+                Name = "connectionString",
+                Properties = new SecretProperties
+                {
+                    Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true,password={redis.GetKeys().PrimaryKey}")
+                }
+            };
+            infrastructure.Add(secret);
+        }
+        else
+        {
+            redis.RedisConfiguration = new RedisCommonConfiguration()
+            {
+                IsAadEnabled = "true"
+            };
+            redis.IsAccessKeyAuthenticationDisabled = true;
+
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
+            infrastructure.Add(new RedisCacheAccessPolicyAssignment($"{redis.BicepIdentifier}_contributor")
+            {
+                Parent = redis,
+                AccessPolicyName = "Data Contributor",
+                ObjectId = principalIdParameter,
+                ObjectIdAlias = principalNameParameter
+            });
+
+            infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
+            {
+                Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true")
+            });
         }
     }
 }
