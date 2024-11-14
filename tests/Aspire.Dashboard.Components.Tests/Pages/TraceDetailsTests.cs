@@ -34,6 +34,11 @@ public partial class TraceDetailsTests : TestContext
         // Arrange
         SetupTraceDetailsServices();
 
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
         var telemetryRepository = Services.GetRequiredService<TelemetryRepository>();
         telemetryRepository.AddTraces(new AddContext(), new RepeatedField<ResourceSpans>
         {
@@ -60,7 +65,7 @@ public partial class TraceDetailsTests : TestContext
         var cut = RenderComponent<TraceDetail>(builder =>
         {
             builder.Add(p => p.TraceId, traceId);
-            builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+            builder.AddCascadingValue(viewport);
         });
 
         // Assert
