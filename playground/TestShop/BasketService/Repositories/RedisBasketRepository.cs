@@ -36,7 +36,7 @@ public class RedisBasketRepository(ILogger<RedisBasketRepository> logger, IConne
             return null;
         }
 
-        return JsonSerializer.Deserialize<CustomerBasket>(data!, s_jsonSerializerOptions);
+        return JsonSerializer.Deserialize<CustomerBasket>(data.ToString(), s_jsonSerializerOptions);
     }
 
     public async Task<CustomerBasket?> UpdateBasketAsync(CustomerBasket basket)
