@@ -84,10 +84,7 @@ public partial class TraceDetail : ComponentBase
         {
             page = page.Skip(request.StartIndex);
         }
-        if (request.Count != null)
-        {
-            page = page.Take(request.Count.Value);
-        }
+        page = page.Take(request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount);
 
         return ValueTask.FromResult(new GridItemsProviderResult<SpanWaterfallViewModel>
         {
