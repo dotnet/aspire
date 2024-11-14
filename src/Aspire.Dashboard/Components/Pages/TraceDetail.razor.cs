@@ -15,7 +15,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class TraceDetail : ComponentBase
+public partial class TraceDetail : ComponentBase, IDisposable
 {
     private const string NameColumn = nameof(NameColumn);
     private const string TicksColumn = nameof(TicksColumn);
@@ -194,6 +194,7 @@ public partial class TraceDetail : ComponentBase
     protected override async Task OnParametersSetAsync()
     {
         UpdateDetailViewData();
+        UpdateSubscription();
 
         if (SpanId is not null && _spanWaterfallViewModels is not null)
         {
@@ -221,17 +222,26 @@ public partial class TraceDetail : ComponentBase
             {
                 _spanWaterfallViewModels = CreateSpanWaterfallViewModels(trace, new TraceDetailState(OutgoingPeerResolvers, _collapsedSpanIds));
                 _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
-
-                if (_tracesSubscription is null || _tracesSubscription.ApplicationKey != trace.FirstSpan.Source.ApplicationKey)
-                {
-                    _tracesSubscription?.Dispose();
-                    _tracesSubscription = TelemetryRepository.OnNewTraces(trace.FirstSpan.Source.ApplicationKey, SubscriptionType.Read, () => InvokeAsync(async () =>
-                    {
-                        UpdateDetailViewData();
-                        await _dataGrid.SafeRefreshDataAsync();
-                    }));
-                }
             }
+        }
+    }
+
+    private void UpdateSubscription()
+    {
+        if (_trace == null)
+        {
+            _tracesSubscription?.Dispose();
+            return;
+        }
+
+        if (_tracesSubscription is null || _tracesSubscription.ApplicationKey != _trace.FirstSpan.Source.ApplicationKey)
+        {
+            _tracesSubscription?.Dispose();
+            _tracesSubscription = TelemetryRepository.OnNewTraces(_trace.FirstSpan.Source.ApplicationKey, SubscriptionType.Read, () => InvokeAsync(async () =>
+            {
+                UpdateDetailViewData();
+                await _dataGrid.SafeRefreshDataAsync();
+            }));
         }
     }
 
