@@ -25,6 +25,7 @@ var openaiA = builder.AddAzureOpenAI("openaiA")
 
 builder.AddProject<Projects.OpenAIEndToEnd_WebStory>("webstory")
        .WithExternalHttpEndpoints()
+       .WithEnvironment("OpenAI__DeploymentName", "modelA1") // Used by the Pages/Home.razor component
        .WithReference(openaiA)
        //.WithReference(openaiB)
        ;
