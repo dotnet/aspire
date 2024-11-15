@@ -3,7 +3,7 @@
   "name": ".NET Aspire-App-Host",
   "description": "Eine Projektvorlage zum Erstellen eines .NET Aspire-App-Hostprojekts (Orchestrator).",
   "symbols/Framework/description": "Das Zielframework für das Projekt.",
-  "symbols/Framework/choices/net8.0/description": "Target net8.0",
+  "symbols/Framework/choices/net8.0/description": "Ziel net8.0",
   "symbols/Framework/choices/net9.0/description": "Ziel-Net9.0",
   "symbols/AspireVersion/description": "Die zu verwendende .NET-Version.",
   "symbols/AspireVersion/displayName": ".NET Aspire-Version",
