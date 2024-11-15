@@ -33,7 +33,7 @@ public static class AzureCosmosExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var kvNameParam = new ProvisioningParameter("keyVaultName", typeof(string));
+            var kvNameParam = new ProvisioningParameter(AzureBicepResource.KnownParameters.KeyVaultName, typeof(string));
             infrastructure.Add(kvNameParam);
 
             var keyVault = KeyVaultService.FromExisting("keyVault");
@@ -92,7 +92,6 @@ public static class AzureCosmosExtensions
 
         var resource = new AzureCosmosDBResource(name, configureInfrastructure);
         return builder.AddResource(resource)
-                      .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 

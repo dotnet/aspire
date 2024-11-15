@@ -26,8 +26,6 @@ public static class AzureSearchExtensions
 
         AzureSearchResource resource = new(name, ConfigureSearch);
         return builder.AddResource(resource)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
 
         void ConfigureSearch(AzureResourceInfrastructure infrastructure)
@@ -44,7 +42,9 @@ public static class AzureSearchExtensions
             infrastructure.Add(search);
 
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            infrastructure.Add(principalTypeParameter);
             var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalIdParameter);
 
             infrastructure.Add(search.CreateRoleAssignment(SearchBuiltInRole.SearchIndexDataContributor, principalTypeParameter, principalIdParameter));
             infrastructure.Add(search.CreateRoleAssignment(SearchBuiltInRole.SearchServiceContributor, principalTypeParameter, principalIdParameter));
