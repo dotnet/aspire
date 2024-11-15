@@ -3,7 +3,7 @@
   "name": "Impostazioni predefinite del servizio .NET Aspire",
   "description": "Un modello di progetto per la creazione di un progetto predefinito del servizio .NET Aspire.",
   "symbols/Framework/description": "Il framework di destinazione per il progetto.",
-  "symbols/Framework/choices/net8.0/description": "Target net8.0",
+  "symbols/Framework/choices/net8.0/description": "Destinazione net8.0",
   "symbols/Framework/choices/net9.0/description": "Net9.0 di destinazione",
   "symbols/AspireVersion/description": "Versione di .NET Aspire da usare.",
   "symbols/AspireVersion/displayName": "Versione di .NET Aspire",

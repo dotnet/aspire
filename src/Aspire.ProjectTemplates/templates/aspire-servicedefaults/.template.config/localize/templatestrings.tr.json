@@ -3,7 +3,7 @@
   "name": ".NET Aspire Hizmet Varsayılanları",
   "description": ".NET Aspire hizmet varsayılanları projesi oluşturmak için bir proje şablonu.",
   "symbols/Framework/description": "Projenin hedef çerçevesi.",
-  "symbols/Framework/choices/net8.0/description": "Target net8.0",
+  "symbols/Framework/choices/net8.0/description": "Hedef net8.0",
   "symbols/Framework/choices/net9.0/description": "Hedef net9.0",
   "symbols/AspireVersion/description": "Kullanılacak .NET Aspire sürümü.",
   "symbols/AspireVersion/displayName": ".NET Aspire sürümü",

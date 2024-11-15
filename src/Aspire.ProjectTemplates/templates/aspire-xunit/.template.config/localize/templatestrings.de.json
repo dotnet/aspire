@@ -3,7 +3,7 @@
   "name": ".NET Aspire-Testprojekt (xUnit)",
   "description": "Ein Projekt, das xUnit.net Integrationstests eines .NET AppHost-Projekts enthält.",
   "symbols/Framework/description": "Das Zielframework für das Projekt.",
-  "symbols/Framework/choices/net8.0/description": "Target net8.0",
+  "symbols/Framework/choices/net8.0/description": "Ziel net8.0",
   "symbols/Framework/choices/net9.0/description": "Ziel-Net9.0",
   "symbols/AspireVersion/description": "Die zu verwendende .NET-Version.",
   "symbols/AspireVersion/displayName": ".NET Aspire-Version",
