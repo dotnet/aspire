@@ -245,7 +245,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
 
             var reports = annotations.Select(annotation => new HealthReportSnapshot(annotation.Key, null, null, null));
-            return [..reports];
+            return [.. reports];
         }
     }
 
@@ -2116,7 +2116,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     BackoffType = DelayBackoffType.Exponential,
                     Delay = TimeSpan.FromMilliseconds(200),
                     UseJitter = true,
-                    MaxRetryAttempts = 6, // Cumulative time for all attempts amounts to about 12 seconds
+                    MaxRetryAttempts = 10, // Cumulative time for all attempts amounts to about 15 seconds
+                    MaxDelay = TimeSpan.FromSeconds(3),
                     ShouldHandle = new PredicateBuilder().Handle<Exception>(),
                     OnRetry = (retry) =>
                     {
