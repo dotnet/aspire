@@ -11,6 +11,7 @@ namespace Aspire.Dashboard.Otlp.Model;
 public sealed class GroupedLogEntry
 {
     public required OtlpLogEntry LogEntry { get; init; }
+    public bool HasParent { get; init; }
     public int GroupCount { get; set; }
     public bool Expanded { get; set; }
 }

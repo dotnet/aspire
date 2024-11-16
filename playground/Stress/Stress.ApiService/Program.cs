@@ -98,16 +98,19 @@ app.MapGet("/http-client-requests", async (HttpClient client) =>
 app.MapGet("/log-message-limit", async ([FromServices] ILogger<Program> logger) =>
 {
     const int LogCount = 10_000;
-    const int BatchSize = 10;
 
-    for (var i = 0; i < LogCount / BatchSize; i++)
+    var writtenLogs = 0;
+    var batchIndex = 0;
+    while (writtenLogs < LogCount)
     {
-        for (var j = 0; j < BatchSize; j++)
+        for (var i = 0; i < Random.Shared.Next(1, 10); i++)
         {
-            logger.LogInformation("Log entry {BatchIndex}", i);
+            logger.LogInformation("Log entry batch {BatchIndex}", batchIndex);
+            writtenLogs++;
         }
 
-        await Task.Delay(100);
+        batchIndex++;
+        await Task.Delay(50);
     }
 
     return $"Created {LogCount} logs.";

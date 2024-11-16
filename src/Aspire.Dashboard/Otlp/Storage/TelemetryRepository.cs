@@ -461,65 +461,65 @@ public sealed class TelemetryRepository
             var totalItems = 0;
 
             var items = new List<GroupedLogEntry>();
-            OtlpLogEntry? currentGroup = null;
+
+            GroupedLogEntry? currentGroup = null;
+            OtlpLogEntry? currentParentLogEntry = null;
+            var currentParentExpanded = false;
+
             GroupedLogEntry? currentParent = null;
-            var currentGroupCount = 0;
-            var currentGroupExpand = false;
 
             foreach (var logEntry in logEntries)
             {
                 totalItems++;
 
-                if (logEntry.ApplicationView.ApplicationKey != currentGroup?.ApplicationView.ApplicationKey ||
-                    logEntry.Severity != currentGroup.Severity ||
-                    logEntry.Message != currentGroup.Message)
+                if (logEntry.ApplicationView.ApplicationKey != currentParentLogEntry?.ApplicationView.ApplicationKey ||
+                    logEntry.Severity != currentParentLogEntry.Severity ||
+                    logEntry.Message != currentParentLogEntry.Message)
                 {
-                    currentParent = null;
+                    currentParentExpanded = expandedLogEntries.Contains(logEntry.InternalId);
+                    currentParentLogEntry = logEntry;
 
-                    AddGroupedLogEntry(items, currentGroup, currentGroupCount, currentGroupExpand, startIndex, count, ref currentIndex);
-
-                    currentGroup = logEntry;
-                    currentGroupCount = 1;
-                    currentGroupExpand = expandedLogEntries.Contains(logEntry.InternalId);
-                }
-                else if (currentGroupExpand)
-                {
-                    var created = AddGroupedLogEntry(items, currentGroup, currentGroupCount, currentGroupExpand: currentParent == null, startIndex, count, ref currentIndex);
-                    currentParent ??= created;
-
-                    if (currentParent != null)
-                    {
-                        currentParent.GroupCount++;
-                    }
-                    currentGroup = logEntry;
-                    currentGroupCount = 1;
-                }
-                else
-                {
-                    currentGroupCount++;
-                }
-            }
-
-            AddGroupedLogEntry(items, currentGroup, currentGroupCount, currentGroupExpand, startIndex, count, ref currentIndex);
-
-            return (items, currentIndex, totalItems);
-
-            static GroupedLogEntry? AddGroupedLogEntry(List<GroupedLogEntry> items, OtlpLogEntry? currentGroup, int currentGroupCount, bool currentGroupExpand, int startIndex, int count, ref int currentIndex)
-            {
-                GroupedLogEntry? entry = null;
-                if (currentGroup != null)
-                {
                     if (currentIndex >= startIndex && items.Count < count)
                     {
-                        entry = new GroupedLogEntry { LogEntry = currentGroup, Expanded = currentGroupExpand, GroupCount = currentGroupCount };
-                        items.Add(entry);
+                        currentParent = currentGroup = new GroupedLogEntry { LogEntry = currentParentLogEntry, HasParent = false, Expanded = currentParentExpanded, GroupCount = 1 };
+                        items.Add(currentGroup);
+                    }
+                    else
+                    {
+                        currentParent = currentGroup = null;
                     }
 
                     currentIndex++;
                 }
+                else if (currentParentExpanded)
+                {
+                    if (currentParent != null)
+                    {
+                        currentParent.GroupCount++;
+                    }
 
-                return entry;
+                    if (currentIndex >= startIndex && items.Count < count)
+                    {
+                        currentGroup = new GroupedLogEntry { LogEntry = logEntry, HasParent = true, Expanded = false, GroupCount = 1 };
+                        items.Add(currentGroup);
+                    }
+                    else
+                    {
+                        currentGroup = null;
+                    }
+
+                    currentIndex++;
+                }
+                else
+                {
+                    if (currentGroup != null)
+                    {
+                        currentGroup.GroupCount++;
+                    }
+                }
             }
+
+            return (items, currentIndex, totalItems);
         }
     }
 
