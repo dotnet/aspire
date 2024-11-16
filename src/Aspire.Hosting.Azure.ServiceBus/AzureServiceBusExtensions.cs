@@ -68,7 +68,7 @@ public static class AzureServiceBusExtensions
                 infrastructure.Add(topic);
 
                 // Topics are added in the dictionary with their normalized names.
-                topicDictionary.Add(topic.IdentifierName, topic);
+                topicDictionary.Add(topic.BicepIdentifier, topic);
             }
             var subscriptionDictionary = new Dictionary<(string, string), ServiceBusSubscription>();
             foreach (var (topicName, subscription) in azureResource.Subscriptions)
@@ -78,7 +78,7 @@ public static class AzureServiceBusExtensions
                 infrastructure.Add(subscription);
 
                 // Subscriptions are added in the dictionary with their normalized names.
-                subscriptionDictionary.Add((topicName, subscription.IdentifierName), subscription);
+                subscriptionDictionary.Add((topicName, subscription.BicepIdentifier), subscription);
             }
             foreach (var (topicName, subscriptionName, rule) in azureResource.Rules)
             {
@@ -105,7 +105,7 @@ public static class AzureServiceBusExtensions
     /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusTopic"/>.</param>
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string[] subscriptions, Action<ServiceBusTopic>? configure = null)
     {
-        var normalizedTopicName = Infrastructure.NormalizeIdentifierName(name);
+        var normalizedTopicName = Infrastructure.NormalizeBicepIdentifier(name);
         var topic = new ServiceBusTopic(normalizedTopicName) { Name = name };
 
         configure?.Invoke(topic);
@@ -113,7 +113,7 @@ public static class AzureServiceBusExtensions
         builder.Resource.Topics.Add(topic);
         foreach (var subscriptionName in subscriptions)
         {
-            var subscription = new ServiceBusSubscription(Infrastructure.NormalizeIdentifierName(subscriptionName)) { Name = subscriptionName };
+            var subscription = new ServiceBusSubscription(Infrastructure.NormalizeBicepIdentifier(subscriptionName)) { Name = subscriptionName };
             builder.Resource.Subscriptions.Add((normalizedTopicName, subscription));
         }
         return builder;
@@ -127,7 +127,7 @@ public static class AzureServiceBusExtensions
     /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusQueue"/>.</param>
     public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<ServiceBusQueue>? configure = null)
     {
-        var queue = new ServiceBusQueue(Infrastructure.NormalizeIdentifierName(name)) { Name = name };
+        var queue = new ServiceBusQueue(Infrastructure.NormalizeBicepIdentifier(name)) { Name = name };
 
         configure?.Invoke(queue);
 
@@ -142,7 +142,7 @@ public static class AzureServiceBusExtensions
     /// <param name="name">The name of the topic.</param>
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name)
     {
-        var topic = new ServiceBusTopic(Infrastructure.NormalizeIdentifierName(name)) { Name = name };
+        var topic = new ServiceBusTopic(Infrastructure.NormalizeBicepIdentifier(name)) { Name = name };
 
         builder.Resource.Topics.Add(topic);
         return builder;
@@ -156,7 +156,7 @@ public static class AzureServiceBusExtensions
     /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusTopic"/>.</param>
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<ServiceBusTopic> configure)
     {
-        var topic = new ServiceBusTopic(Infrastructure.NormalizeIdentifierName(name)) { Name = name };
+        var topic = new ServiceBusTopic(Infrastructure.NormalizeBicepIdentifier(name)) { Name = name };
         configure?.Invoke(topic);
 
         builder.Resource.Topics.Add(topic);
@@ -172,8 +172,8 @@ public static class AzureServiceBusExtensions
     /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusSubscription"/>.</param>
     public static IResourceBuilder<AzureServiceBusResource> AddSubscription(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName, Action<ServiceBusSubscription>? configure = null)
     {
-        var normalizedTopicName = Infrastructure.NormalizeIdentifierName(topicName);
-        var normalizedSubscriptionName = Infrastructure.NormalizeIdentifierName(subscriptionName);
+        var normalizedTopicName = Infrastructure.NormalizeBicepIdentifier(topicName);
+        var normalizedSubscriptionName = Infrastructure.NormalizeBicepIdentifier(subscriptionName);
 
         var subscription = new ServiceBusSubscription(normalizedSubscriptionName) { Name = subscriptionName };
         configure?.Invoke(subscription);
@@ -191,9 +191,9 @@ public static class AzureServiceBusExtensions
     /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusRule"/>.</param>
     public static IResourceBuilder<AzureServiceBusResource> AddRule(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName, string ruleName, Action<ServiceBusRule>? configure = null)
     {
-        var normalizedTopicName = Infrastructure.NormalizeIdentifierName(topicName);
-        var normalizedSubscriptionName = Infrastructure.NormalizeIdentifierName(subscriptionName);
-        var normalizedRuleName = Infrastructure.NormalizeIdentifierName(ruleName);
+        var normalizedTopicName = Infrastructure.NormalizeBicepIdentifier(topicName);
+        var normalizedSubscriptionName = Infrastructure.NormalizeBicepIdentifier(subscriptionName);
+        var normalizedRuleName = Infrastructure.NormalizeBicepIdentifier(ruleName);
 
         var rule = new ServiceBusRule(normalizedRuleName) { Name = ruleName };
         configure?.Invoke(rule);
@@ -344,72 +344,72 @@ public static class AzureServiceBusExtensions
                 foreach (var queue in emulatorResource.Queues)
                 {
                     writer.WriteStartObject();                  //           {
-                    if (queue.Name.Kind != BicepValueKind.Unset)
+                    if (((IBicepValue)queue.Name).IsSet())
                     {
                         writer.WriteString(nameof(ServiceBusQueue.Name), queue.Name.Value);
                     }
                     writer.WriteStartObject("Properties");      //             "Properties": {
-                    if (queue.AutoDeleteOnIdle.Kind != BicepValueKind.Unset)
+                    if (queue.AutoDeleteOnIdle.IsSet())
                     {
                         writer.WriteString(nameof(ServiceBusQueue.AutoDeleteOnIdle), XmlConvert.ToString(queue.AutoDeleteOnIdle.Value));
                     }
-                    if (queue.DeadLetteringOnMessageExpiration.Kind != BicepValueKind.Unset)
+                    if (queue.DeadLetteringOnMessageExpiration.IsSet())
                     {
                         writer.WriteBoolean(nameof(ServiceBusQueue.DeadLetteringOnMessageExpiration), queue.DeadLetteringOnMessageExpiration.Value);
                     }
-                    if (queue.DefaultMessageTimeToLive.Kind != BicepValueKind.Unset)
+                    if (queue.DefaultMessageTimeToLive.IsSet())
                     {
                         writer.WriteString(nameof(ServiceBusQueue.DefaultMessageTimeToLive), XmlConvert.ToString(queue.DefaultMessageTimeToLive.Value));
                     }
-                    if (queue.DuplicateDetectionHistoryTimeWindow.Kind != BicepValueKind.Unset)
+                    if (queue.DuplicateDetectionHistoryTimeWindow.IsSet())
                     {
                         writer.WriteString(nameof(ServiceBusQueue.DuplicateDetectionHistoryTimeWindow), XmlConvert.ToString(queue.DuplicateDetectionHistoryTimeWindow.Value));
                     }
-                    if (queue.EnableBatchedOperations.Kind != BicepValueKind.Unset)
+                    if (queue.EnableBatchedOperations.IsSet())
                     {
                         writer.WriteBoolean(nameof(ServiceBusQueue.EnableBatchedOperations), queue.EnableBatchedOperations.Value);
                     }
-                    if (queue.EnableExpress.Kind != BicepValueKind.Unset)
+                    if (queue.EnableExpress.IsSet())
                     {
                         writer.WriteBoolean(nameof(ServiceBusQueue.EnableExpress), queue.EnableExpress.Value);
                     }
-                    if (queue.EnablePartitioning.Kind != BicepValueKind.Unset)
+                    if (queue.EnablePartitioning.IsSet())
                     {
                         writer.WriteBoolean(nameof(ServiceBusQueue.EnablePartitioning), queue.EnablePartitioning.Value);
                     }
-                    if (queue.ForwardDeadLetteredMessagesTo.Kind != BicepValueKind.Unset)
+                    if (queue.ForwardDeadLetteredMessagesTo.IsSet())
                     {
                         writer.WriteString(nameof(ServiceBusQueue.ForwardDeadLetteredMessagesTo), queue.ForwardDeadLetteredMessagesTo.Value);
                     }
-                    if (queue.ForwardTo.Kind != BicepValueKind.Unset)
+                    if (queue.ForwardTo.IsSet())
                     {
                         writer.WriteString(nameof(ServiceBusQueue.ForwardTo), queue.ForwardTo.Value);
                     }
-                    if (queue.LockDuration.Kind != BicepValueKind.Unset)
+                    if (queue.LockDuration.IsSet())
                     {
                         writer.WriteString(nameof(ServiceBusQueue.LockDuration), XmlConvert.ToString(queue.LockDuration.Value));
                     }
-                    if (queue.MaxDeliveryCount.Kind != BicepValueKind.Unset)
+                    if (queue.MaxDeliveryCount.IsSet())
                     {
                         writer.WriteNumber(nameof(ServiceBusQueue.MaxDeliveryCount), queue.MaxDeliveryCount.Value);
                     }
-                    if (queue.MaxMessageSizeInKilobytes.Kind != BicepValueKind.Unset)
+                    if (queue.MaxMessageSizeInKilobytes.IsSet())
                     {
                         writer.WriteNumber(nameof(ServiceBusQueue.MaxMessageSizeInKilobytes), queue.MaxMessageSizeInKilobytes.Value);
                     }
-                    if (queue.MaxSizeInMegabytes.Kind != BicepValueKind.Unset)
+                    if (queue.MaxSizeInMegabytes.IsSet())
                     {
                         writer.WriteNumber(nameof(ServiceBusQueue.MaxSizeInMegabytes), queue.MaxSizeInMegabytes.Value);
                     }
-                    if (queue.RequiresDuplicateDetection.Kind != BicepValueKind.Unset)
+                    if (queue.RequiresDuplicateDetection.IsSet())
                     {
                         writer.WriteBoolean(nameof(ServiceBusQueue.RequiresDuplicateDetection), queue.RequiresDuplicateDetection.Value);
                     }
-                    if (queue.RequiresSession.Kind != BicepValueKind.Unset)
+                    if (queue.RequiresSession.IsSet())
                     {
                         writer.WriteBoolean(nameof(ServiceBusQueue.RequiresSession), queue.RequiresSession.Value);
                     }
-                    if (queue.Status.Kind != BicepValueKind.Unset)
+                    if (queue.Status.IsSet())
                     {
                         writer.WriteString(nameof(ServiceBusTopic.Status), queue.Status.Value.ToString());
                     }
@@ -423,48 +423,48 @@ public static class AzureServiceBusExtensions
                 foreach (var topic in emulatorResource.Topics)
                 {
                     writer.WriteStartObject();                  //           {
-                    if (topic.Name.Kind != BicepValueKind.Unset)
+                    if (topic.Name.IsSet())
                     {
                         writer.WriteString(nameof(ServiceBusTopic.Name), topic.Name.Value);
                     }
                     writer.WriteStartObject("Properties");      //             "Properties": {
-                    if (topic.AutoDeleteOnIdle.Kind != BicepValueKind.Unset)
+                    if (topic.AutoDeleteOnIdle.IsSet())
                     {
                         writer.WriteString(nameof(ServiceBusTopic.AutoDeleteOnIdle), XmlConvert.ToString(topic.AutoDeleteOnIdle.Value));
                     }
-                    if (topic.DefaultMessageTimeToLive.Kind != BicepValueKind.Unset)
+                    if (topic.DefaultMessageTimeToLive.IsSet())
                     {
                         writer.WriteString(nameof(ServiceBusTopic.DefaultMessageTimeToLive), XmlConvert.ToString(topic.DefaultMessageTimeToLive.Value));
                     }
-                    if (topic.DuplicateDetectionHistoryTimeWindow.Kind != BicepValueKind.Unset)
+                    if (topic.DuplicateDetectionHistoryTimeWindow.IsSet())
                     {
                         writer.WriteString(nameof(ServiceBusTopic.DuplicateDetectionHistoryTimeWindow), XmlConvert.ToString(topic.DuplicateDetectionHistoryTimeWindow.Value));
                     }
-                    if (topic.EnableBatchedOperations.Kind != BicepValueKind.Unset)
+                    if (topic.EnableBatchedOperations.IsSet())
                     {
                         writer.WriteBoolean(nameof(ServiceBusTopic.EnableBatchedOperations), topic.EnableBatchedOperations.Value);
                     }
-                    if (topic.EnableExpress.Kind != BicepValueKind.Unset)
+                    if (topic.EnableExpress.IsSet())
                     {
                         writer.WriteBoolean(nameof(ServiceBusTopic.EnableExpress), topic.EnableExpress.Value);
                     }
-                    if (topic.EnablePartitioning.Kind != BicepValueKind.Unset)
+                    if (topic.EnablePartitioning.IsSet())
                     {
                         writer.WriteBoolean(nameof(ServiceBusTopic.EnablePartitioning), topic.EnablePartitioning.Value);
                     }
-                    if (topic.MaxMessageSizeInKilobytes.Kind != BicepValueKind.Unset)
+                    if (topic.MaxMessageSizeInKilobytes.IsSet())
                     {
                         writer.WriteNumber(nameof(ServiceBusTopic.MaxMessageSizeInKilobytes), topic.MaxMessageSizeInKilobytes.Value);
                     }
-                    if (topic.MaxSizeInMegabytes.Kind != BicepValueKind.Unset)
+                    if (topic.MaxSizeInMegabytes.IsSet())
                     {
                         writer.WriteNumber(nameof(ServiceBusTopic.MaxSizeInMegabytes), topic.MaxSizeInMegabytes.Value);
                     }
-                    if (topic.RequiresDuplicateDetection.Kind != BicepValueKind.Unset)
+                    if (topic.RequiresDuplicateDetection.IsSet())
                     {
                         writer.WriteBoolean(nameof(ServiceBusTopic.RequiresDuplicateDetection), topic.RequiresDuplicateDetection.Value);
                     }
-                    if (topic.Status.Kind != BicepValueKind.Unset)
+                    if (topic.Status.IsSet())
                     {
                         writer.WriteString(nameof(ServiceBusTopic.Status), topic.Status.Value.ToString());
                     }
@@ -473,86 +473,86 @@ public static class AzureServiceBusExtensions
                     writer.WriteStartArray("Subscriptions");      //             "Subscriptions": [
                     foreach (var (topicName, subscription) in emulatorResource.Subscriptions)
                     {
-                        if (topicName != topic.IdentifierName)
+                        if (topicName != topic.BicepIdentifier)
                         {
                             continue;
                         }
 
                         writer.WriteStartObject();                  //           {
-                        if (topic.Name.Kind != BicepValueKind.Unset)
+                        if (topic.Name.IsSet())
                         {
                             writer.WriteString(nameof(ServiceBusQueue.Name), subscription.Name.Value);
                         }
 
                         writer.WriteStartObject("Properties");      //             "Properties": {
-                        if (subscription.Status.Kind != BicepValueKind.Unset)
+                        if (subscription.Status.IsSet())
                         {
                             writer.WriteString(nameof(ServiceBusSubscription.AutoDeleteOnIdle), XmlConvert.ToString(subscription.AutoDeleteOnIdle.Value));
                         }
-                        if (subscription.ClientAffineProperties.Kind != BicepValueKind.Unset && subscription.ClientAffineProperties.Value != null)
+                        if (subscription.ClientAffineProperties.IsSet() && subscription.ClientAffineProperties != null)
                         {
                             writer.WriteStartObject("ClientAffineProperties");      //             "ClientAffineProperties": {
 
-                            if (subscription.ClientAffineProperties.Value.ClientId.Kind != BicepValueKind.Unset)
+                            if (subscription.ClientAffineProperties.ClientId.IsSet())
                             {
-                                writer.WriteString(nameof(ServiceBusClientAffineProperties.ClientId), subscription.ClientAffineProperties.Value.ClientId.Value);
+                                writer.WriteString(nameof(ServiceBusClientAffineProperties.ClientId), subscription.ClientAffineProperties.ClientId.Value);
                             }
-                            if (subscription.ClientAffineProperties.Value.IsDurable.Kind != BicepValueKind.Unset)
+                            if (subscription.ClientAffineProperties.IsDurable.IsSet())
                             {
-                                writer.WriteBoolean(nameof(ServiceBusClientAffineProperties.IsDurable), subscription.ClientAffineProperties.Value.IsDurable.Value);
+                                writer.WriteBoolean(nameof(ServiceBusClientAffineProperties.IsDurable), subscription.ClientAffineProperties.IsDurable.Value);
                             }
-                            if (subscription.ClientAffineProperties.Value.IsShared.Kind != BicepValueKind.Unset)
+                            if (subscription.ClientAffineProperties.IsShared.IsSet())
                             {
-                                writer.WriteBoolean(nameof(ServiceBusClientAffineProperties.IsShared), subscription.ClientAffineProperties.Value.IsShared.Value);
+                                writer.WriteBoolean(nameof(ServiceBusClientAffineProperties.IsShared), subscription.ClientAffineProperties.IsShared.Value);
                             }
 
                             writer.WriteEndObject();                    //            } (/ClientAffineProperties)
                         }
-                        if (subscription.DeadLetteringOnFilterEvaluationExceptions.Kind != BicepValueKind.Unset)
+                        if (subscription.DeadLetteringOnFilterEvaluationExceptions.IsSet())
                         {
                             writer.WriteBoolean(nameof(ServiceBusSubscription.DeadLetteringOnFilterEvaluationExceptions), subscription.DeadLetteringOnFilterEvaluationExceptions.Value);
                         }
-                        if (subscription.DeadLetteringOnMessageExpiration.Kind != BicepValueKind.Unset)
+                        if (subscription.DeadLetteringOnMessageExpiration.IsSet())
                         {
                             writer.WriteBoolean(nameof(ServiceBusSubscription.DeadLetteringOnMessageExpiration), subscription.DeadLetteringOnMessageExpiration.Value);
                         }
-                        if (subscription.DefaultMessageTimeToLive.Kind != BicepValueKind.Unset)
+                        if (subscription.DefaultMessageTimeToLive.IsSet())
                         {
                             writer.WriteString(nameof(ServiceBusSubscription.DefaultMessageTimeToLive), XmlConvert.ToString(subscription.DefaultMessageTimeToLive.Value));
                         }
-                        if (subscription.DuplicateDetectionHistoryTimeWindow.Kind != BicepValueKind.Unset)
+                        if (subscription.DuplicateDetectionHistoryTimeWindow.IsSet())
                         {
                             writer.WriteString(nameof(ServiceBusSubscription.DuplicateDetectionHistoryTimeWindow), XmlConvert.ToString(subscription.DuplicateDetectionHistoryTimeWindow.Value));
                         }
-                        if (subscription.EnableBatchedOperations.Kind != BicepValueKind.Unset)
+                        if (subscription.EnableBatchedOperations.IsSet())
                         {
                             writer.WriteBoolean(nameof(ServiceBusSubscription.EnableBatchedOperations), subscription.EnableBatchedOperations.Value);
                         }
-                        if (subscription.ForwardDeadLetteredMessagesTo.Kind != BicepValueKind.Unset)
+                        if (subscription.ForwardDeadLetteredMessagesTo.IsSet())
                         {
                             writer.WriteString(nameof(ServiceBusSubscription.ForwardDeadLetteredMessagesTo), subscription.ForwardDeadLetteredMessagesTo.Value);
                         }
-                        if (subscription.ForwardTo.Kind != BicepValueKind.Unset)
+                        if (subscription.ForwardTo.IsSet())
                         {
                             writer.WriteString(nameof(ServiceBusQueue.ForwardTo), subscription.ForwardTo.Value);
                         }
-                        if (subscription.IsClientAffine.Kind != BicepValueKind.Unset)
+                        if (subscription.IsClientAffine.IsSet())
                         {
                             writer.WriteBoolean(nameof(ServiceBusSubscription.IsClientAffine), subscription.IsClientAffine.Value);
                         }
-                        if (subscription.LockDuration.Kind != BicepValueKind.Unset)
+                        if (subscription.LockDuration.IsSet())
                         {
                             writer.WriteString(nameof(ServiceBusSubscription.LockDuration), XmlConvert.ToString(subscription.LockDuration.Value));
                         }
-                        if (subscription.MaxDeliveryCount.Kind != BicepValueKind.Unset)
+                        if (subscription.MaxDeliveryCount.IsSet())
                         {
                             writer.WriteNumber(nameof(ServiceBusSubscription.MaxDeliveryCount), subscription.MaxDeliveryCount.Value);
                         }
-                        if (subscription.RequiresSession.Kind != BicepValueKind.Unset)
+                        if (subscription.RequiresSession.IsSet())
                         {
                             writer.WriteBoolean(nameof(ServiceBusSubscription.RequiresSession), subscription.RequiresSession.Value);
                         }
-                        if (subscription.Status.Kind != BicepValueKind.Unset)
+                        if (subscription.Status.IsSet())
                         {
                             writer.WriteString(nameof(ServiceBusSubscription.Status), subscription.Status.Value.ToString());
                         }
@@ -562,110 +562,110 @@ public static class AzureServiceBusExtensions
                         writer.WriteStartArray("Rules");      //             "Rules": [
                         foreach (var (ruleTopicName, ruleSubscriptionName, rule) in emulatorResource.Rules)
                         {
-                            if (ruleTopicName != topic.IdentifierName && ruleSubscriptionName != subscription.IdentifierName)
+                            if (ruleTopicName != topic.BicepIdentifier && ruleSubscriptionName != subscription.BicepIdentifier)
                             {
                                 continue;
                             }
 
                             writer.WriteStartObject();                  //           {
-                            if (rule.Name.Kind != BicepValueKind.Unset)
+                            if (rule.Name.IsSet())
                             {
                                 writer.WriteString(nameof(ServiceBusQueue.Name), rule.Name.Value);
                             }
                             writer.WriteStartObject("Properties");      //             "Properties": {
 
-                            if (rule.Action.Kind != BicepValueKind.Unset && rule.Action.Value != null)
+                            if (rule.Action.IsSet() && rule.Action != null)
                             {
                                 writer.WriteStartObject(nameof(ServiceBusRule.Action));
-                                if (rule.Action.Value.SqlExpression.Kind != BicepValueKind.Unset)
+                                if (rule.Action.SqlExpression.IsSet())
                                 {
-                                    writer.WriteString(nameof(ServiceBusFilterAction.SqlExpression), rule.Action.Value.SqlExpression.Value);
+                                    writer.WriteString(nameof(ServiceBusFilterAction.SqlExpression), rule.Action.SqlExpression.Value);
                                 }
-                                if (rule.Action.Value.CompatibilityLevel.Kind != BicepValueKind.Unset)
+                                if (rule.Action.CompatibilityLevel.IsSet())
                                 {
-                                    writer.WriteNumber(nameof(ServiceBusFilterAction.CompatibilityLevel), rule.Action.Value.CompatibilityLevel.Value);
+                                    writer.WriteNumber(nameof(ServiceBusFilterAction.CompatibilityLevel), rule.Action.CompatibilityLevel.Value);
                                 }
-                                if (rule.Action.Value.RequiresPreprocessing.Kind != BicepValueKind.Unset)
+                                if (rule.Action.RequiresPreprocessing.IsSet())
                                 {
-                                    writer.WriteBoolean(nameof(ServiceBusFilterAction.RequiresPreprocessing), rule.Action.Value.RequiresPreprocessing.Value);
+                                    writer.WriteBoolean(nameof(ServiceBusFilterAction.RequiresPreprocessing), rule.Action.RequiresPreprocessing.Value);
                                 }
                                 writer.WriteEndObject();
                             }
 
-                            if (rule.CorrelationFilter.Kind != BicepValueKind.Unset && rule.CorrelationFilter.Value != null)
+                            if (rule.CorrelationFilter.IsSet() && rule.CorrelationFilter != null)
                             {
                                 writer.WriteStartObject(nameof(ServiceBusRule.CorrelationFilter));
 
-                                if (rule.CorrelationFilter.Value.ApplicationProperties.Kind != BicepValueKind.Unset && rule.CorrelationFilter.Value.ApplicationProperties != null)
+                                if (rule.CorrelationFilter.ApplicationProperties.IsSet() && rule.CorrelationFilter.ApplicationProperties != null)
                                 {
                                     var dic = new Dictionary<string, object>();
                                     
-                                    foreach (var applicationProperty in rule.CorrelationFilter.Value.ApplicationProperties)
+                                    foreach (var applicationProperty in rule.CorrelationFilter.ApplicationProperties)
                                     {
                                         dic.Add(applicationProperty.Key, applicationProperty.Value);
                                     }
 
                                     JsonSerializer.Serialize(writer, dic);
                                 }
-                                if (rule.CorrelationFilter.Value.CorrelationId.Kind != BicepValueKind.Unset)
+                                if (rule.CorrelationFilter.CorrelationId.IsSet())
                                 {
-                                    writer.WriteString(nameof(ServiceBusCorrelationFilter.CorrelationId), rule.CorrelationFilter.Value.CorrelationId.Value);
+                                    writer.WriteString(nameof(ServiceBusCorrelationFilter.CorrelationId), rule.CorrelationFilter.CorrelationId.Value);
                                 }
-                                if (rule.CorrelationFilter.Value.MessageId.Kind != BicepValueKind.Unset)
+                                if (rule.CorrelationFilter.MessageId.IsSet())
                                 {
-                                    writer.WriteString(nameof(ServiceBusCorrelationFilter.MessageId), rule.CorrelationFilter.Value.MessageId.Value);
+                                    writer.WriteString(nameof(ServiceBusCorrelationFilter.MessageId), rule.CorrelationFilter.MessageId.Value);
                                 }
-                                if (rule.CorrelationFilter.Value.SendTo.Kind != BicepValueKind.Unset)
+                                if (rule.CorrelationFilter.SendTo.IsSet())
                                 {
-                                    writer.WriteString(nameof(ServiceBusCorrelationFilter.SendTo), rule.CorrelationFilter.Value.SendTo.Value);
+                                    writer.WriteString(nameof(ServiceBusCorrelationFilter.SendTo), rule.CorrelationFilter.SendTo.Value);
                                 }
-                                if (rule.CorrelationFilter.Value.ReplyTo.Kind != BicepValueKind.Unset)
+                                if (rule.CorrelationFilter.ReplyTo.IsSet())
                                 {
-                                    writer.WriteString(nameof(ServiceBusCorrelationFilter.ReplyTo), rule.CorrelationFilter.Value.ReplyTo.Value);
+                                    writer.WriteString(nameof(ServiceBusCorrelationFilter.ReplyTo), rule.CorrelationFilter.ReplyTo.Value);
                                 }
-                                if (rule.CorrelationFilter.Value.Subject.Kind != BicepValueKind.Unset)
+                                if (rule.CorrelationFilter.Subject.IsSet())
                                 {
-                                    writer.WriteString(nameof(ServiceBusCorrelationFilter.Subject), rule.CorrelationFilter.Value.Subject.Value);
+                                    writer.WriteString(nameof(ServiceBusCorrelationFilter.Subject), rule.CorrelationFilter.Subject.Value);
                                 }
-                                if (rule.CorrelationFilter.Value.SessionId.Kind != BicepValueKind.Unset)
+                                if (rule.CorrelationFilter.SessionId.IsSet())
                                 {
-                                    writer.WriteString(nameof(ServiceBusCorrelationFilter.SessionId), rule.CorrelationFilter.Value.SessionId.Value);
+                                    writer.WriteString(nameof(ServiceBusCorrelationFilter.SessionId), rule.CorrelationFilter.SessionId.Value);
                                 }
-                                if (rule.CorrelationFilter.Value.ReplyToSessionId.Kind != BicepValueKind.Unset)
+                                if (rule.CorrelationFilter.ReplyToSessionId.IsSet())
                                 {
-                                    writer.WriteString(nameof(ServiceBusCorrelationFilter.ReplyToSessionId), rule.CorrelationFilter.Value.ReplyToSessionId.Value);
+                                    writer.WriteString(nameof(ServiceBusCorrelationFilter.ReplyToSessionId), rule.CorrelationFilter.ReplyToSessionId.Value);
                                 }
-                                if (rule.CorrelationFilter.Value.ContentType.Kind != BicepValueKind.Unset)
+                                if (rule.CorrelationFilter.ContentType.IsSet())
                                 {
-                                    writer.WriteString(nameof(ServiceBusCorrelationFilter.ContentType), rule.CorrelationFilter.Value.ContentType.Value);
+                                    writer.WriteString(nameof(ServiceBusCorrelationFilter.ContentType), rule.CorrelationFilter.ContentType.Value);
                                 }
-                                if (rule.CorrelationFilter.Value.RequiresPreprocessing.Kind != BicepValueKind.Unset)
+                                if (rule.CorrelationFilter.RequiresPreprocessing.IsSet())
                                 {
-                                    writer.WriteBoolean(nameof(ServiceBusCorrelationFilter.RequiresPreprocessing), rule.CorrelationFilter.Value.RequiresPreprocessing.Value);
+                                    writer.WriteBoolean(nameof(ServiceBusCorrelationFilter.RequiresPreprocessing), rule.CorrelationFilter.RequiresPreprocessing.Value);
                                 }
 
                                 writer.WriteEndObject();
                             }
 
-                            if (rule.FilterType.Kind != BicepValueKind.Unset)
+                            if (rule.FilterType.IsSet())
                             {
                                 writer.WriteString(nameof(ServiceBusRule.FilterType), rule.FilterType.Value.ToString());
                             }
 
-                            if (rule.SqlFilter.Kind != BicepValueKind.Unset && rule.SqlFilter.Value != null)
+                            if (rule.SqlFilter.IsSet() && rule.SqlFilter != null)
                             {
                                 writer.WriteStartObject(nameof(ServiceBusRule.SqlFilter));
-                                if (rule.SqlFilter.Value.SqlExpression.Kind != BicepValueKind.Unset)
+                                if (rule.SqlFilter.SqlExpression.IsSet())
                                 {
-                                    writer.WriteString(nameof(ServiceBusSqlFilter.SqlExpression), rule.SqlFilter.Value.SqlExpression.Value);
+                                    writer.WriteString(nameof(ServiceBusSqlFilter.SqlExpression), rule.SqlFilter.SqlExpression.Value);
                                 }
-                                if (rule.SqlFilter.Value.CompatibilityLevel.Kind != BicepValueKind.Unset)
+                                if (rule.SqlFilter.CompatibilityLevel.IsSet())
                                 {
-                                    writer.WriteNumber(nameof(ServiceBusSqlFilter.CompatibilityLevel), rule.SqlFilter.Value.CompatibilityLevel.Value);
+                                    writer.WriteNumber(nameof(ServiceBusSqlFilter.CompatibilityLevel), rule.SqlFilter.CompatibilityLevel.Value);
                                 }
-                                if (rule.SqlFilter.Value.RequiresPreprocessing.Kind != BicepValueKind.Unset)
+                                if (rule.SqlFilter.RequiresPreprocessing.IsSet())
                                 {
-                                    writer.WriteBoolean(nameof(ServiceBusSqlFilter.RequiresPreprocessing), rule.SqlFilter.Value.RequiresPreprocessing.Value);
+                                    writer.WriteBoolean(nameof(ServiceBusSqlFilter.RequiresPreprocessing), rule.SqlFilter.RequiresPreprocessing.Value);
                                 }
                                 writer.WriteEndObject();
                             }
@@ -719,7 +719,7 @@ public static class AzureServiceBusExtensions
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <returns>A builder for the <see cref="AzureServiceBusEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureServiceBusEmulatorResource> WithDataVolume(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, string? name = null)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data", isReadOnly: false);
+        => builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/data", isReadOnly: false);
 
     /// <summary>
     /// Adds a bind mount for the configuration file of an Azure Service Bus emulator resource.
@@ -743,4 +743,6 @@ public static class AzureServiceBusExtensions
             endpoint.Port = port;
         });
     }
+
+    private static bool IsSet(this IBicepValue value) => value.Kind != BicepValueKind.Unset;
 }

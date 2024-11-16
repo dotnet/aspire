@@ -12,7 +12,6 @@ serviceBus
         queue.DefaultMessageTimeToLive = TimeSpan.FromHours(1);
         queue.DuplicateDetectionHistoryTimeWindow = TimeSpan.FromSeconds(20);
         queue.ForwardDeadLetteredMessagesTo = "";
-        queue.ForwardTo = "";
         queue.LockDuration = TimeSpan.FromMinutes(1);
         queue.MaxDeliveryCount = 10;
         queue.RequiresDuplicateDetection = false;
@@ -33,7 +32,6 @@ serviceBus
         sub.LockDuration = TimeSpan.FromMinutes(1);
         sub.MaxDeliveryCount = 10;
         sub.ForwardDeadLetteredMessagesTo = "";
-        sub.ForwardTo = "";
         sub.RequiresSession = false;
     });
 
