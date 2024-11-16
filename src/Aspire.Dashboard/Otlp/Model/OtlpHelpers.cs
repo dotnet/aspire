@@ -311,13 +311,21 @@ public static class OtlpHelpers
 
     public static string? GetValue(this KeyValuePair<string, string>[] values, string name)
     {
+        TryGetValue(values, name, out var value);
+        return value;
+    }
+
+    public static bool TryGetValue(this KeyValuePair<string, string>[] values, string name, [NotNullWhen(true)] out string? value)
+    {
         var i = values.GetIndex(name);
         if (i >= 0)
         {
-            return values[i].Value;
+            value = values[i].Value;
+            return true;
         }
 
-        return null;
+        value = null;
+        return false;
     }
 
     public static int GetIndex(this KeyValuePair<string, string>[] values, string name)
@@ -414,6 +422,7 @@ public static class OtlpHelpers
         return new PagedResult<TResult>
         {
             Items = items,
+            GroupedItemCount = totalItemCount,
             TotalItemCount = totalItemCount
         };
     }

@@ -40,9 +40,10 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private string? _elementIdBeforeDetailsViewOpened;
     private AspirePageContentLayout? _contentLayout;
     private string _filter = string.Empty;
-    private FluentDataGrid<OtlpLogEntry> _dataGrid = null!;
+    private FluentDataGrid<GroupedLogEntry> _dataGrid = null!;
     private GridColumnManager _manager = null!;
     private IList<GridColumn> _gridColumns = null!;
+    private readonly List<Guid> _expandedGroups = [];
 
     public string BasePath => DashboardUrls.StructuredLogsBasePath;
     public string SessionStorageKey => BrowserStorageKeys.StructuredLogsPageState;
@@ -102,10 +103,11 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     public StructureLogsDetailsViewModel? SelectedLogEntry { get; set; }
 
-    private async ValueTask<GridItemsProviderResult<OtlpLogEntry>> GetData(GridItemsProviderRequest<OtlpLogEntry> request)
+    private async ValueTask<GridItemsProviderResult<GroupedLogEntry>> GetData(GridItemsProviderRequest<GroupedLogEntry> request)
     {
         ViewModel.StartIndex = request.StartIndex;
         ViewModel.Count = request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount;
+        ViewModel.ExpandedGroups = _expandedGroups;
 
         var logs = ViewModel.GetLogs();
 
@@ -128,16 +130,16 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
         TelemetryRepository.MarkViewedErrorLogs(ViewModel.ApplicationKey);
 
-        return GridItemsProviderResult.From(logs.Items, logs.TotalItemCount);
+        return GridItemsProviderResult.From(logs.Items, logs.GroupedItemCount);
     }
 
     protected override Task OnInitializedAsync()
     {
         _gridColumns = [
+            new GridColumn(Name: TimestampColumn, DesktopWidth: "1.5fr"),
             new GridColumn(Name: ResourceColumn, DesktopWidth: "2fr", MobileWidth: "1fr"),
             new GridColumn(Name: LogLevelColumn, DesktopWidth: "1fr"),
-            new GridColumn(Name: TimestampColumn, DesktopWidth: "1.5fr"),
-            new GridColumn(Name: MessageColumn, DesktopWidth: "5fr", "2.5fr"),
+            new GridColumn(Name: MessageColumn, DesktopWidth: "6fr", "2.5fr"),
             new GridColumn(Name: TraceColumn, DesktopWidth: "1fr"),
             new GridColumn(Name: ActionsColumn, DesktopWidth: "1fr", MobileWidth: "0.8fr")
         ];
@@ -326,15 +328,15 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     private string GetResourceName(OtlpApplicationView app) => OtlpApplication.GetResourceName(app.Application, _applications);
 
-    private string GetRowClass(OtlpLogEntry entry)
+    private string GetRowClass(GroupedLogEntry entry)
     {
-        if (entry.InternalId == SelectedLogEntry?.LogEntry.InternalId)
+        if (entry.LogEntry.InternalId == SelectedLogEntry?.LogEntry.InternalId)
         {
             return "selected-row";
         }
         else
         {
-            return $"log-row-{entry.Severity.ToString().ToLowerInvariant()}";
+            return $"log-row-{entry.LogEntry.Severity.ToString().ToLowerInvariant()}";
         }
     }
 
@@ -421,6 +423,24 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
 
         await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
+    }
+
+    private async Task OnToggleCollapse(GroupedLogEntry viewModel)
+    {
+        // View model data is recreated if data updates.
+        // Persist the collapsed state in a separate list.
+        if (viewModel.Expanded)
+        {
+            viewModel.Expanded = false;
+            _expandedGroups.Remove(viewModel.LogEntry.InternalId);
+        }
+        else
+        {
+            viewModel.Expanded = true;
+            _expandedGroups.Add(viewModel.LogEntry.InternalId);
+        }
+
+        await _dataGrid.SafeRefreshDataAsync();
     }
 
     public class StructuredLogsPageViewModel

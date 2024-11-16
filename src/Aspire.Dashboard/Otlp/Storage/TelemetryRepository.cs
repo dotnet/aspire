@@ -413,6 +413,116 @@ public sealed class TelemetryRepository
         }
     }
 
+    public PagedResult<GroupedLogEntry> GetGroupedLogs(GetLogsContext context, List<Guid> expandedLogEntries)
+    {
+        List<OtlpApplication>? applications = null;
+        if (context.ApplicationKey is { } key)
+        {
+            applications = GetApplications(key);
+
+            if (applications.Count == 0)
+            {
+                return PagedResult<GroupedLogEntry>.Empty;
+            }
+        }
+
+        _logsLock.EnterReadLock();
+
+        try
+        {
+            var results = _logs.AsEnumerable();
+            if (applications?.Count > 0)
+            {
+                results = results.Where(l => MatchApplications(l.ApplicationView.Application, applications));
+            }
+
+            foreach (var filter in context.Filters)
+            {
+                results = filter.Apply(results);
+            }
+
+            var (items, groupedItemCount, totalItemCount) = GetGroupedLogEntriesPage(results, context.StartIndex, context.Count, expandedLogEntries);
+
+            return new PagedResult<GroupedLogEntry>
+            {
+                Items = items,
+                GroupedItemCount = groupedItemCount,
+                TotalItemCount = totalItemCount
+            };
+        }
+        finally
+        {
+            _logsLock.ExitReadLock();
+        }
+
+        static (List<GroupedLogEntry> items, int groupedItemCount, int totalItemCount) GetGroupedLogEntriesPage(IEnumerable<OtlpLogEntry> logEntries, int startIndex, int count, List<Guid> expandedLogEntries)
+        {
+            var currentIndex = 0;
+            var totalItems = 0;
+
+            var items = new List<GroupedLogEntry>();
+            OtlpLogEntry? currentGroup = null;
+            GroupedLogEntry? currentParent = null;
+            var currentGroupCount = 0;
+            var currentGroupExpand = false;
+
+            foreach (var logEntry in logEntries)
+            {
+                totalItems++;
+
+                if (logEntry.ApplicationView.ApplicationKey != currentGroup?.ApplicationView.ApplicationKey ||
+                    logEntry.Severity != currentGroup.Severity ||
+                    logEntry.Message != currentGroup.Message)
+                {
+                    currentParent = null;
+
+                    AddGroupedLogEntry(items, currentGroup, currentGroupCount, currentGroupExpand, startIndex, count, ref currentIndex);
+
+                    currentGroup = logEntry;
+                    currentGroupCount = 1;
+                    currentGroupExpand = expandedLogEntries.Contains(logEntry.InternalId);
+                }
+                else if (currentGroupExpand)
+                {
+                    var created = AddGroupedLogEntry(items, currentGroup, currentGroupCount, currentGroupExpand: currentParent == null, startIndex, count, ref currentIndex);
+                    currentParent ??= created;
+
+                    if (currentParent != null)
+                    {
+                        currentParent.GroupCount++;
+                    }
+                    currentGroup = logEntry;
+                    currentGroupCount = 1;
+                }
+                else
+                {
+                    currentGroupCount++;
+                }
+            }
+
+            AddGroupedLogEntry(items, currentGroup, currentGroupCount, currentGroupExpand, startIndex, count, ref currentIndex);
+
+            return (items, currentIndex, totalItems);
+
+            static GroupedLogEntry? AddGroupedLogEntry(List<GroupedLogEntry> items, OtlpLogEntry? currentGroup, int currentGroupCount, bool currentGroupExpand, int startIndex, int count, ref int currentIndex)
+            {
+                GroupedLogEntry? entry = null;
+                if (currentGroup != null)
+                {
+                    if (currentIndex >= startIndex && items.Count < count)
+                    {
+                        entry = new GroupedLogEntry { LogEntry = currentGroup, Expanded = currentGroupExpand, GroupCount = currentGroupCount };
+                        items.Add(entry);
+                    }
+
+                    currentIndex++;
+                }
+
+                return entry;
+            }
+        }
+    }
+
     private static bool MatchApplications(OtlpApplication application, List<OtlpApplication> applications)
     {
         for (var i = 0; i < applications.Count; i++)

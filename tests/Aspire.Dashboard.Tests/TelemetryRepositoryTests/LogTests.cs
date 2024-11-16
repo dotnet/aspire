@@ -390,6 +390,279 @@ public class LogTests
     }
 
     [Fact]
+    public void GetGroupedLogs_Count()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime.AddMinutes(1), message: "1"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(2), message: "1"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(3), message: "3"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(4), message: "4"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(5), message: "4"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(6), message: "6"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(7), message: "7"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(8), message: "8"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(9), message: "9"),
+                        }
+                    }
+                }
+            }
+        });
+
+        Assert.Equal(0, addContext.FailureCount);
+
+        // Act
+        var logs = repository.GetGroupedLogs(new GetLogsContext
+        {
+            ApplicationKey = null,
+            StartIndex = 0,
+            Count = 3,
+            Filters = []
+        }, []);
+
+        // Assert
+        Assert.Equal(9, logs.TotalItemCount);
+        Assert.Equal(7, logs.GroupedItemCount);
+        Assert.Collection(logs.Items,
+            l =>
+            {
+                Assert.Equal("1", l.LogEntry.Message);
+                Assert.Equal(2, l.GroupCount);
+            },
+            l =>
+            {
+                Assert.Equal("3", l.LogEntry.Message);
+                Assert.Equal(1, l.GroupCount);
+            },
+            l =>
+            {
+                Assert.Equal("4", l.LogEntry.Message);
+                Assert.Equal(2, l.GroupCount);
+            });
+    }
+
+    [Fact]
+    public void GetGroupedLogs_StartIndexAndCount()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime.AddMinutes(1), message: "1"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(2), message: "1"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(3), message: "3"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(4), message: "4"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(5), message: "4"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(6), message: "6"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(7), message: "6"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(8), message: "6"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(9), message: "6"),
+                        }
+                    }
+                }
+            }
+        });
+
+        Assert.Equal(0, addContext.FailureCount);
+
+        // Act
+        var logs = repository.GetGroupedLogs(new GetLogsContext
+        {
+            ApplicationKey = null,
+            StartIndex = 1,
+            Count = 2,
+            Filters = []
+        }, []);
+
+        // Assert
+        Assert.Equal(9, logs.TotalItemCount);
+        Assert.Equal(4, logs.GroupedItemCount);
+        Assert.Collection(logs.Items,
+            l =>
+            {
+                Assert.Equal("3", l.LogEntry.Message);
+                Assert.Equal(1, l.GroupCount);
+                Assert.False(l.Expanded);
+            },
+            l =>
+            {
+                Assert.Equal("4", l.LogEntry.Message);
+                Assert.Equal(2, l.GroupCount);
+                Assert.False(l.Expanded);
+            });
+    }
+
+    [Fact]
+    public void GetGroupedLogs_Expanded_OutOfPageIntoPage()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime.AddMinutes(1), message: "1", attributes: [KeyValuePair.Create("Aspire.InternalId", "00000000-0000-0000-0000-000000000001")]),
+                            CreateLogRecord(time: s_testTime.AddMinutes(2), message: "1"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(3), message: "3"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(4), message: "4"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(5), message: "4"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(6), message: "6"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(7), message: "6"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(8), message: "6"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(9), message: "6"),
+                        }
+                    }
+                }
+            }
+        });
+
+        Assert.Equal(0, addContext.FailureCount);
+
+        // Act
+        var logs = repository.GetGroupedLogs(new GetLogsContext
+        {
+            ApplicationKey = null,
+            StartIndex = 1,
+            Count = 3,
+            Filters = []
+        }, [Guid.Parse("00000000-0000-0000-0000-000000000001")]);
+
+        // Assert
+        Assert.Equal(9, logs.TotalItemCount);
+        Assert.Equal(5, logs.GroupedItemCount);
+        Assert.Collection(logs.Items,
+            l =>
+            {
+                Assert.Equal("1", l.LogEntry.Message);
+                Assert.Equal(s_testTime.AddMinutes(2), l.LogEntry.TimeStamp);
+                Assert.Equal(1, l.GroupCount);
+            },
+            l =>
+            {
+                Assert.Equal("3", l.LogEntry.Message);
+                Assert.Equal(s_testTime.AddMinutes(3), l.LogEntry.TimeStamp);
+                Assert.Equal(1, l.GroupCount);
+            },
+            l =>
+            {
+                Assert.Equal("4", l.LogEntry.Message);
+                Assert.Equal(s_testTime.AddMinutes(4), l.LogEntry.TimeStamp);
+                Assert.Equal(2, l.GroupCount);
+            });
+    }
+
+    [Fact]
+    public void GetGroupedLogs_Expanded_InPageOutOfPage()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime.AddMinutes(1), message: "1"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(2), message: "1"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(3), message: "3"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(4), message: "4"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(5), message: "4"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(6), message: "6", attributes: [KeyValuePair.Create("Aspire.InternalId", "00000000-0000-0000-0000-000000000006")]),
+                            CreateLogRecord(time: s_testTime.AddMinutes(7), message: "6"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(8), message: "6"),
+                            CreateLogRecord(time: s_testTime.AddMinutes(9), message: "6"),
+                        }
+                    }
+                }
+            }
+        });
+
+        Assert.Equal(0, addContext.FailureCount);
+
+        // Act
+        var logs = repository.GetGroupedLogs(new GetLogsContext
+        {
+            ApplicationKey = null,
+            StartIndex = 1,
+            Count = 4,
+            Filters = []
+        }, [Guid.Parse("00000000-0000-0000-0000-000000000006")]);
+
+        // Assert
+        Assert.Equal(9, logs.TotalItemCount);
+        Assert.Equal(7, logs.GroupedItemCount);
+        Assert.Collection(logs.Items,
+            l =>
+            {
+                Assert.Equal("3", l.LogEntry.Message);
+                Assert.Equal(s_testTime.AddMinutes(3), l.LogEntry.TimeStamp);
+                Assert.Equal(1, l.GroupCount);
+                Assert.False(l.Expanded);
+            },
+            l =>
+            {
+                Assert.Equal("4", l.LogEntry.Message);
+                Assert.Equal(s_testTime.AddMinutes(4), l.LogEntry.TimeStamp);
+                Assert.Equal(2, l.GroupCount);
+                Assert.False(l.Expanded);
+            },
+            l =>
+            {
+                Assert.Equal("6", l.LogEntry.Message);
+                Assert.Equal(s_testTime.AddMinutes(6), l.LogEntry.TimeStamp);
+                Assert.Equal(4, l.GroupCount);
+                Assert.True(l.Expanded);
+            },
+            l =>
+            {
+                Assert.Equal("6", l.LogEntry.Message);
+                Assert.Equal(s_testTime.AddMinutes(7), l.LogEntry.TimeStamp);
+                Assert.Equal(1, l.GroupCount);
+                Assert.False(l.Expanded);
+            });
+    }
+
+    [Fact]
     public void GetLogPropertyKeys_UnknownApplication()
     {
         // Arrange

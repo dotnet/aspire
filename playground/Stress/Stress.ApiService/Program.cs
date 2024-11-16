@@ -104,7 +104,7 @@ app.MapGet("/log-message-limit", async ([FromServices] ILogger<Program> logger) 
     {
         for (var j = 0; j < BatchSize; j++)
         {
-            logger.LogInformation("Log entry {BatchIndex}-{LogEntryIndex}", i, j);
+            logger.LogInformation("Log entry {BatchIndex}", i);
         }
 
         await Task.Delay(100);
@@ -150,7 +150,7 @@ app.MapGet("/many-logs", (ILoggerFactory loggerFactory, CancellationToken cancel
             cancellationToken.ThrowIfCancellationRequested();
 
             logCount++;
-            logger.LogInformation("This is log message {LogCount}.", logCount);
+            logger.LogInformation("This is log message at {Time}.", DateTime.Now);
 
             if (logCount % 100 == 0)
             {

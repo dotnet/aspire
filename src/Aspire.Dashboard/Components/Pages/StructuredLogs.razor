@@ -119,32 +119,46 @@
                                                 ItemSize="46"
                                                 ResizableColumns="true"
                                                 ItemsProvider="@GetData"
-                                                TGridItem="OtlpLogEntry"
+                                                TGridItem="GroupedLogEntry"
                                                 GridTemplateColumns="@_manager.GetGridTemplateColumns()"
                                                 ShowHover="true"
-                                                ItemKey="@(r => r.InternalId)"
-                                                OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, buttonId: null)))"
+                                                ItemKey="@(r => r.LogEntry.InternalId)"
+                                                OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d.LogEntry, buttonId: null)))"
                                                 Class="main-grid enable-row-click">
                                     <ChildContent>
-                                        <AspireTemplateColumn ColumnId="@ResourceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsResourceColumnHeader)]" Tooltip="true" TooltipText="@(e => GetResourceName(e.ApplicationView))">
-                                            <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.ApplicationView)));">
-                                                @GetResourceName(context.ApplicationView)
+                                        <AspireTemplateColumn ColumnId="@TimestampColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.LogEntry.TimeStamp, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true" Class="expand-col">
+                                            <span @onclick:stopPropagation="true" class="main-grid-expand-container @(!context.Expanded ? "main-grid-collapsed" : "main-grid-expanded")">
+                                                @if (context.GroupCount > 1 || context.Expanded)
+                                                {
+                                                    <FluentButton Appearance="Appearance.Lightweight" Class="main-grid-expand-button" OnClick="@(() => OnToggleCollapse(context))">
+                                                        <FluentIcon Icon="Icons.Regular.Size12.ChevronRight" Color="Color.Neutral" />
+                                                    </FluentButton>
+                                                }
+                                            </span>
+                                            @if (context.GroupCount > 1 || context.Expanded)
+                                            {
+                                                <FluentBadge Appearance="Appearance.Neutral" Circular="true" Style="margin-right: 8px">
+                                                    @context.GroupCount
+                                                </FluentBadge>
+                                            }
+                                            @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.LogEntry.TimeStamp, MillisecondsDisplay.Truncated)
+                                        </AspireTemplateColumn>
+                                        <AspireTemplateColumn ColumnId="@ResourceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsResourceColumnHeader)]" Tooltip="true" TooltipText="@(e => GetResourceName(e.LogEntry.ApplicationView))">
+                                            <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.LogEntry.ApplicationView)));">
+                                                @GetResourceName(context.LogEntry.ApplicationView)
                                             </span>
                                         </AspireTemplateColumn>
                                         <AspireTemplateColumn ColumnId="@LogLevelColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevelColumnHeader)]">
-                                            <LogLevelColumnDisplay LogEntry="@context" />
+                                            <LogLevelColumnDisplay LogEntry="@context.LogEntry" />
                                         </AspireTemplateColumn>
-                                        <AspireTemplateColumn ColumnId="@TimestampColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.TimeStamp, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
-                                            @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.TimeStamp, MillisecondsDisplay.Truncated)
-                                        </AspireTemplateColumn>
-                                        <AspireTemplateColumn ColumnId="@MessageColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]" Tooltip="true" TooltipText="(e) => e.Message">
-                                            <LogMessageColumnDisplay FilterText="@(ViewModel.FilterText)" LogEntry="@context" />
+                                        <AspireTemplateColumn ColumnId="@MessageColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]" Tooltip="true" TooltipText="(e) => e.LogEntry.Message">
+                                            <LogMessageColumnDisplay FilterText="@(ViewModel.FilterText)" LogEntry="@context.LogEntry" />
                                         </AspireTemplateColumn>
                                         <AspireTemplateColumn ColumnId="@TraceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTraceColumnHeader)]">
-                                            @if (!string.IsNullOrEmpty(context.TraceId))
+                                            @if (!string.IsNullOrEmpty(context.LogEntry.TraceId))
                                             {
-                                                <a href="@DashboardUrls.TraceDetailUrl(context.TraceId)" class="long-inner-content" @onclick:stopPropagation="true">
-                                                    @OtlpHelpers.ToShortenedId(context.TraceId)
+                                                <a href="@DashboardUrls.TraceDetailUrl(context.LogEntry.TraceId)" class="long-inner-content" @onclick:stopPropagation="true">
+                                                    @OtlpHelpers.ToShortenedId(context.LogEntry.TraceId)
                                                 </a>
                                             }
                                             else
@@ -154,11 +168,11 @@
                                         </AspireTemplateColumn>
                                         <AspireTemplateColumn ColumnId="@ActionsColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.ActionsColumnHeader)]" Class="no-ellipsis">
                                             @{
-                                                var id = $"details-button-{context.InternalId}";
+                                                var id = $"details-button-{context.LogEntry.InternalId}";
                                             }
                                             <div class="grid-action-container" @onclick:stopPropagation="true">
-                                                <StructuredLogActions LogEntry="@context"
-                                                                      OnViewDetails="@((buttonId) => OnShowPropertiesAsync(context, buttonId))" />
+                                                <StructuredLogActions LogEntry="@context.LogEntry"
+                                                                      OnViewDetails="@((buttonId) => OnShowPropertiesAsync(context.LogEntry, buttonId))" />
                                             </div>
                                         </AspireTemplateColumn>
                                     </ChildContent>

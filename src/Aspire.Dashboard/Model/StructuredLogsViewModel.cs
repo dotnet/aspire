@@ -12,7 +12,7 @@ public class StructuredLogsViewModel
     private readonly TelemetryRepository _telemetryRepository;
     private readonly List<TelemetryFilter> _filters = new();
 
-    private PagedResult<OtlpLogEntry>? _logs;
+    private PagedResult<GroupedLogEntry>? _logs;
     private ApplicationKey? _applicationKey;
     private string _filterText = string.Empty;
     private int _logsStartIndex;
@@ -22,6 +22,7 @@ public class StructuredLogsViewModel
     public StructuredLogsViewModel(TelemetryRepository telemetryRepository)
     {
         _telemetryRepository = telemetryRepository;
+        ExpandedGroups = [];
     }
 
     public ApplicationKey? ApplicationKey { get => _applicationKey; set => SetValue(ref _applicationKey, value); }
@@ -62,6 +63,7 @@ public class StructuredLogsViewModel
     public int StartIndex { get => _logsStartIndex; set => SetValue(ref _logsStartIndex, value); }
     public int Count { get => _logsCount; set => SetValue(ref _logsCount, value); }
     public LogLevel? LogLevel { get => _logLevel; set => SetValue(ref _logLevel, value); }
+    public List<Guid> ExpandedGroups { get; internal set; }
 
     private void SetValue<T>(ref T field, T value)
     {
@@ -74,7 +76,7 @@ public class StructuredLogsViewModel
         _logs = null;
     }
 
-    public PagedResult<OtlpLogEntry> GetLogs()
+    public PagedResult<GroupedLogEntry> GetLogs()
     {
         var logs = _logs;
         if (logs == null)
@@ -90,13 +92,13 @@ public class StructuredLogsViewModel
                 filters.Add(new TelemetryFilter { Field = nameof(OtlpLogEntry.Severity), Condition = FilterCondition.GreaterThanOrEqual, Value = _logLevel.Value.ToString() });
             }
 
-            logs = _telemetryRepository.GetLogs(new GetLogsContext
+            logs = _telemetryRepository.GetGroupedLogs(new GetLogsContext
             {
                 ApplicationKey = ApplicationKey,
                 StartIndex = StartIndex,
                 Count = Count,
                 Filters = filters
-            });
+            }, ExpandedGroups);
         }
 
         return logs;

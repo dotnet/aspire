@@ -7,7 +7,15 @@ using OpenTelemetry.Proto.Logs.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
 
-[DebuggerDisplay("TimeStamp = {TimeStamp}, Severity = {Severity}, Message = {Message}")]
+[DebuggerDisplay("LogEntry = {LogEntry}, GroupCount = {GroupCount}, Expanded = {Expanded}")]
+public sealed class GroupedLogEntry
+{
+    public required OtlpLogEntry LogEntry { get; init; }
+    public int GroupCount { get; set; }
+    public bool Expanded { get; set; }
+}
+
+[DebuggerDisplay("TimeStamp = {TimeStamp}, Application = {ApplicationView.Application}, Severity = {Severity}, Message = {Message}")]
 public class OtlpLogEntry
 {
     public KeyValuePair<string, string>[] Attributes { get; }
@@ -25,7 +33,6 @@ public class OtlpLogEntry
 
     public OtlpLogEntry(LogRecord record, OtlpApplicationView logApp, OtlpScope scope, OtlpContext context)
     {
-        InternalId = Guid.NewGuid();
         TimeStamp = OtlpHelpers.UnixNanoSecondsToDateTime(record.TimeUnixNano);
 
         string? originalFormat = null;
@@ -48,6 +55,12 @@ public class OtlpLogEntry
                     return true;
             }
         });
+
+#if DEBUG
+        InternalId = OtlpHelpers.TryGetValue(Attributes, "Aspire.InternalId", out var value) ? Guid.Parse(value) : Guid.NewGuid();
+#else
+        InternalId = Guid.NewGuid();
+#endif
 
         Flags = record.Flags;
         Severity = MapSeverity(record.SeverityNumber);
