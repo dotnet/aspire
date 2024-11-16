@@ -95,13 +95,19 @@ app.MapGet("/http-client-requests", async (HttpClient client) =>
     return $"Sent requests to {string.Join(';', urls)}";
 });
 
-app.MapGet("/log-message-limit", ([FromServices] ILogger<Program> logger) =>
+app.MapGet("/log-message-limit", async ([FromServices] ILogger<Program> logger) =>
 {
-    const int LogCount = 20_000;
+    const int LogCount = 10_000;
+    const int BatchSize = 10;
 
-    for (var i = 0; i < LogCount; i++)
+    for (var i = 0; i < LogCount / BatchSize; i++)
     {
-        logger.LogInformation("Log entry {LogEntryIndex}", i);
+        for (var j = 0; j < BatchSize; j++)
+        {
+            logger.LogInformation("Log entry {BatchIndex}-{LogEntryIndex}", i, j);
+        }
+
+        await Task.Delay(100);
     }
 
     return $"Created {LogCount} logs.";
@@ -223,6 +229,18 @@ Whitespace content: {WhitespaceContent}
 Null content: {NullContent}", xmlLarge, xmlWithComments, xmlWithUrl, jsonLarge, jsonWithComments, jsonWithUrl, sb.ToString(), "http://localhost:8080", "", "   ", null);
 
     return "Log with formatted data";
+});
+
+app.MapGet("/duplicate-spanid", async () =>
+{
+    var traceCreator = new TraceCreator();
+    var span1 = traceCreator.CreateActivity("Test 1", "0485b1947fe788bb");
+    await Task.Delay(1000);
+    span1?.Stop();
+    var span2 = traceCreator.CreateActivity("Test 2", "0485b1947fe788bb");
+    await Task.Delay(1000);
+    span2?.Stop();
+    return $"Created duplicate span IDs.";
 });
 
 app.Run();

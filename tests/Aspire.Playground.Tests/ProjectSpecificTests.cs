@@ -71,7 +71,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
         // that the Functions host has initialized correctly
         await WaitForAllTextAsync(app,
             [
-                "Job host started"
+                "Worker process started and initialized."
             ],
             resourceName: "funcapp",
             timeoutSecs: 160);

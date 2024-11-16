@@ -288,6 +288,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _app.Lifetime.ApplicationStarted.Register(() =>
         {
+            EndpointInfo? frontendEndpointInfo = null;
             if (_frontendEndPointAccessor.Count > 0)
             {
                 if (dashboardOptions.Otlp.Cors.IsCorsEnabled)
@@ -305,17 +306,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     });
                 }
 
-                var frontendEndpointInfo = _frontendEndPointAccessor[0]();
+                frontendEndpointInfo = _frontendEndPointAccessor[0]();
                 _logger.LogInformation("Now listening on: {DashboardUri}", frontendEndpointInfo.GetResolvedAddress());
-
-                var options = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>().CurrentValue;
-                if (options.Frontend.AuthMode == FrontendAuthMode.BrowserToken)
-                {
-                    // DOTNET_RUNNING_IN_CONTAINER is a well-known environment variable added by official .NET images.
-                    // https://learn.microsoft.com/dotnet/core/tools/dotnet-environment-variables#dotnet_running_in_container-and-dotnet_running_in_containers
-                    var isContainer = _app.Configuration.GetBool("DOTNET_RUNNING_IN_CONTAINER") ?? false;
-                    LoggingHelpers.WriteDashboardUrl(_logger, frontendEndpointInfo.GetResolvedAddress(replaceIPAnyWithLocalhost: true), options.Frontend.BrowserToken, isContainer);
-                }
             }
 
             if (_otlpServiceGrpcEndPointAccessor != null)
@@ -332,6 +324,19 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             if (_dashboardOptionsMonitor.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
             {
                 _logger.LogWarning("OTLP server is unsecured. Untrusted apps can send telemetry to the dashboard. For more information, visit https://go.microsoft.com/fwlink/?linkid=2267030");
+            }
+
+            // Log frontend login URL last at startup so it's easy to find in the logs.
+            if (frontendEndpointInfo != null)
+            {
+                var options = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>().CurrentValue;
+                if (options.Frontend.AuthMode == FrontendAuthMode.BrowserToken)
+                {
+                    // DOTNET_RUNNING_IN_CONTAINER is a well-known environment variable added by official .NET images.
+                    // https://learn.microsoft.com/dotnet/core/tools/dotnet-environment-variables#dotnet_running_in_container-and-dotnet_running_in_containers
+                    var isContainer = _app.Configuration.GetBool("DOTNET_RUNNING_IN_CONTAINER") ?? false;
+                    LoggingHelpers.WriteDashboardUrl(_logger, frontendEndpointInfo.GetResolvedAddress(replaceIPAnyWithLocalhost: true), options.Frontend.BrowserToken, isContainer);
+                }
             }
         });
 

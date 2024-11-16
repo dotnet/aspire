@@ -3,6 +3,7 @@
 
 using System.Net;
 using Aspire.Hosting;
+using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -22,7 +23,7 @@ public class OtlpCorsHttpServiceTests
     {
         // Arrange
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper);
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.OtlpServiceHttpEndPointAccessor().EndPoint}");
 
@@ -32,7 +33,7 @@ public class OtlpCorsHttpServiceTests
         preflightRequest.Headers.TryAddWithoutValidation("Origin", "http://localhost:8000");
 
         // Act
-        var responseMessage = await httpClient.SendAsync(preflightRequest);
+        var responseMessage = await httpClient.SendAsync(preflightRequest).DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, responseMessage.StatusCode);
@@ -46,7 +47,7 @@ public class OtlpCorsHttpServiceTests
         {
             config[DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.ConfigKey] = "http://localhost:8000, http://localhost:8001";
         });
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.OtlpServiceHttpEndPointAccessor().EndPoint}");
 
@@ -56,7 +57,7 @@ public class OtlpCorsHttpServiceTests
         preflightRequest1.Headers.TryAddWithoutValidation("Access-Control-Request-Headers", "x-requested-with,x-custom,Content-Type");
         preflightRequest1.Headers.TryAddWithoutValidation("Origin", "http://localhost:8000");
 
-        var responseMessage1 = await httpClient.SendAsync(preflightRequest1);
+        var responseMessage1 = await httpClient.SendAsync(preflightRequest1).DefaultTimeout();
 
         // Assert 1
         Assert.Equal(HttpStatusCode.NoContent, responseMessage1.StatusCode);
@@ -70,7 +71,7 @@ public class OtlpCorsHttpServiceTests
         preflightRequest2.Headers.TryAddWithoutValidation("Access-Control-Request-Headers", "x-requested-with,x-custom,Content-Type");
         preflightRequest2.Headers.TryAddWithoutValidation("Origin", "http://localhost:8001");
 
-        var responseMessage2 = await httpClient.SendAsync(preflightRequest2);
+        var responseMessage2 = await httpClient.SendAsync(preflightRequest2).DefaultTimeout();
 
         // Assert 2
         Assert.Equal(HttpStatusCode.NoContent, responseMessage2.StatusCode);
@@ -87,7 +88,7 @@ public class OtlpCorsHttpServiceTests
         {
             config[DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.ConfigKey] = "http://localhost:8000";
         });
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.OtlpServiceHttpEndPointAccessor().EndPoint}");
 
@@ -97,7 +98,7 @@ public class OtlpCorsHttpServiceTests
         preflightRequest.Headers.TryAddWithoutValidation("Origin", "http://localhost:8001");
 
         // Act
-        var responseMessage = await httpClient.SendAsync(preflightRequest);
+        var responseMessage = await httpClient.SendAsync(preflightRequest).DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.NoContent, responseMessage.StatusCode);
@@ -115,7 +116,7 @@ public class OtlpCorsHttpServiceTests
             config[DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.ConfigKey] = "*";
             config[DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.ConfigKey] = "*";
         });
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.OtlpServiceHttpEndPointAccessor().EndPoint}");
 
@@ -125,7 +126,7 @@ public class OtlpCorsHttpServiceTests
         preflightRequest.Headers.TryAddWithoutValidation("Origin", "http://localhost:8000");
 
         // Act
-        var responseMessage = await httpClient.SendAsync(preflightRequest);
+        var responseMessage = await httpClient.SendAsync(preflightRequest).DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.NoContent, responseMessage.StatusCode);

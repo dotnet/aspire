@@ -62,7 +62,7 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
     }
 
     public static TestDistributedApplicationBuilder CreateWithTestContainerRegistry(ITestOutputHelper testOutputHelper) =>
-        Create(o => o.ContainerRegistryOverride = TestConstants.AspireTestContainerRegistry, testOutputHelper);
+        Create(o => o.ContainerRegistryOverride = ComponentTestConstants.AspireTestContainerRegistry, testOutputHelper);
 
     private TestDistributedApplicationBuilder(Action<DistributedApplicationOptions>? configureOptions, ITestOutputHelper? testOutputHelper = null)
     {

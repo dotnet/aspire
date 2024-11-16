@@ -6,6 +6,7 @@
     <PackageTags>aspire integration hosting elasticsearch</PackageTags>
     <Description>Elasticsearch support for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)Elastic_logo.png</PackageIconFullPath>
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -13,7 +14,6 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
     <Compile Include="$(ComponentsDir)Aspire.Elastic.Clients.Elasticsearch\ElasticsearchHealthCheck.cs" Link="ElasticsearchHealthCheck.cs"></Compile>
   </ItemGroup>
 

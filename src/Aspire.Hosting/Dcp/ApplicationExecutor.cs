@@ -209,7 +209,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     }
 
     // Sets the state of the resource's children
-    async Task SetChildResourceAsync(IResource resource, string? state, DateTime? startTimeStamp, DateTime? stopTimeStamp)
+    async Task SetChildResourceAsync(IResource resource, string parentName, string? state, DateTime? startTimeStamp, DateTime? stopTimeStamp)
     {
         foreach (var child in _parentChildLookup[resource])
         {
@@ -217,7 +217,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 State = state,
                 StartTimeStamp = startTimeStamp,
-                StopTimeStamp = stopTimeStamp
+                StopTimeStamp = stopTimeStamp,
+                Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, parentName)
             }).ConfigureAwait(false);
         }
     }
@@ -244,7 +245,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
 
             var reports = annotations.Select(annotation => new HealthReportSnapshot(annotation.Key, null, null, null));
-            return [..reports];
+            return [.. reports];
         }
     }
 
@@ -438,6 +439,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     await SetChildResourceAsync(
                         appModelResource,
+                        resource.Metadata.Name,
                         status.State,
                         status.StartupTimestamp?.ToUniversalTime(),
                         status.FinishTimestamp?.ToUniversalTime()).ConfigureAwait(false);
@@ -1533,7 +1535,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 })
                 .ConfigureAwait(false);
 
-                await SetChildResourceAsync(cr.ModelResource, state: "Starting", startTimeStamp: null, stopTimeStamp: null).ConfigureAwait(false);
+                await SetChildResourceAsync(cr.ModelResource, cr.DcpResource.Metadata.Name, state: "Starting", startTimeStamp: null, stopTimeStamp: null).ConfigureAwait(false);
 
                 try
                 {
@@ -1552,7 +1554,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                     await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
 
-                    await SetChildResourceAsync(cr.ModelResource, state: "FailedToStart", startTimeStamp: null, stopTimeStamp: null).ConfigureAwait(false);
+                    await SetChildResourceAsync(cr.ModelResource, cr.DcpResource.Metadata.Name, state: "FailedToStart", startTimeStamp: null, stopTimeStamp: null).ConfigureAwait(false);
                 }
             }
 
@@ -2114,7 +2116,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     BackoffType = DelayBackoffType.Exponential,
                     Delay = TimeSpan.FromMilliseconds(200),
                     UseJitter = true,
-                    MaxRetryAttempts = 6, // Cumulative time for all attempts amounts to about 12 seconds
+                    MaxRetryAttempts = 10, // Cumulative time for all attempts amounts to about 15 seconds
+                    MaxDelay = TimeSpan.FromSeconds(3),
                     ShouldHandle = new PredicateBuilder().Handle<Exception>(),
                     OnRetry = (retry) =>
                     {

@@ -8,6 +8,7 @@ using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -96,7 +97,7 @@ public class ManifestGenerationTests
         var redis = builder.AddContainer("redis", "redis");
         builder.Build().Run();
 
-        var redisManifest = await ManifestUtils.GetManifest(redis.Resource);
+        var redisManifest = await ManifestUtils.GetManifest(redis.Resource).DefaultTimeout();
         var expectedManifest = $$"""
             {
               "type": "container.v0",
@@ -417,9 +418,7 @@ public class ManifestGenerationTests
                     "HTTP_PORTS": "{integrationservicea.bindings.http.targetPort}",
                     "SKIP_RESOURCES": "None",
                     "ConnectionStrings__redis": "{redis.connectionString}",
-                    "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
-                    "ConnectionStrings__cosmos": "{cosmos.connectionString}",
-                    "ConnectionStrings__eventhubns": "{eventhubns.connectionString}"
+                    "ConnectionStrings__postgresdb": "{postgresdb.connectionString}"
                   },
                   "bindings": {
                     "http": {
@@ -437,7 +436,7 @@ public class ManifestGenerationTests
                 "redis": {
                   "type": "container.v0",
                   "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+                  "image": "{{ComponentTestConstants.AspireTestContainerRegistry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",
@@ -450,7 +449,7 @@ public class ManifestGenerationTests
                 "postgres": {
                   "type": "container.v0",
                   "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
+                  "image": "{{ComponentTestConstants.AspireTestContainerRegistry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
                   "env": {
                     "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
                     "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -470,23 +469,6 @@ public class ManifestGenerationTests
                 "postgresdb": {
                   "type": "value.v0",
                   "connectionString": "{postgres.connectionString};Database=postgresdb"
-                },
-                "cosmos": {
-                  "type": "azure.bicep.v0",
-                  "connectionString": "{cosmos.secretOutputs.connectionString}",
-                  "path": "cosmos.module.bicep",
-                  "params": {
-                    "keyVaultName": ""
-                  }
-                },
-                "eventhubns": {
-                  "type": "azure.bicep.v0",
-                  "connectionString": "{eventhubns.outputs.eventHubsEndpoint}",
-                  "path": "eventhubns.module.bicep",
-                  "params": {
-                    "principalId": "",
-                    "principalType": ""
-                  }
                 },
                 "postgres-password": {
                   "type": "parameter.v0",
@@ -552,7 +534,7 @@ public class ManifestGenerationTests
             }
             """;
 
-        var manifest = await ManifestUtils.GetManifest(param.Resource);
+        var manifest = await ManifestUtils.GetManifest(param.Resource).DefaultTimeout();
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 

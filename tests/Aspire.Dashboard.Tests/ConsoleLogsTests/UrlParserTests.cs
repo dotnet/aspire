@@ -40,7 +40,7 @@ public class UrlParserTests
     [InlineData("http://bing.com/", "<a target=\"_blank\" href=\"http://bing.com/\">http://bing.com/</a>")]
     [InlineData("http://bing.com/dir", "<a target=\"_blank\" href=\"http://bing.com/dir\">http://bing.com/dir</a>")]
     [InlineData("http://bing.com/index.aspx", "<a target=\"_blank\" href=\"http://bing.com/index.aspx\">http://bing.com/index.aspx</a>")]
-    [InlineData("http://bing", "<a target=\"_blank\" href=\"http://bing\">http://bing</a>")]
+    [InlineData("http://localhost", "<a target=\"_blank\" href=\"http://localhost\">http://localhost</a>")]
     public void TryParse_SupportedUrlFormats(string input, string? expectedOutput)
     {
         var result = UrlParser.TryParse(input, WebUtility.HtmlEncode, out var modifiedText);
@@ -71,6 +71,15 @@ public class UrlParserTests
         Assert.Equal(expectedOutput, modifiedText);
     }
 
+    [Fact]
+    public void TryParse_QueryString()
+    {
+        var result = UrlParser.TryParse("https://www.example.com?query=string&param=value", WebUtility.HtmlEncode, out var modifiedText);
+        Assert.True(result);
+
+        Assert.Equal("<a target=\"_blank\" href=\"https://www.example.com?query=string&param=value\">https://www.example.com?query=string&amp;param=value</a>", modifiedText);
+    }
+
     [Theory]
     [InlineData("http://www.localhost:8080")]
     [InlineData("HTTP://WWW.LOCALHOST:8080")]
@@ -82,5 +91,18 @@ public class UrlParserTests
         var regex = UrlParser.GenerateUrlRegEx();
         var match = regex.Match(content);
         Assert.Equal("http://www.localhost:8080", match.Value.ToLowerInvariant());
+    }
+
+    [Theory]
+    [InlineData("http://www.localhost:8080!", "http://www.localhost:8080!")]
+    [InlineData("http://www.localhost:8080/path!", "http://www.localhost:8080/path!")]
+    [InlineData("http://www.localhost:8080/path;", "http://www.localhost:8080/path")]
+    [InlineData("http://www.localhost:8080;", "http://www.localhost:8080")]
+    [InlineData("http://www.local;host:8080;", "http://www.local")]
+    public void GenerateUrlRegEx_MatchUrlBeforeContent(string content, string expected)
+    {
+        var regex = UrlParser.GenerateUrlRegEx();
+        var match = regex.Match(content);
+        Assert.Equal(expected, match.Value.ToLowerInvariant());
     }
 }

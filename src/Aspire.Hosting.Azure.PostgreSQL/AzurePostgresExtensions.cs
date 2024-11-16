@@ -157,7 +157,7 @@ public static class AzurePostgresExtensions
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
             var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
 
-            var admin = new PostgreSqlFlexibleServerActiveDirectoryAdministrator($"{postgres.IdentifierName}_admin")
+            var admin = new PostgreSqlFlexibleServerActiveDirectoryAdministrator($"{postgres.BicepIdentifier}_admin")
             {
                 Parent = postgres,
                 Name = principalIdParameter,
@@ -167,7 +167,7 @@ public static class AzurePostgresExtensions
 
             // This is a workaround for a bug in the API that requires the parent to be fully resolved
             admin.DependsOn.Add(postgres);
-            foreach (var firewall in infrastructure.GetResources().OfType<PostgreSqlFlexibleServerFirewallRule>())
+            foreach (var firewall in infrastructure.GetProvisionableResources().OfType<PostgreSqlFlexibleServerFirewallRule>())
             {
                 admin.DependsOn.Add(firewall);
             }
@@ -355,7 +355,7 @@ public static class AzurePostgresExtensions
 
                 RemoveActiveDirectoryAuthResources(infrastructure);
 
-                var postgres = infrastructure.GetResources().OfType<PostgreSqlFlexibleServer>().FirstOrDefault(r => r.IdentifierName == azureResource.GetBicepIdentifier())
+                var postgres = infrastructure.GetProvisionableResources().OfType<PostgreSqlFlexibleServer>().FirstOrDefault(r => r.BicepIdentifier == azureResource.GetBicepIdentifier())
                     ?? throw new InvalidOperationException($"Could not find a PostgreSqlFlexibleServer with name {azureResource.Name}.");
 
                 var administratorLogin = new ProvisioningParameter("administratorLogin", typeof(string));
@@ -393,7 +393,7 @@ public static class AzurePostgresExtensions
 
                 foreach (var database in azureResource.Databases)
                 {
-                    var dbSecret = new KeyVaultSecret(Infrastructure.NormalizeIdentifierName(database.Key + "_connectionString"))
+                    var dbSecret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier(database.Key + "_connectionString"))
                     {
                         Parent = keyVault,
                         Name = AzurePostgresFlexibleServerResource.GetDatabaseKeyVaultSecretName(database.Key),
@@ -417,7 +417,7 @@ public static class AzurePostgresExtensions
                 Name = "Standard_B1ms",
                 Tier = PostgreSqlFlexibleServerSkuTier.Burstable
             },
-            Version = new StringLiteral("16"),
+            Version = new StringLiteralExpression("16"),
             HighAvailability = new PostgreSqlFlexibleServerHighAvailability()
             {
                 Mode = PostgreSqlFlexibleServerHighAvailabilityMode.Disabled
@@ -455,9 +455,9 @@ public static class AzurePostgresExtensions
 
         foreach (var databaseNames in databases)
         {
-            var identifierName = Infrastructure.NormalizeIdentifierName(databaseNames.Key);
+            var bicepIdentifier = Infrastructure.NormalizeBicepIdentifier(databaseNames.Key);
             var databaseName = databaseNames.Value;
-            var pgsqlDatabase = new PostgreSqlFlexibleServerDatabase(identifierName)
+            var pgsqlDatabase = new PostgreSqlFlexibleServerDatabase(bicepIdentifier)
             {
                 Parent = postgres,
                 Name = databaseName
@@ -480,13 +480,13 @@ public static class AzurePostgresExtensions
     private static void RemoveActiveDirectoryAuthResources(AzureResourceInfrastructure infrastructure)
     {
         var resourcesToRemove = new List<Provisionable>();
-        foreach (var resource in infrastructure.GetResources())
+        foreach (var resource in infrastructure.GetProvisionableResources())
         {
             if (resource is PostgreSqlFlexibleServerActiveDirectoryAdministrator)
             {
                 resourcesToRemove.Add(resource);
             }
-            else if (resource is ProvisioningOutput output && output.IdentifierName == "connectionString")
+            else if (resource is ProvisioningOutput output && output.BicepIdentifier == "connectionString")
             {
                 resourcesToRemove.Add(resource);
             }

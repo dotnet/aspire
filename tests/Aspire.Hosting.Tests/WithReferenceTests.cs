@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -25,7 +26,7 @@ public class WithReferenceTests
         var projectB = builder.AddProject<ProjectB>("b").WithReference(projectA.GetEndpoint(endpointName));
 
         // Call environment variable callbacks.
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
     }
@@ -48,7 +49,7 @@ public class WithReferenceTests
                .WithReference(projectA.GetEndpoint("myconflictingbinding"));
 
         // Call environment variable callbacks.
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
         Assert.Equal("https://localhost:3000", config["services__projecta__myconflictingbinding__0"]);
@@ -73,7 +74,7 @@ public class WithReferenceTests
                               .WithReference(projectA.GetEndpoint("mynonconflictingbinding"));
 
         // Call environment variable callbacks.
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
         Assert.Equal("http://localhost:3000", config["services__projecta__mynonconflictingbinding__0"]);
@@ -96,7 +97,7 @@ public class WithReferenceTests
                               .WithReference(projectA);
 
         // Call environment variable callbacks.
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
         Assert.Equal("https://localhost:3000", config["services__projecta__mybinding2__0"]);
@@ -117,7 +118,7 @@ public class WithReferenceTests
         var projectB = builder.AddProject<ProjectB>("projectb")
                               .WithReference(projectA);
         // Call environment variable callbacks.
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
         Assert.Equal("http://localhost:3000", config["services__projecta__mybinding2__0"]);
@@ -136,7 +137,7 @@ public class WithReferenceTests
         await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
         {
             await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
-        });
+        }).DefaultTimeout();
     }
 
     [Fact]
@@ -149,7 +150,7 @@ public class WithReferenceTests
         var projectB = builder.AddProject<ProjectB>("projectB")
                               .WithReference(resource, optional: true);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(0, servicesKeysCount);
@@ -169,7 +170,7 @@ public class WithReferenceTests
         var exception = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
         {
             var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
-        });
+        }).DefaultTimeout();
 
         Assert.Equal("Connection string parameter resource could not be used because connection string 'missingresource' is missing.", exception.Message);
     }
@@ -187,7 +188,7 @@ public class WithReferenceTests
                              .WithReference(resource);
 
         // Call environment variable callbacks.
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("test connection string", config["ConnectionStrings__resource"]);
     }
@@ -203,7 +204,7 @@ public class WithReferenceTests
                        .WithReference(resource);
 
         // Call environment variable callbacks.
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Publish);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Publish).DefaultTimeout();
 
         Assert.Equal("{resource.connectionString}", config["ConnectionStrings__resource"]);
     }
@@ -219,7 +220,7 @@ public class WithReferenceTests
                               .WithReference(resource);
 
         // Call environment variable callbacks.
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Publish);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Publish).DefaultTimeout();
 
         Assert.Equal("{resource.connectionString}", config["MY_ENV"]);
     }
@@ -238,7 +239,7 @@ public class WithReferenceTests
                               .WithReference(resource);
 
         // Call environment variable callbacks.
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(1, servicesKeysCount);
@@ -260,7 +261,7 @@ public class WithReferenceTests
                               .WithReference(resource, connectionName: "bob");
 
         // Call environment variable callbacks.
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(1, servicesKeysCount);
@@ -292,7 +293,7 @@ public class WithReferenceTests
                                .WithReference("petstore", new Uri("https://petstore.swagger.io/"));
 
         // Call environment variable callbacks.
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectA.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectA.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(1, servicesKeysCount);

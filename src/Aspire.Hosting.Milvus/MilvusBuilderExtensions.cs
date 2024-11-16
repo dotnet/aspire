@@ -156,7 +156,7 @@ public static class MilvusBuilderExtensions
     public static IResourceBuilder<MilvusServerResource> WithDataVolume(this IResourceBuilder<MilvusServerResource> builder, string? name = null, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/milvus", isReadOnly);
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/var/lib/milvus", isReadOnly);
     }
 
     /// <summary>

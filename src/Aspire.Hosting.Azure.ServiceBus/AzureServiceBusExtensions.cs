@@ -9,7 +9,6 @@ using Aspire.Hosting.Azure.ServiceBus;
 using Aspire.Hosting.Utils;
 using Azure.Messaging.ServiceBus;
 using Azure.Provisioning;
-using Azure.Provisioning.Expressions;
 using Azure.Provisioning.ServiceBus;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -34,7 +33,7 @@ public static class AzureServiceBusExtensions
         {
             var skuParameter = new ProvisioningParameter("sku", typeof(string))
             {
-                Value = new StringLiteral("Standard")
+                Value = "Standard"
             };
             infrastructure.Add(skuParameter);
 

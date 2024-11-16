@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Logging;
 
@@ -19,6 +20,24 @@ static class TestResourceExtensions
                           Properties = [
                               new("P1", "P2"),
                               new(CustomResourceKnownProperties.Source, "Custom")
+                          ]
+                      })
+                      .ExcludeFromManifest();
+
+        return rb;
+    }
+
+    public static IResourceBuilder<TestNestedResource> AddNestedResource(this IDistributedApplicationBuilder builder, string name, IResource parent)
+    {
+        var rb = builder.AddResource(new TestNestedResource(name, parent))
+                      .WithInitialState(new()
+                      {
+                          ResourceType = "Test Nested Resource",
+                          State = "Starting",
+                          Properties = [
+                              new("P1", "P2"),
+                              new(CustomResourceKnownProperties.Source, "Custom"),
+                              new(KnownProperties.Resource.ParentName, parent.Name)
                           ]
                       })
                       .ExcludeFromManifest();
@@ -80,4 +99,9 @@ internal sealed class TestResourceLifecycleHook(ResourceNotificationService noti
 sealed class TestResource(string name) : Resource(name)
 {
 
+}
+
+sealed class TestNestedResource(string name, IResource parent) : Resource(name), IResourceWithParent
+{
+    public IResource Parent { get; } = parent;
 }

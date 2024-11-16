@@ -116,36 +116,22 @@ public partial class TraceDetail : ComponentBase
         }
     }
 
+    private readonly record struct SpanWaterfallViewModelState(SpanWaterfallViewModel? Parent, int Depth, bool Hidden);
+
     private static List<SpanWaterfallViewModel> CreateSpanWaterfallViewModels(OtlpTrace trace, TraceDetailState state)
     {
         var orderedSpans = new List<SpanWaterfallViewModel>();
-        // There should be one root span but just in case, we'll add them all.
-        foreach (var rootSpan in trace.Spans.Where(s => string.IsNullOrEmpty(s.ParentSpanId)).OrderBy(s => s.StartTime))
+
+        TraceHelpers.VisitSpans(trace, (OtlpSpan span, SpanWaterfallViewModelState s) =>
         {
-            AddSelfAndChildren(orderedSpans, rootSpan, depth: 1, hidden: false, state, CreateViewModel);
-        }
-        // Unparented spans.
-        foreach (var unparentedSpan in trace.Spans.Where(s => !string.IsNullOrEmpty(s.ParentSpanId) && s.GetParentSpan() == null).OrderBy(s => s.StartTime))
-        {
-            AddSelfAndChildren(orderedSpans, unparentedSpan, depth: 1, hidden: false, state, CreateViewModel);
-        }
+            var viewModel = CreateViewModel(span, s.Depth, s.Hidden, state);
+            var peers = s.Parent?.Children ?? orderedSpans;
+            peers.Add(viewModel);
+
+            return s with { Depth = s.Depth + 1, Hidden = viewModel.IsHidden || viewModel.IsCollapsed };
+        }, new SpanWaterfallViewModelState(Parent: null, Depth: 1, Hidden: false));
 
         return orderedSpans;
-
-        static SpanWaterfallViewModel AddSelfAndChildren(List<SpanWaterfallViewModel> orderedSpans, OtlpSpan span, int depth, bool hidden, TraceDetailState state, Func<OtlpSpan, int, bool, TraceDetailState, SpanWaterfallViewModel> createViewModel)
-        {
-            var viewModel = createViewModel(span, depth, hidden, state);
-            orderedSpans.Add(viewModel);
-            depth++;
-
-            foreach (var child in span.GetChildSpans().OrderBy(s => s.StartTime))
-            {
-                var childViewModel = AddSelfAndChildren(orderedSpans, child, depth, viewModel.IsHidden || viewModel.IsCollapsed, state, createViewModel);
-                viewModel.Children.Add(childViewModel);
-            }
-
-            return viewModel;
-        }
 
         static SpanWaterfallViewModel CreateViewModel(OtlpSpan span, int depth, bool hidden, TraceDetailState state)
         {

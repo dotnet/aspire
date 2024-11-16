@@ -1,14 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Data.Common;
 using Aspire;
 using Aspire.Npgsql;
 using HealthChecks.NpgSql;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace Microsoft.Extensions.Hosting;
@@ -106,41 +104,12 @@ public static class AspirePostgreSqlNpgsqlExtensions
 
     private static void RegisterNpgsqlServices(this IHostApplicationBuilder builder, NpgsqlSettings settings, string connectionName, object? serviceKey, Action<NpgsqlDataSourceBuilder>? configureDataSourceBuilder)
     {
-        if (serviceKey is null)
+        builder.Services.AddNpgsqlDataSource(settings.ConnectionString ?? string.Empty, dataSourceBuilder =>
         {
             // delay validating the ConnectionString until the DataSource is requested. This ensures an exception doesn't happen until a Logger is established.
-            builder.Services.AddNpgsqlDataSource(settings.ConnectionString ?? string.Empty, dataSourceBuilder =>
-            {
-                ValidateConnection();
-
-                configureDataSourceBuilder?.Invoke(dataSourceBuilder);
-            });
-        }
-        else
-        {
-            // Currently Npgsql does not support Keyed DI Registration, so we implement it on our own.
-            // Register a NpgsqlDataSource factory method, based on https://github.com/npgsql/npgsql/blob/c2fc02a858176f2b5eab7a2c2336ff5ab4748ad0/src/Npgsql.DependencyInjection/NpgsqlServiceCollectionExtensions.cs#L147-L150
-            builder.Services.AddKeyedSingleton<NpgsqlDataSource>(serviceKey, (serviceProvider, _) =>
-            {
-                ValidateConnection();
-
-                var dataSourceBuilder = new NpgsqlDataSourceBuilder(settings.ConnectionString);
-                dataSourceBuilder.UseLoggerFactory(serviceProvider.GetService<ILoggerFactory>());
-
-                configureDataSourceBuilder?.Invoke(dataSourceBuilder);
-
-                return dataSourceBuilder.Build();
-            });
-            // Common Services, based on https://github.com/npgsql/npgsql/blob/c2fc02a858176f2b5eab7a2c2336ff5ab4748ad0/src/Npgsql.DependencyInjection/NpgsqlServiceCollectionExtensions.cs#L165
-            // They let the users resolve NpgsqlConnection directly.
-            builder.Services.AddKeyedSingleton<DbDataSource>(serviceKey, static (serviceProvider, key) => serviceProvider.GetRequiredKeyedService<NpgsqlDataSource>(key));
-            builder.Services.AddKeyedTransient<NpgsqlConnection>(serviceKey, static (serviceProvider, key) => serviceProvider.GetRequiredKeyedService<NpgsqlDataSource>(key).CreateConnection());
-            builder.Services.AddKeyedTransient<DbConnection>(serviceKey, static (serviceProvider, key) => serviceProvider.GetRequiredKeyedService<NpgsqlConnection>(key));
-        }
-
-        void ValidateConnection()
-        {
             ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName);
-        }
+
+            configureDataSourceBuilder?.Invoke(dataSourceBuilder);
+        }, serviceKey: serviceKey);
     }
 }

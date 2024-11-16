@@ -16,6 +16,7 @@ using StackExchange.Redis;
 using Xunit;
 using Xunit.Abstractions;
 using Aspire.Hosting.Tests.Dcp;
+using System.Text.Json.Nodes;
 
 namespace Aspire.Hosting.Redis.Tests;
 
@@ -130,7 +131,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var configure = (DistributedApplicationOptions options) =>
         {
-            options.ContainerRegistryOverride = TestConstants.AspireTestContainerRegistry;
+            options.ContainerRegistryOverride = ComponentTestConstants.AspireTestContainerRegistry;
         };
 
         using var builder1 = TestDistributedApplicationBuilder.Create(configure, testOutputHelper);
@@ -298,7 +299,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         var redis1 = builder1.AddRedis("redis");
 
         // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
-        var volumeName = VolumeNameGenerator.CreateVolumeName(redis1, nameof(WithDataVolumeShouldPersistStateBetweenUsages));
+        var volumeName = VolumeNameGenerator.Generate(redis1, nameof(WithDataVolumeShouldPersistStateBetweenUsages));
         redis1.WithDataVolume(volumeName);
         // if the volume already exists (because of a crashing previous run), delete it
         DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
@@ -532,6 +533,171 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
             await app.StopAsync();
         }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [RequiresDocker]
+    public async Task RedisInsightWithDataShouldPersistStateBetweenUsages(bool useVolume)
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+
+        string? volumeName = null;
+        string? bindMountPath = null;
+
+        try
+        {
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            IResourceBuilder<RedisInsightResource>? redisInsightBuilder1 = null;
+            var redis1 = builder1.AddRedis("redis")
+                .WithRedisInsight(c => { redisInsightBuilder1 = c; });
+            Assert.NotNull(redisInsightBuilder1);
+
+            if (useVolume)
+            {
+                // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
+                volumeName = VolumeNameGenerator.Generate(redisInsightBuilder1, nameof(RedisInsightWithDataShouldPersistStateBetweenUsages));
+
+                // if the volume already exists (because of a crashing previous run), delete it
+                DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
+                redisInsightBuilder1.WithDataVolume(volumeName);
+            }
+            else
+            {
+                bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                redisInsightBuilder1.WithDataBindMount(bindMountPath);
+            }
+
+            using (var app = builder1.Build())
+            {
+                await app.StartAsync();
+
+                // RedisInsight will import databases when it is ready, this task will run after the initial databases import
+                // so we will use that to know when the databases have been successfully imported
+                var redisInsightsReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                builder1.Eventing.Subscribe<ResourceReadyEvent>(redisInsightBuilder1.Resource, (evt, ct) =>
+                {
+                    redisInsightsReady.TrySetResult();
+                    return Task.CompletedTask;
+                });
+
+                await redisInsightsReady.Task.WaitAsync(cts.Token);
+
+                try
+                {
+                    var httpClient = app.CreateHttpClient(redisInsightBuilder1.Resource.Name, "http");
+                    await AcceptRedisInsightEula(httpClient, cts.Token);
+                }
+                finally
+                {
+                    // Stops the container, or the Volume would still be in use
+                    await app.StopAsync();
+                }
+            }
+
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+            IResourceBuilder<RedisInsightResource>? redisInsightBuilder2 = null;
+            var redis2 = builder2.AddRedis("redis")
+                .WithRedisInsight(c => { redisInsightBuilder2 = c; });
+            Assert.NotNull(redisInsightBuilder2);
+
+            if (useVolume)
+            {
+                redisInsightBuilder2.WithDataVolume(volumeName);
+            }
+            else
+            {
+                redisInsightBuilder2.WithDataBindMount(bindMountPath!);
+            }
+
+            using (var app = builder2.Build())
+            {
+                await app.StartAsync();
+
+                // RedisInsight will import databases when it is ready, this task will run after the initial databases import
+                // so we will use that to know when the databases have been successfully imported
+                var redisInsightsReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                builder2.Eventing.Subscribe<ResourceReadyEvent>(redisInsightBuilder2.Resource, (evt, ct) =>
+                {
+                    redisInsightsReady.TrySetResult();
+                    return Task.CompletedTask;
+                });
+
+                await redisInsightsReady.Task.WaitAsync(cts.Token);
+
+                try
+                {
+                    var httpClient = app.CreateHttpClient(redisInsightBuilder2.Resource.Name, "http");
+                    await EnsureRedisInsightEulaAccepted(httpClient, cts.Token);
+                }
+                finally
+                {
+                    // Stops the container, or the Volume would still be in use
+                    await app.StopAsync();
+                }
+            }
+        }
+        finally
+        {
+            if (volumeName is not null)
+            {
+                DockerUtils.AttemptDeleteDockerVolume(volumeName);
+            }
+
+            if (bindMountPath is not null)
+            {
+                try
+                {
+                    Directory.Delete(bindMountPath, recursive: true);
+                }
+                catch
+                {
+                    // Don't fail test if we can't clean the temporary folder
+                }
+            }
+        }
+    }
+
+    private static async Task EnsureRedisInsightEulaAccepted(HttpClient httpClient, CancellationToken ct)
+    {
+        var response = await httpClient.GetAsync("/api/settings", ct);
+        response.EnsureSuccessStatusCode();
+
+        var content = await response.Content.ReadAsStringAsync(ct);
+
+        var jo = JsonObject.Parse(content);
+        Assert.NotNull(jo);
+        var agreements = jo["agreements"];
+
+        Assert.NotNull(agreements);
+        Assert.False(agreements["analytics"]!.GetValue<bool>());
+        Assert.False(agreements["notifications"]!.GetValue<bool>());
+        Assert.False(agreements["encryption"]!.GetValue<bool>());
+        Assert.True(agreements["eula"]!.GetValue<bool>());
+    }
+
+    static async Task AcceptRedisInsightEula(HttpClient client, CancellationToken ct)
+    {
+        var jsonContent = JsonContent.Create(new
+        {
+            agreements = new
+            {
+                eula = true,
+                analytics = false,
+                notifications = false,
+                encryption = false,
+            }
+        });
+
+        var apiUrl = $"/api/settings";
+
+        var response = await client.PatchAsync(apiUrl, jsonContent, ct);
+
+        response.EnsureSuccessStatusCode();
+
+        await EnsureRedisInsightEulaAccepted(client, ct);
     }
 
     internal sealed class RedisInsightDatabaseModel

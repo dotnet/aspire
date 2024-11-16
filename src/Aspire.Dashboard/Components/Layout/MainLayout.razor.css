@@ -53,7 +53,7 @@
         grid-area: head;
     }
 
-    ::deep.layout > .nav-menu-container {
+    ::deep.layout > .fluent-appbar {
         grid-area: nav;
         overflow-y: auto;
         background: var(--neutral-layer-4);
@@ -165,7 +165,7 @@
         grid-area: head;
     }
 
-    ::deep.layout > .nav-menu-container {
+    ::deep.layout > .fluent-appbar {
         grid-area: nav;
         overflow-y: auto;
         background: var(--neutral-layer-4);

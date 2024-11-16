@@ -102,7 +102,7 @@ public static class ValkeyBuilderExtensions
     public static IResourceBuilder<ValkeyResource> WithDataVolume(this IResourceBuilder<ValkeyResource> builder,
         string? name = null, bool isReadOnly = false)
     {
-        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), ValkeyContainerDataDirectory,
+        builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), ValkeyContainerDataDirectory,
             isReadOnly);
         if (!isReadOnly)
         {
