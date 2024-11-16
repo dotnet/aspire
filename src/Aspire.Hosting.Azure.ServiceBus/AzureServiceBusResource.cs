@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning.ServiceBus;
 
 namespace Aspire.Hosting.Azure;
 
@@ -11,22 +12,32 @@ namespace Aspire.Hosting.Azure;
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureInfrastructure">Callback to configure the Azure Service Bus resource.</param>
 public class AzureServiceBusResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
-    : AzureProvisioningResource(name, configureInfrastructure), IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
+    : AzureProvisioningResource(name, configureInfrastructure), IResourceWithConnectionString, IResourceWithAzureFunctionsConfig, IResourceWithEndpoints
 {
-    internal List<string> Queues { get; } = [];
-    internal List<string> Topics { get; } = [];
-    internal List<(string TopicName, string Name)> Subscriptions { get; } = [];
+    internal List<ServiceBusQueue> Queues { get; } = [];
+    internal List<ServiceBusTopic> Topics { get; } = [];
+    internal List<(string TopicName, ServiceBusSubscription Subscription)> Subscriptions { get; } = [];
+    internal List<(string TopicName, string SubscriptionName, ServiceBusRule Rule)> Rules { get; } = [];
 
     /// <summary>
     /// Gets the "serviceBusEndpoint" output reference from the bicep template for the Azure Storage resource.
     /// </summary>
     public BicepOutputReference ServiceBusEndpoint => new("serviceBusEndpoint", this);
 
+    internal EndpointReference EmulatorEndpoint => new(this, "emulator");
+
+    /// <summary>
+    /// Gets a value indicating whether the Azure Service Bus resource is running in the local emulator.
+    /// </summary>
+    public bool IsEmulator => this.IsContainer();
+
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Service Bus endpoint.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"{ServiceBusEndpoint}");
+        IsEmulator
+        ? ReferenceExpression.Create($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.Host)}:{EmulatorEndpoint.Property(EndpointProperty.Port)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;")
+        : ReferenceExpression.Create($"{ServiceBusEndpoint}");
 
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
     {
