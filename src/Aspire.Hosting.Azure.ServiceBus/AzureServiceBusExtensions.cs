@@ -7,9 +7,11 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.ServiceBus;
 using Aspire.Hosting.Utils;
+using Azure.Messaging.ServiceBus;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.ServiceBus;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -69,11 +71,21 @@ public static class AzureServiceBusExtensions
                 // Topics are added in the dictionary with their normalized names.
                 topicDictionary.Add(topic.IdentifierName, topic);
             }
-            foreach (var subscription in azureResource.Subscriptions)
+            var subscriptionDictionary = new Dictionary<(string, string), ServiceBusSubscription>();
+            foreach (var (topicName, subscription) in azureResource.Subscriptions)
             {
-                var topic = topicDictionary[subscription.TopicName];
-                subscription.Subscription.Parent = topic;
-                infrastructure.Add(subscription.Subscription);
+                var topic = topicDictionary[topicName];
+                subscription.Parent = topic;
+                infrastructure.Add(subscription);
+
+                // Subscriptions are added in the dictionary with their normalized names.
+                subscriptionDictionary.Add((topicName, subscription.IdentifierName), subscription);
+            }
+            foreach (var (topicName, subscriptionName, rule) in azureResource.Rules)
+            {
+                var subscription = subscriptionDictionary[(topicName, subscriptionName)];
+                rule.Parent = subscription;
+                infrastructure.Add(rule);
             }
         };
 
@@ -100,9 +112,10 @@ public static class AzureServiceBusExtensions
         configure?.Invoke(topic);
 
         builder.Resource.Topics.Add(topic);
-        foreach (var subscription in subscriptions)
+        foreach (var subscriptionName in subscriptions)
         {
-            builder.Resource.Subscriptions.Add((normalizedTopicName, new ServiceBusSubscription(Infrastructure.NormalizeIdentifierName(subscription)) { Name = subscription }));
+            var subscription = new ServiceBusSubscription(Infrastructure.NormalizeIdentifierName(subscriptionName)) { Name = subscriptionName };
+            builder.Resource.Subscriptions.Add((normalizedTopicName, subscription));
         }
         return builder;
     }
@@ -161,9 +174,11 @@ public static class AzureServiceBusExtensions
     public static IResourceBuilder<AzureServiceBusResource> AddSubscription(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName, Action<ServiceBusSubscription>? configure = null)
     {
         var normalizedTopicName = Infrastructure.NormalizeIdentifierName(topicName);
-        var sub = new ServiceBusSubscription(normalizedTopicName) { Name = subscriptionName };
-        configure?.Invoke(sub);
-        builder.Resource.Subscriptions.Add((normalizedTopicName, sub));
+        var normalizedSubscriptionName = Infrastructure.NormalizeIdentifierName(subscriptionName);
+
+        var subscription = new ServiceBusSubscription(normalizedSubscriptionName) { Name = subscriptionName };
+        configure?.Invoke(subscription);
+        builder.Resource.Subscriptions.Add((normalizedTopicName, subscription));
         return builder;
     }
 
@@ -267,34 +282,32 @@ public static class AzureServiceBusExtensions
             context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", password);
         }));
 
-        //ServiceBusClient? client = null;
+        ServiceBusClient? client = null;
+        string? connectionString = null;
 
-        //builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(builder.Resource, async (@event, ct) =>
-        //{
-        //    var connectionString = await builder.Resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false)
-        //                ?? throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(builder.Resource, async (@event, ct) =>
+        {
+            connectionString = await builder.Resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
 
-        //    // For the purposes of the health check we only need to know a queue name. If we don't have a queue
-        //    // name we can't configure a valid producer client connection so we should throw. What good is
-        //    // an queue namespace without a queue? :)
-        //    if (builder.Resource.Queues is { Count: > 0 } && builder.Resource.Queues[0] is string hub)
-        //    {
-        //        var healthCheckConnectionString = $"{connectionString};EntityPath={hub};";
-        //        client = new ServiceBusClient(healthCheckConnectionString);
-        //    }
-        //    else
-        //    {
-        //        throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource does not have any Event Hubs.");
-        //    }
-        //});
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
+            }
 
-        //var healthCheckKey = $"{builder.Resource.Name}_check";
-        //builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureServiceBusQueue(
-        //    sp => connectionString ?? throw new DistributedApplicationException("EventHubProducerClient is not initialized"),
-        //    healthCheckKey
-        //    );
+            client = new ServiceBusClient(connectionString);
+        });
 
-        //builder.WithHealthCheck(healthCheckKey);
+        var healthCheckKey = $"{builder.Resource.Name}_check";
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureServiceBusQueue(connectionStringFactory: sp =>
+        {
+            return connectionString ?? throw new InvalidOperationException("ServiceBusClient is not initialized.");
+        }, queueNameFactory: sp =>
+        {
+            var queueName = builder.Resource.Queues[0].Name.Value?.ToString();
+            return queueName ?? throw new InvalidOperationException("Queue name is not initialized.");
+        }, name: healthCheckKey);
+
+        builder.WithHealthCheck(healthCheckKey);
 
         if (configureContainer != null)
         {
@@ -315,7 +328,9 @@ public static class AzureServiceBusExtensions
 
             foreach (var emulatorResource in serviceBusEmulatorResources)
             {
-                var configFileMount = emulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath);
+                // A custom file mount with read-only access is used to mount the emulator configuration file. If it's not found, the read-write mount we defined on the container is used.
+                var configFileMount = emulatorResource.Annotations.OfType<ContainerMountAnnotation>().FirstOrDefault(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath && v.IsReadOnly)
+                    ?? emulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath);
 
                 using var stream = new FileStream(configFileMount.Source!, FileMode.Create);
                 using var writer = new Utf8JsonWriter(stream);
@@ -324,7 +339,6 @@ public static class AzureServiceBusExtensions
                 writer.WriteStartObject("UserConfig");          //   "UserConfig": {
                 writer.WriteStartArray("Namespaces");           //     "Namespaces": [
                 writer.WriteStartObject();                      //       {
-                // Is this name is currently required by the emulator like it is for EventHub?
                 writer.WriteString("Name", "sbemulatorns");     //         "Name": "sbemulatorns"
                 writer.WriteStartArray("Queues");               //         "Queues": [
 
@@ -458,107 +472,101 @@ public static class AzureServiceBusExtensions
                     writer.WriteEndObject();                    //             } (/Properties)
 
                     writer.WriteStartArray("Subscriptions");      //             "Subscriptions": [
-                    foreach (var entry in emulatorResource.Subscriptions)
+                    foreach (var (topicName, subscription) in emulatorResource.Subscriptions)
                     {
-                        if (entry.TopicName != topic.IdentifierName)
+                        if (topicName != topic.IdentifierName)
                         {
                             continue;
                         }
 
-                        var sub = entry.Subscription;
-
                         writer.WriteStartObject();                  //           {
                         if (topic.Name.Kind != BicepValueKind.Unset)
                         {
-                            writer.WriteString(nameof(ServiceBusQueue.Name), sub.Name.Value);
+                            writer.WriteString(nameof(ServiceBusQueue.Name), subscription.Name.Value);
                         }
 
                         writer.WriteStartObject("Properties");      //             "Properties": {
-                        if (sub.Status.Kind != BicepValueKind.Unset)
+                        if (subscription.Status.Kind != BicepValueKind.Unset)
                         {
-                            writer.WriteString(nameof(ServiceBusSubscription.AutoDeleteOnIdle), XmlConvert.ToString(sub.AutoDeleteOnIdle.Value));
+                            writer.WriteString(nameof(ServiceBusSubscription.AutoDeleteOnIdle), XmlConvert.ToString(subscription.AutoDeleteOnIdle.Value));
                         }
-
-                        if (sub.ClientAffineProperties.Kind != BicepValueKind.Unset && sub.ClientAffineProperties.Value != null)
+                        if (subscription.ClientAffineProperties.Kind != BicepValueKind.Unset && subscription.ClientAffineProperties.Value != null)
                         {
                             writer.WriteStartObject("ClientAffineProperties");      //             "ClientAffineProperties": {
 
-                            if (sub.ClientAffineProperties.Value.ClientId.Kind != BicepValueKind.Unset)
+                            if (subscription.ClientAffineProperties.Value.ClientId.Kind != BicepValueKind.Unset)
                             {
-                                writer.WriteString(nameof(ServiceBusClientAffineProperties.ClientId), sub.ClientAffineProperties.Value.ClientId.Value);
+                                writer.WriteString(nameof(ServiceBusClientAffineProperties.ClientId), subscription.ClientAffineProperties.Value.ClientId.Value);
                             }
-                            if (sub.ClientAffineProperties.Value.IsDurable.Kind != BicepValueKind.Unset)
+                            if (subscription.ClientAffineProperties.Value.IsDurable.Kind != BicepValueKind.Unset)
                             {
-                                writer.WriteBoolean(nameof(ServiceBusClientAffineProperties.IsDurable), sub.ClientAffineProperties.Value.IsDurable.Value);
+                                writer.WriteBoolean(nameof(ServiceBusClientAffineProperties.IsDurable), subscription.ClientAffineProperties.Value.IsDurable.Value);
                             }
-                            if (sub.ClientAffineProperties.Value.IsShared.Kind != BicepValueKind.Unset)
+                            if (subscription.ClientAffineProperties.Value.IsShared.Kind != BicepValueKind.Unset)
                             {
-                                writer.WriteBoolean(nameof(ServiceBusClientAffineProperties.IsShared), sub.ClientAffineProperties.Value.IsShared.Value);
+                                writer.WriteBoolean(nameof(ServiceBusClientAffineProperties.IsShared), subscription.ClientAffineProperties.Value.IsShared.Value);
                             }
 
                             writer.WriteEndObject();                    //            } (/ClientAffineProperties)
                         }
-
-                        if (sub.DeadLetteringOnFilterEvaluationExceptions.Kind != BicepValueKind.Unset)
+                        if (subscription.DeadLetteringOnFilterEvaluationExceptions.Kind != BicepValueKind.Unset)
                         {
-                            writer.WriteBoolean(nameof(ServiceBusSubscription.DeadLetteringOnFilterEvaluationExceptions), sub.DeadLetteringOnFilterEvaluationExceptions.Value);
+                            writer.WriteBoolean(nameof(ServiceBusSubscription.DeadLetteringOnFilterEvaluationExceptions), subscription.DeadLetteringOnFilterEvaluationExceptions.Value);
                         }
-                        if (sub.DeadLetteringOnMessageExpiration.Kind != BicepValueKind.Unset)
+                        if (subscription.DeadLetteringOnMessageExpiration.Kind != BicepValueKind.Unset)
                         {
-                            writer.WriteBoolean(nameof(ServiceBusSubscription.DeadLetteringOnMessageExpiration), sub.DeadLetteringOnMessageExpiration.Value);
+                            writer.WriteBoolean(nameof(ServiceBusSubscription.DeadLetteringOnMessageExpiration), subscription.DeadLetteringOnMessageExpiration.Value);
                         }
-                        if (sub.DefaultMessageTimeToLive.Kind != BicepValueKind.Unset)
+                        if (subscription.DefaultMessageTimeToLive.Kind != BicepValueKind.Unset)
                         {
-                            writer.WriteString(nameof(ServiceBusSubscription.DefaultMessageTimeToLive), XmlConvert.ToString(sub.DefaultMessageTimeToLive.Value));
+                            writer.WriteString(nameof(ServiceBusSubscription.DefaultMessageTimeToLive), XmlConvert.ToString(subscription.DefaultMessageTimeToLive.Value));
                         }
-                        if (sub.DuplicateDetectionHistoryTimeWindow.Kind != BicepValueKind.Unset)
+                        if (subscription.DuplicateDetectionHistoryTimeWindow.Kind != BicepValueKind.Unset)
                         {
-                            writer.WriteString(nameof(ServiceBusSubscription.DuplicateDetectionHistoryTimeWindow), XmlConvert.ToString(sub.DuplicateDetectionHistoryTimeWindow.Value));
+                            writer.WriteString(nameof(ServiceBusSubscription.DuplicateDetectionHistoryTimeWindow), XmlConvert.ToString(subscription.DuplicateDetectionHistoryTimeWindow.Value));
                         }
-                        if (sub.EnableBatchedOperations.Kind != BicepValueKind.Unset)
+                        if (subscription.EnableBatchedOperations.Kind != BicepValueKind.Unset)
                         {
-                            writer.WriteBoolean(nameof(ServiceBusSubscription.EnableBatchedOperations), sub.EnableBatchedOperations.Value);
+                            writer.WriteBoolean(nameof(ServiceBusSubscription.EnableBatchedOperations), subscription.EnableBatchedOperations.Value);
                         }
-                        if (sub.ForwardDeadLetteredMessagesTo.Kind != BicepValueKind.Unset)
+                        if (subscription.ForwardDeadLetteredMessagesTo.Kind != BicepValueKind.Unset)
                         {
-                            writer.WriteString(nameof(ServiceBusSubscription.ForwardDeadLetteredMessagesTo), sub.ForwardDeadLetteredMessagesTo.Value);
+                            writer.WriteString(nameof(ServiceBusSubscription.ForwardDeadLetteredMessagesTo), subscription.ForwardDeadLetteredMessagesTo.Value);
                         }
-                        if (sub.ForwardTo.Kind != BicepValueKind.Unset)
+                        if (subscription.ForwardTo.Kind != BicepValueKind.Unset)
                         {
-                            writer.WriteString(nameof(ServiceBusQueue.ForwardTo), sub.ForwardTo.Value);
+                            writer.WriteString(nameof(ServiceBusQueue.ForwardTo), subscription.ForwardTo.Value);
                         }
-                        if (sub.IsClientAffine.Kind != BicepValueKind.Unset)
+                        if (subscription.IsClientAffine.Kind != BicepValueKind.Unset)
                         {
-                            writer.WriteBoolean(nameof(ServiceBusSubscription.IsClientAffine), sub.IsClientAffine.Value);
+                            writer.WriteBoolean(nameof(ServiceBusSubscription.IsClientAffine), subscription.IsClientAffine.Value);
                         }
-                        if (sub.LockDuration.Kind != BicepValueKind.Unset)
+                        if (subscription.LockDuration.Kind != BicepValueKind.Unset)
                         {
-                            writer.WriteString(nameof(ServiceBusSubscription.LockDuration), XmlConvert.ToString(sub.LockDuration.Value));
+                            writer.WriteString(nameof(ServiceBusSubscription.LockDuration), XmlConvert.ToString(subscription.LockDuration.Value));
                         }
-                        if (sub.MaxDeliveryCount.Kind != BicepValueKind.Unset)
+                        if (subscription.MaxDeliveryCount.Kind != BicepValueKind.Unset)
                         {
-                            writer.WriteNumber(nameof(ServiceBusSubscription.MaxDeliveryCount), sub.MaxDeliveryCount.Value);
+                            writer.WriteNumber(nameof(ServiceBusSubscription.MaxDeliveryCount), subscription.MaxDeliveryCount.Value);
                         }
-                        if (sub.RequiresSession.Kind != BicepValueKind.Unset)
+                        if (subscription.RequiresSession.Kind != BicepValueKind.Unset)
                         {
-                            writer.WriteBoolean(nameof(ServiceBusSubscription.RequiresSession), sub.RequiresSession.Value);
+                            writer.WriteBoolean(nameof(ServiceBusSubscription.RequiresSession), subscription.RequiresSession.Value);
                         }
-                        if (sub.Status.Kind != BicepValueKind.Unset)
+                        if (subscription.Status.Kind != BicepValueKind.Unset)
                         {
-                            writer.WriteString(nameof(ServiceBusSubscription.Status), sub.Status.Value.ToString());
+                            writer.WriteString(nameof(ServiceBusSubscription.Status), subscription.Status.Value.ToString());
                         }
                         writer.WriteEndObject();                    //             } (/Properties)
 
                         #region Rules
                         writer.WriteStartArray("Rules");      //             "Rules": [
-                        foreach (var ruleEntry in emulatorResource.Rules)
+                        foreach (var (ruleTopicName, ruleSubscriptionName, rule) in emulatorResource.Rules)
                         {
-                            if (ruleEntry.TopicName != topic.IdentifierName && ruleEntry.SubscriptionName != sub.IdentifierName)
+                            if (ruleTopicName != topic.IdentifierName && ruleSubscriptionName != subscription.IdentifierName)
                             {
                                 continue;
                             }
-
-                            var rule = ruleEntry.Rule;
 
                             writer.WriteStartObject();                  //           {
                             if (rule.Name.Kind != BicepValueKind.Unset)
@@ -713,6 +721,15 @@ public static class AzureServiceBusExtensions
     /// <returns>A builder for the <see cref="AzureServiceBusEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureServiceBusEmulatorResource> WithDataVolume(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, string? name = null)
         => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data", isReadOnly: false);
+
+    /// <summary>
+    /// Adds a bind mount for the configuration file of an Azure Service Bus emulator resource.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="AzureServiceBusEmulatorResource"/>.</param>
+    /// <param name="path">Path to the file on the AppHost where the emulator configuration is located.</param>
+    /// <returns>A builder for the <see cref="AzureServiceBusEmulatorResource"/>.</returns>
+    public static IResourceBuilder<AzureServiceBusEmulatorResource> WithConfigJson(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, string path)
+    => builder.WithBindMount(path, AzureServiceBusEmulatorResource.EmulatorConfigJsonPath, isReadOnly: true);
 
     /// <summary>
     /// Configures the gateway port for the Azure Service Bus emulator.
