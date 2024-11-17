@@ -92,13 +92,15 @@ public class StructuredLogsViewModel
                 filters.Add(new TelemetryFilter { Field = nameof(OtlpLogEntry.Severity), Condition = FilterCondition.GreaterThanOrEqual, Value = _logLevel.Value.ToString() });
             }
 
-            logs = _telemetryRepository.GetGroupedLogs(new GetLogsContext
+            logs = _telemetryRepository.GetLogs(new GetLogsContext
             {
                 ApplicationKey = ApplicationKey,
                 StartIndex = StartIndex,
                 Count = Count,
-                Filters = filters
-            }, ExpandedGroups);
+                Filters = filters,
+                Group = true,
+                ExpandedLogs = ExpandedGroups
+            });
         }
 
         return logs;

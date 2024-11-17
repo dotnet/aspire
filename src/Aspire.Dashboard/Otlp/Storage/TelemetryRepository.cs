@@ -377,43 +377,7 @@ public sealed class TelemetryRepository
         }
     }
 
-    public PagedResult<OtlpLogEntry> GetLogs(GetLogsContext context)
-    {
-        List<OtlpApplication>? applications = null;
-        if (context.ApplicationKey is { } key)
-        {
-            applications = GetApplications(key);
-
-            if (applications.Count == 0)
-            {
-                return PagedResult<OtlpLogEntry>.Empty;
-            }
-        }
-
-        _logsLock.EnterReadLock();
-
-        try
-        {
-            var results = _logs.AsEnumerable();
-            if (applications?.Count > 0)
-            {
-                results = results.Where(l => MatchApplications(l.ApplicationView.Application, applications));
-            }
-
-            foreach (var filter in context.Filters)
-            {
-                results = filter.Apply(results);
-            }
-
-            return OtlpHelpers.GetItems(results, context.StartIndex, context.Count);
-        }
-        finally
-        {
-            _logsLock.ExitReadLock();
-        }
-    }
-
-    public PagedResult<GroupedLogEntry> GetGroupedLogs(GetLogsContext context, List<Guid> expandedLogEntries)
+    public PagedResult<GroupedLogEntry> GetLogs(GetLogsContext context)
     {
         List<OtlpApplication>? applications = null;
         if (context.ApplicationKey is { } key)
@@ -441,21 +405,28 @@ public sealed class TelemetryRepository
                 results = filter.Apply(results);
             }
 
-            var (items, groupedItemCount, totalItemCount) = GetGroupedLogEntriesPage(results, context.StartIndex, context.Count, expandedLogEntries);
-
-            return new PagedResult<GroupedLogEntry>
+            if (context.Group)
             {
-                Items = items,
-                GroupedItemCount = groupedItemCount,
-                TotalItemCount = totalItemCount
-            };
+                var (items, groupedItemCount, totalItemCount) = GetGroupedLogEntriesPage(results, context.StartIndex, context.Count, context.ExpandedLogs);
+
+                return new PagedResult<GroupedLogEntry>
+                {
+                    Items = items,
+                    GroupedItemCount = groupedItemCount,
+                    TotalItemCount = totalItemCount
+                };
+            }
+            else
+            {
+                return OtlpHelpers.GetItems(results, context.StartIndex, context.Count, r => new GroupedLogEntry { LogEntry = r, Expanded = false, GroupCount = 1, HasParent = false });
+            }
         }
         finally
         {
             _logsLock.ExitReadLock();
         }
 
-        static (List<GroupedLogEntry> items, int groupedItemCount, int totalItemCount) GetGroupedLogEntriesPage(IEnumerable<OtlpLogEntry> logEntries, int startIndex, int count, List<Guid> expandedLogEntries)
+        static (List<GroupedLogEntry> items, int groupedItemCount, int totalItemCount) GetGroupedLogEntriesPage(IEnumerable<OtlpLogEntry> logEntries, int startIndex, int count, List<Guid>? expandedLogEntries)
         {
             var currentIndex = 0;
             var totalItems = 0;
@@ -476,7 +447,7 @@ public sealed class TelemetryRepository
                     logEntry.Severity != currentParentLogEntry.Severity ||
                     logEntry.Message != currentParentLogEntry.Message)
                 {
-                    currentParentExpanded = expandedLogEntries.Contains(logEntry.InternalId);
+                    currentParentExpanded = expandedLogEntries?.Contains(logEntry.InternalId) ?? false;
                     currentParentLogEntry = logEntry;
 
                     if (currentIndex >= startIndex && items.Count < count)

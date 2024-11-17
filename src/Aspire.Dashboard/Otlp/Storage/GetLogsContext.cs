@@ -11,4 +11,6 @@ public sealed class GetLogsContext
     public required int StartIndex { get; init; }
     public required int Count { get; init; }
     public required List<TelemetryFilter> Filters { get; init; }
+    public bool Group { get; init; }
+    public List<Guid>? ExpandedLogs { get; init; }
 }
