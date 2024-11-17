@@ -212,5 +212,14 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricsSelectInstrument", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to View attributes.
+        /// </summary>
+        public static string MetricsViewAttributesToolbar {
+            get {
+                return ResourceManager.GetString("MetricsViewAttributesToolbar", resourceCulture);
+            }
+        }
     }
 }

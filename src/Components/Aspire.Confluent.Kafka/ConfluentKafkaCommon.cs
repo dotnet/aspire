@@ -3,7 +3,7 @@
 
 namespace Aspire.Confluent.Kafka;
 
-internal sealed class ConfluentKafkaCommon
+internal static class ConfluentKafkaCommon
 {
     public const string MeterName = "Aspire.Confluent.Kafka";
 

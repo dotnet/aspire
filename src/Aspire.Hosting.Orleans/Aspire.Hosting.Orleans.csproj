@@ -1,14 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting orleans</PackageTags>
+    <PackageTags>aspire integration hosting orleans</PackageTags>
     <Description>Orleans support for .NET Aspire.</Description>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <MinCodeCoverage>100</MinCodeCoverage>
+  </PropertyGroup>
+
   <ItemGroup>
-    <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
 
 </Project>

@@ -2,32 +2,28 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 
-public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
+public partial class SettingsDialog : IDialogContentComponent, IDisposable
 {
-    private string _currentSetting = ThemeManager.ThemeSettingSystem;
+    private string? _currentSetting;
 
-    private IJSObjectReference? _jsModule;
     private IDisposable? _themeChangedSubscription;
 
     [Inject]
-    public required IJSRuntime JS { get; set; }
-
-    [Inject]
-    public required ThemeManager ThemeManager { get; set; }
+    public required ThemeManager ThemeManager { get; init; }
 
     protected override void OnInitialized()
     {
+        _currentSetting = ThemeManager.SelectedTheme ?? ThemeManager.ThemeSettingSystem;
+
         // Handle value being changed in a different browser window.
         _themeChangedSubscription = ThemeManager.OnThemeChanged(async () =>
         {
-            var newValue = ThemeManager.Theme!;
+            var newValue = ThemeManager.SelectedTheme!;
             if (_currentSetting != newValue)
             {
                 _currentSetting = newValue;
@@ -36,27 +32,20 @@ public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
         });
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private async Task SettingChangedAsync()
     {
-        if (firstRender)
+        // The field is being transiently set to null when the value changes. Maybe a bug in FluentUI?
+        // This should never be set to null by the dashboard so we can ignore null values.
+        if (_currentSetting != null)
         {
-            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/theme.js");
-            _currentSetting = await _jsModule.InvokeAsync<string>("getThemeCookieValue");
-            StateHasChanged();
+            // The theme isn't changed here. Instead, the MainLayout subscribes to the change event
+            // and applies the new theme to the browser window.
+            await ThemeManager.RaiseThemeChangedAsync(_currentSetting);
         }
     }
 
-    private async Task SettingChangedAsync(string newValue)
-    {
-        // The theme isn't changed here. Instead, the MainLayout subscribes to the change event
-        // and applies the new theme to the browser window.
-        _currentSetting = newValue;
-        await ThemeManager.RaiseThemeChangedAsync(newValue);
-    }
-
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
         _themeChangedSubscription?.Dispose();
-        await JSInteropHelpers.SafeDisposeAsync(_jsModule);
     }
 }

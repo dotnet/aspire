@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
+  "resources": {
+    "goversion": {
+      "type": "parameter.v0",
+      "value": "{goversion.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "secret": {
+      "type": "parameter.v0",
+      "value": "{secret.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
+    "mycontainer": {
+      "type": "container.v1",
+      "build": {
+        "context": "qots",
+        "dockerfile": "qots/Dockerfile",
+        "args": {
+          "GO_VERSION": "{goversion.value}"
+        },
+        "secrets": {
+          "SECRET_ASENV": {
+            "type": "env",
+            "value": "{secret.value}"
+          }
+        }
+      },
+      "env": {
+        "DOCKER_BUILDKIT": "1"
+      }
+    }
+  }
+}

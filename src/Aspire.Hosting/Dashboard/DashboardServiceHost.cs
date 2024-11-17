@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using System.Net;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Dcp;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -49,7 +48,7 @@ internal sealed class DashboardServiceHost : IHostedService
     public DashboardServiceHost(
         DistributedApplicationOptions options,
         DistributedApplicationModel applicationModel,
-        IKubernetesService kubernetesService,
+        DashboardCommandExecutor commandExecutor,
         IConfiguration configuration,
         DistributedApplicationExecutionContext executionContext,
         ILoggerFactory loggerFactory,
@@ -109,7 +108,7 @@ internal sealed class DashboardServiceHost : IHostedService
 
             builder.Services.AddGrpc();
             builder.Services.AddSingleton(applicationModel);
-            builder.Services.AddSingleton(kubernetesService);
+            builder.Services.AddSingleton(commandExecutor);
             builder.Services.AddSingleton<DashboardServiceData>();
             builder.Services.AddSingleton(resourceNotificationService);
             builder.Services.AddSingleton(resourceLoggerService);

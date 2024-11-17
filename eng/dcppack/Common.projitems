@@ -1,0 +1,83 @@
+<Project>
+  <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.props" />
+
+  <Import Project="$(SharedDir)Workload.targets" />
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <!-- Unset PackageType as that is being set by Workload.targets to DotnetPlatform, which this package no longer is. -->
+    <PackageType />
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
+    <PackageOutputPath Condition=" '$(PackageOutputPath)' == '' ">$(ArtifactsShippingPackagesDir)</PackageOutputPath>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);AddPackageFiles</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <DcpPlatform Condition=" '$(DcpPlatform)' == '' ">$([System.String]::Copy('$(DcpRuntime)').Replace('win-', 'windows-').Replace('osx-', 'darwin-').Replace('-x86', '-386').Replace('-x64', '-amd64'))</DcpPlatform>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>Aspire.Hosting.Orchestration.$(DcpRuntime)</PackageId>
+    <Description>.NET Aspire Orchestration Dependencies</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <TextReplacementValue Include="PlatformRuntime" NewValue="$(DcpRuntime)" />
+    <TextReplacementValue Include="PackageName" NewValue="$(AssemblyName)" />
+  </ItemGroup>
+
+   <ItemGroup>
+    <None Include="**/*.targets" Pack="true" PerformTextReplacement="true" PackagePath="%(RecursiveDir)$(AssemblyName)%(Extension)" />
+   </ItemGroup>
+
+  <!-- Package downloads to DCP packages as we need to repack the binaries from them -->
+  <ItemGroup>
+    <PackageDownload Include="Microsoft.DeveloperControlPlane.darwin-amd64" Version="[$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)]" />
+    <PackageDownload Include="Microsoft.DeveloperControlPlane.darwin-arm64" Version="[$(MicrosoftDeveloperControlPlanedarwinarm64PackageVersion)]" />
+    <PackageDownload Include="Microsoft.DeveloperControlPlane.linux-amd64" Version="[$(MicrosoftDeveloperControlPlanelinuxamd64PackageVersion)]" />
+    <PackageDownload Include="Microsoft.DeveloperControlPlane.linux-arm64" Version="[$(MicrosoftDeveloperControlPlanelinuxarm64PackageVersion)]" />
+    <PackageDownload Include="Microsoft.DeveloperControlPlane.windows-386" Version="[$(MicrosoftDeveloperControlPlanewindows386PackageVersion)]" />
+    <PackageDownload Include="Microsoft.DeveloperControlPlane.windows-amd64" Version="[$(MicrosoftDeveloperControlPlanewindowsamd64PackageVersion)]" />
+    <PackageDownload Include="Microsoft.DeveloperControlPlane.windows-arm64" Version="[$(MicrosoftDeveloperControlPlanewindowsarm64PackageVersion)]" />
+  </ItemGroup>
+
+  <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.targets" />
+
+  <Target Name="Build" />
+
+  <Target Name="_CopyDCPBinaryToIntermediateDir" AfterTargets="Build">
+    <ItemGroup>
+      <_DcpFilesToCopy Include="$(NuGetPackageRoot)microsoft.developercontrolplane.$(DcpPlatform)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)\tools\**\*" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_DcpFilesToCopy)" DestinationFolder="$(IntermediateOutputPath)\tools\%(RecursiveDir)" />
+  </Target>
+
+  <Target Name="GetDCPBinaryLocation" Returns="$(DCPBinariesLocation)">
+    <PropertyGroup>
+      <DCPBinariesLocation>$(IntermediateOutputPath)/tools</DCPBinariesLocation>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="AddPackageFiles" Returns="@(TfmSpecificPackageFile)">
+    <PropertyGroup>
+      <_DcpNuGetRootPath>$(NuGetPackageRoot)microsoft.developercontrolplane.$(DcpPlatform)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools</_DcpNuGetRootPath>
+    </PropertyGroup>
+    <ItemGroup>
+      <_DcpFiles Include="$(_DcpNuGetRootPath)\**\*" />
+      <TfmSpecificPackageFile Include="@(_DcpFiles)" PackagePath="tools/" />
+    </ItemGroup>
+
+    <Error Condition="@(_DcpFiles->Count()) == 0" Text="No dcp files found in : $(_DcpNuGetRootPath)" />
+  </Target>
+
+  <ItemGroup>
+    <None Update="Aspire.Hosting.Orchestration.targets" PerformTextReplacement="" pack="true" PackagePath="build/$(PackageId).targets" />
+    <None Include="UnixFilePermissions.xml" Pack="true" PackagePath="data/" Condition=" '$(DcpPlatformType)' == 'Unix' " />
+  </ItemGroup>
+
+</Project>

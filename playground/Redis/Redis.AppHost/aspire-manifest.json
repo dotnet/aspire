@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
+  "resources": {
+    "redis": {
+      "type": "container.v0",
+      "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
+      "image": "docker.io/library/redis:7.4",
+      "args": [
+        "--save",
+        "60",
+        "1"
+      ],
+      "volumes": [
+        {
+          "name": "redis.apphost-468a945e22-redis-data",
+          "target": "/data",
+          "readOnly": false
+        }
+      ],
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 6379
+        }
+      }
+    },
+    "garnet": {
+      "type": "container.v0",
+      "connectionString": "{garnet.bindings.tcp.host}:{garnet.bindings.tcp.port}",
+      "image": "ghcr.io/microsoft/garnet:1.0",
+      "args": [
+        "--checkpointdir",
+        "/data/checkpoints",
+        "--recover",
+        "--aof",
+        "--aof-commit-freq",
+        "60000"
+      ],
+      "volumes": [
+        {
+          "name": "redis.apphost-468a945e22-garnet-data",
+          "target": "/data",
+          "readOnly": false
+        }
+      ],
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 6379
+        }
+      }
+    },
+    "valkey": {
+      "type": "container.v0",
+      "connectionString": "{valkey.bindings.tcp.host}:{valkey.bindings.tcp.port}",
+      "image": "docker.io/valkey/valkey:8.0",
+      "args": [
+        "--save",
+        "60",
+        "1"
+      ],
+      "volumes": [
+        {
+          "name": "valkey-data",
+          "target": "/data",
+          "readOnly": false
+        }
+      ],
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 6379
+        }
+      }
+    },
+    "apiservice": {
+      "type": "project.v0",
+      "path": "../Redis.ApiService/Redis.ApiService.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{apiservice.bindings.http.targetPort}",
+        "ConnectionStrings__redis": "{redis.connectionString}",
+        "ConnectionStrings__garnet": "{garnet.connectionString}",
+        "ConnectionStrings__valkey": "{valkey.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    }
+  }
+}

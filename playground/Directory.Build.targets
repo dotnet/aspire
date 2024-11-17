@@ -1,0 +1,31 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <!-- Skip dashboard when building outside the repo, like on helix. Or when
+        building on CI -->
+    <SkipDashboardProjectReference Condition="'$(SkipDashboardProjectReference)' == '' and ('$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true')">true</SkipDashboardProjectReference>
+    <!-- Skip resources that require provisioning on Azure when running in CI. -->
+    <SkipProvisionedAzureResource Condition="'$(SkipProvisionedAzureResource)' == '' and ('$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true' or '$(CODESPACES)' == 'true')">true</SkipProvisionedAzureResource>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(SkipDashboardProjectReference)' != 'true'">
+    <ProjectReference Include="$(RepoRoot)src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(RepoRoot)' != '' and '$(SkipAspireHostingAnalyzersReference)' != 'true'">
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" IsAspireProjectResource="false"
+                      PrivateAssets="all"
+                      ReferenceOutputAssembly="false"
+                      OutputItemType="Analyzer"
+                      SetTargetFramework="TargetFramework=netstandard2.0" />
+  </ItemGroup>
+
+  <!-- Import only when in-repo. For the out-of-repo case a parent Directory.Build.targets does the import -->
+  <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.targets" Condition="'$(RepoRoot)' != ''" />
+
+  <PropertyGroup >
+    <DefineConstants Condition="'$(SkipDashboardProjectReference)' == 'true'">SKIP_DASHBOARD_REFERENCE;$(DefineConstants)</DefineConstants>
+    <DefineConstants Condition="'$(SkipProvisionedAzureResource)' == 'true'">SKIP_PROVISIONED_AZURE_RESOURCE;$(DefineConstants)</DefineConstants>
+  </PropertyGroup>
+</Project>

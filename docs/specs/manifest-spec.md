@@ -37,9 +37,9 @@ builder.Build().Run();
 
 When ```dotnet publish``` is called on the AppHost project containing the code above the application model and dependency projects will be built and the AppHost will be executed in a model which emits an ```aspire-manifest.json``` file in the build artifacts for the AppHost project. The manifest file for the above project would look like the following:
 
-```json
+```jsonc
 {
-    "$schema": "<url ot stable schema version",
+    "$schema": "<url to stable schema version>",
     "components": {
         "postgres": {
             "type": "postgres.v1"

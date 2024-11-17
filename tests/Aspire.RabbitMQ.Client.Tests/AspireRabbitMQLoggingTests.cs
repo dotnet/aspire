@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.RabbitMQ;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -23,10 +24,13 @@ public class AspireRabbitMQLoggingTests
     /// The easiest way to ensure a log is written is to start the RabbitMQ container, establish the connection,
     /// and then stop the container. This will cause the RabbitMQ client to log an error message.
     /// </summary>
-    [RequiresDockerFact]
+    [Fact]
+    [RequiresDocker]
     public async Task EndToEndLoggingTest()
     {
-        await using var rabbitMqContainer = new RabbitMqBuilder().Build();
+        await using var rabbitMqContainer = new RabbitMqBuilder()
+            .WithImage($"{ComponentTestConstants.AspireTestContainerRegistry}/{RabbitMQContainerImageTags.Image}:{RabbitMQContainerImageTags.Tag}")
+            .Build();
         await rabbitMqContainer.StartAsync();
 
         var builder = Host.CreateEmptyApplicationBuilder(null);

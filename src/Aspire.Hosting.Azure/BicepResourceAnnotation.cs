@@ -21,7 +21,7 @@ namespace Aspire.Hosting.Azure;
 ///         resource to the application model. This type does not derive from <see cref="AzureBicepResource"/> but can be annotated with
 ///         <see cref="AzureBicepResourceAnnotation"/> by using the AzureSqlExtensions.AsAzureSqlDatabase() extension method.
 ///     </para>
-///     <code>
+///     <code lang="csharp">
 ///         var builder = DistributedApplication.CreateBuilder();
 ///         builder.AddAzureProvisioning();
 ///         var sql = builder.AddSqlServerServer("sql"); // This resource would not be deployable via Azure Provisioner.

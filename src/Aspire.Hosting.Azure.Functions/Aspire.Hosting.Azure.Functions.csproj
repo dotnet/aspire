@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <!-- Azure Functions support is in preview until the full experience is implemented. -->
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <PackageTags>aspire hosting azure functions</PackageTags>
+    <Description>Azure Functions resource types for .NET Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)Azure_256x.png</PackageIconFullPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>0</MinCodeCoverage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting.Azure.Storage\Aspire.Hosting.Azure.Storage.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(SharedDir)CommandLineArgsParser.cs" />
+    <Compile Include="$(SharedDir)\LaunchProfiles\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Aspire.Hosting\Properties\Resources.Designer.cs">
+      <Link>Properties\Resources.Designer.cs</Link>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <EmbeddedResource Include="..\Aspire.Hosting\Properties\Resources.resx">
+      <Link>Properties\Resources.resx</Link>
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <CustomToolNamespace>Aspire.Hosting.Properties</CustomToolNamespace>
+      <LogicalName>Aspire.Hosting.Properties.Resources.resources</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.Tests" />
+  </ItemGroup>
+
+</Project>

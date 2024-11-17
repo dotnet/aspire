@@ -9,7 +9,8 @@ updates:
     registries:
       - public-nuget
     schedule:
-      interval: daily
+      day: monday
+      interval: weekly
       time: "07:00"
       timezone: "America/Los_Angeles"
     open-pull-requests-limit: 15
@@ -19,6 +20,8 @@ updates:
       - dependency-name: "Microsoft.DotNet.Helix.Sdk"
       - dependency-name: "Microsoft.DotNet.SharedFramework.Sdk"
       - dependency-name: "Microsoft.Build.NoTargets"
+      # Pinned versions that should not be updated
+      - dependency-name: "Microsoft.CodeAnalysis.CSharp"
     groups:
       Azure:
         patterns:
@@ -28,13 +31,6 @@ updates:
       AspNetCoreHealthChecks:
         patterns:
           - "AspNetCore.HealthChecks.*"
-      AspNetCore:
-        patterns:
-          - "Microsoft.AspNetCore.*"
-          - "Microsoft.Extensions.Features"
-      MicrosoftExtensions:
-        patterns:
-          - "Microsoft.Extensions.*"
       EntityFrameworkCore:
         patterns:
           - "Microsoft.EntityFrameworkCore.*"
@@ -44,6 +40,13 @@ updates:
       OpenTelemetry:
         patterns:
           - "OpenTelemetry.*"
+      Orleans:
+        patterns:
+          - "Microsoft.Orleans*"
+      NetPlatform:
+        patterns:
+          - "Microsoft.AspNetCore.*"
+          - "Microsoft.Extensions.*"
       Npgsql:
         patterns:
           - "Npgsql.*"
@@ -53,6 +56,9 @@ updates:
       Grpc:
         patterns:
           - "Grpc.*"
+      Polly:
+        patterns:
+          - "Polly.*"
     labels:
       - "area-codeflow"
 

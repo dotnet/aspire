@@ -1,47 +1,36 @@
-targetScope = 'resourceGroup'
-
-@description('')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-@description('')
 param sku string = 'Standard'
 
-@description('')
 param principalId string
 
-@description('')
 param principalType string
 
-
-resource eventHubsNamespace_wORIGuvCQ 'Microsoft.EventHub/namespaces@2021-11-01' = {
-  name: toLower(take('eventhubns${uniqueString(resourceGroup().id)}', 24))
+resource eventhubns 'Microsoft.EventHub/namespaces@2024-01-01' = {
+  name: take('eventhubns-${uniqueString(resourceGroup().id)}', 256)
   location: location
-  tags: {
-    'aspire-resource-name': 'eventhubns'
-  }
   sku: {
     name: sku
   }
-  properties: {
+  tags: {
+    'aspire-resource-name': 'eventhubns'
   }
 }
 
-resource roleAssignment_2so8CKuFt 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: eventHubsNamespace_wORIGuvCQ
-  name: guid(eventHubsNamespace_wORIGuvCQ.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec'))
+resource eventhubns_AzureEventHubsDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(eventhubns.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec'))
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec')
     principalId: principalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec')
     principalType: principalType
   }
+  scope: eventhubns
 }
 
-resource eventHub_4BpPMTltx 'Microsoft.EventHub/namespaces/eventhubs@2021-11-01' = {
-  parent: eventHubsNamespace_wORIGuvCQ
+resource hub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = {
   name: 'hub'
-  location: location
-  properties: {
-  }
+  parent: eventhubns
 }
 
-output eventHubsEndpoint string = eventHubsNamespace_wORIGuvCQ.properties.serviceBusEndpoint
+output eventHubsEndpoint string = eventhubns.properties.serviceBusEndpoint

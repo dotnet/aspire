@@ -5,14 +5,13 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Xunit.Abstractions;
 
-#nullable enable
-
 namespace Aspire.Workload.Tests;
 
 public class ToolCommand : IDisposable
 {
     private readonly string _label;
     private TimeSpan? _timeout;
+    private readonly string _msgPrefix;
     protected ITestOutputHelper _testOutput;
 
     protected string _command;
@@ -32,6 +31,7 @@ public class ToolCommand : IDisposable
         _command = command;
         _testOutput = testOutput;
         _label = label;
+        _msgPrefix = string.IsNullOrEmpty(_label) ? string.Empty : $"[{_label}] ";
     }
 
     public ToolCommand WithWorkingDirectory(string dir)
@@ -81,45 +81,35 @@ public class ToolCommand : IDisposable
     {
         var resolvedCommand = _command;
         string fullArgs = GetFullArgs(args);
-        _testOutput.WriteLine($"[{_label}] Executing - {resolvedCommand} {fullArgs} {WorkingDirectoryInfo()}");
         CancellationTokenSource cts = new();
         if (_timeout is not null)
         {
             cts.CancelAfter((int)_timeout.Value.TotalMilliseconds);
         }
-        return await ExecuteAsyncInternal(resolvedCommand, fullArgs, cts.Token);
-    }
-
-    public virtual Task<CommandResult> ExecuteAsync(CancellationToken token, params string[] args)
-    {
-        var resolvedCommand = _command;
-        string fullArgs = GetFullArgs(args);
-        _testOutput.WriteLine($"[{_label}] Executing - {resolvedCommand} {fullArgs} {WorkingDirectoryInfo()}");
-        return ExecuteAsyncInternal(resolvedCommand, fullArgs, token);
+        try
+        {
+            return await ExecuteAsyncInternal(resolvedCommand, fullArgs, cts.Token);
+        }
+        catch (TaskCanceledException tce) when (cts.IsCancellationRequested)
+        {
+            throw new TaskCanceledException($"Command execution timed out after {_timeout!.Value.TotalSeconds} secs: '{resolvedCommand} {fullArgs}'", tce);
+        }
     }
 
     public virtual void Dispose()
     {
-        if (CurrentProcess is not null && !CurrentProcess.HasExited)
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                CurrentProcess.CloseMainWindow();
-            }
-            CurrentProcess.Kill(entireProcessTree: true);
-            CurrentProcess.Dispose();
-            CurrentProcess = null;
-        }
+        CurrentProcess?.CloseAndKillProcessIfRunning();
     }
 
     protected virtual string GetFullArgs(params string[] args) => string.Join(" ", args);
 
     private async Task<CommandResult> ExecuteAsyncInternal(string executable, string args, CancellationToken token)
     {
-        var output = new List<string>();
+        Stopwatch runTimeStopwatch = new();
+        _testOutput.WriteLine($"{_msgPrefix}Executing - {executable} {args} {WorkingDirectoryInfo()}");
+        object outputLock = new();
+        var outputLines = new List<string>();
         CurrentProcess = CreateProcess(executable, args);
-        // FIXME: lock?
-        string msgPrefix = string.IsNullOrEmpty(_label) ? string.Empty : $"[{_label}] ";
         CurrentProcess.ErrorDataReceived += (s, e) =>
         {
             if (e.Data == null)
@@ -127,9 +117,11 @@ public class ToolCommand : IDisposable
                 return;
             }
 
-            string msg = $"{msgPrefix}{e.Data}";
-            output.Add(msg);
-            _testOutput.WriteLine(msg);
+            lock (outputLock)
+            {
+                outputLines.Add(e.Data);
+            }
+            _testOutput.WriteLine($"{_msgPrefix}{e.Data}");
             ErrorDataReceived?.Invoke(s, e);
         };
 
@@ -140,31 +132,59 @@ public class ToolCommand : IDisposable
                 return;
             }
 
-            string msg = $"{msgPrefix}{e.Data}";
-            output.Add(msg);
-            _testOutput.WriteLine(msg);
+            lock (outputLock)
+            {
+                outputLines.Add(e.Data);
+            }
+            _testOutput.WriteLine($"{_msgPrefix}{e.Data}");
             OutputDataReceived?.Invoke(s, e);
         };
 
         try
         {
-            var exitedTask = CurrentProcess.StartAndWaitForExitAsync();
+            runTimeStopwatch.Start();
+
+            TaskCompletionSource exitedTcs = new();
+            CurrentProcess.EnableRaisingEvents = true;
+            CurrentProcess.Exited += (s, a) =>
+            {
+                exitedTcs.SetResult();
+                runTimeStopwatch.Stop();
+            };
+
+            // Start
+            CurrentProcess.Start();
             CurrentProcess.BeginOutputReadLine();
             CurrentProcess.BeginErrorReadLine();
-            await exitedTask.WaitAsync(token);
+            await exitedTcs.Task.WaitAsync(token).ConfigureAwait(false);
 
-            RemoveNullTerminator(output);
+            // Exited, wait for output to complete now
+            _testOutput.WriteLine($"{_msgPrefix}Got the Exited event, and waiting on WaitForExitAsync now");
+            var waitForExitTask = CurrentProcess.WaitForExitAsync(token);
+            var completedTask = await Task.WhenAny(waitForExitTask, Task.Delay(TimeSpan.FromSeconds(5), token)).ConfigureAwait(false);
+            if (completedTask != waitForExitTask)
+            {
+                _testOutput.WriteLine($"{_msgPrefix}Timed out waiting for it. Ignoring.");
+            }
+
+            _testOutput.WriteLine($"{_msgPrefix}Process ran for {runTimeStopwatch.Elapsed.TotalSeconds} secs");
 
             return new CommandResult(
                 CurrentProcess.StartInfo,
                 CurrentProcess.ExitCode,
-                string.Join(System.Environment.NewLine, output));
+                GetFullOutput());
         }
         catch (Exception ex)
         {
             _testOutput.WriteLine($"Exception: {ex}");
-            if (!CurrentProcess.HasExited)
+            _testOutput.WriteLine($"output: {GetFullOutput()}");
+            throw;
+        }
+        finally
+        {
+            if (!CurrentProcess.TryGetHasExited())
             {
+                _testOutput.WriteLine($"{_msgPrefix}Process has been running for {runTimeStopwatch.Elapsed.TotalSeconds} secs");
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     CurrentProcess.CloseMainWindow();
@@ -174,7 +194,14 @@ public class ToolCommand : IDisposable
                 CurrentProcess.Kill(entireProcessTree: true);
             }
             CurrentProcess.Dispose();
-            throw;
+        }
+
+        string GetFullOutput()
+        {
+            lock (outputLock)
+            {
+                return string.Join(System.Environment.NewLine, outputLines);
+            }
         }
     }
 
@@ -198,13 +225,11 @@ public class ToolCommand : IDisposable
 
         AddEnvironmentVariablesTo(psi);
         AddWorkingDirectoryTo(psi);
-        var process = new Process
+        return new Process
         {
-            StartInfo = psi
+            StartInfo = psi,
+            EnableRaisingEvents = true
         };
-
-        process.EnableRaisingEvents = true;
-        return process;
     }
 
     private string WorkingDirectoryInfo()
@@ -217,26 +242,11 @@ public class ToolCommand : IDisposable
         return $" in pwd {WorkingDirectory}";
     }
 
-    private static void RemoveNullTerminator(List<string> strings)
-    {
-        var count = strings.Count;
-
-        if (count < 1)
-        {
-            return;
-        }
-
-        if (strings[count - 1] == null)
-        {
-            strings.RemoveAt(count - 1);
-        }
-    }
-
     private void AddEnvironmentVariablesTo(ProcessStartInfo psi)
     {
         foreach (var item in Environment)
         {
-            _testOutput.WriteLine($"\t[{item.Key}] = {item.Value}");
+            _testOutput.WriteLine($"{_msgPrefix}\t[{item.Key}] = {item.Value}");
             psi.Environment[item.Key] = item.Value;
         }
     }
@@ -245,6 +255,10 @@ public class ToolCommand : IDisposable
     {
         if (!string.IsNullOrWhiteSpace(WorkingDirectory))
         {
+            if (!Directory.Exists(WorkingDirectory))
+            {
+                throw new DirectoryNotFoundException($"Working directory '{WorkingDirectory}' does not exist.");
+            }
             psi.WorkingDirectory = WorkingDirectory;
         }
     }

@@ -15,7 +15,7 @@ public partial class FilterDialog
     private List<SelectViewModel<FilterCondition>> _filterConditions = null!;
 
     private SelectViewModel<FilterCondition> CreateFilterSelectViewModel(FilterCondition condition) =>
-        new SelectViewModel<FilterCondition> { Id = condition, Name = LogFilter.ConditionToString(condition, LogsLoc) };
+        new SelectViewModel<FilterCondition> { Id = condition, Name = TelemetryFilter.ConditionToString(condition, FilterLoc) };
 
     [CascadingParameter]
     public FluentDialog? Dialog { get; set; }
@@ -24,9 +24,13 @@ public partial class FilterDialog
     public FilterDialogViewModel Content { get; set; } = default!;
 
     [Inject]
-    public required TelemetryRepository TelemetryRepository { get; set; }
+    public required TelemetryRepository TelemetryRepository { get; init; }
 
-    private LogDialogFormModel _formModel = default!;
+    private FilterDialogFormModel _formModel = default!;
+    private List<SelectViewModel<string>> _parameters = default!;
+    private List<SelectViewModel<FieldValue>> _filteredValues = default!;
+    private List<SelectViewModel<FieldValue>>? _allValues;
+
     public EditContext EditContext { get; private set; } = default!;
 
     protected override void OnInitialized()
@@ -39,24 +43,100 @@ public partial class FilterDialog
             CreateFilterSelectViewModel(FilterCondition.NotContains)
         ];
 
-        _formModel = new LogDialogFormModel();
+        _formModel = new FilterDialogFormModel();
         EditContext = new EditContext(_formModel);
 
-        if (Content.Filter is { } logFilter)
+        _filteredValues = [];
+    }
+
+    protected override void OnParametersSet()
+    {
+        var knownFields = Content.KnownKeys.Select(p => new SelectViewModel<string> { Id = p, Name = TelemetryFilter.ResolveFieldName(p) }).ToList();
+        var customFields = Content.PropertyKeys.Select(p => new SelectViewModel<string> { Id = p, Name = TelemetryFilter.ResolveFieldName(p) }).ToList();
+
+        if (customFields.Count > 0)
         {
-            _formModel.Parameter = logFilter.Field;
-            _formModel.Condition = _filterConditions.Single(c => c.Id == logFilter.Condition);
-            _formModel.Value = logFilter.Value;
+            _parameters =
+            [
+                .. knownFields,
+                new SelectViewModel<string> { Id = null, Name = "-" },
+                .. customFields
+            ];
         }
         else
         {
-            _formModel.Parameter = "Message";
+            _parameters = knownFields;
+        }
+
+        if (Content.Filter is { } filter)
+        {
+            _formModel.Parameter = _parameters.SingleOrDefault(c => c.Id == filter.Field);
+            _formModel.Condition = _filterConditions.Single(c => c.Id == filter.Condition);
+            _formModel.Value = filter.Value;
+        }
+        else
+        {
+            _formModel.Parameter = _parameters.FirstOrDefault();
             _formModel.Condition = _filterConditions.Single(c => c.Id == FilterCondition.Contains);
             _formModel.Value = "";
         }
+
+        UpdateParameterFieldValues();
+        ValueChanged();
     }
 
-    public List<string> Parameters => LogFilter.GetAllPropertyNames(Content.LogPropertyKeys);
+    private void UpdateParameterFieldValues()
+    {
+        if (_formModel.Parameter?.Id is { } parameterName)
+        {
+            var fieldValues = Content.GetFieldValues(parameterName);
+            _allValues = fieldValues
+                .Select(kvp => new FieldValue { Value = kvp.Key, Count = kvp.Value })
+                .OrderByDescending(v => v.Count)
+                .ThenBy(v => v.Value, StringComparers.OtlpFieldValue)
+                .Select(v => new SelectViewModel<FieldValue> { Id = v, Name = v.Value })
+                .ToList();
+        }
+        else
+        {
+            _allValues = null;
+        }
+    }
+
+    private async Task ParameterChangedAsync()
+    {
+        UpdateParameterFieldValues();
+
+        _formModel.Value = "";
+        StateHasChanged();
+
+        // Clearing the selected value and the combo box items together wasn't correctly clearing the selected value.
+        // This is hacky, but adding a delay between the two operations puts the combo box in the right state.
+        // Limitation of FluentUI: https://github.com/microsoft/fluentui-blazor/issues/2708
+        await Task.Delay(100);
+        ValueChanged();
+    }
+
+    // There is a bug in FluentUI that prevents the value changing immediately. Will be fixed in a future FluentUI update.
+    // https://github.com/microsoft/fluentui-blazor/issues/2672
+    private void ValueChanged()
+    {
+        if (_allValues != null)
+        {
+            IEnumerable<SelectViewModel<FieldValue>> newValues = _allValues;
+            if (_formModel.Value is { Length: > 0 } value)
+            {
+                newValues = newValues.Where(vm => vm.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
+            }
+
+            // Limit to 1000 items to avoid the combo box have too many items and impacting UI perf.
+            _filteredValues = newValues.Take(1000).ToList();
+        }
+        else
+        {
+            _filteredValues = [];
+        }
+    }
 
     private void Cancel()
     {
@@ -70,24 +150,30 @@ public partial class FilterDialog
 
     private void Apply()
     {
-        if (Content.Filter is { } logFilter)
+        if (Content.Filter is { } filter)
         {
-            logFilter.Field = _formModel.Parameter!;
-            logFilter.Condition = _formModel.Condition!.Id;
-            logFilter.Value = _formModel.Value!;
+            filter.Field = _formModel.Parameter!.Id!;
+            filter.Condition = _formModel.Condition!.Id;
+            filter.Value = _formModel.Value!;
 
-            Dialog!.CloseAsync(DialogResult.Ok(new FilterDialogResult() { Filter = logFilter, Delete = false }));
+            Dialog!.CloseAsync(DialogResult.Ok(new FilterDialogResult() { Filter = filter, Delete = false }));
         }
         else
         {
-            var filter = new LogFilter
+            filter = new TelemetryFilter
             {
-                Field = _formModel.Parameter!,
+                Field = _formModel.Parameter!.Id!,
                 Condition = _formModel.Condition!.Id,
                 Value = _formModel.Value!
             };
 
             Dialog!.CloseAsync(DialogResult.Ok(new FilterDialogResult() { Filter = filter, Add = true }));
         }
+    }
+
+    private sealed class FieldValue
+    {
+        public required string Value { get; init; }
+        public required int Count { get; init; }
     }
 }

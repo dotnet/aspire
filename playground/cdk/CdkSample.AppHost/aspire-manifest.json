@@ -59,7 +59,8 @@
       "value": "{signaturesecret.inputs.value}",
       "inputs": {
         "value": {
-          "type": "string"
+          "type": "string",
+          "secret": true
         }
       }
     },
@@ -75,10 +76,11 @@
     },
     "cache": {
       "type": "azure.bicep.v0",
-      "connectionString": "{cache.secretOutputs.connectionString}",
+      "connectionString": "{cache.outputs.connectionString}",
       "path": "cache.module.bicep",
       "params": {
-        "keyVaultName": ""
+        "principalId": "",
+        "principalName": ""
       }
     },
     "pgsqlAdministratorLogin": {
@@ -112,17 +114,21 @@
     },
     "pgsqldb": {
       "type": "value.v0",
-      "connectionString": "{pgsql.connectionString};Database=pgsqldb"
+      "connectionString": "{pgsql.secretOutputs.pgsqldb-connectionString}"
     },
     "pgsql2": {
       "type": "azure.bicep.v0",
-      "connectionString": "{pgsql2.secretOutputs.connectionString}",
+      "connectionString": "{pgsql2.outputs.connectionString}",
       "path": "pgsql2.module.bicep",
       "params": {
-        "keyVaultName": "",
-        "administratorLogin": "{pgsql2-username.value}",
-        "administratorLoginPassword": "{pgsql2-password.value}"
+        "principalId": "",
+        "principalType": "",
+        "principalName": ""
       }
+    },
+    "pgsql2db": {
+      "type": "value.v0",
+      "connectionString": "{pgsql2.connectionString};Database=pgsql2db"
     },
     "servicebus": {
       "type": "azure.bicep.v0",
@@ -180,6 +186,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{api.bindings.http.targetPort}",
         "ConnectionStrings__signalr": "{signalr.connectionString}",
         "ConnectionStrings__blobs": "{blobs.connectionString}",
         "ConnectionStrings__sqldb": "{sqldb.connectionString}",
@@ -187,6 +194,7 @@
         "ConnectionStrings__cache": "{cache.connectionString}",
         "ConnectionStrings__cosmos": "{cosmos.connectionString}",
         "ConnectionStrings__pgsqldb": "{pgsqldb.connectionString}",
+        "ConnectionStrings__pgsql2db": "{pgsql2db.connectionString}",
         "ConnectionStrings__servicebus": "{servicebus.connectionString}",
         "ConnectionStrings__appConfig": "{appConfig.connectionString}",
         "ConnectionStrings__search": "{search.connectionString}",
@@ -204,37 +212,6 @@
           "protocol": "tcp",
           "transport": "http",
           "external": true
-        }
-      }
-    },
-    "pgsql2-username": {
-      "type": "parameter.v0",
-      "value": "{pgsql2-username.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string",
-          "default": {
-            "generate": {
-              "minLength": 10,
-              "numeric": false,
-              "special": false
-            }
-          }
-        }
-      }
-    },
-    "pgsql2-password": {
-      "type": "parameter.v0",
-      "value": "{pgsql2-password.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
         }
       }
     }

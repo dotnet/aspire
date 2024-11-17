@@ -1,25 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting azure</PackageTags>
+    <PackageTags>aspire integration hosting azure</PackageTags>
     <Description>Azure Storage resource types for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)AzureStorageContainer_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <MinCodeCoverage>96</MinCodeCoverage>
+  </PropertyGroup>
+  
   <ItemGroup>
-    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
+    <PackageReference Include="AspNetCore.HealthChecks.Azure.Storage.Blobs" />
   </ItemGroup>
-
+  
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.Storage" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
   </ItemGroup>
 
 </Project>

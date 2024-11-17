@@ -7,14 +7,14 @@ using System.Globalization;
 
 namespace Aspire.Workload.Tests;
 
-public class TestOutputWrapper(ITestOutputHelper? testOutputHelper = null, IMessageSink? messageSink = null) : ITestOutputHelper
+public class TestOutputWrapper(ITestOutputHelper? testOutputHelper = null, IMessageSink? messageSink = null, bool forceShowBuildOutput = false) : ITestOutputHelper
 {
     public void WriteLine(string message)
     {
         testOutputHelper?.WriteLine(message);
         messageSink?.OnMessage(new DiagnosticMessage(message));
 
-        if (EnvironmentVariables.ShowBuildOutput)
+        if (forceShowBuildOutput || EnvironmentVariables.ShowBuildOutput)
         {
             Console.WriteLine(message);
         }
@@ -24,7 +24,7 @@ public class TestOutputWrapper(ITestOutputHelper? testOutputHelper = null, IMess
     {
         testOutputHelper?.WriteLine(format, args);
         messageSink?.OnMessage(new DiagnosticMessage(string.Format(CultureInfo.CurrentCulture, format, args)));
-        if (EnvironmentVariables.ShowBuildOutput)
+        if (forceShowBuildOutput || EnvironmentVariables.ShowBuildOutput)
         {
             Console.WriteLine(format, args);
         }

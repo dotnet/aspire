@@ -14,7 +14,7 @@ builder.AddNatsClient("nats", configureOptions: opts =>
 builder.Services.AddHostedService<AppEventsBackendService>();
 
 var app = builder.Build();
-
+app.MapDefaultEndpoints();
 app.Run();
 
 public class AppEventsBackendService(INatsConnection nats,  ILogger<AppEventsBackendService> logger) : IHostedService

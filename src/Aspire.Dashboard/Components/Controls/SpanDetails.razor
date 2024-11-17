@@ -1,13 +1,16 @@
-﻿@using Aspire.Dashboard.Model
+﻿@using Aspire.Dashboard.Components.Controls.Grid
+@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @inject IStringLocalizer<ControlsStrings> Loc
+@inject IStringLocalizer<Dialogs> DialogsLoc
 
 <div class="span-details-layout">
     <FluentToolbar Orientation="Orientation.Horizontal">
         <div>
-            @((MarkupString)string.Format(ControlsStrings.SpanDetailsResource, ViewModel.Span.Source.ApplicationName))
+            @((MarkupString)string.Format(ControlsStrings.SpanDetailsResource, ViewModel.Span.Source.Application.ApplicationName))
         </div>
         <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <div>
@@ -33,13 +36,20 @@
                         @FilteredItems.Count()
                     </FluentBadge>
                 </div>
-                <PropertyGrid TItem="SpanPropertyViewModel"
+                <PropertyGrid TItem="TelemetryPropertyViewModel"
                               Items="@FilteredItems"
                               GridTemplateColumns="1fr 2fr"
-                              NameColumnValue="(vm) => vm.Name"
-                              ValueColumnValue="(vm) => vm.Value"
-                              NameSort="_nameSort"
-                              ValueSort="_valueSort"
+                              HighlightText="@_filter" />
+            </FluentAccordionItem>
+            <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsContextHeader)]" Expanded="true">
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
+                        @FilteredContextItems.Count()
+                    </FluentBadge>
+                </div>
+                <PropertyGrid TItem="TelemetryPropertyViewModel"
+                              Items="@FilteredContextItems"
+                              GridTemplateColumns="1fr 2fr"
                               HighlightText="@_filter" />
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsResourceHeader)]" Expanded="true">
@@ -48,16 +58,12 @@
                         @FilteredResourceItems.Count()
                     </FluentBadge>
                 </div>
-                <PropertyGrid TItem="SpanPropertyViewModel"
+                <PropertyGrid TItem="TelemetryPropertyViewModel"
                               Items="@FilteredResourceItems"
                               GridTemplateColumns="1fr 2fr"
-                              NameColumnValue="(vm) => vm.Name"
-                              ValueColumnValue="(vm) => vm.Value"
-                              NameSort="_nameSort"
-                              ValueSort="_valueSort"
                               HighlightText="@_filter" />
             </FluentAccordionItem>
-            <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsEventsHeader)]" Expanded="true">
+            <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsEventsHeader)]" Expanded="@_isSpanEventsExpanded">
                 <div slot="end">
                     <FluentBadge Appearance="Appearance.Neutral" Circular="true">
                         @FilteredSpanEvents.Count()
@@ -66,9 +72,7 @@
                 <PropertyGrid TItem="OtlpSpanEvent"
                               Items="@FilteredSpanEvents"
                               GridTemplateColumns="1fr 2fr"
-                              NameColumnValue="(vm) => DurationFormatter.FormatDuration(vm.TimeOffset(ViewModel.Span))"
                               NameColumnTitle="@(Loc[nameof(ControlsStrings.TimeOffsetColumnHeader)])"
-                              ValueColumnValue="(vm) => vm.Name"
                               ValueColumnTitle="@(Loc[nameof(ControlsStrings.EventColumnHeader)])"
                               IsNameSortable="false"
                               IsValueSortable="false"
@@ -76,18 +80,85 @@
                     <ExtraValueContent>
                         @if (context.Attributes.Length > 0)
                         {
-                            <div class="event-attributes-header">Attributes</div>
-                            <PropertyGrid TItem="SpanPropertyViewModel"
-                                Items="@Queryable.AsQueryable(context.Attributes.Select(a => new SpanPropertyViewModel() { Name = a.Key, Value = a.Value }))"
-                                GridTemplateColumns="1fr 2fr"
-                                NameColumnValue="(vm) => vm.Name"
-                                ValueColumnValue="(vm) => vm.Value"
-                                IsNameSortable="false"
-                                IsValueSortable="false" />
+                            <PropertyGrid TItem="OtlpSpanAttributeItem"
+                                          Items="@context.Attributes.Select(pair => new OtlpSpanAttributeItem(pair.Key, pair.Value)).AsQueryable()"
+                                          GridTemplateColumns="1fr 2fr"
+                                          IsNameSortable="false"
+                                          IsValueSortable="false"
+                                          GenerateHeader="GenerateHeaderOption.Default" />
                         }
                     </ExtraValueContent>
                 </PropertyGrid>
             </FluentAccordionItem>
+            <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsLinksHeader)]" Expanded="@_isSpanLinksExpanded">
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
+                        @FilteredSpanLinks.Count()
+                    </FluentBadge>
+                </div>
+                <FluentDataGrid TGridItem="SpanLinkViewModel"
+                                Items="@FilteredSpanLinks"
+                                Style="width:100%"
+                                GenerateHeader="GenerateHeaderOption.Sticky"
+                                GridTemplateColumns="4fr 1fr"
+                                ShowHover="true">
+                    <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
+                        @WriteSpanLink(context)
+                    </TemplateColumn>
+                    <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsDetailsColumnHeader)]">
+                        <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewDetailsAsync(context))">@Loc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                    </TemplateColumn>
+                </FluentDataGrid>
+            </FluentAccordionItem>
+            <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsBacklinksHeader)]" Expanded="@_isSpanBacklinksExpanded">
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
+                        @FilteredSpanBacklinks.Count()
+                    </FluentBadge>
+                </div>
+                <FluentDataGrid TGridItem="SpanLinkViewModel"
+                                Items="@FilteredSpanBacklinks"
+                                Style="width:100%"
+                                GenerateHeader="GenerateHeaderOption.Sticky"
+                                GridTemplateColumns="4fr 1fr"
+                                ShowHover="true">
+                    <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
+                        @WriteSpanLink(context)
+                    </TemplateColumn>
+                    <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsDetailsColumnHeader)]">
+                        <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewDetailsAsync(context))">@Loc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                    </TemplateColumn>
+                </FluentDataGrid>
+            </FluentAccordionItem>
         </FluentAccordion>
     </div>
 </div>
+
+@code {
+    RenderFragment WriteSpanLink(SpanLinkViewModel context)
+    {
+        var content = context.Span != null
+            ? SpanWaterfallViewModel.GetTitle(context.Span, ViewModel.Applications)
+            : $"{Loc[nameof(ControlsStrings.SpanDetailsSpanPrefix)]}: {OtlpHelpers.ToShortenedId(context.SpanId)}";
+        var color = context.Span != null
+            ? ColorGenerator.Instance.GetColorHexByKey(OtlpApplication.GetResourceName(context.Span.Source, ViewModel.Applications))
+            : "transparent";
+
+        return @<div>
+        <div class="spanlink-container" style="height:32px;">
+            <span class="spanlink-text" title="@content" style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(color);">
+                @content
+            </span>
+        </div>
+        @if (context.Attributes.Length > 0)
+        {
+            <PropertyGrid TItem="OtlpSpanAttributeItem"
+                          Items="@context.Attributes.Select(pair => new OtlpSpanAttributeItem(pair.Key, pair.Value)).AsQueryable()"
+                          GridTemplateColumns="1fr 2fr"
+                          IsNameSortable="false"
+                          IsValueSortable="false"
+                          GenerateHeader="GenerateHeaderOption.Default" />
+        }
+    </div>;
+    }
+}

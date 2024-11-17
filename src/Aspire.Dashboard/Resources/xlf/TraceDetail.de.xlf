@@ -12,6 +12,16 @@
         <target state="translated">Dauer</target>
         <note />
       </trans-unit>
+      <trans-unit id="TraceDetailMobileToolbarButtonText">
+        <source>Trace details</source>
+        <target state="translated">Ablaufverfolgungsdetails</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TraceDetailNameHeader">
+        <source>Name</source>
+        <target state="translated">Name</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TraceDetailPageTitle">
         <source>{0} trace</source>
         <target state="translated">{0}-Ablaufverfolgung</target>

@@ -3,15 +3,14 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using Aspire.Hosting.Azure.Cosmos;
 
 namespace Aspire.Hosting;
 
 /// <summary>
 /// A resource that represents an Azure Cosmos DB.
 /// </summary>
-public class AzureCosmosDBResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
-    AzureConstructResource(name, configureConstruct),
+public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
+    AzureProvisioningResource(name, configureInfrastructure),
     IResourceWithConnectionString,
     IResourceWithEndpoints
 {
@@ -34,11 +33,7 @@ public class AzureCosmosDBResource(string name, Action<ResourceModuleConstruct> 
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         IsEmulator
-        ? ReferenceExpression.Create($"{AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint.Port)}")
+        ? AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint)
         : ReferenceExpression.Create($"{ConnectionString}");
 }
 
-internal static class AzureCosmosDBEmulatorConnectionString
-{
-    public static string Create(int port) => $"AccountKey={CosmosConstants.EmulatorAccountKey};AccountEndpoint=https://127.0.0.1:{port};DisableServerCertificateValidation=True;";
-}

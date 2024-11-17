@@ -42,6 +42,11 @@
         <target state="translated">{0} konsol günlükleri</target>
         <note>{0} is an application name</note>
       </trans-unit>
+      <trans-unit id="ConsoleLogsSelectResourceToolbar">
+        <source>Select resource</source>
+        <target state="translated">Kaynak seç</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
         <source>Unknown state</source>
         <target state="translated">Bilinmeyen durum</target>

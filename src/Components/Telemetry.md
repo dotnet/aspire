@@ -5,9 +5,9 @@ Aspire.Azure.AI.OpenAI:
   - "Azure.Core"
   - "Azure.Identity"
 - Activity source names:
-  - "Azure.AI.OpenAI.*"
+  - "OpenAI.*"
 - Metric names:
-  - none (currently not supported by the Azure SDK)
+  - "OpenAI.*"
 
 Aspire.Azure.Data.Tables:
 - Log categories:
@@ -35,6 +35,16 @@ Aspire.Azure.Messaging.EventHubs:
   - "Azure.Messaging.ServiceBus"
 - Activity source names:
   - "Azure.Messaging.ServiceBus.*"
+- Metric names:
+  - none (currently not supported by the Azure SDK)
+
+Aspire.Azure.Messaging.WebPubSub:
+- Log categories:
+  - "Azure.Core"
+  - "Azure.Identity"
+  - "Azure.Messaging.WebPubSub"
+- Activity source names:
+  - "Azure.Messaging.WebPubSub.*"
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
@@ -94,6 +104,14 @@ Aspire.Confluent.Kafka:
     - "messaging.kafka.message.rx"
     - "messaging.kafka.message.received"
 
+Aspire.Elastic.Clients.Elasticsearch:
+- Log categories:
+  - none (not currently supported by Elastic.Clients.Elasticsearch library)
+- Activity source names:
+  - "Elastic.Transport"
+- Metric names:
+  - none
+
 Aspire.Microsoft.Azure.Cosmos:
 - Log categories:
   - "Azure-Cosmos-Operation-Request-Diagnostics"
@@ -151,6 +169,14 @@ Aspire.Microsoft.EntityFrameworkCore.SqlServer:
   - "OpenTelemetry.Instrumentation.SqlClient"
 - Metric names:
   - none
+
+Aspire.Milvus.Client:
+- Log categories:
+  "Milvus.Client"
+- Activity source names:
+  - none (not currently supported by Milvus.Client library) 
+- Metric names:
+  - none (currently not supported by Milvus.Client library)
 
 Aspire.MySqlConnector:
 - Log categories:
@@ -231,6 +257,14 @@ Aspire.Npgsql.EntityFrameworkCore.PostgreSQL:
     - "db.client.connections.timeouts"
     - "db.client.connections.usage"
 
+Aspire.OpenAI:
+- Log categories:
+  - none  
+- Activity source names:
+  - "OpenAI.*"
+- Metric names:
+  - "OpenAI.*"
+
 Aspire.Oracle.EntityFrameworkCore:
 - Log categories:
   - "Microsoft.EntityFrameworkCore.ChangeTracking"
@@ -244,7 +278,7 @@ Aspire.Oracle.EntityFrameworkCore:
   - "Microsoft.EntityFrameworkCore.Query"
   - "Microsoft.EntityFrameworkCore.Update"
 - Activity source names:
-  - none (currently not supported by Oracle.EntityFrameworkCore library)
+  - "Oracle.ManagedDataAccess.Core"
 - Metric names:
   - none
 

@@ -1,4 +1,4 @@
-# Aspire.Hosting.Azure.SqlServer library
+# Aspire.Hosting.Azure.Sql library
 
 Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure SQL Server.
 
@@ -13,7 +13,7 @@ Provides extension methods and resource definitions for a .NET Aspire AppHost to
 Install the .NET Aspire Azure SQL Server Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.Azure.SqlServer
+dotnet add package Aspire.Hosting.Azure.Sql
 ```
 
 ## Configure Azure Provisioning for local development
@@ -41,8 +41,7 @@ automatically.
 In the _Program.cs_ file of `AppHost`, register a SqlServer database and consume the connection using the following methods:
 
 ```csharp
-var sql = builder.AddSqlServer("sql")
-                 .AsAzureSqlDatabase()
+var sql = builder.AddAzureSqlServer("sql")
                  .AddDatabase("sqldata");
 
 var myService = builder.AddProject<Projects.MyService>()

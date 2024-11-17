@@ -40,7 +40,7 @@ public static class AspireRabbitMQExtensions
         string connectionName,
         Action<RabbitMQClientSettings>? configureSettings = null,
         Action<ConnectionFactory>? configureConnectionFactory = null)
-        => AddRabbitMQClient(builder, DefaultConfigSectionName, configureSettings, configureConnectionFactory, connectionName, serviceKey: null);
+        => AddRabbitMQClient(builder, configureSettings, configureConnectionFactory, connectionName, serviceKey: null);
 
     /// <summary>
     /// Registers <see cref="IConnection"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
@@ -59,12 +59,11 @@ public static class AspireRabbitMQExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddRabbitMQClient(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureConnectionFactory, connectionName: name, serviceKey: name);
+        AddRabbitMQClient(builder, configureSettings, configureConnectionFactory, connectionName: name, serviceKey: name);
     }
 
     private static void AddRabbitMQClient(
         IHostApplicationBuilder builder,
-        string configurationSectionName,
         Action<RabbitMQClientSettings>? configureSettings,
         Action<ConnectionFactory>? configureConnectionFactory,
         string connectionName,
@@ -72,10 +71,12 @@ public static class AspireRabbitMQExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var configSection = builder.Configuration.GetSection(configurationSectionName);
+        var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
 
         var settings = new RabbitMQClientSettings();
         configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -92,7 +93,9 @@ public static class AspireRabbitMQExtensions
             var factory = new ConnectionFactory();
 
             var configurationOptionsSection = configSection.GetSection("ConnectionFactory");
+            var namedConfigurationOptionsSection = namedConfigSection.GetSection("ConnectionFactory");
             configurationOptionsSection.Bind(factory);
+            namedConfigurationOptionsSection.Bind(factory);
 
             // the connection string from settings should win over the one from the ConnectionFactory section
             var connectionString = settings.ConnectionString;

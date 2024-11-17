@@ -35,28 +35,13 @@ Weitere Informationen zu unterstützten Containerruntimes finden Sie unter „ht
         <note />
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
-        <source>Application orchestrator dependency check had an unexpected error {0}.</source>
-        <target state="translated">Bei der Abhängigkeitsprüfung des Anwendungsorchestrators ist ein unerwarteter Fehler aufgetreten: {0}.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="DcpVersionCheckFailedMessage">
-        <source>The application orchestrator version could not be determined. Continuing.</source>
-        <target state="translated">Die Version des Anwendungsorchestrators konnte nicht bestimmt werden. Vorgang wird fortgesetzt.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="DcpVersionCheckTooHighMessage">
-        <source>Found incompatible version of .NET Aspire workload (need application orchestrator version {0} to run the application).</source>
-        <target state="translated">Es wurde eine inkompatible Version der Workload ".NET Aspire" gefunden (für die Ausführung der Anwendung ist die Orchestratorversion {0} erforderlich).</target>
+        <source>Application orchestrator dependency check returned an error: {0}</source>
+        <target state="translated">Fehler bei der Abhängigkeitsprüfung des Anwendungsorchestrierers: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">
         <source>Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</source>
         <target state="translated">Zum Ausführen der Anwendung ist eine neuere Version der Workload ".NET Aspire" erforderlich. Führen Sie "dotnet workload update" aus, um es abzurufen.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="LaunchProfileIsSpecifiedButLaunchSettingsFileIsNotPresentExceptionMessage">
-        <source>Launch profile is specified but launch settings file is not present.</source>
-        <target state="translated">Das Startprofil wurde angegeben, aber die Starteinstellungsdatei ist nicht vorhanden.</target>
         <note />
       </trans-unit>
       <trans-unit id="LaunchSettingsFileDoesNotContainProfileExceptionMessage">

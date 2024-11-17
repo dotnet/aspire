@@ -2,15 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
-using Aspire.Dashboard.Model;
+using Aspire.Hosting.ConsoleLogs;
 
 namespace Aspire.Dashboard.ConsoleLogs;
 
 internal sealed class LogParser
 {
-    private DateTimeOffset? _parentTimestamp;
-    private Guid? _parentId;
-    private int _lineIndex;
     private AnsiParser.ParserState? _residualState;
 
     public LogEntry CreateLogEntry(string rawText, bool isErrorOutput)
@@ -18,74 +15,55 @@ internal sealed class LogParser
         // Several steps to do here:
         //
         // 1. Parse the content to look for the timestamp
-        // 2. Parse the content to look for info/warn/dbug header
-        // 3. HTML Encode the raw text for security purposes
-        // 4. Parse the content to look for ANSI Control Sequences and color them if possible
-        // 5. Parse the content to look for URLs and make them links if possible
-        // 6. Create the LogEntry to get the ID
-        // 7. Set the relative properties of the log entry (parent/line index/etc)
-        // 8. Return the final result
+        // 2. HTML Encode the raw text for security purposes
+        // 3. Parse the content to look for ANSI Control Sequences and color them if possible
+        // 4. Parse the content to look for URLs and make them links if possible
+        // 5. Create the LogEntry
 
         var content = rawText;
 
         // 1. Parse the content to look for the timestamp
-        var isFirstLine = false;
-        DateTimeOffset? timestamp = null;
+        DateTime? timestamp = null;
 
         if (TimestampParser.TryParseConsoleTimestamp(content, out var timestampParseResult))
         {
-            isFirstLine = true;
             content = timestampParseResult.Value.ModifiedText;
-            timestamp = timestampParseResult.Value.Timestamp;
+            timestamp = timestampParseResult.Value.Timestamp.UtcDateTime;
         }
-        // 2. Parse the content to look for info/warn/dbug header
-        // TODO extract log level and use here
-        else
+
+        Func<string, string> callback = (s) =>
         {
-            if (LogLevelParser.StartsWithLogLevelHeader(content))
-            {
-                isFirstLine = true;
-            }
-        }
+            // This callback is run on text that isn't transformed into a clickable URL.
 
-        // 3. HTML Encode the raw text for security purposes
-        content = WebUtility.HtmlEncode(content);
+            // 3a. HTML Encode the raw text for security purposes
+            var updatedText = WebUtility.HtmlEncode(s);
 
-        // 4. Parse the content to look for ANSI Control Sequences and color them if possible
-        var conversionResult = AnsiParser.ConvertToHtml(content, _residualState);
-        content = conversionResult.ConvertedText;
-        _residualState = conversionResult.ResidualState;
+            // 3b. Parse the content to look for ANSI Control Sequences and color them if possible
+            var conversionResult = AnsiParser.ConvertToHtml(updatedText, _residualState);
+            updatedText = conversionResult.ConvertedText;
+            _residualState = conversionResult.ResidualState;
 
-        // 5. Parse the content to look for URLs and make them links if possible
-        if (UrlParser.TryParse(content, out var modifiedText))
+            return updatedText ?? string.Empty;
+        };
+
+        // 3. Parse the content to look for URLs and make them links if possible
+        if (UrlParser.TryParse(content, callback, out var modifiedText))
         {
             content = modifiedText;
         }
+        else
+        {
+            content = callback(content);
+        }
 
-        // 6. Create the LogEntry to get the ID
+        // 5. Create the LogEntry
         var logEntry = new LogEntry
         {
             Timestamp = timestamp,
             Content = content,
-            Type = isErrorOutput ? LogEntryType.Error : LogEntryType.Default,
-            IsFirstLine = isFirstLine
+            Type = isErrorOutput ? LogEntryType.Error : LogEntryType.Default
         };
 
-        // 7. Set the relative properties of the log entry (parent/line index/etc)
-        if (isFirstLine)
-        {
-            _parentTimestamp = logEntry.Timestamp;
-            _parentId = logEntry.Id;
-            _lineIndex = 0;
-        }
-        else if (_parentId.HasValue)
-        {
-            logEntry.ParentTimestamp = _parentTimestamp;
-            logEntry.ParentId = _parentId;
-            logEntry.LineIndex = ++_lineIndex;
-        }
-
-        // 8. Return the final result
         return logEntry;
     }
 }

@@ -2,6 +2,41 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ru" original="../Dialogs.resx">
     <body>
+      <trans-unit id="ExemplarsDialogCloseButtonText">
+        <source>Close</source>
+        <target state="translated">Закрыть</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExemplarsDialogDetailsColumnHeader">
+        <source>Details</source>
+        <target state="translated">Сведения</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExemplarsDialogTimestampColumnHeader">
+        <source>Timestamp</source>
+        <target state="translated">Метка времени</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExemplarsDialogTitle">
+        <source>Exemplars</source>
+        <target state="translated">Экземпляры</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExemplarsDialogTrace">
+        <source>Trace</source>
+        <target state="translated">Трассировка</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExemplarsDialogTraceColumnHeader">
+        <source>Trace</source>
+        <target state="translated">Трассировка</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExemplarsDialogValueColumnHeader">
+        <source>Value</source>
+        <target state="translated">Значение</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FilterDialogApplyFilterButtonText">
         <source>Apply filter</source>
         <target state="translated">Применить фильтр</target>
@@ -12,14 +47,19 @@
         <target state="translated">Отмена</target>
         <note />
       </trans-unit>
-      <trans-unit id="FilterDialogConditionSelectLabel">
-        <source>Select a filter condition</source>
-        <target state="translated">Выберите условие фильтра</target>
+      <trans-unit id="FilterDialogConditionInputLabel">
+        <source>Condition</source>
+        <target state="translated">Условие</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
         <source>Field</source>
         <target state="translated">Поле</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogParameterInputLabel">
+        <source>Parameter</source>
+        <target state="translated">Параметр</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogRemoveFilterButtonText">
@@ -117,6 +157,21 @@
         <target state="translated">Переключить ориентацию панели</target>
         <note />
       </trans-unit>
+      <trans-unit id="OpenInTextVisualizer">
+        <source>Open in text visualizer</source>
+        <target state="translated">Открыть в визуализаторе текста</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OpenTraceDialogCancelButtonText">
+        <source>Cancel</source>
+        <target state="translated">Отмена</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OpenTraceDialogMessage">
+        <source>Waiting for trace {0} to load...</source>
+        <target state="translated">Ожидание загрузки трассировки {0}...</target>
+        <note>{0} is a trace ID</note>
+      </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>
         <target state="translated">Темная</target>
@@ -141,6 +196,26 @@
         <source>Version: {0}</source>
         <target state="translated">Версия: {0}</target>
         <note>{0} is the dashboard version string</note>
+      </trans-unit>
+      <trans-unit id="TextVisualizerDialogJsonFormat">
+        <source>Format JSON</source>
+        <target state="translated">Формат JSON</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerDialogPlaintextFormat">
+        <source>Unformatted</source>
+        <target state="translated">Без форматирования</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerDialogXmlFormat">
+        <source>Format XML</source>
+        <target state="translated">Формат XML</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerSelectFormatType">
+        <source>Select format</source>
+        <target state="translated">Выберите формат</target>
+        <note />
       </trans-unit>
     </body>
   </file>

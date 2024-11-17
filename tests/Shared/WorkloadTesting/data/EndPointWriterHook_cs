@@ -1,0 +1,42 @@
+using Aspire.Hosting.Lifecycle;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+
+/// <summary>
+/// Writes the allocated endpoints to the console in JSON format.
+/// This allows for easier consumption by the external test process.
+/// </summary>
+public sealed class EndPointWriterHook : IDistributedApplicationLifecycleHook
+{
+    public async Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+    {
+        var root = new JsonObject();
+        foreach (var project in appModel.Resources.OfType<ProjectResource>())
+        {
+            var projectJson = new JsonObject();
+            root[project.Name] = projectJson;
+
+            var endpointsJsonArray = new JsonArray();
+            projectJson["Endpoints"] = endpointsJsonArray;
+
+            foreach (var endpoint in project.Annotations.OfType<EndpointAnnotation>())
+            {
+                var allocatedEndpoint = endpoint.AllocatedEndpoint;
+                if (allocatedEndpoint is null)
+                {
+                    continue;
+                }
+
+                var endpointJsonObject = new JsonObject
+                {
+                    ["Name"] = endpoint.Name,
+                    ["Uri"] = allocatedEndpoint.UriString
+                };
+                endpointsJsonArray.Add(endpointJsonObject);
+            }
+        }
+
+        // write the whole json in a single line so it's easier to parse by the external process
+        await Console.Out.WriteLineAsync("$ENDPOINTS: " + JsonSerializer.Serialize(root, JsonSerializerOptions.Default));
+    }
+}

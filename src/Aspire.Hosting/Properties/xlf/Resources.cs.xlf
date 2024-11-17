@@ -35,28 +35,13 @@ Další podrobnosti o podporovaných modulech runtime kontejnerů najdete na htt
         <note />
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
-        <source>Application orchestrator dependency check had an unexpected error {0}.</source>
-        <target state="translated">Při kontrole závislosti orchestrátoru aplikace došlo k neočekávané chybě {0}.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="DcpVersionCheckFailedMessage">
-        <source>The application orchestrator version could not be determined. Continuing.</source>
-        <target state="translated">Nebylo možné určit verzi orchestrátoru aplikace. Pokračuje se ve zpracování.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="DcpVersionCheckTooHighMessage">
-        <source>Found incompatible version of .NET Aspire workload (need application orchestrator version {0} to run the application).</source>
-        <target state="translated">Byla nalezena nekompatibilní verze úlohy .NET Aspire (ke spuštění aplikace je potřeba orchestrátor aplikace ve verzi {0}).</target>
+        <source>Application orchestrator dependency check returned an error: {0}</source>
+        <target state="translated">Kontrola závislosti orchestrátoru aplikace vrátila chybu: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">
         <source>Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</source>
         <target state="translated">Ke spuštění aplikace se vyžaduje novější verze úlohy .NET Aspire. Pokud ji chcete získat, spusťte příkaz dotnet workload update.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="LaunchProfileIsSpecifiedButLaunchSettingsFileIsNotPresentExceptionMessage">
-        <source>Launch profile is specified but launch settings file is not present.</source>
-        <target state="translated">Profil spuštění je zadán, ale soubor nastavení pro spuštění není k dispozici.</target>
         <note />
       </trans-unit>
       <trans-unit id="LaunchSettingsFileDoesNotContainProfileExceptionMessage">

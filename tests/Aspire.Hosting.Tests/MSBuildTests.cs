@@ -15,7 +15,7 @@ public class MSBuildTests
     [Fact]
     public void EnsureWarningsAreEmittedWhenProjectReferencingLibraries()
     {
-        var repoRoot = GetRepoRoot();
+        var repoRoot = MSBuildUtils.GetRepoRoot();
         var tempDirectory = Directory.CreateTempSubdirectory("AspireHostingTests");
         try
         {
@@ -53,6 +53,13 @@ public class Class1
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsAspireHost>true</IsAspireHost>
+
+    <!-- 
+      Test applications have their own way of referencing Aspire.Hosting.AppHost, as well as DCP and Dashboard, so we disable
+      the Aspire.AppHost.SDK targets that will automatically add these references to projects. 
+    -->
+    <SkipAddAspireDefaultReferences Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">true</SkipAddAspireDefaultReferences>
+    <AspireHostingSDKVersion>9.0.0</AspireHostingSDKVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -80,7 +87,7 @@ builder.Build().Run();
             File.WriteAllText(Path.Combine(appHostDirectory, "Directory.Build.targets"), $"""
 <Project>
   <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets" />
-  <Import Project="{repoRoot}\src\Aspire.Hosting.Sdk\SDK\Sdk.targets" />
+  <Import Project="{repoRoot}\src\Aspire.AppHost.Sdk\SDK\Sdk.in.targets" />
 </Project>
 """);
 
@@ -121,18 +128,5 @@ builder.Build().Run();
         {
             tempDirectory.Delete(true);
         }
-    }
-
-    private static string GetRepoRoot()
-    {
-        string directory = AppContext.BaseDirectory;
-
-        // To support git worktrees, check for either a directory or a file named ".git"
-        while (directory != null && !Directory.Exists(Path.Combine(directory, ".git")) && !File.Exists(Path.Combine(directory, ".git")))
-        {
-            directory = Directory.GetParent(directory)!.FullName;
-        }
-
-        return directory!;
     }
 }

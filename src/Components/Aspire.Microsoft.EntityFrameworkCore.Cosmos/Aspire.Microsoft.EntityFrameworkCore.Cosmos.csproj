@@ -1,12 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentEfCorePackageTags) azure cosmos cosmosdb </PackageTags>
     <Description>A Microsoft Azure Cosmos DB provider for Entity Framework Core that integrates with Aspire, including connection pooling, logging, and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzureCosmosDB_256x.png</PackageIconFullPath>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>80</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,11 +27,6 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
-
-    <!-- Pinned version for Component Governance
-      Newtonsoft.Json is transitive dependency from Cosmos package.
-      See the following link on Cosmos repo for more detail https://github.com/Azure/azure-cosmos-dotnet-v3/pull/3313 -->
-    <PackageReference Include="Newtonsoft.Json" />
   </ItemGroup>
 
 </Project>

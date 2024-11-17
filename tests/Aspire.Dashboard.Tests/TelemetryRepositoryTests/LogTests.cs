@@ -3,18 +3,30 @@
 
 using System.Diagnostics;
 using System.Threading.Channels;
+using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Tests.Integration;
 using Google.Protobuf.Collections;
+using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.Logging;
 using OpenTelemetry.Proto.Logs.V1;
 using Xunit;
-using static Aspire.Dashboard.Tests.TelemetryRepositoryTests.TestHelpers;
+using Xunit.Abstractions;
+using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
 
 namespace Aspire.Dashboard.Tests.TelemetryRepositoryTests;
 
 public class LogTests
 {
     private static readonly DateTime s_testTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+    private readonly ITestOutputHelper _testOutputHelper;
+
+    public LogTests(ITestOutputHelper testOutputHelper)
+    {
+        _testOutputHelper = testOutputHelper;
+    }
 
     [Fact]
     public void AddLogs()
@@ -53,7 +65,7 @@ public class LogTests
 
         var logs = repository.GetLogs(new GetLogsContext
         {
-            ApplicationServiceId = applications[0].InstanceId,
+            ApplicationKey = applications[0].ApplicationKey,
             StartIndex = 0,
             Count = 10,
             Filters = []
@@ -74,7 +86,7 @@ public class LogTests
                     });
             });
 
-        var propertyKeys = repository.GetLogPropertyKeys(applications[0].InstanceId)!;
+        var propertyKeys = repository.GetLogPropertyKeys(applications[0].ApplicationKey)!;
         Assert.Collection(propertyKeys,
             s => Assert.Equal("Log", s));
     }
@@ -119,7 +131,7 @@ public class LogTests
 
         var logs = repository.GetLogs(new GetLogsContext
         {
-            ApplicationServiceId = null,
+            ApplicationKey = null,
             StartIndex = 0,
             Count = 10,
             Filters = []
@@ -193,27 +205,27 @@ public class LogTests
 
         var unviewedCounts1 = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.True(unviewedCounts1.TryGetValue(repository.GetApplication("1")!, out var unviewedCount1));
+        Assert.True(unviewedCounts1.TryGetValue(new ApplicationKey("TestService", "1"), out var unviewedCount1));
         Assert.Equal(2, unviewedCount1);
 
-        Assert.True(unviewedCounts1.TryGetValue(repository.GetApplication("2")!, out var unviewedCount2));
+        Assert.True(unviewedCounts1.TryGetValue(new ApplicationKey("TestService", "2"), out var unviewedCount2));
         Assert.Equal(1, unviewedCount2);
 
-        repository.MarkViewedErrorLogs("1");
+        repository.MarkViewedErrorLogs(new ApplicationKey("TestService", "1"));
 
         var unviewedCounts2 = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.False(unviewedCounts2.TryGetValue(repository.GetApplication("1")!, out _));
+        Assert.False(unviewedCounts2.TryGetValue(new ApplicationKey("TestService", "1"), out _));
 
-        Assert.True(unviewedCounts2.TryGetValue(repository.GetApplication("2")!, out unviewedCount2));
+        Assert.True(unviewedCounts2.TryGetValue(new ApplicationKey("TestService", "2"), out unviewedCount2));
         Assert.Equal(1, unviewedCount2);
 
         repository.MarkViewedErrorLogs(null);
 
         var unviewedCounts3 = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.False(unviewedCounts3.TryGetValue(repository.GetApplication("1")!, out _));
-        Assert.False(unviewedCounts3.TryGetValue(repository.GetApplication("2")!, out _));
+        Assert.False(unviewedCounts3.TryGetValue(new ApplicationKey("TestService", "1"), out _));
+        Assert.False(unviewedCounts3.TryGetValue(new ApplicationKey("TestService", "2"), out _));
     }
 
     [Fact]
@@ -221,7 +233,7 @@ public class LogTests
     {
         // Arrange
         var repository = CreateRepository();
-        using var subscription = repository.OnNewLogs(applicationId: null, SubscriptionType.Read, () => Task.CompletedTask);
+        using var subscription = repository.OnNewLogs(applicationKey: null, SubscriptionType.Read, () => Task.CompletedTask);
 
         // Act
         var addContext = new AddContext();
@@ -264,8 +276,8 @@ public class LogTests
 
         var unviewedCounts = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.False(unviewedCounts.TryGetValue(repository.GetApplication("1")!, out _));
-        Assert.False(unviewedCounts.TryGetValue(repository.GetApplication("2")!, out _));
+        Assert.False(unviewedCounts.TryGetValue(new ApplicationKey("TestService", "1"), out _));
+        Assert.False(unviewedCounts.TryGetValue(new ApplicationKey("TestService", "2"), out _));
     }
 
     [Fact]
@@ -273,7 +285,7 @@ public class LogTests
     {
         // Arrange
         var repository = CreateRepository();
-        using var subscription = repository.OnNewLogs(applicationId: "1", SubscriptionType.Read, () => Task.CompletedTask);
+        using var subscription = repository.OnNewLogs(applicationKey: new ApplicationKey("TestService", "1"), SubscriptionType.Read, () => Task.CompletedTask);
 
         // Act
         var addContext = new AddContext();
@@ -316,8 +328,8 @@ public class LogTests
 
         var unviewedCounts = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.False(unviewedCounts.TryGetValue(repository.GetApplication("1")!, out _));
-        Assert.True(unviewedCounts.TryGetValue(repository.GetApplication("2")!, out var unviewedCount));
+        Assert.False(unviewedCounts.TryGetValue(new ApplicationKey("TestService", "1"), out _));
+        Assert.True(unviewedCounts.TryGetValue(new ApplicationKey("TestService", "2"), out var unviewedCount));
         Assert.Equal(1, unviewedCount);
     }
 
@@ -326,7 +338,7 @@ public class LogTests
     {
         // Arrange
         var repository = CreateRepository();
-        using var subscription = repository.OnNewLogs(applicationId: null, SubscriptionType.Other, () => Task.CompletedTask);
+        using var subscription = repository.OnNewLogs(applicationKey: null, SubscriptionType.Other, () => Task.CompletedTask);
 
         // Act
         var addContext = new AddContext();
@@ -354,7 +366,7 @@ public class LogTests
 
         var unviewedCounts = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.True(unviewedCounts.TryGetValue(repository.GetApplication("1")!, out var unviewedCount));
+        Assert.True(unviewedCounts.TryGetValue(new ApplicationKey("TestService", "1"), out var unviewedCount));
         Assert.Equal(1, unviewedCount);
     }
 
@@ -367,7 +379,7 @@ public class LogTests
         // Act
         var logs = repository.GetLogs(new GetLogsContext
         {
-            ApplicationServiceId = "UnknownApplication",
+            ApplicationKey = new ApplicationKey("TestService", "UnknownApplication"),
             StartIndex = 0,
             Count = 10,
             Filters = []
@@ -384,7 +396,7 @@ public class LogTests
         var repository = CreateRepository();
 
         // Act
-        var propertyKeys = repository.GetLogPropertyKeys("UnknownApplication");
+        var propertyKeys = repository.GetLogPropertyKeys(new ApplicationKey("TestService", "UnknownApplication"));
 
         // Assert
         Assert.Empty(propertyKeys);
@@ -423,7 +435,7 @@ public class LogTests
 
         // Assert 1
         Assert.Equal(0, addContext1.FailureCount);
-        await newApplicationsTcs.Task;
+        await newApplicationsTcs.Task.DefaultTimeout();
 
         var applications = repository.GetApplications();
         Assert.Collection(applications,
@@ -435,7 +447,7 @@ public class LogTests
 
         // Act 2
         var newLogsTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        repository.OnNewLogs(applications[0].InstanceId, SubscriptionType.Read, () =>
+        repository.OnNewLogs(applications[0].ApplicationKey, SubscriptionType.Read, () =>
         {
             newLogsTcs.TrySetResult();
             return Task.CompletedTask;
@@ -458,14 +470,14 @@ public class LogTests
             }
         });
 
-        await newLogsTcs.Task;
+        await newLogsTcs.Task.DefaultTimeout();
 
         // Assert 2
         Assert.Equal(0, addContext2.FailureCount);
 
         var logs = repository.GetLogs(new GetLogsContext
         {
-            ApplicationServiceId = applications[0].InstanceId,
+            ApplicationKey = applications[0].ApplicationKey,
             StartIndex = 0,
             Count = 1,
             Filters = []
@@ -552,10 +564,10 @@ public class LogTests
             });
         }
 
-        await task;
+        await task.DefaultTimeout();
 
         // Assert
-        var callbackValue = await tcs.Task;
+        var callbackValue = await tcs.Task.DefaultTimeout();
         Assert.Equal("CustomValue", callbackValue);
     }
 
@@ -607,7 +619,7 @@ public class LogTests
 
         var logs = repository.GetLogs(new GetLogsContext
         {
-            ApplicationServiceId = applications[0].InstanceId,
+            ApplicationKey = applications[0].ApplicationKey,
             StartIndex = 0,
             Count = 10,
             Filters = []
@@ -651,20 +663,31 @@ public class LogTests
     {
         // Arrange
         var minExecuteInterval = TimeSpan.FromMilliseconds(500);
-        var repository = CreateRepository(subscriptionMinExecuteInterval: minExecuteInterval);
+        var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(_testOutputHelper);
+        var logger = loggerFactory.CreateLogger(nameof(LogTests));
+        var repository = CreateRepository(subscriptionMinExecuteInterval: minExecuteInterval, loggerFactory: loggerFactory);
+        var stopwatch = new Stopwatch();
 
         var callCount = 0;
         var resultChannel = Channel.CreateUnbounded<int>();
-        var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var subscription = repository.OnNewLogs(applicationId: null, SubscriptionType.Read, () =>
+        var subscription = repository.OnNewLogs(applicationKey: null, SubscriptionType.Read, async () =>
         {
+            if (!stopwatch.IsRunning)
+            {
+                stopwatch.Start();
+            }
+            else
+            {
+                stopwatch.Stop();
+            }
             ++callCount;
             resultChannel.Writer.TryWrite(callCount);
-            return Task.CompletedTask;
+            await Task.Delay(20);
         });
 
         // Act
         var addContext = new AddContext();
+        logger.LogInformation("Writing log 1");
         repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
         {
             new ResourceLogs
@@ -682,10 +705,11 @@ public class LogTests
         });
 
         // Assert
-        var stopwatch = Stopwatch.StartNew();
-        var read1 = await resultChannel.Reader.ReadAsync();
+        var read1 = await resultChannel.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(1, read1);
+        logger.LogInformation("Received log 1 callback");
 
+        logger.LogInformation("Writing log 2");
         repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
         {
             new ResourceLogs
@@ -702,10 +726,247 @@ public class LogTests
             }
         });
 
-        var read2 = await resultChannel.Reader.ReadAsync();
+        var read2 = await resultChannel.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(2, read2);
+        logger.LogInformation("Received log 2 callback");
 
         var elapsed = stopwatch.Elapsed;
+        logger.LogInformation("Elapsed time: {Elapsed}", elapsed);
         CustomAssert.AssertExceedsMinInterval(elapsed, minExecuteInterval);
+    }
+
+    [Fact]
+    public void FilterLogs_With_Message_Returns_CorrectLog()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(instanceId: "1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime.AddMinutes(1), message: "test_message", severity: SeverityNumber.Error),
+                        }
+                    }
+                }
+            }
+        });
+
+        var applicationKey = repository.GetApplications().First().ApplicationKey;
+
+        // Assert
+        Assert.Empty(repository.GetLogs(new GetLogsContext
+        {
+            ApplicationKey = applicationKey,
+            StartIndex = 0,
+            Count = 1,
+            Filters = [new TelemetryFilter { Condition = FilterCondition.Contains, Field = nameof(OtlpLogEntry.Message), Value = "does_not_contain" }]
+        }).Items);
+
+        Assert.Single(repository.GetLogs(new GetLogsContext
+        {
+            ApplicationKey = applicationKey,
+            StartIndex = 0,
+            Count = 1,
+            Filters = [new TelemetryFilter { Condition = FilterCondition.Contains, Field = nameof(OtlpLogEntry.Message), Value = "message" }]
+        }).Items);
+    }
+
+    [Fact]
+    public void AddLogs_MultipleResources_SameInstanceId_CreateMultipleResources()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "App1", instanceId: "computer-name"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord() }
+                    }
+                }
+            },
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "App2", instanceId: "computer-name"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord() }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var applications = repository.GetApplications();
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("App1", app.ApplicationName);
+                Assert.Equal("computer-name", app.InstanceId);
+            },
+            app =>
+            {
+                Assert.Equal("App2", app.ApplicationName);
+                Assert.Equal("computer-name", app.InstanceId);
+            });
+
+        var logs1 = repository.GetLogs(new GetLogsContext
+        {
+            ApplicationKey = applications[0].ApplicationKey,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+        Assert.Collection(logs1.Items,
+            app =>
+            {
+                Assert.Equal("546573745370616e4964", app.SpanId);
+                Assert.Equal("5465737454726163654964", app.TraceId);
+                Assert.Equal("Test {Log}", app.OriginalFormat);
+                Assert.Equal("Test Value!", app.Message);
+                Assert.Equal("TestLogger", app.Scope.ScopeName);
+                Assert.Collection(app.Attributes,
+                    p =>
+                    {
+                        Assert.Equal("Log", p.Key);
+                        Assert.Equal("Value!", p.Value);
+                    });
+            });
+
+        var logs2 = repository.GetLogs(new GetLogsContext
+        {
+            ApplicationKey = applications[1].ApplicationKey,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+        Assert.Collection(logs2.Items,
+            app =>
+            {
+                Assert.Equal("546573745370616e4964", app.SpanId);
+                Assert.Equal("5465737454726163654964", app.TraceId);
+                Assert.Equal("Test {Log}", app.OriginalFormat);
+                Assert.Equal("Test Value!", app.Message);
+                Assert.Equal("TestLogger", app.Scope.ScopeName);
+                Assert.Collection(app.Attributes,
+                    p =>
+                    {
+                        Assert.Equal("Log", p.Key);
+                        Assert.Equal("Value!", p.Value);
+                    });
+            });
+    }
+
+    [Fact]
+    public void GetLogs_MultipleInstances()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "app1", instanceId: "123"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(1), message: "message-1", attributes: [KeyValuePair.Create("key-1", "value-1")]) }
+                    }
+                }
+            },
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "app1", instanceId: "456"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(2), message: "message-2", attributes: [KeyValuePair.Create("key-2", "value-2")]) }
+                    }
+                }
+            },
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "app2"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(3)) }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var appKey = new ApplicationKey("app1", InstanceId: null);
+        var logs = repository.GetLogs(new GetLogsContext
+        {
+            ApplicationKey = appKey,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+        Assert.Collection(logs.Items,
+            app =>
+            {
+                Assert.Equal("message-1", app.Message);
+                Assert.Equal("TestLogger", app.Scope.ScopeName);
+                Assert.Collection(app.Attributes,
+                    p =>
+                    {
+                        Assert.Equal("key-1", p.Key);
+                        Assert.Equal("value-1", p.Value);
+                    });
+            },
+            app =>
+            {
+                Assert.Equal("message-2", app.Message);
+                Assert.Equal("TestLogger", app.Scope.ScopeName);
+                Assert.Collection(app.Attributes,
+                    p =>
+                    {
+                        Assert.Equal("key-2", p.Key);
+                        Assert.Equal("value-2", p.Value);
+                    });
+            });
+
+        var propertyKeys = repository.GetLogPropertyKeys(appKey)!;
+        Assert.Collection(propertyKeys,
+            s => Assert.Equal("key-1", s),
+            s => Assert.Equal("key-2", s));
     }
 }

@@ -5,17 +5,19 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Testing;
 using Aspire.TestProject;
 using Microsoft.Extensions.DependencyInjection;
 
 public class TestProgram : IDisposable
 {
+    private const string AspireTestContainerRegistry = "netaspireci.azurecr.io";
+
     private TestProgram(
         string[] args,
         string assemblyName,
         bool disableDashboard,
         bool includeIntegrationServices,
-        bool includeNodeApp,
         bool allowUnsecuredTransport,
         bool randomizePorts)
     {
@@ -61,84 +63,29 @@ public class TestProgram : IDisposable
         ServiceCBuilder = AppBuilder.AddProject<Projects.ServiceC>("servicec", launchProfileName: "http");
         WorkerABuilder = AppBuilder.AddProject<Projects.WorkerA>("workera");
 
-        if (includeNodeApp)
-        {
-            // Relative to this project so that it doesn't changed based on
-            // where this code is referenced from.
-            var path = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\nodeapp");
-            var scriptPath = Path.Combine(path, "app.js");
-
-            NodeAppBuilder = AppBuilder.AddNodeApp("nodeapp", scriptPath)
-                .WithHttpEndpoint(port: 5031, env: "PORT");
-
-            NpmAppBuilder = AppBuilder.AddNpmApp("npmapp", path)
-                .WithHttpEndpoint(port: 5032, env: "PORT");
-        }
-
         if (includeIntegrationServices)
         {
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea");
             IntegrationServiceABuilder = IntegrationServiceABuilder.WithEnvironment("SKIP_RESOURCES", string.Join(',', resourcesToSkip));
 
-            if (!resourcesToSkip.HasFlag(TestResourceNames.sqlserver))
-            {
-                var sqlserverDbName = "tempdb";
-                var sqlserver = AppBuilder.AddSqlServer("sqlserver")
-                    .AddDatabase(sqlserverDbName);
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(sqlserver);
-            }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.mysql) || !resourcesToSkip.HasFlag(TestResourceNames.efmysql))
-            {
-                var mysqlDbName = "mysqldb";
-                var mysql = AppBuilder.AddMySql("mysql")
-                    .WithEnvironment("MYSQL_DATABASE", mysqlDbName)
-                    .AddDatabase(mysqlDbName);
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(mysql);
-            }
             if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
             {
-                var redis = AppBuilder.AddRedis("redis");
+                var redis = AppBuilder.AddRedis("redis")
+                    .WithImageRegistry(AspireTestContainerRegistry);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(redis);
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
             {
                 var postgresDbName = "postgresdb";
                 var postgres = AppBuilder.AddPostgres("postgres")
+                    .WithImageRegistry(AspireTestContainerRegistry)
                     .WithEnvironment("POSTGRES_DB", postgresDbName)
                     .AddDatabase(postgresDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(postgres);
             }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.rabbitmq))
-            {
-                var rabbitmq = AppBuilder.AddRabbitMQ("rabbitmq");
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(rabbitmq);
-            }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
-            {
-                var mongoDbName = "mymongodb";
-                var mongodb = AppBuilder.AddMongoDB("mongodb")
-                    .AddDatabase(mongoDbName);
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(mongodb);
-            }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))
-            {
-                var oracleDbName = "freepdb1";
-                var oracleDatabase = AppBuilder.AddOracle("oracledatabase")
-                    .AddDatabase(oracleDbName);
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(oracleDatabase);
-            }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
-            {
-                var kafka = AppBuilder.AddKafka("kafka");
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(kafka);
-            }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
-            {
-                var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(cosmos);
-            }
         }
 
+        AppBuilder.Services.AddHostedService<ResourceLoggerForwarderService>();
         AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();
         AppBuilder.Services.AddHttpClient();
     }
@@ -146,7 +93,6 @@ public class TestProgram : IDisposable
     public static TestProgram Create<T>(
         string[]? args = null,
         bool includeIntegrationServices = false,
-        bool includeNodeApp = false,
         bool disableDashboard = true,
         bool allowUnsecuredTransport = true,
         bool randomizePorts = true)
@@ -156,7 +102,6 @@ public class TestProgram : IDisposable
             assemblyName: typeof(T).Assembly.FullName!,
             disableDashboard: disableDashboard,
             includeIntegrationServices: includeIntegrationServices,
-            includeNodeApp: includeNodeApp,
             allowUnsecuredTransport: allowUnsecuredTransport,
             randomizePorts: randomizePorts);
     }
@@ -167,8 +112,6 @@ public class TestProgram : IDisposable
     public IResourceBuilder<ProjectResource> ServiceCBuilder { get; private set; }
     public IResourceBuilder<ProjectResource> WorkerABuilder { get; private set; }
     public IResourceBuilder<ProjectResource>? IntegrationServiceABuilder { get; private set; }
-    public IResourceBuilder<NodeAppResource>? NodeAppBuilder { get; private set; }
-    public IResourceBuilder<NodeAppResource>? NpmAppBuilder { get; private set; }
     public DistributedApplication? App { get; private set; }
 
     public List<IResourceBuilder<ProjectResource>> ServiceProjectBuilders => [ServiceABuilder, ServiceBBuilder, ServiceCBuilder];

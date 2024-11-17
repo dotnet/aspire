@@ -1,22 +1,26 @@
+parameters:
+  testVariants: ''
+
 steps:
 
-  # This downloads *cobertura.xml from Windows_CodeCoverageResults artifact to the root of the repo
-  - task: DownloadPipelineArtifact@2
-    displayName: Download Windows code coverage reports
-    inputs:
-      buildType: 'current'
-      artifactName: Windows_CodeCoverageResults
-      itemPattern: '*.cobertura.xml'
-      targetPath: $(Build.SourcesDirectory)/Windows_CodeCoverageResults
+  - ${{ each testVariant in split(parameters.testVariants, ',') }}:
+    # This downloads *cobertura.xml from Windows_CodeCoverageResults artifact to the root of the repo
+    - task: DownloadPipelineArtifact@2
+      displayName: Download Windows${{ testVariant }} code coverage reports
+      inputs:
+        buildType: 'current'
+        artifactName: Windows${{ testVariant }}_CodeCoverageResults
+        itemPattern: '*.cobertura.xml'
+        targetPath: $(Build.SourcesDirectory)/Windows_CodeCoverageResults
 
-  # This downloads *cobertura.xml from Linux_CodeCoverageResults artifact to the root of the repo
-  - task: DownloadPipelineArtifact@2
-    displayName: Download Linux code coverage reports
-    inputs:
-      buildType: 'current'
-      artifactName: Linux_CodeCoverageResults
-      itemPattern: '*.cobertura.xml'
-      targetPath: $(Build.SourcesDirectory)/Linux_CodeCoverageResults
+    # This downloads *cobertura.xml from Linux_CodeCoverageResults artifact to the root of the repo
+    - task: DownloadPipelineArtifact@2
+      displayName: Download Linux${{ testVariant }} code coverage reports
+      inputs:
+        buildType: 'current'
+        artifactName: Linux${{ testVariant }}_CodeCoverageResults
+        itemPattern: '*.cobertura.xml'
+        targetPath: $(Build.SourcesDirectory)/Linux_CodeCoverageResults
 
   # Merge the downloaded files (Windows_cobertura.xml and Linux_cobertura.xml) as one (merged.cobertura.xml)
   - script: $(Build.SourcesDirectory)/.dotnet/dotnet dotnet-coverage merge

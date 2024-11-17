@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -14,18 +15,38 @@ public static class OracleDatabaseBuilderExtensions
     private const string PasswordEnvVarName = "ORACLE_PWD";
 
     /// <summary>
-    /// Adds a Oracle Server resource to the application model. A container is used for local development. This version the package defaults to the 23.3.0.0 tag of the container-registry.oracle.com/database/free container image
+    /// Adds a Oracle Server resource to the application model. A container is used for local development.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="OracleContainerImageTags.Tag"/> tag of the <inheritdoc cref="OracleContainerImageTags.Registry"/>/<inheritdoc cref="OracleContainerImageTags.Image"/> container image.
+    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="password">The parameter used to provide the administrator password for the Oracle Server resource. If <see langword="null"/> a random password will be generated.</param>
     /// <param name="port">The host port for Oracle Server.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<OracleDatabaseServerResource> AddOracle(this IDistributedApplicationBuilder builder, string name, IResourceBuilder<ParameterResource>? password = null, int? port = null)
+    public static IResourceBuilder<OracleDatabaseServerResource> AddOracle(this IDistributedApplicationBuilder builder, [ResourceName] string name, IResourceBuilder<ParameterResource>? password = null, int? port = null)
     {
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
         var oracleDatabaseServer = new OracleDatabaseServerResource(name, passwordParameter);
+
+        string? connectionString = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(oracleDatabaseServer, async (@event, ct) =>
+        {
+            connectionString = await oracleDatabaseServer.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{oracleDatabaseServer.Name}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks()
+            .AddOracle(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+
         return builder.AddResource(oracleDatabaseServer)
                       .WithEndpoint(port: port, targetPort: 1521, name: OracleDatabaseServerResource.PrimaryEndpointName)
                       .WithImage(OracleContainerImageTags.Image, OracleContainerImageTags.Tag)
@@ -33,7 +54,8 @@ public static class OracleDatabaseBuilderExtensions
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables[PasswordEnvVarName] = oracleDatabaseServer.PasswordParameter;
-                      });
+                      })
+                      .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -43,7 +65,7 @@ public static class OracleDatabaseBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<OracleDatabaseResource> AddDatabase(this IResourceBuilder<OracleDatabaseServerResource> builder, string name, string? databaseName = null)
+    public static IResourceBuilder<OracleDatabaseResource> AddDatabase(this IResourceBuilder<OracleDatabaseServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
@@ -60,7 +82,7 @@ public static class OracleDatabaseBuilderExtensions
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<OracleDatabaseServerResource> WithDataVolume(this IResourceBuilder<OracleDatabaseServerResource> builder, string? name = null)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/opt/oracle/oradata", false);
+        => builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/opt/oracle/oradata", false);
 
     /// <summary>
     /// Adds a bind mount for the data folder to a Oracle Database server container resource.

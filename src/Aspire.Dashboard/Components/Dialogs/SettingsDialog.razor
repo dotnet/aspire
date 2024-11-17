@@ -1,13 +1,21 @@
-﻿@using Aspire.Dashboard.Resources
+﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @inject IStringLocalizer<Dialogs> Loc
 
-<FluentStack Orientation="Orientation.Vertical" Style="display: contents">
-    <FluentRadioGroup TValue="string" Label="@Loc[nameof(Dialogs.SettingsDialogTheme)]" Value="@_currentSetting" ValueChanged="SettingChangedAsync" Orientation="Orientation.Vertical">
-        <FluentRadio Value="@Aspire.Dashboard.Model.ThemeManager.ThemeSettingSystem">@Loc[nameof(Dialogs.SettingsDialogSystemTheme)]</FluentRadio>
-        <FluentRadio Value="@Aspire.Dashboard.Model.ThemeManager.ThemeSettingLight">@Loc[nameof(Dialogs.SettingsDialogLightTheme)]</FluentRadio>
-        <FluentRadio Value="@Aspire.Dashboard.Model.ThemeManager.ThemeSettingDark">@Loc[nameof(Dialogs.SettingsDialogDarkTheme)]</FluentRadio>
-    </FluentRadioGroup>
-    <div style="height: 100%;"></div>
-    <div class="version">@string.Format(Loc[nameof(Dialogs.SettingsDialogVersion)], VersionHelpers.DashboardDisplayVersion)</div>
-</FluentStack>
+<FluentDialogBody>
+    <FluentStack Orientation="Orientation.Vertical" Style="display: flex; height: 100%" VerticalGap="0">
+        <FluentRadioGroup TValue="string"
+                          Label="@Loc[nameof(Dialogs.SettingsDialogTheme)]"
+                          @bind-Value="@_currentSetting"
+                          @bind-Value:after="SettingChangedAsync"
+                          Orientation="Orientation.Vertical">
+            <FluentRadio Value="@ThemeManager.ThemeSettingSystem">@Loc[nameof(Dialogs.SettingsDialogSystemTheme)]</FluentRadio>
+            <FluentRadio Value="@ThemeManager.ThemeSettingLight">@Loc[nameof(Dialogs.SettingsDialogLightTheme)]</FluentRadio>
+            <FluentRadio Value="@ThemeManager.ThemeSettingDark">@Loc[nameof(Dialogs.SettingsDialogDarkTheme)]</FluentRadio>
+        </FluentRadioGroup>
+
+        <div class="version">@string.Format(Loc[nameof(Dialogs.SettingsDialogVersion)], VersionHelpers.DashboardDisplayVersion)</div>
+    </FluentStack>
+
+</FluentDialogBody>

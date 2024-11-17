@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -35,7 +36,7 @@ namespace Aspire.Hosting;
 /// <example>
 /// The following example shows creating a PostgreSQL server resource with a database and referencing that
 /// database in a .NET project.
-/// <code lang="C#">
+/// <code lang="csharp">
 /// var builder = DistributedApplication.CreateBuilder(args);
 /// var inventoryDatabase = builder.AddPostgres("mypostgres").AddDatabase("inventory");
 /// builder.AddProject&lt;Projects.InventoryService&gt;()
@@ -74,7 +75,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <example>
     /// The following example is creating a Postgres server resource with a database and referencing that
     /// database in a .NET project.
-    /// <code>
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder();
     /// var inventoryDatabase = builder.AddPostgres("mypostgres").AddDatabase("inventory");
     /// builder.AddProject&lt;Projects.InventoryService&gt;()
@@ -106,7 +107,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <example>
     /// The following example shows creating a Postgres server resource with a database and referencing that
     /// database in a .NET project.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     /// var inventoryDatabase = builder.AddPostgres("mypostgres").AddDatabase("inventory");
     /// builder.AddProject&lt;Projects.InventoryService&gt;()
@@ -117,7 +118,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </example>
     /// <example>
     /// The following example is equivalent to the previous example except that it does not use top-level statements.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// public class Program
     /// {
     ///     public static void Main(string[] args)
@@ -164,7 +165,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </remarks>
     /// <example>
     /// Override the container registry used by the distributed application.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// var options = new DistributedApplicationOptions
     /// {
     ///     Args = args; // Important for deployment tools
@@ -345,6 +346,10 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
         try
         {
+            var beforeStartEvent = new BeforeStartEvent(_host.Services, _host.Services.GetRequiredService<DistributedApplicationModel>());
+            var eventing = _host.Services.GetRequiredService<IDistributedApplicationEventing>();
+            await eventing.PublishAsync(beforeStartEvent, cancellationToken).ConfigureAwait(false);
+
             var lifecycleHooks = _host.Services.GetServices<IDistributedApplicationLifecycleHook>();
             var appModel = _host.Services.GetRequiredService<DistributedApplicationModel>();
 

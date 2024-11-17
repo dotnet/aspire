@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Testing;
+using Aspire.Hosting.Tests.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -14,9 +16,9 @@ public abstract class TestProgramFixture : IAsyncLifetime
     private DistributedApplication? _app;
     private TestProgram? _testProgram;
 
-    public TestProgram TestProgram => _testProgram!;
+    public TestProgram TestProgram => _testProgram ?? throw new InvalidOperationException("TestProgram is not initialized.");
 
-    public DistributedApplication App => _app!;
+    public DistributedApplication App => _app ?? throw new InvalidOperationException("DistributedApplication is not initialized.");
 
     public abstract TestProgram CreateTestProgram();
 
@@ -24,16 +26,11 @@ public abstract class TestProgramFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null)
-        {
-            return;
-        }
-
         _testProgram = CreateTestProgram();
 
         _app = _testProgram.Build();
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
         await _app.StartAsync(cts.Token);
 
@@ -68,44 +65,22 @@ public class SlimTestProgramFixture : TestProgramFixture
     public override async Task WaitReadyStateAsync(CancellationToken cancellationToken = default)
     {
         // Make sure services A, B and C are running
+        await App.WaitForTextAsync("Application started.", "servicea", cancellationToken);
         using var clientA = App.CreateHttpClient(TestProgram.ServiceABuilder.Resource.Name, "http");
         await clientA.GetStringAsync("/", cancellationToken);
 
+        await App.WaitForTextAsync("Application started.", "serviceb", cancellationToken);
         using var clientB = App.CreateHttpClient(TestProgram.ServiceBBuilder.Resource.Name, "http");
         await clientB.GetStringAsync("/", cancellationToken);
 
+        await App.WaitForTextAsync("Application started.", "servicec", cancellationToken);
         using var clientC = App.CreateHttpClient(TestProgram.ServiceCBuilder.Resource.Name, "http");
         await clientC.GetStringAsync("/", cancellationToken);
     }
 }
 
-/// <summary>
-/// TestProgram with node app but no dashboard or integration services.
-/// </summary>
-/// <remarks>
-/// Use <c>[Collection("NodeApp")]</c> to inject this fixture in test constructors.
-/// </remarks>
-public class NodeAppFixture : TestProgramFixture
-{
-    public override TestProgram CreateTestProgram() => TestProgram.Create<DistributedApplicationTests>(includeNodeApp: true, randomizePorts: false);
-
-    public override async Task WaitReadyStateAsync(CancellationToken cancellationToken = default)
-    {
-        using var client = TestProgram.App!.CreateHttpClient(TestProgram.NodeAppBuilder!.Resource.Name, endpointName: "http");
-        await client.GetStringAsync("/", cancellationToken);
-    }
-}
-
 [CollectionDefinition("SlimTestProgram")]
 public class SlimTestProgramCollection : ICollectionFixture<SlimTestProgramFixture>
-{
-    // This class has no code, and is never created. Its purpose is simply
-    // to be the place to apply [CollectionDefinition] and all the
-    // ICollectionFixture<> interfaces.
-}
-
-[CollectionDefinition("NodeApp")]
-public class NodeJsCollection : ICollectionFixture<NodeAppFixture>
 {
     // This class has no code, and is never created. Its purpose is simply
     // to be the place to apply [CollectionDefinition] and all the

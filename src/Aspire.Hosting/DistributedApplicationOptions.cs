@@ -12,8 +12,11 @@ public sealed class DistributedApplicationOptions
 {
     private readonly Lazy<Assembly?> _assembly;
     private readonly Lazy<string?> _projectDirectoryLazy;
+    private readonly Lazy<string?> _projectNameLazy;
+    private readonly Lazy<string?> _configurationLazy;
     // This is for testing
     private string? _projectDirectory;
+    private string? _projectName;
 
     /// <summary>
     /// Initializes a new instance of <see cref="DistributedApplicationOptions"/>.
@@ -22,6 +25,8 @@ public sealed class DistributedApplicationOptions
     {
         _assembly = new(ResolveAssembly);
         _projectDirectoryLazy = new(ResolveProjectDirectory);
+        _projectNameLazy = new(ResolveProjectName);
+        _configurationLazy = new(ResolveConfiguration);
     }
 
     /// <summary>
@@ -47,10 +52,18 @@ public sealed class DistributedApplicationOptions
 
     internal Assembly? Assembly => _assembly.Value;
 
+    internal string? Configuration => _configurationLazy.Value;
+
     internal string? ProjectDirectory
     {
         get => _projectDirectory ?? _projectDirectoryLazy.Value;
         set => _projectDirectory = value;
+    }
+
+    internal string? ProjectName
+    {
+        get => _projectName ?? _projectNameLazy.Value;
+        set => _projectName = value;
     }
 
     internal bool DashboardEnabled => !DisableDashboard;
@@ -64,6 +77,12 @@ public sealed class DistributedApplicationOptions
     {
         var assemblyMetadata = Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
         return GetMetadataValue(assemblyMetadata, "AppHostProjectPath");
+    }
+
+    private string? ResolveProjectName()
+    {
+        var assemblyMetadata = Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
+        return GetMetadataValue(assemblyMetadata, "AppHostProjectName");
     }
 
     private Assembly? ResolveAssembly()
@@ -87,6 +106,11 @@ public sealed class DistributedApplicationOptions
             }
         }
         return appHostAssembly;
+    }
+
+    private string? ResolveConfiguration()
+    {
+        return Assembly?.GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration;
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)

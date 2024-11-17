@@ -234,7 +234,7 @@ public static class OrleansServiceExtensions
         string name,
         IProviderConfiguration provider)
     {
-        orleansServiceBuilder.Streaming[name] = provider;
+        orleansServiceBuilder.BroadcastChannel[name] = provider;
         return orleansServiceBuilder;
     }
 
@@ -347,7 +347,7 @@ public static class OrleansServiceExtensions
     public static IResourceBuilder<T> WithReference<T>(
         this IResourceBuilder<T> builder,
         OrleansService orleansService)
-        where T : IResourceWithEnvironment
+        where T : IResourceWithEnvironment, IResourceWithEndpoints
     {
         return builder.WithOrleansReference(orleansService, isSilo: true);
     }
@@ -356,7 +356,7 @@ public static class OrleansServiceExtensions
         this IResourceBuilder<T> builder,
         OrleansService orleansService,
         bool isSilo)
-        where T : IResourceWithEnvironment
+        where T : IResourceWithEnvironment, IResourceWithEndpoints
     {
         var res = orleansService;
 

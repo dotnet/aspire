@@ -32,7 +32,12 @@ public static class AspireNatsClientExtensions
     /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="NatsClientSettings.ConnectionString"/> is not provided.</exception>
     public static void AddNatsClient(this IHostApplicationBuilder builder, string connectionName, Action<NatsClientSettings>? configureSettings = null, Func<NatsOpts, NatsOpts>? configureOptions = null)
-        => AddNatsClient(builder, configurationSectionName: DefaultConfigSectionName, connectionName: connectionName, serviceKey: null, configureSettings: configureSettings, configureOptions: configureOptions);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        AddNatsClient(builder, connectionName: connectionName, serviceKey: null, configureSettings: configureSettings, configureOptions: configureOptions);
+    }
 
     /// <summary>
     /// Registers <see cref="INatsConnection"/> as a keyed service for given <paramref name="name"/> for connecting NATS server with NATS client.
@@ -47,17 +52,21 @@ public static class AspireNatsClientExtensions
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="NatsClientSettings.ConnectionString"/> is not provided.</exception>
     public static void AddKeyedNatsClient(this IHostApplicationBuilder builder, string name, Action<NatsClientSettings>? configureSettings = null, Func<NatsOpts, NatsOpts>? configureOptions = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddNatsClient(builder, configurationSectionName: $"{DefaultConfigSectionName}:{name}", connectionName: name, serviceKey: name, configureSettings: configureSettings, configureOptions: configureOptions);
+        AddNatsClient(builder, connectionName: name, serviceKey: name, configureSettings: configureSettings, configureOptions: configureOptions);
     }
 
-    private static void AddNatsClient(this IHostApplicationBuilder builder, string configurationSectionName, string connectionName, object? serviceKey, Action<NatsClientSettings>? configureSettings, Func<NatsOpts, NatsOpts>? configureOptions)
+    private static void AddNatsClient(this IHostApplicationBuilder builder, string connectionName, object? serviceKey, Action<NatsClientSettings>? configureSettings, Func<NatsOpts, NatsOpts>? configureOptions)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         NatsClientSettings settings = new();
-        builder.Configuration.GetSection(configurationSectionName).Bind(settings);
+        var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
+        configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {

@@ -1,70 +1,67 @@
-targetScope = 'resourceGroup'
-
-@description('')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-@description('')
 param principalId string
 
-@description('')
 param principalType string
 
-
-resource storageAccount_1XR3Um8QY 'Microsoft.Storage/storageAccounts@2022-09-01' = {
-  name: toLower(take('storage${uniqueString(resourceGroup().id)}', 24))
+resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
+  name: take('storage${uniqueString(resourceGroup().id)}', 24)
+  kind: 'StorageV2'
   location: location
-  tags: {
-    'aspire-resource-name': 'storage'
-  }
   sku: {
     name: 'Standard_GRS'
   }
-  kind: 'StorageV2'
   properties: {
     accessTier: 'Hot'
+    allowSharedKeyAccess: false
+    minimumTlsVersion: 'TLS1_2'
     networkAcls: {
       defaultAction: 'Allow'
     }
   }
+  tags: {
+    'aspire-resource-name': 'storage'
+  }
 }
 
-resource blobService_vTLU20GRg 'Microsoft.Storage/storageAccounts/blobServices@2022-09-01' = {
-  parent: storageAccount_1XR3Um8QY
+resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
   name: 'default'
-  properties: {
-  }
+  parent: storage
 }
 
-resource roleAssignment_Gz09cEnxb 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: storageAccount_1XR3Um8QY
-  name: guid(storageAccount_1XR3Um8QY.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
+resource storage_StorageBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
   properties: {
+    principalId: principalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
-    principalId: principalId
     principalType: principalType
   }
+  scope: storage
 }
 
-resource roleAssignment_HRj6MDafS 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: storageAccount_1XR3Um8QY
-  name: guid(storageAccount_1XR3Um8QY.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
+resource storage_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
   properties: {
+    principalId: principalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
-    principalId: principalId
     principalType: principalType
   }
+  scope: storage
 }
 
-resource roleAssignment_r0wA6OpKE 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: storageAccount_1XR3Um8QY
-  name: guid(storageAccount_1XR3Um8QY.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
+resource storage_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
     principalId: principalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
     principalType: principalType
   }
+  scope: storage
 }
 
-output blobEndpoint string = storageAccount_1XR3Um8QY.properties.primaryEndpoints.blob
-output queueEndpoint string = storageAccount_1XR3Um8QY.properties.primaryEndpoints.queue
-output tableEndpoint string = storageAccount_1XR3Um8QY.properties.primaryEndpoints.table
+output blobEndpoint string = storage.properties.primaryEndpoints.blob
+
+output queueEndpoint string = storage.properties.primaryEndpoints.queue
+
+output tableEndpoint string = storage.properties.primaryEndpoints.table

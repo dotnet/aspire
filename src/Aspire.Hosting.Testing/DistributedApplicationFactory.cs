@@ -5,6 +5,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
+using System.Reflection;
+using System.Text.Json;
 
 namespace Aspire.Hosting.Testing;
 
@@ -12,7 +14,10 @@ namespace Aspire.Hosting.Testing;
 /// Factory for creating a distributed application for testing.
 /// </summary>
 /// <param name="entryPoint">A type in the entry point assembly of the target Aspire AppHost. Typically, the Program class can be used.</param>
-public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyncDisposable
+/// <param name="args">
+/// The command-line arguments to pass to the entry point.
+/// </param>
+public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDisposable, IAsyncDisposable
 {
     private readonly Type _entryPoint = entryPoint ?? throw new ArgumentNullException(nameof(entryPoint));
     private readonly TaskCompletionSource _startedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -22,6 +27,14 @@ public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyn
     private readonly object _lockObj = new();
     private bool _entryPointStarted;
     private IHostApplicationLifetime? _hostApplicationLifetime;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DistributedApplicationFactory"/> class.
+    /// </summary>
+    /// <param name="entryPoint">A type in the entry point assembly of the target Aspire AppHost. Typically, the Program class can be used.</param>
+    public DistributedApplicationFactory(Type entryPoint) : this(entryPoint, [])
+    {
+    }
 
     /// <summary>
     /// Gets the distributed application associated with this instance.
@@ -42,7 +55,7 @@ public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyn
     }
 
     /// <summary>
-    /// Initializes the application.
+    /// Starts the application.
     /// </summary>
     /// <param name="cancellationToken">A token used to signal cancellation.</param>
     /// <returns>A <see cref="Task"/> representing the completion of the operation.</returns>
@@ -126,19 +139,89 @@ public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyn
 
     private void OnBuilderCreatingCore(DistributedApplicationOptions applicationOptions, HostApplicationBuilderSettings hostBuilderOptions)
     {
+        hostBuilderOptions.Args = hostBuilderOptions.Args switch
+        {
+            { } existing => [.. existing, .. args],
+            null => args
+        };
+
+        applicationOptions.Args = applicationOptions.Args switch
+        {
+            { } existing => [.. existing, .. args],
+            null => args
+        };
+
         hostBuilderOptions.EnvironmentName = Environments.Development;
         hostBuilderOptions.ApplicationName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
         applicationOptions.AssemblyName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
         applicationOptions.DisableDashboard = true;
         var cfg = hostBuilderOptions.Configuration ??= new();
-        cfg.AddInMemoryCollection(new Dictionary<string, string?>
+        var additionalConfig = new Dictionary<string, string?>
         {
             ["DcpPublisher:RandomizePorts"] = "true",
             ["DcpPublisher:DeleteResourcesOnShutdown"] = "true",
             ["DcpPublisher:ResourceNameSuffix"] = $"{Random.Shared.Next():x}",
-        });
+        };
+
+        var appHostProjectPath = ResolveProjectPath(_entryPoint.Assembly);
+        if (!string.IsNullOrEmpty(appHostProjectPath))
+        {
+            hostBuilderOptions.ContentRootPath = appHostProjectPath;
+        }
+
+        var appHostLaunchSettings = GetLaunchSettings(appHostProjectPath);
+        if (appHostLaunchSettings?.Profiles.FirstOrDefault().Key is { } profileName)
+        {
+            additionalConfig["AppHost:DefaultLaunchProfileName"] = profileName;
+        }
+
+        cfg.AddInMemoryCollection(additionalConfig);
 
         OnBuilderCreating(applicationOptions, hostBuilderOptions);
+    }
+
+    private static string? ResolveProjectPath(Assembly? assembly)
+    {
+        var assemblyMetadata = assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
+        return GetMetadataValue(assemblyMetadata, "AppHostProjectPath");
+    }
+
+    private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)
+    {
+        return assemblyMetadata?.FirstOrDefault(m => string.Equals(m.Key, key, StringComparison.OrdinalIgnoreCase))?.Value;
+    }
+
+    private static LaunchSettings? GetLaunchSettings(string? appHostPath)
+    {
+        if (appHostPath is null || !Directory.Exists(appHostPath))
+        {
+            return null;
+        }
+
+        var projectFileInfo = new DirectoryInfo(appHostPath);
+        var launchSettingsFilePath = projectFileInfo.FullName switch
+        {
+            null => Path.Combine("Properties", "launchSettings.json"),
+            _ => Path.Combine(projectFileInfo.FullName, "Properties", "launchSettings.json")
+        };
+
+        // It isn't mandatory that the launchSettings.json file exists!
+        if (!File.Exists(launchSettingsFilePath))
+        {
+            return null;
+        }
+
+        using var stream = File.OpenRead(launchSettingsFilePath);
+        try
+        {
+            var settings = JsonSerializer.Deserialize(stream, LaunchSettingsSerializerContext.Default.LaunchSettings);
+            return settings;
+        }
+        catch (JsonException ex)
+        {
+            var message = $"Failed to get effective launch profile for project '{appHostPath}'. There is malformed JSON in the project's launch settings file at '{launchSettingsFilePath}'.";
+            throw new DistributedApplicationException(message, ex);
+        }
     }
 
     private void OnBuilderCreatedCore(DistributedApplicationBuilder applicationBuilder)
@@ -149,6 +232,7 @@ public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyn
     private void OnBuildingCore(DistributedApplicationBuilder applicationBuilder)
     {
         var services = applicationBuilder.Services;
+        services.AddHostedService<ResourceLoggerForwarderService>();
         services.AddHttpClient();
 
         InterceptHostCreation(applicationBuilder);
@@ -165,7 +249,10 @@ public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyn
             {
                 if (!_entryPointStarted)
                 {
-                    EnsureDepsFile(_entryPoint);
+                    if (entryPoint.Assembly.EntryPoint == null)
+                    {
+                        throw new InvalidOperationException($"Assembly of specified type {entryPoint.Name} does not have an entry point.");
+                    }
 
                     // This helper launches the target assembly's entry point and hooks into the lifecycle
                     // so we can intercept execution at key stages.
@@ -195,14 +282,15 @@ public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyn
         try
         {
             using var cts = new CancellationTokenSource(GetConfiguredTimeout());
-            var app = await factory([], cts.Token).ConfigureAwait(false);
+            var app = await factory(args ?? [], cts.Token).ConfigureAwait(false);
             _hostApplicationLifetime = app.Services.GetService<IHostApplicationLifetime>()
                 ?? throw new InvalidOperationException($"Application did not register an implementation of {typeof(IHostApplicationLifetime)}.");
             OnBuiltCore(app);
         }
         catch (Exception exception)
         {
-            _appTcs.TrySetException(exception);
+            _exitTcs.TrySetException(exception);
+            OnException(exception);
         }
 
         static TimeSpan GetConfiguredTimeout()
@@ -227,6 +315,7 @@ public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyn
         if (exception is not null)
         {
             _exitTcs.TrySetException(exception);
+            OnException(exception);
         }
         else
         {
@@ -242,32 +331,29 @@ public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyn
         }
     }
 
-    private static void EnsureDepsFile(Type entryPoint)
-    {
-        if (entryPoint.Assembly.EntryPoint == null)
-        {
-            throw new InvalidOperationException($"Assembly of specified type {entryPoint.Name} does not have an entry point.");
-        }
-
-        var depsFileName = $"{entryPoint.Assembly.GetName().Name}.deps.json";
-        var depsFile = new FileInfo(Path.Combine(AppContext.BaseDirectory, depsFileName));
-        if (!depsFile.Exists)
-        {
-            throw new InvalidOperationException($"Missing deps file '{Path.GetFileName(depsFile.FullName)}'. Make sure the project has been built.");
-        }
-    }
-
     private DistributedApplication GetStartedApplication()
     {
         ThrowIfNotInitialized();
         return _appTcs.Task.GetAwaiter().GetResult();
     }
 
-    /// <inheritdoc/>
-    public virtual void Dispose()
+    private void OnException(Exception exception)
+    {
+        _appTcs.TrySetException(exception);
+        _builderTcs.TrySetException(exception);
+        _startedTcs.TrySetException(exception);
+    }
+
+    private void OnDisposed()
     {
         _builderTcs.TrySetCanceled();
         _startedTcs.TrySetCanceled();
+    }
+
+    /// <inheritdoc/>
+    public virtual void Dispose()
+    {
+        OnDisposed();
         if (_hostApplicationLifetime is null || _appTcs.Task is not { IsCompletedSuccessfully: true } appTask)
         {
             return;
@@ -280,28 +366,23 @@ public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyn
     /// <inheritdoc/>
     public virtual async ValueTask DisposeAsync()
     {
-        _builderTcs.TrySetCanceled();
-        _startedTcs.TrySetCanceled();
+        OnDisposed();
         if (_appTcs.Task is not { IsCompletedSuccessfully: true } appTask)
         {
+            _appTcs.TrySetCanceled();
             return;
         }
 
-        if (_hostApplicationLifetime is { } hostLifetime)
-        {
-            hostLifetime.StopApplication();
-
-            // Wait for shutdown to complete.
-            var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            using var _ = hostLifetime.ApplicationStopped.Register(s => ((TaskCompletionSource)s!).SetResult(), tcs);
-            await tcs.Task.ConfigureAwait(false);
-        }
+        // If the application has started, or when it starts, stop it.
+        using var applicationStartedRegistration = _hostApplicationLifetime?.ApplicationStarted.Register(
+            static state => (state as IHostApplicationLifetime)?.StopApplication(),
+            _hostApplicationLifetime);
 
         await _exitTcs.Task.ConfigureAwait(false);
 
-        if (appTask.GetAwaiter().GetResult() is IAsyncDisposable asyncDisposable)
+        if (appTask.GetAwaiter().GetResult() is { } appDisposable)
         {
-            await asyncDisposable.DisposeAsync().ConfigureAwait(false);
+            await appDisposable.DisposeAsync().ConfigureAwait(false);
         }
     }
 
@@ -371,7 +452,8 @@ public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyn
             }
             catch (Exception exception)
             {
-                appFactory._startedTcs.TrySetException(exception);
+                appFactory.OnException(exception);
+                throw;
             }
         }
 

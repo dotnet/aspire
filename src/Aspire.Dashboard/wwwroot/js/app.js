@@ -14,11 +14,36 @@ if (firstUndefinedElement) {
     document.body.classList.remove("before-upgrade");
 }
 
+function isElementTagName(element, tagName) {
+    return element.tagName.toLowerCase() === tagName;
+}
+
+function getFluentMenuItemForTarget(element) {
+    // User could have clicked on either a path or svg (the image on the item) or the item itself
+    if (isElementTagName(element, "path")) {
+        return getFluentMenuItemForTarget(element.parentElement);
+    }
+
+    // in between the svg and fluent-menu-item is a span for the icon slot
+    const possibleMenuItem = element.parentElement?.parentElement;
+    if (isElementTagName(element, "svg") && possibleMenuItem && isElementTagName(possibleMenuItem, "fluent-menu-item")) {
+        return element.parentElement.parentElement;
+    }
+
+    if (isElementTagName(element, "fluent-menu-item")) {
+        return element;
+    }
+
+    return null;
+}
+
 // Register a global click event listener to handle copy button clicks.
 // Required because an "onclick" attribute is denied by CSP.
 document.addEventListener("click", function (e) {
-    if (e.target.type === "button" && e.target.getAttribute("data-copybutton")) {
-        buttonCopyTextToClipboard(e.target);
+    // The copy 'button' could either be a button or a menu item.
+    const targetElement = isElementTagName(e.target, "fluent-button") ? e.target : getFluentMenuItemForTarget(e.target)
+    if (targetElement && targetElement.getAttribute("data-copybutton")) {
+        buttonCopyTextToClipboard(targetElement);
         e.stopPropagation();
     }
 });
@@ -108,6 +133,7 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
 
     const copyIcon = button.querySelector('.copy-icon');
     const checkmarkIcon = button.querySelector('.checkmark-icon');
+
     const anchoredTooltip = document.querySelector(`fluent-tooltip[anchor="${id}"]`);
     const tooltipDiv = anchoredTooltip ? anchoredTooltip.children[0] : null;
     navigator.clipboard.writeText(text)
@@ -115,8 +141,10 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
             if (tooltipDiv) {
                 tooltipDiv.innerText = postcopy;
             }
-            copyIcon.style.display = 'none';
-            checkmarkIcon.style.display = 'inline';
+            if (copyIcon && checkmarkIcon) {
+                copyIcon.style.display = 'none';
+                checkmarkIcon.style.display = 'inline';
+            }
         })
         .catch(() => {
             if (tooltipDiv) {
@@ -129,186 +157,13 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
             tooltipDiv.innerText = precopy;
         }
 
-        copyIcon.style.display = 'inline';
-        checkmarkIcon.style.display = 'none';
+        if (copyIcon && checkmarkIcon) {
+            copyIcon.style.display = 'inline';
+            checkmarkIcon.style.display = 'none';
+        }
         delete button.dataset.copyTimeout;
    }, 1500);
 };
-
-window.updateFluentSelectDisplayValue = function (fluentSelect) {
-    if (fluentSelect) {
-        fluentSelect.updateDisplayValue();
-    }
-}
-
-function getThemeColors() {
-    // Get colors from the current light/dark theme.
-    var style = getComputedStyle(document.body);
-    return {
-        backgroundColor: style.getPropertyValue("--fill-color"),
-        textColor: style.getPropertyValue("--neutral-foreground-rest")
-    };
-}
-
-function fixTraceLineRendering(chartDiv) {
-    // In stack area charts Plotly orders traces so the top line area overwrites the line of areas below it.
-    // This isn't the effect we want. When the P50, P90 and P99 values are the same, the line displayed is P99
-    // on the P50 area.
-    //
-    // The fix is to reverse the order of traces so the correct line is on top. There isn't a way to do this
-    // with CSS because SVG doesn't support z-index. Node order is what determines the rendering order.
-    //
-    // https://github.com/plotly/plotly.js/issues/6579
-    var parent = chartDiv.querySelector(".scatterlayer");
-
-    if (parent.childNodes.length > 0) {
-        for (var i = 1; i < parent.childNodes.length; i++) {
-            parent.insertBefore(parent.childNodes[i], parent.firstChild);
-        }
-    }
-}
-
-window.updateChart = function (id, traces, xValues, rangeStartTime, rangeEndTime) {
-    var chartContainerDiv = document.getElementById(id);
-    var chartDiv = chartContainerDiv.firstChild;
-
-    var themeColors = getThemeColors();
-
-    var xUpdate = [];
-    var yUpdate = [];
-    var tooltipsUpdate = [];
-    for (var i = 0; i < traces.length; i++) {
-        xUpdate.push(xValues);
-        yUpdate.push(traces[i].values);
-        tooltipsUpdate.push(traces[i].tooltips);
-    }
-
-    var data = {
-        x: xUpdate,
-        y: yUpdate,
-        text: tooltipsUpdate,
-    };
-
-    var layout = {
-        xaxis: {
-            type: 'date',
-            range: [rangeEndTime, rangeStartTime],
-            fixedrange: true,
-            tickformat: "%X",
-            color: themeColors.textColor
-        }
-    };
-
-    Plotly.update(chartDiv, data, layout);
-
-    fixTraceLineRendering(chartDiv);
-};
-
-window.initializeChart = function (id, traces, xValues, rangeStartTime, rangeEndTime, serverLocale) {
-    registerLocale(serverLocale);
-
-    var chartContainerDiv = document.getElementById(id);
-
-    // Reusing a div can create issues with chart lines appearing beyond the end range.
-    // Workaround this issue by replacing the chart div. Ensures we start from a new state.
-    var chartDiv = document.createElement("div");
-    chartContainerDiv.replaceChildren(chartDiv);
-
-    var themeColors = getThemeColors();
-
-    var data = [];
-    for (var i = 0; i < traces.length; i++) {
-        var name = traces[i].name || "Value";
-        var t = {
-            x: xValues,
-            y: traces[i].values,
-            name: name,
-            text: traces[i].tooltips,
-            hoverinfo: 'text',
-            stackgroup: "one"
-        };
-        data.push(t);
-    }
-
-    // Explicitly set the width and height based on the container div.
-    // If there is no explicit width and height, Plotly will use the rendered container size.
-    // However, if the container isn't visible then it uses a default size.
-    // Being explicit ensures the chart is always the correct size.
-    var width = parseInt(chartContainerDiv.style.width);
-    var height = parseInt(chartContainerDiv.style.height);
-
-    var layout = {
-        width: width,
-        height: height,
-        paper_bgcolor: themeColors.backgroundColor,
-        plot_bgcolor: themeColors.backgroundColor,
-        margin: { t: 0, r: 0, b: 40, l: 50 },
-        xaxis: {
-            type: 'date',
-            range: [rangeEndTime, rangeStartTime],
-            fixedrange: true,
-            tickformat: "%X",
-            color: themeColors.textColor
-        },
-        yaxis: {
-            rangemode: "tozero",
-            fixedrange: true,
-            color: themeColors.textColor
-        },
-        hovermode: "x",
-        showlegend: true,
-        legend: {
-            orientation: "h",
-            font: {
-                color: themeColors.textColor
-            },
-            traceorder: "normal",
-            itemclick: false,
-            itemdoubleclick: false
-        }
-    };
-
-    var options = { scrollZoom: false, displayModeBar: false };
-
-    Plotly.newPlot(chartDiv, data, layout, options);
-
-    fixTraceLineRendering(chartDiv);
-};
-
-function registerLocale(serverLocale) {
-    // Register the locale for Plotly.js. This is to enable localization of time format shown by the charts.
-    // Changing plotly.js time formatting is better than supplying values from the server which is very difficult to do correctly.
-
-    // Right now necessary changes are to:
-    // -Update AM/PM
-    // -Update time format to 12/24 hour.
-    var locale = {
-        moduleType: 'locale',
-        name: 'en',
-        dictionary: {
-            'Click to enter Colorscale title': 'Click to enter Colourscale title'
-        },
-        format: {
-            days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-            shortDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-            months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-            shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            periods: serverLocale.periods,
-            dateTime: '%a %b %e %X %Y',
-            date: '%d/%m/%Y',
-            time: serverLocale.time,
-            decimal: '.',
-            thousands: ',',
-            grouping: [3],
-            currency: ['$', ''],
-            year: '%Y',
-            month: '%b %Y',
-            dayMonth: '%b %-d',
-            dayMonthYear: '%b %-d, %Y'
-        }
-    };
-    Plotly.register(locale);
-}
 
 function isActiveElementInput() {
     const currentElement = document.activeElement;
@@ -419,8 +274,8 @@ window.registerGlobalKeydownListener = function(shortcutManager) {
     }
 }
 
-window.unregisterGlobalKeydownListener = function (keydownListener) {
-    window.document.removeEventListener('keydown', keydownListener);
+window.unregisterGlobalKeydownListener = function (obj) {
+    window.document.removeEventListener('keydown', obj.keydownListener);
 }
 
 window.getBrowserTimeZone = function () {
@@ -435,3 +290,85 @@ window.focusElement = function(selector) {
         element.focus();
     }
 }
+
+window.getWindowDimensions = function() {
+    return {
+        width: window.innerWidth,
+        height: window.innerHeight
+    }
+}
+
+window.listenToWindowResize = function(dotnetHelper) {
+    function throttle(func, timeout) {
+        let currentTimeout = null;
+        return function () {
+            if (currentTimeout) {
+                return;
+            }
+            const context = this;
+            const args = arguments;
+            const later = () => {
+                func.call(context, ...args);
+                currentTimeout = null;
+            }
+            currentTimeout = setTimeout(later, timeout);
+        }
+    }
+
+    const throttledResizeListener = throttle(() => {
+        dotnetHelper.invokeMethodAsync('OnResizeAsync', { width: window.innerWidth, height: window.innerHeight });
+    }, 150)
+
+    window.addEventListener('load', throttledResizeListener);
+
+    window.addEventListener('resize', throttledResizeListener);
+}
+
+window.registerOpenTextVisualizerOnClick = function(layout) {
+    const onClickListener = function (e) {
+        const fluentMenuItem = getFluentMenuItemForTarget(e.target);
+
+        if (!fluentMenuItem) {
+            return;
+        }
+
+        const text = fluentMenuItem.getAttribute("data-text");
+        const description = fluentMenuItem.getAttribute("data-textvisualizer-description");
+
+        if (text && description) {
+            e.stopPropagation();
+
+            // data-text may be larger than the max Blazor message size limit for very large strings
+            // we have to stream it
+            const textAsArray = new TextEncoder().encode(text);
+            const textAsStream = DotNet.createJSStreamReference(textAsArray);
+            layout.invokeMethodAsync("OpenTextVisualizerAsync", textAsStream, description);
+        }
+    }
+
+    document.addEventListener('click', onClickListener);
+
+    return {
+        onClickListener: onClickListener,
+    }
+}
+
+window.unregisterOpenTextVisualizerOnClick = function (obj) {
+    document.removeEventListener('click', obj.onClickListener);
+};
+
+window.setCellTextClickHandler = function (id) {
+    var cellTextElement = document.getElementById(id);
+    if (!cellTextElement) {
+        return;
+    }
+
+    cellTextElement.addEventListener('click', e => {
+        // Propagation behavior:
+        // - Link click stops. Link will open in a new window.
+        // - Any other text allows propagation. Potentially opens details view.
+        if (isElementTagName(e.target, 'a')) {
+            e.stopPropagation();
+        }
+    });
+};

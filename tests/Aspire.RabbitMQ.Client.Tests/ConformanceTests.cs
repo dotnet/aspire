@@ -26,13 +26,15 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
     // IConnectionMultiplexer can be created only via call to ConnectionMultiplexer.Connect
     protected override bool CanCreateClientWithoutConnectingToServer => false;
 
-    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
+    protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
     protected override bool SupportsKeyedRegistrations => true;
 
     protected override string[] RequiredLogCategories => Array.Empty<string>();
 
     protected override string ActivitySourceName => "";
+
+    protected override string? ConfigurationSectionName => "Aspire:RabbitMQ:Client";
 
     protected override string ValidJsonConfig => """
         {
@@ -69,7 +71,7 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
     {
-        var connectionString = RequiresDockerTheoryAttribute.IsSupported ?
+        var connectionString = RequiresDockerAttribute.IsSupported ?
             _containerFixture.GetConnectionString() :
             "amqp://localhost:5672";
 

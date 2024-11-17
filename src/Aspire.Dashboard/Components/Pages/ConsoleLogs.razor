@@ -3,20 +3,45 @@
 
 @using Aspire.Dashboard.Resources
 @namespace Aspire.Dashboard.Components.Pages
-@inject IStringLocalizer<Dashboard.Resources.ConsoleLogs> Loc
-@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle)" Loc="@Loc" /></PageTitle>
 
-<div class="resource-logs-layout">
-    <h1 class="page-header">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsHeader)]</h1>
-    <FluentToolbar Orientation="Orientation.Horizontal">
-        <ResourceSelect @ref="_resourceSelectComponent"
-                        Resources="_resources"
-                        AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)]"
-                        @bind-SelectedResource="PageViewModel.SelectedOption"
-                        @bind-SelectedResource:after="HandleSelectedOptionChangedAsync" />
-        <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@PageViewModel.Status</FluentLabel>
-    </FluentToolbar>
-    <LogViewer @ref="_logViewer" />
+<div class="page-content-container">
+    <AspirePageContentLayout
+        AddNewlineOnToolbar="true"
+        @ref="@_contentLayout"
+        MainContentStyle="margin-top: 10px;"
+        MobileToolbarButtonText="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSelectResourceToolbar)]">
+        <PageTitleSection>
+            <h1 class="page-header">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsHeader)]</h1>
+        </PageTitleSection>
+        <ToolbarSection>
+            <ResourceSelect Resources="_resources"
+                            AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.ResourceLabel)]"
+                            @bind-SelectedResource="PageViewModel.SelectedOption"
+                            @bind-SelectedResource:after="HandleSelectedOptionChangedAsync" />
+            @if (ViewportInformation.IsDesktop)
+            {
+                // This takes up too much horizontal space on mobile, so show on a new line on mobile
+                <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@PageViewModel.Status</FluentLabel>
+            }
+        </ToolbarSection>
+
+        <MobilePageTitleToolbarSection>
+            <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">
+                @if (PageViewModel.SelectedOption?.Id is not null)
+                {
+                    @($"{PageViewModel.SelectedOption.Name}: {PageViewModel.Status}")
+                }
+                else
+                {
+                    @PageViewModel.Status
+                }
+            </FluentLabel>
+        </MobilePageTitleToolbarSection>
+
+        <MainSection>
+            <LogViewer LogEntries="@_logEntries" />
+        </MainSection>
+    </AspirePageContentLayout>
 </div>

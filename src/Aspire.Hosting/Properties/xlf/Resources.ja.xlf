@@ -35,28 +35,13 @@ See https://aka.ms/dotnet/aspire/containers for more details on supported contai
         <note />
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
-        <source>Application orchestrator dependency check had an unexpected error {0}.</source>
-        <target state="translated">アプリケーション オーケストレーターの依存関係チェックで予期しないエラー {0} が発生しました。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="DcpVersionCheckFailedMessage">
-        <source>The application orchestrator version could not be determined. Continuing.</source>
-        <target state="translated">アプリケーション オーケストレーターのバージョンを特定できませんでした。継続中。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="DcpVersionCheckTooHighMessage">
-        <source>Found incompatible version of .NET Aspire workload (need application orchestrator version {0} to run the application).</source>
-        <target state="translated">互換性のないバージョンの .NET Aspire ワークロードが見つかりました (アプリケーションを実行するには、アプリケーション オーケストレーターバージョン {0} が必要です)。</target>
+        <source>Application orchestrator dependency check returned an error: {0}</source>
+        <target state="translated">アプリケーション オーケストレーターの依存関係チェックでエラー {0} が返されました。</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">
         <source>Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</source>
         <target state="translated">アプリケーションを実行するには、新しいバージョンの .NET Aspire ワークロードが必要です。'dotnet workload update' を実行して取得します。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="LaunchProfileIsSpecifiedButLaunchSettingsFileIsNotPresentExceptionMessage">
-        <source>Launch profile is specified but launch settings file is not present.</source>
-        <target state="translated">起動プロファイルが指定されていますが、起動設定ファイルが存在しません。</target>
         <note />
       </trans-unit>
       <trans-unit id="LaunchSettingsFileDoesNotContainProfileExceptionMessage">

@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
-        <source>Launch settings</source>
-        <target state="translated">시작 설정</target>
+        <source>Settings</source>
+        <target state="translated">설정</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutSettingsDialogClose">
@@ -85,6 +85,11 @@
       <trans-unit id="NavMenuTracesTab">
         <source>Traces</source>
         <target state="translated">추적</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PageLayoutViewFilters">
+        <source>View filters</source>
+        <target state="translated">필터 보기</target>
         <note />
       </trans-unit>
     </body>

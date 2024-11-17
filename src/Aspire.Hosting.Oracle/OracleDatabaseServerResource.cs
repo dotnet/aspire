@@ -24,7 +24,7 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
     }
 
     /// <summary>
-    /// Gets the primary endpoint for the Redis server.
+    /// Gets the primary endpoint for the Oracle server.
     /// </summary>
     public EndpointReference PrimaryEndpoint { get; }
 

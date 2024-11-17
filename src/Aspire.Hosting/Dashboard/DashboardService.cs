@@ -2,10 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.RegularExpressions;
-using Aspire.V1;
+using Aspire.ResourceService.Proto.V1;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -17,14 +18,16 @@ namespace Aspire.Hosting.Dashboard;
 /// required beyond a single request. Longer-scoped data is stored in <see cref="DashboardServiceData"/>.
 /// </remarks>
 [Authorize(Policy = ResourceServiceApiKeyAuthorization.PolicyName)]
-internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime)
-    : V1.DashboardService.DashboardServiceBase
+internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime, ILogger<DashboardService> logger)
+    : Aspire.ResourceService.Proto.V1.DashboardService.DashboardServiceBase
 {
+    // gRPC has a maximum receive size of 4MB. Force logs into batches to avoid exceeding receive size.
+    // Protobuf sends strings as UTF8. Be conservative and assume the average character byte size is 2.
+    public const int LogMaxBatchCharacters = 1024 * 1024 * 2;
+
     // Calls that consume or produce streams must create a linked cancellation token
     // with IHostApplicationLifetime.ApplicationStopping to ensure eager cancellation
     // of pending connections during shutdown.
-
-    // TODO implement command handling
 
     [GeneratedRegex("""^(?<name>.+?)\.?AppHost$""", RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant)]
     private static partial Regex ApplicationNameRegex();
@@ -53,18 +56,11 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         IServerStreamWriter<WatchResourcesUpdate> responseStream,
         ServerCallContext context)
     {
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping, context.CancellationToken);
+        await ExecuteAsync(
+            WatchResourcesInternal,
+            context).ConfigureAwait(false);
 
-        try
-        {
-            await WatchResourcesInternal().ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is OperationCanceledException or IOException && cts.Token.IsCancellationRequested)
-        {
-            // Ignore cancellation and just return. Note that cancelled writes throw IOException.
-        }
-
-        async Task WatchResourcesInternal()
+        async Task WatchResourcesInternal(CancellationToken cancellationToken)
         {
             var (initialData, updates) = serviceData.SubscribeResources();
 
@@ -75,11 +71,11 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                 data.Resources.Add(Resource.FromSnapshot(resource));
             }
 
-            await responseStream.WriteAsync(new() { InitialData = data }).ConfigureAwait(false);
+            await responseStream.WriteAsync(new() { InitialData = data }, cancellationToken).ConfigureAwait(false);
 
-            await foreach (var batch in updates.WithCancellation(cts.Token).ConfigureAwait(false))
+            await foreach (var batch in updates.WithCancellation(cancellationToken).ConfigureAwait(false))
             {
-                WatchResourcesChanges changes = new();
+                var changes = new WatchResourcesChanges();
 
                 foreach (var update in batch)
                 {
@@ -101,7 +97,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                     changes.Value.Add(change);
                 }
 
-                await responseStream.WriteAsync(new() { Changes = changes }, cts.Token).ConfigureAwait(false);
+                await responseStream.WriteAsync(new() { Changes = changes }, cancellationToken).ConfigureAwait(false);
             }
         }
     }
@@ -111,18 +107,11 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         IServerStreamWriter<WatchResourceConsoleLogsUpdate> responseStream,
         ServerCallContext context)
     {
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping, context.CancellationToken);
+        await ExecuteAsync(
+            WatchResourceConsoleLogsInternal,
+            context).ConfigureAwait(false);
 
-        try
-        {
-            await WatchResourceConsoleLogsInternal().ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is OperationCanceledException or IOException && cts.Token.IsCancellationRequested)
-        {
-            // Ignore cancellation and just return. Note that cancelled writes throw IOException.
-        }
-
-        async Task WatchResourceConsoleLogsInternal()
+        async Task WatchResourceConsoleLogsInternal(CancellationToken cancellationToken)
         {
             var subscription = serviceData.SubscribeConsoleLogs(request.ResourceName);
 
@@ -131,17 +120,82 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                 return;
             }
 
-            await foreach (var group in subscription.WithCancellation(cts.Token).ConfigureAwait(false))
+            await foreach (var group in subscription.WithCancellation(cancellationToken).ConfigureAwait(false))
             {
-                WatchResourceConsoleLogsUpdate update = new();
+                var sentLines = 0;
 
-                foreach (var (lineNumber, content, isErrorMessage) in group)
+                while (sentLines < group.Count)
                 {
-                    update.LogLines.Add(new ConsoleLogLine() { LineNumber = lineNumber, Text = content, IsStdErr = isErrorMessage });
-                }
+                    var update = new WatchResourceConsoleLogsUpdate();
+                    var currentChars = 0;
 
-                await responseStream.WriteAsync(update, cts.Token).ConfigureAwait(false);
+                    foreach (var (lineNumber, content, isErrorMessage) in group.Skip(sentLines))
+                    {
+                        // Truncate excessively long lines.
+                        var resolvedContent = content.Length > LogMaxBatchCharacters
+                            ? content[..LogMaxBatchCharacters]
+                            : content;
+
+                        // Count number of characters to figure out if batch exceeds the limit.
+                        // We could calculate byte size here with UTF8 encoding, but getting the exact size of the text and message
+                        // would be a bit more complicated. Character count plus a conservative limit should be fine.
+                        currentChars += resolvedContent.Length;
+
+                        if (currentChars <= LogMaxBatchCharacters)
+                        {
+                            update.LogLines.Add(new ConsoleLogLine() { LineNumber = lineNumber, Text = resolvedContent, IsStdErr = isErrorMessage });
+                            sentLines++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+
+                    await responseStream.WriteAsync(update, cancellationToken).ConfigureAwait(false);
+                }
             }
+        }
+    }
+
+    public override async Task<ResourceCommandResponse> ExecuteResourceCommand(ResourceCommandRequest request, ServerCallContext context)
+    {
+        var (result, errorMessage) = await serviceData.ExecuteCommandAsync(request.ResourceName, request.CommandName, context.CancellationToken).ConfigureAwait(false);
+        var responseKind = result switch
+        {
+            DashboardServiceData.ExecuteCommandResult.Success => ResourceCommandResponseKind.Succeeded,
+            DashboardServiceData.ExecuteCommandResult.Canceled => ResourceCommandResponseKind.Cancelled,
+            DashboardServiceData.ExecuteCommandResult.Failure => ResourceCommandResponseKind.Failed,
+            _ => ResourceCommandResponseKind.Undefined
+        };
+
+        return new ResourceCommandResponse
+        {
+            Kind = responseKind,
+            ErrorMessage = errorMessage ?? string.Empty
+        };
+    }
+
+    private async Task ExecuteAsync(Func<CancellationToken, Task> execute, ServerCallContext serverCallContext)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping, serverCallContext.CancellationToken);
+
+        try
+        {
+            await execute(cts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cts.Token.IsCancellationRequested)
+        {
+            // Ignore cancellation and just return.
+        }
+        catch (IOException) when (cts.Token.IsCancellationRequested)
+        {
+            // Ignore cancellation and just return. Cancelled writes throw IOException.
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"Error executing service method '{serverCallContext.Method}'.");
+            throw;
         }
     }
 }

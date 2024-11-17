@@ -1,10 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
-    <!-- MongoDB.Driver package is unsigned, we ignore that warning on purpose  -->
-    <NoWarn>$(NoWarn);CS8002</NoWarn>
-    <RunTestsOnHelix>true</RunTestsOnHelix>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,18 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting sqlserver sql</PackageTags>
+    <PackageTags>aspire integration hosting sqlserver sql</PackageTags>
     <Description>Microsoft SQL Server support for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)SQL_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <MinCodeCoverage>29</MinCodeCoverage>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
-    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="AspNetCore.HealthChecks.SqlServer" />
+  </ItemGroup>
+  
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>

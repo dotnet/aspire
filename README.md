@@ -3,6 +3,7 @@
 [![Build Status](https://dev.azure.com/dnceng-public/public/_apis/build/status%2Fdotnet%2Faspire%2Fdotnet.aspire?branchName=main)](https://dev.azure.com/dnceng-public/public/_build/latest?definitionId=274&branchName=main)
 [![Help Wanted](https://img.shields.io/github/issues/dotnet/aspire/help%20wanted?style=flat&color=%24EC820&label=help%20wanted)](https://github.com/dotnet/aspire/labels/help%20wanted)
 [![Good First Issue](https://img.shields.io/github/issues/dotnet/aspire/good%20first%20issue?style=flat&color=%24EC820&label=good%20first%20issue)](https://github.com/dotnet/aspire/labels/good%20first%20issue)
+[![Discord](https://img.shields.io/discord/732297728826277939?style=flat&logo=discord&logoColor=white&label=Join%20our%20Discord&labelColor=512bd4&color=cyan)](https://discord.com/invite/h87kDAHQgJ)
 
 ## What is .NET Aspire?
 
@@ -12,7 +13,7 @@
 
 [Orchestration](https://learn.microsoft.com/dotnet/aspire/get-started/aspire-overview?#orchestration): .NET Aspire provides features for running and connecting multi-project applications and their dependencies.
 
-[Components](https://learn.microsoft.com/dotnet/aspire/get-started/aspire-overview?#net-aspire-components): .NET Aspire components are NuGet packages for commonly used services, such as Redis or Postgres, with standardized interfaces ensuring they connect consistently and seamlessly with your app.
+[Integrations](https://learn.microsoft.com/dotnet/aspire/get-started/aspire-overview?#net-aspire-integrations): .NET Aspire integrations are NuGet packages for commonly used services, such as Redis or Postgres, with standardized interfaces ensuring they connect consistently and seamlessly with your app.
 
 [Tooling](https://learn.microsoft.com/dotnet/aspire/get-started/aspire-overview?#project-templates-and-tooling): .NET Aspire comes with project templates and tooling experiences for Visual Studio and the dotnet CLI which help you create and interact with .NET Aspire apps.
 
@@ -20,7 +21,7 @@ To learn more, read the full [.NET Aspire overview and documentation](https://le
 
 ## What is in this repo?
 
-The .NET Aspire application host, dashboard, service discovery infrastructure, and all .NET Aspire components. It also contains the project templates.
+The .NET Aspire application host, dashboard, service discovery infrastructure, and all .NET Aspire integrations. It also contains the project templates.
 
 ## Using latest daily builds
 
@@ -38,7 +39,7 @@ Security issues and bugs should be reported privately, via email, to the Microso
 
 Also see info about related [Microsoft .NET Core and ASP.NET Core Bug Bounty Program](https://www.microsoft.com/msrc/bounty-dot-net-core).
 
-### Note on containers used by Aspire components/resources
+### Note on containers used by .NET Aspire resource and client integrations
 
 The .NET team cannot evaluate the underlying third-party containers for which we have API support for suitability for specific customer requirements.
 

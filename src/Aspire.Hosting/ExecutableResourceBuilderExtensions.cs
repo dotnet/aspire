@@ -21,8 +21,32 @@ public static class ExecutableResourceBuilderExtensions
     /// <param name="workingDirectory">The working directory of the executable.</param>
     /// <param name="args">The arguments to the executable.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ExecutableResource> AddExecutable(this IDistributedApplicationBuilder builder, string name, string command, string workingDirectory, params string[]? args)
+    public static IResourceBuilder<ExecutableResource> AddExecutable(this IDistributedApplicationBuilder builder, [ResourceName] string name, string command, string workingDirectory, params string[]? args)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(command);
+        ArgumentNullException.ThrowIfNull(workingDirectory);
+
+        return AddExecutable(builder, name, command, workingDirectory, (object[]?)args);
+    }
+
+    /// <summary>
+    /// Adds an executable resource to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="command">The executable path. This can be a fully qualified path or a executable to run from the shell/command line.</param>
+    /// <param name="workingDirectory">The working directory of the executable.</param>
+    /// <param name="args">The arguments to the executable.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<ExecutableResource> AddExecutable(this IDistributedApplicationBuilder builder, [ResourceName] string name, string command, string workingDirectory, params object[]? args)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(command);
+        ArgumentNullException.ThrowIfNull(workingDirectory);
+
         workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
 
         var executable = new ExecutableResource(name, command, workingDirectory);
@@ -47,6 +71,8 @@ public static class ExecutableResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> PublishAsDockerFile<T>(this IResourceBuilder<T> builder, IEnumerable<DockerBuildArg>? buildArgs = null) where T : ExecutableResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithManifestPublishingCallback(context => WriteExecutableAsDockerfileResourceAsync(context, builder.Resource, buildArgs));
     }
 

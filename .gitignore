@@ -116,9 +116,6 @@ Session.vim
 .netrwhist
 *~
 
-# Visual Studio Code
-.vscode/
-
 # Private test configuration and binaries.
 config.ps1
 **/IISApplications
@@ -144,3 +141,7 @@ node_modules/
 /playground/**/.gitignore
 /playground/**/azure.yaml
 /playground/**/next-steps.md
+*.svclog
+
+# Python virtual environments
+.venv

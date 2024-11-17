@@ -1,17 +1,32 @@
 <Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
-  <Import Project="..\Directory.Build.props" />
+  <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.props" />
+
   <PropertyGroup>
+    <!-- Set RunSettingsFilePath property which is read by VSTest. -->
+    <RunSettingsFilePath>$(RepositoryEngineeringDir)testing\.runsettings</RunSettingsFilePath>
     <TestArchiveTestsDir Condition="'$(TestArchiveTestsDir)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'tests'))</TestArchiveTestsDir>
     <TestArchiveTestsDirForWorkloadTests Condition="'$(TestArchiveTestsDirForWorkloadTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'workload-tests'))</TestArchiveTestsDirForWorkloadTests>
     <TestArchiveTestsDirForEndToEndTests Condition="'$(TestArchiveTestsDirForEndToEndTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'e2e-tests'))</TestArchiveTestsDirForEndToEndTests>
+    <TestArchiveTestsDirForBuildOnHelixTests Condition="'$(TestArchiveTestsDirForBuildOnHelixTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'build-on-helix-tests'))</TestArchiveTestsDirForBuildOnHelixTests>
+    <PlaywrightDependenciesDirectory>$(ArtifactsBinDir)playwright-deps</PlaywrightDependenciesDirectory>
+    <GeneratedPackagesVersionsPropsPath>$(IntermediateOutputPath)Directory.Packages.Versions.props</GeneratedPackagesVersionsPropsPath>
+
+    <!-- This is useful for local runs -->
+    <VSTestResultsDirectory>$(ArtifactsTestResultsDir)</VSTestResultsDirectory>
   </PropertyGroup>
 
   <PropertyGroup>
-    <AddPublicApiAnalyzers>false</AddPublicApiAnalyzers>
+    <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
   </PropertyGroup>
 
   <Import Project="Shared\Aspire.Workload.Testing.props" Condition="'$(IsWorkloadTestProject)' == 'true'" />
+
+  <PropertyGroup Condition="'$(IsWorkloadTestProject)' == 'true'">
+    <BuiltNuGetsDir>$(ArtifactsShippingPackagesDir)</BuiltNuGetsDir>
+    <PackageVersionForWorkloadManifests>$(PackageVersion)</PackageVersionForWorkloadManifests>
+  </PropertyGroup>
 
   <PropertyGroup>
     <!--

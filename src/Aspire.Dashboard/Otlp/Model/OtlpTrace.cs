@@ -15,6 +15,7 @@ public class OtlpTrace
 
     public string FullName { get; private set; }
     public OtlpSpan FirstSpan => Spans[0]; // There should always be at least one span in a trace.
+    public DateTime TimeStamp => FirstSpan.StartTime;
     public OtlpSpan? RootSpan => _rootSpan;
     public TimeSpan Duration
     {
@@ -33,9 +34,7 @@ public class OtlpTrace
         }
     }
 
-    public List<OtlpSpan> Spans { get; } = new List<OtlpSpan>();
-
-    public OtlpScope TraceScope { get; }
+    public OtlpSpanCollection Spans { get; } = new OtlpSpanCollection();
 
     public int CalculateDepth(OtlpSpan span)
     {
@@ -53,6 +52,11 @@ public class OtlpTrace
 
     public void AddSpan(OtlpSpan span)
     {
+        if (Spans.Contains(span.SpanId))
+        {
+            throw new InvalidOperationException($"Duplicate span id '{span.SpanId}' detected.");
+        }
+
         var added = false;
         for (var i = Spans.Count - 1; i >= 0; i--)
         {
@@ -66,15 +70,65 @@ public class OtlpTrace
         if (!added)
         {
             Spans.Insert(0, span);
-            FullName = $"{span.Source.ApplicationName}: {span.Name}";
+        }
+
+        if (HasCircularReference(span))
+        {
+            Spans.Remove(span);
+            throw new InvalidOperationException($"Circular loop detected for span '{span.SpanId}' with parent '{span.ParentSpanId}'.");
         }
 
         if (string.IsNullOrEmpty(span.ParentSpanId))
         {
-            _rootSpan = span;
+            // There should only be one span with no parent span ID.
+            // Incase there isn't, the first span with no parent span ID is considered to be the root.
+            foreach (var existingSpan in Spans)
+            {
+                if (string.IsNullOrEmpty(existingSpan.ParentSpanId))
+                {
+                    _rootSpan = existingSpan;
+                    FullName = BuildFullName(existingSpan);
+                    break;
+                }
+            }
+        }
+        else if (_rootSpan == null && span == Spans[0])
+        {
+            // If there isn't a root span then the first span is used as the trace name.
+            FullName = BuildFullName(span);
         }
 
         AssertSpanOrder();
+
+        static string BuildFullName(OtlpSpan existingSpan)
+        {
+            return $"{existingSpan.Source.Application.ApplicationName}: {existingSpan.Name}";
+        }
+    }
+
+    private static bool HasCircularReference(OtlpSpan span)
+    {
+        // Can't have a circular reference if the span has no parent.
+        if (string.IsNullOrEmpty(span.ParentSpanId))
+        {
+            return false;
+        }
+
+        // Walk up span ancestors to check there is no loop.
+        var stack = new OtlpSpanCollection { span };
+        var currentSpan = span;
+        while (currentSpan.GetParentSpan() is { } parentSpan)
+        {
+            if (stack.Contains(parentSpan))
+            {
+                return true;
+            }
+
+            stack.Add(parentSpan);
+            currentSpan = parentSpan;
+        }
+
+        return false;
     }
 
     [Conditional("DEBUG")]
@@ -93,17 +147,16 @@ public class OtlpTrace
         }
     }
 
-    public OtlpTrace(ReadOnlyMemory<byte> traceId, OtlpScope traceScope)
+    public OtlpTrace(ReadOnlyMemory<byte> traceId)
     {
         Key = traceId;
         TraceId = OtlpHelpers.ToHexString(traceId);
-        TraceScope = traceScope;
         FullName = string.Empty;
     }
 
     public static OtlpTrace Clone(OtlpTrace trace)
     {
-        var newTrace = new OtlpTrace(trace.Key, trace.TraceScope);
+        var newTrace = new OtlpTrace(trace.Key);
         foreach (var item in trace.Spans)
         {
             newTrace.AddSpan(OtlpSpan.Clone(item, newTrace));
@@ -114,7 +167,7 @@ public class OtlpTrace
 
     private string DebuggerToString()
     {
-        return $@"TraceId = ""{TraceId}"", Spans = {Spans.Count}, StartTime = {FirstSpan.StartTime.ToLocalTime():h:mm:ss.fff tt}, Duration = {Duration}";
+        return $@"TraceId = ""{TraceId}"", Spans = {Spans.Count}, StartDate = {FirstSpan.StartTime.ToLocalTime():yyyy:MM:dd}, StartTime = {FirstSpan.StartTime.ToLocalTime():h:mm:ss.fff tt}, Duration = {Duration}";
     }
 
     private sealed class SpanStartDateComparer : IComparer<OtlpSpan>

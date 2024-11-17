@@ -2,13 +2,27 @@
   <Target Name="Test">
     <ItemGroup>
       <TestCategory Include="basictests" />
+      <!-- no docker on windows -->
       <TestCategory Condition="'$(OS)' != 'Windows_NT'" Include="endtoendtests" />
+      <TestCategory Include="workloadtests" />
+      <!-- no docker on windows -->
+      <TestCategory Condition="'$(OS)' != 'Windows_NT'" Include="buildonhelixtests" />
 
+      <AdditionalProperties Condition="'$(Configuration)' != ''" Include="Configuration=$(Configuration)" />
       <_ProjectsToBuild Include="send-to-helix-inner.proj"
                         Condition="'%(TestCategory.Identity)' != ''"
-                        AdditionalProperties="TestCategory=%(TestCategory.Identity);Configuration=$(Configuration)" />
+                        AdditionalProperties="TestCategory=%(TestCategory.Identity);@(AdditionalProperties, ';')" />
     </ItemGroup>
 
+    <!-- Invoke 'PrepareDependencies' targets with BuildInParallel=false -->
+    <MSBuild Projects="@(_ProjectsToBuild)" Targets="PrepareDependencies" BuildInParallel="false" StopOnFirstFailure="true" />
+
+    <ItemGroup>
+      <!-- Change the set of properties in the evaluated project, so msbuild will build the
+           following projects in parallel, instead of combining with the previous one to build
+           sequentially. -->
+      <_ProjectsToBuild AdditionalProperties="%(AdditionalProperties);__RandomPropertyForDifferentiatingBuilds=$([System.Guid]::NewGuid())" />
+    </ItemGroup>
     <!-- Invoke MSBuild once for each Category (because of the grouping defined in "_ProjectsToBuild").
          Create the Helix work items and start the jobs. This is done by invoking the "Test" Helix target.
     -->

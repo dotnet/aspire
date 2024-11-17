@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Issue: https://github.com/dotnet/dnceng/issues/3091 -->
+    <NpmUnavailable Condition="'$(ContinuousIntegrationBuild)' == 'true' and '$(OS)' == 'Windows_NT'">true</NpmUnavailable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+  <Target Name="NpmInstall" Inputs="package.json" Outputs="node_modules/.install-stamp" Condition="'$(NpmUnavailable)' != 'true'">
+    <!--
+        Use npm install or npm ci depending on RestorePackagesWithLockFile value.
+        Uncomment the following lines if you want to use this feature:
+
+        <PropertyGroup>
+          <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+        </PropertyGroup>
+     -->
+    <Exec Command="npm ci" Condition="'$(RestorePackagesWithLockFile)' == 'true'" />
+    <Exec Command="npm install" Condition="'$(RestorePackagesWithLockFile)' != 'true'" />
+
+    <!-- Write the stamp file, so incremental builds work -->
+    <Touch Files="node_modules/.install-stamp" AlwaysCreate="true" />
+  </Target>
+
+  <!--
+      2. Run npm run build before building the .NET project.
+      MSBuild runs NpmInstall before this task because of the DependsOnTargets attribute.
+   -->
+  <Target Name="NpmRunBuild" DependsOnTargets="NpmInstall" Condition="'$(Configuration)' == 'Debug' and '$(NpmUnavailable)' != 'true' ">
+    <Exec Command="npm run build" />
+  </Target>
+
+</Project>

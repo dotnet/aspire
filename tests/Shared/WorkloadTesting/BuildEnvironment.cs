@@ -2,70 +2,99 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Diagnostics.Latency;
+using Xunit.Sdk;
 
 namespace Aspire.Workload.Tests;
 
 public class BuildEnvironment
 {
     public string                           DotNet                        { get; init; }
-    public bool                             IsWorkload                    { get; init; }
     public string                           DefaultBuildArgs              { get; init; }
     public IDictionary<string, string>      EnvVars                       { get; init; }
     public string                           LogRootPath                   { get; init; }
 
-    public string                           WorkloadPacksDir              { get; init; }
     public string                           BuiltNuGetsPath               { get; init; }
-    public bool                             HasSdkWithWorkload            { get; init; }
-    public string                           TestAssetsPath                { get; init; }
-    public string                           TestProjectPath               { get; init; }
+    public bool                             UsesCustomDotNet              { get; init; }
+    public bool                             UsesSystemDotNet => !UsesCustomDotNet;
+    public string?                          NuGetPackagesPath             { get; init; }
+    public DirectoryInfo?                   RepoRoot                      { get; init; }
+    public TemplatesCustomHive?             TemplatesCustomHive           { get; init; }
 
-    public static readonly string           TestDataPath = Path.Combine(AppContext.BaseDirectory, "data");
-    public static readonly string           TmpPath = Path.Combine(Path.GetTempPath(), "testroot");
+    public static readonly string TempDir = IsRunningOnCI
+        ? Path.GetTempPath()
+        : Environment.GetEnvironmentVariable("DEV_TEMP") is { } devTemp && Path.Exists(devTemp)
+            ? devTemp
+            : Path.GetTempPath();
+
+    public static readonly TestTargetFramework DefaultTargetFramework = ComputeDefaultTargetFramework();
+    public static readonly string           TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");
+    public static readonly string           TestRootPath = Path.Combine(TempDir, "templates-testroot");
 
     public static bool IsRunningOnHelix => Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is not null;
     public static bool IsRunningOnCIBuildMachine => Environment.GetEnvironmentVariable("BUILD_BUILDID") is not null;
     public static bool IsRunningOnCI => IsRunningOnHelix || IsRunningOnCIBuildMachine;
 
-    public BuildEnvironment(bool expectSdkWithWorkload = true, Func<string, string, string>? sdkWithWorkloadNotFound = null)
+    private static readonly Lazy<BuildEnvironment> s_instance_80 = new(() =>
+        new BuildEnvironment(
+            templatesCustomHive: TemplatesCustomHive.TemplatesHive,
+            sdkDirName: "dotnet-8"));
+
+    private static readonly Lazy<BuildEnvironment> s_instance_90 = new(() =>
+        new BuildEnvironment(
+            templatesCustomHive: TemplatesCustomHive.TemplatesHive,
+            sdkDirName: "dotnet-9"));
+
+    private static readonly Lazy<BuildEnvironment> s_instance_90_80 = new(() =>
+        new BuildEnvironment(
+            templatesCustomHive: TemplatesCustomHive.TemplatesHive,
+            sdkDirName: "dotnet-tests"));
+
+    public static BuildEnvironment ForPreviousSdkOnly => s_instance_80.Value;
+    public static BuildEnvironment ForCurrentSdkOnly => s_instance_90.Value;
+    public static BuildEnvironment ForCurrentSdkAndPreviousRuntime => s_instance_90_80.Value;
+
+    public static BuildEnvironment ForDefaultFramework { get; } = DefaultTargetFramework switch
     {
-        DirectoryInfo? solutionRoot = new(AppContext.BaseDirectory);
-        while (solutionRoot != null)
-        {
-            // To support git worktrees, check for either a directory or a file named ".git"
-            if (Directory.Exists(Path.Combine(solutionRoot.FullName, ".git")) || File.Exists(Path.Combine(solutionRoot.FullName, ".git")))
-            {
-                break;
-            }
+        TestTargetFramework.Previous => ForPreviousSdkOnly,
 
-            solutionRoot = solutionRoot.Parent;
-        }
+        // Use current+previous to allow running tests on helix built with 9.0 sdk
+        // but targeting 8.0 tfm
+        TestTargetFramework.Current => ForCurrentSdkAndPreviousRuntime,
 
-        // HasSdkWithWorkload = EnvironmentVariables.TestsRunningOutOfTree || expectSdkWithWorkload;
+        _ => throw new ArgumentOutOfRangeException(nameof(DefaultTargetFramework))
+    };
+
+    public BuildEnvironment(bool useSystemDotNet = false, TemplatesCustomHive? templatesCustomHive = default, string sdkDirName = "dotnet-tests")
+    {
+        UsesCustomDotNet = !useSystemDotNet;
+        RepoRoot = TestUtils.FindRepoRoot();
+
         string sdkForWorkloadPath;
-        if (solutionRoot is not null)
+        if (RepoRoot is not null)
         {
             // Local run
-            if (expectSdkWithWorkload)
+            if (!useSystemDotNet)
             {
-                var sdkDirName = string.IsNullOrEmpty(EnvironmentVariables.SdkDirName) ? "dotnet-latest" : EnvironmentVariables.SdkDirName;
-                var probePath = Path.Combine(solutionRoot!.FullName, "artifacts", "bin", sdkDirName);
-                if (Directory.Exists(probePath))
+                var sdkFromArtifactsPath = Path.Combine(RepoRoot!.FullName, "artifacts", "bin", sdkDirName);
+                if (Directory.Exists(sdkFromArtifactsPath))
                 {
-                    sdkForWorkloadPath = Path.GetFullPath(probePath);
+                    sdkForWorkloadPath = Path.GetFullPath(sdkFromArtifactsPath);
                 }
                 else
                 {
-                    string? prefix = sdkWithWorkloadNotFound?.Invoke(probePath, solutionRoot.FullName) ?? "";
-                    throw new InvalidOperationException(
-                        (prefix is not null ? $"{prefix}{Environment.NewLine}" : "") +
-                        $"Could not find find a sdk with the workload installed at {probePath} computed from solutionRoot={solutionRoot}.{Environment.NewLine}" +
-                        $"Build all the packages with '.\\build.cmd -pack'.{Environment.NewLine}" +
-                        $"Then install the sdk+worklaod with 'dotnet build tests\\workloads.proj'");
+                    string buildCmd = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".\\build.cmd" : "./build.sh";
+                    string workloadsProjString = Path.Combine("tests", "workloads.proj");
+                    throw new XunitException(
+                        $"Could not find a sdk with the workload installed at {sdkFromArtifactsPath} computed from {nameof(RepoRoot)}={RepoRoot}." +
+                        $" Build all the packages with '{buildCmd} -pack'." +
+                        $" Then install the sdk+workload with 'dotnet build {workloadsProjString}'." +
+                        " See https://github.com/dotnet/aspire/tree/main/tests/Aspire.Workload.Tests#readme for more details.");
                 }
             }
             else
             {
-                 string? dotnetPath = Environment.GetEnvironmentVariable("PATH")!
+                string? dotnetPath = Environment.GetEnvironmentVariable("PATH")!
                     .Split(Path.PathSeparator)
                     .Select(path => Path.Combine(path, RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "dotnet.exe" : "dotnet"))
                     .FirstOrDefault(File.Exists);
@@ -76,64 +105,62 @@ public class BuildEnvironment
                 sdkForWorkloadPath = Path.GetDirectoryName(dotnetPath)!;
             }
 
-            BuiltNuGetsPath = Path.Combine(solutionRoot.FullName, "artifacts", "packages", EnvironmentVariables.BuildConfiguration, "Shipping");
+            BuiltNuGetsPath = Path.Combine(RepoRoot.FullName, "artifacts", "packages", EnvironmentVariables.BuildConfiguration, "Shipping");
 
-            // this is the only difference for local run but outside-of-repo
-            if (expectSdkWithWorkload)
-            {
-                TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");
-            }
-            else
-            {
-                TestAssetsPath = Path.Combine(solutionRoot!.FullName, "tests");
-            }
-            if (!Directory.Exists(TestAssetsPath))
-            {
-                throw new ArgumentException($"Cannot find TestAssetsPath={TestAssetsPath}");
-            }
+            PlaywrightProvider.DetectAndSetInstalledPlaywrightDependenciesPath(RepoRoot);
         }
         else
         {
-            // CI
-            if (string.IsNullOrEmpty(EnvironmentVariables.SdkForWorkloadTestingPath) || !Directory.Exists(EnvironmentVariables.SdkForWorkloadTestingPath))
+            // CI - helix
+            if (string.IsNullOrEmpty(EnvironmentVariables.SdkForWorkloadTestingPath))
             {
-                throw new ArgumentException($"Cannot find 'SDK_FOR_WORKLOAD_TESTING_PATH={EnvironmentVariables.SdkForWorkloadTestingPath}'");
+                throw new ArgumentException($"Environment variable SDK_FOR_WORKLOAD_TESTING_PATH is unset");
             }
-            sdkForWorkloadPath = EnvironmentVariables.SdkForWorkloadTestingPath;
+
+            string? baseDir = Path.GetDirectoryName(EnvironmentVariables.SdkForWorkloadTestingPath);
+            if (baseDir is null)
+            {
+                throw new ArgumentException($"Cannot find base directory for SDK_FOR_WORKLOAD_TESTING_PATH - {baseDir}");
+            }
+
+            sdkForWorkloadPath = Path.Combine(baseDir, sdkDirName);
 
             if (string.IsNullOrEmpty(EnvironmentVariables.BuiltNuGetsPath) || !Directory.Exists(EnvironmentVariables.BuiltNuGetsPath))
             {
                 throw new ArgumentException($"Cannot find 'BUILT_NUGETS_PATH={EnvironmentVariables.BuiltNuGetsPath}' or {BuiltNuGetsPath}");
             }
             BuiltNuGetsPath = EnvironmentVariables.BuiltNuGetsPath;
-
-            TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");
         }
 
-        if (!string.IsNullOrEmpty(EnvironmentVariables.SdkForWorkloadTestingPath))
+        if (!Directory.Exists(TestAssetsPath))
         {
-            // always allow overridding the dotnet used for testing
-            sdkForWorkloadPath = EnvironmentVariables.SdkForWorkloadTestingPath;
+            throw new ArgumentException($"Cannot find TestAssetsPath={TestAssetsPath}");
         }
 
-        HasSdkWithWorkload = expectSdkWithWorkload;
         sdkForWorkloadPath = Path.GetFullPath(sdkForWorkloadPath);
         DefaultBuildArgs = string.Empty;
-        WorkloadPacksDir = Path.Combine(sdkForWorkloadPath, "packs");
-        TestProjectPath = Path.Combine(TestAssetsPath, "testproject");
-
-        Console.WriteLine($"*** Using workload path: {sdkForWorkloadPath}");
+        NuGetPackagesPath = UsesCustomDotNet ? Path.Combine(AppContext.BaseDirectory, $"nuget-cache-{Guid.NewGuid()}") : null;
         EnvVars = new Dictionary<string, string>();
-        if (HasSdkWithWorkload)
+        if (UsesCustomDotNet)
         {
             EnvVars["DOTNET_ROOT"] = sdkForWorkloadPath;
             EnvVars["DOTNET_INSTALL_DIR"] = sdkForWorkloadPath;
             EnvVars["DOTNET_MULTILEVEL_LOOKUP"] = "0";
             EnvVars["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1";
             EnvVars["PATH"] = $"{sdkForWorkloadPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}";
-            EnvVars["BUILT_NUGETS_PATH"] = BuiltNuGetsPath;
-            EnvVars["NUGET_PACKAGES"] = Path.Combine(BuildEnvironment.TmpPath, "nuget-cache");
         }
+        EnvVars["NUGET_PACKAGES"] = NuGetPackagesPath!;
+        EnvVars["BUILT_NUGETS_PATH"] = BuiltNuGetsPath;
+        EnvVars["TreatWarningsAsErrors"] = "true";
+        // Set DEBUG_SESSION_PORT='' to avoid the app from the tests connecting
+        // to the IDE
+        EnvVars["DEBUG_SESSION_PORT"] = "";
+        // Avoid using the msbuild terminal logger, so the output can be read
+        // in the tests
+        EnvVars["_MSBUILDTLENABLED"] = "0";
+        // .. and disable new output style for vstest
+        EnvVars["VsTestUseMSBuildOutput"] = "false";
+        EnvVars["SkipAspireWorkloadManifest"] = "true";
 
         DotNet = Path.Combine(sdkForWorkloadPath!, "dotnet");
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -151,14 +178,113 @@ public class BuildEnvironment
         }
         else
         {
-            LogRootPath = Environment.CurrentDirectory;
+            LogRootPath = Path.Combine(AppContext.BaseDirectory, "logs");
         }
 
-        if (Directory.Exists(TmpPath))
+        Console.WriteLine($"*** Using path for projects: {TestRootPath}");
+        CleanupTestRootPath();
+        Directory.CreateDirectory(TestRootPath);
+
+        Console.WriteLine($"*** Using Sdk path: {sdkForWorkloadPath}");
+        if (UsesCustomDotNet)
         {
-            Directory.Delete(TmpPath, recursive: true);
+            if (EnvironmentVariables.IsRunningOnCI)
+            {
+                Console.WriteLine($"*** Using NuGet cache: {NuGetPackagesPath}");
+                if (Directory.Exists(NuGetPackagesPath))
+                {
+                    Directory.Delete(NuGetPackagesPath, recursive: true);
+                }
+            }
+            else
+            {
+                if (NuGetPackagesPath is not null && Directory.Exists(NuGetPackagesPath))
+                {
+                    foreach (var dir in Directory.GetDirectories(NuGetPackagesPath, "aspire*"))
+                    {
+                        Directory.Delete(dir, recursive: true);
+                    }
+                }
+                Console.WriteLine($"*** Using NuGet cache (never deleted automatically): {NuGetPackagesPath}");
+            }
         }
 
-        Directory.CreateDirectory(TmpPath);
+        TemplatesCustomHive = templatesCustomHive;
+        TemplatesCustomHive?.EnsureInstalledAsync(this).Wait();
+
+        static void CleanupTestRootPath()
+        {
+            if (!Directory.Exists(TestRootPath))
+            {
+                return;
+            }
+
+            try
+            {
+                Directory.Delete(TestRootPath, recursive: true);
+            }
+            catch (IOException) when (!EnvironmentVariables.IsRunningOnCI)
+            {
+                // there might be lingering processes that are holding onto the files
+                // try deleting the subdirectories instead
+                Console.WriteLine($"\tFailed to delete {TestRootPath} . Deleting subdirectories.");
+                foreach (var dir in Directory.GetDirectories(TestRootPath))
+                {
+                    try
+                    {
+                        Directory.Delete(dir, recursive: true);
+                    }
+                    catch (IOException ioex)
+                    {
+                        // ignore
+                        Console.WriteLine($"\tFailed to delete {dir} : {ioex.Message}. Ignoring.");
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Error deleting '{TestRootPath}'.", ex);
+            }
+        }
     }
+
+    public BuildEnvironment(BuildEnvironment otherBuildEnvironment)
+    {
+        DotNet = otherBuildEnvironment.DotNet;
+        DefaultBuildArgs = otherBuildEnvironment.DefaultBuildArgs;
+        EnvVars = new Dictionary<string, string>(otherBuildEnvironment.EnvVars);
+        LogRootPath = otherBuildEnvironment.LogRootPath;
+        BuiltNuGetsPath = otherBuildEnvironment.BuiltNuGetsPath;
+        UsesCustomDotNet = otherBuildEnvironment.UsesCustomDotNet;
+        NuGetPackagesPath = otherBuildEnvironment.NuGetPackagesPath;
+        RepoRoot = otherBuildEnvironment.RepoRoot;
+        TemplatesCustomHive = otherBuildEnvironment.TemplatesCustomHive;
+    }
+
+    private static TestTargetFramework ComputeDefaultTargetFramework()
+        => EnvironmentVariables.DefaultTFMForTesting?.ToLowerInvariant() switch
+        {
+            null or "" or "net9.0" => TestTargetFramework.Current,
+            "net8.0" => TestTargetFramework.Previous,
+            _ => throw new ArgumentOutOfRangeException(nameof(EnvironmentVariables.DefaultTFMForTesting), EnvironmentVariables.DefaultTFMForTesting, "Invalid value")
+        };
+
+}
+
+public enum TestTargetFramework
+{
+    // Current is default
+    Current,
+    Previous
+}
+
+public static class TestTargetFrameworkExtensions
+{
+    public static string ToTFMString(this TestTargetFramework tfm) => tfm switch
+    {
+        TestTargetFramework.Previous => "net8.0",
+        TestTargetFramework.Current => "net9.0",
+        _ => throw new ArgumentOutOfRangeException(nameof(tfm))
+    };
 }

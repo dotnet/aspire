@@ -2,19 +2,24 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="de" original="../StructuredLogs.resx">
     <body>
+      <trans-unit id="ActionLogMessageText">
+        <source>Log message</source>
+        <target state="new">Log message</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MessageExceededLimitBody">
+        <source>A maximum of {0} structured logs are stored. Old structured logs are automatically removed.</source>
+        <target state="translated">Es werden maximal {0} strukturierte Protokolle gespeichert. Alte strukturierte Protokolle werden automatisch entfernt.</target>
+        <note>{0} is the max count</note>
+      </trans-unit>
+      <trans-unit id="MessageExceededLimitTitle">
+        <source>Exceeded structured log limit</source>
+        <target state="translated">Grenzwert für strukturiertes Protokoll überschritten</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StructuredLogsAddFilter">
         <source>Add filter</source>
         <target state="translated">Filter hinzufügen</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsAllApplications">
-        <source>(All)</source>
-        <target state="translated">(Alle)</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsAllTypes">
-        <source>All</source>
-        <target state="translated">Alle</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsEditFilter">
@@ -28,8 +33,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsFilters">
-        <source>Filters: </source>
-        <target state="translated">Filter: </target>
+        <source>Filters</source>
+        <target state="translated">Filter</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
@@ -43,8 +48,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsLevels">
-        <source>Level:</source>
-        <target state="translated">Ebene:</target>
+        <source>Level</source>
+        <target state="translated">Ebene</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsMessageColumnHeader">

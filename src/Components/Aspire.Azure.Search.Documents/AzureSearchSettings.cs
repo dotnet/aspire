@@ -9,7 +9,7 @@ using Azure.Core;
 namespace Aspire.Azure.Search.Documents;
 
 /// <summary>
-/// Provides the client configuration settings for connecting to Azure Search.
+/// Provides the client configuration settings for connecting to Azure AI Search.
 /// </summary>
 public sealed class AzureSearchSettings : IConnectionStringSettings
 {
@@ -17,7 +17,7 @@ public sealed class AzureSearchSettings : IConnectionStringSettings
     private const string ConnectionStringKey = "Key";
 
     /// <summary>
-    /// Gets or sets a <see cref="Uri"/> referencing the Azure Search endpoint.
+    /// Gets or sets a <see cref="Uri"/> referencing the Azure AI Search endpoint.
     /// This is likely to be similar to "https://{search_service}.search.windows.net".
     /// </summary>
     /// <remarks>
@@ -27,12 +27,12 @@ public sealed class AzureSearchSettings : IConnectionStringSettings
     public Uri? Endpoint { get; set; }
 
     /// <summary>
-    /// Gets or sets the credential used to authenticate to the Azure Search resource.
+    /// Gets or sets the credential used to authenticate to the Azure AI Search resource.
     /// </summary>
     public TokenCredential? Credential { get; set; }
 
     /// <summary>
-    /// Gets or sets the key to use to authenticate to the Azure Search endpoint.
+    /// Gets or sets the key to use to authenticate to the Azure AI Search endpoint.
     /// </summary>
     /// <remarks>
     /// When defined it will use an <see cref="AzureKeyCredential"/> instance instead of <see cref="Credential"/>.
@@ -40,7 +40,7 @@ public sealed class AzureSearchSettings : IConnectionStringSettings
     public string? Key { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the Azure Search health check is disabled or not.
+    /// Gets or sets a boolean value that indicates whether the Azure AI Search health check is disabled or not.
     /// </summary>
     /// <value>
     /// The default value is <see langword="false"/>.

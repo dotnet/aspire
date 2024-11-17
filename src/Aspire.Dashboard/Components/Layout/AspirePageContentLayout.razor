@@ -1,0 +1,81 @@
+﻿@using Aspire.Dashboard.Resources
+
+@inject IStringLocalizer<Layout> LayoutLoc
+@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
+
+<div class="content-layout">
+    <!-- Toolbar -->
+    @if (ViewportInformation.IsDesktop)
+    {
+        <header class="content-header" style="@HeaderStyle" aria-label="@ControlsStringsLoc[nameof(ControlsStrings.PageToolbarLandmark)]">
+            @if (AddNewlineOnToolbar)
+            {
+                @PageTitleSection
+
+                <FluentToolbar Class="main-toolbar" Orientation="Orientation.Horizontal">
+                    @ToolbarSection
+                </FluentToolbar>
+            }
+            else
+            {
+                <FluentToolbar Class="title-toolbar-inline" Orientation="Orientation.Horizontal">
+                    @PageTitleSection
+                    @ToolbarSection
+                </FluentToolbar>
+            }
+        </header>
+    }
+    else if (!IsSummaryDetailsViewOpen)
+    {
+        <header class="content-header">
+            <FluentToolbar Orientation="Orientation.Horizontal" Style="@HeaderStyle">
+                @PageTitleSection
+
+                @if (!AddNewlineOnToolbar)
+                {
+                    @MobilePageTitleToolbarSection
+                }
+            </FluentToolbar>
+
+            @if (AddNewlineOnToolbar)
+            {
+                <div style="padding-left: calc(var(--design-unit) * 2.5px)">@MobilePageTitleToolbarSection</div>
+            }
+        </header>
+    }
+
+    <!-- Main content -->
+    <main style="@(ViewportInformation.IsDesktop ? $"grid-area: main; overflow: auto; {MainContentStyle}" : GetMobileMainStyle())">
+        @MainSection
+    </main>
+
+    <!-- Footer -->
+    @if (ViewportInformation.IsDesktop)
+    {
+        @if (FooterSection is not null && ShouldShowFooter)
+        {
+            <footer style="grid-area: footer">@FooterSection</footer>
+        }
+    }
+    else if (!IsSummaryDetailsViewOpen)
+    {
+        if ((FooterSection is not null && ShouldShowFooter) || ToolbarSection is not null)
+        {
+            <footer style="grid-area: footer">
+                @if (FooterSection is not null && ShouldShowFooter)
+                {
+                    @FooterSection
+                }
+
+                @if (ToolbarSection is not null)
+                {
+                    <FluentButton Class="mobile-toolbar"
+                                  Appearance="@Appearance.Accent"
+                                  OnClick="@OpenMobileToolbarAsync">
+                        @(MobileToolbarButtonText ?? LayoutLoc[nameof(Layout.PageLayoutViewFilters)])
+                    </FluentButton>
+                }
+            </footer>
+        }
+    }
+</div>

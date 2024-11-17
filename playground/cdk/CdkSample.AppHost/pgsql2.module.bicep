@@ -1,40 +1,21 @@
-targetScope = 'resourceGroup'
-
-@description('')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-@description('')
-param administratorLogin string
+param principalId string
 
-@secure()
-@description('')
-param administratorLoginPassword string
+param principalType string
 
-@description('')
-param keyVaultName string
+param principalName string
 
-
-resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
-  name: keyVaultName
-}
-
-resource postgreSqlFlexibleServer_v9qSHyzIy 'Microsoft.DBforPostgreSQL/flexibleServers@2023-03-01-preview' = {
-  name: toLower(take('pgsql2${uniqueString(resourceGroup().id)}', 24))
+resource pgsql2 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
+  name: take('pgsql2-${uniqueString(resourceGroup().id)}', 63)
   location: location
-  tags: {
-    'aspire-resource-name': 'pgsql2'
-  }
-  sku: {
-    name: 'Standard_B1ms'
-    tier: 'Burstable'
-  }
   properties: {
-    administratorLogin: administratorLogin
-    administratorLoginPassword: administratorLoginPassword
-    version: '16'
-    storage: {
-      storageSizeGB: 32
+    authConfig: {
+      activeDirectoryAuth: 'Enabled'
+      passwordAuth: 'Disabled'
     }
+    availabilityZone: '1'
     backup: {
       backupRetentionDays: 7
       geoRedundantBackup: 'Disabled'
@@ -42,24 +23,45 @@ resource postgreSqlFlexibleServer_v9qSHyzIy 'Microsoft.DBforPostgreSQL/flexibleS
     highAvailability: {
       mode: 'Disabled'
     }
-    availabilityZone: '1'
+    storage: {
+      storageSizeGB: 32
+    }
+    version: '16'
+  }
+  sku: {
+    name: 'Standard_B1ms'
+    tier: 'Burstable'
+  }
+  tags: {
+    'aspire-resource-name': 'pgsql2'
   }
 }
 
-resource postgreSqlFirewallRule_Go8Dbe3VJ 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-03-01-preview' = {
-  parent: postgreSqlFlexibleServer_v9qSHyzIy
+resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
   name: 'AllowAllAzureIps'
   properties: {
-    startIpAddress: '0.0.0.0'
     endIpAddress: '0.0.0.0'
+    startIpAddress: '0.0.0.0'
   }
+  parent: pgsql2
 }
 
-resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
-  parent: keyVault_IeF8jZvXV
-  name: 'connectionString'
-  location: location
-  properties: {
-    value: 'Host=${postgreSqlFlexibleServer_v9qSHyzIy.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
-  }
+resource pgsql2db 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
+  name: 'pgsql2db'
+  parent: pgsql2
 }
+
+resource pgsql2_admin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = {
+  name: principalId
+  properties: {
+    principalName: principalName
+    principalType: principalType
+  }
+  parent: pgsql2
+  dependsOn: [
+    pgsql2
+    postgreSqlFirewallRule_AllowAllAzureIps
+  ]
+}
+
+output connectionString string = 'Host=${pgsql2.properties.fullyQualifiedDomainName};Username=${principalName}'

@@ -35,28 +35,13 @@ Consulte https://aka.ms/dotnet/aspire/containers para obter mais detalhes sobre 
         <note />
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
-        <source>Application orchestrator dependency check had an unexpected error {0}.</source>
-        <target state="translated">A verificação de dependência do orquestrador de aplicativos teve um erro inesperado {0}.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="DcpVersionCheckFailedMessage">
-        <source>The application orchestrator version could not be determined. Continuing.</source>
-        <target state="translated">Não foi possível determinar a versão do orquestrador de aplicativos. Continuando.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="DcpVersionCheckTooHighMessage">
-        <source>Found incompatible version of .NET Aspire workload (need application orchestrator version {0} to run the application).</source>
-        <target state="translated">Versão incompatível encontrada da carga de trabalho do .NET Aspire (é preciso a versão {0} do orquestrador de aplicativos para executar o aplicativo).</target>
+        <source>Application orchestrator dependency check returned an error: {0}</source>
+        <target state="translated">A verificação de dependências do orquestrador de aplicativos retornou um erro: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">
         <source>Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</source>
         <target state="translated">A versão mais recente da carga de trabalho .NET Aspire é necessária para executar o aplicativo. Execute 'dotnet workload update' para obtê-la.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="LaunchProfileIsSpecifiedButLaunchSettingsFileIsNotPresentExceptionMessage">
-        <source>Launch profile is specified but launch settings file is not present.</source>
-        <target state="translated">O perfil de inicialização foi especificado, mas o arquivo de configurações de inicialização não está presente.</target>
         <note />
       </trans-unit>
       <trans-unit id="LaunchSettingsFileDoesNotContainProfileExceptionMessage">

@@ -1,9 +1,8 @@
 <Project>
   <PropertyGroup>
-    <IsHelixOnlyTestProject>true</IsHelixOnlyTestProject>
+    <!-- This triggers the import of targets needed for workload testing -->
     <IsWorkloadTestProject>true</IsWorkloadTestProject>
-    <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
-  <Import Project="..\Directory.Build.props" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 </Project>

@@ -4,18 +4,58 @@
 @implements IDialogContentComponent<FilterDialogViewModel>
 
 @inject IStringLocalizer<Dialogs> Loc
-@inject IStringLocalizer<Logs> LogsLoc
+@inject IStringLocalizer<StructuredFiltering> FilterLoc
 
 <EditForm EditContext="@EditContext" OnValidSubmit="@Apply">
     <DataAnnotationsValidator />
 
-    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-        <FluentCombobox Placeholder="@Loc[nameof(Dialogs.FilterDialogFieldPlaceholder)]" Items=@Parameters @bind-Value="@_formModel.Parameter" Width="100%" Height="500px" />
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+        <div class="filter-input-container">
+            <FluentSelect TOption="SelectViewModel<string>"
+                          Placeholder="@Loc[nameof(Dialogs.FilterDialogFieldPlaceholder)]"
+                          Label="@Loc[nameof(Dialogs.FilterDialogParameterInputLabel)]"
+                          Items="@_parameters"
+                          @bind-SelectedOption="@_formModel.Parameter"
+                          @bind-SelectedOption:after="ParameterChangedAsync"
+                          Width="100%"
+                          Height="400px"
+                          OptionText="@(c => c.Name)"
+                          OptionDisabled="@(c => c.Id is null)" />
+        </div>
 
-        <FluentSelect TOption="SelectViewModel<FilterCondition>" Items="@_filterConditions" @bind-SelectedOption="@_formModel.Condition" aria-label="@Loc[Dialogs.FilterDialogConditionSelectLabel]" OptionText="@(i => i.Name)" Width="100%" />
+        <div class="filter-input-container">
+            <FluentSelect TOption="SelectViewModel<FilterCondition>"
+                          Items="@_filterConditions"
+                          @bind-SelectedOption="@_formModel.Condition"
+                          Label="@Loc[nameof(Dialogs.FilterDialogConditionInputLabel)]"
+                          OptionText="@(i => i.Name)"
+                          Width="100%" />
+        </div>
 
-        <FluentTextField @bind-Value="_formModel.Value" Placeholder="@Loc[nameof(Dialogs.FilterDialogTextValuePlaceholder)]" />
-        <ValidationMessage For="() => _formModel.Value" />
+        <div class="filter-input-container">
+            <FluentCombobox TOption="SelectViewModel<FieldValue>"
+                            @bind-Value="_formModel.Value"
+                            @bind-Value:after="ValueChanged"
+                            Items="@_filteredValues"
+                            Width="100%"
+                            Height="400px"
+                            OptionText="@(c => c.Name)"
+                            OptionValue="@(c => c.Name)"
+                            Immediate="true"
+                            ImmediateDelay="@FluentUIExtensions.InputDelay"
+                            Label="@Loc[nameof(Dialogs.FilterDialogTextValuePlaceholder)]">
+                <OptionTemplate Context="optionContext">
+                    <FluentBadge Circular=true Appearance="Appearance.Neutral" Slot="end">
+                        @* There is FluentUI bug that causes bad data if there is additional text in an option. *@
+                        @* https://github.com/microsoft/fluentui-blazor/issues/2695 *@
+                        @* Workaround this issue by inserting extra text using CSS. *@
+                        <span data-filtercount="@optionContext.Id!.Count"></span>
+                    </FluentBadge>
+                    <FluentHighlighter Text="@optionContext.Name" HighlightedText="@_formModel.Value" />
+                </OptionTemplate>
+            </FluentCombobox>
+            <ValidationMessage For="() => _formModel.Value" />
+        </div>
 
         <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Right">
             <FluentButton OnClick="Cancel">@Loc[nameof(Dialogs.FilterDialogCancelButtonText)]</FluentButton>

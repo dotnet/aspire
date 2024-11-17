@@ -1,39 +1,34 @@
-targetScope = 'resourceGroup'
-
-@description('')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-@description('')
 param keyVaultName string
 
-
-resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
+resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
   name: keyVaultName
 }
 
-resource cosmosDBAccount_MZyw35gqp 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
-  name: toLower(take('cosmos${uniqueString(resourceGroup().id)}', 24))
+resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
+  name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
   location: location
-  tags: {
-    'aspire-resource-name': 'cosmos'
-  }
-  kind: 'GlobalDocumentDB'
   properties: {
-    databaseAccountOfferType: 'Standard'
-    consistencyPolicy: {
-      defaultConsistencyLevel: 'Session'
-    }
     locations: [
       {
         locationName: location
         failoverPriority: 0
       }
     ]
+    consistencyPolicy: {
+      defaultConsistencyLevel: 'Session'
+    }
+    databaseAccountOfferType: 'Standard'
+  }
+  kind: 'GlobalDocumentDB'
+  tags: {
+    'aspire-resource-name': 'cosmos'
   }
 }
 
-resource cosmosDBSqlDatabase_tiaTwUqx8 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' = {
-  parent: cosmosDBAccount_MZyw35gqp
+resource db3 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
   name: 'db3'
   location: location
   properties: {
@@ -41,13 +36,13 @@ resource cosmosDBSqlDatabase_tiaTwUqx8 'Microsoft.DocumentDB/databaseAccounts/sq
       id: 'db3'
     }
   }
+  parent: cosmos
 }
 
-resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
-  parent: keyVault_IeF8jZvXV
+resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   name: 'connectionString'
-  location: location
   properties: {
-    value: 'AccountEndpoint=${cosmosDBAccount_MZyw35gqp.properties.documentEndpoint};AccountKey=${cosmosDBAccount_MZyw35gqp.listkeys(cosmosDBAccount_MZyw35gqp.apiVersion).primaryMasterKey}'
+    value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
   }
+  parent: keyVault
 }

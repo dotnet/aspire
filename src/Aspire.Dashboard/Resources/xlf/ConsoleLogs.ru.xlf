@@ -42,6 +42,11 @@
         <target state="translated">Журналов консоли: {0}</target>
         <note>{0} is an application name</note>
       </trans-unit>
+      <trans-unit id="ConsoleLogsSelectResourceToolbar">
+        <source>Select resource</source>
+        <target state="translated">Выбрать ресурс</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
         <source>Unknown state</source>
         <target state="translated">Неизвестное состояние</target>

@@ -101,6 +101,9 @@
   <data name="ConsoleLogsHeader" xml:space="preserve">
     <value>Console logs</value>
   </data>
+  <data name="ConsoleLogsSelectResourceToolbar" xml:space="preserve">
+    <value>Select resource</value>
+  </data>
   <data name="ConsoleLogsPageTitle" xml:space="preserve">
     <value>{0} console logs</value>
     <comment>{0} is an application name</comment>

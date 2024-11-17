@@ -1,0 +1,19 @@
+<Project>
+  <PropertyGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- 
+      Test applications have their own way of referencing Aspire.Hosting.AppHost, as well as DCP and Dashboard, so we disable
+      the Aspire.AppHost.SDK targets that will automatically add these references to projects. 
+    -->
+    <SkipAddAspireDefaultReferences Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">true</SkipAddAspireDefaultReferences>
+  </PropertyGroup>
+
+  <!-- IsAspireHost property might not be available here, so allow infering that from the project name -->
+  <ImportGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and ($(MSBuildProjectName.EndsWith('AppHost')) or '$(IsAspireHost)' == 'true')">
+    <Import Project="$(RepoRoot)src/Aspire.Hosting.AppHost/build/Aspire.Hosting.AppHost.props" Condition="Exists('$(RepoRoot)src/Aspire.Hosting.AppHost/build/Aspire.Hosting.AppHost.props')" />
+  </ImportGroup>
+</Project>

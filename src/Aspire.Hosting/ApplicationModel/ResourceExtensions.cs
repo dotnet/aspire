@@ -16,7 +16,7 @@ public static class ResourceExtensions
     /// <typeparam name="T">The type of the annotation to get.</typeparam>
     /// <param name="resource">The resource to get the annotation from.</param>
     /// <param name="annotation">When this method returns, contains the last annotation of the specified type from the resource, if found; otherwise, the default value for <typeparamref name="T"/>.</param>
-    /// <returns><c>true</c> if the last annotation of the specified type was found in the resource; otherwise, <c>false</c>.</returns>
+    /// <returns><see langword="true"/> if the last annotation of the specified type was found in the resource; otherwise, <see langword="false"/>.</returns>
     public static bool TryGetLastAnnotation<T>(this IResource resource, [NotNullWhen(true)] out T? annotation) where T : IResourceAnnotation
     {
         if (resource.Annotations.OfType<T>().LastOrDefault() is { } lastAnnotation)
@@ -26,7 +26,7 @@ public static class ResourceExtensions
         }
         else
         {
-            annotation = default(T);
+            annotation = default;
             return false;
         }
     }
@@ -36,15 +36,15 @@ public static class ResourceExtensions
     /// </summary>
     /// <typeparam name="T">The type of annotation to retrieve.</typeparam>
     /// <param name="resource">The resource to retrieve annotations from.</param>
-    /// <param name="result">When this method returns, contains the annotations of the specified type, if found; otherwise, null.</param>
-    /// <returns>true if annotations of the specified type were found; otherwise, false.</returns>
+    /// <param name="result">When this method returns, contains the annotations of the specified type, if found; otherwise, <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> if annotations of the specified type were found; otherwise, <see langword="false"/>.</returns>
     public static bool TryGetAnnotationsOfType<T>(this IResource resource, [NotNullWhen(true)] out IEnumerable<T>? result) where T : IResourceAnnotation
     {
-        var matchingTypeAnnotations = resource.Annotations.OfType<T>();
+        var matchingTypeAnnotations = resource.Annotations.OfType<T>().ToArray();
 
-        if (matchingTypeAnnotations.Any())
+        if (matchingTypeAnnotations.Length is not 0)
         {
-            result = matchingTypeAnnotations.ToArray();
+            result = matchingTypeAnnotations;
             return true;
         }
         else
@@ -52,6 +52,88 @@ public static class ResourceExtensions
             result = null;
             return false;
         }
+    }
+
+    /// <summary>
+    /// Gets whether <paramref name="resource"/> has an annotation of type <typeparamref name="T"/>
+    /// </summary>
+    /// <typeparam name="T">The type of annotation to retrieve.</typeparam>
+    /// <param name="resource">The resource to retrieve annotations from.</param>
+    /// <returns><see langword="true"/> if an annotation of the specified type was found; otherwise, <see langword="false"/>.</returns>
+    public static bool HasAnnotationOfType<T>(this IResource resource) where T : IResourceAnnotation
+    {
+        return resource.Annotations.Any(a => a is T);
+    }
+
+    /// <summary>
+    /// Attempts to retrieve all annotations of the specified type from the given resource including from parents.
+    /// </summary>
+    /// <typeparam name="T">The type of annotation to retrieve.</typeparam>
+    /// <param name="resource">The resource to retrieve annotations from.</param>
+    /// <param name="result">When this method returns, contains the annotations of the specified type, if found; otherwise, <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> if annotations of the specified type were found; otherwise, <see langword="false"/>.</returns>
+    public static bool TryGetAnnotationsIncludingAncestorsOfType<T>(this IResource resource, [NotNullWhen(true)] out IEnumerable<T>? result) where T : IResourceAnnotation
+    {
+        if (resource is IResourceWithParent)
+        {
+            List<T>? annotations = null;
+
+            while (true)
+            {
+                foreach (var annotation in resource.Annotations.OfType<T>())
+                {
+                    annotations ??= [];
+                    annotations.Add(annotation);
+                }
+
+                if (resource is IResourceWithParent child)
+                {
+                    resource = child.Parent;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            result = annotations;
+            return annotations is not null;
+        }
+
+        return TryGetAnnotationsOfType(resource, out result);
+    }
+
+    /// <summary>
+    /// Gets whether <paramref name="resource"/> or its ancestors have an annotation of type <typeparamref name="T"/>
+    /// </summary>
+    /// <typeparam name="T">The type of annotation to retrieve.</typeparam>
+    /// <param name="resource">The resource to retrieve annotations from.</param>
+    /// <returns><see langword="true"/> if an annotation of the specified type was found; otherwise, <see langword="false"/>.</returns>
+    public static bool HasAnnotationIncludingAncestorsOfType<T>(this IResource resource) where T : IResourceAnnotation
+    {
+        if (resource is IResourceWithParent)
+        {
+            while (true)
+            {
+                if (HasAnnotationOfType<T>(resource))
+                {
+                    return true;
+                }
+
+                if (resource is IResourceWithParent child)
+                {
+                    resource = child.Parent;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return false;
+        }
+
+        return HasAnnotationOfType<T>(resource);
     }
 
     /// <summary>
@@ -63,6 +145,78 @@ public static class ResourceExtensions
     public static bool TryGetEnvironmentVariables(this IResource resource, [NotNullWhen(true)] out IEnumerable<EnvironmentCallbackAnnotation>? environmentVariables)
     {
         return TryGetAnnotationsOfType(resource, out environmentVariables);
+    }
+
+    /// <summary>
+    /// Get the environment variables from the given resource.
+    /// </summary>
+    /// <remarks>
+    /// This method is useful when you want to make sure the environment variables are added properly to resources, mostly in test situations.
+    /// This method has asynchronous behavior when <paramref name = "applicationOperation" /> is <see cref="DistributedApplicationOperation.Run"/>
+    /// and environment variables were provided from <see cref="IValueProvider"/> otherwise it will be synchronous.
+    /// </remarks>
+    /// <param name="resource">The resource to get the environment variables from.</param>
+    /// <param name="applicationOperation">The context in which the AppHost is being executed.</param>
+    /// <returns>The environment variables retrieved from the resource.</returns>
+    /// <example>
+    /// Using <see cref="GetEnvironmentVariableValuesAsync(IResourceWithEnvironment, DistributedApplicationOperation)"/> inside
+    /// a unit test to validate environment variable values.
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder();
+    /// var container = builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
+    ///  .WithEnvironment("discovery.type", "single-node")
+    ///  .WithEnvironment("xpack.security.enabled", "true");
+    ///
+    /// var env = await container.Resource.GetEnvironmentVariableValuesAsync();
+    ///
+    /// Assert.Collection(env,
+    ///     env =>
+    ///         {
+    ///             Assert.Equal("discovery.type", env.Key);
+    ///             Assert.Equal("single-node", env.Value);
+    ///         },
+    ///         env =>
+    ///         {
+    ///             Assert.Equal("xpack.security.enabled", env.Key);
+    ///             Assert.Equal("true", env.Value);
+    ///         });
+    /// </code>
+    /// </example>
+    public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
+            DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
+    {
+        var environmentVariables = new Dictionary<string, string>();
+
+        if (resource.TryGetEnvironmentVariables(out var callbacks))
+        {
+            var config = new Dictionary<string, object>();
+            var executionContext = new DistributedApplicationExecutionContext(applicationOperation);
+            var context = new EnvironmentCallbackContext(executionContext, config);
+
+            foreach (var callback in callbacks)
+            {
+                await callback.Callback(context).ConfigureAwait(false);
+            }
+
+            foreach (var (key, expr) in config)
+            {
+                var value = (applicationOperation, expr) switch
+                {
+                    (_, string s) => s,
+                    (DistributedApplicationOperation.Run, IValueProvider provider) => await provider.GetValueAsync().ConfigureAwait(false),
+                    (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => provider.ValueExpression,
+                    (_, null) => null,
+                    _ => throw new InvalidOperationException($"Unsupported expression type: {expr.GetType()}")
+                };
+
+                if (value is not null)
+                {
+                    environmentVariables[key] = value;
+                }
+            }
+        }
+
+        return environmentVariables;
     }
 
     /// <summary>
@@ -107,7 +261,7 @@ public static class ResourceExtensions
     /// </summary>
     /// <param name="resource">The <see cref="IResourceWithEndpoints"/> which contains <see cref="EndpointAnnotation"/> annotations.</param>
     /// <param name="endpointName">The name of the endpoint.</param>
-    /// <returns>An <see cref="EndpointReference"/> object representing the endpoint reference 
+    /// <returns>An <see cref="EndpointReference"/> object representing the endpoint reference
     /// for the specified endpoint.</returns>
     public static EndpointReference GetEndpoint(this IResourceWithEndpoints resource, string endpointName)
     {
@@ -159,6 +313,53 @@ public static class ResourceExtensions
         else
         {
             return 1;
+        }
+    }
+
+    /// <summary>
+    /// Gets the lifetime type of the container for the specified resource.
+    /// Defaults to <see cref="ContainerLifetime.Session"/> if no <see cref="ContainerLifetimeAnnotation"/> is found.
+    /// </summary>
+    /// <param name="resource">The resource to the get the ContainerLifetimeType for.</param>
+    /// <returns>
+    /// The <see cref="ContainerLifetime"/> from the <see cref="ContainerLifetimeAnnotation"/> for the resource (if the annotation exists).
+    /// Defaults to <see cref="ContainerLifetime.Session"/> if the annotation is not set.
+    /// </returns>
+    internal static ContainerLifetime GetContainerLifetimeType(this IResource resource)
+    {
+        if (resource.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
+        {
+            return lifetimeAnnotation.Lifetime;
+        }
+
+        return ContainerLifetime.Session;
+    }
+
+    /// <summary>
+    /// Get the top resource in the resource hierarchy.
+    /// e.g. for a AzureBlobStorageResource, the top resource is the AzureStorageResource.
+    /// </summary>
+    internal static IResource GetRootResource(this IResource resource) =>
+        resource switch
+        {
+            IResourceWithParent resWithParent => resWithParent.Parent.GetRootResource(),
+            _ => resource
+        };
+
+    /// <summary>
+    /// Gets resolved names for the specified resource.
+    /// DCP resources are given a unique suffix as part of the complete name. We want to use that value.
+    /// Also, a DCP resource could have multiple instances. All instance names are returned for a resource.
+    /// </summary>
+    internal static string[] GetResolvedResourceNames(this IResource resource)
+    {
+        if (resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var replicaAnnotation) && !replicaAnnotation.Instances.IsEmpty)
+        {
+            return replicaAnnotation.Instances.Select(i => i.Name).ToArray();
+        }
+        else
+        {
+            return [resource.Name];
         }
     }
 }

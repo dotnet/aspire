@@ -22,7 +22,8 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
         _containerFixture = containerFixture;
     }
 
-    [RequiresDockerTheory]
+    [Theory]
+    [RequiresDocker]
     [InlineData(true)]
     [InlineData(false)]
     public void ReadsFromConnectionStringsCorrectly(bool useKeyed)
@@ -49,7 +50,8 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
         AssertEquals(_containerFixture.GetConnectionString(), connection.Endpoint);
     }
 
-    [RequiresDockerTheory]
+    [Theory]
+    [RequiresDocker]
     [InlineData(true)]
     [InlineData(false)]
     public void ConnectionStringCanBeSetInCode(bool useKeyed)
@@ -77,7 +79,8 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
         AssertEquals(_containerFixture.GetConnectionString(), connection.Endpoint);
     }
 
-    [RequiresDockerTheory]
+    [Theory]
+    [RequiresDocker]
     [InlineData(true)]
     [InlineData(false)]
     public void ConnectionNameWinsOverConfigSection(bool useKeyed)
@@ -156,7 +159,8 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
         Assert.Equal("aspire-app", connectionFactory.ClientProvidedName);
     }
 
-    [RequiresDockerFact]
+    [Fact]
+    [RequiresDocker]
     public async Task CanAddMultipleKeyedServices()
     {
         await using var container2 = await RabbitMQContainerFixture.CreateContainerAsync();

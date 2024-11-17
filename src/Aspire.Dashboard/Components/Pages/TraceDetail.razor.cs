@@ -2,10 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -14,6 +17,10 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class TraceDetail : ComponentBase
 {
+    private const string NameColumn = nameof(NameColumn);
+    private const string TicksColumn = nameof(TicksColumn);
+    private const string ActionsColumn = nameof(ActionsColumn);
+
     private readonly List<IDisposable> _peerChangesSubscriptions = new();
     private OtlpTrace? _trace;
     private Subscription? _tracesSubscription;
@@ -22,30 +29,46 @@ public partial class TraceDetail : ComponentBase
     private List<OtlpApplication> _applications = default!;
     private readonly List<string> _collapsedSpanIds = [];
     private string? _elementIdBeforeDetailsViewOpened;
+    private FluentDataGrid<SpanWaterfallViewModel> _dataGrid = null!;
+    private GridColumnManager _manager = null!;
+    private IList<GridColumn> _gridColumns = null!;
 
     [Parameter]
     public required string TraceId { get; set; }
 
-    [Inject]
-    public required TelemetryRepository TelemetryRepository { get; set; }
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public required string? SpanId { get; set; }
 
     [Inject]
-    public required IEnumerable<IOutgoingPeerResolver> OutgoingPeerResolvers { get; set; }
+    public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Inject]
-    public required BrowserTimeProvider TimeProvider { get; set; }
+    public required IEnumerable<IOutgoingPeerResolver> OutgoingPeerResolvers { get; init; }
 
     [Inject]
-    public required IJSRuntime JS { get; set; }
+    public required BrowserTimeProvider TimeProvider { get; init; }
+
+    [Inject]
+    public required IJSRuntime JS { get; init; }
+
+    [Inject]
+    public required NavigationManager NavigationManager { get; init; }
 
     protected override void OnInitialized()
     {
+        _gridColumns = [
+            new GridColumn(Name: NameColumn, DesktopWidth: "4fr", MobileWidth: "4fr"),
+            new GridColumn(Name: TicksColumn, DesktopWidth: "12fr", MobileWidth: "12fr"),
+            new GridColumn(Name: ActionsColumn, DesktopWidth: "90px", MobileWidth: null)
+        ];
+
         foreach (var resolver in OutgoingPeerResolvers)
         {
             _peerChangesSubscriptions.Add(resolver.OnPeerChanges(async () =>
             {
                 UpdateDetailViewData();
-                await InvokeAsync(StateHasChanged);
+                await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             }));
         }
     }
@@ -93,36 +116,22 @@ public partial class TraceDetail : ComponentBase
         }
     }
 
+    private readonly record struct SpanWaterfallViewModelState(SpanWaterfallViewModel? Parent, int Depth, bool Hidden);
+
     private static List<SpanWaterfallViewModel> CreateSpanWaterfallViewModels(OtlpTrace trace, TraceDetailState state)
     {
         var orderedSpans = new List<SpanWaterfallViewModel>();
-        // There should be one root span but just in case, we'll add them all.
-        foreach (var rootSpan in trace.Spans.Where(s => string.IsNullOrEmpty(s.ParentSpanId)).OrderBy(s => s.StartTime))
+
+        TraceHelpers.VisitSpans(trace, (OtlpSpan span, SpanWaterfallViewModelState s) =>
         {
-            AddSelfAndChildren(orderedSpans, rootSpan, depth: 1, hidden: false, state, CreateViewModel);
-        }
-        // Unparented spans.
-        foreach (var unparentedSpan in trace.Spans.Where(s => !string.IsNullOrEmpty(s.ParentSpanId) && s.GetParentSpan() == null).OrderBy(s => s.StartTime))
-        {
-            AddSelfAndChildren(orderedSpans, unparentedSpan, depth: 1, hidden: false, state, CreateViewModel);
-        }
+            var viewModel = CreateViewModel(span, s.Depth, s.Hidden, state);
+            var peers = s.Parent?.Children ?? orderedSpans;
+            peers.Add(viewModel);
+
+            return s with { Depth = s.Depth + 1, Hidden = viewModel.IsHidden || viewModel.IsCollapsed };
+        }, new SpanWaterfallViewModelState(Parent: null, Depth: 1, Hidden: false));
 
         return orderedSpans;
-
-        static SpanWaterfallViewModel AddSelfAndChildren(List<SpanWaterfallViewModel> orderedSpans, OtlpSpan span, int depth, bool hidden, TraceDetailState state, Func<OtlpSpan, int, bool, TraceDetailState, SpanWaterfallViewModel> createViewModel)
-        {
-            var viewModel = createViewModel(span, depth, hidden, state);
-            orderedSpans.Add(viewModel);
-            depth++;
-
-            foreach (var child in span.GetChildSpans().OrderBy(s => s.StartTime))
-            {
-                var childViewModel = AddSelfAndChildren(orderedSpans, child, depth, viewModel.IsHidden || viewModel.IsCollapsed, state, createViewModel);
-                viewModel.Children.Add(childViewModel);
-            }
-
-            return viewModel;
-        }
 
         static SpanWaterfallViewModel CreateViewModel(OtlpSpan span, int depth, bool hidden, TraceDetailState state)
         {
@@ -182,9 +191,21 @@ public partial class TraceDetail : ComponentBase
         return OtlpHelpers.GetPeerAddress(span.Attributes);
     }
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         UpdateDetailViewData();
+
+        if (SpanId is not null && _spanWaterfallViewModels is not null)
+        {
+            var spanVm = _spanWaterfallViewModels.SingleOrDefault(vm => vm.Span.SpanId == SpanId);
+            if (spanVm != null)
+            {
+                await OnShowPropertiesAsync(spanVm, buttonId: null);
+            }
+
+            // Navigate to remove ?spanId=xxx in the URL.
+            NavigationManager.NavigateTo(DashboardUrls.TraceDetailUrl(TraceId), new NavigationOptions { ReplaceHistoryEntry = true });
+        }
     }
 
     private void UpdateDetailViewData()
@@ -201,14 +222,13 @@ public partial class TraceDetail : ComponentBase
                 _spanWaterfallViewModels = CreateSpanWaterfallViewModels(trace, new TraceDetailState(OutgoingPeerResolvers, _collapsedSpanIds));
                 _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
 
-                if (_tracesSubscription is null || _tracesSubscription.ApplicationId != trace.FirstSpan.Source.InstanceId)
+                if (_tracesSubscription is null || _tracesSubscription.ApplicationKey != trace.FirstSpan.Source.ApplicationKey)
                 {
                     _tracesSubscription?.Dispose();
-                    _tracesSubscription = TelemetryRepository.OnNewTraces(trace.FirstSpan.Source.InstanceId, SubscriptionType.Read, () => InvokeAsync(() =>
+                    _tracesSubscription = TelemetryRepository.OnNewTraces(trace.FirstSpan.Source.ApplicationKey, SubscriptionType.Read, () => InvokeAsync(async () =>
                     {
                         UpdateDetailViewData();
-                        StateHasChanged();
-                        return Task.CompletedTask;
+                        await _dataGrid.SafeRefreshDataAsync();
                     }));
                 }
             }
@@ -228,7 +248,7 @@ public partial class TraceDetail : ComponentBase
 
     public SpanDetailsViewModel? SelectedSpan { get; set; }
 
-    private void OnToggleCollapse(SpanWaterfallViewModel viewModel)
+    private async Task OnToggleCollapse(SpanWaterfallViewModel viewModel)
     {
         // View model data is recreated if the trace updates.
         // Persist the collapsed state in a separate list.
@@ -242,31 +262,58 @@ public partial class TraceDetail : ComponentBase
             viewModel.IsCollapsed = true;
             _collapsedSpanIds.Add(viewModel.Span.SpanId);
         }
+
+        await _dataGrid.SafeRefreshDataAsync();
     }
 
     private async Task OnShowPropertiesAsync(SpanWaterfallViewModel viewModel, string? buttonId)
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
 
-        if (SelectedSpan?.Span == viewModel.Span)
+        if (SelectedSpan?.Span.SpanId == viewModel.Span.SpanId)
         {
             await ClearSelectedSpanAsync();
         }
         else
         {
             var entryProperties = viewModel.Span.AllProperties()
-                .Select(kvp => new SpanPropertyViewModel { Name = kvp.Key, Value = kvp.Value })
+                .Select(f => new TelemetryPropertyViewModel { Name = f.DisplayName, Key = f.Key, Value = f.Value })
                 .ToList();
+
+            var traceCache = new Dictionary<string, OtlpTrace>(StringComparer.Ordinal);
+
+            var links = viewModel.Span.Links.Select(l => CreateLinkViewModel(l.TraceId, l.SpanId, l.Attributes, traceCache)).ToList();
+            var backlinks = viewModel.Span.BackLinks.Select(l => CreateLinkViewModel(l.SourceTraceId, l.SourceSpanId, l.Attributes, traceCache)).ToList();
 
             var spanDetailsViewModel = new SpanDetailsViewModel
             {
                 Span = viewModel.Span,
+                Applications = _applications,
                 Properties = entryProperties,
-                Title = $"{GetResourceName(viewModel.Span.Source)}: {viewModel.GetDisplaySummary()}"
+                Title = SpanWaterfallViewModel.GetTitle(viewModel.Span, _applications),
+                Links = links,
+                Backlinks = backlinks,
             };
 
             SelectedSpan = spanDetailsViewModel;
         }
+    }
+
+    private SpanLinkViewModel CreateLinkViewModel(string traceId, string spanId, KeyValuePair<string, string>[] attributes, Dictionary<string, OtlpTrace> traceCache)
+    {
+        ref var trace = ref CollectionsMarshal.GetValueRefOrAddDefault(traceCache, traceId, out _);
+        // Adds to dictionary if not present.
+        trace ??= TelemetryRepository.GetTrace(traceId);
+
+        var linkSpan = trace?.Spans.FirstOrDefault(s => s.SpanId == spanId);
+
+        return new SpanLinkViewModel
+        {
+            TraceId = traceId,
+            SpanId = spanId,
+            Attributes = attributes,
+            Span = linkSpan,
+        };
     }
 
     private async Task ClearSelectedSpanAsync(bool causedByUserAction = false)
@@ -281,7 +328,7 @@ public partial class TraceDetail : ComponentBase
         _elementIdBeforeDetailsViewOpened = null;
     }
 
-    private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
+    private string GetResourceName(OtlpApplicationView app) => OtlpApplication.GetResourceName(app, _applications);
 
     public void Dispose()
     {

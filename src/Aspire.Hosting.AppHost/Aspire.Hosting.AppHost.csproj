@@ -1,17 +1,29 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting</PackageTags>
     <Description>Core library and MSBuild logic for .NET Aspire AppHost projects.</Description>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>100</MinCodeCoverage>
+  </PropertyGroup>
+
   <ItemGroup>
-    <None Include="**/*.props;**/*.targets" Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Include="**/*.props;**/*.targets;AspireAppHostConfiguration.json" Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>
+    <!-- 
+        Note that this package won't add a transitive dependency to DCP and Dashboard, as those will dynamically be added by Aspire.AppHost.Sdk.
+        This is done so that we don't pull in DCP and Dashboard packages for all of the platforms. 
+    -->
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
 
@@ -19,5 +31,17 @@
   <ItemGroup>
     <PackageDownload Include="Microsoft.DeveloperControlPlane.$(BuildOs)-$(BuildArch)" Version="[$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)]" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- Reference the analyzer to ensure it's built but don't reference its output -->
+    <ProjectReference Include="..\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" OutputItemType="AnalyzerAssemblyPath" ReferenceOutputAssembly="false" Private="true" />
+  </ItemGroup>
+
+  <!-- Include the analyzer in the package -->
+  <Target Name="IncludeAnalyzerInPackage" AfterTargets="ResolveProjectReferences">
+    <ItemGroup>
+      <None Include="@(AnalyzerAssemblyPath -> '%(Identity)')" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    </ItemGroup>
+  </Target>
 
 </Project>

@@ -19,6 +19,10 @@ internal sealed class ConsumerWorker(IConsumer<Ignore, string> consumer, ILogger
                 try
                 {
                     result = consumer.Consume(TimeSpan.FromSeconds(1));
+                    if (result is not null)
+                    {
+                        logger.LogInformation($"Consumed message [{result.Message?.Key}] = {result.Message?.Value}");
+                    }
                 }
                 catch (ConsumeException ex) when (ex.Error.Code == ErrorCode.UnknownTopicOrPart)
                 {

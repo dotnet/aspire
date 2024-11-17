@@ -130,9 +130,9 @@
         "ConnectionStrings__tempdb": "{tempdb.connectionString}",
         "ConnectionStrings__mysqldb": "{mysqldb.connectionString}",
         "ConnectionStrings__redis": "{redis.connectionString}",
+        "ConnectionStrings__valkey": "{valkey.connectionString}",
         "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
         "ConnectionStrings__rabbitmq": "{rabbitmq.connectionString}",
-        "ConnectionStrings__mymongodb": "{mymongodb.connectionString}",
         "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
         "ConnectionStrings__kafka": "{kafka.connectionString}",
         "ConnectionStrings__cosmos": "{cosmos.connectionString}"
@@ -205,6 +205,19 @@
         }
       }
     },
+    "valkey": {
+      "type": "container.v0",
+      "connectionString": "{valkey.bindings.tcp.host}:{valkey.bindings.tcp.port}",
+      "image": "valkey/valkey:7.2",
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 6379
+        }
+      }
+    },
     "postgres": {
       "type": "container.v0",
       "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",
@@ -245,23 +258,6 @@
           "targetPort": 5672
         }
       }
-    },
-    "mongodb": {
-      "type": "container.v0",
-      "connectionString": "mongodb://{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}",
-      "image": "docker.io/library/mongo:7.0.8",
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "targetPort": 27017
-        }
-      }
-    },
-    "mymongodb": {
-      "type": "value.v0",
-      "connectionString": "{mongodb.connectionString}/mymongodb"
     },
     "oracledatabase": {
       "type": "container.v0",

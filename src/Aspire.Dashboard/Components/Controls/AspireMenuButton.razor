@@ -2,25 +2,37 @@
 @using Aspire.Dashboard.Model
 @using Microsoft.FluentUI.AspNetCore.Components.DesignTokens
 @inherits FluentComponentBase
-@typeparam TItem
 
-<div class="aspire-menubutton-container" style="width:100px;">
-    <FluentButton Id="@_buttonId" Appearance="@ButtonAppearance" aria-haspopup="true" aria-expanded="@_visible" @onclick="ToggleMenu" @onkeydown="OnKeyDown" Disabled="@(!Items.Any())">
-        @if (string.IsNullOrWhiteSpace(Text))
+<FluentButton Id="@MenuButtonId" Title="@Title" Appearance="@ButtonAppearance" aria-haspopup="true" aria-expanded="@_visible" @onclick="ToggleMenu" @onkeydown="OnKeyDown" Disabled="@(!Items.Where(i => !i.IsDivider).Any())">
+    @if (string.IsNullOrWhiteSpace(Text))
+    {
+        <FluentIcon Value="@_icon" />
+    }
+    else
+    {
+        @Text
+        <FluentIcon Value="@_icon" Slot="end" />
+    }
+</FluentButton>
+
+<FluentMenu Anchor="@MenuButtonId" aria-labelledby="button" @bind-Open="@_visible" VerticalThreshold="200">
+    @foreach (var item in Items)
+    {
+        @if (item.IsDivider) 
         {
-            <FluentIcon Value="@_icon" />
+            <FluentDivider />
         }
         else
         {
-            @Text
-            <FluentIcon Value="@_icon" Slot="end" />
+            <FluentMenuItem OnClick="() => HandleItemClicked(item)" title="@item.Tooltip" Disabled="@item.IsDisabled">
+                @item.Text
+                @if (item.Icon != null)
+                {
+                    <span slot="start">
+                        <FluentIcon Value="@item.Icon" Style="vertical-align: middle;" Width="16px" />
+                    </span>
+                }
+            </FluentMenuItem>
         }
-    </FluentButton>
-
-    <FluentMenu Anchor="@_buttonId" aria-labelledby="button" @bind-Open="@_visible" VerticalThreshold="200">
-        @foreach (TItem command in Items)
-        {
-            <FluentMenuItem OnClick="() => HandleItemClicked(command)">@ItemText(command)</FluentMenuItem>
-        }
-    </FluentMenu>
-</div>
+    }
+</FluentMenu>

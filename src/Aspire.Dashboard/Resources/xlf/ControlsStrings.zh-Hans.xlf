@@ -2,9 +2,29 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hans" original="../ControlsStrings.resx">
     <body>
-      <trans-unit id="All">
-        <source>All</source>
-        <target state="translated">所有</target>
+      <trans-unit id="ActionStructuredLogsText">
+        <source>Structured logs</source>
+        <target state="new">Structured logs</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ActionViewDetailsText">
+        <source>View details</source>
+        <target state="new">View details</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ActionsButtonText">
+        <source>Actions</source>
+        <target state="new">Actions</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ActionsColumnHeader">
+        <source>Actions</source>
+        <target state="new">Actions</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ApplicationLower">
+        <source>application</source>
+        <target state="translated">应用程序</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerAllTags">
@@ -30,11 +50,6 @@
       <trans-unit id="ChartContainerGraphTab">
         <source>Graph</source>
         <target state="translated">图</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ChartContainerNoneSelected">
-        <source>(None)</source>
-        <target state="translated">(无)</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
@@ -77,6 +92,11 @@
         <target state="translated">事件</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExceptionDetailsTitle">
+        <source>Exception details</source>
+        <target state="new">Exception details</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FilterPlaceholder">
         <source>Filter...</source>
         <target state="translated">筛选...</target>
@@ -102,6 +122,31 @@
         <target state="translated">显示值</target>
         <note />
       </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellResizeButtonText">
+        <source>Resize</source>
+        <target state="translated">重设大小</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellResizeLabel">
+        <source>Column width (in pixels)</source>
+        <target state="translated">列宽(以像素为单位)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellSortAscendingButtonText">
+        <source>Sort (ascending)</source>
+        <target state="translated">排序(升序)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellSortButtonText">
+        <source>Sort</source>
+        <target state="translated">排序</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellSortDescendingButtonText">
+        <source>Sort (descending)</source>
+        <target state="translated">排序(降序)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GridValueCopied">
         <source>Copied!</source>
         <target state="translated">已复制!</target>
@@ -122,9 +167,34 @@
         <target state="translated">显示值</target>
         <note />
       </trans-unit>
+      <trans-unit id="LabelAll">
+        <source>(All)</source>
+        <target state="new">(All)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LabelEmpty">
+        <source>(Empty)</source>
+        <target state="new">(Empty)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LabelNone">
+        <source>(None)</source>
+        <target state="new">(None)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LabelUnset">
+        <source>(Unset)</source>
+        <target state="new">(Unset)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Loading">
         <source>Loading...</source>
         <target state="translated">正在加载...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricTableExemplarsColumnHeader">
+        <source>Exemplars</source>
+        <target state="translated">样本</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableNoMetricsFound">
@@ -162,9 +232,19 @@
         <target state="translated">值未更改</target>
         <note />
       </trans-unit>
+      <trans-unit id="MetricTableViewExemplarsLabel">
+        <source>View exemplars</source>
+        <target state="translated">查看示例</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NameColumnHeader">
         <source>Name</source>
         <target state="translated">名称</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PageToolbarLandmark">
+        <source>Page toolbar</source>
+        <target state="translated">页面工具栏</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -172,10 +252,25 @@
         <target state="translated">计数</target>
         <note>Count is the name of a plot y-axis label</note>
       </trans-unit>
+      <trans-unit id="PlotlyChartExemplars">
+        <source>Exemplars</source>
+        <target state="translated">样本</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartLength">
         <source>Length</source>
         <target state="translated">长度</target>
         <note>Length is the name of a plot y-axis label</note>
+      </trans-unit>
+      <trans-unit id="PlotlyChartTime">
+        <source>Time</source>
+        <target state="translated">时间</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PlotlyChartTrace">
+        <source>Trace</source>
+        <target state="translated">跟踪</target>
+        <note />
       </trans-unit>
       <trans-unit id="PlotlyChartValue">
         <source>Value</source>
@@ -185,11 +280,6 @@
       <trans-unit id="PropertyGridValueColumnHeader">
         <source>Value</source>
         <target state="translated">值</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ReplicaSetLower">
-        <source>replica set</source>
-        <target state="translated">副本集</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointsHeader">
@@ -207,19 +297,44 @@
         <target state="translated">资源</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceDetailsVolumesHeader">
+        <source>Volumes</source>
+        <target state="new">Volumes</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceDropdownReplicaAccessibleTitle">
         <source>{0} (replica of {1})</source>
         <target state="translated">{0} ({1} 的副本)</target>
         <note>{0} is a resource name, {1} is a replica set name</note>
       </trans-unit>
-      <trans-unit id="SelectAResource">
-        <source>Select a resource</source>
-        <target state="translated">选择资源</target>
+      <trans-unit id="ResourceHealthChecksHeader">
+        <source>Health checks</source>
+        <target state="new">Health checks</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceLabel">
+        <source>Resource</source>
+        <target state="translated">资源</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">
         <source>Select an application</source>
         <target state="translated">选择应用程序</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsBacklinksHeader">
+        <source>Backlinks</source>
+        <target state="translated">反向链接</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsContextHeader">
+        <source>Context</source>
+        <target state="translated">上下文</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsDetailsColumnHeader">
+        <source>Details</source>
+        <target state="translated">详细信息</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsDuration">
@@ -232,6 +347,11 @@
         <target state="translated">事件</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanDetailsLinksHeader">
+        <source>Links</source>
+        <target state="translated">链接</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanDetailsResource">
         <source>Resource &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="translated">资源 &lt;strong&gt;{0}&lt;/strong&gt;</target>
@@ -242,7 +362,17 @@
         <target state="translated">资源</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanDetailsSpanColumnHeader">
+        <source>Span</source>
+        <target state="translated">范围</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanDetailsSpanHeader">
+        <source>Span</source>
+        <target state="translated">范围</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsSpanPrefix">
         <source>Span</source>
         <target state="translated">范围</target>
         <note />
@@ -251,6 +381,26 @@
         <source>Start time &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="translated">开始时间 &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="StateColumnHeader">
+        <source>State</source>
+        <target state="new">State</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredFilteringAddFilter">
+        <source>Add filter</source>
+        <target state="new">Add filter</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredFilteringFilters">
+        <source>Filters</source>
+        <target state="new">Filters</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredFilteringNoFilters">
+        <source>No filters</source>
+        <target state="new">No filters</target>
+        <note />
       </trans-unit>
       <trans-unit id="StructuredLogsDetailsContextHeader">
         <source>Context</source>
@@ -290,6 +440,11 @@
       <trans-unit id="TimestampColumnHeader">
         <source>Timestamp</source>
         <target state="translated">时间戳</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TraceDetailAttributesHeader">
+        <source>Attributes</source>
+        <target state="translated">属性</target>
         <note />
       </trans-unit>
       <trans-unit id="ViewAction">

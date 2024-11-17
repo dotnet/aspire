@@ -40,10 +40,9 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="type">The type of the component. This can be a generic "state" or "pubsub" string, to have Aspire choose an appropriate type when running or deploying.</param>
     /// <param name="options">Options for configuring the component, if any.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<IDaprComponentResource> AddDaprComponent(this IDistributedApplicationBuilder builder, string name, string type, DaprComponentOptions? options = null)
+    public static IResourceBuilder<IDaprComponentResource> AddDaprComponent(this IDistributedApplicationBuilder builder, [ResourceName] string name, string type, DaprComponentOptions? options = null)
     {
         var resource = new DaprComponentResource(name, type) { Options = options };
-
         return builder
             .AddResource(resource)
             .WithInitialState(new()
@@ -62,7 +61,7 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="name">The name of the component.</param>
     /// <param name="options">Options for configuring the component, if any.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<IDaprComponentResource> AddDaprPubSub(this IDistributedApplicationBuilder builder, string name, DaprComponentOptions? options = null)
+    public static IResourceBuilder<IDaprComponentResource> AddDaprPubSub(this IDistributedApplicationBuilder builder, [ResourceName] string name, DaprComponentOptions? options = null)
     {
         return builder.AddDaprComponent(name, DaprConstants.BuildingBlocks.PubSub, options);
     }
@@ -74,7 +73,7 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="name">The name of the component.</param>
     /// <param name="options">Options for configuring the component, if any.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<IDaprComponentResource> AddDaprStateStore(this IDistributedApplicationBuilder builder, string name, DaprComponentOptions? options = null)
+    public static IResourceBuilder<IDaprComponentResource> AddDaprStateStore(this IDistributedApplicationBuilder builder, [ResourceName] string name, DaprComponentOptions? options = null)
     {
         return builder.AddDaprComponent(name, DaprConstants.BuildingBlocks.StateStore, options);
     }

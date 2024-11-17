@@ -1,10 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+
 namespace Aspire.Dashboard.Otlp.Model;
 
 public static class DurationFormatter
 {
+    [DebuggerDisplay("Unit = {Unit}, Ticks = {Ticks}, IsDecimal = {IsDecimal}")]
     private sealed class UnitStep
     {
         public required string Unit { get; init; }
@@ -40,6 +43,16 @@ public static class DurationFormatter
         var secondaryUnitString = $"{secondaryValue}{secondaryUnit.Unit}";
 
         return secondaryValue == 0 ? primaryUnitString : $"{primaryUnitString} {secondaryUnitString}";
+    }
+
+    public static string GetUnit(TimeSpan duration)
+    {
+        var (primaryUnit, secondaryUnit) = ResolveUnits(duration.Ticks);
+        if (primaryUnit.IsDecimal)
+        {
+            return primaryUnit.Unit;
+        }
+        return secondaryUnit.Unit;
     }
 
     private static (UnitStep, UnitStep) ResolveUnits(long ticks)

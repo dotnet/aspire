@@ -70,8 +70,10 @@ internal static class DashboardUrls
         }
         if (filters != null)
         {
-            // Filters should already be escaped.
-            url += (!url.Contains('?')) ? $"?filters={filters}" : $"&filters={filters}";
+            // Filters contains : and + characters. These are escaped when they're not needed to,
+            // which makes the URL harder to read. Consider having a custom method for appending
+            // query string here that uses an encoder that doesn't encode those characters.
+            url = QueryHelpers.AddQueryString(url, "filters", filters);
         }
         if (traceId != null)
         {
@@ -85,20 +87,33 @@ internal static class DashboardUrls
         return url;
     }
 
-    public static string TracesUrl(string? resource = null)
+    public static string TracesUrl(string? resource = null, string? filters = null)
     {
         var url = $"/{TracesBasePath}";
         if (resource != null)
         {
             url += $"/resource/{Uri.EscapeDataString(resource)}";
         }
+        if (filters != null)
+        {
+            // Filters contains : and + characters. These are escaped when they're not needed to,
+            // which makes the URL harder to read. Consider having a custom method for appending
+            // query string here that uses an encoder that doesn't encode those characters.
+            url = QueryHelpers.AddQueryString(url, "filters", filters);
+        }
 
         return url;
     }
 
-    public static string TraceDetailUrl(string traceId)
+    public static string TraceDetailUrl(string traceId, string? spanId = null)
     {
-        return $"/{TracesBasePath}/detail/{Uri.EscapeDataString(traceId)}";
+        var url = $"/{TracesBasePath}/detail/{Uri.EscapeDataString(traceId)}";
+        if (spanId != null)
+        {
+            url = QueryHelpers.AddQueryString(url, "spanId", spanId);
+        }
+
+        return url;
     }
 
     public static string LoginUrl(string? returnUrl = null, string? token = null)

@@ -15,6 +15,7 @@ brightwhite
 brightyellow
 chmod
 consolelogs
+cors
 csproj
 dbug
 dcpctrl
@@ -36,12 +37,15 @@ nats
 noreferrer
 noopener
 npgsql
+oauth
 oninput
 openai
+openid
 orleans
 otel
 otlp
 pgadmin
+plotly
 postgre
 postgres
 protoc
@@ -59,3 +63,5 @@ upsert
 uris
 urls
 kubernetes
+Pgweb
+elasticsearch

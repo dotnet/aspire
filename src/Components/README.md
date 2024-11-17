@@ -20,6 +20,36 @@ In summary we encourage and are excited to accept contributions of components, b
 
 Each component is in its own NuGet package, and can version independently, including declaring itself in a preview state using the standard SemVer and NuGet mechanisms. However we expect the major and minor version of components to follow the core Aspire packages to make it easier to reason about dependencies. We expect to typically push updates to all components at the same time we update the core Aspire packages, but we have the ability to push an updated component at any other time if necessary, for example where changes to the underlying client library makes it necessary.
 
+### Target Framework(s)
+
+The Aspire component must support the [latest LTS version of .NET](https://dotnet.microsoft.com/platform/support/policy/dotnet-core) and may optionally support a higher STS version, if one exists. For example:
+
+| .NET Aspire Version | Targets                         |
+|---------------------|---------------------------------|
+| 8.x                 | `net8.0`                        |
+| 9.x                 | `net8.0` (+`net9.0` optional)   |
+| 10.x                | `net10.0`                       |
+| 11.x                | `net10.0` (+`net11.0` optional) |
+
+### Dependency Versioning
+
+Applications usually have a direct reference to an Aspire component package (e.g `Aspire.StackExchange.Redis`) but have indirect references to the associated client libraries (e.g. `StackExchange.Redis`). This means that the version of the client libraries used by the application is derived from what the component package is built against.
+
+Aspire component packages will be serviced regularly, capturing the latest available versions of the client libraries and Microsoft extensions they depend on, making it possible for applications built on Aspire to always benefit from the latest features and fixes.
+
+#### Breaking Changes
+
+In the situation that a client library associated with an Aspire component package releases an update with a breaking change, the nature of the change will be assessed to determine its impact severity on the associated Aspire component package and Aspire applications that depend on it. If it’s decided that the change has high enough impact such that it would constitute a breaking change necessary to address, the Aspire component package will be split into 2 packages to support both versions.
+
+To understand how this will work, an example of this is the `RabbitMQ.Client` library made many large breaking changes between version `6.8.1` and `7.0.0`. To handle this:
+
+1. For the current `Aspire.RabbitMQ.Client` package, we put a NuGet version limit on our dependency: `[6.8.1,7.0.0)`. This way people won't be able to update to the `7.0.0` version, which will break their app.
+2. When `RabbitMQ.Client` ships an official `7.0.0` stable package during the .NET Aspire `8.x` lifetime, we can add a new, forked component named `Aspire.RabbitMQ.Client.v7` which will have a dependency on `7.0.0` and contain any updates so the .NET Aspire component will work with v7. People who explicitly want to use v7 can opt into using this package.
+3. When .NET Aspire 9 ships, we can "swap" the dependencies around.
+    - The `Aspire.RabbitMQ.Client` package will be updated to depend on v7 of `RabbitMQ.Client`.
+    - If `RabbitMQ.Client` v6 is still in support, we can create `Aspire.RabbitMQ.Client.v6` which has the dependency limit `[6.8.1, 7.0.0)` and works with the version 6 of RabbitMQ.Client.
+    - `Aspire.RabbitMQ.Client.v7` will be dead-ended. We won't make new .NET Aspire 9 versions of this package.
+
 ## Icon
 
 Where the component represents some client technology that has a widely recognized logo, we would like to use that for the package icon if we can. Take a look at the MySql component for an example. We can only do this if the owner of the logo allows it - often you can find posted guidelines describing acceptable usage. Otherwise we can add reach out for explicit permission and do a follow up commit to add the icon if and when the use is approved.
@@ -45,6 +75,7 @@ Where the component represents some client technology that has a widely recogniz
 - When a new instance of the settings type is created, its properties should return the recommended/default values (so when they are bound to an empty config they still return the right values).
 - Settings should be bound to a section of `IConfiguration` exposed by `IHostApplicationBuilder.Configuration`.
 - Each component should determine a constant configuration section name for its settings under the `Aspire` config section.
+- Each component should support binding arguments from the configuration section and from named configuration as defined below. Settings bound from named configuration should override those bound from integration-specific configuration.
 - All configuration knobs exposed by the settings type should be public and mutable, so they can be changed in the config and applied without a need for re-compiling the application.
 - Each component should expose an optional lambda that accepts an instance of given settings type. By doing that, we provide the users with a possibility to override the bound config values (make final changes).
 - When a mandatory config property is missing, an exception should be thrown, and it should contain information about the config path that was used to read it.
@@ -201,6 +232,7 @@ New components MUST have:
 * Public APIs
 * Tests
     * [ConformanceTests](../../tests/Aspire.Components.Common.Tests/ConformanceTests.cs)
+    * [EndToEndTests](../../tests/Aspire.EndToEnd.Tests/README.md#adding-tests-for-new-components)
     * Other unit tests as needed
 * Tracing support
 

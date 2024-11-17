@@ -111,18 +111,32 @@ internal class ConfigureDefaultDcpOptions(
     public void Configure(DcpOptions options)
     {
         var dcpPublisherConfiguration = configuration.GetSection(DcpPublisher);
+        var assemblyMetadata = appOptions.Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
 
         if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.CliPath)]))
         {
             // If an explicit path to DCP was provided from configuration, don't try to resolve via assembly attributes
             options.CliPath = dcpPublisherConfiguration[nameof(options.CliPath)];
+            if (Path.GetDirectoryName(options.CliPath) is string dcpDir && !string.IsNullOrEmpty(dcpDir))
+            {
+                options.ExtensionsPath = Path.Combine(dcpDir, "ext");
+                options.BinPath = Path.Combine(options.ExtensionsPath, "bin");
+            }
         }
         else
         {
-            var assemblyMetadata = appOptions.Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
             options.CliPath = GetMetadataValue(assemblyMetadata, DcpCliPathMetadataKey);
             options.ExtensionsPath = GetMetadataValue(assemblyMetadata, DcpExtensionsPathMetadataKey);
             options.BinPath = GetMetadataValue(assemblyMetadata, DcpBinPathMetadataKey);
+        }
+
+        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.DashboardPath)]))
+        {
+            // If an explicit path to DCP was provided from configuration, don't try to resolve via assembly attributes
+            options.DashboardPath = dcpPublisherConfiguration[nameof(options.DashboardPath)];
+        }
+        else
+        {
             options.DashboardPath = GetMetadataValue(assemblyMetadata, DashboardPathMetadataKey);
         }
 
@@ -143,7 +157,7 @@ internal class ConfigureDefaultDcpOptions(
             }
             else
             {
-                throw new InvalidOperationException($"Invalid value \"{dcpPublisherConfiguration[nameof(options.DependencyCheckTimeout)]}\" for \"--dependency-check-timeout\". Exepcted an integer value.");
+                throw new InvalidOperationException($"Invalid value \"{dcpPublisherConfiguration[nameof(options.DependencyCheckTimeout)]}\" for \"--dcp-dependency-check-timeout\". Expected an integer value.");
             }
         }
         else

@@ -42,6 +42,11 @@
         <target state="translated">{0} Konsolenprotokolle</target>
         <note>{0} is an application name</note>
       </trans-unit>
+      <trans-unit id="ConsoleLogsSelectResourceToolbar">
+        <source>Select resource</source>
+        <target state="translated">Ressource auswählen</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
         <source>Unknown state</source>
         <target state="translated">Unbekannter Status</target>

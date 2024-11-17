@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -17,7 +20,7 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     /// <param name="name">The name of the resource.</param>
     /// <param name="userName">A parameter that contains the PostgreSQL server user name, or <see langword="null"/> to use a default value.</param>
     /// <param name="password">A parameter that contains the PostgreSQL server password.</param>
-    public PostgresServerResource(string name, ParameterResource? userName, ParameterResource password) : base(name)
+    public PostgresServerResource(string name, ParameterResource? userName, ParameterResource password) : base(ThrowIfNull(name))
     {
         ArgumentNullException.ThrowIfNull(password);
 
@@ -27,14 +30,14 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     }
 
     /// <summary>
-    /// Gets the primary endpoint for the Redis server.
+    /// Gets the primary endpoint for the PostgreSQL server.
     /// </summary>
     public EndpointReference PrimaryEndpoint { get; }
 
     /// <summary>
-    /// Gets the parameter that contains the PostgreSQL server user name.
+    /// Gets or sets the parameter that contains the PostgreSQL server user name.
     /// </summary>
-    public ParameterResource? UserNameParameter { get; }
+    public ParameterResource? UserNameParameter { get; set; }
 
     internal ReferenceExpression UserNameReference =>
         UserNameParameter is not null ?
@@ -42,9 +45,9 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
             ReferenceExpression.Create($"{DefaultUserName}");
 
     /// <summary>
-    /// Gets the parameter that contains the PostgreSQL server password.
+    /// Gets or sets the parameter that contains the PostgreSQL server password.
     /// </summary>
-    public ParameterResource PasswordParameter { get; }
+    public ParameterResource PasswordParameter { get; set; }
 
     private ReferenceExpression ConnectionString =>
         ReferenceExpression.Create(
@@ -92,4 +95,7 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     {
         _databases.TryAdd(name, databaseName);
     }
+
+    private static string ThrowIfNull([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+        => argument ?? throw new ArgumentNullException(paramName);
 }

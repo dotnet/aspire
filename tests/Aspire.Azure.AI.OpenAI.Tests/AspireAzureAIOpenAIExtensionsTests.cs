@@ -2,9 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Azure.AI.OpenAI;
+using Azure.Core.Extensions;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using OpenAI;
 using Xunit;
 
 namespace Aspire.Azure.AI.OpenAI.Tests;
@@ -12,6 +16,41 @@ namespace Aspire.Azure.AI.OpenAI.Tests;
 public class AspireAzureAIOpenAIExtensionsTests
 {
     private const string ConnectionString = "Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake";
+
+    /// <summary>
+    /// Azure OpenAI registers both <see cref="AzureOpenAIClient"/> and <see cref="OpenAIClient"/> services.
+    /// This way consumers can use either service type to resolve the client.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void RegistersBothServiceTypes(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:openai", ConnectionString)
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddKeyedAzureOpenAIClient("openai");
+        }
+        else
+        {
+            builder.AddAzureOpenAIClient("openai");
+        }
+
+        using var host = builder.Build();
+        var azureClient = useKeyed ?
+            host.Services.GetRequiredKeyedService<AzureOpenAIClient>("openai") :
+            host.Services.GetRequiredService<AzureOpenAIClient>();
+
+        var unbrandedClient = useKeyed ?
+            host.Services.GetRequiredKeyedService<OpenAIClient>("openai") :
+            host.Services.GetRequiredService<OpenAIClient>();
+
+        Assert.Same(azureClient, unbrandedClient);
+    }
 
     [Theory]
     [InlineData(true)]
@@ -34,8 +73,8 @@ public class AspireAzureAIOpenAIExtensionsTests
 
         using var host = builder.Build();
         var client = useKeyed ?
-            host.Services.GetRequiredKeyedService<OpenAIClient>("openai") :
-            host.Services.GetRequiredService<OpenAIClient>();
+            host.Services.GetRequiredKeyedService<AzureOpenAIClient>("openai") :
+            host.Services.GetRequiredService<AzureOpenAIClient>();
 
         Assert.NotNull(client);
     }
@@ -60,8 +99,8 @@ public class AspireAzureAIOpenAIExtensionsTests
 
         using var host = builder.Build();
         var client = useKeyed ?
-            host.Services.GetRequiredKeyedService<OpenAIClient>("openai") :
-            host.Services.GetRequiredService<OpenAIClient>();
+            host.Services.GetRequiredKeyedService<AzureOpenAIClient>("openai") :
+            host.Services.GetRequiredService<AzureOpenAIClient>();
 
         Assert.NotNull(client);
     }
@@ -81,7 +120,7 @@ public class AspireAzureAIOpenAIExtensionsTests
         builder.AddAzureOpenAIClient("openai");
 
         using var host = builder.Build();
-        var client = host.Services.GetRequiredService<OpenAIClient>();
+        var client = host.Services.GetRequiredService<AzureOpenAIClient>();
 
         Assert.NotNull(client);
     }
@@ -104,11 +143,55 @@ public class AspireAzureAIOpenAIExtensionsTests
 
         // Unkeyed services don't work with keyed services. See https://github.com/dotnet/aspire/issues/3890
         //var client1 = host.Services.GetRequiredService<OpenAIClient>();
-        var client2 = host.Services.GetRequiredKeyedService<OpenAIClient>("openai2");
-        var client3 = host.Services.GetRequiredKeyedService<OpenAIClient>("openai3");
+        var client2 = host.Services.GetRequiredKeyedService<AzureOpenAIClient>("openai2");
+        var client3 = host.Services.GetRequiredKeyedService<AzureOpenAIClient>("openai3");
 
         //Assert.NotSame(client1, client2);
         //Assert.NotSame(client1, client3);
         Assert.NotSame(client2, client3);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void BindsOptionsAndInvokesCallback(bool useKeyed)
+    {
+        var networkTimeout = TimeSpan.FromSeconds(123);
+        var applicationId = "application_id";
+
+        var key = useKeyed ? ":openai" : "";
+
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:openai", ConnectionString),
+            new KeyValuePair<string, string?>($"Aspire:Azure:AI:OpenAI{key}:ClientOptions:UserAgentApplicationId", applicationId),
+            // Ensure the callback wins over configuration
+            new KeyValuePair<string, string?>($"Aspire:Azure:AI:OpenAI{key}:ClientOptions:NetworkTimeout", "00:00:02")
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddKeyedAzureOpenAIClient("openai", configureClientBuilder: BuildConfiguration);
+        }
+        else
+        {
+            builder.AddAzureOpenAIClient("openai", configureClientBuilder: BuildConfiguration);
+        }
+
+        void BuildConfiguration(IAzureClientBuilder<AzureOpenAIClient, AzureOpenAIClientOptions> builder)
+        {
+            builder.ConfigureOptions(options =>
+            {
+                options.NetworkTimeout = networkTimeout;
+            });
+        }
+
+        using var host = builder.Build();
+
+        var options = host.Services.GetRequiredService<IOptionsMonitor<AzureOpenAIClientOptions>>().Get(useKeyed ? "openai" : "Default");
+
+        Assert.NotNull(options);
+        Assert.Equal(applicationId, options.UserAgentApplicationId);
+        Assert.Equal(networkTimeout, options.NetworkTimeout);
     }
 }

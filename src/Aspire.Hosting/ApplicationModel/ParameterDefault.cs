@@ -58,7 +58,7 @@ public abstract class ParameterDefault
 /// A generalized lower-bound formula for the number of possible outputs is to consider a string of the form:
 /// </para>
 ///
-/// <code>
+/// <code lang="csharp">
 /// {nonRequiredCharacters}{requiredCharacters}
 ///
 /// let a = MinLower, b = MinUpper, c = MinNumeric, d = MinSpecial
@@ -72,7 +72,7 @@ public abstract class ParameterDefault
 ///
 /// Putting it all together, the lower-bound bits of entropy calculation is:
 ///
-/// <code>
+/// <code lang="csharp">
 /// log base 2 [67^x * 23^a * 23^b * 10^c * 11^d * (a + b + c + d)! / (a! * b! * c! * d!)]
 /// </code>
 /// </remarks>
@@ -161,4 +161,26 @@ public sealed class GenerateParameterDefault : ParameterDefault
     /// <inheritdoc/>
     public override string GetDefaultValue() =>
         PasswordGenerator.Generate(MinLength, Lower, Upper, Numeric, Special, MinLower, MinUpper, MinNumeric, MinSpecial);
+}
+
+// Simple parameter default that just returns a constant value, at both runtime and publish time.
+class ConstantParameterDefault(Func<string> valueGetter) : ParameterDefault
+{
+    private string? _value;
+    private bool _hasValue;
+
+    public override string GetDefaultValue()
+    {
+        if (!_hasValue)
+        {
+            _value = valueGetter();
+            _hasValue = true;
+        }
+        return _value!;
+    }
+
+    public override void WriteToManifest(ManifestPublishingContext context)
+    {
+        context.Writer.WriteString("value", GetDefaultValue());
+    }
 }

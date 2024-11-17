@@ -35,28 +35,13 @@ Vedere https://aka.ms/dotnet/aspire/containers per altri dettagli sui runtime de
         <note />
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
-        <source>Application orchestrator dependency check had an unexpected error {0}.</source>
-        <target state="translated">Si è verificato un errore imprevisto durante il controllo delle dipendenze dell'agente di orchestrazione dell'applicazione: {0}.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="DcpVersionCheckFailedMessage">
-        <source>The application orchestrator version could not be determined. Continuing.</source>
-        <target state="translated">Non è stato possibile determinare la versione dell'agente di orchestrazione dell'applicazione. Continua.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="DcpVersionCheckTooHighMessage">
-        <source>Found incompatible version of .NET Aspire workload (need application orchestrator version {0} to run the application).</source>
-        <target state="translated">È stata trovata una versione incompatibile del carico di lavoro di .NET Aspire (per eseguire l'applicazione, è necessaria la versione {0} dell'agente di orchestrazione corrispondente).</target>
+        <source>Application orchestrator dependency check returned an error: {0}</source>
+        <target state="translated">Il controllo delle dipendenze dell'agente di orchestrazione dell'applicazione ha restituito un errore: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">
         <source>Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</source>
         <target state="translated">Per eseguire l'applicazione, è necessaria una versione più recente del carico di lavoro di .NET Aspire. Per ottenerla, esegui "aggiornamento del carico di lavoro dotnet".</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="LaunchProfileIsSpecifiedButLaunchSettingsFileIsNotPresentExceptionMessage">
-        <source>Launch profile is specified but launch settings file is not present.</source>
-        <target state="translated">Il profilo di avvio è specificato, ma il file delle impostazioni di avvio non è presente.</target>
         <note />
       </trans-unit>
       <trans-unit id="LaunchSettingsFileDoesNotContainProfileExceptionMessage">

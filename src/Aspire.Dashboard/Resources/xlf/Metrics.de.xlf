@@ -87,6 +87,11 @@
         <target state="translated">Instrument auswählen.</target>
         <note />
       </trans-unit>
+      <trans-unit id="MetricsViewAttributesToolbar">
+        <source>View attributes</source>
+        <target state="translated">Attribute anzeigen</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

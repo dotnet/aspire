@@ -1,15 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting oracle sql</PackageTags>
+    <PackageTags>aspire integration hosting oracle sql</PackageTags>
     <Description>Oracle Database support for .NET Aspire.</Description>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>20</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
-    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AspNetCore.HealthChecks.Oracle" />
   </ItemGroup>
 
   <ItemGroup>

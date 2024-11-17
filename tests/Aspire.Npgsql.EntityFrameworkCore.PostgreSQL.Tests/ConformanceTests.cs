@@ -49,7 +49,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
         "Npgsql.Exception"
     };
 
-    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
+    protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
     protected override string ValidJsonConfig => """
         {
@@ -79,7 +79,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
     public ConformanceTests(PostgreSQLContainerFixture? containerFixture)
     {
         _containerFixture = containerFixture;
-        ConnectionString = (_containerFixture is not null && RequiresDockerTheoryAttribute.IsSupported)
+        ConnectionString = (_containerFixture is not null && RequiresDockerAttribute.IsSupported)
                                         ? _containerFixture.GetConnectionString()
                                         : "Server=localhost;User ID=root;Password=password;Database=test_aspire_mysql";
     }
@@ -91,7 +91,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
-        => builder.AddNpgsqlDbContext<TestDbContext>("postgres", configure);
+        => builder.AddNpgsqlDbContext<TestDbContext>(key ?? "postgres", configure);
 
     protected override void SetHealthCheck(NpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
         => options.DisableHealthChecks = !enabled;
@@ -131,7 +131,8 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
         Assert.NotNull(dbContext);
     }
 
-    [RequiresDockerFact]
+    [Fact]
+    [RequiresDocker]
     public void TracingEnablesTheRightActivitySource()
         => RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: null)),
                                  ConnectionString).Dispose();

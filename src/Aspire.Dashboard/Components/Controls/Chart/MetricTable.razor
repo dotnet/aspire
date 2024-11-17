@@ -1,23 +1,27 @@
 ﻿@namespace Aspire.Dashboard.Components.Controls
 
-@implements IAsyncDisposable
-@using Aspire.Dashboard.Extensions
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using System.Globalization
+@using Aspire.Dashboard.Components.Controls.Grid
+
 @inherits Aspire.Dashboard.Components.Controls.Chart.ChartBase
 
 @{
     // these colors line up with P50/P90/P99 colors for the plotly graph
     var percentileColumns = new List<(int Percentile, string UnderlineColor)> { (50, "#89B5D3"), (90, "#F9B980"), (99, "#8FC98F") };
     var columnCount = ShowPercentiles() ? percentileColumns.Count + 1 : 2;
+    if (_exemplars.Count > 0)
+    {
+        columnCount++;
+    }
 }
 
-<div id="metric-table-container" style="height: 40vh; overflow-y: auto; margin-bottom: 20px; max-width:1200px;">
+<div id="metric-table-container" style="height: 40vh; overflow-y: auto; width:1200px;">
     @* ItemKey is to preserve row focus by associating rows with their associated time *@
     <FluentDataGrid
         Items="@_metricsView"
-        ItemSize="35"
+        ItemSize="46"
         Virtualize="true"
         GridTemplateColumns="@string.Join(" ", Enumerable.Repeat("1fr", columnCount))"
         ItemKey="@(item => item.DateTime)">
@@ -30,7 +34,7 @@
             {
                 foreach (var (percentile, underlineColor) in percentileColumns)
                 {
-                    <TemplateColumn Title="@((_metricsView.FirstOrDefault() as HistogramMetricView)?.Percentiles[percentile].Name ?? (_instrument is not null ? $"P{percentile} {InstrumentUnitResolver.ResolveDisplayedUnit(_instrument)}" : $"P{percentile}"))">
+                    <TemplateColumn Title="@((_metricsView.FirstOrDefault() as HistogramMetricView)?.Percentiles[percentile].Name ?? (_instrument is not null ? $"P{percentile} {InstrumentUnitResolver.ResolveDisplayedUnit(_instrument, titleCase: true, pluralize: true)}" : $"P{percentile}"))">
                         @if (context is HistogramMetricView histogramMetric)
                         {
                             var percentileData = histogramMetric.Percentiles[percentile];
@@ -73,6 +77,23 @@
                     }
                 </TemplateColumn>
             }
+            @if (_exemplars.Count > 0)
+            {
+                <TemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableExemplarsColumnHeader)]">
+                    @if (context.Exemplars.Count > 0)
+                    {
+                        @* min-width ensures a consistent button width up to 999 metrics *@
+                        <FluentButton Appearance="Appearance.Accent"
+                                      aria-label="@Loc[nameof(ControlsStrings.MetricTableViewExemplarsLabel)]"
+                                      @onclick="() => OpenExemplarsDialogAsync(context)"
+                                      Style="min-width: 45px">@context.Exemplars.Count</FluentButton>
+                    }
+                    else
+                    {
+                        <span>0</span>
+                    }
+                </TemplateColumn>
+            }
         </ChildContent>
         <EmptyContent>
             <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" />&nbsp;@Loc[nameof(ControlsStrings.MetricTableNoMetricsFound)]
@@ -80,9 +101,9 @@
     </FluentDataGrid>
 </div>
 
-<FluentStack Orientation="Orientation.Vertical" Style="margin-bottom: 20px;">
+<FluentStack Orientation="Orientation.Vertical">
     <FluentSwitch Class="table-switch"
-                  @bind-Value="@_onlyShowValueChanges"
+                  @bind-Value="@OnlyShowValueChangesInTable"
                   @bind-Value:after="SettingsChangedAsync"
-                  Label="@Loc[nameof(ControlsStrings.MetricTableShowOnlyValueChanges)]"/>
+                  Label="@Loc[nameof(ControlsStrings.MetricTableShowOnlyValueChanges)]" />
 </FluentStack>

@@ -21,7 +21,7 @@ public static class OrleansServiceClientExtensions
     public static IResourceBuilder<T> WithReference<T>(
         this IResourceBuilder<T> builder,
         OrleansServiceClient orleansServiceClient)
-        where T : IResourceWithEnvironment
+        where T : IResourceWithEnvironment, IResourceWithEndpoints
     {
         return builder.WithOrleansReference(orleansServiceClient.Service, isSilo: false);
     }

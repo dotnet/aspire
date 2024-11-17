@@ -1,8 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>$(NetCurrent)</TargetFramework>
-        <RunTestsOnHelix>true</RunTestsOnHelix>
+        <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
         <Nullable>enable</Nullable>
         <RootNamespace>Aspire.Seq</RootNamespace>
     </PropertyGroup>

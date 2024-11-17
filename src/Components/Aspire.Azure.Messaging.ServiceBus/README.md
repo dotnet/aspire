@@ -125,7 +125,7 @@ Then, in the _Program.cs_ file of `AppHost`, add a Service Bus connection and co
 ```csharp
 var serviceBus = builder.ExecutionContext.IsPublishMode
     ? builder.AddAzureServiceBus("sb")
-    ? builder.AddConnectionString("sb");
+    : builder.AddConnectionString("sb");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(serviceBus);

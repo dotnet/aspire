@@ -1,10 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting dapr</PackageTags>
+    <PackageTags>aspire integration hosting dapr</PackageTags>
     <Description>Dapr support for .NET Aspire.</Description>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>74</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>

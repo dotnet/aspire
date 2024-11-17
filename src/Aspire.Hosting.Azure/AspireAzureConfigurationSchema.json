@@ -1,0 +1,44 @@
+{
+  "type": "object",
+  "properties": {
+    "Azure": {
+      "description": "Azure provisioning information. This section is used to create Azure resources for the app.",
+      "type": "object",
+      "properties": {
+        "SubscriptionId": {
+          "description": "Azure Subscription Id that will be used to host the resources.",
+          "type": "string"
+        },
+        "ResourceGroup": {
+          "description": "Azure Resource Group name where to create resources.",
+          "type": "string"
+        },
+        "ResourceGroupPrefix": {
+          "description": "Azure Resource Group prefix used in resource groups names created.",
+          "type": "string"
+        },
+        "AllowResourceGroupCreation": {
+          "description": "Flag that shows if it is allowed to create a resource group if not exists. Defaults to false if ResourceGroup is provided.",
+          "type": "boolean"
+        },
+        "Location": {
+          "description": "Azure Location that will be used to create resources.",
+          "type": "string"
+        },
+        "CredentialSource": {
+          "description": "Configures which Azure credential to use for provisioning.",
+          "enum": [
+            "AzureCli",
+            "AzurePowerShell",
+            "VisualStudio",
+            "VisualStudioCode",
+            "AzureDeveloperCli",
+            "InteractiveBrowser",
+            "Default"
+          ],
+          "default": "Default"
+        }
+      }
+    }
+  }
+}

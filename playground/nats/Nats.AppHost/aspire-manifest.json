@@ -3,9 +3,13 @@
   "resources": {
     "nats": {
       "type": "container.v0",
-      "connectionString": "nats://{nats.bindings.tcp.host}:{nats.bindings.tcp.port}",
-      "image": "docker.io/library/nats:2",
+      "connectionString": "nats://nats:{nats-password.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}",
+      "image": "docker.io/library/nats:2.10",
       "args": [
+        "--user",
+        "nats",
+        "--pass",
+        "{nats-password.value}",
         "-js"
       ],
       "bindings": {
@@ -25,6 +29,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{api.bindings.http.targetPort}",
         "ConnectionStrings__nats": "{nats.connectionString}"
       },
       "bindings": {
@@ -50,6 +55,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{backend.bindings.http.targetPort}",
         "ConnectionStrings__nats": "{nats.connectionString}"
       },
       "bindings": {
@@ -62,6 +68,22 @@
           "scheme": "https",
           "protocol": "tcp",
           "transport": "http"
+        }
+      }
+    },
+    "nats-password": {
+      "type": "parameter.v0",
+      "value": "{nats-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "special": false
+            }
+          }
         }
       }
     }

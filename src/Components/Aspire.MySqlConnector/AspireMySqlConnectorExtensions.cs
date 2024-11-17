@@ -30,7 +30,7 @@ public static class AspireMySqlConnectorExtensions
     /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="MySqlConnectorSettings.ConnectionString"/> is not provided.</exception>
     public static void AddMySqlDataSource(this IHostApplicationBuilder builder, string connectionName, Action<MySqlConnectorSettings>? configureSettings = null)
-        => AddMySqlDataSource(builder, DefaultConfigSectionName, configureSettings, connectionName, serviceKey: null);
+        => AddMySqlDataSource(builder, configureSettings, connectionName, serviceKey: null);
 
     /// <summary>
     /// Registers <see cref="MySqlDataSource"/> as a keyed service for given <paramref name="name"/> for connecting MySQL database with MySqlConnector client.
@@ -47,16 +47,19 @@ public static class AspireMySqlConnectorExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddMySqlDataSource(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, connectionName: name, serviceKey: name);
+        AddMySqlDataSource(builder, configureSettings, connectionName: name, serviceKey: name);
     }
 
-    private static void AddMySqlDataSource(IHostApplicationBuilder builder, string configurationSectionName,
+    private static void AddMySqlDataSource(IHostApplicationBuilder builder,
         Action<MySqlConnectorSettings>? configureSettings, string connectionName, object? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         MySqlConnectorSettings settings = new();
-        builder.Configuration.GetSection(configurationSectionName).Bind(settings);
+        var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
+        configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -65,7 +68,7 @@ public static class AspireMySqlConnectorExtensions
 
         configureSettings?.Invoke(settings);
 
-        builder.RegisterMySqlServices(settings, configurationSectionName, connectionName, serviceKey);
+        builder.RegisterMySqlServices(settings, connectionName, serviceKey);
 
         // Same as SqlClient connection pooling is on by default and can be handled with connection string
         // https://mysqlconnector.net/connection-options/#Pooling
@@ -101,7 +104,7 @@ public static class AspireMySqlConnectorExtensions
         }
     }
 
-    private static void RegisterMySqlServices(this IHostApplicationBuilder builder, MySqlConnectorSettings settings, string configurationSectionName, string connectionName, object? serviceKey)
+    private static void RegisterMySqlServices(this IHostApplicationBuilder builder, MySqlConnectorSettings settings, string connectionName, object? serviceKey)
     {
         if (serviceKey is null)
         {
@@ -121,7 +124,7 @@ public static class AspireMySqlConnectorExtensions
         // delay validating the ConnectionString until the DataSource is requested. This ensures an exception doesn't happen until a Logger is established.
         void ValidateConnection()
         {
-            ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, configurationSectionName);
+            ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName);
         }
     }
 }

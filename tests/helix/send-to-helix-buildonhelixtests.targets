@@ -1,0 +1,70 @@
+<Project>
+
+  <PropertyGroup>
+    <BuildHelixWorkItemsDependsOn>$(BuildHelixWorkItemsDependsOn);BuildHelixWorkItemsForBuildOnHelixTests</BuildHelixWorkItemsDependsOn>
+    <NeedsWorkload>true</NeedsWorkload>
+    <NeedsPlaywright>true</NeedsPlaywright>
+    <NeedsAzureFunctionsCli>true</NeedsAzureFunctionsCli>
+
+    <WorkItemArchiveWildCard>$(TestArchiveTestsDirForBuildOnHelixTests)**/*.zip</WorkItemArchiveWildCard>
+
+    <_TestAssemblyRootDirEnvVar Condition="'$(OS)' != 'Windows_NT'">${HELIX_WORKITEM_ROOT}/test/</_TestAssemblyRootDirEnvVar>
+    <_TestAssemblyRootDirEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_WORKITEM_ROOT%\test\</_TestAssemblyRootDirEnvVar>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) SkipDashboardProjectReference=true" />
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) TestsRunningOutsideOfRepo=true" />
+    <!-- required for tests that build docker images, like Aspire.Playground.Tests -->
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) DOCKER_BUILDKIT=1" />
+
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set NUGET_PACKAGES=%HELIX_WORKITEM_ROOT%\nuget-cache\" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export NUGET_PACKAGES=$HELIX_WORKITEM_ROOT/nuget-cache/" />
+
+    <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="mv $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/$(_TestNameEnvVar).trx" />
+    <HelixPostCommand Condition="'$(OS)' == 'Windows_NT'" Include="move &quot;$(_HelixLogsPath)\TestResults.trx&quot; &quot;$(_HelixLogsPath)\$(_TestNameEnvVar).trx&quot;" />
+  </ItemGroup>
+
+  <!-- `dotnet build` + `dotnet test` on helix -->
+  <Target Name="BuildHelixWorkItemsForBuildOnHelixTests">
+    <ItemGroup>
+      <_TestRunCommandArguments Remove="@(_TestRunCommandArguments)" />
+
+      <_TestBlameArguments Remove="@(_TestBlameArguments)" />
+      <_TestBlameArguments Include="--blame-crash" />
+      <_TestBlameArguments Include="--blame-crash-dump-type full" />
+
+      <!-- Using `dotnet test` for the project directly here -->
+      <_TestRunCommandArguments Include="dotnet test -s .runsettings --results-directory $(_HelixLogsPath) -v:n" />
+      <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
+    </ItemGroup>
+
+    <PropertyGroup>
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
+
+      <_TestRunCommand>dotnet build -bl:$(_HelixLogsPath)/build.binlog /p:TreatWarningsAsErrors=true $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
+      <_TestRunCommand Condition="'$(HelixPerWorkItemPreCommand)' != ''">$(HelixPerWorkItemPreCommand) $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
+
+      <_SetPathEnvVar Condition="'$(OS)' != 'Windows_NT'">PATH=${SDK_FOR_WORKLOAD_TESTING_PATH}:$PATH</_SetPathEnvVar>
+      <_SetPathEnvVar Condition="'$(OS)' == 'Windows_NT'">PATH=%SDK_FOR_WORKLOAD_TESTING_PATH%%3B%PATH%</_SetPathEnvVar>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" PreCommands="" />
+
+      <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
+        <PayloadArchive>%(Identity)</PayloadArchive>
+
+        <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;$(_SetPathEnvVar)&quot;</PreCommands>
+
+        <Command>cd tests/%(FileName) %3B $(_TestRunCommand)</Command>
+        <Timeout>00:15:00</Timeout>
+        <Timeout Condition="'%(FileName)' == 'Aspire.Playground.Tests'">00:25:00</Timeout>
+
+        <!-- Download results file so coverage files can be extracted -->
+        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml;logs/%(FileName).trx</DownloadFilesFromResults>
+      </HelixWorkItem>
+    </ItemGroup>
+  </Target>
+</Project>
