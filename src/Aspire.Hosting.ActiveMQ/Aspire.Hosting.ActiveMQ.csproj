@@ -1,19 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting activemq</PackageTags>
     <Description>ActiveMQ support for .NET Aspire.</Description>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
-  </ItemGroup>
+  <PropertyGroup>
+    <MinCodeCoverage>50</MinCodeCoverage>
+  </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\Shared\VolumeNameGenerator.cs">
-      <Link>Utils\VolumeNameGenerator.cs</Link>
-    </Compile>
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
 </Project>

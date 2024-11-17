@@ -56,7 +56,7 @@ public static class ActiveMQBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<ActiveMQServerResource> WithDataVolume(this IResourceBuilder<ActiveMQServerResource> builder, string? name = null, bool isReadOnly = false)
         => builder
-            .WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"),
+            .WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"),
                 "/opt/apache-activemq/data",
                 isReadOnly);
 
@@ -69,7 +69,7 @@ public static class ActiveMQBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<ActiveMQServerResource> WithConfVolume(this IResourceBuilder<ActiveMQServerResource> builder, string? name = null, bool isReadOnly = false)
         => builder
-            .WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "conf"),
+            .WithVolume(name ?? VolumeNameGenerator.Generate(builder, "conf"),
                 "/opt/apache-activemq/conf",
                 isReadOnly);
 
