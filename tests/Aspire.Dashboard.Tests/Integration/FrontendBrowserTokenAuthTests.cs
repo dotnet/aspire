@@ -183,14 +183,6 @@ public class FrontendBrowserTokenAuthTests
             },
             w =>
             {
-                Assert.Equal("Login to the dashboard at {DashboardLoginUrl}", GetValue(w.State, "{OriginalFormat}"));
-
-                var uri = new Uri((string)GetValue(w.State, "DashboardLoginUrl")!, UriKind.Absolute);
-                var queryString = HttpUtility.ParseQueryString(uri.Query);
-                Assert.NotNull(queryString["t"]);
-            },
-            w =>
-            {
                 Assert.Equal("OTLP/gRPC listening on: {OtlpEndpointUri}", GetValue(w.State, "{OriginalFormat}"));
 
                 var uri = new Uri((string)GetValue(w.State, "OtlpEndpointUri")!);
@@ -207,6 +199,14 @@ public class FrontendBrowserTokenAuthTests
             {
                 Assert.Equal("OTLP server is unsecured. Untrusted apps can send telemetry to the dashboard. For more information, visit https://go.microsoft.com/fwlink/?linkid=2267030", GetValue(w.State, "{OriginalFormat}"));
                 Assert.Equal(LogLevel.Warning, w.LogLevel);
+            },
+            w =>
+            {
+                Assert.Equal("Login to the dashboard at {DashboardLoginUrl}", GetValue(w.State, "{OriginalFormat}"));
+
+                var uri = new Uri((string)GetValue(w.State, "DashboardLoginUrl")!, UriKind.Absolute);
+                var queryString = HttpUtility.ParseQueryString(uri.Query);
+                Assert.NotNull(queryString["t"]);
             });
     }
 
