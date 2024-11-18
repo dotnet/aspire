@@ -73,7 +73,7 @@ public class LogTests
         Assert.Collection(logs.Items,
             app =>
             {
-                var logEntry = app.LogEntry;
+                var logEntry = app.Item;
                 Assert.Equal("546573745370616e4964", logEntry.SpanId);
                 Assert.Equal("5465737454726163654964", logEntry.TraceId);
                 Assert.Equal("Test {Log}", logEntry.OriginalFormat);
@@ -140,18 +140,18 @@ public class LogTests
         Assert.Collection(logs.Items,
             l =>
             {
-                Assert.Equal("1", l.LogEntry.Message);
-                Assert.Equal("", l.LogEntry.Scope.ScopeName);
+                Assert.Equal("1", l.Item.Message);
+                Assert.Equal("", l.Item.Scope.ScopeName);
             },
-            l => Assert.Equal("2", l.LogEntry.Message),
-            l => Assert.Equal("3", l.LogEntry.Message),
-            l => Assert.Equal("4", l.LogEntry.Message),
-            l => Assert.Equal("5", l.LogEntry.Message),
-            l => Assert.Equal("6", l.LogEntry.Message),
-            l => Assert.Equal("7", l.LogEntry.Message),
-            l => Assert.Equal("8", l.LogEntry.Message),
-            l => Assert.Equal("9", l.LogEntry.Message),
-            l => Assert.Equal("10", l.LogEntry.Message));
+            l => Assert.Equal("2", l.Item.Message),
+            l => Assert.Equal("3", l.Item.Message),
+            l => Assert.Equal("4", l.Item.Message),
+            l => Assert.Equal("5", l.Item.Message),
+            l => Assert.Equal("6", l.Item.Message),
+            l => Assert.Equal("7", l.Item.Message),
+            l => Assert.Equal("8", l.Item.Message),
+            l => Assert.Equal("9", l.Item.Message),
+            l => Assert.Equal("10", l.Item.Message));
     }
 
     [Fact]
@@ -442,17 +442,17 @@ public class LogTests
         Assert.Collection(logs.Items,
             l =>
             {
-                Assert.Equal("1", l.LogEntry.Message);
+                Assert.Equal("1", l.Item.Message);
                 Assert.Equal(2, l.GroupCount);
             },
             l =>
             {
-                Assert.Equal("3", l.LogEntry.Message);
+                Assert.Equal("3", l.Item.Message);
                 Assert.Equal(1, l.GroupCount);
             },
             l =>
             {
-                Assert.Equal("4", l.LogEntry.Message);
+                Assert.Equal("4", l.Item.Message);
                 Assert.Equal(2, l.GroupCount);
             });
     }
@@ -509,13 +509,13 @@ public class LogTests
         Assert.Collection(logs.Items,
             l =>
             {
-                Assert.Equal("3", l.LogEntry.Message);
+                Assert.Equal("3", l.Item.Message);
                 Assert.Equal(1, l.GroupCount);
                 Assert.False(l.Expanded);
             },
             l =>
             {
-                Assert.Equal("4", l.LogEntry.Message);
+                Assert.Equal("4", l.Item.Message);
                 Assert.Equal(2, l.GroupCount);
                 Assert.False(l.Expanded);
             });
@@ -573,20 +573,20 @@ public class LogTests
         Assert.Collection(logs.Items,
             l =>
             {
-                Assert.Equal("1", l.LogEntry.Message);
-                Assert.Equal(s_testTime.AddMinutes(2), l.LogEntry.TimeStamp);
+                Assert.Equal("1", l.Item.Message);
+                Assert.Equal(s_testTime.AddMinutes(2), l.Item.TimeStamp);
                 Assert.Equal(1, l.GroupCount);
             },
             l =>
             {
-                Assert.Equal("3", l.LogEntry.Message);
-                Assert.Equal(s_testTime.AddMinutes(3), l.LogEntry.TimeStamp);
+                Assert.Equal("3", l.Item.Message);
+                Assert.Equal(s_testTime.AddMinutes(3), l.Item.TimeStamp);
                 Assert.Equal(1, l.GroupCount);
             },
             l =>
             {
-                Assert.Equal("4", l.LogEntry.Message);
-                Assert.Equal(s_testTime.AddMinutes(4), l.LogEntry.TimeStamp);
+                Assert.Equal("4", l.Item.Message);
+                Assert.Equal(s_testTime.AddMinutes(4), l.Item.TimeStamp);
                 Assert.Equal(2, l.GroupCount);
             });
     }
@@ -643,29 +643,29 @@ public class LogTests
         Assert.Collection(logs.Items,
             l =>
             {
-                Assert.Equal("3", l.LogEntry.Message);
-                Assert.Equal(s_testTime.AddMinutes(3), l.LogEntry.TimeStamp);
+                Assert.Equal("3", l.Item.Message);
+                Assert.Equal(s_testTime.AddMinutes(3), l.Item.TimeStamp);
                 Assert.Equal(1, l.GroupCount);
                 Assert.False(l.Expanded);
             },
             l =>
             {
-                Assert.Equal("4", l.LogEntry.Message);
-                Assert.Equal(s_testTime.AddMinutes(4), l.LogEntry.TimeStamp);
+                Assert.Equal("4", l.Item.Message);
+                Assert.Equal(s_testTime.AddMinutes(4), l.Item.TimeStamp);
                 Assert.Equal(2, l.GroupCount);
                 Assert.False(l.Expanded);
             },
             l =>
             {
-                Assert.Equal("6", l.LogEntry.Message);
-                Assert.Equal(s_testTime.AddMinutes(6), l.LogEntry.TimeStamp);
+                Assert.Equal("6", l.Item.Message);
+                Assert.Equal(s_testTime.AddMinutes(6), l.Item.TimeStamp);
                 Assert.Equal(4, l.GroupCount);
                 Assert.True(l.Expanded);
             },
             l =>
             {
-                Assert.Equal("6", l.LogEntry.Message);
-                Assert.Equal(s_testTime.AddMinutes(7), l.LogEntry.TimeStamp);
+                Assert.Equal("6", l.Item.Message);
+                Assert.Equal(s_testTime.AddMinutes(7), l.Item.TimeStamp);
                 Assert.Equal(1, l.GroupCount);
                 Assert.False(l.Expanded);
             });
@@ -909,9 +909,9 @@ public class LogTests
         Assert.Collection(logs.Items,
             app =>
             {
-                Assert.Equal("Test {Log}", app.LogEntry.OriginalFormat);
-                Assert.Equal("0123456789012345", app.LogEntry.Message);
-                Assert.Collection(app.LogEntry.Attributes,
+                Assert.Equal("Test {Log}", app.Item.OriginalFormat);
+                Assert.Equal("0123456789012345", app.Item.Message);
+                Assert.Collection(app.Item.Attributes,
                     p =>
                     {
                         Assert.Equal("Key0", p.Key);
@@ -1126,12 +1126,12 @@ public class LogTests
         Assert.Collection(logs1.Items,
             app =>
             {
-                Assert.Equal("546573745370616e4964", app.LogEntry.SpanId);
-                Assert.Equal("5465737454726163654964", app.LogEntry.TraceId);
-                Assert.Equal("Test {Log}", app.LogEntry.OriginalFormat);
-                Assert.Equal("Test Value!", app.LogEntry.Message);
-                Assert.Equal("TestLogger", app.LogEntry.Scope.ScopeName);
-                Assert.Collection(app.LogEntry.Attributes,
+                Assert.Equal("546573745370616e4964", app.Item.SpanId);
+                Assert.Equal("5465737454726163654964", app.Item.TraceId);
+                Assert.Equal("Test {Log}", app.Item.OriginalFormat);
+                Assert.Equal("Test Value!", app.Item.Message);
+                Assert.Equal("TestLogger", app.Item.Scope.ScopeName);
+                Assert.Collection(app.Item.Attributes,
                     p =>
                     {
                         Assert.Equal("Log", p.Key);
@@ -1149,12 +1149,12 @@ public class LogTests
         Assert.Collection(logs2.Items,
             app =>
             {
-                Assert.Equal("546573745370616e4964", app.LogEntry.SpanId);
-                Assert.Equal("5465737454726163654964", app.LogEntry.TraceId);
-                Assert.Equal("Test {Log}", app.LogEntry.OriginalFormat);
-                Assert.Equal("Test Value!", app.LogEntry.Message);
-                Assert.Equal("TestLogger", app.LogEntry.Scope.ScopeName);
-                Assert.Collection(app.LogEntry.Attributes,
+                Assert.Equal("546573745370616e4964", app.Item.SpanId);
+                Assert.Equal("5465737454726163654964", app.Item.TraceId);
+                Assert.Equal("Test {Log}", app.Item.OriginalFormat);
+                Assert.Equal("Test Value!", app.Item.Message);
+                Assert.Equal("TestLogger", app.Item.Scope.ScopeName);
+                Assert.Collection(app.Item.Attributes,
                     p =>
                     {
                         Assert.Equal("Log", p.Key);
@@ -1225,9 +1225,9 @@ public class LogTests
         Assert.Collection(logs.Items,
             app =>
             {
-                Assert.Equal("message-1", app.LogEntry.Message);
-                Assert.Equal("TestLogger", app.LogEntry.Scope.ScopeName);
-                Assert.Collection(app.LogEntry.Attributes,
+                Assert.Equal("message-1", app.Item.Message);
+                Assert.Equal("TestLogger", app.Item.Scope.ScopeName);
+                Assert.Collection(app.Item.Attributes,
                     p =>
                     {
                         Assert.Equal("key-1", p.Key);
@@ -1236,9 +1236,9 @@ public class LogTests
             },
             app =>
             {
-                Assert.Equal("message-2", app.LogEntry.Message);
-                Assert.Equal("TestLogger", app.LogEntry.Scope.ScopeName);
-                Assert.Collection(app.LogEntry.Attributes,
+                Assert.Equal("message-2", app.Item.Message);
+                Assert.Equal("TestLogger", app.Item.Scope.ScopeName);
+                Assert.Collection(app.Item.Attributes,
                     p =>
                     {
                         Assert.Equal("key-2", p.Key);

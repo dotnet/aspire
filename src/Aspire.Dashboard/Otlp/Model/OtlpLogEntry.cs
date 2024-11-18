@@ -7,10 +7,10 @@ using OpenTelemetry.Proto.Logs.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
 
-[DebuggerDisplay("LogEntry = {LogEntry}, GroupCount = {GroupCount}, Expanded = {Expanded}")]
-public sealed class GroupedLogEntry
+[DebuggerDisplay("Item = {Item}, HasParent = {HasParent}, GroupCount = {GroupCount}, Expanded = {Expanded}")]
+public sealed class ItemResult<T>
 {
-    public required OtlpLogEntry LogEntry { get; init; }
+    public required T Item { get; init; }
     public bool HasParent { get; init; }
     public int GroupCount { get; set; }
     public bool Expanded { get; set; }

@@ -12,7 +12,7 @@ public class StructuredLogsViewModel
     private readonly TelemetryRepository _telemetryRepository;
     private readonly List<TelemetryFilter> _filters = new();
 
-    private PagedResult<GroupedLogEntry>? _logs;
+    private PagedResult<ItemResult<OtlpLogEntry>>? _logs;
     private ApplicationKey? _applicationKey;
     private string _filterText = string.Empty;
     private int _logsStartIndex;
@@ -76,7 +76,7 @@ public class StructuredLogsViewModel
         _logs = null;
     }
 
-    public PagedResult<GroupedLogEntry> GetLogs()
+    public PagedResult<ItemResult<OtlpLogEntry>> GetLogs()
     {
         var logs = _logs;
         if (logs == null)

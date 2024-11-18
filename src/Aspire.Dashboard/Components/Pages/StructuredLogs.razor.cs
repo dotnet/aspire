@@ -40,7 +40,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private string? _elementIdBeforeDetailsViewOpened;
     private AspirePageContentLayout? _contentLayout;
     private string _filter = string.Empty;
-    private FluentDataGrid<GroupedLogEntry> _dataGrid = null!;
+    private FluentDataGrid<ItemResult<OtlpLogEntry>> _dataGrid = null!;
     private GridColumnManager _manager = null!;
     private IList<GridColumn> _gridColumns = null!;
     private readonly List<Guid> _expandedGroups = [];
@@ -103,7 +103,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     public StructureLogsDetailsViewModel? SelectedLogEntry { get; set; }
 
-    private async ValueTask<GridItemsProviderResult<GroupedLogEntry>> GetData(GridItemsProviderRequest<GroupedLogEntry> request)
+    private async ValueTask<GridItemsProviderResult<ItemResult<OtlpLogEntry>>> GetData(GridItemsProviderRequest<ItemResult<OtlpLogEntry>> request)
     {
         ViewModel.StartIndex = request.StartIndex;
         ViewModel.Count = request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount;
@@ -328,15 +328,15 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     private string GetResourceName(OtlpApplicationView app) => OtlpApplication.GetResourceName(app.Application, _applications);
 
-    private string GetRowClass(GroupedLogEntry entry)
+    private string GetRowClass(ItemResult<OtlpLogEntry> entry)
     {
-        if (entry.LogEntry.InternalId == SelectedLogEntry?.LogEntry.InternalId)
+        if (entry.Item.InternalId == SelectedLogEntry?.LogEntry.InternalId)
         {
             return "selected-row";
         }
         else
         {
-            return $"log-row-{entry.LogEntry.Severity.ToString().ToLowerInvariant()}";
+            return $"log-row-{entry.Item.Severity.ToString().ToLowerInvariant()}";
         }
     }
 
@@ -425,19 +425,19 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
-    private async Task OnToggleCollapse(GroupedLogEntry viewModel)
+    private async Task OnToggleCollapse(ItemResult<OtlpLogEntry> viewModel)
     {
         // View model data is recreated if data updates.
         // Persist the collapsed state in a separate list.
         if (viewModel.Expanded)
         {
             viewModel.Expanded = false;
-            _expandedGroups.Remove(viewModel.LogEntry.InternalId);
+            _expandedGroups.Remove(viewModel.Item.InternalId);
         }
         else
         {
             viewModel.Expanded = true;
-            _expandedGroups.Add(viewModel.LogEntry.InternalId);
+            _expandedGroups.Add(viewModel.Item.InternalId);
         }
 
         await _dataGrid.SafeRefreshDataAsync();

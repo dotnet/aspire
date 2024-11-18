@@ -377,7 +377,7 @@ public sealed class TelemetryRepository
         }
     }
 
-    public PagedResult<GroupedLogEntry> GetLogs(GetLogsContext context)
+    public PagedResult<ItemResult<OtlpLogEntry>> GetLogs(GetLogsContext context)
     {
         List<OtlpApplication>? applications = null;
         if (context.ApplicationKey is { } key)
@@ -386,7 +386,7 @@ public sealed class TelemetryRepository
 
             if (applications.Count == 0)
             {
-                return PagedResult<GroupedLogEntry>.Empty;
+                return PagedResult<ItemResult<OtlpLogEntry>>.Empty;
             }
         }
 
@@ -407,9 +407,19 @@ public sealed class TelemetryRepository
 
             if (context.Group)
             {
-                var (items, groupedItemCount, totalItemCount) = GetGroupedLogEntriesPage(results, context.StartIndex, context.Count, context.ExpandedLogs);
+                var (items, groupedItemCount, totalItemCount) = GetGroupedResults(
+                    results,
+                    context.StartIndex,
+                    context.Count,
+                    matchPrevious: (previous, current) =>
+                    {
+                        return previous.ApplicationView.ApplicationKey == current.ApplicationView.ApplicationKey &&
+                               previous.Severity == current.Severity &&
+                               previous.Message == current.Message;
+                    },
+                    expanded: log => context.ExpandedLogs?.Contains(log.InternalId) ?? false);
 
-                return new PagedResult<GroupedLogEntry>
+                return new PagedResult<ItemResult<OtlpLogEntry>>
                 {
                     Items = items,
                     GroupedItemCount = groupedItemCount,
@@ -418,80 +428,78 @@ public sealed class TelemetryRepository
             }
             else
             {
-                return OtlpHelpers.GetItems(results, context.StartIndex, context.Count, r => new GroupedLogEntry { LogEntry = r, Expanded = false, GroupCount = 1, HasParent = false });
+                return OtlpHelpers.GetItems(results, context.StartIndex, context.Count, r => new ItemResult<OtlpLogEntry> { Item = r, Expanded = false, GroupCount = 1, HasParent = false });
             }
         }
         finally
         {
             _logsLock.ExitReadLock();
         }
+    }
 
-        static (List<GroupedLogEntry> items, int groupedItemCount, int totalItemCount) GetGroupedLogEntriesPage(IEnumerable<OtlpLogEntry> logEntries, int startIndex, int count, List<Guid>? expandedLogEntries)
+    private static (List<ItemResult<T>> items, int groupedItemCount, int totalItemCount) GetGroupedResults<T>(IEnumerable<T> logEntries, int startIndex, int count, Func<T, T, bool> matchPrevious, Func<T, bool> expanded) where T : class
+    {
+        var currentIndex = 0;
+        var totalItems = 0;
+
+        var items = new List<ItemResult<T>>();
+
+        ItemResult<T>? currentGroup = null;
+        T? currentParentLogEntry = null;
+        var currentParentExpanded = false;
+
+        ItemResult<T>? currentParent = null;
+
+        foreach (var logEntry in logEntries)
         {
-            var currentIndex = 0;
-            var totalItems = 0;
+            totalItems++;
 
-            var items = new List<GroupedLogEntry>();
-
-            GroupedLogEntry? currentGroup = null;
-            OtlpLogEntry? currentParentLogEntry = null;
-            var currentParentExpanded = false;
-
-            GroupedLogEntry? currentParent = null;
-
-            foreach (var logEntry in logEntries)
+            if (currentParentLogEntry == null || !matchPrevious(logEntry, currentParentLogEntry))
             {
-                totalItems++;
+                currentParentExpanded = expanded(logEntry);
+                currentParentLogEntry = logEntry;
 
-                if (logEntry.ApplicationView.ApplicationKey != currentParentLogEntry?.ApplicationView.ApplicationKey ||
-                    logEntry.Severity != currentParentLogEntry.Severity ||
-                    logEntry.Message != currentParentLogEntry.Message)
+                if (currentIndex >= startIndex && items.Count < count)
                 {
-                    currentParentExpanded = expandedLogEntries?.Contains(logEntry.InternalId) ?? false;
-                    currentParentLogEntry = logEntry;
-
-                    if (currentIndex >= startIndex && items.Count < count)
-                    {
-                        currentParent = currentGroup = new GroupedLogEntry { LogEntry = currentParentLogEntry, HasParent = false, Expanded = currentParentExpanded, GroupCount = 1 };
-                        items.Add(currentGroup);
-                    }
-                    else
-                    {
-                        currentParent = currentGroup = null;
-                    }
-
-                    currentIndex++;
-                }
-                else if (currentParentExpanded)
-                {
-                    if (currentParent != null)
-                    {
-                        currentParent.GroupCount++;
-                    }
-
-                    if (currentIndex >= startIndex && items.Count < count)
-                    {
-                        currentGroup = new GroupedLogEntry { LogEntry = logEntry, HasParent = true, Expanded = false, GroupCount = 1 };
-                        items.Add(currentGroup);
-                    }
-                    else
-                    {
-                        currentGroup = null;
-                    }
-
-                    currentIndex++;
+                    currentParent = currentGroup = new ItemResult<T> { Item = currentParentLogEntry, HasParent = false, Expanded = currentParentExpanded, GroupCount = 1 };
+                    items.Add(currentGroup);
                 }
                 else
                 {
-                    if (currentGroup != null)
-                    {
-                        currentGroup.GroupCount++;
-                    }
+                    currentParent = currentGroup = null;
+                }
+
+                currentIndex++;
+            }
+            else if (currentParentExpanded)
+            {
+                if (currentParent != null)
+                {
+                    currentParent.GroupCount++;
+                }
+
+                if (currentIndex >= startIndex && items.Count < count)
+                {
+                    currentGroup = new ItemResult<T> { Item = logEntry, HasParent = true, Expanded = false, GroupCount = 1 };
+                    items.Add(currentGroup);
+                }
+                else
+                {
+                    currentGroup = null;
+                }
+
+                currentIndex++;
+            }
+            else
+            {
+                if (currentGroup != null)
+                {
+                    currentGroup.GroupCount++;
                 }
             }
-
-            return (items, currentIndex, totalItems);
         }
+
+        return (items, currentIndex, totalItems);
     }
 
     private static bool MatchApplications(OtlpApplication application, List<OtlpApplication> applications)
