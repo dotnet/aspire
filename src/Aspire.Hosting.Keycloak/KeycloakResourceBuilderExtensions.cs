@@ -28,7 +28,7 @@ public static class KeycloakResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// The container exposes port 8080 by default.
-    /// This version of the package defaults to the <inheritdoc cref="KeycloakContainerImageTags.Tag"/> tag of the <inheritdoc cref="KeycloakContainerImageTags.Registry"/>/<inheritdoc cref="KeycloakContainerImageTags.Image"/> container image.
+    /// This version of the package defaults to the <inheritdoc cref="KeycloakContainerImageTags.Tag" path="/summary"/> tag of the <inheritdoc cref="KeycloakContainerImageTags.Registry" path="/summary"/>/<inheritdoc cref="KeycloakContainerImageTags.Image" path="/summary"/> container image.
     /// </remarks>
     /// <example>
     /// Use in application host

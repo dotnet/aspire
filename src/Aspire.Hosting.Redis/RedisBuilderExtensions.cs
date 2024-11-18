@@ -34,7 +34,7 @@ public static class RedisBuilderExtensions
     /// extension method then the dependent resource will wait until the Redis resource is able to service
     /// requests.
     /// </para>
-    /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.Tag"/> tag of the <inheritdoc cref="RedisContainerImageTags.Image"/> container image.
+    /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.Tag" path="/summary"/> tag of the <inheritdoc cref="RedisContainerImageTags.Image" path="/summary"/> container image.
     /// </remarks>
     public static IResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, [ResourceName] string name, int? port = null)
     {

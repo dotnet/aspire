@@ -35,7 +35,7 @@ public static class PostgresBuilderExtensions
     /// extension method then the dependent resource will wait until the Postgres resource is able to service
     /// requests.
     /// </para>
-    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.Tag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.Image"/> container image.
+    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.Tag" path="/summary"/> tag of the <inheritdoc cref="PostgresContainerImageTags.Image" path="/summary"/> container image.
     /// </remarks>
     public static IResourceBuilder<PostgresServerResource> AddPostgres(this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
@@ -125,7 +125,7 @@ public static class PostgresBuilderExtensions
     /// Adds a pgAdmin 4 administration and development platform for PostgreSQL to the application model.
     /// </summary>
     /// <remarks>
-    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgAdminTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgAdminImage"/> container image.
+    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgAdminTag" path="/summary"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgAdminImage" path="/summary"/> container image.
     /// </remarks>
     /// <param name="builder">The PostgreSQL server resource builder.</param>
     /// <param name="configureContainer">Callback to configure PgAdmin container resource.</param>
@@ -244,7 +244,7 @@ public static class PostgresBuilderExtensions
     /// Adds an administration and development platform for PostgreSQL to the application model using pgweb.
     /// </summary>
     /// <remarks>
-    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgWebTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgWebImage"/> container image.
+    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgWebTag" path="/summary"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgWebImage" path="/summary"/> container image.
     /// </remarks>
     /// <param name="builder">The Postgres server resource builder.</param>
     /// <param name="configureContainer">Configuration callback for pgweb container resource.</param>
@@ -336,7 +336,7 @@ public static class PostgresBuilderExtensions
         context.EnvironmentVariables.Add("PGADMIN_DEFAULT_PASSWORD", "admin");
 
         // When running in the context of Codespaces we need to set some additional environment
-        // varialbes so that PGAdmin will trust the forwarded headers that Codespaces port
+        // variables so that PGAdmin will trust the forwarded headers that Codespaces port
         // forwarding will send.
         var config = context.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
         if (context.ExecutionContext.IsRunMode && config.GetValue<bool>("CODESPACES", false))

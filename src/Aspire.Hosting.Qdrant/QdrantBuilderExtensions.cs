@@ -27,7 +27,7 @@ public static class QdrantBuilderExtensions
     /// </summary>
     /// <remarks>
     /// The .NET client library uses the gRPC port by default to communicate and this resource exposes that endpoint.
-    /// This version of the package defaults to the <inheritdoc cref="QdrantContainerImageTags.Tag"/> tag of the <inheritdoc cref="QdrantContainerImageTags.Image"/> container image.
+    /// This version of the package defaults to the <inheritdoc cref="QdrantContainerImageTags.Tag" path="/summary"/> tag of the <inheritdoc cref="QdrantContainerImageTags.Image" path="/summary"/> container image.
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency</param>
@@ -125,7 +125,7 @@ public static class QdrantBuilderExtensions
     /// </summary>
     /// <param name="builder">An <see cref="IResourceBuilder{T}"/> for <see cref="ProjectResource"/></param>
     /// <param name="qdrantResource">The Qdrant server resource</param>
-    /// <returns></returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<QdrantServerResource> qdrantResource)
          where TDestination : IResourceWithEnvironment
     {

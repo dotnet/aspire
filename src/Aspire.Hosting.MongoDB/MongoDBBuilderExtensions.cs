@@ -25,7 +25,7 @@ public static class MongoDBBuilderExtensions
     /// Adds a MongoDB resource to the application model. A container is used for local development.
     /// </summary>
     /// <remarks>
-    /// This version of the package defaults to the <inheritdoc cref="MongoDBContainerImageTags.Tag"/> tag of the <inheritdoc cref="MongoDBContainerImageTags.Image"/> container image.
+    /// This version of the package defaults to the <inheritdoc cref="MongoDBContainerImageTags.Tag" path="/summary"/> tag of the <inheritdoc cref="MongoDBContainerImageTags.Image" path="/summary"/> container image.
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -39,6 +39,9 @@ public static class MongoDBBuilderExtensions
     /// <summary>
     /// <inheritdoc cref="AddMongoDB(IDistributedApplicationBuilder, string, int?)"/>
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="MongoDBContainerImageTags.Tag" path="/summary"/> tag of the <inheritdoc cref="MongoDBContainerImageTags.Image" path="/summary"/> container image.
+    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port for MongoDB.</param>
@@ -127,7 +130,7 @@ public static class MongoDBBuilderExtensions
     /// Adds a MongoExpress administration and development platform for MongoDB to the application model.
     /// </summary>
     /// <remarks>
-    /// This version of the package defaults to the <inheritdoc cref="MongoDBContainerImageTags.MongoExpressTag"/> tag of the <inheritdoc cref="MongoDBContainerImageTags.MongoExpressImage"/> container image.
+    /// This version of the package defaults to the <inheritdoc cref="MongoDBContainerImageTags.MongoExpressTag" path="/summary"/> tag of the <inheritdoc cref="MongoDBContainerImageTags.MongoExpressImage" path="/summary"/> container image.
     /// </remarks>
     /// <param name="builder">The MongoDB server resource builder.</param>
     /// <param name="configureContainer">Configuration callback for Mongo Express container resource.</param>

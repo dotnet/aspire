@@ -24,7 +24,7 @@ public static class KafkaBuilderExtensions
     /// Adds a Kafka resource to the application. A container is used for local development.
     /// </summary>
     /// <remarks>
-    /// This version of the package defaults to the <inheritdoc cref="KafkaContainerImageTags.Tag"/> tag of the <inheritdoc cref="KafkaContainerImageTags.Image"/> container image.
+    /// This version of the package defaults to the <inheritdoc cref="KafkaContainerImageTags.Tag" path="/summary"/> tag of the <inheritdoc cref="KafkaContainerImageTags.Image" path="/summary"/> container image.
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency</param>
@@ -83,7 +83,7 @@ public static class KafkaBuilderExtensions
     /// Adds a Kafka UI container to the application.
     /// </summary>
     /// <remarks>
-    /// This version of the package defaults to the <inheritdoc cref="KafkaContainerImageTags.KafkaUiTag"/> tag of the <inheritdoc cref="KafkaContainerImageTags.KafkaUiImage"/> container image.
+    /// This version of the package defaults to the <inheritdoc cref="KafkaContainerImageTags.KafkaUiTag" path="/summary"/> tag of the <inheritdoc cref="KafkaContainerImageTags.KafkaUiImage" path="/summary"/> container image.
     /// </remarks>
     /// <param name="builder">The Kafka server resource builder.</param>
     /// <param name="configureContainer">Configuration callback for KafkaUI container resource.</param>
@@ -228,7 +228,6 @@ public static class KafkaBuilderExtensions
     /// <summary>
     /// Only need to call this if we want to persistent kafka data
     /// </summary>
-    /// <param name="context"></param>
     private static void ConfigureLogDirs(EnvironmentCallbackContext context)
     {
         context.EnvironmentVariables["KAFKA_LOG_DIRS"] = Target;

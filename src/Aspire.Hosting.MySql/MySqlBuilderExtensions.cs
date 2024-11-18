@@ -19,7 +19,7 @@ public static class MySqlBuilderExtensions
     /// Adds a MySQL server resource to the application model. For local development a container is used.
     /// </summary>
     /// <remarks>
-    /// This version of the package defaults to the <inheritdoc cref="MySqlContainerImageTags.Tag"/> tag of the <inheritdoc cref="MySqlContainerImageTags.Image"/> container image.
+    /// This version of the package defaults to the <inheritdoc cref="MySqlContainerImageTags.Tag" path="/summary"/> tag of the <inheritdoc cref="MySqlContainerImageTags.Image" path="/summary"/> container image.
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -85,7 +85,7 @@ public static class MySqlBuilderExtensions
     /// Adds a phpMyAdmin administration and development platform for MySql to the application model.
     /// </summary>
     /// <remarks>
-    /// This version of the package defaults to the <inheritdoc cref="MySqlContainerImageTags.PhpMyAdminTag"/> tag of the <inheritdoc cref="MySqlContainerImageTags.PhpMyAdminImage"/> container image.
+    /// This version of the package defaults to the <inheritdoc cref="MySqlContainerImageTags.PhpMyAdminTag" path="/summary"/> tag of the <inheritdoc cref="MySqlContainerImageTags.PhpMyAdminImage" path="/summary"/> container image.
     /// </remarks>
     /// <param name="builder">The MySql server resource builder.</param>
     /// <param name="configureContainer">Callback to configure PhpMyAdmin container resource.</param>
