@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Components.Common.Tests;
 using Confluent.Kafka;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +27,7 @@ public class OtelTracesTests
     }
 
     [Theory]
+    [RequiresDocker]
     [InlineData(true)]
     [InlineData(false)]
     public async Task EnsureTracesAreProducedAsync(bool useKeyed)

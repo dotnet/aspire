@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.Common.Tests;
 using Confluent.Kafka;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +25,7 @@ public class OtelMetricsTests
     }
 
     [Theory]
+    [RequiresDocker]
     [InlineData(true)]
     [InlineData(false)]
     public async Task EnsureMetricsAreProducedAsync(bool useKeyed)
@@ -108,7 +110,7 @@ public class OtelMetricsTests
         host.Services.GetRequiredService<MeterProvider>().EnsureMetricsAreFlushed();
 
         await host.StopAsync();
-      
+
         groups = metrics.Where(x => x.MeterName == "OpenTelemetry.Instrumentation.ConfluentKafka")
             .GroupBy(x => x.Name).ToArray();
 
