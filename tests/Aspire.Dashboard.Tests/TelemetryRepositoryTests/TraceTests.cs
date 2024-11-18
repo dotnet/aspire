@@ -85,10 +85,10 @@ public class TraceTests
         Assert.Collection(traces.PagedResult.Items,
             trace =>
             {
-                AssertId("1", trace.TraceId);
-                AssertId("1-1", trace.FirstSpan.SpanId);
-                AssertId("1-1", trace.RootSpan!.SpanId);
-                Assert.Equal(2, trace.Spans.Count);
+                AssertId("1", trace.Item.TraceId);
+                AssertId("1-1", trace.Item.FirstSpan.SpanId);
+                AssertId("1-1", trace.Item.RootSpan!.SpanId);
+                Assert.Equal(2, trace.Item.Spans.Count);
             });
     }
 
@@ -199,7 +199,7 @@ public class TraceTests
         Assert.Collection(traces.PagedResult.Items,
             trace =>
             {
-                Assert.Equal(2, trace.Spans.Count);
+                Assert.Equal(2, trace.Item.Spans.Count);
             });
     }
 
@@ -254,7 +254,7 @@ public class TraceTests
         Assert.Collection(traces.PagedResult.Items,
             trace =>
             {
-                Assert.Equal(2, trace.Spans.Count);
+                Assert.Equal(2, trace.Item.Spans.Count);
             });
     }
 
@@ -325,12 +325,12 @@ public class TraceTests
         Assert.Collection(traces.PagedResult.Items,
             trace =>
             {
-                AssertId("1", trace.TraceId);
-                AssertId("1-1", trace.FirstSpan.SpanId);
-                AssertId("1-1", trace.RootSpan!.SpanId);
-                Assert.Equal(2, trace.Spans.Count);
+                AssertId("1", trace.Item.TraceId);
+                AssertId("1-1", trace.Item.FirstSpan.SpanId);
+                AssertId("1-1", trace.Item.RootSpan!.SpanId);
+                Assert.Equal(2, trace.Item.Spans.Count);
 
-                Assert.Collection(trace.Spans,
+                Assert.Collection(trace.Item.Spans,
                     span => Assert.Equal("scope1", span.Scope.ScopeName),
                     span => Assert.Equal("scope2", span.Scope.ScopeName));
             });
@@ -402,15 +402,15 @@ public class TraceTests
         Assert.Collection(traces1.PagedResult.Items,
             trace =>
             {
-                AssertId("2", trace.TraceId);
-                AssertId("2-1", trace.FirstSpan.SpanId);
-                AssertId("2-1", trace.RootSpan!.SpanId);
+                AssertId("2", trace.Item.TraceId);
+                AssertId("2-1", trace.Item.FirstSpan.SpanId);
+                AssertId("2-1", trace.Item.RootSpan!.SpanId);
             },
             trace =>
             {
-                AssertId("1", trace.TraceId);
-                AssertId("1-2", trace.FirstSpan.SpanId);
-                Assert.Null(trace.RootSpan);
+                AssertId("1", trace.Item.TraceId);
+                AssertId("1-2", trace.Item.FirstSpan.SpanId);
+                Assert.Null(trace.Item.RootSpan);
             });
 
         var addContext3 = new AddContext();
@@ -444,17 +444,17 @@ public class TraceTests
         Assert.Collection(traces2.PagedResult.Items,
             trace =>
             {
-                AssertId("1", trace.TraceId);
-                AssertId("1-1", trace.FirstSpan.SpanId);
-                Assert.Equal("", trace.FirstSpan.Scope.ScopeName);
-                AssertId("1-1", trace.RootSpan!.SpanId);
+                AssertId("1", trace.Item.TraceId);
+                AssertId("1-1", trace.Item.FirstSpan.SpanId);
+                Assert.Equal("", trace.Item.FirstSpan.Scope.ScopeName);
+                AssertId("1-1", trace.Item.RootSpan!.SpanId);
             },
             trace =>
             {
-                AssertId("2", trace.TraceId);
-                AssertId("2-1", trace.FirstSpan.SpanId);
-                Assert.Equal("", trace.FirstSpan.Scope.ScopeName);
-                AssertId("2-1", trace.RootSpan!.SpanId);
+                AssertId("2", trace.Item.TraceId);
+                AssertId("2-1", trace.Item.FirstSpan.SpanId);
+                Assert.Equal("", trace.Item.FirstSpan.Scope.ScopeName);
+                AssertId("2-1", trace.Item.RootSpan!.SpanId);
             });
     }
 
@@ -499,10 +499,10 @@ public class TraceTests
         Assert.Collection(traces.PagedResult.Items,
             trace =>
             {
-                AssertId("1", trace.TraceId);
-                AssertId("1-1", trace.FirstSpan.SpanId);
-                AssertId("1-1", trace.RootSpan!.SpanId);
-                Assert.Collection(trace.Spans,
+                AssertId("1", trace.Item.TraceId);
+                AssertId("1-1", trace.Item.FirstSpan.SpanId);
+                AssertId("1-1", trace.Item.RootSpan!.SpanId);
+                Assert.Collection(trace.Item.Spans,
                     s => AssertId("1-1", s.SpanId),
                     s => AssertId("1-2", s.SpanId),
                     s => AssertId("1-3", s.SpanId),
@@ -568,9 +568,9 @@ public class TraceTests
         Assert.Collection(traces.PagedResult.Items,
             trace =>
             {
-                AssertId("1", trace.TraceId);
-                AssertId("1-1", trace.FirstSpan.SpanId);
-                Assert.Collection(trace.FirstSpan.Events,
+                AssertId("1", trace.Item.TraceId);
+                AssertId("1-1", trace.Item.FirstSpan.SpanId);
+                Assert.Collection(trace.Item.FirstSpan.Events,
                     e =>
                     {
                         Assert.Equal("Event 1", e.Name);
@@ -645,9 +645,9 @@ public class TraceTests
         Assert.Collection(traces.PagedResult.Items,
             trace =>
             {
-                AssertId("1", trace.TraceId);
-                AssertId("1-1", trace.FirstSpan.SpanId);
-                Assert.Collection(trace.FirstSpan.Links,
+                AssertId("1", trace.Item.TraceId);
+                AssertId("1-1", trace.Item.FirstSpan.SpanId);
+                Assert.Collection(trace.Item.FirstSpan.Links,
                     l =>
                     {
                         AssertId("1", l.TraceId);
@@ -735,9 +735,9 @@ public class TraceTests
         Assert.Collection(traces1.PagedResult.Items,
             trace =>
             {
-                AssertId("1", trace.TraceId);
-                AssertId("1-1", trace.FirstSpan.SpanId);
-                AssertId("1-1", trace.RootSpan!.SpanId);
+                AssertId("1", trace.Item.TraceId);
+                AssertId("1-1", trace.Item.FirstSpan.SpanId);
+                AssertId("1-1", trace.Item.RootSpan!.SpanId);
             });
 
         var traces2 = repository.GetTraces(new GetTracesRequest
@@ -749,7 +749,7 @@ public class TraceTests
             Filters = []
         });
         Assert.NotSame(traces1.PagedResult.Items[0], traces2.PagedResult.Items[0]);
-        Assert.NotSame(traces1.PagedResult.Items[0].Spans[0].Trace, traces2.PagedResult.Items[0].Spans[0].Trace);
+        Assert.NotSame(traces1.PagedResult.Items[0].Item.Spans[0].Trace, traces2.PagedResult.Items[0].Item.Spans[0].Trace);
 
         var trace1 = repository.GetTrace(GetHexId("1"))!;
         var trace2 = repository.GetTrace(GetHexId("1"))!;
@@ -819,9 +819,9 @@ public class TraceTests
 
         var trace = Assert.Single(traces.PagedResult.Items);
 
-        AssertId("1", trace.TraceId);
-        AssertId("1-1", trace.FirstSpan.SpanId);
-        Assert.Collection(trace.FirstSpan.Attributes,
+        AssertId("1", trace.Item.TraceId);
+        AssertId("1-1", trace.Item.FirstSpan.SpanId);
+        Assert.Collection(trace.Item.FirstSpan.Attributes,
             p =>
             {
                 Assert.Equal("Key0", p.Key);
@@ -848,8 +848,8 @@ public class TraceTests
                 Assert.Equal("0123456789012345", p.Value);
             });
 
-        Assert.Equal(5, trace.FirstSpan.Events.Count);
-        Assert.Equal(5, trace.FirstSpan.Events[0].Attributes.Length);
+        Assert.Equal(5, trace.Item.FirstSpan.Events.Count);
+        Assert.Equal(5, trace.Item.FirstSpan.Events[0].Attributes.Length);
     }
 
     [Fact]
@@ -872,7 +872,7 @@ public class TraceTests
         // Assert
         var trace = Assert.Single(traces.PagedResult.Items);
 
-        Assert.Collection(trace.Spans,
+        Assert.Collection(trace.Item.Spans,
             s =>
             {
                 var link = Assert.Single(s.Links);
@@ -942,14 +942,14 @@ public class TraceTests
         });
 
         // Most recent traces are returned.
-        var first = GetStringId(traces.PagedResult.Items.First().TraceId);
-        var last = GetStringId(traces.PagedResult.Items.Last().TraceId);
+        var first = GetStringId(traces.PagedResult.Items.First().Item.TraceId);
+        var last = GetStringId(traces.PagedResult.Items.Last().Item.TraceId);
         Assert.Equal("1988", first);
         Assert.Equal("2000", last);
 
         // Traces returned are ordered by start time.
-        var actualOrder = traces.PagedResult.Items.Select(t => t.TraceId).ToList();
-        var expectedOrder = traces.PagedResult.Items.OrderBy(t => t.FirstSpan.StartTime).Select(t => t.TraceId).ToList();
+        var actualOrder = traces.PagedResult.Items.Select(t => t.Item.TraceId).ToList();
+        var expectedOrder = traces.PagedResult.Items.OrderBy(t => t.Item.FirstSpan.StartTime).Select(t => t.Item.TraceId).ToList();
         Assert.Equal(expectedOrder, actualOrder);
 
         Assert.Equal(MaxTraceCount * 2, repository.SpanLinks.Count);
@@ -1050,10 +1050,10 @@ public class TraceTests
         Assert.Collection(traces.PagedResult.Items,
             trace =>
             {
-                AssertId("1", trace.TraceId);
-                AssertId("1-2", trace.FirstSpan.SpanId); // First by time
-                AssertId("1-3", trace.RootSpan!.SpanId); // First by time and without a parent
-                Assert.Equal(3, trace.Spans.Count);
+                AssertId("1", trace.Item.TraceId);
+                AssertId("1-2", trace.Item.FirstSpan.SpanId); // First by time
+                AssertId("1-3", trace.Item.RootSpan!.SpanId); // First by time and without a parent
+                Assert.Equal(3, trace.Item.Spans.Count);
             });
     }
 
@@ -1120,11 +1120,11 @@ public class TraceTests
         Assert.Collection(traces.PagedResult.Items,
             trace =>
             {
-                AssertId("1", trace.TraceId);
+                AssertId("1", trace.Item.TraceId);
             },
             trace =>
             {
-                AssertId("2", trace.TraceId);
+                AssertId("2", trace.Item.TraceId);
             });
 
         var propertyKeys = repository.GetTracePropertyKeys(appKey)!;
@@ -1188,7 +1188,7 @@ public class TraceTests
         Assert.Collection(traces.PagedResult.Items,
             trace =>
             {
-                AssertId("1", trace.TraceId);
+                AssertId("1", trace.Item.TraceId);
             });
 
         // Act 2
@@ -1207,7 +1207,7 @@ public class TraceTests
         Assert.Collection(traces.PagedResult.Items,
             trace =>
             {
-                AssertId("1", trace.TraceId);
+                AssertId("1", trace.Item.TraceId);
             });
 
         // Act 3
@@ -1293,7 +1293,7 @@ public class TraceTests
         Assert.Collection(traces.PagedResult.Items,
             trace =>
             {
-                AssertId("1", trace.TraceId);
+                AssertId("1", trace.Item.TraceId);
             });
     }
 
@@ -1335,7 +1335,7 @@ public class TraceTests
 
         // Assert 1
         var trace = Assert.Single(repository.GetTraces(request).PagedResult.Items);
-        Assert.Equal("TestService: Test span. Id: 1-3", trace.FullName);
+        Assert.Equal("TestService: Test span. Id: 1-3", trace.Item.FullName);
 
         // Act 2
         repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
@@ -1360,7 +1360,7 @@ public class TraceTests
 
         // Assert 2
         trace = Assert.Single(repository.GetTraces(request).PagedResult.Items);
-        Assert.Equal("TestService: Test span. Id: 1-2", trace.FullName);
+        Assert.Equal("TestService: Test span. Id: 1-2", trace.Item.FullName);
 
         // Act 3
         repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
@@ -1385,7 +1385,7 @@ public class TraceTests
 
         // Assert 3
         trace = Assert.Single(repository.GetTraces(request).PagedResult.Items);
-        Assert.Equal("TestService: Test span. Id: 1-1", trace.FullName);
+        Assert.Equal("TestService: Test span. Id: 1-1", trace.Item.FullName);
 
         // Act 4
         repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
@@ -1410,7 +1410,7 @@ public class TraceTests
 
         // Assert 4
         trace = Assert.Single(repository.GetTraces(request).PagedResult.Items);
-        Assert.Equal("TestService: Test span. Id: 1-1", trace.FullName);
+        Assert.Equal("TestService: Test span. Id: 1-1", trace.Item.FullName);
     }
 
     [Fact]
@@ -1515,7 +1515,7 @@ public class TraceTests
         });
         var trace = Assert.Single(traces.PagedResult.Items);
 
-        Assert.Collection(trace.Spans,
+        Assert.Collection(trace.Item.Spans,
             s =>
             {
                 AssertId("1-1", s.SpanId);

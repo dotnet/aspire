@@ -709,7 +709,7 @@ fluent-data-grid-cell.no-ellipsis {
     margin-left: 8px;
 }
 
-.main-grid fluent-data-grid-row[row-type='default'] fluent-data-grid-cell.expand-col {
+.main-grid fluent-data-grid-row[row-type='default'] fluent-data-grid-cell.expand-col:not(.grid-cell-placeholder) {
     padding-left: 0;
     border-left: 0;
 }

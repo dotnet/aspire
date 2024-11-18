@@ -37,8 +37,9 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     private bool _applicationChanged;
     private string _filter = string.Empty;
     private AspirePageContentLayout? _contentLayout;
-    private FluentDataGrid<OtlpTrace> _dataGrid = null!;
+    private FluentDataGrid<ItemResult<OtlpTrace>> _dataGrid = null!;
     private GridColumnManager _manager = null!;
+    private readonly List<string> _expandedGroups = [];
 
     public string SessionStorageKey => BrowserStorageKeys.TracesPageState;
     public string BasePath => DashboardUrls.TracesBasePath;
@@ -107,10 +108,12 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         return tooltip;
     }
 
-    private async ValueTask<GridItemsProviderResult<OtlpTrace>> GetData(GridItemsProviderRequest<OtlpTrace> request)
+    private async ValueTask<GridItemsProviderResult<ItemResult<OtlpTrace>>> GetData(GridItemsProviderRequest<ItemResult<OtlpTrace>> request)
     {
         TracesViewModel.StartIndex = request.StartIndex;
         TracesViewModel.Count = request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount;
+        TracesViewModel.ExpandedGroups = _expandedGroups;
+
         var traces = TracesViewModel.GetTraces();
 
         if (DashboardOptions.Value.TelemetryLimits.MaxTraceCount == traces.TotalItemCount && !TelemetryRepository.HasDisplayedMaxTraceLimitMessage)
@@ -130,7 +133,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         // The workaround is to put the count inside a control and explicitly update and refresh the control.
         _totalItemsFooter.SetTotalItemCount(traces.TotalItemCount);
 
-        return GridItemsProviderResult.From(traces.Items, traces.TotalItemCount);
+        return GridItemsProviderResult.From(traces.Items, traces.GroupedItemCount);
     }
 
     protected override Task OnInitializedAsync()
@@ -323,6 +326,24 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         }
 
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
+    }
+
+    private async Task OnToggleCollapse(ItemResult<OtlpTrace> viewModel)
+    {
+        // View model data is recreated if data updates.
+        // Persist the collapsed state in a separate list.
+        if (viewModel.Expanded)
+        {
+            viewModel.Expanded = false;
+            _expandedGroups.Remove(viewModel.Item.TraceId);
+        }
+        else
+        {
+            viewModel.Expanded = true;
+            _expandedGroups.Add(viewModel.Item.TraceId);
+        }
+
+        await _dataGrid.SafeRefreshDataAsync();
     }
 
     public class TracesPageViewModel

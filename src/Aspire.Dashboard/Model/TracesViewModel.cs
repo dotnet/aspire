@@ -12,7 +12,7 @@ public class TracesViewModel
     private readonly TelemetryRepository _telemetryRepository;
     private readonly List<TelemetryFilter> _filters = new();
 
-    private PagedResult<OtlpTrace>? _traces;
+    private PagedResult<ItemResult<OtlpTrace>>? _traces;
     private ApplicationKey? _applicationKey;
     private string _filterText = string.Empty;
     private int _startIndex;
@@ -21,6 +21,7 @@ public class TracesViewModel
     public TracesViewModel(TelemetryRepository telemetryRepository)
     {
         _telemetryRepository = telemetryRepository;
+        ExpandedGroups = [];
     }
 
     public ApplicationKey? ApplicationKey { get => _applicationKey; set => SetValue(ref _applicationKey, value); }
@@ -29,6 +30,7 @@ public class TracesViewModel
     public int Count { get => _count; set => SetValue(ref _count, value); }
     public TimeSpan MaxDuration { get; private set; }
     public IReadOnlyList<TelemetryFilter> Filters => _filters;
+    public List<string> ExpandedGroups { get; internal set; }
 
     public void ClearFilters()
     {
@@ -72,7 +74,7 @@ public class TracesViewModel
         _traces = null;
     }
 
-    public PagedResult<OtlpTrace> GetTraces()
+    public PagedResult<ItemResult<OtlpTrace>> GetTraces()
     {
         var traces = _traces;
         if (traces == null)
@@ -85,7 +87,9 @@ public class TracesViewModel
                 FilterText = FilterText,
                 StartIndex = StartIndex,
                 Count = Count,
-                Filters = filters
+                Filters = filters,
+                Group = true,
+                ExpandedTraces = ExpandedGroups
             });
 
             traces = result.PagedResult;

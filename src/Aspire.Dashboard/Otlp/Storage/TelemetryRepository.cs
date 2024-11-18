@@ -579,7 +579,7 @@ public sealed class TelemetryRepository
             {
                 return new GetTracesResponse
                 {
-                    PagedResult = PagedResult<OtlpTrace>.Empty,
+                    PagedResult = PagedResult<ItemResult<OtlpTrace>>.Empty,
                     MaxDuration = TimeSpan.Zero
                 };
             }
@@ -637,9 +637,59 @@ public sealed class TelemetryRepository
             }
 
             // Traces can be modified as new spans are added. Copy traces before returning results to avoid concurrency issues.
-            var copyFunc = static (OtlpTrace t) => OtlpTrace.Clone(t);
+            var copyFunc = static (OtlpTrace t) => new ItemResult<OtlpTrace> { Item = OtlpTrace.Clone(t), Expanded = false, GroupCount = 1, HasParent = false };
 
-            var pagedResults = OtlpHelpers.GetItems(results, context.StartIndex, context.Count, copyFunc);
+            PagedResult<ItemResult<OtlpTrace>> pagedResults;
+
+            if (context.Group)
+            {
+                var (items, groupedItemCount, totalItemCount) = GetGroupedResults(
+                    results,
+                    context.StartIndex,
+                    context.Count,
+                    matchPrevious: (previous, current) =>
+                    {
+                        if (previous.Spans.Count != current.Spans.Count)
+                        {
+                            return false;
+                        }
+
+                        for (var i = 0; i < previous.Spans.Count; i++)
+                        {
+                            if (previous.Spans[i].Source.ApplicationKey != current.Spans[i].Source.ApplicationKey)
+                            {
+                                return false;
+                            }
+                            if (previous.Spans[i].Kind != current.Spans[i].Kind)
+                            {
+                                return false;
+                            }
+                            if (previous.Spans[i].Status != current.Spans[i].Status)
+                            {
+                                return false;
+                            }
+                            if (previous.Spans[i].Name != current.Spans[i].Name)
+                            {
+                                return false;
+                            }
+                        }
+
+                        return true;
+                    },
+                    expanded: log => context.ExpandedTraces?.Contains(log.TraceId) ?? false);
+
+                pagedResults = new PagedResult<ItemResult<OtlpTrace>>
+                {
+                    Items = items,
+                    GroupedItemCount = groupedItemCount,
+                    TotalItemCount = totalItemCount
+                };
+            }
+            else
+            {
+                pagedResults = OtlpHelpers.GetItems(results, context.StartIndex, context.Count, copyFunc);
+            }
+
             var maxDuration = pagedResults.TotalItemCount > 0 ? results.Max(r => r.Duration) : default;
 
             return new GetTracesResponse
