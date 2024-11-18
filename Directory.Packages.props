@@ -23,7 +23,7 @@
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.23.0" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.21.0" />
     <PackageVersion Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="8.0.0" />
-    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.45.0" />
+    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.45.2" />
     <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.28.0" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.8.0" />
     <!-- Azure Management SDK for .NET dependencies -->
