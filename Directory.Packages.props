@@ -84,7 +84,7 @@
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="$(MicrosoftExtensionsConfigurationBinderPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(MicrosoftExtensionsHostingAbstractionsPackageVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="$(MicrosoftExtensionsHttpPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MicrosoftExtensionsLoggingAbstractionsPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="$(MicrosoftExtensionsOptionsPackageVersion)" />
@@ -125,7 +125,7 @@
     <PackageVersion Include="Qdrant.Client" Version="1.12.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="[6.8.1,7.0.0)" />
     <PackageVersion Include="StackExchange.Redis" Version="2.8.16" />
-    <PackageVersion Include="System.IO.Hashing" Version="8.0.0" />
+    <PackageVersion Include="System.IO.Hashing" Version="9.0.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.2.0" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.5" />
@@ -166,11 +166,11 @@
     <PackageVersion Include="Testcontainers" Version="$(TestcontainersPackageVersion)" />
     <!-- playground apps dependencies -->
     <PackageVersion Include="Dapr.AspNetCore" Version="1.14.0" />
-    <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="8.2.0" />
-    <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="8.2.0" />
-    <PackageVersion Include="Microsoft.Orleans.Client" Version="8.2.0" />
-    <PackageVersion Include="Microsoft.Orleans.Server" Version="8.2.0" />
-    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="8.2.0" />
+    <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Orleans.Client" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Orleans.Server" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="9.0.0" />
     <!-- playground apps dependencies for AzureFunctionsEndToEnd -->
     <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="2.0.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.0.0" />
