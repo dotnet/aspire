@@ -67,7 +67,7 @@
     <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>8.0.11</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
     <MicrosoftEntityFrameworkCoreToolsPackageVersion>8.0.11</MicrosoftEntityFrameworkCoreToolsPackageVersion>
     <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.0-preview.5.24272.3</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
-    <NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>8.0.10</NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>
+    <NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>8.0.11</NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>
     <!-- for templates -->
     <MicrosoftAspNetCorePackageVersionForNet9>9.0.0</MicrosoftAspNetCorePackageVersionForNet9>
     <!-- System dependencies -->
@@ -92,7 +92,7 @@
     <MicrosoftEntityFrameworkCoreDesignPackageVersion>9.0.0</MicrosoftEntityFrameworkCoreDesignPackageVersion>
     <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>9.0.0</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
     <MicrosoftEntityFrameworkCoreToolsPackageVersion>9.0.0</MicrosoftEntityFrameworkCoreToolsPackageVersion>
-    <NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>9.0.0-rc.2</NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>
+    <NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>9.0.0</NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>
     <!-- System dependencies -->
     <SystemFormatsAsn1PackageVersion>9.0.0</SystemFormatsAsn1PackageVersion>
     <SystemTextJsonPackageVersion>9.0.0</SystemTextJsonPackageVersion>
