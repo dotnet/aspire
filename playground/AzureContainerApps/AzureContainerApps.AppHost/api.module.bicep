@@ -1,6 +1,10 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
+param api_roles_outputs_id string
+
+param api_roles_outputs_clientid string
+
 param api_containerport string
 
 param storage_outputs_blobendpoint string
@@ -12,17 +16,15 @@ param outputs_azure_container_registry_managed_identity_id string
 @secure()
 param secretparam_value string
 
-param outputs_managed_identity_client_id string
-
 param outputs_azure_container_apps_environment_id string
 
 param outputs_azure_container_registry_endpoint string
 
 param api_containerimage string
 
-param certificateName string
+param certificatename_value string
 
-param customDomain string
+param customdomain_value string
 
 resource account_secretoutputs_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
   name: account_secretoutputs
@@ -56,9 +58,9 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
         transport: 'http'
         customDomains: [
           {
-            name: customDomain
-            bindingType: (certificateName != '') ? 'SniEnabled' : 'Disabled'
-            certificateId: (certificateName != '') ? '${outputs_azure_container_apps_environment_id}/managedCertificates/${certificateName}' : null
+            name: customdomain_value
+            bindingType: (certificatename_value != '') ? 'SniEnabled' : 'Disabled'
+            certificateId: (certificatename_value != '') ? '${outputs_azure_container_apps_environment_id}/managedCertificates/${certificatename_value}' : null
           }
         ]
       }
@@ -114,7 +116,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               name: 'AZURE_CLIENT_ID'
-              value: outputs_managed_identity_client_id
+              value: api_roles_outputs_clientid
             }
           ]
         }
@@ -127,6 +129,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
+      '${api_roles_outputs_id}': { }
       '${outputs_azure_container_registry_managed_identity_id}': { }
     }
   }

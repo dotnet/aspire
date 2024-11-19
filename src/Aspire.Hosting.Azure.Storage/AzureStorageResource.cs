@@ -2,6 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
+using Azure.Provisioning.Primitives;
+using Azure.Provisioning.Storage;
 
 namespace Aspire.Hosting.Azure;
 
@@ -82,5 +85,17 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
             target[$"{BlobsConnectionKeyPrefix}__{connectionName}__ServiceUri"] = BlobEndpoint;
             target[$"{QueuesConnectionKeyPrefix}__{connectionName}__ServiceUri"] = QueueEndpoint;
         }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="name"></param>
+    /// <returns></returns>
+    public override ProvisionableResource GetExistingResource(BicepValue<string> name)
+    {
+        var account = StorageAccount.FromExisting(Infrastructure.NormalizeBicepIdentifier(Name));
+        account.Name = name;
+        return account;
     }
 }

@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure;
 
@@ -24,6 +25,14 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
     /// functionality for building Azure resources.
     /// </summary>
     public ProvisioningBuildOptions? ProvisioningBuildOptions { get; set; }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="name"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    public virtual ProvisionableResource GetExistingResource(BicepValue<string> name) => throw new NotImplementedException();
 
     /// <inheritdoc/>
     public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
