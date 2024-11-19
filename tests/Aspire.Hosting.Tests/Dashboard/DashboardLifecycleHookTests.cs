@@ -4,7 +4,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Threading.Channels;
-using Aspire.Hosting.Codespaces;
+using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;

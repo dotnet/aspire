@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Codespaces;
+using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
