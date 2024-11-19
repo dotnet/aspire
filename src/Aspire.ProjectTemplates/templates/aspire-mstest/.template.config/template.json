@@ -9,7 +9,8 @@
     "Web API",
     "API",
     "Service",
-    "Test"
+    "Test",
+    "MSTest"
   ],
   "name": ".NET Aspire Test Project (MSTest)",
   "defaultName": "Tests",

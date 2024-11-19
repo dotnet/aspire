@@ -9,7 +9,8 @@
     "Web API",
     "API",
     "Service",
-    "Test"
+    "Test",
+    "xUnit"
   ],
   "name": ".NET Aspire Test Project (xUnit)",
   "defaultName": "Tests",
