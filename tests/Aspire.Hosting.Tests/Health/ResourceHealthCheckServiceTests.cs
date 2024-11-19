@@ -6,6 +6,7 @@ using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Time.Testing;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -129,12 +130,13 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        AutoResetEvent? are = null;
+        var are = new AutoResetEvent(false);
+        var timeProvider = new FakeTimeProvider(DateTimeOffset.Now);
 
+        builder.Services.AddSingleton<TimeProvider>(timeProvider);
         builder.Services.AddHealthChecks().AddCheck("resource_check", () =>
         {
-            are?.Set();
-
+            are.Set();
             return HealthCheckResult.Unhealthy();
         });
 
@@ -154,19 +156,12 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         }).DefaultTimeout();
         await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, abortTokenSource.Token).DefaultTimeout();
 
-        are = new AutoResetEvent(false);
+        // First health check run.
+        Assert.True(are.WaitOne(TestConstants.DefaultTimeoutTimeSpan));
 
-        // Allow one event to through since it could be half way through.
-        are.WaitOne();
-
-        var stopwatch = Stopwatch.StartNew();
-        are.WaitOne();
-        stopwatch.Stop();
-
-        // When not in a healthy state the delay should be ~3 seconds but
-        // we'll check for 10 seconds to make sure we haven't got down
-        // the 30 second slow path.
-        Assert.True(stopwatch.ElapsedMilliseconds < 10000);
+        // Second health check run - should run after 5 seconds.
+        timeProvider.Advance(TimeSpan.FromSeconds(5));
+        Assert.True(are.WaitOne(TestConstants.DefaultTimeoutTimeSpan));
 
         await app.StopAsync(abortTokenSource.Token).DefaultTimeout();
     }
