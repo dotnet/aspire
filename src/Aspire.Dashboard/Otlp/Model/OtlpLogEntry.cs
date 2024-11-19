@@ -52,7 +52,9 @@ public class OtlpLogEntry
         Flags = record.Flags;
         Severity = MapSeverity(record.SeverityNumber);
 
-        Message = OtlpHelpers.TruncateString(record.Body.GetString(), context.Options.MaxAttributeLength);
+        Message = record.Body is { } body
+            ? OtlpHelpers.TruncateString(body.GetString(), context.Options.MaxAttributeLength)
+            : string.Empty;
         OriginalFormat = originalFormat;
         SpanId = record.SpanId.ToHexString();
         TraceId = record.TraceId.ToHexString();
