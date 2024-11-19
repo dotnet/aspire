@@ -2,14 +2,21 @@
 @namespace Aspire.Dashboard.Components
 @inject IStringLocalizer<ControlsStrings> Loc
 
-<div class="total-items-footer">@((MarkupString)string.Format(Loc[nameof(ControlsStrings.TotalItemsFooterText)], _totalItemCount))</div>
+<div class="total-items-footer">@((MarkupString)string.Format(Loc[nameof(ControlsStrings.TotalItemsFooterText)], TotalItemCount))</div>
 
 @code {
-    private int _totalItemCount;
+    // Total item count can be set via the parameter or via method.
+    // This is required because the count is updated when the data grid data is refreshed.
+    // When the field bound to the parameter is set the changes don't flow into the control and it isn't re-rendered.
+    // The parameter is still present because this control could be added and removed from the page so it needs to
+    // get its previously state from the parameter.
 
-    public void SetTotalItemCount(int totalItemCount)
+    [Parameter]
+    public int TotalItemCount { get; set; }
+
+    public void UpdateDisplayedCount(int totalItemCount)
     {
-        _totalItemCount = totalItemCount;
+        TotalItemCount = totalItemCount;
         StateHasChanged();
     }
 }

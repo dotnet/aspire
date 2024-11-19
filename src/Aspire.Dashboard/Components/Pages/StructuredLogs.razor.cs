@@ -31,6 +31,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private SelectViewModel<ResourceTypeDetails> _allApplication = default!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
+    private int _totalItemsCount;
     private List<OtlpApplication> _applications = default!;
     private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
     private List<SelectViewModel<LogLevel?>> _logLevels = default!;
@@ -123,8 +124,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
 
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
-        // The workaround is to put the count inside a control and explicitly update and refresh the control.
-        _totalItemsFooter.SetTotalItemCount(logs.TotalItemCount);
+        // The workaround is to explicitly update and refresh the control.
+        _totalItemsCount = logs.TotalItemCount;
+        _totalItemsFooter.UpdateDisplayedCount(_totalItemsCount);
 
         TelemetryRepository.MarkViewedErrorLogs(ViewModel.ApplicationKey);
 
