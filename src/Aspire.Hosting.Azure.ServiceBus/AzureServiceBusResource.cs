@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Azure.Provisioning.ServiceBus;
+using Aspire.Hosting.Azure.ServiceBus.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
 

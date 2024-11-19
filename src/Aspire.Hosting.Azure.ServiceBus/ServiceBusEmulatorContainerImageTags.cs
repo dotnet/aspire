@@ -6,13 +6,13 @@ namespace Aspire.Hosting.Azure.ServiceBus;
 internal static class ServiceBusEmulatorContainerImageTags
 {
     /// <remarks>mcr.microsoft.com</remarks>
-    public const string Registry = "messagingemulators.azurecr.io";
+    public const string Registry = "mcr.microsoft.com";
 
-    /// <remarks>internal/azure-messaging/servicebus-emulator</remarks>
-    public const string Image = "internal/azure-messaging/servicebus-emulator";
+    /// <remarks>azure-messaging/servicebus-emulator</remarks>
+    public const string Image = "azure-messaging/servicebus-emulator";
 
-    /// <remarks>1.0.1-alpha</remarks>
-    public const string Tag = "1.0.1-alpha";
+    /// <remarks>1.0.1</remarks>
+    public const string Tag = "1.0.1";
 
     /// <remarks>mcr.microsoft.com</remarks>
     public const string AzureSqlEdgeRegistry = "mcr.microsoft.com";
