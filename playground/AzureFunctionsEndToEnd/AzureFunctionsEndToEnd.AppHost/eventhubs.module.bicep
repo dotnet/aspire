@@ -3,9 +3,9 @@ param location string = resourceGroup().location
 
 param sku string = 'Standard'
 
-param principalId string
-
 param principalType string
+
+param principalId string
 
 resource eventhubs 'Microsoft.EventHub/namespaces@2024-01-01' = {
   name: take('eventhubs-${uniqueString(resourceGroup().id)}', 256)

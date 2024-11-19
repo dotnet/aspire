@@ -151,9 +151,9 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
               "connectionString": "{postgres-data.secretOutputs.connectionString}",
               "path": "postgres-data.module.bicep",
               "params": {
-                "keyVaultName": "",
                 "administratorLogin": "{{{userName?.Resource.Name ?? "postgres-data-username"}}.value}",
-                "administratorLoginPassword": "{{{password?.Resource.Name ?? "postgres-data-password"}}.value}"
+                "administratorLoginPassword": "{{{password?.Resource.Name ?? "postgres-data-password"}}.value}",
+                "keyVaultName": ""
               }
             }
             """;

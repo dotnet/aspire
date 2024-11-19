@@ -35,7 +35,7 @@ public static class AzureRedisExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var kvNameParam = new ProvisioningParameter("keyVaultName", typeof(string));
+            var kvNameParam = new ProvisioningParameter(AzureBicepResource.KnownParameters.KeyVaultName, typeof(string));
             infrastructure.Add(kvNameParam);
 
             var keyVault = KeyVaultService.FromExisting("keyVault");
@@ -58,7 +58,6 @@ public static class AzureRedisExtensions
 
         var resource = new AzureRedisResource(builder.Resource, configureInfrastructure);
         var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource)
-                                     .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
                                      .WithManifestPublishingCallback(resource.WriteToManifest);
 
         if (useProvisioner)
@@ -122,8 +121,6 @@ public static class AzureRedisExtensions
 
         var resource = new AzureRedisCacheResource(name, ConfigureRedisInfrastructure);
         return builder.AddResource(resource)
-            .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-            .WithParameter(AzureBicepResource.KnownParameters.PrincipalName)
             .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
@@ -196,9 +193,7 @@ public static class AzureRedisExtensions
         var azureResource = builder.Resource;
         azureResource.ConnectionStringSecretOutput = new BicepSecretOutputReference("connectionString", azureResource);
 
-        return builder
-           .RemoveActiveDirectoryParameters()
-           .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName);
+        return builder;
     }
 
     private static CdkRedisResource CreateRedisResource(AzureResourceInfrastructure infrastructure)
@@ -220,14 +215,6 @@ public static class AzureRedisExtensions
         return redisCache;
     }
 
-    private static IResourceBuilder<AzureRedisCacheResource> RemoveActiveDirectoryParameters(
-        this IResourceBuilder<AzureRedisCacheResource> builder)
-    {
-        builder.Resource.Parameters.Remove(AzureBicepResource.KnownParameters.PrincipalId);
-        builder.Resource.Parameters.Remove(AzureBicepResource.KnownParameters.PrincipalName);
-        return builder;
-    }
-
     private static void ConfigureRedisInfrastructure(AzureResourceInfrastructure infrastructure)
     {
         var redis = CreateRedisResource(infrastructure);
@@ -235,7 +222,7 @@ public static class AzureRedisExtensions
         var redisResource = (AzureRedisCacheResource)infrastructure.AspireResource;
         if (redisResource.UseAccessKeyAuthentication)
         {
-            var kvNameParam = new ProvisioningParameter("keyVaultName", typeof(string));
+            var kvNameParam = new ProvisioningParameter(AzureBicepResource.KnownParameters.KeyVaultName, typeof(string));
             infrastructure.Add(kvNameParam);
 
             var keyVault = KeyVaultService.FromExisting("keyVault");
@@ -262,7 +249,10 @@ public static class AzureRedisExtensions
             redis.IsAccessKeyAuthenticationDisabled = true;
 
             var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalIdParameter);
             var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
+            infrastructure.Add(principalNameParameter);
+
             infrastructure.Add(new RedisCacheAccessPolicyAssignment($"{redis.BicepIdentifier}_contributor")
             {
                 Parent = redis,
