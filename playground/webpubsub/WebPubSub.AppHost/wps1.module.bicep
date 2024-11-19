@@ -5,11 +5,11 @@ param sku string = 'Free_F1'
 
 param capacity int = 1
 
-param ChatForAspire_url_0 string
+param principalType string
 
 param principalId string
 
-param principalType string
+param ChatForAspire_url_0 string
 
 resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
   name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
