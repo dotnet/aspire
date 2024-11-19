@@ -6,14 +6,18 @@
 
 @code {
     // Total item count can be set via the parameter or via method.
-    // This is required because the count is updated when the data grid data is refreshed.
-    // When the field bound to the parameter is set the changes don't flow into the control and it isn't re-rendered.
-    // The parameter is still present because this control could be added and removed from the page so it needs to
-    // get its previously state from the parameter.
+    // Required because the count is updated when the data grid data is refreshed.
 
+    /// <summary>
+    /// This parameter is required because this control could be added and removed from the page.
+    /// When the control is re-added to the page it gets the count back via the parameter.
+    /// </summary>
     [Parameter]
     public int TotalItemCount { get; set; }
 
+    /// <summary>
+    /// Called when data grid data is refreshed. This sets the count explicitly and forces the control to re-render.
+    /// </summary>
     public void UpdateDisplayedCount(int totalItemCount)
     {
         TotalItemCount = totalItemCount;
