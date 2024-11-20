@@ -5,12 +5,12 @@ namespace Aspire.Hosting.Azure.EventHubs;
 
 internal static class EventHubsEmulatorContainerImageTags
 {
-    /// <remarks>mcr.microsoft.com</remarks>
+    /// <summary>mcr.microsoft.com</summary>
     public const string Registry = "mcr.microsoft.com";
 
-    /// <remarks>azure-messaging/eventhubs-emulator</remarks>
+    /// <summary>azure-messaging/eventhubs-emulator</summary>
     public const string Image = "azure-messaging/eventhubs-emulator";
 
-    /// <remarks>latest</remarks>
+    /// <summary>latest</summary>
     public const string Tag = "latest"; // latest is the only arch-agnostic tag
 }

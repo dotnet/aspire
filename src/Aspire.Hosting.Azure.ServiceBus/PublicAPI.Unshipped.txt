@@ -61,7 +61,7 @@ Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.WriteJsonObjectProperties(System
 Aspire.Hosting.Azure.ServiceBus.ServiceBusRule
 Aspire.Hosting.Azure.ServiceBus.ServiceBusRule.CorrelationFilter.get -> Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter!
 Aspire.Hosting.Azure.ServiceBus.ServiceBusRule.CorrelationFilter.set -> void
-Aspire.Hosting.Azure.ServiceBus.ServiceBusRule.FilterType.get -> Aspire.Hosting.Azure.ServiceBus.ServiceBusFilterType?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusRule.FilterType.get -> Aspire.Hosting.Azure.ServiceBus.ServiceBusFilterType
 Aspire.Hosting.Azure.ServiceBus.ServiceBusRule.FilterType.set -> void
 Aspire.Hosting.Azure.ServiceBus.ServiceBusRule.Id.get -> string!
 Aspire.Hosting.Azure.ServiceBus.ServiceBusRule.Name.get -> string!
