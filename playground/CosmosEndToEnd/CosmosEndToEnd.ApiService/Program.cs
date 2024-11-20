@@ -20,7 +20,7 @@ app.MapDefaultEndpoints();
 app.MapGet("/", async (CosmosClient cosmosClient) =>
 {
     var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync("db")).Database;
-    var container = (await db.CreateContainerIfNotExistsAsync("entries", "/Id")).Container;
+    var container = (await db.CreateContainerIfNotExistsAsync("entries", "/id")).Container;
 
     // Add an entry to the database on each request.
     var newEntry = new Entry() { Id = Guid.NewGuid().ToString() };
