@@ -1,5 +1,3 @@
-//using Aspire.Hosting.Azure.ServiceBus.ApplicationModel;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 var serviceBus = builder.AddAzureServiceBus("sbemulator")
@@ -39,8 +37,7 @@ serviceBus
     //.AddRule("myTopic", "mySubscription", "myRule", rule =>
     //{
     //    rule.Name = "app-prop-filter-1";
-    //    rule.FilterType = ServiceBusFilterType.CorrelationFilter;
-    //    rule.CorrelationFilter = new ServiceBusCorrelationFilter
+    //    rule.CorrelationFilter = new()
     //    {
     //        ContentType = "application/text",
     //        CorrelationId = "id1",

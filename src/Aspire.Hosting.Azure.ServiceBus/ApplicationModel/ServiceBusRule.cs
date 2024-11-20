@@ -3,25 +3,27 @@
 
 using System.Text.Json;
 
-namespace Aspire.Hosting.Azure.ServiceBus.ApplicationModel;
+namespace Aspire.Hosting.Azure.ServiceBus;
 
 /// <summary>
 /// Represents a Service Bus Rule.
 /// </summary>
+/// <remarks>
+/// List of properties from the CDK that are not exposed here:
+/// - Action
+/// - SqlFilter
+/// 
+/// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(Aspire.Hosting.ApplicationModel.IResourceBuilder{T}, Action{Aspire.Hosting.Azure.AzureResourceInfrastructure})"/> to configure these specific properties.
+/// </remarks>
 public class ServiceBusRule
 {
-    private readonly OptionalValue<string> _name = new();
-    private readonly OptionalValue<ServiceBusFilterAction> _action = new();
-    private readonly OptionalValue<ServiceBusCorrelationFilter> _correlationFilter = new();
-    private readonly OptionalValue<ServiceBusFilterType> _filterType = new();
-    private readonly OptionalValue<ServiceBusSqlFilter> _sqlFilter = new();
-
     /// <summary>
     /// Initializes a new instance of the <see cref="ServiceBusRule"/> class.
     /// </summary>
-    public ServiceBusRule(string id)
+    public ServiceBusRule(string id, string name)
     {
         Id = id;
+        Name = name;
     }
 
     /// <summary>
@@ -32,48 +34,17 @@ public class ServiceBusRule
     /// <summary>
     /// The rule name.
     /// </summary>
-    public OptionalValue<string> Name
-    {
-        get { return _name; }
-        set { _name.Assign(value); }
-    }
+    public string Name { get; set; }
 
     /// <summary>
-    /// Represents the filter actions which are allowed for the transformation
-    /// of a message that have been matched by a filter expression.
+    /// Properties of correlation filter.
     /// </summary>
-    public OptionalValue<ServiceBusFilterAction> Action
-    {
-        get { return _action; }
-        set { _action.Assign(value); }
-    }
-
-    /// <summary>
-    /// Properties of correlationFilter.
-    /// </summary>
-    public OptionalValue<ServiceBusCorrelationFilter> CorrelationFilter
-    {
-        get { return _correlationFilter; }
-        set { _correlationFilter.Assign(value); }
-    }
+    public ServiceBusCorrelationFilter CorrelationFilter { get; set; } = new();
 
     /// <summary>
     /// Filter type that is evaluated against a BrokeredMessage.
     /// </summary>
-    public OptionalValue<ServiceBusFilterType> FilterType
-    {
-        get { return _filterType; }
-        set { _filterType.Assign(value); }
-    }
-
-    /// <summary>
-    /// Properties of sqlFilter.
-    /// </summary>
-    public OptionalValue<ServiceBusSqlFilter> SqlFilter
-    {
-        get { return _sqlFilter; }
-        set { _sqlFilter.Assign(value); }
-    }
+    public ServiceBusFilterType FilterType { get; set; } = ServiceBusFilterType.CorrelationFilter;
 
     /// <summary>
     /// Converts the current instance to a provisioning entity.
@@ -83,105 +54,63 @@ public class ServiceBusRule
     {
         var rule = new global::Azure.Provisioning.ServiceBus.ServiceBusRule(Id);
 
-        if (Name.IsSet && Name.Value != null)
+        if (Name != null)
         {
-            rule.Name = Name.Value;
+            rule.Name = Name;
         }
 
-        if (Action.IsSet && Action.Value != null)
-        {
-            rule.Action = new();
-
-            if (Action.Value.SqlExpression.IsSet && Action.Value.SqlExpression.Value != null)
-            {
-                rule.Action.SqlExpression = Action.Value.SqlExpression.Value;
-            }
-            if (Action.Value.CompatibilityLevel.IsSet)
-            {
-                rule.Action.CompatibilityLevel = Action.Value.CompatibilityLevel.Value;
-            }
-            if (Action.Value.RequiresPreprocessing.IsSet)
-            {
-                rule.Action.RequiresPreprocessing = Action.Value.RequiresPreprocessing.Value;
-            }
-        }
-
-        if (CorrelationFilter.IsSet && CorrelationFilter.Value != null)
+        if (CorrelationFilter != null)
         {
             rule.CorrelationFilter = new();
 
-            if (CorrelationFilter.Value.ApplicationProperties.IsSet && CorrelationFilter.Value.ApplicationProperties.Value != null)
+            foreach (var property in CorrelationFilter.Properties)
             {
-                foreach (var property in CorrelationFilter.Value.ApplicationProperties.Value)
-                {
-                    rule.CorrelationFilter.ApplicationProperties[property.Key] = property.Value;
-                }
+                rule.CorrelationFilter.ApplicationProperties[property.Key] = property.Value;
             }
-            if (CorrelationFilter.Value.CorrelationId.IsSet && CorrelationFilter.Value.CorrelationId.Value != null)
+            if (CorrelationFilter.CorrelationId != null)
             {
-                rule.CorrelationFilter.CorrelationId = CorrelationFilter.Value.CorrelationId.Value;
+                rule.CorrelationFilter.CorrelationId = CorrelationFilter.CorrelationId;
             }
-            if (CorrelationFilter.Value.MessageId.IsSet && CorrelationFilter.Value.MessageId.Value != null)
+            if (CorrelationFilter.MessageId != null)
             {
-                rule.CorrelationFilter.MessageId = CorrelationFilter.Value.MessageId.Value;
+                rule.CorrelationFilter.MessageId = CorrelationFilter.MessageId;
             }
-            if (CorrelationFilter.Value.SendTo.IsSet && CorrelationFilter.Value.SendTo.Value != null)
+            if (CorrelationFilter.SendTo != null)
             {
-                rule.CorrelationFilter.SendTo = CorrelationFilter.Value.SendTo.Value;
+                rule.CorrelationFilter.SendTo = CorrelationFilter.SendTo;
             }
-            if (CorrelationFilter.Value.ReplyTo.IsSet && CorrelationFilter.Value.ReplyTo.Value != null)
+            if (CorrelationFilter.ReplyTo != null)
             {
-                rule.CorrelationFilter.ReplyTo = CorrelationFilter.Value.ReplyTo.Value;
+                rule.CorrelationFilter.ReplyTo = CorrelationFilter.ReplyTo;
             }
-            if (CorrelationFilter.Value.Subject.IsSet && CorrelationFilter.Value.Subject.Value != null)
+            if (CorrelationFilter.Subject != null)
             {
-                rule.CorrelationFilter.Subject = CorrelationFilter.Value.Subject.Value;
+                rule.CorrelationFilter.Subject = CorrelationFilter.Subject;
             }
-            if (CorrelationFilter.Value.SessionId.IsSet && CorrelationFilter.Value.SessionId.Value != null)
+            if (CorrelationFilter.SessionId != null)
             {
-                rule.CorrelationFilter.SessionId = CorrelationFilter.Value.SessionId.Value;
+                rule.CorrelationFilter.SessionId = CorrelationFilter.SessionId;
             }
-            if (CorrelationFilter.Value.ReplyToSessionId.IsSet && CorrelationFilter.Value.ReplyToSessionId.Value != null)
+            if (CorrelationFilter.ReplyToSessionId != null)
             {
-                rule.CorrelationFilter.ReplyToSessionId = CorrelationFilter.Value.ReplyToSessionId.Value;
+                rule.CorrelationFilter.ReplyToSessionId = CorrelationFilter.ReplyToSessionId;
             }
-            if (CorrelationFilter.Value.ContentType.IsSet && CorrelationFilter.Value.ContentType.Value != null)
+            if (CorrelationFilter.ContentType != null)
             {
-                rule.CorrelationFilter.ContentType = CorrelationFilter.Value.ContentType.Value;
+                rule.CorrelationFilter.ContentType = CorrelationFilter.ContentType;
             }
-            if (CorrelationFilter.Value.RequiresPreprocessing.IsSet)
+            if (CorrelationFilter.RequiresPreprocessing.HasValue)
             {
-                rule.CorrelationFilter.RequiresPreprocessing = CorrelationFilter.Value.RequiresPreprocessing.Value;
+                rule.CorrelationFilter.RequiresPreprocessing = CorrelationFilter.RequiresPreprocessing.Value;
             }
         }
 
-        if (FilterType.IsSet)
+        rule.FilterType = FilterType switch
         {
-            rule.FilterType = FilterType.Value switch
-            {
-                ServiceBusFilterType.SqlFilter => global::Azure.Provisioning.ServiceBus.ServiceBusFilterType.SqlFilter,
-                ServiceBusFilterType.CorrelationFilter => global::Azure.Provisioning.ServiceBus.ServiceBusFilterType.CorrelationFilter,
-                _ => throw new NotImplementedException()
-            };
-        }
-
-        if (SqlFilter.IsSet && SqlFilter.Value != null)
-        {
-            rule.SqlFilter = new();
-
-            if (SqlFilter.Value.SqlExpression.IsSet && SqlFilter.Value.SqlExpression.Value != null)
-            {
-                rule.SqlFilter.SqlExpression = SqlFilter.Value.SqlExpression.Value;
-            }
-            if (SqlFilter.Value.CompatibilityLevel.IsSet)
-            {
-                rule.SqlFilter.CompatibilityLevel = SqlFilter.Value.CompatibilityLevel.Value;
-            }
-            if (SqlFilter.Value.RequiresPreprocessing.IsSet)
-            {
-                rule.SqlFilter.RequiresPreprocessing = SqlFilter.Value.RequiresPreprocessing.Value;
-            }
-        }
+            ServiceBusFilterType.SqlFilter => global::Azure.Provisioning.ServiceBus.ServiceBusFilterType.SqlFilter,
+            ServiceBusFilterType.CorrelationFilter => global::Azure.Provisioning.ServiceBus.ServiceBusFilterType.CorrelationFilter,
+            _ => throw new NotImplementedException()
+        };
 
         return rule;
     }
@@ -194,109 +123,67 @@ public class ServiceBusRule
     {
         var rule = this;
 
-        if (rule.Name.IsSet)
+        if (rule.Name != null)
         {
-            writer.WriteString(nameof(ServiceBusQueue.Name), rule.Name.Value);
+            writer.WriteString(nameof(ServiceBusQueue.Name), rule.Name);
         }
 
         writer.WriteStartObject("Properties");
 
-        if (rule.Action.IsSet && rule.Action.Value != null)
+        writer.WriteString(nameof(FilterType), rule.FilterType switch
         {
-            writer.WriteStartObject(nameof(Action));
+            ServiceBusFilterType.SqlFilter => "Sql",
+            ServiceBusFilterType.CorrelationFilter => "Correlation",
+            _ => throw new NotImplementedException()
+        });
 
-            if (rule.Action.Value.SqlExpression.IsSet)
-            {
-                writer.WriteString(nameof(ServiceBusFilterAction.SqlExpression), rule.Action.Value.SqlExpression.Value);
-            }
-            if (rule.Action.Value.CompatibilityLevel.IsSet)
-            {
-                writer.WriteNumber(nameof(ServiceBusFilterAction.CompatibilityLevel), rule.Action.Value.CompatibilityLevel.Value);
-            }
-            if (rule.Action.Value.RequiresPreprocessing.IsSet)
-            {
-                writer.WriteBoolean(nameof(ServiceBusFilterAction.RequiresPreprocessing), rule.Action.Value.RequiresPreprocessing.Value);
-            }
-            writer.WriteEndObject();
+        writer.WriteStartObject(nameof(CorrelationFilter));
+
+        if (rule.CorrelationFilter.Properties.Count != 0)
+        {
+            writer.WritePropertyName("Properties");
+
+            JsonSerializer.Serialize(writer, rule.CorrelationFilter.Properties);
+        }
+        if (rule.CorrelationFilter.CorrelationId != null)
+        {
+            writer.WriteString(nameof(ServiceBusCorrelationFilter.CorrelationId), rule.CorrelationFilter.CorrelationId);
+        }
+        if (rule.CorrelationFilter.MessageId != null)
+        {
+            writer.WriteString(nameof(ServiceBusCorrelationFilter.MessageId), rule.CorrelationFilter.MessageId);
+        }
+        if (rule.CorrelationFilter.SendTo != null)
+        {
+            writer.WriteString("To", rule.CorrelationFilter.SendTo);
+        }
+        if (rule.CorrelationFilter.ReplyTo != null)
+        {
+            writer.WriteString(nameof(ServiceBusCorrelationFilter.ReplyTo), rule.CorrelationFilter.ReplyTo);
+        }
+        if (rule.CorrelationFilter.Subject != null)
+        {
+            writer.WriteString("Label", rule.CorrelationFilter.Subject);
+        }
+        if (rule.CorrelationFilter.SessionId != null)
+        {
+            writer.WriteString(nameof(ServiceBusCorrelationFilter.SessionId), rule.CorrelationFilter.SessionId);
+        }
+        if (rule.CorrelationFilter.ReplyToSessionId != null)
+        {
+            writer.WriteString(nameof(ServiceBusCorrelationFilter.ReplyToSessionId), rule.CorrelationFilter.ReplyToSessionId);
+        }
+        if (rule.CorrelationFilter.ContentType != null)
+        {
+            writer.WriteString(nameof(ServiceBusCorrelationFilter.ContentType), rule.CorrelationFilter.ContentType);
+        }
+        if (rule.CorrelationFilter.RequiresPreprocessing.HasValue)
+        {
+            writer.WriteBoolean(nameof(ServiceBusCorrelationFilter.RequiresPreprocessing), rule.CorrelationFilter.RequiresPreprocessing.Value);
         }
 
-        if (rule.CorrelationFilter.IsSet && rule.CorrelationFilter.Value != null)
-        {
-            writer.WriteStartObject(nameof(CorrelationFilter));
+        writer.WriteEndObject(); // CorrelationFilter
 
-            if (rule.CorrelationFilter.Value.ApplicationProperties.IsSet && rule.CorrelationFilter.Value.ApplicationProperties != null)
-            {
-                JsonSerializer.Serialize(writer, rule.CorrelationFilter.Value.ApplicationProperties.Value);
-            }
-            if (rule.CorrelationFilter.Value.CorrelationId.IsSet)
-            {
-                writer.WriteString(nameof(ServiceBusCorrelationFilter.CorrelationId), rule.CorrelationFilter.Value.CorrelationId.Value);
-            }
-            if (rule.CorrelationFilter.Value.MessageId.IsSet)
-            {
-                writer.WriteString(nameof(ServiceBusCorrelationFilter.MessageId), rule.CorrelationFilter.Value.MessageId.Value);
-            }
-            if (rule.CorrelationFilter.Value.SendTo.IsSet)
-            {
-                writer.WriteString("To", rule.CorrelationFilter.Value.SendTo.Value);
-            }
-            if (rule.CorrelationFilter.Value.ReplyTo.IsSet)
-            {
-                writer.WriteString(nameof(ServiceBusCorrelationFilter.ReplyTo), rule.CorrelationFilter.Value.ReplyTo.Value);
-            }
-            if (rule.CorrelationFilter.Value.Subject.IsSet)
-            {
-                writer.WriteString("Label", rule.CorrelationFilter.Value.Subject.Value);
-            }
-            if (rule.CorrelationFilter.Value.SessionId.IsSet)
-            {
-                writer.WriteString(nameof(ServiceBusCorrelationFilter.SessionId), rule.CorrelationFilter.Value.SessionId.Value);
-            }
-            if (rule.CorrelationFilter.Value.ReplyToSessionId.IsSet)
-            {
-                writer.WriteString(nameof(ServiceBusCorrelationFilter.ReplyToSessionId), rule.CorrelationFilter.Value.ReplyToSessionId.Value);
-            }
-            if (rule.CorrelationFilter.Value.ContentType.IsSet)
-            {
-                writer.WriteString(nameof(ServiceBusCorrelationFilter.ContentType), rule.CorrelationFilter.Value.ContentType.Value);
-            }
-            if (rule.CorrelationFilter.Value.RequiresPreprocessing.IsSet)
-            {
-                writer.WriteBoolean(nameof(ServiceBusCorrelationFilter.RequiresPreprocessing), rule.CorrelationFilter.Value.RequiresPreprocessing.Value);
-            }
-
-            writer.WriteEndObject();
-        }
-
-        if (rule.FilterType.IsSet)
-        {
-            writer.WriteString(nameof(FilterType), rule.FilterType.Value switch
-            {
-                ServiceBusFilterType.SqlFilter => "Sql",
-                ServiceBusFilterType.CorrelationFilter => "Correlation",
-                _ => throw new NotImplementedException()
-            });
-        }
-
-        if (rule.SqlFilter.IsSet && rule.SqlFilter.Value != null)
-        {
-            writer.WriteStartObject(nameof(SqlFilter));
-
-            if (rule.SqlFilter.Value.SqlExpression.IsSet)
-            {
-                writer.WriteString(nameof(ServiceBusSqlFilter.SqlExpression), rule.SqlFilter.Value.SqlExpression.Value);
-            }
-            if (rule.SqlFilter.Value.CompatibilityLevel.IsSet)
-            {
-                writer.WriteNumber(nameof(ServiceBusSqlFilter.CompatibilityLevel), rule.SqlFilter.Value.CompatibilityLevel.Value);
-            }
-            if (rule.SqlFilter.Value.RequiresPreprocessing.IsSet)
-            {
-                writer.WriteBoolean(nameof(ServiceBusSqlFilter.RequiresPreprocessing), rule.SqlFilter.Value.RequiresPreprocessing.Value);
-            }
-            writer.WriteEndObject();
-        }
-
-        writer.WriteEndObject();
+        writer.WriteEndObject(); // Properties
     }
 }

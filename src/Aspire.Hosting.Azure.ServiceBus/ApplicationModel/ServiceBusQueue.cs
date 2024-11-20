@@ -4,37 +4,32 @@
 using System.Text.Json;
 using System.Xml;
 
-namespace Aspire.Hosting.Azure.ServiceBus.ApplicationModel;
+namespace Aspire.Hosting.Azure.ServiceBus;
 
 /// <summary>
 /// Represents a Service Bus Queue.
 /// </summary>
+/// <remarks>
+/// List of properties from the CDK that are not exposed here:
+/// - AutoDeleteOnIdle
+/// - EnableBatchedOperations
+/// - EnableExpress
+/// - EnablePartitioning
+/// - MaxMessageSizeInKilobytes
+/// - MaxSizeInMegabytes
+/// - Status
+///
+/// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(Aspire.Hosting.ApplicationModel.IResourceBuilder{T}, Action{Aspire.Hosting.Azure.AzureResourceInfrastructure})"/> to configure these specific properties.
+/// </remarks>
 public class ServiceBusQueue
 {
-    private readonly OptionalValue<string> _name = new();
-    private readonly OptionalValue<TimeSpan> _autoDeleteOnIdle = new();
-    private readonly OptionalValue<bool> _deadLetteringOnMessageExpiration = new();
-    private readonly OptionalValue<TimeSpan> _defaultMessageTimeToLive = new();
-    private readonly OptionalValue<TimeSpan> _duplicateDetectionHistoryTimeWindow = new();
-    private readonly OptionalValue<bool> _enableBatchedOperations = new();
-    private readonly OptionalValue<bool> _enableExpress = new();
-    private readonly OptionalValue<bool> _enablePartitioning = new();
-    private readonly OptionalValue<string> _forwardDeadLetteredMessagesTo = new();
-    private readonly OptionalValue<string> _forwardTo = new();
-    private readonly OptionalValue<TimeSpan> _lockDuration = new();
-    private readonly OptionalValue<int> _maxDeliveryCount = new();
-    private readonly OptionalValue<long> _maxMessageSizeInKilobytes = new();
-    private readonly OptionalValue<int> _maxSizeInMegabytes = new();
-    private readonly OptionalValue<bool> _requiresDuplicateDetection = new();
-    private readonly OptionalValue<bool> _requiresSession = new();
-    private readonly OptionalValue<ServiceBusMessagingEntityStatus> _status = new();
-
     /// <summary>
     /// Initializes a new instance of the <see cref="ServiceBusQueue"/> class.
     /// </summary>
-    public ServiceBusQueue(string id)
+    public ServiceBusQueue(string id, string name)
     {
         Id = id;
+        Name = name;
     }
 
     /// <summary>
@@ -45,31 +40,13 @@ public class ServiceBusQueue
     /// <summary>
     /// The queue name.
     /// </summary>
-    public OptionalValue<string> Name
-    {
-        get { return _name; }
-        set { _name.Assign(value); }
-    }
-
-    /// <summary>
-    /// ISO 8061 timeSpan idle interval after which the queue is automatically
-    /// deleted. The minimum duration is 5 minutes.
-    /// </summary>
-    public OptionalValue<TimeSpan> AutoDeleteOnIdle
-    {
-        get { return _autoDeleteOnIdle; }
-        set { _autoDeleteOnIdle.Assign(value); }
-    }
+    public string Name { get; set; }
 
     /// <summary>
     /// A value that indicates whether this queue has dead letter support when
     /// a message expires.
     /// </summary>
-    public OptionalValue<bool> DeadLetteringOnMessageExpiration
-    {
-        get { return _deadLetteringOnMessageExpiration; }
-        set { _deadLetteringOnMessageExpiration.Assign(value); }
-    }
+    public bool? DeadLetteringOnMessageExpiration { get; set; }
 
     /// <summary>
     /// ISO 8601 default message timespan to live value. This is the duration
@@ -77,138 +54,47 @@ public class ServiceBusQueue
     /// sent to Service Bus. This is the default value used when TimeToLive is
     /// not set on a message itself.
     /// </summary>
-    public OptionalValue<TimeSpan> DefaultMessageTimeToLive
-    {
-        get { return _defaultMessageTimeToLive; }
-        set { _defaultMessageTimeToLive.Assign(value); }
-    }
+    public TimeSpan? DefaultMessageTimeToLive { get; set; }
 
     /// <summary>
     /// ISO 8601 timeSpan structure that defines the duration of the duplicate
     /// detection history. The default value is 10 minutes.
     /// </summary>
-    public OptionalValue<TimeSpan> DuplicateDetectionHistoryTimeWindow
-    {
-        get { return _duplicateDetectionHistoryTimeWindow; }
-        set { _duplicateDetectionHistoryTimeWindow.Assign(value); }
-    }
-
-    /// <summary>
-    /// Value that indicates whether server-side batched operations are enabled.
-    /// </summary>
-    public OptionalValue<bool> EnableBatchedOperations
-    {
-        get { return _enableBatchedOperations; }
-        set { _enableBatchedOperations.Assign(value); }
-    }
-
-    /// <summary>
-    /// A value that indicates whether Express Entities are enabled. An express
-    /// queue holds a message in memory temporarily before writing it to
-    /// persistent storage.
-    /// </summary>
-    public OptionalValue<bool> EnableExpress
-    {
-        get { return _enableExpress; }
-        set { _enableExpress.Assign(value); }
-    }
-
-    /// <summary>
-    /// A value that indicates whether the queue is to be partitioned across
-    /// multiple message brokers.
-    /// </summary>
-    public OptionalValue<bool> EnablePartitioning
-    {
-        get { return _enablePartitioning; }
-        set { _enablePartitioning.Assign(value); }
-    }
+    public TimeSpan? DuplicateDetectionHistoryTimeWindow { get; set; }
 
     /// <summary>
     /// Queue/Topic name to forward the Dead Letter message.
     /// </summary>
-    public OptionalValue<string> ForwardDeadLetteredMessagesTo
-    {
-        get { return _forwardDeadLetteredMessagesTo; }
-        set { _forwardDeadLetteredMessagesTo.Assign(value); }
-    }
+    public string? ForwardDeadLetteredMessagesTo { get; set; }
 
     /// <summary>
     /// Queue/Topic name to forward the messages.
     /// </summary>
-    public OptionalValue<string> ForwardTo
-    {
-        get { return _forwardTo; }
-        set { _forwardTo.Assign(value); }
-    }
+    public string? ForwardTo { get; set; }
 
     /// <summary>
     /// ISO 8601 timespan duration of a peek-lock; that is, the amount of time
     /// that the message is locked for other receivers. The maximum value for
     /// LockDuration is 5 minutes; the default value is 1 minute.
     /// </summary>
-    public OptionalValue<TimeSpan> LockDuration
-    {
-        get { return _lockDuration; }
-        set { _lockDuration.Assign(value); }
-    }
+    public TimeSpan? LockDuration { get; set; }
 
     /// <summary>
-    /// The maximum delivery count. A message is automatically deadlettered
-    /// after this number of deliveries. default value is 10.
+    /// The maximum delivery count. A message is automatically dead-lettered
+    /// after this number of deliveries.
     /// </summary>
-    public OptionalValue<int> MaxDeliveryCount
-    {
-        get { return _maxDeliveryCount; }
-        set { _maxDeliveryCount.Assign(value); }
-    }
-
-    /// <summary>
-    /// Maximum size (in KB) of the message payload that can be accepted by the
-    /// queue. This property is only used in Premium today and default is 1024.
-    /// </summary>
-    public OptionalValue<long> MaxMessageSizeInKilobytes
-    {
-        get { return _maxMessageSizeInKilobytes; }
-        set { _maxMessageSizeInKilobytes.Assign(value); }
-    }
-
-    /// <summary>
-    /// The maximum size of the queue in megabytes, which is the size of memory
-    /// allocated for the queue. Default is 1024.
-    /// </summary>
-    public OptionalValue<int> MaxSizeInMegabytes
-    {
-        get { return _maxSizeInMegabytes; }
-        set { _maxSizeInMegabytes.Assign(value); }
-    }
+    public int? MaxDeliveryCount { get; set; }
 
     /// <summary>
     /// A value indicating if this queue requires duplicate detection.
     /// </summary>
-    public OptionalValue<bool> RequiresDuplicateDetection
-    {
-        get { return _requiresDuplicateDetection; }
-        set { _requiresDuplicateDetection.Assign(value); }
-    }
+    public bool? RequiresDuplicateDetection { get; set; }
 
     /// <summary>
     /// A value that indicates whether the queue supports the concept of
     /// sessions.
     /// </summary>
-    public OptionalValue<bool> RequiresSession
-    {
-        get { return _requiresSession; }
-        set { _requiresSession.Assign(value); }
-    }
-
-    /// <summary>
-    /// Enumerates the possible values for the status of a messaging entity.
-    /// </summary>
-    public OptionalValue<ServiceBusMessagingEntityStatus> Status
-    {
-        get { return _status; }
-        set { _status.Assign(value); }
-    }
+    public bool? RequiresSession { get; set; }
 
     /// <summary>
     /// Converts the current instance to a provisioning entity.
@@ -218,70 +104,43 @@ public class ServiceBusQueue
     {
         var queue = new global::Azure.Provisioning.ServiceBus.ServiceBusQueue(Id);
 
-        if (Name.IsSet && Name.Value != null)
-        {
-            queue.Name = Name.Value;
-        }
+        queue.Name = Name;
 
-        if (AutoDeleteOnIdle.IsSet)
-        {
-            queue.AutoDeleteOnIdle = AutoDeleteOnIdle.Value;
-        }
-        if (DeadLetteringOnMessageExpiration.IsSet)
+        if (DeadLetteringOnMessageExpiration.HasValue)
         {
             queue.DeadLetteringOnMessageExpiration = DeadLetteringOnMessageExpiration.Value;
         }
-        if (DefaultMessageTimeToLive.IsSet)
+        if (DefaultMessageTimeToLive.HasValue)
         {
             queue.DefaultMessageTimeToLive = DefaultMessageTimeToLive.Value;
         }
-        if (DuplicateDetectionHistoryTimeWindow.IsSet)
+        if (DuplicateDetectionHistoryTimeWindow.HasValue)
         {
             queue.DuplicateDetectionHistoryTimeWindow = DuplicateDetectionHistoryTimeWindow.Value;
         }
-        if (EnableBatchedOperations.IsSet)
+        if (ForwardDeadLetteredMessagesTo != null)
         {
-            queue.EnableBatchedOperations = EnableBatchedOperations.Value;
+            queue.ForwardDeadLetteredMessagesTo = ForwardDeadLetteredMessagesTo;
         }
-        if (EnableExpress.IsSet)
+        if (ForwardTo != null)
         {
-            queue.EnableExpress = EnableExpress.Value;
+            queue.ForwardTo = ForwardTo;
         }
-        if (EnablePartitioning.IsSet)
-        {
-            queue.EnablePartitioning = EnablePartitioning.Value;
-        }
-        if (ForwardDeadLetteredMessagesTo.IsSet && ForwardDeadLetteredMessagesTo.Value != null)
-        {
-            queue.ForwardDeadLetteredMessagesTo = ForwardDeadLetteredMessagesTo.Value;
-        }
-        if (ForwardTo.IsSet && ForwardTo.Value != null)
-        {
-            queue.ForwardTo = ForwardTo.Value;
-        }
-        if (LockDuration.IsSet)
+        if (LockDuration.HasValue)
         {
             queue.LockDuration = LockDuration.Value;
         }
-        if (MaxDeliveryCount.IsSet)
+        if (MaxDeliveryCount.HasValue)
         {
             queue.MaxDeliveryCount = MaxDeliveryCount.Value;
         }
-        if (MaxMessageSizeInKilobytes.IsSet)
-        {
-            queue.MaxSizeInMegabytes = MaxSizeInMegabytes.Value;
-        }
-        if (RequiresDuplicateDetection.IsSet)
+        if (RequiresDuplicateDetection.HasValue)
         {
             queue.RequiresDuplicateDetection = RequiresDuplicateDetection.Value;
         }
-        if (RequiresSession.IsSet)
+        if (RequiresSession.HasValue)
         {
             queue.RequiresSession = RequiresSession.Value;
-        }
-        if (Status.IsSet)
-        {
-            queue.Status = Enum.Parse<global::Azure.Provisioning.ServiceBus.ServiceBusMessagingEntityStatus>(Status.Value.ToString());
         }
         return queue;
     }
@@ -294,75 +153,45 @@ public class ServiceBusQueue
     {
         var queue = this;
 
-        if (queue.Name.IsSet)
-        {
-            writer.WriteString(nameof(Name), queue.Name.Value);
-        }
+        writer.WriteString(nameof(Name), queue.Name);
+
         writer.WriteStartObject("Properties");
 
-        if (queue.AutoDeleteOnIdle.IsSet)
-        {
-            writer.WriteString(nameof(AutoDeleteOnIdle), XmlConvert.ToString(queue.AutoDeleteOnIdle.Value));
-        }
-        if (queue.DeadLetteringOnMessageExpiration.IsSet)
+        if (queue.DeadLetteringOnMessageExpiration.HasValue)
         {
             writer.WriteBoolean(nameof(DeadLetteringOnMessageExpiration), queue.DeadLetteringOnMessageExpiration.Value);
         }
-        if (queue.DefaultMessageTimeToLive.IsSet)
+        if (queue.DefaultMessageTimeToLive.HasValue)
         {
             writer.WriteString(nameof(DefaultMessageTimeToLive), XmlConvert.ToString(queue.DefaultMessageTimeToLive.Value));
         }
-        if (queue.DuplicateDetectionHistoryTimeWindow.IsSet)
+        if (queue.DuplicateDetectionHistoryTimeWindow.HasValue)
         {
             writer.WriteString(nameof(DuplicateDetectionHistoryTimeWindow), XmlConvert.ToString(queue.DuplicateDetectionHistoryTimeWindow.Value));
         }
-        if (queue.EnableBatchedOperations.IsSet)
+        if (queue.ForwardDeadLetteredMessagesTo != null)
         {
-            writer.WriteBoolean(nameof(EnableBatchedOperations), queue.EnableBatchedOperations.Value);
+            writer.WriteString(nameof(ForwardDeadLetteredMessagesTo), queue.ForwardDeadLetteredMessagesTo);
         }
-        if (queue.EnableExpress.IsSet)
+        if (queue.ForwardTo != null)
         {
-            writer.WriteBoolean(nameof(EnableExpress), queue.EnableExpress.Value);
+            writer.WriteString(nameof(ForwardTo), queue.ForwardTo);
         }
-        if (queue.EnablePartitioning.IsSet)
-        {
-            writer.WriteBoolean(nameof(EnablePartitioning), queue.EnablePartitioning.Value);
-        }
-        if (queue.ForwardDeadLetteredMessagesTo.IsSet)
-        {
-            writer.WriteString(nameof(ForwardDeadLetteredMessagesTo), queue.ForwardDeadLetteredMessagesTo.Value);
-        }
-        if (queue.ForwardTo.IsSet)
-        {
-            writer.WriteString(nameof(ForwardTo), queue.ForwardTo.Value);
-        }
-        if (queue.LockDuration.IsSet)
+        if (queue.LockDuration.HasValue)
         {
             writer.WriteString(nameof(LockDuration), XmlConvert.ToString(queue.LockDuration.Value));
         }
-        if (queue.MaxDeliveryCount.IsSet)
+        if (queue.MaxDeliveryCount.HasValue)
         {
             writer.WriteNumber(nameof(MaxDeliveryCount), queue.MaxDeliveryCount.Value);
         }
-        if (queue.MaxMessageSizeInKilobytes.IsSet)
-        {
-            writer.WriteNumber(nameof(MaxMessageSizeInKilobytes), queue.MaxMessageSizeInKilobytes.Value);
-        }
-        if (queue.MaxSizeInMegabytes.IsSet)
-        {
-            writer.WriteNumber(nameof(MaxSizeInMegabytes), queue.MaxSizeInMegabytes.Value);
-        }
-        if (queue.RequiresDuplicateDetection.IsSet)
+        if (queue.RequiresDuplicateDetection.HasValue)
         {
             writer.WriteBoolean(nameof(RequiresDuplicateDetection), queue.RequiresDuplicateDetection.Value);
         }
-        if (queue.RequiresSession.IsSet)
+        if (queue.RequiresSession.HasValue)
         {
             writer.WriteBoolean(nameof(RequiresSession), queue.RequiresSession.Value);
-        }
-        if (queue.Status.IsSet)
-        {
-            writer.WriteString(nameof(Status), queue.Status.Value.ToString());
         }
         writer.WriteEndObject();
     }

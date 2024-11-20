@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
-using Aspire.Hosting.Azure.ServiceBus.ApplicationModel;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.ServiceBus;
@@ -110,14 +109,14 @@ public static class AzureServiceBusExtensions
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string[] subscriptions, Action<ServiceBusTopic>? configure = null)
     {
         var normalizedTopicName = Infrastructure.NormalizeBicepIdentifier(name);
-        var topic = new ServiceBusTopic(normalizedTopicName) { Name = name };
+        var topic = new ServiceBusTopic(normalizedTopicName, name);
 
         configure?.Invoke(topic);
 
         builder.Resource.Topics.Add(topic);
         foreach (var subscriptionName in subscriptions)
         {
-            var subscription = new ServiceBusSubscription(Infrastructure.NormalizeBicepIdentifier(subscriptionName)) { Name = subscriptionName };
+            var subscription = new ServiceBusSubscription(Infrastructure.NormalizeBicepIdentifier(subscriptionName), subscriptionName);
             builder.Resource.Subscriptions.Add((normalizedTopicName, subscription));
         }
         return builder;
@@ -131,7 +130,7 @@ public static class AzureServiceBusExtensions
     /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusQueue"/>.</param>
     public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<ServiceBusQueue>? configure = null)
     {
-        var queue = new ServiceBusQueue(Infrastructure.NormalizeBicepIdentifier(name)) { Name = name };
+        var queue = new ServiceBusQueue(Infrastructure.NormalizeBicepIdentifier(name), name);
 
         configure?.Invoke(queue);
 
@@ -146,7 +145,7 @@ public static class AzureServiceBusExtensions
     /// <param name="name">The name of the topic.</param>
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name)
     {
-        var topic = new ServiceBusTopic(Infrastructure.NormalizeBicepIdentifier(name)) { Name = name };
+        var topic = new ServiceBusTopic(Infrastructure.NormalizeBicepIdentifier(name), name);
 
         builder.Resource.Topics.Add(topic);
         return builder;
@@ -160,7 +159,7 @@ public static class AzureServiceBusExtensions
     /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusTopic"/>.</param>
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<ServiceBusTopic> configure)
     {
-        var topic = new ServiceBusTopic(Infrastructure.NormalizeBicepIdentifier(name)) { Name = name };
+        var topic = new ServiceBusTopic(Infrastructure.NormalizeBicepIdentifier(name), name);
         configure?.Invoke(topic);
 
         builder.Resource.Topics.Add(topic);
@@ -179,7 +178,7 @@ public static class AzureServiceBusExtensions
         var normalizedTopicName = Infrastructure.NormalizeBicepIdentifier(topicName);
         var normalizedSubscriptionName = Infrastructure.NormalizeBicepIdentifier(subscriptionName);
 
-        var subscription = new ServiceBusSubscription(normalizedSubscriptionName) { Name = subscriptionName };
+        var subscription = new ServiceBusSubscription(normalizedSubscriptionName, subscriptionName);
         configure?.Invoke(subscription);
         builder.Resource.Subscriptions.Add((normalizedTopicName, subscription));
         return builder;
@@ -199,7 +198,7 @@ public static class AzureServiceBusExtensions
         var normalizedSubscriptionName = Infrastructure.NormalizeBicepIdentifier(subscriptionName);
         var normalizedRuleName = Infrastructure.NormalizeBicepIdentifier(ruleName);
 
-        var rule = new ServiceBusRule(normalizedRuleName) { Name = ruleName };
+        var rule = new ServiceBusRule(normalizedRuleName, ruleName);
         configure?.Invoke(rule);
 
         builder.Resource.Rules.Add((normalizedTopicName, normalizedSubscriptionName, rule));
@@ -306,7 +305,7 @@ public static class AzureServiceBusExtensions
             return connectionString ?? throw new InvalidOperationException("ServiceBusClient is not initialized.");
         }, queueNameFactory: sp =>
         {
-            var queueName = builder.Resource.Queues[0].Name.Value?.ToString();
+            var queueName = builder.Resource.Queues[0].Name;
             return queueName ?? throw new InvalidOperationException("Queue name is not initialized.");
         }, name: healthCheckKey);
 
