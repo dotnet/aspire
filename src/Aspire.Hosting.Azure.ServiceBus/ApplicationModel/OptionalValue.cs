@@ -9,7 +9,6 @@ namespace Aspire.Hosting.Azure.ServiceBus.ApplicationModel;
 /// <typeparam name="T">The type of the value.</typeparam>
 public sealed class OptionalValue<T>
 {
-
     /// <summary>
     /// Initializes a new instance of the <see cref="OptionalValue{T}"/> class.
     /// </summary>
