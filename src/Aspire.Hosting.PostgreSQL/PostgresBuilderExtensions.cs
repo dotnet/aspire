@@ -336,7 +336,7 @@ public static class PostgresBuilderExtensions
         context.EnvironmentVariables.Add("PGADMIN_DEFAULT_PASSWORD", "admin");
 
         // When running in the context of Codespaces we need to set some additional environment
-        // varialbes so that PGAdmin will trust the forwarded headers that Codespaces port
+        // variables so that PGAdmin will trust the forwarded headers that Codespaces port
         // forwarding will send.
         var config = context.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
         if (context.ExecutionContext.IsRunMode && config.GetValue<bool>("CODESPACES", false))

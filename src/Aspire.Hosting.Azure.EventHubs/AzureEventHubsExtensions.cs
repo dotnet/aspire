@@ -23,7 +23,7 @@ public static class AzureEventHubsExtensions
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <returns></returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureEventHubsResource> AddAzureEventHubs(
         this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
@@ -82,6 +82,7 @@ public static class AzureEventHubsExtensions
     /// </remarks>
     /// <param name="builder">The Azure Event Hubs resource builder.</param>
     /// <param name="name">The name of the Event Hub.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureEventHubsResource> AddEventHub(this IResourceBuilder<AzureEventHubsResource> builder, [ResourceName] string name)
     {
         builder.Resource.Hubs.Add(name);
