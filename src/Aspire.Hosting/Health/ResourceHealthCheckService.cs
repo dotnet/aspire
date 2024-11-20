@@ -144,11 +144,11 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
         async Task SlowDownMonitoringAsync(ResourceEvent lastEvent, CancellationToken cancellationToken)
         {
-            var releaseAfter = timeProvider.GetLocalNow().AddSeconds(30);
+            var releaseAfter = timeProvider.GetUtcNow().AddSeconds(30);
 
             // If we've waited for 30 seconds, or we received an updated event, or the health status is no longer
             // healthy then we stop slowing down the monitoring loop.
-            while (timeProvider.GetLocalNow() < releaseAfter && _latestEvents[lastEvent.Resource.Name] == lastEvent && lastEvent.Snapshot.HealthStatus == HealthStatus.Healthy)
+            while (timeProvider.GetUtcNow() < releaseAfter && _latestEvents[lastEvent.Resource.Name] == lastEvent && lastEvent.Snapshot.HealthStatus == HealthStatus.Healthy)
             {
                 await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
             }

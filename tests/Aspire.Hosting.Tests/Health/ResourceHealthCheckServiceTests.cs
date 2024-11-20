@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Threading.Channels;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
@@ -130,13 +131,14 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        var are = new AutoResetEvent(false);
+        var channel = Channel.CreateBounded<DateTimeOffset>(3);
+
         var timeProvider = new FakeTimeProvider(DateTimeOffset.Now);
 
         builder.Services.AddSingleton<TimeProvider>(timeProvider);
-        builder.Services.AddHealthChecks().AddCheck("resource_check", () =>
+        builder.Services.AddHealthChecks().AddAsyncCheck("resource_check", async () =>
         {
-            are.Set();
+            await channel.Writer.WriteAsync(timeProvider.GetUtcNow());
             return HealthCheckResult.Unhealthy();
         });
 
@@ -156,14 +158,18 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         }).DefaultTimeout();
         await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, abortTokenSource.Token).DefaultTimeout();
 
-        // First health check run.
-        Assert.True(are.WaitOne(TestConstants.DefaultTimeoutTimeSpan));
-
-        // Second health check run - should run after 5 seconds.
+        var firstCheck = await channel.Reader.ReadAsync(abortTokenSource.Token);
         timeProvider.Advance(TimeSpan.FromSeconds(5));
-        Assert.True(are.WaitOne(TestConstants.DefaultTimeoutTimeSpan));
+
+        var secondCheck = await channel.Reader.ReadAsync(abortTokenSource.Token);
+        timeProvider.Advance(TimeSpan.FromSeconds(5));
+
+        var thirdCheck = await channel.Reader.ReadAsync(abortTokenSource.Token);
 
         await app.StopAsync(abortTokenSource.Token).DefaultTimeout();
+
+        // Allow some buffer.
+        Assert.True(thirdCheck - firstCheck < TimeSpan.FromSeconds(20));
     }
 
     [Fact]
