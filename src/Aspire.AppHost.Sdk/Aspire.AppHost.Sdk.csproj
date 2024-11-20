@@ -6,6 +6,7 @@
     <PackageTags>aspire apphost sdk</PackageTags>
     <Description>.NET Aspire AppHost SDK. Must be referenced by .NET Aspire AppHost projects.</Description>
     <TargetsForTfmSpecificContentInPackage>_PublishAndPackRIDTool;$(TargetsForTfmSpecificContentInPackage)</TargetsForTfmSpecificContentInPackage>
+    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <PropertyGroup>

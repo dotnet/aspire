@@ -6,8 +6,8 @@
       "connectionString": "{openai.outputs.connectionString}",
       "path": "openai.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "principalId": ""
       }
     },
     "webstory": {

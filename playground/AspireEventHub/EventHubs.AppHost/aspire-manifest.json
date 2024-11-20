@@ -5,8 +5,8 @@
       "type": "azure.bicep.v0",
       "path": "ehstorage.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "principalId": ""
       }
     },
     "checkpoints": {
@@ -18,8 +18,8 @@
       "connectionString": "{eventhubns.outputs.eventHubsEndpoint}",
       "path": "eventhubns.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "principalId": ""
       }
     },
     "consumer": {

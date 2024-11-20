@@ -54,8 +54,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
               "connectionString": "{wps1.outputs.endpoint}",
               "path": "wps1.module.bicep",
               "params": {
-                "principalId": "",
-                "principalType": ""
+                "principalType": "",
+                "principalId": ""
               }
             }
             """;
@@ -75,9 +75,9 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
             param capacity int = 1
 
-            param principalId string
-
             param principalType string
+
+            param principalId string
 
             resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
               name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
@@ -129,8 +129,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
               "connectionString": "{wps1.outputs.endpoint}",
               "path": "wps1.module.bicep",
               "params": {
-                "principalId": "",
-                "principalType": ""
+                "principalType": "",
+                "principalId": ""
               }
             }
             """;
@@ -150,9 +150,9 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
             param capacity int = 1
 
-            param principalId string
-
             param principalType string
+
+            param principalId string
 
             resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
               name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
@@ -203,9 +203,9 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
               "connectionString": "{wps1.outputs.endpoint}",
               "path": "wps1.module.bicep",
               "params": {
-                "principalId": "",
+                "abc_url_0": "{serviceA.bindings.https.url}/eventhandler/",
                 "principalType": "",
-                "abc_url_0": "{serviceA.bindings.https.url}/eventhandler/"
+                "principalId": ""
               }
             }
             """;
@@ -225,11 +225,11 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
             param capacity int = 1
 
-            param abc_url_0 string
-
+            param principalType string
+            
             param principalId string
 
-            param principalType string
+            param abc_url_0 string
 
             resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
               name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
@@ -301,9 +301,9 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
             param capacity int = 1
 
-            param principalId string
-
             param principalType string
+
+            param principalId string
 
             resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
               name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
@@ -380,11 +380,11 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
               "connectionString": "{wps1.outputs.endpoint}",
               "path": "wps1.module.bicep",
               "params": {
-                "principalId": "",
-                "principalType": "",
                 "hub2_url_0": "{serviceA.bindings.https.url}/hub/eventhandler1",
                 "hub2_url_1": "{serviceA.bindings.https.url}/eventhandler2",
-                "hub2_url_2": "{serviceA.bindings.https.url}/eventhandler3"
+                "hub2_url_2": "{serviceA.bindings.https.url}/eventhandler3",
+                "principalType": "",
+                "principalId": ""
               }
             }
             """;
@@ -408,15 +408,15 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
             param capacity int = 1
 
+            param principalType string
+
+            param principalId string
+
             param hub2_url_0 string
 
             param hub2_url_1 string
 
             param hub2_url_2 string
-
-            param principalId string
-
-            param principalType string
 
             resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
               name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
