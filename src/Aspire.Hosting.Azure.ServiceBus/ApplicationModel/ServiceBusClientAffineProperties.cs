@@ -25,8 +25,8 @@ public class ServiceBusClientAffineProperties
     /// </summary>
     public OptionalValue<string> ClientId
     {
-        get { return _clientId!; }
-        set { _clientId!.Assign(value); }
+        get { return _clientId; }
+        set { _clientId.Assign(value); }
     }
 
     /// <summary>
@@ -35,8 +35,8 @@ public class ServiceBusClientAffineProperties
     /// </summary>
     public OptionalValue<bool> IsDurable
     {
-        get { return _isDurable!; }
-        set { _isDurable!.Assign(value); }
+        get { return _isDurable; }
+        set { _isDurable.Assign(value); }
     }
 
     /// <summary>
@@ -45,7 +45,7 @@ public class ServiceBusClientAffineProperties
     /// </summary>
     public OptionalValue<bool> IsShared
     {
-        get { return _isShared!; }
-        set { _isShared!.Assign(value); }
+        get { return _isShared; }
+        set { _isShared.Assign(value); }
     }
 }
