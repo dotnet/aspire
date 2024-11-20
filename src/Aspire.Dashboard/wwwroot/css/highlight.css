@@ -47,13 +47,3 @@
 .hljs-strong {
     font-weight: 700;
 }
-
-@media screen and (-ms-high-contrast:active) {
-    .hljs-addition, .hljs-attribute, .hljs-built_in, .hljs-bullet, .hljs-comment, .hljs-link, .hljs-literal, .hljs-meta, .hljs-number, .hljs-params, .hljs-quote, .hljs-string, .hljs-symbol, .hljs-type {
-        color: highlight;
-    }
-
-    .hljs-keyword, .hljs-selector-tag {
-        font-weight: 700;
-    }
-}
