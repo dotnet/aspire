@@ -13,6 +13,9 @@ public class AzureCosmosDBEmulatorResource(AzureCosmosDBResource innerResource) 
 {
     private readonly AzureCosmosDBResource _innerResource = innerResource;
 
+    /// <inheritdoc/>
+    public override string Name => _innerResource.Name;
+
     /// <inheritdoc />
     public override ResourceAnnotationCollection Annotations => _innerResource.Annotations;
 }

@@ -23,7 +23,7 @@ public static class AzureServiceBusExtensions
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <returns></returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusResource> AddAzureServiceBus(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
         builder.AddAzureProvisioning();
@@ -106,6 +106,7 @@ public static class AzureServiceBusExtensions
     /// <param name="name">The name of the topic.</param>
     /// <param name="subscriptions">The name of the subscriptions.</param>
     /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusTopic"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string[] subscriptions, Action<ServiceBusTopic>? configure = null)
     {
         var normalizedTopicName = Infrastructure.NormalizeBicepIdentifier(name);
@@ -128,6 +129,7 @@ public static class AzureServiceBusExtensions
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the queue.</param>
     /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusQueue"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<ServiceBusQueue>? configure = null)
     {
         var queue = new ServiceBusQueue(Infrastructure.NormalizeBicepIdentifier(name), name);
@@ -157,6 +159,7 @@ public static class AzureServiceBusExtensions
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the topic.</param>
     /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusTopic"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<ServiceBusTopic> configure)
     {
         var topic = new ServiceBusTopic(Infrastructure.NormalizeBicepIdentifier(name), name);
@@ -173,6 +176,7 @@ public static class AzureServiceBusExtensions
     /// <param name="topicName">The name of the topic.</param>
     /// <param name="subscriptionName">The name of the subscription.</param>
     /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusSubscription"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusResource> AddSubscription(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName, Action<ServiceBusSubscription>? configure = null)
     {
         var normalizedTopicName = Infrastructure.NormalizeBicepIdentifier(topicName);
@@ -192,6 +196,7 @@ public static class AzureServiceBusExtensions
     /// <param name="subscriptionName">The name of the subscription.</param>
     /// <param name="ruleName">The name of the rule</param>
     /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusRule"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusResource> AddRule(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName, string ruleName, Action<ServiceBusRule>? configure = null)
     {
         var normalizedTopicName = Infrastructure.NormalizeBicepIdentifier(topicName);
@@ -418,7 +423,7 @@ public static class AzureServiceBusExtensions
     /// </summary>
     /// <param name="builder">The builder for the <see cref="AzureServiceBusEmulatorResource"/>.</param>
     /// <param name="path">Relative path to the AppHost where emulator storage is persisted between runs. Defaults to the path '.servicebus/{builder.Resource.Name}'</param>
-    /// <returns>A builder for the <see cref="AzureServiceBusEmulatorResource"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusEmulatorResource> WithDataBindMount(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, string? path = null)
         => builder.WithBindMount(path ?? $".servicebus/{builder.Resource.Name}", "/data", isReadOnly: false);
 
@@ -427,7 +432,7 @@ public static class AzureServiceBusExtensions
     /// </summary>
     /// <param name="builder">The builder for the <see cref="AzureServiceBusEmulatorResource"/>.</param>
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
-    /// <returns>A builder for the <see cref="AzureServiceBusEmulatorResource"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusEmulatorResource> WithDataVolume(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, string? name = null)
         => builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/data", isReadOnly: false);
 
@@ -436,7 +441,7 @@ public static class AzureServiceBusExtensions
     /// </summary>
     /// <param name="builder">The builder for the <see cref="AzureServiceBusEmulatorResource"/>.</param>
     /// <param name="path">Path to the file on the AppHost where the emulator configuration is located.</param>
-    /// <returns>A builder for the <see cref="AzureServiceBusEmulatorResource"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusEmulatorResource> WithConfigJson(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, string path)
     => builder.WithBindMount(path, AzureServiceBusEmulatorResource.EmulatorConfigJsonPath, isReadOnly: true);
 
@@ -445,7 +450,7 @@ public static class AzureServiceBusExtensions
     /// </summary>
     /// <param name="builder">Builder for the Azure Service Bus emulator container</param>
     /// <param name="port">Host port to bind to the emulator gateway port.</param>
-    /// <returns>Azure Service Bus emulator resource builder.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusEmulatorResource> WithGatewayPort(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, int? port)
     {
         return builder.WithEndpoint("emulator", endpoint =>

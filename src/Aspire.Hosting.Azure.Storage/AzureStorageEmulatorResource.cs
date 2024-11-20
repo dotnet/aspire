@@ -13,6 +13,9 @@ public class AzureStorageEmulatorResource(AzureStorageResource innerResource) : 
 {
     private readonly AzureStorageResource _innerResource = innerResource;
 
+    /// <inheritdoc/>
+    public override string Name => _innerResource.Name;
+
     /// <inheritdoc />
     public override ResourceAnnotationCollection Annotations => _innerResource.Annotations;
 }
