@@ -51,6 +51,7 @@ public sealed class TelemetryRepository
 
     // For testing.
     internal List<OtlpSpanLink> SpanLinks => _spanLinks;
+    internal List<Subscription> TracesSubscriptions => _tracesSubscriptions;
 
     public TelemetryRepository(ILoggerFactory loggerFactory, IOptions<DashboardOptions> dashboardOptions)
     {
