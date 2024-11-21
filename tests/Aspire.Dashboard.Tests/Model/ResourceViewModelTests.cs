@@ -8,6 +8,7 @@ using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 using DiagnosticsHealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
+
 namespace Aspire.Dashboard.Tests.Model;
 
 public sealed class ResourceViewModelTests

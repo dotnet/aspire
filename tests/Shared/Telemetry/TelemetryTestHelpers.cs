@@ -285,4 +285,24 @@ internal static class TelemetryTestHelpers
             Logger = logger ?? NullLogger.Instance
         };
     }
+
+    public static OtlpSpan CreateSpan(OtlpApplication app, OtlpTrace trace, OtlpScope scope, string spanId, string? parentSpanId, DateTime startDate)
+    {
+        return new OtlpSpan(app.GetView([]), trace, scope)
+        {
+            Attributes = [],
+            BackLinks = [],
+            EndTime = DateTime.MaxValue,
+            Events = [],
+            Kind = OtlpSpanKind.Unspecified,
+            Links = [],
+            Name = "Test",
+            ParentSpanId = parentSpanId,
+            SpanId = spanId,
+            StartTime = startDate,
+            State = null,
+            Status = OtlpSpanStatusCode.Unset,
+            StatusMessage = null
+        };
+    }
 }
