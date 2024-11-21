@@ -20,7 +20,7 @@ internal static class PostgresContainerImageTags
     /// <summary>dpage/pgadmin4</summary>
     public const string PgAdminImage = "dpage/pgadmin4";
 
-    /// <summary>8.11</summary>
+    /// <summary>8.12</summary>
     public const string PgAdminTag = "8.12";
 
     /// <summary>docker.io</summary>
@@ -29,6 +29,6 @@ internal static class PostgresContainerImageTags
     /// <summary>sosedoff/pgweb</summary>
     public const string PgWebImage = "sosedoff/pgweb";
 
-    /// <summary>0.15.0</summary>
+    /// <summary>0.16.1</summary>
     public const string PgWebTag = "0.16.1";
 }

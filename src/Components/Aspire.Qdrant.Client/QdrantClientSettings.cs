@@ -23,6 +23,22 @@ public sealed class QdrantClientSettings
     /// </summary>
     public string? Key { get; set; }
 
+    /// <summary>
+    /// Gets or sets a boolean value that indicates whether the Qdrant client health check is disabled or not.
+    /// </summary>
+    /// <value>
+    /// The default value is <see langword="false"/>.
+    /// </value>
+    public bool DisableHealthChecks { get; set; }
+
+    /// <summary>
+    /// Gets or sets the timeout duration for the health check.
+    /// </summary>
+    /// <value>
+    /// The default value is <see langword="null"/>.
+    /// </value>
+    public TimeSpan? HealthCheckTimeout { get; set; }
+
     internal void ParseConnectionString(string? connectionString)
     {
         if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))

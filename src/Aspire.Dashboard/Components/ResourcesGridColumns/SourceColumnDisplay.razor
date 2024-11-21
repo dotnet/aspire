@@ -4,19 +4,19 @@
 @inject IStringLocalizer<Columns> Loc
 @inject IStringLocalizer<Resources> ResourcesLoc
 
-<GridValue  Value="@Value"
-            ValueToCopy="@ValueToCopy"
-            ValueToVisualize="@ValueToCopy"
-            ValueDescription="@ResourcesLoc[nameof(Resources.ResourcesSourceColumnHeader)]"
-            EnableHighlighting="true"
-            HighlightText="@FilterText"
-            PreCopyToolTip="@Loc[nameof(Columns.SourceColumnDisplayCopyCommandToClipboard)]"
-            ToolTip="@Tooltip"
-            StopClickPropagation="true">
+<GridValue Value="@Value"
+           ValueToCopy="@ValueToCopy"
+           ValueToVisualize="@ValueToCopy"
+           ValueDescription="@ResourcesLoc[nameof(Resources.ResourcesSourceColumnHeader)]"
+           EnableHighlighting="true"
+           HighlightText="@FilterText"
+           PreCopyToolTip="@Loc[nameof(Columns.SourceColumnDisplayCopyCommandToClipboard)]"
+           ToolTip="@Tooltip"
+           StopClickPropagation="true">
     <ContentAfterValue>
         @if (ContentAfterValue is not null)
         {
-            <span class="subtext">@ContentAfterValue</span>
+            <span class="subtext">&nbsp;@ContentAfterValue</span>
         }
     </ContentAfterValue>
 </GridValue>

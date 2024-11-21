@@ -9,7 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\KnownResourceNames.cs" Link="KnownResourceNames.cs" />
+    <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="KnownResourceNames.cs" />
+    <Compile Include="$(SharedDir)Model\KnownProperties.cs" Link="KnownProperties.cs" />
   </ItemGroup>
 
   <ItemGroup>

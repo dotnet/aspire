@@ -3,6 +3,7 @@
 
 using Xunit;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Hosting.Tests;
 
@@ -18,7 +19,7 @@ public class PublishAsDockerfileTests
 
         Assert.True(frontend.Resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out _));
 
-        var manifest = await ManifestUtils.GetManifest(frontend.Resource);
+        var manifest = await ManifestUtils.GetManifest(frontend.Resource).DefaultTimeout();
 
         var expected =
             $$"""
@@ -53,7 +54,7 @@ public class PublishAsDockerfileTests
 
         Assert.True(frontend.Resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out _));
 
-        var manifest = await ManifestUtils.GetManifest(frontend.Resource);
+        var manifest = await ManifestUtils.GetManifest(frontend.Resource).DefaultTimeout();
 
         var expected =
             $$"""
@@ -91,7 +92,7 @@ public class PublishAsDockerfileTests
 
         Assert.True(frontend.Resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out _));
 
-        var manifest = await ManifestUtils.GetManifest(frontend.Resource);
+        var manifest = await ManifestUtils.GetManifest(frontend.Resource).DefaultTimeout();
 
         var expected =
             $$"""

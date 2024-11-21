@@ -5,6 +5,7 @@ using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Azure.Cosmos;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -59,7 +60,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         await app.StopAsync();
     }
 
-    [Fact(Skip = "Using CosmosDB emulator in integration tests leads to flaky tests")]
+    [Fact(Skip = "Using CosmosDB emulator in integration tests leads to flaky tests - https://github.com/dotnet/aspire/issues/5820")]
     [RequiresDocker(Reason = "CosmosDB emulator is needed for this test")]
     public async Task VerifyCosmosResource()
     {
@@ -89,13 +90,9 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         await app.StartAsync();
 
         var hb = Host.CreateApplicationBuilder();
-
-        hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            [$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default)
-        });
-
+        hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default);
         hb.AddAzureCosmosClient(db.Resource.Name);
+        hb.AddCosmosDbContext<EFCoreCosmosDbContext>(db.Resource.Name, databaseName);
 
         using var host = hb.Build();
 
@@ -104,6 +101,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         // This needs to be outside the pipeline because when the CosmosClient is disposed,
         // there is an exception in the pipeline
         using var cosmosClient = host.Services.GetRequiredService<CosmosClient>();
+        using var dbContext = host.Services.GetRequiredService<EFCoreCosmosDbContext>();
 
         await pipeline.ExecuteAsync(async token =>
         {
@@ -115,10 +113,15 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
             Assert.True(results.Count == 1);
             Assert.True(results.First() == 1);
+
+            await dbContext.Database.EnsureCreatedAsync(token);
+            dbContext.AddRange([new Entry(), new Entry()]);
+            var count = await dbContext.SaveChangesAsync(token);
+            Assert.Equal(2, count);
         }, cts.Token);
     }
 
-    [Fact(Skip = "Using CosmosDB emulator in integration tests leads to flaky tests")]
+    [Fact(Skip = "Using CosmosDB emulator in integration tests leads to flaky tests - https://github.com/dotnet/aspire/issues/5820")]
     [RequiresDocker]
     public async Task WithDataVolumeShouldPersistStateBetweenUsages()
     {
@@ -142,7 +145,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         var cosmos1 = builder1.AddAzureCosmosDB("cosmos");
 
         // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
-        var volumeName = VolumeNameGenerator.CreateVolumeName(cosmos1, nameof(WithDataVolumeShouldPersistStateBetweenUsages));
+        var volumeName = VolumeNameGenerator.Generate(cosmos1, nameof(WithDataVolumeShouldPersistStateBetweenUsages));
 
         var db1 = cosmos1.AddDatabase(databaseName)
                        .RunAsEmulator(emulator => emulator.WithDataVolume(volumeName));
@@ -245,4 +248,14 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
         DockerUtils.AttemptDeleteDockerVolume(volumeName);
     }
+}
+
+public class EFCoreCosmosDbContext(DbContextOptions<EFCoreCosmosDbContext> options) : DbContext(options)
+{
+    public DbSet<Entry> Entries { get; set; }
+}
+
+public record Entry
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
 }

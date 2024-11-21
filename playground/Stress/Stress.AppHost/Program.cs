@@ -1,11 +1,23 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.DependencyInjection;
+
 var builder = DistributedApplication.CreateBuilder(args);
+builder.Services.AddHttpClient();
 
 for (var i = 0; i < 10; i++)
 {
-    builder.AddTestResource($"test-{i:0000}");
+    var name = $"test-{i:0000}";
+    var rb = builder.AddTestResource(name);
+    IResource parent = rb.Resource;
+
+    for (int j = 0; j < 3; j++)
+    {
+        name = name + $"-n{j}";
+        var nestedRb = builder.AddNestedResource(name, parent);
+        parent = nestedRb.Resource;
+    }
 }
 
 var serviceBuilder = builder.AddProject<Projects.Stress_ApiService>("stress-apiservice", launchProfileName: null);
@@ -27,11 +39,19 @@ serviceBuilder.WithCommand(
     iconName: "CloudDatabase",
     isHighlighted: true);
 
-for (var i = 0; i < 30; i++)
+serviceBuilder.WithHttpEndpoint(5180, name: $"http");
+for (var i = 1; i <= 30; i++)
 {
     var port = 5180 + i;
     serviceBuilder.WithHttpEndpoint(port, name: $"http-{port}");
 }
+
+serviceBuilder.WithHttpCommand("/write-console", "Write to console", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
+serviceBuilder.WithHttpCommand("/increment-counter", "Increment counter", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
+serviceBuilder.WithHttpCommand("/big-trace", "Big trace", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
+serviceBuilder.WithHttpCommand("/trace-limit", "Trace limit", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
+serviceBuilder.WithHttpCommand("/log-message", "Log message", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
+serviceBuilder.WithHttpCommand("/log-message-limit", "Log message limit", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
 
 builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice");
 
