@@ -19,7 +19,7 @@ public class LogEntriesTests
     private static void AddLogLine(LogEntries logEntries, string content, bool isError)
     {
         var logParser = new LogParser();
-        var logEntry = logParser.CreateLogEntry(content, isError);
+        var logEntry = logParser.CreateLogEntry(content, content, isError);
         logEntries.InsertSorted(logEntry);
     }
 
@@ -241,7 +241,7 @@ public class LogEntriesTests
         var parser = new LogParser();
 
         // Act
-        var entry = parser.CreateLogEntry("\x1b[36mhttps://www.example.com\u001b[0m", isErrorOutput: false);
+        var entry = parser.CreateLogEntry("\x1b[36mhttps://www.example.com\u001b[0m", string.Empty, isErrorOutput: false);
 
         // Assert
         Assert.Equal("<span class=\"ansi-fg-cyan\"></span><a target=\"_blank\" href=\"https://www.example.com\">https://www.example.com</a>", entry.Content);

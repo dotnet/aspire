@@ -10,7 +10,7 @@ internal sealed class LogParser
 {
     private AnsiParser.ParserState? _residualState;
 
-    public LogEntry CreateLogEntry(string rawText, bool isErrorOutput)
+    public LogEntry CreateLogEntry(string rawMessageContent, string rawLineContent, bool isErrorOutput)
     {
         // Several steps to do here:
         //
@@ -20,7 +20,7 @@ internal sealed class LogParser
         // 4. Parse the content to look for URLs and make them links if possible
         // 5. Create the LogEntry
 
-        var content = rawText;
+        var content = rawMessageContent;
 
         // 1. Parse the content to look for the timestamp
         DateTime? timestamp = null;
@@ -61,6 +61,7 @@ internal sealed class LogParser
         {
             Timestamp = timestamp,
             Content = content,
+            RawContent = rawLineContent,
             Type = isErrorOutput ? LogEntryType.Error : LogEntryType.Default
         };
 

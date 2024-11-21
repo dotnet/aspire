@@ -13,16 +13,22 @@ internal sealed class LogEntry
 #endif
 {
     public string? Content { get; set; }
+
+    /// <summary>
+    /// The text content of the log entry. This is the same as <see cref="Content"/>, but without embedded links or other transformations and including the timestamp.
+    /// </summary>
+    public string? RawContent { get; set; }
     public DateTime? Timestamp { get; set; }
     public LogEntryType Type { get; init; } = LogEntryType.Default;
     public int LineNumber { get; set; }
 
-    public static LogEntry Create(DateTime? timestamp, string logMessage, bool isErrorMessage)
+    public static LogEntry Create(DateTime? timestamp, string logMessage, string rawLogContent, bool isErrorMessage)
     {
         return new LogEntry
         {
             Timestamp = timestamp,
             Content = logMessage,
+            RawContent = rawLogContent,
             Type = isErrorMessage ? LogEntryType.Error : LogEntryType.Default
         };
     }

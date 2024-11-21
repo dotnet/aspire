@@ -337,7 +337,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                             _logEntries.BaseLineNumber = lineNumber;
                         }
 
-                        var logEntry = logParser.CreateLogEntry(content, isErrorOutput);
+                        var logEntry = logParser.CreateLogEntry(content, content, isErrorOutput);
                         _logEntries.InsertSorted(logEntry);
                     }
 
@@ -408,8 +408,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     private async Task DownloadLogsAsync()
     {
-        // todo fix this to get correct log content
-        var logContent = string.Join(Environment.NewLine, _logEntries.GetEntries().Select(entry => entry.Content));
+        // Strip control sequences from log lines before combining them into a single string.
+        var formattedLines = _logEntries.GetEntries().Select(entry => entry.RawContent is null ? null : AnsiParser.StripControlSequences(entry.RawContent));
+        var logContent = string.Join(Environment.NewLine, formattedLines);
 
         var stream = new MemoryStream(Encoding.UTF8.GetBytes(logContent));
         using var streamReference = new DotNetStreamReference(stream);

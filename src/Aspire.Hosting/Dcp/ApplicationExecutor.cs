@@ -521,7 +521,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                 timestamp = result.Value.Timestamp.UtcDateTime;
                             }
 
-                            logger(LogEntry.Create(timestamp, resolvedContent, isError));
+                            logger(LogEntry.Create(timestamp, resolvedContent, content, isError));
                         }
                     }
                 }
