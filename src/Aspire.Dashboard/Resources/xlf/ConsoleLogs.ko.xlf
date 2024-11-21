@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ko" original="../ConsoleLogs.resx">
     <body>
+      <trans-unit id="ConsoleLogsActions">
+        <source>Actions</source>
+        <target state="new">Actions</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConsoleLogsFailedToInitialize">
         <source>Failed to initialize</source>
         <target state="translated">초기화 실패</target>
@@ -55,6 +60,11 @@
       <trans-unit id="ConsoleLogsWatchingLogs">
         <source>Watching logs...</source>
         <target state="translated">로그를 보는 중...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DownloadLogs">
+        <source>Download logs</source>
+        <target state="new">Download logs</target>
         <note />
       </trans-unit>
       <trans-unit id="LogStatusLabel">

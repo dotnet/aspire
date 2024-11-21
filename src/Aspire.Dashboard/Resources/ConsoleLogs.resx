@@ -135,4 +135,10 @@
   <data name="LogStatusLabel" xml:space="preserve">
     <value>Service log status</value>
   </data>
+  <data name="ConsoleLogsActions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="DownloadLogs" xml:space="preserve">
+    <value>Download logs</value>
+  </data>
 </root>

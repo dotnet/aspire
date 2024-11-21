@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Text;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.ConsoleLogs;
@@ -17,6 +18,7 @@ using Aspire.Hosting.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -57,6 +59,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     [Inject]
     public required IStringLocalizer<ControlsStrings> ControlsStringsLoc { get; init; }
+
+    [Inject]
+    public required IJSRuntime JS { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
@@ -399,6 +404,18 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             _consoleLogsSubscription = null;
         }
+    }
+
+    private async Task DownloadLogsAsync()
+    {
+        // todo fix this to get correct log content
+        var logContent = string.Join(Environment.NewLine, _logEntries.GetEntries().Select(entry => entry.Content));
+
+        var stream = new MemoryStream(Encoding.UTF8.GetBytes(logContent));
+        using var streamReference = new DotNetStreamReference(stream);
+        var fileName = $"{PageViewModel.SelectedResource!.DisplayName}-logs.txt";
+
+        await JS.InvokeVoidAsync("downloadStreamAsFile", fileName, streamReference);
     }
 
     public async ValueTask DisposeAsync()
