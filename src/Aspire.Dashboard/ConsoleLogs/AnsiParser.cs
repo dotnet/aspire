@@ -21,6 +21,24 @@ public class AnsiParser
     private const int XtermForegroundSequenceCode = 38;
     private const int XtermBackgroundSequenceCode = 48;
 
+    public static string StripControlSequences(string text)
+    {
+        var span = text.AsSpan();
+        var outputBuilder = new StringBuilder();
+
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (IsConEmuSequence(span[i..], ref i) || IsControlSequence(span[i..], ref i, out _, out _) || IsLinkControlSequence(span[i..], ref i, out _))
+            {
+                continue;
+            }
+
+            outputBuilder.Append(text[i]);
+        }
+
+        return outputBuilder.ToString();
+    }
+
     public static ConversionResult ConvertToHtml(string? text, ParserState? priorResidualState = null)
     {
         var textStartIndex = -1;

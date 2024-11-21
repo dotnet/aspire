@@ -313,4 +313,28 @@ public class AnsiParserTests
 
         Assert.Equal(expectedOutput, result.ConvertedText);
     }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("This is some text without any codes")]
+    [InlineData("This is some text \x1C with an invalid code")]
+    public void StripControlSequences_ReturnsInputUnchangedIfNoCodesPresent(string input)
+    {
+        var expectedOutput = input;
+        var result = AnsiParser.StripControlSequences(input);
+
+        Assert.Equal(expectedOutput, result);
+    }
+
+    [Theory]
+    [InlineData("\x1B[31mError:\x1B[0m \x1B[1m\x1B[4mFile not found\x1B[0m in directory \x1B[34m/home/user/docs\x1B[0m", "Error: File not found in directory /home/user/docs")]
+    [InlineData("\x1B[32mSuccess:\x1B[0m \x1B[1m\x1B[3mOperation completed successfully\x1B[0m", "Success: Operation completed successfully")]
+    [InlineData("\x1B[33mWarning:\x1B[0m \x1B[4mLow disk space\x1B[0m on drive \x1B[35mC:\x1B[0m", "Warning: Low disk space on drive C:")]
+    [InlineData("\x1B[36mInfo:\x1B[0m \x1B[1m\x1B[3mBackup completed\x1B[0m at \x1B[32m12:00 PM\x1B[0m", "Info: Backup completed at 12:00 PM")]
+    public void StripControlSequences_StripsCorrectly(string input, string expectedOutput)
+    {
+        var result = AnsiParser.StripControlSequences(input);
+        Assert.Equal(expectedOutput, result);
+    }
 }
