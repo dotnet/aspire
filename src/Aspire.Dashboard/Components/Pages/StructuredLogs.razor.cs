@@ -105,7 +105,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private async ValueTask<GridItemsProviderResult<OtlpLogEntry>> GetData(GridItemsProviderRequest<OtlpLogEntry> request)
     {
         ViewModel.StartIndex = request.StartIndex;
-        ViewModel.Count = request.Count;
+        ViewModel.Count = request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount;
 
         var logs = ViewModel.GetLogs();
 

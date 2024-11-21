@@ -254,11 +254,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             .ToList();
 
         // Paging visible resources.
-        var query = orderedResources.Skip(request.StartIndex);
-        if (request.Count != null)
-        {
-            query = query.Take(request.Count.Value);
-        }
+        var query = orderedResources
+            .Skip(request.StartIndex)
+            .Take(request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount);
 
         return ValueTask.FromResult(GridItemsProviderResult.From(query.ToList(), orderedResources.Count));
     }
