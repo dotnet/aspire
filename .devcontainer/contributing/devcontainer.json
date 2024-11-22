@@ -44,7 +44,8 @@
 				"ms-azuretools.azure-dev"
 			],
 			"settings": {
-				"remote.autoForwardPorts": false,
+				"remote.autoForwardPorts": true,
+				"remote.autoForwardPortsSource": "output",
 				"dotnet.defaultSolution": "Aspire.sln"
 			}
 		}

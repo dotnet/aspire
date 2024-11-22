@@ -84,6 +84,7 @@ internal sealed class DevcontainerPortForwardingLifecycleHook : IDistributedAppl
 
                 portAttributes["label"] = label;
                 portAttributes["protocol"] = endpoint.UriScheme;
+                portAttributes["onAutoForward"] = "notify";
 
                 urlsToAnnounce.Add(endpoint.AllocatedEndpoint!.UriString);
             }
