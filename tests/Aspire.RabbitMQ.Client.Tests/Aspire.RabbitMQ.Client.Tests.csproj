@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <DefineConstants>$(DefineConstants);RABBITMQ_V6</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
