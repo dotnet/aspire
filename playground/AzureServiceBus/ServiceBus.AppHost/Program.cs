@@ -1,8 +1,8 @@
+using System.Text.Json.Nodes;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
-var serviceBus = builder.AddAzureServiceBus("sbemulator")
-    .RunAsEmulator() // Comment to deploy and use the Azure cloud
-    ;
+var serviceBus = builder.AddAzureServiceBus("sbemulator");
 
 serviceBus
     .AddQueue("myQueue", queue =>
@@ -50,6 +50,11 @@ serviceBus
     //    };
     //})
     ;
+
+serviceBus.RunAsEmulator(configure => configure.ConfigureJson(document =>
+{
+    document["UserConfig"]!["Logging"] = new JsonObject { ["Type"] = "Console" };
+}));
 
 builder.AddProject<Projects.ServiceBusWorker>("worker")
     .WithReference(serviceBus).WaitFor(serviceBus);

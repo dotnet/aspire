@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.ServiceBus;
@@ -257,6 +258,12 @@ public static class AzureServiceBusExtensions
 
         var password = PasswordGenerator.Generate(16, true, true, true, true, 0, 0, 0, 0);
 
+        var customMountAnnotation = new ContainerMountAnnotation(
+                configHostFile,
+                AzureServiceBusEmulatorResource.EmulatorConfigJsonPath,
+                ContainerMountType.BindMount,
+                isReadOnly: false);
+
         builder
             .WithEndpoint(name: "emulator", targetPort: 5672)
             .WithAnnotation(new ContainerImageAnnotation
@@ -265,11 +272,7 @@ public static class AzureServiceBusExtensions
                 Image = ServiceBusEmulatorContainerImageTags.Image,
                 Tag = ServiceBusEmulatorContainerImageTags.Tag
             })
-            .WithAnnotation(new ContainerMountAnnotation(
-                configHostFile,
-                AzureServiceBusEmulatorResource.EmulatorConfigJsonPath,
-                ContainerMountType.BindMount,
-                isReadOnly: false));
+            .WithAnnotation(customMountAnnotation);
 
         var sqlEdgeResource = builder.ApplicationBuilder
                 .AddContainer($"{builder.Resource.Name}-sqledge",
@@ -336,8 +339,13 @@ public static class AzureServiceBusExtensions
             foreach (var emulatorResource in serviceBusEmulatorResources)
             {
                 // A custom file mount with read-only access is used to mount the emulator configuration file. If it's not found, the read-write mount we defined on the container is used.
-                var configFileMount = emulatorResource.Annotations.OfType<ContainerMountAnnotation>().FirstOrDefault(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath && v.IsReadOnly)
-                    ?? emulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath);
+                var configFileMount = emulatorResource.Annotations.OfType<ContainerMountAnnotation>().LastOrDefault(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath);
+
+                // If the latest mount for EmulatorConfigJsonPath is our custom one then we can generate it.
+                if (configFileMount != customMountAnnotation)
+                {
+                    continue;
+                }
 
                 using var stream = new FileStream(configFileMount.Source!, FileMode.Create);
                 using var writer = new Utf8JsonWriter(stream);
@@ -411,6 +419,37 @@ public static class AzureServiceBusExtensions
 
             }
 
+            // Apply ConfigJsonAnnotation modifications
+            foreach (var emulatorResource in serviceBusEmulatorResources)
+            {
+                var configFileMount = emulatorResource.Annotations.OfType<ContainerMountAnnotation>().LastOrDefault(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath);
+
+                // At this point there should be a mount for the Config.json file.
+                if (configFileMount == null)
+                {
+                    throw new InvalidOperationException("The configuration file mount is not set.");
+                }
+
+                var configJsonAnnotations = emulatorResource.Annotations.OfType<ConfigJsonAnnotation>();
+
+                foreach (var annotation in configJsonAnnotations)
+                {
+                    using var readStream = new FileStream(configFileMount.Source!, FileMode.Open, FileAccess.Read);
+                    var jsonObject = JsonNode.Parse(readStream);
+                    readStream.Close();
+
+                    using var writeStream = new FileStream(configFileMount.Source!, FileMode.Open, FileAccess.Write);
+                    using var writer = new Utf8JsonWriter(writeStream);
+
+                    if (jsonObject == null)
+                    {
+                        throw new InvalidOperationException("The configuration file mount could not be parsed.");
+                    }
+                    annotation.Configure(jsonObject);
+                    jsonObject.WriteTo(writer);
+                }
+            }
+
             return Task.CompletedTask;
 
         });
@@ -443,7 +482,23 @@ public static class AzureServiceBusExtensions
     /// <param name="path">Path to the file on the AppHost where the emulator configuration is located.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusEmulatorResource> WithConfigJson(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, string path)
-    => builder.WithBindMount(path, AzureServiceBusEmulatorResource.EmulatorConfigJsonPath, isReadOnly: true);
+    => builder.WithBindMount(path, AzureServiceBusEmulatorResource.EmulatorConfigJsonPath, isReadOnly: false);
+
+    /// <summary>
+    /// Alters the JSON configuration document used by the emulator.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="AzureServiceBusEmulatorResource"/>.</param>
+    /// <param name="configJson">A callback to update the JSON object representation of the configuration.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureServiceBusEmulatorResource> ConfigureJson(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, Action<JsonNode> configJson)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configJson);
+
+        builder.WithAnnotation(new ConfigJsonAnnotation(configJson));
+
+        return builder;
+    }
 
     /// <summary>
     /// Configures the gateway port for the Azure Service Bus emulator.
