@@ -1,5 +1,7 @@
 using OrderProcessor;
 
+System.Diagnostics.Debugger.Launch();
+
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddServiceDefaults();
