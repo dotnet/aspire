@@ -131,7 +131,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        var channel = Channel.CreateBounded<DateTimeOffset>(3);
+        var channel = Channel.CreateUnbounded<DateTimeOffset>();
 
         var timeProvider = new FakeTimeProvider(DateTimeOffset.Now);
 
@@ -158,18 +158,19 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         }).DefaultTimeout();
         await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, abortTokenSource.Token).DefaultTimeout();
 
-        var firstCheck = await channel.Reader.ReadAsync(abortTokenSource.Token);
+        var firstCheck = await channel.Reader.ReadAsync(abortTokenSource.Token).DefaultTimeout();
         timeProvider.Advance(TimeSpan.FromSeconds(5));
 
-        var secondCheck = await channel.Reader.ReadAsync(abortTokenSource.Token);
+        var secondCheck = await channel.Reader.ReadAsync(abortTokenSource.Token).DefaultTimeout();
         timeProvider.Advance(TimeSpan.FromSeconds(5));
 
-        var thirdCheck = await channel.Reader.ReadAsync(abortTokenSource.Token);
+        var thirdCheck = await channel.Reader.ReadAsync(abortTokenSource.Token).DefaultTimeout();
 
         await app.StopAsync(abortTokenSource.Token).DefaultTimeout();
 
         // Allow some buffer.
-        Assert.True(thirdCheck - firstCheck < TimeSpan.FromSeconds(20));
+        var duration = thirdCheck - firstCheck;
+        Assert.Equal(TimeSpan.FromSeconds(10), duration);
     }
 
     [Fact]
