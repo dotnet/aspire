@@ -168,7 +168,6 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
 
         await app.StopAsync(abortTokenSource.Token).DefaultTimeout();
 
-        // Allow some buffer.
         var duration = thirdCheck - firstCheck;
         Assert.Equal(TimeSpan.FromSeconds(10), duration);
     }
