@@ -4,7 +4,13 @@
 using System.Diagnostics;
 using System.Text;
 using System.Threading.Channels;
+using Grpc.Core;
+using Grpc.Net.Client;
 using Microsoft.AspNetCore.Mvc;
+using OpenTelemetry.Proto.Collector.Logs.V1;
+using OpenTelemetry.Proto.Common.V1;
+using OpenTelemetry.Proto.Logs.V1;
+using OpenTelemetry.Proto.Resource.V1;
 using Stress.ApiService;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -223,6 +229,56 @@ app.MapGet("/duplicate-spanid", async () =>
     span2?.Stop();
 
     return $"Created duplicate span IDs.";
+});
+
+app.MapGet("/log-entry-nobody", async (IConfiguration configuration) =>
+{
+    var channel = GrpcChannel.ForAddress(configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]!);
+
+    var resource = new Resource();
+    resource.Attributes.Add(new KeyValue { Key = "service.name", Value = new AnyValue { StringValue = configuration["OTEL_SERVICE_NAME"]! } });
+
+    foreach (var item in configuration["OTEL_RESOURCE_ATTRIBUTES"]!.Split(';'))
+    {
+        var headerParts = item.Split('=');
+
+        resource.Attributes.Add(new KeyValue { Key = headerParts[0], Value = new AnyValue { StringValue = headerParts[1] } });
+    }
+
+    var metadata = new Metadata();
+    foreach (var item in configuration["OTEL_EXPORTER_OTLP_HEADERS"]!.Split(';'))
+    {
+        var headerParts = item.Split('=');
+
+        metadata.Add(headerParts[0], headerParts[1]);
+    }
+
+    var client = new LogsService.LogsServiceClient(channel);
+    var response = await client.ExportAsync(new ExportLogsServiceRequest
+    {
+        ResourceLogs =
+        {
+            new ResourceLogs
+            {
+                Resource = resource,
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = new InstrumentationScope { Name = "NoBodySource" },
+                        LogRecords =
+                        {
+                            new LogRecord
+                            {
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }, metadata);
+
+    return response.PartialSuccess?.RejectedLogRecords > 0 ? "Failure" : "Success";
 });
 
 app.Run();

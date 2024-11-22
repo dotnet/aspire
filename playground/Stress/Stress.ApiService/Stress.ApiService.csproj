@@ -16,4 +16,11 @@
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Grpc.Tools" />
+    <Protobuf Include="..\..\..\src\Aspire.Dashboard\Otlp\**\*.proto">
+      <ProtoRoot>..\..\..\src\Aspire.Dashboard\Otlp</ProtoRoot>
+    </Protobuf>
+  </ItemGroup>
+
 </Project>
