@@ -68,6 +68,7 @@ public partial class TraceDetail : ComponentBase, IDisposable
             _peerChangesSubscriptions.Add(resolver.OnPeerChanges(async () =>
             {
                 UpdateDetailViewData();
+                await InvokeAsync(StateHasChanged);
                 await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             }));
         }
@@ -115,8 +116,14 @@ public partial class TraceDetail : ComponentBase, IDisposable
 
     protected override async Task OnParametersSetAsync()
     {
-        UpdateDetailViewData();
-        UpdateSubscription();
+        if (TraceId != _trace?.TraceId)
+        {
+            UpdateDetailViewData();
+            UpdateSubscription();
+
+            // Update data grid to support navigating between traces via span links.
+            await _dataGrid.SafeRefreshDataAsync();
+        }
 
         if (SpanId is not null && _spanWaterfallViewModels is not null)
         {
@@ -135,17 +142,18 @@ public partial class TraceDetail : ComponentBase, IDisposable
     {
         _applications = TelemetryRepository.GetApplications();
 
-        _trace = null;
+        _trace = (TraceId != null) ? TelemetryRepository.GetTrace(TraceId) : null;
 
-        if (TraceId is not null)
+        if (_trace == null)
         {
-            _trace = TelemetryRepository.GetTrace(TraceId);
-            if (_trace is { } trace)
-            {
-                _spanWaterfallViewModels = SpanWaterfallViewModel.Create(trace, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers, _collapsedSpanIds));
-                _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
-            }
+            _spanWaterfallViewModels = null;
+            _maxDepth = 0;
+            return;
         }
+
+        _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers, _collapsedSpanIds));
+        _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
+        return;
     }
 
     private void UpdateSubscription()
@@ -162,6 +170,7 @@ public partial class TraceDetail : ComponentBase, IDisposable
             _tracesSubscription = TelemetryRepository.OnNewTraces(_trace.FirstSpan.Source.ApplicationKey, SubscriptionType.Read, () => InvokeAsync(async () =>
             {
                 UpdateDetailViewData();
+                await InvokeAsync(StateHasChanged);
                 await _dataGrid.SafeRefreshDataAsync();
             }));
         }
