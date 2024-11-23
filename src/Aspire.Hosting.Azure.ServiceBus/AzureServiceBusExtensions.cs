@@ -7,9 +7,9 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.ServiceBus;
 using Aspire.Hosting.Utils;
-using Azure.Messaging.ServiceBus;
 using Azure.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using AzureProvisioning = Azure.Provisioning.ServiceBus;
 
 namespace Aspire.Hosting;
@@ -292,11 +292,20 @@ public static class AzureServiceBusExtensions
             context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", password);
         }));
 
-        ServiceBusClient? client = null;
         string? connectionString = null;
+        string[]? queueNames = null;
+        string[]? topicNames = null;
 
         builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(builder.Resource, async (@event, ct) =>
         {
+            var serviceBusEmulatorResources = builder.ApplicationBuilder.Resources.OfType<AzureServiceBusResource>().Where(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
+
+            if (!serviceBusEmulatorResources.Any())
+            {
+                // No-op if there is no Azure Service Bus emulator resource.
+                return;
+            }
+
             connectionString = await builder.Resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
 
             if (connectionString == null)
@@ -304,20 +313,11 @@ public static class AzureServiceBusExtensions
                 throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
             }
 
-            client = new ServiceBusClient(connectionString);
+            queueNames = serviceBusEmulatorResources.SelectMany(x => x.Queues).Select(x => x.Name).ToArray();
+            topicNames = serviceBusEmulatorResources.SelectMany(x => x.Topics).Select(x => x.Name).ToArray();
         });
 
         var healthCheckKey = $"{builder.Resource.Name}_check";
-        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureServiceBusQueue(connectionStringFactory: sp =>
-        {
-            return connectionString ?? throw new InvalidOperationException("ServiceBusClient is not initialized.");
-        }, queueNameFactory: sp =>
-        {
-            var queueName = builder.Resource.Queues[0].Name;
-            return queueName ?? throw new InvalidOperationException("Queue name is not initialized.");
-        }, name: healthCheckKey);
-
-        builder.WithHealthCheck(healthCheckKey);
 
         if (configureContainer != null)
         {
@@ -325,6 +325,22 @@ public static class AzureServiceBusExtensions
             var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
             configureContainer(surrogateBuilder);
         }
+
+        // To use the existing ServiceBus health check we would need to know if there is any queue or topic defined.
+        // We can register a health check for a queue and then no-op if there are no queues. Same for topics. This custom
+        // can be registered and will then iterate over the queues and topics. If no queues or no topics are defined
+        // then the health check will be successful.
+
+        builder.ApplicationBuilder.Services.AddHealthChecks()
+          .Add(new HealthCheckRegistration(
+              healthCheckKey,
+              sp => new ServiceBusHealthCheck(
+                  () => connectionString ?? throw new DistributedApplicationException($"{nameof(connectionString)} was not initialized."),
+                  () => queueNames ?? throw new DistributedApplicationException($"{nameof(queueNames)} was not initialized."),
+                  () => topicNames ?? throw new DistributedApplicationException($"{nameof(topicNames)} was not initialized.")),
+              failureStatus: default,
+              tags: default,
+              timeout: default));
 
         builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
         {
@@ -354,7 +370,7 @@ public static class AzureServiceBusExtensions
                 writer.WriteStartObject("UserConfig");          //   "UserConfig": {
                 writer.WriteStartArray("Namespaces");           //     "Namespaces": [
                 writer.WriteStartObject();                      //       {
-                writer.WriteString("Name", "sbemulatorns");     //         "Name": "sbemulatorns"
+                writer.WriteString("Name", emulatorResource.Name);
                 writer.WriteStartArray("Queues");               //         "Queues": [
 
                 foreach (var queue in emulatorResource.Queues)
