@@ -121,7 +121,8 @@ public partial class TraceDetail : ComponentBase, IDisposable
             UpdateDetailViewData();
             UpdateSubscription();
 
-            // Update data grid to support navigating between traces via span links.
+            // If parameters change after render then the grid is automatically updated.
+            // Explicitly update data grid to support navigating between traces via span links.
             await _dataGrid.SafeRefreshDataAsync();
         }
 
