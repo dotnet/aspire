@@ -129,6 +129,17 @@ public static class AzureServiceBusExtensions
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the queue.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name)
+    {
+        return builder.AddQueue(name, null);
+    }
+
+    /// <summary>
+    /// Adds an Azure Service Bus Queue resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// </summary>
+    /// <param name="builder">The Azure Service Bus resource builder.</param>
+    /// <param name="name">The name of the queue.</param>
     /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusQueue"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<ServiceBusQueue>? configure = null)
@@ -168,6 +179,18 @@ public static class AzureServiceBusExtensions
 
         builder.Resource.Topics.Add(topic);
         return builder;
+    }
+
+    /// <summary>
+    /// Adds an Azure Service Bus Subscription resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// </summary>
+    /// <param name="builder">The Azure Service Bus resource builder.</param>
+    /// <param name="topicName">The name of the topic.</param>
+    /// <param name="subscriptionName">The name of the subscription.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureServiceBusResource> AddSubscription(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName)
+    {
+        return builder.AddSubscription(topicName, subscriptionName, null);
     }
 
     /// <summary>
