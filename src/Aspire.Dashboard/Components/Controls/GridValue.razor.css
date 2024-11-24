@@ -15,14 +15,14 @@
     white-space: nowrap;
 }
 
-::deep .defaultHidden {
+::deep .grid-value .defaultHidden {
     opacity: 0;
     cursor: pointer;
     width: 0;
     display: inline-block;
 }
 
-::deep:hover .defaultHidden, ::deep:focus-within .defaultHidden {
+::deep:hover .grid-value .defaultHidden, ::deep:focus-within .grid-value .defaultHidden {
     opacity: 1;  /* safari has a bug where hover is not always called on an invisible element, so we use opacity instead */
     width: auto;
 }
