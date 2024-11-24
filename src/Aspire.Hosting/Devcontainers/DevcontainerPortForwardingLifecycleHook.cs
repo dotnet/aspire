@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
-using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Lifecycle;
@@ -13,9 +11,6 @@ namespace Aspire.Hosting.Devcontainers;
 
 internal sealed class DevcontainerPortForwardingLifecycleHook : IDistributedApplicationLifecycleHook
 {
-    private const string MachineSettingsPath = "/home/vscode/.vscode-remote/data/Machine/settings.json";
-    private const string PortAttributesFieldName = "remote.portsAttributes";
-
     private readonly ILogger _hostingLogger;
     private readonly IOptions<CodespacesOptions> _codespacesOptions;
     private readonly IOptions<DevcontainersOptions> _devcontainersOptions;
@@ -35,23 +30,17 @@ internal sealed class DevcontainerPortForwardingLifecycleHook : IDistributedAppl
             return;
         }
 
-        var settingsContent = await File.ReadAllTextAsync(MachineSettingsPath, cancellationToken).ConfigureAwait(false);
-        var settings = (JsonObject)JsonObject.Parse(settingsContent)!;
-
-        JsonObject? portsAttributes;
-        if (!settings.TryGetPropertyValue(PortAttributesFieldName, out var portsAttributesNode))
-        {
-            portsAttributes = new JsonObject();
-            settings.Add(PortAttributesFieldName, portsAttributes);
-        }
-        else
-        {
-            portsAttributes = (JsonObject)portsAttributesNode!;
-        }
-
-        var urlsToAnnounce = new List<string>();
         foreach (var resource in appModel.Resources)
         {
+            if (resource.Name == KnownResourceNames.AspireDashboard)
+            {
+                // We don't configure the dashboard here because if we print out the URL
+                // the dashboard will launch immediately but it hasn't actually started
+                // which would lead to a poor experience. So we'll let the dashboard
+                // URL writing logic call the helper directly.
+                continue;
+            }
+
             if (resource is not IResourceWithEndpoints resourceWithEndpoints)
             {
                 continue;
@@ -59,7 +48,7 @@ internal sealed class DevcontainerPortForwardingLifecycleHook : IDistributedAppl
 
             foreach (var endpoint in resourceWithEndpoints.Annotations.OfType<EndpointAnnotation>())
             {
-                if (_codespacesOptions.Value.IsCodespace && endpoint.UriScheme is not "https" or "http")
+                if (_codespacesOptions.Value.IsCodespace && !(endpoint.UriScheme is "https" or "http"))
                 {
                     // Codespaces only does port forwarding over HTTPS. If the protocol is not HTTP or HTTPS
                     // it cannot be forwarded because it can't intercept access to the endpoint without breaking
@@ -67,38 +56,18 @@ internal sealed class DevcontainerPortForwardingLifecycleHook : IDistributedAppl
                     continue;
                 }
 
-                var port = endpoint.AllocatedEndpoint!.Port.ToString(CultureInfo.InvariantCulture);
+                // TODO: This is inefficient because we are opening the file, parsing it, updating it
+                //       and writing it each time. Its like this for now beause I need to use the logic
+                //       in a few places (here and when we print out the Dashboard URL) - but will need
+                //       to come back and optimize this to support some kind of batching.
+                await DevcontainerPortForwardingHelper.SetPortAttributesAsync(
+                    endpoint.AllocatedEndpoint!.Port,
+                    endpoint.UriScheme,
+                    $"{resource.Name}-{endpoint.Name}",
+                    cancellationToken).ConfigureAwait(false);
 
-                JsonObject? portAttributes;
-                if (!portsAttributes.TryGetPropertyValue(port, out var portAttributeNode))
-                {
-                    portAttributes = new JsonObject();
-                    portsAttributes.Add(port, portAttributes);
-                }
-                else
-                {
-                    portAttributes = (JsonObject)portAttributeNode!;
-                }
-
-                var label = $"{resource.Name}-{endpoint.Name}";
-
-                portAttributes["label"] = label;
-                portAttributes["protocol"] = endpoint.UriScheme;
-                portAttributes["onAutoForward"] = "notify";
-
-                urlsToAnnounce.Add(endpoint.AllocatedEndpoint!.UriString);
+                _hostingLogger.LogInformation("Port forwarding: {Url}", endpoint.AllocatedEndpoint!.UriString);
             }
-        }
-
-        // Special case handling for the dashboard.
-        
-
-        settingsContent = settings.ToString();
-        await File.WriteAllTextAsync(MachineSettingsPath, settingsContent, cancellationToken).ConfigureAwait(false);
-
-        foreach (var urlToAnnounce in urlsToAnnounce)
-        {
-            _hostingLogger.LogInformation("Port forwarding: {Url}", urlToAnnounce);
         }
     }
 }
