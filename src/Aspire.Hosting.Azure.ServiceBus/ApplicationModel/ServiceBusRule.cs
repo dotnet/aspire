@@ -132,6 +132,7 @@ public class ServiceBusRule
 
         writer.WriteString(nameof(FilterType), rule.FilterType switch
         {
+            // The Emulator uses "Sql/Correlation" instead of "SqlFilter/CorrelationFilter" in the CDK (and Bicep template).
             ServiceBusFilterType.SqlFilter => "Sql",
             ServiceBusFilterType.CorrelationFilter => "Correlation",
             _ => throw new NotImplementedException()
@@ -155,6 +156,7 @@ public class ServiceBusRule
         }
         if (rule.CorrelationFilter.SendTo != null)
         {
+            // The CDK uses "SentTo" instead of "To" accepted in the Emulator (and Bicep template).
             writer.WriteString("To", rule.CorrelationFilter.SendTo);
         }
         if (rule.CorrelationFilter.ReplyTo != null)
@@ -163,6 +165,7 @@ public class ServiceBusRule
         }
         if (rule.CorrelationFilter.Subject != null)
         {
+            // The CDK uses "Subject" instead of "Label" accepted in Emulator (and Bicep template).
             writer.WriteString("Label", rule.CorrelationFilter.Subject);
         }
         if (rule.CorrelationFilter.SessionId != null)
