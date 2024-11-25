@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Hosting.Health;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -136,14 +137,17 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
 
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         builder.Services.AddHealthChecks().AddCheck("healthcheck_a",  () => HealthCheckResult.Healthy());
+        Console.WriteLine("here");
 
         var resource = builder.AddResource(new ParentResource("resource"))
             .WithHealthCheck("healthcheck_a");
 
         await using var app = await builder.BuildAsync(abortTokenSource.Token);
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        Console.WriteLine("here");
 
         await app.StartAsync(abortTokenSource.Token);
+        Console.WriteLine("here");
 
         await rns.PublishUpdateAsync(resource.Resource, s => s with
         {
@@ -157,9 +161,15 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         {
             State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
         });
+        Console.WriteLine("here");
 
         var healthyEvent = await rns.WaitForResourceHealthyAsync("resource", abortTokenSource.Token);
         Assert.Equal(HealthStatus.Healthy, healthyEvent.Snapshot.HealthStatus);
+
+        var healthCheckService = app.Services.GetRequiredService<ResourceHealthCheckService>();
+        var cts = healthCheckService.TokenByResourceName[resource.Resource.Name];
+
+        Assert.False(cts.IsCancellationRequested);
 
         // simulate "stopping" resource
         await rns.PublishUpdateAsync(resource.Resource, s => s with
@@ -167,8 +177,8 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
             State = new ResourceStateSnapshot(KnownResourceStates.Finished, null)
         });
 
-        // we should see the health reports' statuses now being set back to null
-        await rns.WaitForResourceAsync("resource", e => e.Snapshot.HealthReports.All(report => report.Status is null), abortTokenSource.Token);
+        // wait for the health check to be cancelled by ResourceHealthCheckService
+        cts.Token.WaitHandle.WaitOne();
 
         // if we start the resource again, we should see the health checks being run again
         await rns.PublishUpdateAsync(resource.Resource, s => s with
@@ -176,8 +186,12 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
             State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
         });
 
-        var healthyAfterRestartingEvent = await rns.WaitForResourceHealthyAsync("resource", abortTokenSource.Token);
-        Assert.Equal(HealthStatus.Healthy, healthyAfterRestartingEvent.Snapshot.HealthStatus);
+        while (!healthCheckService.TokenByResourceName.ContainsKey(resource.Resource.Name))
+        {
+            await Task.Delay(100, abortTokenSource.Token);
+        }
+
+        Assert.False(healthCheckService.TokenByResourceName[resource.Resource.Name].IsCancellationRequested);
 
         await app.StopAsync(abortTokenSource.Token);
     }

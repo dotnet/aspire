@@ -13,8 +13,8 @@ namespace Aspire.Hosting.Health;
 
 internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> logger, ResourceNotificationService resourceNotificationService, HealthCheckService healthCheckService, IServiceProvider services, IDistributedApplicationEventing eventing) : BackgroundService
 {
+    public Dictionary<string, CancellationTokenSource> TokenByResourceName { get; } = new(StringComparers.ResourceName);
     private readonly Dictionary<string, ResourceEvent> _latestEvents = new();
-    private readonly Dictionary<string, CancellationTokenSource> _monitoredResourcesWithToken = new();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -26,27 +26,18 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
             {
                 _latestEvents[resourceEvent.Resource.Name] = resourceEvent;
 
-                if (!_monitoredResourcesWithToken.ContainsKey(resourceEvent.Resource.Name) && resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running)
+                if (!TokenByResourceName.ContainsKey(resourceEvent.Resource.Name) && resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running)
                 {
                     var cts = new CancellationTokenSource();
                     var resourceMonitoringToken = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, cts.Token);
-                    _monitoredResourcesWithToken.Add(resourceEvent.Resource.Name, cts);
+                    TokenByResourceName.Add(resourceEvent.Resource.Name, cts);
 
                     _ = Task.Run(() => MonitorResourceHealthAsync(resourceEvent, resourceMonitoringToken.Token), resourceMonitoringToken.Token);
                 }
-                else if (_monitoredResourcesWithToken.TryGetValue(resourceEvent.Resource.Name, out var cts) && resourceEvent.Snapshot.State?.Text != KnownResourceStates.Running)
+                else if (TokenByResourceName.TryGetValue(resourceEvent.Resource.Name, out var cts) && resourceEvent.Snapshot.State?.Text != KnownResourceStates.Running)
                 {
+                    TokenByResourceName.Remove(resourceEvent.Resource.Name);
                     await cts.CancelAsync().ConfigureAwait(false);
-                    _monitoredResourcesWithToken.Remove(resourceEvent.Resource.Name);
-
-                    // Set all health report statuses to null when the resource is not running.
-                    await resourceNotificationService.PublishUpdateAsync(resourceEvent.Resource, s =>
-                    {
-                        return s with
-                        {
-                            HealthReports = [..s.HealthReports.Select(report => report with { Status = null })]
-                        };
-                    }).ConfigureAwait(false);
                 }
             }
         }
