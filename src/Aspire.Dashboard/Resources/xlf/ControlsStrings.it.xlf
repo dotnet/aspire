@@ -282,6 +282,11 @@
         <target state="translated">Valore</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceDetailsBackReferences">
+        <source>Back references</source>
+        <target state="new">Back references</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceDetailsEndpointsHeader">
         <source>Endpoints</source>
         <target state="translated">Endpoint</target>
@@ -292,9 +297,19 @@
         <target state="translated">Variabili di ambiente</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceDetailsReferences">
+        <source>References</source>
+        <target state="new">References</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceDetailsResourceHeader">
         <source>Resource</source>
         <target state="translated">Risorsa</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceDetailsTypeHeader">
+        <source>Type</source>
+        <target state="new">Type</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsVolumesHeader">
