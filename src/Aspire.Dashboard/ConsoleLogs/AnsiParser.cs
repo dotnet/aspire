@@ -23,17 +23,29 @@ public class AnsiParser
 
     public static string StripControlSequences(string text)
     {
-        var span = text.AsSpan();
         var outputBuilder = new StringBuilder();
+        var span = text.AsSpan();
+        var i = 0;
 
-        for (var i = 0; i < text.Length; i++)
+        while (i < text.Length)
         {
-            if (IsConEmuSequence(span[i..], ref i) || IsControlSequence(span[i..], ref i, out _, out _) || IsLinkControlSequence(span[i..], ref i, out _))
+            var nextEscapeIndex = text.IndexOf(EscapeChar, i);
+            if (nextEscapeIndex == -1)
             {
-                continue;
+                outputBuilder.Append(text[i..]);
+                break;
             }
 
-            outputBuilder.Append(text[i]);
+            // Append text before the escape sequence, then advance the cursor past the escape sequence
+            outputBuilder.Append(text[i..nextEscapeIndex]);
+            i = nextEscapeIndex;
+
+            IsConEmuSequence(span[i..], ref i);
+            IsControlSequence(span[i..], ref i, out _, out _);
+            IsLinkControlSequence(span[i..], ref i, out _);
+
+            i++;
+
         }
 
         return outputBuilder.ToString();
