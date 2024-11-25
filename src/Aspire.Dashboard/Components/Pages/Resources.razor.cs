@@ -51,13 +51,17 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     [SupplyParameterFromQuery]
     public string? VisibleTypes { get; set; }
 
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "resource")]
+    public string? ResourceName { get; set; }
+
     private ResourceViewModel? SelectedResource { get; set; }
 
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly ConcurrentDictionary<string, bool> _allResourceTypes = [];
     private readonly ConcurrentDictionary<string, bool> _visibleResourceTypes = new(StringComparers.ResourceName);
-    private readonly List<string> _expandedResourceNames = [];
+    private readonly HashSet<string> _expandedResourceNames = [];
     private string _filter = "";
     private bool _isTypeFilterVisible;
     private Task? _resourceSubscriptionTask;
@@ -254,11 +258,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             .ToList();
 
         // Paging visible resources.
-        var query = orderedResources.Skip(request.StartIndex);
-        if (request.Count != null)
-        {
-            query = query.Take(request.Count.Value);
-        }
+        var query = orderedResources
+            .Skip(request.StartIndex)
+            .Take(request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount);
 
         return ValueTask.FromResult(GridItemsProviderResult.From(query.ToList(), orderedResources.Count));
     }
@@ -282,6 +284,20 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         // Don't attempt to display more than 2 highlighted commands. Many commands will take up too much space.
         // Extra highlighted commands are still available in the menu.
         _maxHighlightedCount = Math.Min(maxHighlightedCount, 2);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ResourceName is not null)
+        {
+            if (_resourceByName.TryGetValue(ResourceName, out var selectedResource))
+            {
+                await ShowResourceDetailsAsync(selectedResource, buttonId: null);
+            }
+
+            // Navigate to remove ?resource=xxx in the URL.
+            NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(), new NavigationOptions { ReplaceHistoryEntry = true });
+        }
     }
 
     private bool ApplicationErrorCountsChanged(Dictionary<ApplicationKey, int> newApplicationUnviewedErrorCounts)
@@ -313,6 +329,24 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         else
         {
             SelectedResource = resource;
+
+            // Ensure that the selected resource is visible in the grid. All parents must be expanded.
+            var current = resource;
+            while (current != null)
+            {
+                if (current.GetResourcePropertyValue(KnownProperties.Resource.ParentName) is { Length: > 0 } value)
+                {
+                    if (_resourceByName.TryGetValue(value, out current))
+                    {
+                        _expandedResourceNames.Add(value);
+                        continue;
+                    }
+                }
+
+                break;
+            }
+
+            await _dataGrid.SafeRefreshDataAsync();
         }
     }
 
