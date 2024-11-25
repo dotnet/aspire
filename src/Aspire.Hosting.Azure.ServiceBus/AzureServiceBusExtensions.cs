@@ -159,9 +159,24 @@ public static class AzureServiceBusExtensions
     /// <param name="name">The name of the topic.</param>
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name)
     {
-        var topic = new ServiceBusTopic(Infrastructure.NormalizeBicepIdentifier(name), name);
+        return builder.AddTopic(name, configure: (topic) => { });
+    }
 
-        builder.Resource.Topics.Add(topic);
+    /// <summary>
+    /// Adds an Azure Service Bus Topic resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// </summary>
+    /// <param name="builder">The Azure Service Bus resource builder.</param>
+    /// <param name="name">The name of the topic.</param>
+    /// <param name="subscriptions">The name of the subscriptions.</param>
+    public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string[] subscriptions)
+    {
+        builder.AddTopic(name, configure: (topic) => { });
+
+        foreach (var subscription in subscriptions)
+        {
+            builder.AddSubscription(name, subscription);
+        }
+
         return builder;
     }
 
