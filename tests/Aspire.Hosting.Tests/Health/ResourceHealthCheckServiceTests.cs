@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Threading.Channels;
+using Aspire.Hosting.Health;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
@@ -135,18 +136,14 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task ResourcesWithHealthCheck_CancelsHealthChecksWhenResourceIsNoLongerRunning()
     {
-        var abortTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(120));
-
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         builder.Services.AddHealthChecks().AddCheck("healthcheck_a",  () => HealthCheckResult.Healthy());
-        Console.WriteLine("here");
 
         var resource = builder.AddResource(new ParentResource("resource"))
             .WithHealthCheck("healthcheck_a");
 
         await using var app = await builder.BuildAsync().DefaultTimeout();
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        Console.WriteLine("here");
 
         await app.StartAsync().DefaultTimeout();
 
@@ -163,7 +160,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
             State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
         });
 
-        var healthyEvent = await rns.WaitForResourceHealthyAsync("resource", abortTokenSource.Token);
+        var healthyEvent = await rns.WaitForResourceHealthyAsync("resource").DefaultTimeout();
         Assert.Equal(HealthStatus.Healthy, healthyEvent.Snapshot.HealthStatus);
 
         var healthCheckService = app.Services.GetRequiredService<ResourceHealthCheckService>();
@@ -186,6 +183,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
             State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
         });
 
+        var abortTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         while (!healthCheckService.TokenByResourceName.ContainsKey(resource.Resource.Name))
         {
             await Task.Delay(100, abortTokenSource.Token);

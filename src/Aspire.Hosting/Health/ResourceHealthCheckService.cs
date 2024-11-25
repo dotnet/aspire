@@ -26,18 +26,21 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
             {
                 _latestEvents[resourceEvent.Resource.Name] = resourceEvent;
 
-                if (!TokenByResourceName.ContainsKey(resourceEvent.Resource.Name) && resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running)
+                var isMonitoring = TokenByResourceName.TryGetValue(resourceEvent.Resource.Name, out var cts);
+                var isRunning = resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running;
+
+                if (!isMonitoring && isRunning)
                 {
-                    var cts = new CancellationTokenSource();
+                    cts = new CancellationTokenSource();
                     var resourceMonitoringToken = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, cts.Token);
                     TokenByResourceName.Add(resourceEvent.Resource.Name, cts);
 
                     _ = Task.Run(() => MonitorResourceHealthAsync(resourceEvent, resourceMonitoringToken.Token), resourceMonitoringToken.Token);
                 }
-                else if (TokenByResourceName.TryGetValue(resourceEvent.Resource.Name, out var cts) && resourceEvent.Snapshot.State?.Text != KnownResourceStates.Running)
+                else if (isMonitoring && !isRunning)
                 {
                     TokenByResourceName.Remove(resourceEvent.Resource.Name);
-                    await cts.CancelAsync().ConfigureAwait(false);
+                    await cts!.CancelAsync().ConfigureAwait(false);
                 }
             }
         }
