@@ -458,48 +458,6 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         };
     }
 
-    private static (string Value, string? ContentAfterValue, string ValueToCopy, string Tooltip)? GetSourceColumnValueAndTooltip(ResourceViewModel resource)
-    {
-        var executablePath = resource.TryGetExecutablePath(out var path) ? path : null;
-
-        (string? ArgumentsString, string FullCommandLine)? commandLineInfo = null;
-
-        if (resource.TryGetExecutableArguments(out var arguments))
-        {
-            var argumentsString = arguments.IsDefaultOrEmpty ? null : string.Join(" ", arguments);
-            commandLineInfo = (ArgumentsString: argumentsString, $"{executablePath} {argumentsString}");
-        }
-
-        // NOTE projects are also executables, so we have to check for projects first
-        if (resource.IsProject() && resource.TryGetProjectPath(out var projectPath))
-        {
-            if (commandLineInfo is { ArgumentsString: { } argumentsString, FullCommandLine: { } fullCommandLine })
-            {
-                return (Value: Path.GetFileName(executablePath)!, ContentAfterValue: argumentsString, ValueToCopy: fullCommandLine, Tooltip: fullCommandLine ?? projectPath);
-            }
-
-            // default to project path if there is no executable path or executable arguments
-            return (Value: Path.GetFileName(projectPath), ContentAfterValue: commandLineInfo?.ArgumentsString, ValueToCopy: projectPath, Tooltip: projectPath);
-        }
-
-        if (executablePath is not null)
-        {
-            return (Value: Path.GetFileName(executablePath), ContentAfterValue: commandLineInfo?.ArgumentsString, ValueToCopy: commandLineInfo?.FullCommandLine ?? string.Empty, Tooltip: commandLineInfo?.FullCommandLine ?? string.Empty);
-        }
-
-        if (resource.TryGetContainerImage(out var containerImage))
-        {
-            return (Value: containerImage, ContentAfterValue: null, ValueToCopy: containerImage, Tooltip: containerImage);
-        }
-
-        if (resource.Properties.TryGetValue(KnownProperties.Resource.Source, out var property) && property.Value is { HasStringValue: true, StringValue: var value })
-        {
-            return (Value: value, ContentAfterValue: null, ValueToCopy: value, Tooltip: value);
-        }
-
-        return null;
-    }
-
     private static string GetEndpointsTooltip(ResourceViewModel resource)
     {
         var displayedEndpoints = GetDisplayedEndpoints(resource);
