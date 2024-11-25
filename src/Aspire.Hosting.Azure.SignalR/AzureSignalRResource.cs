@@ -12,8 +12,16 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
 public class AzureSignalRResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
     AzureProvisioningResource(name, configureInfrastructure),
-    IResourceWithConnectionString
+    IResourceWithConnectionString,
+    IResourceWithEndpoints
 {
+
+    internal EndpointReference EmulatorEndpoint => new(this, "emulator");
+    /// <summary>
+    /// Gets a value indicating whether the Azure SignalR resource is running in the local emulator.
+    /// </summary>
+    public bool IsEmulator => this.IsContainer();
+
     /// <summary>
     /// Gets the "connectionString" output reference from the bicep template for Azure SignalR.
     /// </summary>
@@ -23,5 +31,7 @@ public class AzureSignalRResource(string name, Action<AzureResourceInfrastructur
     /// Gets the connection string template for the manifest for Azure SignalR.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"Endpoint=https://{HostName};AuthType=azure");
+        IsEmulator
+        ? ReferenceExpression.Create($"Endpoint={EmulatorEndpoint.Property(EndpointProperty.Scheme)}://{EmulatorEndpoint.Property(EndpointProperty.Host)}:{EmulatorEndpoint.Property(EndpointProperty.Port)};AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;")
+        : ReferenceExpression.Create($"Endpoint=https://{HostName};AuthType=azure");
 }
