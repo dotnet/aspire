@@ -17,6 +17,7 @@
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.SignalR" />
     <PackageReference Include="Microsoft.Azure.SignalR.Management" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
   </ItemGroup>
 
 </Project>
