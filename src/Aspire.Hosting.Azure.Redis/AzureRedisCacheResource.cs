@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
@@ -28,6 +29,9 @@ public class AzureRedisCacheResource(string name, Action<AzureResourceInfrastruc
     /// </summary>
     internal BicepSecretOutputReference? ConnectionStringSecretOutput { get; set; }
 
+    [MemberNotNullWhen(true, nameof(ConnectionStringSecretOutput))]
+    internal bool UseAccessKeyAuthentication => ConnectionStringSecretOutput is not null;
+
     /// <summary>
     /// Gets the inner Redis resource.
     /// 
@@ -43,7 +47,7 @@ public class AzureRedisCacheResource(string name, Action<AzureResourceInfrastruc
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         InnerResource?.ConnectionStringExpression ??
-            (ConnectionStringSecretOutput is not null ?
+            (UseAccessKeyAuthentication ?
                 ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
                 ReferenceExpression.Create($"{ConnectionStringOutput}"));
 

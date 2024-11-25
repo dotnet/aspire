@@ -25,7 +25,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
         _containerFixture = containerFixture;
         _connectionString = RequiresDockerAttribute.IsSupported
             ? _containerFixture.GetConnectionString()
-            : "nats://apire-host:4222";
+            : "nats://aspire-host:4222";
     }
 
     [Theory]
@@ -53,6 +53,35 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
             host.Services.GetRequiredService<INatsConnection>();
 
         Assert.Equal(_connectionString, connection.Opts.Url);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ConnectionStringCanContainUserAndPassword(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:nats", "nats://nats:password@aspire-host:4222")
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddKeyedNatsClient("nats");
+        }
+        else
+        {
+            builder.AddNatsClient("nats");
+        }
+
+        using var host = builder.Build();
+        var connection = useKeyed ?
+            host.Services.GetRequiredKeyedService<INatsConnection>("nats") :
+            host.Services.GetRequiredService<INatsConnection>();
+
+        Assert.Equal("nats://nats:password@aspire-host:4222", connection.Opts.Url);
+        Assert.Equal("nats", connection.Opts.AuthOpts.Username);
+        Assert.Equal("password", connection.Opts.AuthOpts.Password);
     }
 
     [Theory]

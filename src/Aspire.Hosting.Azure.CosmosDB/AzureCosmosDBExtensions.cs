@@ -33,7 +33,7 @@ public static class AzureCosmosExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var kvNameParam = new ProvisioningParameter("keyVaultName", typeof(string));
+            var kvNameParam = new ProvisioningParameter(AzureBicepResource.KnownParameters.KeyVaultName, typeof(string));
             infrastructure.Add(kvNameParam);
 
             var keyVault = KeyVaultService.FromExisting("keyVault");
@@ -65,7 +65,7 @@ public static class AzureCosmosExtensions
             List<CosmosDBSqlDatabase> cosmosSqlDatabases = new List<CosmosDBSqlDatabase>();
             foreach (var databaseName in azureResource.Databases)
             {
-                var cosmosSqlDatabase = new CosmosDBSqlDatabase(Infrastructure.NormalizeIdentifierName(databaseName))
+                var cosmosSqlDatabase = new CosmosDBSqlDatabase(Infrastructure.NormalizeBicepIdentifier(databaseName))
                 {
                     Parent = cosmosAccount,
                     Name = databaseName,
@@ -92,7 +92,6 @@ public static class AzureCosmosExtensions
 
         var resource = new AzureCosmosDBResource(name, configureInfrastructure);
         return builder.AddResource(resource)
-                      .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
@@ -184,7 +183,7 @@ public static class AzureCosmosExtensions
     /// <returns>A builder for the <see cref="AzureCosmosDBEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureCosmosDBEmulatorResource> WithDataVolume(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, string? name = null)
         => builder.WithEnvironment("AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE", "true")
-                  .WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/tmp/cosmos/appdata", isReadOnly: false);
+                  .WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/tmp/cosmos/appdata", isReadOnly: false);
 
     /// <summary>
     /// Configures the gateway port for the Azure Cosmos DB emulator.

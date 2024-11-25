@@ -246,7 +246,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var cosmos = builder.AddAzureCosmosDB("cosmos")
             .ConfigureInfrastructure(infrastructure =>
             {
-                callbackDatabases = infrastructure.GetResources().OfType<CosmosDBSqlDatabase>();
+                callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
             });
         cosmos.AddDatabase("mydatabase");
 
@@ -340,7 +340,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var cosmos = builder.AddAzureCosmosDB("cosmos")
             .ConfigureInfrastructure(infrastructure =>
             {
-                callbackDatabases = infrastructure.GetResources().OfType<CosmosDBSqlDatabase>();
+                callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
             });
         cosmos.AddDatabase("mydatabase");
 
@@ -446,8 +446,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "connectionString": "{appConfig.outputs.appConfigEndpoint}",
               "path": "appConfig.module.bicep",
               "params": {
-                "principalId": "",
-                "principalType": ""
+                "principalType": "",
+                "principalId": ""
               }
             }
             """;
@@ -457,9 +457,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param principalId string
-
             param principalType string
+
+            param principalId string
 
             resource appConfig 'Microsoft.AppConfiguration/configurationStores@2024-05-01' = {
               name: take('appConfig-${uniqueString(resourceGroup().id)}', 50)
@@ -774,8 +774,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var manifest = await ManifestUtils.GetManifest(infrastructure1.Resource);
 
         Assert.NotNull(moduleInfrastructure);
-        var infrastructureParameters = moduleInfrastructure.GetParameters().DistinctBy(x => x.IdentifierName);
-        var infrastructureParametersLookup = infrastructureParameters.ToDictionary(p => p.IdentifierName);
+        var infrastructureParameters = moduleInfrastructure.GetParameters().DistinctBy(x => x.BicepIdentifier);
+        var infrastructureParametersLookup = infrastructureParameters.ToDictionary(p => p.BicepIdentifier);
         Assert.True(infrastructureParametersLookup.ContainsKey("skuName"));
 
         var expectedManifest = """
@@ -813,8 +813,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var manifest = await ManifestUtils.GetManifest(infrastructure1.Resource);
 
         Assert.NotNull(moduleInfrastructure);
-        var infrastructureParameters = moduleInfrastructure.GetParameters().DistinctBy(x => x.IdentifierName);
-        var infrastructureParametersLookup = infrastructureParameters.ToDictionary(p => p.IdentifierName);
+        var infrastructureParameters = moduleInfrastructure.GetParameters().DistinctBy(x => x.BicepIdentifier);
+        var infrastructureParametersLookup = infrastructureParameters.ToDictionary(p => p.BicepIdentifier);
         Assert.True(infrastructureParametersLookup.ContainsKey("sku"));
 
         var expectedManifest = """
@@ -912,8 +912,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "connectionString": "{mykv.outputs.vaultUri}",
               "path": "mykv.module.bicep",
               "params": {
-                "principalId": "",
-                "principalType": ""
+                "principalType": "",
+                "principalId": ""
               }
             }
             """;
@@ -923,9 +923,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param principalId string
-
             param principalType string
+
+            param principalId string
 
             resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' = {
               name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
@@ -974,8 +974,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "connectionString": "{mykv.outputs.vaultUri}",
               "path": "mykv.module.bicep",
               "params": {
-                "principalId": "",
-                "principalType": ""
+                "principalType": "",
+                "principalId": ""
               }
             }
             """;
@@ -985,9 +985,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param principalId string
-
             param principalType string
+
+            param principalId string
 
             resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' = {
               name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
@@ -1036,8 +1036,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "connectionString": "Endpoint=https://{signalr.outputs.hostName};AuthType=azure",
               "path": "signalr.module.bicep",
               "params": {
-                "principalId": "",
-                "principalType": ""
+                "principalType": "",
+                "principalId": ""
               }
             }
             """;
@@ -1047,9 +1047,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param principalId string
-
             param principalType string
+
+            param principalId string
 
             resource signalr 'Microsoft.SignalRService/signalR@2024-03-01' = {
               name: take('signalr-${uniqueString(resourceGroup().id)}', 63)
@@ -1300,9 +1300,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "connectionString": "{postgres.secretOutputs.connectionString}",
               "path": "postgres.module.bicep",
               "params": {
-                "keyVaultName": "",
                 "administratorLogin": "{usr.value}",
-                "administratorLoginPassword": "{pwd.value}"
+                "administratorLoginPassword": "{pwd.value}",
+                "keyVaultName": ""
               }
             }
             """;
@@ -1418,9 +1418,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "connectionString": "{postgres.secretOutputs.connectionString}",
               "path": "postgres.module.bicep",
               "params": {
-                "keyVaultName": "",
                 "administratorLogin": "{usr.value}",
-                "administratorLoginPassword": "{pwd.value}"
+                "administratorLoginPassword": "{pwd.value}",
+                "keyVaultName": ""
               }
             }
             """;
@@ -1525,9 +1525,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "connectionString": "{postgres.secretOutputs.connectionString}",
               "path": "postgres.module.bicep",
               "params": {
-                "keyVaultName": "",
                 "administratorLogin": "{usr.value}",
-                "administratorLoginPassword": "{pwd.value}"
+                "administratorLoginPassword": "{pwd.value}",
+                "keyVaultName": ""
               }
             }
             """;
@@ -1550,9 +1550,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "connectionString": "{postgres1.secretOutputs.connectionString}",
               "path": "postgres1.module.bicep",
               "params": {
-                "keyVaultName": "",
                 "administratorLogin": "{postgres1-username.value}",
-                "administratorLoginPassword": "{postgres1-password.value}"
+                "administratorLoginPassword": "{postgres1-password.value}",
+                "keyVaultName": ""
               }
             }
             """;
@@ -1570,9 +1570,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "connectionString": "{postgres2.secretOutputs.connectionString}",
               "path": "postgres2.module.bicep",
               "params": {
-                "keyVaultName": "",
                 "administratorLogin": "{param.value}",
-                "administratorLoginPassword": "{postgres2-password.value}"
+                "administratorLoginPassword": "{postgres2-password.value}",
+                "keyVaultName": ""
               }
             }
             """;
@@ -1589,9 +1589,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "connectionString": "{postgres3.secretOutputs.connectionString}",
               "path": "postgres3.module.bicep",
               "params": {
-                "keyVaultName": "",
                 "administratorLogin": "{postgres3-username.value}",
-                "administratorLoginPassword": "{param.value}"
+                "administratorLoginPassword": "{param.value}",
+                "keyVaultName": ""
               }
             }
             """;
@@ -1626,8 +1626,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "connectionString": "{sb.outputs.serviceBusEndpoint}",
               "path": "sb.module.bicep",
               "params": {
-                "principalId": "",
-                "principalType": ""
+                "principalType": "",
+                "principalId": ""
               }
             }
             """;
@@ -1639,9 +1639,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param sku string = 'Standard'
 
-            param principalId string
-
             param principalType string
+
+            param principalId string
 
             resource sb 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
               name: take('sb-${uniqueString(resourceGroup().id)}', 50)
@@ -1712,8 +1712,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "connectionString": "{wps1.outputs.endpoint}",
               "path": "wps1.module.bicep",
               "params": {
-                "principalId": "",
-                "principalType": ""
+                "principalType": "",
+                "principalId": ""
               }
             }
             """;
@@ -1734,9 +1734,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param capacity int = 1
 
-            param principalId string
-
             param principalType string
+
+            param principalId string
 
             resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
               name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
@@ -1781,10 +1781,10 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "connectionString": "{wps1.outputs.endpoint}",
               "path": "wps1.module.bicep",
               "params": {
-                "principalId": "",
-                "principalType": "",
                 "sku": "Standard_S1",
-                "capacity": 2
+                "capacity": 2,
+                "principalType": "",
+                "principalId": ""
               }
             }
             """;
@@ -1801,9 +1801,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param capacity int = 1
 
-            param principalId string
-
             param principalType string
+
+            param principalId string
 
             resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
               name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
@@ -1879,7 +1879,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var storage = builder.AddAzureStorage("storage")
             .ConfigureInfrastructure(infrastructure =>
             {
-                var sa = infrastructure.GetResources().OfType<StorageAccount>().Single();
+                var sa = infrastructure.GetProvisionableResources().OfType<StorageAccount>().Single();
                 sa.Sku = new StorageSku()
                 {
                     Name = storagesku.AsProvisioningParameter(infrastructure)
@@ -1900,9 +1900,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "type": "azure.bicep.v0",
               "path": "storage.module.bicep",
               "params": {
-                "principalId": "",
+                "storagesku": "{storagesku.value}",
                 "principalType": "",
-                "storagesku": "{storagesku.value}"
+                "principalId": ""
               }
             }
             """;
@@ -1912,12 +1912,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param storagesku string
-
-            param principalId string
-
             param principalType string
-
+            
+            param principalId string
+            
+            param storagesku string
+            
             resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
               name: take('storage${uniqueString(resourceGroup().id)}', 24)
               kind: 'StorageV2'
@@ -2037,7 +2037,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var storage = builder.AddAzureStorage("storage")
             .ConfigureInfrastructure(infrastructure =>
             {
-                var sa = infrastructure.GetResources().OfType<StorageAccount>().Single();
+                var sa = infrastructure.GetProvisionableResources().OfType<StorageAccount>().Single();
                 sa.Sku = new StorageSku()
                 {
                     Name = storagesku.AsProvisioningParameter(infrastructure)
@@ -2059,9 +2059,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "type": "azure.bicep.v0",
               "path": "storage.module.bicep",
               "params": {
-                "principalId": "",
+                "storagesku": "{storagesku.value}",
                 "principalType": "",
-                "storagesku": "{storagesku.value}"
+                "principalId": ""
               }
             }
             """;
@@ -2071,11 +2071,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param storagesku string
+            param principalType string
 
             param principalId string
 
-            param principalType string
+            param storagesku string
 
             resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
               name: take('storage${uniqueString(resourceGroup().id)}', 24)
@@ -2196,7 +2196,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var storage = builder.AddAzureStorage("storage")
             .ConfigureInfrastructure(infrastructure =>
             {
-                var sa = infrastructure.GetResources().OfType<StorageAccount>().Single();
+                var sa = infrastructure.GetProvisionableResources().OfType<StorageAccount>().Single();
                 sa.Sku = new StorageSku()
                 {
                     Name = storagesku.AsProvisioningParameter(infrastructure)
@@ -2217,9 +2217,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "type": "azure.bicep.v0",
               "path": "storage.module.bicep",
               "params": {
-                "principalId": "",
+                "storagesku": "{storagesku.value}",
                 "principalType": "",
-                "storagesku": "{storagesku.value}"
+                "principalId": ""
               }
             }
             """;
@@ -2229,11 +2229,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param storagesku string
+            param principalType string
 
             param principalId string
 
-            param principalType string
+            param storagesku string
 
             resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
               name: take('storage${uniqueString(resourceGroup().id)}', 24)
@@ -2354,7 +2354,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var storage = builder.AddAzureStorage("storage")
             .ConfigureInfrastructure(infrastructure =>
             {
-                var sa = infrastructure.GetResources().OfType<StorageAccount>().Single();
+                var sa = infrastructure.GetProvisionableResources().OfType<StorageAccount>().Single();
                 sa.Sku = new StorageSku()
                 {
                     Name = storagesku.AsProvisioningParameter(infrastructure)
@@ -2376,9 +2376,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "type": "azure.bicep.v0",
               "path": "storage.module.bicep",
               "params": {
-                "principalId": "",
+                "storagesku": "{storagesku.value}",
                 "principalType": "",
-                "storagesku": "{storagesku.value}"
+                "principalId": ""
               }
             }
             """;
@@ -2388,12 +2388,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param storagesku string
-
-            param principalId string
-
             param principalType string
-
+            
+            param principalId string
+            
+            param storagesku string
+            
             resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
               name: take('storage${uniqueString(resourceGroup().id)}', 24)
               kind: 'StorageV2'
@@ -2514,7 +2514,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var search = builder.AddAzureSearch("search")
             .ConfigureInfrastructure(infrastructure =>
             {
-                var search = infrastructure.GetResources().OfType<SearchService>().Single();
+                var search = infrastructure.GetProvisionableResources().OfType<SearchService>().Single();
                 search.SearchSkuName = sku.AsProvisioningParameter(infrastructure);
             });
 
@@ -2539,9 +2539,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "connectionString": "{search.outputs.connectionString}",
               "path": "search.module.bicep",
               "params": {
-                "principalId": "",
+                "searchSku": "{searchSku.value}",
                 "principalType": "",
-                "searchSku": "{searchSku.value}"
+                "principalId": ""
               }
             }
             """;
@@ -2551,11 +2551,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param searchSku string
-
+            param principalType string
+            
             param principalId string
 
-            param principalType string
+            param searchSku string
 
             resource search 'Microsoft.Search/searchServices@2023-11-01' = {
               name: take('search-${uniqueString(resourceGroup().id)}', 60)
@@ -2636,12 +2636,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var openai = builder.AddAzureOpenAI("openai")
             .ConfigureInfrastructure(infrastructure =>
             {
-                aiDeployments = infrastructure.GetResources().OfType<CognitiveServicesAccountDeployment>();
+                aiDeployments = infrastructure.GetProvisionableResources().OfType<CognitiveServicesAccountDeployment>();
 
                 if (overrideLocalAuthDefault)
                 {
-                    var account = infrastructure.GetResources().OfType<CognitiveServicesAccount>().Single();
-                    account.Properties.Value!.DisableLocalAuth = false;
+                    var account = infrastructure.GetProvisionableResources().OfType<CognitiveServicesAccount>().Single();
+                    account.Properties.DisableLocalAuth = false;
                 }
             })
             .AddDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4))
@@ -2661,8 +2661,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               "connectionString": "{openai.outputs.connectionString}",
               "path": "openai.module.bicep",
               "params": {
-                "principalId": "",
-                "principalType": ""
+                "principalType": "",
+                "principalId": ""
               }
             }
             """;
@@ -2672,9 +2672,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param principalId string
-
             param principalType string
+
+            param principalId string
 
             resource openai 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
               name: take('openai-${uniqueString(resourceGroup().id)}', 64)
@@ -2781,24 +2781,17 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         })
         .ConfigureInfrastructure(r =>
         {
-            var vault = r.GetResources().OfType<KeyVaultService>().Single();
+            var vault = r.GetProvisionableResources().OfType<KeyVaultService>().Single();
             Assert.NotNull(vault);
 
             r.Add(new ProvisioningOutput("vaultUri", typeof(string))
             {
-                Value =
-                    new MemberExpression(
-                        new MemberExpression(
-                            new IdentifierExpression(vault.IdentifierName),
-                            "properties"),
-                        "vaultUri")
-                // TODO: this should be
-                //Value = keyVault.VaultUri
+                Value = vault.Properties.VaultUri
             });
         })
         .ConfigureInfrastructure(r =>
         {
-            var vault = r.GetResources().OfType<KeyVaultService>().Single();
+            var vault = r.GetProvisionableResources().OfType<KeyVaultService>().Single();
             Assert.NotNull(vault);
 
             r.Add(new KeyVaultSecret("secret")

@@ -26,14 +26,7 @@ public static class AzureSqlExtensions
 
         var resource = new AzureSqlServerResource(builder.Resource, configureInfrastructure);
         var azureSqlDatabase = builder.ApplicationBuilder.CreateResourceBuilder(resource);
-        azureSqlDatabase.WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                        .WithParameter(AzureBicepResource.KnownParameters.PrincipalName)
-                        .WithManifestPublishingCallback(resource.WriteToManifest);
-
-        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
-        {
-            azureSqlDatabase.WithParameter(AzureBicepResource.KnownParameters.PrincipalType);
-        }
+        azureSqlDatabase.WithManifestPublishingCallback(resource.WriteToManifest);
 
         if (useProvisioner)
         {
@@ -91,16 +84,7 @@ public static class AzureSqlExtensions
 
         var resource = new AzureSqlServerResource(name, configureInfrastructure);
         var azureSqlServer = builder.AddResource(resource)
-            .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-            .WithParameter(AzureBicepResource.KnownParameters.PrincipalName)
             .WithManifestPublishingCallback(resource.WriteToManifest);
-
-        if (builder.ExecutionContext.IsRunMode)
-        {
-            // When in run mode we inject the users identity and we need to specify
-            // the principalType.
-            azureSqlServer.WithParameter(AzureBicepResource.KnownParameters.PrincipalType);
-        }
 
         return azureSqlServer;
     }
@@ -212,7 +196,10 @@ public static class AzureSqlExtensions
         IReadOnlyDictionary<string, string> databases)
     {
         var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+        infrastructure.Add(principalIdParameter);
         var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
+        infrastructure.Add(principalNameParameter);
+
         var sqlServer = new SqlServer(infrastructure.AspireResource.GetBicepIdentifier())
         {
             Administrators = new ServerExternalAdministrator()
@@ -243,7 +230,8 @@ public static class AzureSqlExtensions
             // When in run mode we inject the users identity and we need to specify
             // the principalType.
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-            sqlServer.Administrators.Value!.PrincipalType = principalTypeParameter;
+            infrastructure.Add(principalTypeParameter);
+            sqlServer.Administrators.PrincipalType = principalTypeParameter;
 
             infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps")
             {
@@ -256,9 +244,9 @@ public static class AzureSqlExtensions
 
         foreach (var databaseNames in databases)
         {
-            var identifierName = Infrastructure.NormalizeIdentifierName(databaseNames.Key);
+            var bicepIdentifier = Infrastructure.NormalizeBicepIdentifier(databaseNames.Key);
             var databaseName = databaseNames.Value;
-            var sqlDatabase = new SqlDatabase(identifierName)
+            var sqlDatabase = new SqlDatabase(bicepIdentifier)
             {
                 Parent = sqlServer,
                 Name = databaseName

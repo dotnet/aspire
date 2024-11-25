@@ -20,7 +20,7 @@ public class ConformanceTests : ConformanceTests<INatsConnection, NatsClientSett
         _containerFixture = containerFixture;
         _connectionString = RequiresDockerAttribute.IsSupported
             ? _containerFixture.GetConnectionString()
-            : "nats://apire-host:4222";
+            : "nats://user:password@apire-host:4222";
     }
 
     protected override bool SupportsKeyedRegistrations => true;

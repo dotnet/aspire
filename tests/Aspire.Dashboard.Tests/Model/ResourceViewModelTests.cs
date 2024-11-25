@@ -8,6 +8,7 @@ using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 using DiagnosticsHealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
+
 namespace Aspire.Dashboard.Tests.Model;
 
 public sealed class ResourceViewModelTests
@@ -100,7 +101,7 @@ public sealed class ResourceViewModelTests
 
         // Assert
         Assert.Collection(
-            viewModel.Properties,
+            viewModel.Properties.OrderBy(p => p.Key),
             p =>
             {
                 Assert.Equal("Property1", p.Key);

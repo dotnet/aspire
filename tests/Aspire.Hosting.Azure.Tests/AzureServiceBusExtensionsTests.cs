@@ -25,9 +25,9 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
             param sku string = 'Standard'
 
-            param principalId string
-
             param principalType string
+
+            param principalId string
 
             resource sb 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
               name: take('sb-${uniqueString(resourceGroup().id)}', 50)

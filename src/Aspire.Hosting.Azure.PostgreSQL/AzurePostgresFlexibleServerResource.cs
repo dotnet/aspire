@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
@@ -30,6 +31,9 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
     /// </summary>
     internal BicepSecretOutputReference? ConnectionStringSecretOutput { get; set; }
 
+    [MemberNotNullWhen(true, nameof(ConnectionStringSecretOutput))]
+    internal bool UsePasswordAuthentication => ConnectionStringSecretOutput is not null;
+
     /// <summary>
     /// Gets the inner PostgresServerResource resource.
     /// 
@@ -55,8 +59,9 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         InnerResource?.ConnectionStringExpression ??
-            (ConnectionStringSecretOutput is not null ? ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
-            ReferenceExpression.Create($"{ConnectionStringOutput}"));
+            (UsePasswordAuthentication ?
+                ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
+                ReferenceExpression.Create($"{ConnectionStringOutput}"));
 
     /// <summary>
     /// A dictionary where the key is the resource name and the value is the database name.

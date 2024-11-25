@@ -81,44 +81,44 @@ public partial class ResourceActions : ComponentBase
 
         // Show telemetry menu items if there is telemetry for the resource.
         var hasTelemetryApplication = TelemetryRepository.GetApplicationByCompositeName(Resource.Name) != null;
-        var telemetryTooltip = !hasTelemetryApplication ? Loc[nameof(Resources.Resources.ResourceActionTelemetryTooltip)] : string.Empty;
-        _menuItems.Add(new MenuButtonItem { IsDivider = true });
-        _menuItems.Add(new MenuButtonItem
+        if (hasTelemetryApplication)
         {
-            Text = Loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
-            Icon = s_structuredLogsIcon,
-            OnClick = () =>
+            var telemetryTooltip = !hasTelemetryApplication ? Loc[nameof(Resources.Resources.ResourceActionTelemetryTooltip)] : string.Empty;
+            _menuItems.Add(new MenuButtonItem { IsDivider = true });
+            _menuItems.Add(new MenuButtonItem
             {
-                NavigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(resource: GetResourceName(Resource)));
-                return Task.CompletedTask;
-            },
-            Tooltip = telemetryTooltip,
-            IsDisabled = !hasTelemetryApplication
-        });
-        _menuItems.Add(new MenuButtonItem
-        {
-            Text = Loc[nameof(Resources.Resources.ResourceActionTracesText)],
-            Icon = s_tracesIcon,
-            OnClick = () =>
+                Text = Loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
+                Icon = s_structuredLogsIcon,
+                OnClick = () =>
+                {
+                    NavigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(resource: GetResourceName(Resource)));
+                    return Task.CompletedTask;
+                },
+                Tooltip = telemetryTooltip
+            });
+            _menuItems.Add(new MenuButtonItem
             {
-                NavigationManager.NavigateTo(DashboardUrls.TracesUrl(resource: GetResourceName(Resource)));
-                return Task.CompletedTask;
-            },
-            Tooltip = telemetryTooltip,
-            IsDisabled = !hasTelemetryApplication
-        });
-        _menuItems.Add(new MenuButtonItem
-        {
-            Text = Loc[nameof(Resources.Resources.ResourceActionMetricsText)],
-            Icon = s_metricsIcon,
-            OnClick = () =>
+                Text = Loc[nameof(Resources.Resources.ResourceActionTracesText)],
+                Icon = s_tracesIcon,
+                OnClick = () =>
+                {
+                    NavigationManager.NavigateTo(DashboardUrls.TracesUrl(resource: GetResourceName(Resource)));
+                    return Task.CompletedTask;
+                },
+                Tooltip = telemetryTooltip
+            });
+            _menuItems.Add(new MenuButtonItem
             {
-                NavigationManager.NavigateTo(DashboardUrls.MetricsUrl(resource: GetResourceName(Resource)));
-                return Task.CompletedTask;
-            },
-            Tooltip = telemetryTooltip,
-            IsDisabled = !hasTelemetryApplication
-        });
+                Text = Loc[nameof(Resources.Resources.ResourceActionMetricsText)],
+                Icon = s_metricsIcon,
+                OnClick = () =>
+                {
+                    NavigationManager.NavigateTo(DashboardUrls.MetricsUrl(resource: GetResourceName(Resource)));
+                    return Task.CompletedTask;
+                },
+                Tooltip = telemetryTooltip
+            });
+        }
 
         // If display is desktop then we display highlighted commands next to the ... button.
         if (ViewportInformation.IsDesktop)

@@ -30,6 +30,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     private SelectViewModel<ResourceTypeDetails> _allApplication = null!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
+    private int _totalItemsCount;
     private List<OtlpApplication> _applications = default!;
     private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
     private Subscription? _applicationsSubscription;
@@ -92,12 +93,12 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         return tooltip;
     }
 
-    private string GetSpansTooltip(IGrouping<OtlpApplication, OtlpSpan> applicationSpans)
+    private string GetSpansTooltip(OrderedApplication applicationSpans)
     {
-        var count = applicationSpans.Count();
-        var errorCount = applicationSpans.Count(s => s.Status == OtlpSpanStatusCode.Error);
+        var count = applicationSpans.TotalSpans;
+        var errorCount = applicationSpans.ErroredSpans;
 
-        var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesResourceSpans)], GetResourceName(applicationSpans.Key));
+        var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesResourceSpans)], GetResourceName(applicationSpans.Application));
         tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesTotalTraces)], count);
         if (errorCount > 0)
         {
@@ -110,7 +111,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     private async ValueTask<GridItemsProviderResult<OtlpTrace>> GetData(GridItemsProviderRequest<OtlpTrace> request)
     {
         TracesViewModel.StartIndex = request.StartIndex;
-        TracesViewModel.Count = request.Count;
+        TracesViewModel.Count = request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount;
         var traces = TracesViewModel.GetTraces();
 
         if (DashboardOptions.Value.TelemetryLimits.MaxTraceCount == traces.TotalItemCount && !TelemetryRepository.HasDisplayedMaxTraceLimitMessage)
@@ -127,8 +128,9 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         }
 
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
-        // The workaround is to put the count inside a control and explicitly update and refresh the control.
-        _totalItemsFooter.SetTotalItemCount(traces.TotalItemCount);
+        // The workaround is to explicitly update and refresh the control.
+        _totalItemsCount = traces.TotalItemCount;
+        _totalItemsFooter.UpdateDisplayedCount(_totalItemsCount);
 
         return GridItemsProviderResult.From(traces.Items, traces.TotalItemCount);
     }

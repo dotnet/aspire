@@ -209,7 +209,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     }
 
     // Sets the state of the resource's children
-    async Task SetChildResourceAsync(IResource resource, string? state, DateTime? startTimeStamp, DateTime? stopTimeStamp)
+    async Task SetChildResourceAsync(IResource resource, string parentName, string? state, DateTime? startTimeStamp, DateTime? stopTimeStamp)
     {
         foreach (var child in _parentChildLookup[resource])
         {
@@ -217,7 +217,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 State = state,
                 StartTimeStamp = startTimeStamp,
-                StopTimeStamp = stopTimeStamp
+                StopTimeStamp = stopTimeStamp,
+                Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, parentName)
             }).ConfigureAwait(false);
         }
     }
@@ -244,7 +245,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
 
             var reports = annotations.Select(annotation => new HealthReportSnapshot(annotation.Key, null, null, null));
-            return [..reports];
+            return [.. reports];
         }
     }
 
@@ -438,6 +439,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     await SetChildResourceAsync(
                         appModelResource,
+                        resource.Metadata.Name,
                         status.State,
                         status.StartupTimestamp?.ToUniversalTime(),
                         status.FinishTimestamp?.ToUniversalTime()).ConfigureAwait(false);
@@ -612,6 +614,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         var environment = GetEnvironmentVariables(container.Status?.EffectiveEnv ?? container.Spec.Env, container.Spec.Env);
         var state = container.AppModelInitialState == KnownResourceStates.Hidden ? KnownResourceStates.Hidden : container.Status?.State;
 
+        var relationships = ImmutableArray<RelationshipSnapshot>.Empty;
+        if (container.AppModelResourceName is not null &&
+            _applicationModel.TryGetValue(container.AppModelResourceName, out var appModelResource))
+        {
+            relationships = ResourceSnapshotBuilder.BuildRelationships(appModelResource);
+        }
+
         return previous with
         {
             ResourceType = KnownResourceTypes.Container,
@@ -631,7 +640,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             StartTimeStamp = container.Status?.StartupTimestamp?.ToUniversalTime(),
             StopTimeStamp = container.Status?.FinishTimestamp?.ToUniversalTime(),
             Urls = urls,
-            Volumes = volumes
+            Volumes = volumes,
+            Relationships = relationships
         };
 
         ImmutableArray<int> GetPorts()
@@ -661,9 +671,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private CustomResourceSnapshot ToSnapshot(Executable executable, CustomResourceSnapshot previous)
     {
         string? projectPath = null;
+        IResource? appModelResource = null;
 
         if (executable.AppModelResourceName is not null &&
-            _applicationModel.TryGetValue(executable.AppModelResourceName, out var appModelResource))
+            _applicationModel.TryGetValue(executable.AppModelResourceName, out appModelResource))
         {
             projectPath = appModelResource is ProjectResource p ? p.GetProjectMetadata().ProjectPath : null;
         }
@@ -673,6 +684,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         var urls = GetUrls(executable);
 
         var environment = GetEnvironmentVariables(executable.Status?.EffectiveEnv, executable.Spec.Env);
+
+        var relationships = ImmutableArray<RelationshipSnapshot>.Empty;
+        if (appModelResource != null)
+        {
+            relationships = ResourceSnapshotBuilder.BuildRelationships(appModelResource);
+        }
 
         if (projectPath is not null)
         {
@@ -692,7 +709,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToUniversalTime(),
                 StartTimeStamp = executable.Status?.StartupTimestamp?.ToUniversalTime(),
                 StopTimeStamp = executable.Status?.FinishTimestamp?.ToUniversalTime(),
-                Urls = urls
+                Urls = urls,
+                Relationships = relationships
             };
         }
 
@@ -711,7 +729,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToUniversalTime(),
             StartTimeStamp = executable.Status?.StartupTimestamp?.ToUniversalTime(),
             StopTimeStamp = executable.Status?.FinishTimestamp?.ToUniversalTime(),
-            Urls = urls
+            Urls = urls,
+            Relationships = relationships
         };
     }
 
@@ -1533,7 +1552,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 })
                 .ConfigureAwait(false);
 
-                await SetChildResourceAsync(cr.ModelResource, state: "Starting", startTimeStamp: null, stopTimeStamp: null).ConfigureAwait(false);
+                await SetChildResourceAsync(cr.ModelResource, cr.DcpResource.Metadata.Name, state: "Starting", startTimeStamp: null, stopTimeStamp: null).ConfigureAwait(false);
 
                 try
                 {
@@ -1552,7 +1571,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                     await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
 
-                    await SetChildResourceAsync(cr.ModelResource, state: "FailedToStart", startTimeStamp: null, stopTimeStamp: null).ConfigureAwait(false);
+                    await SetChildResourceAsync(cr.ModelResource, cr.DcpResource.Metadata.Name, state: "FailedToStart", startTimeStamp: null, stopTimeStamp: null).ConfigureAwait(false);
                 }
             }
 
@@ -2114,7 +2133,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     BackoffType = DelayBackoffType.Exponential,
                     Delay = TimeSpan.FromMilliseconds(200),
                     UseJitter = true,
-                    MaxRetryAttempts = 6, // Cumulative time for all attempts amounts to about 12 seconds
+                    MaxRetryAttempts = 10, // Cumulative time for all attempts amounts to about 15 seconds
+                    MaxDelay = TimeSpan.FromSeconds(3),
                     ShouldHandle = new PredicateBuilder().Handle<Exception>(),
                     OnRetry = (retry) =>
                     {

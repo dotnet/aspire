@@ -1,9 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire;
 using Aspire.Qdrant.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Qdrant.Client;
 
@@ -78,6 +80,21 @@ public static class AspireQdrantExtensions
         else
         {
             builder.Services.AddKeyedSingleton(serviceKey, (sp, key) => ConfigureQdrant(sp));
+        }
+
+        if (!settings.DisableHealthChecks)
+        {
+            var healthCheckName = serviceKey is null ? "Qdrant.Client" : $"Qdrant.Client_{connectionName}";
+
+            builder.TryAddHealthCheck(new HealthCheckRegistration(
+                healthCheckName,
+                sp => new QdrantHealthCheck(serviceKey is null ?
+                    sp.GetRequiredService<QdrantClient>() :
+                    sp.GetRequiredKeyedService<QdrantClient>(serviceKey)),
+                failureStatus: null,
+                tags: null,
+                timeout: settings.HealthCheckTimeout
+                ));
         }
 
         QdrantClient ConfigureQdrant(IServiceProvider serviceProvider)

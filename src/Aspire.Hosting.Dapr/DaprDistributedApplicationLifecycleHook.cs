@@ -142,6 +142,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         ModelNamedArg("--resources-path", aggregateResourcesPaths),
                         ModelNamedArg("--run-file", NormalizePath(sidecarOptions?.RunFile)),
                         ModelNamedArg("--runtime-path", NormalizePath(sidecarOptions?.RuntimePath)),
+                        ModelNamedArg("--scheduler-host-address", sidecarOptions?.SchedulerHostAddress),
                         ModelNamedArg("--unix-domain-socket", sidecarOptions?.UnixDomainSocket),
                         PostOptionsArgs(Args(sidecarOptions?.Command)));
 
@@ -190,12 +191,10 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                     {
                         updatedArgs.AddRange(daprCommandLine.Arguments);
                         var endPoint = GetEndpointReference(sidecarOptions, resource);
-                        if (endPoint is not null)
+
+                        if (sidecarOptions?.AppPort is null && endPoint is { appEndpoint.IsAllocated: true })
                         {
-                            if (endPoint.Value.appEndpoint.IsAllocated && sidecarOptions?.AppPort is null)
-                            {
-                                updatedArgs.AddRange(daprAppPortArg(endPoint.Value.appEndpoint.Port)());
-                            }
+                            updatedArgs.AddRange(daprAppPortArg(endPoint.Value.appEndpoint.Port)());
                         }
 
                         var grpc = daprCli.GetEndpoint("grpc");
@@ -213,11 +212,11 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                             updatedArgs.AddRange(daprProfilePortArg(profiling.Property(EndpointProperty.TargetPort))());
                         }
 
-                        if (sidecarOptions?.AppChannelAddress is null && endPoint is not null)
+                        if (sidecarOptions?.AppChannelAddress is null && endPoint is { appEndpoint.IsAllocated: true })
                         {
                             updatedArgs.AddRange(daprAppChannelAddressArg(endPoint.Value.appEndpoint.Host)());
                         }
-                        if (sidecarOptions?.AppProtocol is null && endPoint is not null)
+                        if (sidecarOptions?.AppProtocol is null && endPoint is { appEndpoint.IsAllocated: true }) 
                         {
                             updatedArgs.AddRange(daprAppProtocol(endPoint.Value.protocol)());
                         }
@@ -264,6 +263,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         context.Writer.TryWriteStringArray("resourcesPath", sidecarOptions?.ResourcesPaths.Select(path => context.GetManifestRelativePath(path)));
                         context.Writer.TryWriteString("runFile", context.GetManifestRelativePath(sidecarOptions?.RunFile));
                         context.Writer.TryWriteString("runtimePath", context.GetManifestRelativePath(sidecarOptions?.RuntimePath));
+                        context.Writer.TryWriteString("schedulerHostAddress", sidecarOptions?.SchedulerHostAddress);
                         context.Writer.TryWriteString("unixDomainSocket", sidecarOptions?.UnixDomainSocket);
 
                         context.Writer.WriteEndObject();

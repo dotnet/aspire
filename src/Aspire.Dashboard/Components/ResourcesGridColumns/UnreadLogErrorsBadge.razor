@@ -5,7 +5,9 @@
 
 @if (_unviewedCount > 0)
 {
-    <FluentAnchor aria-label="@(_unviewedCount == 1 ? nameof(Columns.UnreadLogErrorsBadgeOneErrorLog) : string.Format(Loc[nameof(Columns.UnreadLogErrorsBadgeErrorLogs)], _unviewedCount))"
+    var tooltip = _unviewedCount == 1 ? Loc[nameof(Columns.UnreadLogErrorsBadgeOneErrorLog)] : string.Format(Loc[nameof(Columns.UnreadLogErrorsBadgeErrorLogs)], _unviewedCount);
+    <FluentAnchor aria-label="@tooltip"
+                  title="@tooltip"
                   Href="@GetResourceErrorStructuredLogsUrl()"
                   Appearance="Appearance.Stealth"
                   Class="unread-logs-errors-link"

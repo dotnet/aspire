@@ -9,25 +9,29 @@ namespace Aspire.Hosting.Nats.Tests;
 
 public class NatsPublicApiTests
 {
-    [Fact]
-    public void AddNatsContainerShouldThrowWhenBuilderIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddNatsContainerShouldThrowWhenBuilderIsNull(bool includePort)
     {
         IDistributedApplicationBuilder builder = null!;
         const string name = "Nats";
 
-        var action = () => builder.AddNats(name);
+        var action = () => includePort ? builder.AddNats(name, 4222) : builder.AddNats(name);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddNatsContainerShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddNatsContainerShouldThrowWhenNameIsNull(bool includePort)
     {
         var builder = TestDistributedApplicationBuilder.Create();
         string name = null!;
 
-        var action = () => builder.AddNats(name);
+        var action = () => includePort ? builder.AddNats(name, 4222) : builder.AddNats(name);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
@@ -89,5 +93,25 @@ public class NatsPublicApiTests
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Fact]
+    public void CtorNatsServerResourceWithParametersShouldThrowWhenNameIsNull()
+    {
+        string name = null!;
+        var builder = TestDistributedApplicationBuilder.Create();
+        var user = builder.AddParameter("user");
+        var password = builder.AddParameter("password");
+
+        var action = () => new NatsServerResource(name, user.Resource, password.Resource);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Fact]
+    public void CtorNatsServerResourceWithParametersShouldAcceptNullParameters()
+    {
+        new NatsServerResource("nats", userName: null, password: null);
     }
 }

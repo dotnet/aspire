@@ -70,18 +70,8 @@
     grid-row: 1;
 }
 
-::deep .span-collapse-symbol {
-    display: inline-block;
-    width: 20px;
-    text-align: center;
-    padding: 0px 5px;
-    line-height: 28px;
-    user-select: none;
-}
-
 ::deep .span-name-container {
-    margin-left: -3px;
-    line-height: 28px;
+    vertical-align: middle;
 }
 
 ::deep .span-container {
@@ -154,4 +144,9 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
+}
+
+::deep .span-overview-container {
+    height: 24px;
+    display: inline-block;
 }

@@ -11,8 +11,8 @@ internal static class MySqlContainerImageTags
     /// <summary>library/mysql</summary>
     public const string Image = "library/mysql";
 
-    /// <summary>9.0</summary>
-    public const string Tag = "9.0";
+    /// <summary>9.1</summary>
+    public const string Tag = "9.1";
 
     /// <summary>library/phpmyadmin</summary>
     public const string PhpMyAdminImage = "library/phpmyadmin";
