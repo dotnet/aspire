@@ -38,7 +38,8 @@ public static class ModelTestHelpers
             KnownState = state,
             StateStyle = stateStyle,
             HealthReports = reportHealthStatus is null && !createNullHealthReport ? [] : [new HealthReportViewModel("healthcheck", reportHealthStatus, null, null)],
-            Commands = []
+            Commands = [],
+            Relationships = [],
         };
     }
 }

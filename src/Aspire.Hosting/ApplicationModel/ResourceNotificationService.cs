@@ -491,7 +491,8 @@ public class ResourceNotificationService
             previousState ??= new CustomResourceSnapshot()
             {
                 ResourceType = resource.GetType().Name,
-                Properties = []
+                Properties = [],
+                Relationships = ResourceSnapshotBuilder.BuildRelationships(resource)
             };
         }
 

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using HealthChecks.Uris;
@@ -349,6 +350,8 @@ public static class ResourceBuilderExtensions
         var resource = source.Resource;
         connectionName ??= resource.Name;
 
+        builder.WithRelationship(resource, KnownRelationshipTypes.Reference);
+
         return builder.WithEnvironment(context =>
         {
             var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
@@ -452,6 +455,8 @@ public static class ResourceBuilderExtensions
         {
             endpointReferenceAnnotation.EndpointNames.Add(endpointName);
         }
+
+        builder.WithRelationship(resourceWithEndpoints, KnownRelationshipTypes.Reference);
     }
 
     /// <summary>
@@ -701,6 +706,8 @@ public static class ResourceBuilderExtensions
             builder.WaitFor(parentBuilder);
         }
 
+        builder.WithRelationship(dependency.Resource, KnownRelationshipTypes.WaitFor);
+
         return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilHealthy));
     }
 
@@ -744,6 +751,8 @@ public static class ResourceBuilderExtensions
         {
             throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for its parent '{dependency.Resource.Name}'.");
         }
+
+        builder.WithRelationship(dependency.Resource, KnownRelationshipTypes.WaitFor);
 
         return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitForCompletion, exitCode));
     }
@@ -997,5 +1006,40 @@ public static class ResourceBuilderExtensions
         }
 
         return builder.WithAnnotation(new ResourceCommandAnnotation(name, displayName, updateState ?? (c => ResourceCommandState.Enabled), executeCommand, displayDescription, parameter, confirmationMessage, iconName, iconVariant, isHighlighted));
+    }
+
+    /// <summary>
+    /// Adds a <see cref="ResourceRelationshipAnnotation"/> to the resource annotations to add a relationship.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="resource">The resource that the relationship is to.</param>
+    /// <param name="type">The relationship type.</param>
+    /// <returns>A resource builder.</returns>
+    /// <remarks>
+    /// <para>
+    /// The <c>WithRelationship</c> method is used to add relationships to the resource. Relationships are used to link
+    /// resources together in UI. The <paramref name="type"/> indicates information about the relationship type.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// This example shows adding a relationship between two resources.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var backend = builder.AddProject&lt;Projects.Backend&gt;("backend");
+    /// var manager = builder.AddProject&lt;Projects.Manager&gt;("manager")
+    ///                      .WithRelationship(backend.Resource, "Manager");
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithRelationship<T>(
+        this IResourceBuilder<T> builder,
+        IResource resource,
+        string type) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(resource);
+        ArgumentNullException.ThrowIfNull(type);
+
+        return builder.WithAnnotation(new ResourceRelationshipAnnotation(resource, type));
     }
 }
