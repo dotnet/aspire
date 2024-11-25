@@ -60,15 +60,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Actions.
-        /// </summary>
-        public static string ConsoleLogsActions {
-            get {
-                return ResourceManager.GetString("ConsoleLogsActions", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Failed to initialize.
         /// </summary>
         public static string ConsoleLogsFailedToInitialize {

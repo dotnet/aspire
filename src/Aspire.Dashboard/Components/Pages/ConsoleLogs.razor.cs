@@ -415,7 +415,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         var stream = new MemoryStream(Encoding.UTF8.GetBytes(logContent));
         using var streamReference = new DotNetStreamReference(stream);
-        var fileName = $"{PageViewModel.SelectedResource!.DisplayName}-{DateTime.Now.ToString("yyyyMMddhhmmss", CultureInfo.CurrentCulture)}.txt";
+        var safeDisplayName = string.Join("_", PageViewModel.SelectedResource!.DisplayName.Split(Path.GetInvalidFileNameChars()));
+        var fileName = $"{safeDisplayName}-{DateTime.Now.ToString("yyyyMMddhhmmss", CultureInfo.InvariantCulture)}.txt";
 
         await JS.InvokeVoidAsync("downloadStreamAsFile", fileName, streamReference);
     }
