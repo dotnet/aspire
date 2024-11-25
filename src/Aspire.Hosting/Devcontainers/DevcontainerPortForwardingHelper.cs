@@ -8,7 +8,8 @@ namespace Aspire.Hosting.Devcontainers;
 
 internal class DevcontainerPortForwardingHelper
 {
-    private const string MachineSettingsPath = "/home/vscode/.vscode-remote/data/Machine/settings.json";
+    private const string CodespaceSettingsPath = "/home/vscode/.vscode-remote/data/Machine/settings.json";
+    private const string LocalDevcontainerSettingsPath = "/home/vscode/.vscode-server/data/Machine/settings.json";
     private const string PortAttributesFieldName = "remote.portsAttributes";
 
     public static async Task SetPortAttributesAsync(int port, string protocol, string label, CancellationToken cancellationToken = default)
@@ -16,7 +17,9 @@ internal class DevcontainerPortForwardingHelper
         ArgumentNullException.ThrowIfNullOrEmpty(protocol);
         ArgumentNullException.ThrowIfNullOrEmpty(label);
 
-        var settingsContent = await File.ReadAllTextAsync(MachineSettingsPath, cancellationToken).ConfigureAwait(false);
+        var settingsPath = GetSettingsPath();
+
+        var settingsContent = await File.ReadAllTextAsync(settingsPath, cancellationToken).ConfigureAwait(false);
         var settings = (JsonObject)JsonObject.Parse(settingsContent)!;
 
         JsonObject? portsAttributes;
@@ -48,6 +51,25 @@ internal class DevcontainerPortForwardingHelper
         portAttributes["onAutoForward"] = "notify";
 
         settingsContent = settings.ToString();
-        await File.WriteAllTextAsync(MachineSettingsPath, settingsContent, cancellationToken).ConfigureAwait(false);
+        await File.WriteAllTextAsync(settingsPath, settingsContent, cancellationToken).ConfigureAwait(false);
+
+        static string GetSettingsPath()
+        {
+            // For some reason the machine settings path is different between Codespaces and local Devcontainers
+            // so we probe for it here. We could use options to figure out which one to look for here but that
+            // would require taking a dependency on the options system here which seems like overkill.
+            if (File.Exists(CodespaceSettingsPath))
+            {
+                return CodespaceSettingsPath;
+            }
+            else if (File.Exists(LocalDevcontainerSettingsPath))
+            {
+                return LocalDevcontainerSettingsPath;
+            }
+            else
+            {
+                throw new DistributedApplicationException("Could not find a devcontainer settings file.");
+            }
+        }
     }
 }
