@@ -22,4 +22,7 @@ public class AspireAzureOpenAIClientBuilder : AspireOpenAIClientBuilder
         : base(hostBuilder, connectionName, serviceKey)
     {
     }
+
+    /// <inheritdoc />
+    public override string ConfigurationSectionName => AspireAzureOpenAIExtensions.DefaultConfigSectionName;
 }

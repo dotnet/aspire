@@ -38,4 +38,9 @@ public class AspireOpenAIClientBuilder
     /// Gets the service key used to register the <see cref="OpenAIClient"/> service, if any.
     /// </summary>
     public string? ServiceKey { get; }
+
+    /// <summary>
+    /// Gets the name of the configuration section for this component type.
+    /// </summary>
+    public virtual string ConfigurationSectionName => AspireOpenAIExtensions.DefaultConfigSectionName;
 }

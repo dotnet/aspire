@@ -65,7 +65,7 @@ public static class AspireOpenAIClientBuilderChatClientExtensions
             ? services.GetRequiredService<OpenAIClient>()
             : services.GetRequiredKeyedService<OpenAIClient>(builder.ServiceKey);
 
-        deploymentName ??= GetRequiredDeploymentName(builder.HostBuilder.Configuration, builder.ConnectionName);
+        deploymentName ??= GetRequiredDeploymentName(builder);
         var result = openAiClient.AsChatClient(deploymentName);
 
         return disableOpenTelemetry
@@ -73,10 +73,12 @@ public static class AspireOpenAIClientBuilderChatClientExtensions
             : new OpenTelemetryChatClient(result);
     }
 
-    private static string GetRequiredDeploymentName(IConfiguration configuration, string connectionName)
+    private static string GetRequiredDeploymentName(AspireOpenAIClientBuilder builder)
     {
         string? deploymentName = null;
 
+        var configuration = builder.HostBuilder.Configuration;
+        var connectionName = builder.ConnectionName;
         if (configuration.GetConnectionString(connectionName) is string connectionString)
         {
             var connectionBuilder = new DbConnectionStringBuilder { ConnectionString = connectionString };
@@ -91,7 +93,7 @@ public static class AspireOpenAIClientBuilderChatClientExtensions
             deploymentName = deploymentValue ?? modelValue;
         }
 
-        var configurationSectionName = AspireOpenAIExtensions.DefaultConfigSectionName;
+        var configurationSectionName = builder.ConfigurationSectionName;
         if (string.IsNullOrEmpty(deploymentName))
         {
             var configSection = configuration.GetSection(configurationSectionName);
