@@ -16,7 +16,7 @@ namespace Microsoft.Extensions.Hosting;
 /// </summary>
 public static class AspireOpenAIExtensions
 {
-    private const string DefaultConfigSectionName = "Aspire:OpenAI";
+    internal const string DefaultConfigSectionName = "Aspire:OpenAI";
 
     /// <summary>
     /// Registers <see cref="OpenAIClient"/> as a singleton in the services provided by the <paramref name="builder"/>.

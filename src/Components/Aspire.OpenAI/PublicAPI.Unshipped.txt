@@ -14,6 +14,12 @@ Aspire.OpenAI.OpenAISettings.Endpoint.set -> void
 Aspire.OpenAI.OpenAISettings.Key.get -> string?
 Aspire.OpenAI.OpenAISettings.Key.set -> void
 Aspire.OpenAI.OpenAISettings.OpenAISettings() -> void
+Microsoft.Extensions.Hosting.AspireOpenAIClientBuilderChatClientExtensions
+Microsoft.Extensions.Hosting.AspireOpenAIClientBuilderEmbeddingGeneratorExtensions
 Microsoft.Extensions.Hosting.AspireOpenAIExtensions
+static Microsoft.Extensions.Hosting.AspireOpenAIClientBuilderChatClientExtensions.AddChatClient(this Aspire.OpenAI.AspireOpenAIClientBuilder! builder, string? deploymentName = null, bool disableOpenTelemetry = false) -> Microsoft.Extensions.AI.ChatClientBuilder!
+static Microsoft.Extensions.Hosting.AspireOpenAIClientBuilderChatClientExtensions.AddKeyedChatClient(this Aspire.OpenAI.AspireOpenAIClientBuilder! builder, string! serviceKey, string? deploymentName = null, bool disableOpenTelemetry = false) -> Microsoft.Extensions.AI.ChatClientBuilder!
+static Microsoft.Extensions.Hosting.AspireOpenAIClientBuilderEmbeddingGeneratorExtensions.AddEmbeddingGenerator(this Aspire.OpenAI.AspireOpenAIClientBuilder! builder, string? deploymentName = null, bool disableOpenTelemetry = false) -> Microsoft.Extensions.AI.EmbeddingGeneratorBuilder<string!, Microsoft.Extensions.AI.Embedding<float>!>!
+static Microsoft.Extensions.Hosting.AspireOpenAIClientBuilderEmbeddingGeneratorExtensions.AddKeyedEmbeddingGenerator(this Aspire.OpenAI.AspireOpenAIClientBuilder! builder, string! serviceKey, string? deploymentName = null, bool disableOpenTelemetry = false) -> Microsoft.Extensions.AI.EmbeddingGeneratorBuilder<string!, Microsoft.Extensions.AI.Embedding<float>!>!
 static Microsoft.Extensions.Hosting.AspireOpenAIExtensions.AddKeyedOpenAIClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.OpenAI.OpenAISettings!>? configureSettings = null, System.Action<OpenAI.OpenAIClientOptions!>? configureOptions = null) -> Aspire.OpenAI.AspireOpenAIClientBuilder!
 static Microsoft.Extensions.Hosting.AspireOpenAIExtensions.AddOpenAIClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.OpenAI.OpenAISettings!>? configureSettings = null, System.Action<OpenAI.OpenAIClientOptions!>? configureOptions = null) -> Aspire.OpenAI.AspireOpenAIClientBuilder!
