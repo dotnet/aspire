@@ -32,12 +32,12 @@ public class AspireAzureOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
         }
 
         using var host = builder.Build();
-        var client = useKeyed ?
+        var generator = useKeyed ?
             host.Services.GetRequiredKeyedService<IEmbeddingGenerator<string, Embedding<float>>>("openai_embeddinggenerator") :
             host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
 
-        Assert.NotNull(client);
-        Assert.Equal("testdeployment1", client.Metadata.ModelId);
+        Assert.NotNull(generator);
+        Assert.Equal("testdeployment1", generator.Metadata.ModelId);
     }
 
     [Theory]
@@ -62,12 +62,12 @@ public class AspireAzureOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
         }
 
         using var host = builder.Build();
-        var client = useKeyed ?
+        var generator = useKeyed ?
             host.Services.GetRequiredKeyedService<IEmbeddingGenerator<string, Embedding<float>>>("openai_embeddinggenerator") :
             host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
 
-        Assert.NotNull(client);
-        Assert.Equal("testdeployment1", client.Metadata.ModelId);
+        Assert.NotNull(generator);
+        Assert.Equal("testdeployment1", generator.Metadata.ModelId);
     }
 
     [Theory]
@@ -90,12 +90,12 @@ public class AspireAzureOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
         }
 
         using var host = builder.Build();
-        var client = useKeyed ?
+        var generator = useKeyed ?
             host.Services.GetRequiredKeyedService<IEmbeddingGenerator<string, Embedding<float>>>("openai_embeddinggenerator") :
             host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
 
-        Assert.NotNull(client);
-        Assert.Equal("testdeployment1", client.Metadata.ModelId);
+        Assert.NotNull(generator);
+        Assert.Equal("testdeployment1", generator.Metadata.ModelId);
     }
 
     [Theory]
@@ -174,7 +174,7 @@ public class AspireAzureOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddAzureOpenAIClient("openai").AddKeyedEmbeddingGenerator("openai_chatclient", "testdeployment1", disableOpenTelemetry);
+            builder.AddAzureOpenAIClient("openai").AddKeyedEmbeddingGenerator("openai_embeddinggenerator", "testdeployment1", disableOpenTelemetry);
         }
         else
         {
@@ -182,10 +182,44 @@ public class AspireAzureOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
         }
 
         using var host = builder.Build();
-        var client = useKeyed ?
-            host.Services.GetRequiredKeyedService<IEmbeddingGenerator<string, Embedding<float>>>("openai_chatclient") :
+        var generator = useKeyed ?
+            host.Services.GetRequiredKeyedService<IEmbeddingGenerator<string, Embedding<float>>>("openai_embeddinggenerator") :
             host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
 
-        Assert.Equal(disableOpenTelemetry, client.GetService<OpenTelemetryEmbeddingGenerator<string, Embedding<float>>>() is null);
+        Assert.Equal(disableOpenTelemetry, generator.GetService<OpenTelemetryEmbeddingGenerator<string, Embedding<float>>>() is null);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task CanConfigurePipelineAsync(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake")
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddAzureOpenAIClient("openai").AddKeyedEmbeddingGenerator("openai_embeddinggenerator", "testdeployment1").Use(TestMiddleware);
+        }
+        else
+        {
+            builder.AddAzureOpenAIClient("openai").AddEmbeddingGenerator("testdeployment1").Use(TestMiddleware);
+        }
+
+        using var host = builder.Build();
+        var generator = useKeyed ?
+            host.Services.GetRequiredKeyedService<IEmbeddingGenerator<string, Embedding<float>>>("openai_embeddinggenerator") :
+            host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
+
+        var vector = await generator.GenerateEmbeddingVectorAsync("Hello");
+        Assert.Equal(1.23f, vector.ToArray().Single());
+    }
+
+    private Task<GeneratedEmbeddings<Embedding<float>>> TestMiddleware(IEnumerable<string> inputs, EmbeddingGenerationOptions? options, IEmbeddingGenerator<string, Embedding<float>> nextAsync, CancellationToken cancellationToken)
+    {
+        float[] floats = [1.23f];
+        return Task.FromResult(new GeneratedEmbeddings<Embedding<float>>(inputs.Select(i => new Embedding<float>(floats))));
     }
 }

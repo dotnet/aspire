@@ -118,7 +118,7 @@ public class AspireAzureOpenAIClientBuilderChatClientExtensionsTests
         }
 
         using var host = builder.Build();
-        
+
         var ex = Assert.Throws<InvalidOperationException>(() =>
         {
             _ = useKeyed ?
@@ -187,5 +187,36 @@ public class AspireAzureOpenAIClientBuilderChatClientExtensionsTests
             host.Services.GetRequiredService<IChatClient>();
 
         Assert.Equal(disableOpenTelemetry, client.GetService<OpenTelemetryChatClient>() is null);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task CanConfigurePipelineAsync(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake")
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddAzureOpenAIClient("openai").AddKeyedChatClient("openai_chatclient", "testdeployment1").Use(TestMiddleware, null);
+        }
+        else
+        {
+            builder.AddAzureOpenAIClient("openai").AddChatClient("testdeployment1").Use(TestMiddleware, null);
+        }
+
+        using var host = builder.Build();
+        var client = useKeyed ?
+            host.Services.GetRequiredKeyedService<IChatClient>("openai_chatclient") :
+            host.Services.GetRequiredService<IChatClient>();
+
+        var completion = await client.CompleteAsync("Whatever");
+        Assert.Equal("Hello from middleware", completion.Message.Text);
+
+        static Task<ChatCompletion> TestMiddleware(IList<ChatMessage> list, ChatOptions? options, IChatClient client, CancellationToken token)
+            => Task.FromResult(new ChatCompletion(new ChatMessage(ChatRole.Assistant, "Hello from middleware")));
     }
 }
