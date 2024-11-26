@@ -35,15 +35,15 @@
     <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>9.0.0-beta.24516.2</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
     <MicrosoftExtensionsHttpResiliencePackageVersion>9.0.0</MicrosoftExtensionsHttpResiliencePackageVersion>
     <MicrosoftExtensionsDiagnosticsTestingPackageVersion>9.0.0</MicrosoftExtensionsDiagnosticsTestingPackageVersion>
-    <MicrosoftExtensionsConfigurationAbstractionsPackageVersion>9.0.0</MicrosoftExtensionsConfigurationAbstractionsPackageVersion>
-    <MicrosoftExtensionsConfigurationBinderPackageVersion>9.0.0</MicrosoftExtensionsConfigurationBinderPackageVersion>
-    <MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>9.0.0</MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>
-    <MicrosoftExtensionsHostingAbstractionsPackageVersion>9.0.0</MicrosoftExtensionsHostingAbstractionsPackageVersion>
+    <MicrosoftExtensionsConfigurationAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsConfigurationAbstractionsPackageVersion>
+    <MicrosoftExtensionsConfigurationBinderPackageVersion>8.0.2</MicrosoftExtensionsConfigurationBinderPackageVersion>
+    <MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>8.0.2</MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>
+    <MicrosoftExtensionsHostingAbstractionsPackageVersion>8.0.1</MicrosoftExtensionsHostingAbstractionsPackageVersion>
     <MicrosoftExtensionsHostingPackageVersion>8.0.1</MicrosoftExtensionsHostingPackageVersion>
     <MicrosoftExtensionsHttpPackageVersion>8.0.1</MicrosoftExtensionsHttpPackageVersion>
-    <MicrosoftExtensionsLoggingAbstractionsPackageVersion>9.0.0</MicrosoftExtensionsLoggingAbstractionsPackageVersion>
-    <MicrosoftExtensionsOptionsPackageVersion>9.0.0</MicrosoftExtensionsOptionsPackageVersion>
-    <MicrosoftExtensionsPrimitivesPackageVersion>9.0.0</MicrosoftExtensionsPrimitivesPackageVersion>
+    <MicrosoftExtensionsLoggingAbstractionsPackageVersion>8.0.2</MicrosoftExtensionsLoggingAbstractionsPackageVersion>
+    <MicrosoftExtensionsOptionsPackageVersion>8.0.2</MicrosoftExtensionsOptionsPackageVersion>
+    <MicrosoftExtensionsPrimitivesPackageVersion>8.0.0</MicrosoftExtensionsPrimitivesPackageVersion>
     <MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>8.0.11</MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>
     <MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>8.0.11</MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>
     <MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion>8.0.11</MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion>
@@ -52,7 +52,7 @@
     <MicrosoftAspNetCoreTestHostPackageVersion>8.0.11</MicrosoftAspNetCoreTestHostPackageVersion>
     <MicrosoftExtensionsCachingStackExchangeRedisPackageVersion>8.0.11</MicrosoftExtensionsCachingStackExchangeRedisPackageVersion>
     <MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>8.0.11</MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>
-    <MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>9.0.0</MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>
+    <MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>8.0.11</MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>
     <MicrosoftExtensionsFeaturesPackageVersion>8.0.11</MicrosoftExtensionsFeaturesPackageVersion>
     <MicrosoftExtensionsTimeProviderTestingVersion>9.0.0</MicrosoftExtensionsTimeProviderTestingVersion>
     <!-- EF -->
