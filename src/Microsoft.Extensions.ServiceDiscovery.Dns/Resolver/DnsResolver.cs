@@ -65,9 +65,12 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
 
+        NameResolutionActivity activity = Telemetry.StartNameResolution(name, QueryType.SRV);
         SendQueryResult result = await SendQueryWithRetriesAsync(name, QueryType.SRV, cancellationToken).ConfigureAwait(false);
+
         if (result.Error is not SendQueryError.NoError)
         {
+            Telemetry.StopNameResolution(activity, null, result.Error);
             return Array.Empty<ServiceResult>();
         }
 
@@ -107,7 +110,9 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
             }
         }
 
-        return results.ToArray();
+        ServiceResult[] res = results.ToArray();
+        Telemetry.StopNameResolution(activity, res, result.Error);
+        return res;
     }
 
     public async ValueTask<AddressResult[]> ResolveIPAddressesAsync(string name, CancellationToken cancellationToken = default)
@@ -172,10 +177,11 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
         }
 
         var queryType = addressFamily == AddressFamily.InterNetwork ? QueryType.A : QueryType.AAAA;
-
+        NameResolutionActivity activity = Telemetry.StartNameResolution(name, queryType);
         SendQueryResult result = await SendQueryWithRetriesAsync(name, queryType, cancellationToken).ConfigureAwait(false);
         if (result.Error is not SendQueryError.NoError)
         {
+            Telemetry.StopNameResolution(activity, null, result.Error);
             return Array.Empty<AddressResult>();
         }
 
@@ -206,7 +212,9 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
             }
         }
 
-        return results.ToArray();
+        AddressResult[] res = results.ToArray();
+        Telemetry.StopNameResolution(activity, res, result.Error);
+        return res;
     }
 
     internal struct SendQueryResult
