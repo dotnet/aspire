@@ -10,47 +10,47 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Microsoft.Extensions.Hosting;
 
 /// <summary>
-/// Provides extension methods for registering <see cref="IChatClient"/> as a singleton in the services provided by the <see cref="IHostApplicationBuilder"/>.
+/// Provides extension methods for registering <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/> as a singleton in the services provided by the <see cref="IHostApplicationBuilder"/>.
 /// </summary>
-public static class AspireAzureOpenAIClientBuilderChatClientExtensions
+public static class AspireAzureOpenAIClientBuilderEmbeddingGeneratorExtensions
 {
     private const string DeploymentKey = "Deployment";
     private const string ModelKey = "Model";
 
     /// <summary>
-    /// Registers a singleton <see cref="IChatClient"/> in the services provided by the <paramref name="builder"/>.
+    /// Registers a singleton <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/> in the services provided by the <paramref name="builder"/>.
     /// </summary>
     /// <param name="builder">An <see cref="AspireAzureOpenAIClientBuilder" />.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
-    /// <returns>A <see cref="ChatClientBuilder"/> that can be used to build a pipeline around the inner <see cref="IChatClient"/>.</returns>
+    /// <returns>A <see cref="EmbeddingGeneratorBuilder{TInput, TEmbedding}"/> that can be used to build a pipeline around the inner <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/>.</returns>
     /// <remarks>Reads the configuration from "Aspire.Azure.AI.OpenAI" section.</remarks>
-    public static ChatClientBuilder AddChatClient(
+    public static EmbeddingGeneratorBuilder<string, Embedding<float>> AddEmbeddingGenerator(
         this AspireAzureOpenAIClientBuilder builder,
         string? deploymentName = null)
     {
-        return builder.HostBuilder.Services.AddChatClient(
-            services => CreateInnerChatClient(services, builder, deploymentName));
+        return builder.HostBuilder.Services.AddEmbeddingGenerator(
+            services => CreateInnerEmbeddingGenerator(services, builder, deploymentName));
     }
 
     /// <summary>
-    /// Registers a keyed singleton <see cref="IChatClient"/> in the services provided by the <paramref name="builder"/>.
+    /// Registers a keyed singleton <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/> in the services provided by the <paramref name="builder"/>.
     /// </summary>
     /// <param name="builder">An <see cref="AspireAzureOpenAIClientBuilder" />.</param>
-    /// <param name="serviceKey">The service key with which the <see cref="IChatClient"/> will be registered.</param>
+    /// <param name="serviceKey">The service key with which the <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/> will be registered.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
-    /// <returns>A <see cref="ChatClientBuilder"/> that can be used to build a pipeline around the inner <see cref="IChatClient"/>.</returns>
+    /// <returns>A <see cref="EmbeddingGeneratorBuilder{TInput, TEmbedding}"/> that can be used to build a pipeline around the inner <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/>.</returns>
     /// <remarks>Reads the configuration from "Aspire.Azure.AI.OpenAI" section.</remarks>
-    public static ChatClientBuilder AddKeyedChatClient(
+    public static EmbeddingGeneratorBuilder<string, Embedding<float>> AddKeyedEmbeddingGenerator(
         this AspireAzureOpenAIClientBuilder builder,
         string serviceKey,
         string? deploymentName = null)
     {
-        return builder.HostBuilder.Services.AddKeyedChatClient(
+        return builder.HostBuilder.Services.AddKeyedEmbeddingGenerator(
             serviceKey,
-            services => CreateInnerChatClient(services, builder, deploymentName));
+            services => CreateInnerEmbeddingGenerator(services, builder, deploymentName));
     }
 
-    private static IChatClient CreateInnerChatClient(
+    private static IEmbeddingGenerator<string, Embedding<float>> CreateInnerEmbeddingGenerator(
         IServiceProvider services,
         AspireAzureOpenAIClientBuilder builder,
         string? deploymentName)
@@ -60,7 +60,7 @@ public static class AspireAzureOpenAIClientBuilderChatClientExtensions
             : services.GetRequiredKeyedService<AzureOpenAIClient>(builder.ServiceKey);
 
         deploymentName ??= GetRequiredDeploymentName(builder.HostBuilder.Configuration, builder.ConnectionName);
-        return openAiClient.AsChatClient(deploymentName);
+        return openAiClient.AsEmbeddingGenerator(deploymentName);
     }
 
     private static string GetRequiredDeploymentName(IConfiguration configuration, string connectionName)
@@ -90,7 +90,7 @@ public static class AspireAzureOpenAIClientBuilderChatClientExtensions
 
         if (string.IsNullOrEmpty(deploymentName))
         {
-            throw new InvalidOperationException($"An {nameof(IChatClient)} could not be configured. Ensure a '{DeploymentKey}' or '{ModelKey}' value is provided in 'ConnectionStrings:{connectionName}', or specify a '{DeploymentKey}' in the '{configurationSectionName}' configuration section, or specify a '{nameof(deploymentName)}' in the call.");
+            throw new InvalidOperationException($"An {nameof(IEmbeddingGenerator<string, Embedding<float>>)} could not be configured. Ensure a '{DeploymentKey}' or '{ModelKey}' value is provided in 'ConnectionStrings:{connectionName}', or specify a '{DeploymentKey}' in the '{configurationSectionName}' configuration section, or specify a '{nameof(deploymentName)}' in the call.");
         }
 
         return deploymentName;
