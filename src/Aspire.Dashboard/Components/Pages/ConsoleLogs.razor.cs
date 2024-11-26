@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.ConsoleLogs;
@@ -17,6 +18,7 @@ using Aspire.Hosting.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -57,6 +59,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     [Inject]
     public required IStringLocalizer<ControlsStrings> ControlsStringsLoc { get; init; }
+
+    [Inject]
+    public required IJSRuntime JS { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
@@ -399,6 +404,35 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             _consoleLogsSubscription = null;
         }
+    }
+
+    private async Task DownloadLogsAsync()
+    {
+        // Write all log entry content to a stream as UTF8 chars. Strip control sequences from log lines.
+        var stream = new MemoryStream();
+        using (var writer = new StreamWriter(stream, leaveOpen: true))
+        {
+            foreach (var entry in _logEntries.GetEntries())
+            {
+                // It's ok to use sync stream methods here because we're writing to a MemoryStream.
+                if (entry.RawContent is not null)
+                {
+                    writer.WriteLine(AnsiParser.StripControlSequences(entry.RawContent));
+                }
+                else
+                {
+                    writer.WriteLine();
+                }
+            }
+            writer.Flush();
+        }
+        stream.Seek(0, SeekOrigin.Begin);
+
+        using var streamReference = new DotNetStreamReference(stream);
+        var safeDisplayName = string.Join("_", PageViewModel.SelectedResource!.DisplayName.Split(Path.GetInvalidFileNameChars()));
+        var fileName = $"{safeDisplayName}-{DateTime.Now.ToString("yyyyMMddhhmmss", CultureInfo.InvariantCulture)}.txt";
+
+        await JS.InvokeVoidAsync("downloadStreamAsFile", fileName, streamReference);
     }
 
     public async ValueTask DisposeAsync()
