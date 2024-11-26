@@ -22,14 +22,16 @@ public static class AspireAzureOpenAIClientBuilderEmbeddingGeneratorExtensions
     /// </summary>
     /// <param name="builder">An <see cref="AspireAzureOpenAIClientBuilder" />.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
+    /// <param name="disableOpenTelemetry">Optional. If <see langword="true"/>, skips registering open telemetry support in the <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/> pipeline.</param>
     /// <returns>A <see cref="EmbeddingGeneratorBuilder{TInput, TEmbedding}"/> that can be used to build a pipeline around the inner <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/>.</returns>
     /// <remarks>Reads the configuration from "Aspire.Azure.AI.OpenAI" section.</remarks>
     public static EmbeddingGeneratorBuilder<string, Embedding<float>> AddEmbeddingGenerator(
         this AspireAzureOpenAIClientBuilder builder,
-        string? deploymentName = null)
+        string? deploymentName = null,
+        bool disableOpenTelemetry = false)
     {
         return builder.HostBuilder.Services.AddEmbeddingGenerator(
-            services => CreateInnerEmbeddingGenerator(services, builder, deploymentName));
+            services => CreateInnerEmbeddingGenerator(services, builder, deploymentName, disableOpenTelemetry));
     }
 
     /// <summary>
@@ -38,29 +40,36 @@ public static class AspireAzureOpenAIClientBuilderEmbeddingGeneratorExtensions
     /// <param name="builder">An <see cref="AspireAzureOpenAIClientBuilder" />.</param>
     /// <param name="serviceKey">The service key with which the <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/> will be registered.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
+    /// <param name="disableOpenTelemetry">Optional. If <see langword="true"/>, skips registering open telemetry support in the <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/> pipeline.</param>
     /// <returns>A <see cref="EmbeddingGeneratorBuilder{TInput, TEmbedding}"/> that can be used to build a pipeline around the inner <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/>.</returns>
     /// <remarks>Reads the configuration from "Aspire.Azure.AI.OpenAI" section.</remarks>
     public static EmbeddingGeneratorBuilder<string, Embedding<float>> AddKeyedEmbeddingGenerator(
         this AspireAzureOpenAIClientBuilder builder,
         string serviceKey,
-        string? deploymentName = null)
+        string? deploymentName = null,
+        bool disableOpenTelemetry = false)
     {
         return builder.HostBuilder.Services.AddKeyedEmbeddingGenerator(
             serviceKey,
-            services => CreateInnerEmbeddingGenerator(services, builder, deploymentName));
+            services => CreateInnerEmbeddingGenerator(services, builder, deploymentName, disableOpenTelemetry));
     }
 
     private static IEmbeddingGenerator<string, Embedding<float>> CreateInnerEmbeddingGenerator(
         IServiceProvider services,
         AspireAzureOpenAIClientBuilder builder,
-        string? deploymentName)
+        string? deploymentName,
+        bool disableOpenTelemetry)
     {
         var openAiClient = builder.ServiceKey is null
             ? services.GetRequiredService<AzureOpenAIClient>()
             : services.GetRequiredKeyedService<AzureOpenAIClient>(builder.ServiceKey);
 
         deploymentName ??= GetRequiredDeploymentName(builder.HostBuilder.Configuration, builder.ConnectionName);
-        return openAiClient.AsEmbeddingGenerator(deploymentName);
+        var result = openAiClient.AsEmbeddingGenerator(deploymentName);
+
+        return disableOpenTelemetry
+            ? result
+            : new OpenTelemetryEmbeddingGenerator<string, Embedding<float>>(result);
     }
 
     private static string GetRequiredDeploymentName(IConfiguration configuration, string connectionName)

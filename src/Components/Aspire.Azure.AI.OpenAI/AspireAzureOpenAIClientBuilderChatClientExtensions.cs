@@ -22,14 +22,16 @@ public static class AspireAzureOpenAIClientBuilderChatClientExtensions
     /// </summary>
     /// <param name="builder">An <see cref="AspireAzureOpenAIClientBuilder" />.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
+    /// <param name="disableOpenTelemetry">Optional. If <see langword="true"/>, skips registering open telemetry support in the <see cref="IChatClient"/> pipeline.</param>
     /// <returns>A <see cref="ChatClientBuilder"/> that can be used to build a pipeline around the inner <see cref="IChatClient"/>.</returns>
     /// <remarks>Reads the configuration from "Aspire.Azure.AI.OpenAI" section.</remarks>
     public static ChatClientBuilder AddChatClient(
         this AspireAzureOpenAIClientBuilder builder,
-        string? deploymentName = null)
+        string? deploymentName = null,
+        bool disableOpenTelemetry = false)
     {
         return builder.HostBuilder.Services.AddChatClient(
-            services => CreateInnerChatClient(services, builder, deploymentName));
+            services => CreateInnerChatClient(services, builder, deploymentName, disableOpenTelemetry));
     }
 
     /// <summary>
@@ -38,29 +40,36 @@ public static class AspireAzureOpenAIClientBuilderChatClientExtensions
     /// <param name="builder">An <see cref="AspireAzureOpenAIClientBuilder" />.</param>
     /// <param name="serviceKey">The service key with which the <see cref="IChatClient"/> will be registered.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
+    /// <param name="disableOpenTelemetry">Optional. If <see langword="true"/>, skips registering open telemetry support in the <see cref="IChatClient"/> pipeline.</param>
     /// <returns>A <see cref="ChatClientBuilder"/> that can be used to build a pipeline around the inner <see cref="IChatClient"/>.</returns>
     /// <remarks>Reads the configuration from "Aspire.Azure.AI.OpenAI" section.</remarks>
     public static ChatClientBuilder AddKeyedChatClient(
         this AspireAzureOpenAIClientBuilder builder,
         string serviceKey,
-        string? deploymentName = null)
+        string? deploymentName = null,
+        bool disableOpenTelemetry = false)
     {
         return builder.HostBuilder.Services.AddKeyedChatClient(
             serviceKey,
-            services => CreateInnerChatClient(services, builder, deploymentName));
+            services => CreateInnerChatClient(services, builder, deploymentName, disableOpenTelemetry));
     }
 
     private static IChatClient CreateInnerChatClient(
         IServiceProvider services,
         AspireAzureOpenAIClientBuilder builder,
-        string? deploymentName)
+        string? deploymentName,
+        bool disableOpenTelemetry)
     {
         var openAiClient = builder.ServiceKey is null
             ? services.GetRequiredService<AzureOpenAIClient>()
             : services.GetRequiredKeyedService<AzureOpenAIClient>(builder.ServiceKey);
 
         deploymentName ??= GetRequiredDeploymentName(builder.HostBuilder.Configuration, builder.ConnectionName);
-        return openAiClient.AsChatClient(deploymentName);
+        var result = openAiClient.AsChatClient(deploymentName);
+
+        return disableOpenTelemetry
+            ? result
+            : new OpenTelemetryChatClient(result);
     }
 
     private static string GetRequiredDeploymentName(IConfiguration configuration, string connectionName)

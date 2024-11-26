@@ -159,4 +159,33 @@ public class AspireAzureOpenAIClientBuilderChatClientExtensionsTests
 
         Assert.StartsWith($"An {nameof(IChatClient)} could not be configured", ex.Message);
     }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
+    public void AddsOpenTelemetry(bool useKeyed, bool disableOpenTelemetry)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake")
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddAzureOpenAIClient("openai").AddKeyedChatClient("openai_chatclient", "testdeployment1", disableOpenTelemetry);
+        }
+        else
+        {
+            builder.AddAzureOpenAIClient("openai").AddChatClient("testdeployment1", disableOpenTelemetry);
+        }
+
+        using var host = builder.Build();
+        var client = useKeyed ?
+            host.Services.GetRequiredKeyedService<IChatClient>("openai_chatclient") :
+            host.Services.GetRequiredService<IChatClient>();
+
+        Assert.Equal(disableOpenTelemetry, client.GetService<OpenTelemetryChatClient>() is null);
+    }
 }

@@ -159,4 +159,33 @@ public class AspireAzureOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
 
         Assert.StartsWith($"An {nameof(IEmbeddingGenerator<string, Embedding<float>>)} could not be configured", ex.Message);
     }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
+    public void AddsOpenTelemetry(bool useKeyed, bool disableOpenTelemetry)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake")
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddAzureOpenAIClient("openai").AddKeyedEmbeddingGenerator("openai_chatclient", "testdeployment1", disableOpenTelemetry);
+        }
+        else
+        {
+            builder.AddAzureOpenAIClient("openai").AddEmbeddingGenerator("testdeployment1", disableOpenTelemetry);
+        }
+
+        using var host = builder.Build();
+        var client = useKeyed ?
+            host.Services.GetRequiredKeyedService<IEmbeddingGenerator<string, Embedding<float>>>("openai_chatclient") :
+            host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
+
+        Assert.Equal(disableOpenTelemetry, client.GetService<OpenTelemetryEmbeddingGenerator<string, Embedding<float>>>() is null);
+    }
 }
