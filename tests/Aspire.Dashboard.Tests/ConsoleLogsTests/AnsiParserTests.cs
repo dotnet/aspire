@@ -318,7 +318,11 @@ public class AnsiParserTests
     [InlineData("")]
     [InlineData(" ")]
     [InlineData("This is some text without any codes")]
-    [InlineData("This is some text \x1C with an invalid code")]
+    [InlineData("This is some text \x1B with an invalid code")]
+    [InlineData("\x1B This is some text that starts with an invalid code")]
+    [InlineData("This is some text that ends with an invalid code \x1B")]
+    [InlineData("\x1B Multiple \x1B invalid \x1B\x1B codes \x1B")]
+    [InlineData("!\x1B!\x1B!\x1B\x1B!!\x1B!")]
     public void StripControlSequences_ReturnsInputUnchangedIfNoCodesPresent(string input)
     {
         var expectedOutput = input;
@@ -332,6 +336,11 @@ public class AnsiParserTests
     [InlineData("\x1B[32mSuccess:\x1B[0m \x1B[1m\x1B[3mOperation completed successfully\x1B[0m", "Success: Operation completed successfully")]
     [InlineData("\x1B[33mWarning:\x1B[0m \x1B[4mLow disk space\x1B[0m on drive \x1B[35mC:\x1B[0m", "Warning: Low disk space on drive C:")]
     [InlineData("\x1B[36mInfo:\x1B[0m \x1B[1m\x1B[3mBackup completed\x1B[0m at \x1B[32m12:00 PM\x1B[0m", "Info: Backup completed at 12:00 PM")]
+    [InlineData("\x1B[36m", "")]
+    [InlineData("Ends \x1B[36m", "Ends ")]
+    [InlineData("\x1B[36m Starts", " Starts")]
+    [InlineData("\x1B[36m\x1B[36m", "")]
+    [InlineData("1\x1B[36m2\x1B[36m3", "123")]
     public void StripControlSequences_StripsCorrectly(string input, string expectedOutput)
     {
         var result = AnsiParser.StripControlSequences(input);

@@ -23,32 +23,45 @@ public class AnsiParser
 
     public static string StripControlSequences(string text)
     {
-        var outputBuilder = new StringBuilder();
+        StringBuilder? outputBuilder = null;
         var span = text.AsSpan();
-        var i = 0;
+        var currentPos = 0;
+        var lastWritePos = 0;
 
-        while (i < text.Length)
+        while (currentPos < text.Length)
         {
-            var nextEscapeIndex = text.IndexOf(EscapeChar, i);
+            var nextEscapeIndex = text.IndexOf(EscapeChar, currentPos);
             if (nextEscapeIndex == -1)
             {
-                outputBuilder.Append(text[i..]);
-                break;
+                if (outputBuilder != null)
+                {
+                    // Write remaining text.
+                    outputBuilder.Append(text[lastWritePos..]);
+                    break;
+                }
+
+                // No escape sequence found, and no text has been escaped. Return the original text.
+                return text;
             }
 
-            // Append text before the escape sequence, then advance the cursor past the escape sequence
-            outputBuilder.Append(text[i..nextEscapeIndex]);
-            i = nextEscapeIndex;
+            if (IsConEmuSequence(span[currentPos..], ref currentPos) ||
+                IsControlSequence(span[currentPos..], ref currentPos, out _, out _) ||
+                IsLinkControlSequence(span[currentPos..], ref currentPos, out _))
+            {
+                // Append text before the escape sequence, then advance the cursor past the escape sequence
+                outputBuilder ??= new StringBuilder(text.Length);
+                outputBuilder.Append(text[lastWritePos..nextEscapeIndex]);
 
-            IsConEmuSequence(span[i..], ref i);
-            IsControlSequence(span[i..], ref i, out _, out _);
-            IsLinkControlSequence(span[i..], ref i, out _);
-
-            i++;
-
+                currentPos++;
+                lastWritePos = currentPos;
+            }
+            else
+            {
+                currentPos++;
+            }
         }
 
-        return outputBuilder.ToString();
+        return outputBuilder?.ToString() ?? text;
     }
 
     public static ConversionResult ConvertToHtml(string? text, ParserState? priorResidualState = null)
