@@ -25,7 +25,6 @@ public static class AspireOpenAIClientBuilderEmbeddingGeneratorExtensions
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
     /// <param name="disableOpenTelemetry">Optional. If <see langword="true"/>, skips registering open telemetry support in the <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/> pipeline.</param>
     /// <returns>A <see cref="EmbeddingGeneratorBuilder{TInput, TEmbedding}"/> that can be used to build a pipeline around the inner <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/>.</returns>
-    /// <remarks>Reads the configuration from "Aspire..AI.OpenAI" section.</remarks>
     public static EmbeddingGeneratorBuilder<string, Embedding<float>> AddEmbeddingGenerator(
         this AspireOpenAIClientBuilder builder,
         string? deploymentName = null,
@@ -43,7 +42,6 @@ public static class AspireOpenAIClientBuilderEmbeddingGeneratorExtensions
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
     /// <param name="disableOpenTelemetry">Optional. If <see langword="true"/>, skips registering open telemetry support in the <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/> pipeline.</param>
     /// <returns>A <see cref="EmbeddingGeneratorBuilder{TInput, TEmbedding}"/> that can be used to build a pipeline around the inner <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/>.</returns>
-    /// <remarks>Reads the configuration from "Aspire..AI.OpenAI" section.</remarks>
     public static EmbeddingGeneratorBuilder<string, Embedding<float>> AddKeyedEmbeddingGenerator(
         this AspireOpenAIClientBuilder builder,
         string serviceKey,

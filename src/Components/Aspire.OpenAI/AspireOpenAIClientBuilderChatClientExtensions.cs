@@ -25,7 +25,6 @@ public static class AspireOpenAIClientBuilderChatClientExtensions
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
     /// <param name="disableOpenTelemetry">Optional. If <see langword="true"/>, skips registering open telemetry support in the <see cref="IChatClient"/> pipeline.</param>
     /// <returns>A <see cref="ChatClientBuilder"/> that can be used to build a pipeline around the inner <see cref="IChatClient"/>.</returns>
-    /// <remarks>Reads the configuration from "Aspire.OpenAI" section.</remarks>
     public static ChatClientBuilder AddChatClient(
         this AspireOpenAIClientBuilder builder,
         string? deploymentName = null,
@@ -43,7 +42,6 @@ public static class AspireOpenAIClientBuilderChatClientExtensions
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
     /// <param name="disableOpenTelemetry">Optional. If <see langword="true"/>, skips registering open telemetry support in the <see cref="IChatClient"/> pipeline.</param>
     /// <returns>A <see cref="ChatClientBuilder"/> that can be used to build a pipeline around the inner <see cref="IChatClient"/>.</returns>
-    /// <remarks>Reads the configuration from "Aspire.OpenAI" section.</remarks>
     public static ChatClientBuilder AddKeyedChatClient(
         this AspireOpenAIClientBuilder builder,
         string serviceKey,
