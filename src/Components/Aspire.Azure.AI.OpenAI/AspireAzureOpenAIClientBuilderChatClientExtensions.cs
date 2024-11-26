@@ -6,7 +6,6 @@ using Azure.AI.OpenAI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -23,15 +22,14 @@ public static class AspireAzureOpenAIClientBuilderChatClientExtensions
     /// </summary>
     /// <param name="builder">An <see cref="AspireAzureOpenAIClientBuilder" />.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
-    /// <param name="configurePipeline">An optional method that can be used for customizing the <see cref="IChatClient"/> pipeline.</param>
+    /// <returns>A <see cref="ChatClientBuilder"/> that can be used to build a pipeline around the inner <see cref="IChatClient"/>.</returns>
     /// <remarks>Reads the configuration from "Aspire.Azure.AI.OpenAI" section.</remarks>
-    public static void AddChatClient(
+    public static ChatClientBuilder AddChatClient(
         this AspireAzureOpenAIClientBuilder builder,
-        string? deploymentName = null,
-        Func<ChatClientBuilder, ChatClientBuilder>? configurePipeline = null)
+        string? deploymentName = null)
     {
-        builder.HostBuilder.Services.AddSingleton(
-            services => CreateChatClient(services, builder, deploymentName, configurePipeline));
+        return builder.HostBuilder.Services.AddChatClient(
+            services => CreateInnerChatClient(services, builder, deploymentName));
     }
 
     /// <summary>
@@ -40,34 +38,29 @@ public static class AspireAzureOpenAIClientBuilderChatClientExtensions
     /// <param name="builder">An <see cref="AspireAzureOpenAIClientBuilder" />.</param>
     /// <param name="serviceKey">The service key with which the <see cref="IChatClient"/> will be registered.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
-    /// <param name="configurePipeline">An optional method that can be used for customizing the <see cref="IChatClient"/> pipeline.</param>
+    /// <returns>A <see cref="ChatClientBuilder"/> that can be used to build a pipeline around the inner <see cref="IChatClient"/>.</returns>
     /// <remarks>Reads the configuration from "Aspire.Azure.AI.OpenAI" section.</remarks>
-    public static void AddKeyedChatClient(
+    public static ChatClientBuilder AddKeyedChatClient(
         this AspireAzureOpenAIClientBuilder builder,
         string serviceKey,
-        string? deploymentName = null,
-        Func<ChatClientBuilder, ChatClientBuilder>? configurePipeline = null)
+        string? deploymentName = null)
     {
-        builder.HostBuilder.Services.TryAddKeyedSingleton(
+        return builder.HostBuilder.Services.AddKeyedChatClient(
             serviceKey,
-            (services, _) => CreateChatClient(services, builder, deploymentName, configurePipeline));
+            services => CreateInnerChatClient(services, builder, deploymentName));
     }
 
-    private static IChatClient CreateChatClient(
+    private static IChatClient CreateInnerChatClient(
         IServiceProvider services,
         AspireAzureOpenAIClientBuilder builder,
-        string? deploymentName,
-        Func<ChatClientBuilder, ChatClientBuilder>? configurePipeline)
+        string? deploymentName)
     {
         var openAiClient = builder.ServiceKey is null
             ? services.GetRequiredService<AzureOpenAIClient>()
             : services.GetRequiredKeyedService<AzureOpenAIClient>(builder.ServiceKey);
 
         deploymentName ??= GetRequiredDeploymentName(builder.HostBuilder.Configuration, builder.ConnectionName);
-        var chatClientBuilder = new ChatClientBuilder(openAiClient.AsChatClient(deploymentName));
-        configurePipeline?.Invoke(chatClientBuilder);
-
-        return chatClientBuilder.Build(services);
+        return openAiClient.AsChatClient(deploymentName);
     }
 
     private static string GetRequiredDeploymentName(IConfiguration configuration, string connectionName)
