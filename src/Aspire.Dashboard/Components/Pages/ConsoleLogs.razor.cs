@@ -5,7 +5,6 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
-using System.Text;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.ConsoleLogs;
@@ -338,7 +337,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                             _logEntries.BaseLineNumber = lineNumber;
                         }
 
-                        var logEntry = logParser.CreateLogEntry(content, content, isErrorOutput);
+                        var logEntry = logParser.CreateLogEntry(content, isErrorOutput);
                         _logEntries.InsertSorted(logEntry);
                     }
 
@@ -409,11 +408,26 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     private async Task DownloadLogsAsync()
     {
-        // Strip control sequences from log lines before combining them into a single string.
-        var formattedLines = _logEntries.GetEntries().Select(entry => entry.RawContent is null ? null : AnsiParser.StripControlSequences(entry.RawContent));
-        var logContent = string.Join(Environment.NewLine, formattedLines);
+        // Write all log entry content to a stream as UTF8 chars. Strip control sequences from log lines.
+        var stream = new MemoryStream();
+        using (var writer = new StreamWriter(stream, leaveOpen: true))
+        {
+            foreach (var entry in _logEntries.GetEntries())
+            {
+                // It's ok to use sync stream methods here because we're writing to a MemoryStream.
+                if (entry.RawContent is not null)
+                {
+                    writer.WriteLine(AnsiParser.StripControlSequences(entry.RawContent));
+                }
+                else
+                {
+                    writer.WriteLine();
+                }
+            }
+            writer.Flush();
+        }
+        stream.Seek(0, SeekOrigin.Begin);
 
-        var stream = new MemoryStream(Encoding.UTF8.GetBytes(logContent));
         using var streamReference = new DotNetStreamReference(stream);
         var safeDisplayName = string.Join("_", PageViewModel.SelectedResource!.DisplayName.Split(Path.GetInvalidFileNameChars()));
         var fileName = $"{safeDisplayName}-{DateTime.Now.ToString("yyyyMMddhhmmss", CultureInfo.InvariantCulture)}.txt";

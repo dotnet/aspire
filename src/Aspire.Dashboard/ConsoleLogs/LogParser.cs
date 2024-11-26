@@ -10,7 +10,7 @@ internal sealed class LogParser
 {
     private AnsiParser.ParserState? _residualState;
 
-    public LogEntry CreateLogEntry(string rawMessageContent, string rawLineContent, bool isErrorOutput)
+    public LogEntry CreateLogEntry(string rawMessageContent, bool isErrorOutput)
     {
         // Several steps to do here:
         //
@@ -57,13 +57,7 @@ internal sealed class LogParser
         }
 
         // 5. Create the LogEntry
-        var logEntry = new LogEntry
-        {
-            Timestamp = timestamp,
-            Content = content,
-            RawContent = rawLineContent,
-            Type = isErrorOutput ? LogEntryType.Error : LogEntryType.Default
-        };
+        var logEntry = LogEntry.Create(timestamp, content, rawMessageContent, isErrorOutput);
 
         return logEntry;
     }
