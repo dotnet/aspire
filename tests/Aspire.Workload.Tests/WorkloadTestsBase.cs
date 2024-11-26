@@ -106,9 +106,9 @@ public partial class WorkloadTestsBase
             var inTest = false;
             var marker = testTemplateName switch
             {
-                "aspire-nunit" => "// [Test]",
-                "aspire-mstest" => "// [TestMethod]",
-                "aspire-xunit" => "// [Fact]",
+                "aspire-nunit" or "aspire-nunit-9" => "// [Test]",
+                "aspire-mstest" or "aspire-mstest-9" => "// [TestMethod]",
+                "aspire-xunit" or "aspire-xunit-9" => "// [Fact]",
                 _ => throw new NotImplementedException($"Unknown test template: {testTemplateName}")
             };
 
@@ -177,26 +177,29 @@ public partial class WorkloadTestsBase
                 var cellLocs = await rowLoc.Locator("//fluent-data-grid-cell[@role='gridcell']").AllAsync();
 
                 // is the resource name expected?
-                var resourceName = await cellLocs[1].InnerTextAsync();
+                var resourceNameCell = cellLocs[0];
+                var resourceName = await resourceNameCell.InnerTextAsync();
+                resourceName = resourceName.Trim();
                 if (!expectedRowsTable.TryGetValue(resourceName, out var expectedRow))
                 {
-                    Assert.Fail($"Row with unknown name found: {resourceName}");
+                    Assert.Fail($"Row with unknown name found: '{resourceName}'. Expected values: {string.Join(", ", expectedRowsTable.Keys.Select(k => $"'{k}'"))}");
                 }
                 if (foundNames.Contains(resourceName))
                 {
                     continue;
                 }
 
-                AssertEqual(expectedRow.Name, resourceName, $"Name for {resourceName}");
+                AssertEqual(expectedRow.Name, resourceName, $"Name for '{resourceName}'");
 
-                var actualState = await cellLocs[2].InnerTextAsync().ConfigureAwait(false);
+                var stateCell = cellLocs[1];
+                var actualState = await stateCell.InnerTextAsync().ConfigureAwait(false);
                 actualState = actualState.Trim();
                 if (expectedRow.State != actualState && actualState != "Finished" && !actualState.Contains("failed", StringComparison.OrdinalIgnoreCase))
                 {
                     testOutput.WriteLine($"[{expectedRow.Name}] expected state: '{expectedRow.State}', actual state: '{actualState}'");
                     continue;
                 }
-                AssertEqual(expectedRow.State, await cellLocs[2].InnerTextAsync(), $"State for {resourceName}");
+                AssertEqual(expectedRow.State, (await stateCell.InnerTextAsync()).Trim(), $"State for {resourceName}");
 
                 // Match endpoints
 
@@ -218,10 +221,10 @@ public partial class WorkloadTestsBase
 
                 AssertEqual(expectedEndpoints.Length, endpointsFound.Count, $"#endpoints for {resourceName}");
 
-                // endpointsFound: ["foo", "https://localhost:7589/weatherforecast"]
+                // endpointsFound: ["foo", "https://localhost:7589/"]
                 foreach (var endpointFound in endpointsFound)
                 {
-                    // matchedEndpoints: ["https://localhost:7589/weatherforecast"]
+                    // matchedEndpoints: ["https://localhost:7589/"]
                     string[] matchedEndpoints = expectedEndpoints.Where(e => Regex.IsMatch(endpointFound, e)).ToArray();
                     if (matchedEndpoints.Length == 0)
                     {
@@ -233,7 +236,8 @@ public partial class WorkloadTestsBase
                 AssertEqual(expectedEndpoints.Length, matchingEndpoints, $"Expected number of endpoints for {resourceName}");
 
                 // Check 'Source' column
-                AssertEqual(expectedRow.Source, await cellLocs[4].InnerTextAsync(), $"Source for {resourceName}");
+                var sourceCell = cellLocs[4];
+                AssertEqual(expectedRow.Source, await sourceCell.InnerTextAsync(), $"Source for {resourceName}");
 
                 foundRows.Add(expectedRow with { Endpoints = endpointsFound.ToArray() });
                 foundNames.Add(resourceName);
@@ -250,7 +254,7 @@ public partial class WorkloadTestsBase
 
     // Don't fixup the prefix so it can have characters meant for testing, like spaces
     public static string GetNewProjectId(string? prefix = null)
-        => (prefix is null ? "" : $"{prefix}_") + Path.GetRandomFileName();
+        => (prefix is null ? "" : $"{prefix}_") + FixupSymbolName(Path.GetRandomFileName());
 
     public static IEnumerable<string> GetProjectNamesForTest()
     {
@@ -296,8 +300,11 @@ public partial class WorkloadTestsBase
                 throw;
             }
 
-            string url = resourceRows.First(r => r.Name == "webfrontend").Endpoints[0];
-            await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckWebFrontendWorksAsync(context, url, _testOutput, project.LogPath);
+            string apiServiceUrl = resourceRows.First(r => r.Name == "apiservice").Endpoints[0];
+            await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckApiServiceWorksAsync(apiServiceUrl, _testOutput, project.LogPath);
+
+            string webFrontEnd = resourceRows.First(r => r.Name == "webfrontend").Endpoints[0];
+            await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckWebFrontendWorksAsync(context, webFrontEnd, _testOutput, project.LogPath);
         }
         else
         {
@@ -367,5 +374,35 @@ public partial class WorkloadTestsBase
             { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, TestTemplatesInstall.Net9, null },
             { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, TestTemplatesInstall.Net9AndNet8, null },
         };
+
+    // Taken from dotnet/runtime src/tasks/Common/Utils.cs
+    private static readonly char[] s_charsToReplace = new[] { '.', '-', '+', '<', '>' };
+    public static string FixupSymbolName(string name)
+    {
+        UTF8Encoding utf8 = new();
+        byte[] bytes = utf8.GetBytes(name);
+        StringBuilder sb = new();
+
+        foreach (byte b in bytes)
+        {
+            if ((b >= (byte)'0' && b <= (byte)'9') ||
+                (b >= (byte)'a' && b <= (byte)'z') ||
+                (b >= (byte)'A' && b <= (byte)'Z') ||
+                (b == (byte)'_'))
+            {
+                sb.Append((char)b);
+            }
+            else if (s_charsToReplace.Contains((char)b))
+            {
+                sb.Append('_');
+            }
+            else
+            {
+                sb.Append($"_{b:X}_");
+            }
+        }
+
+        return sb.ToString();
+    }
 
 }

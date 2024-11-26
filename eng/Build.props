@@ -1,6 +1,6 @@
 <Project>
   <ItemGroup Condition="'$(DotNetBuildFromSource)' != 'true' and '$(DotNetBuild)' != 'true'">
-    <ProjectToBuild Include="$(RepoRoot)src\**\*.csproj" Exclude="$(RepoRoot)src\Aspire.ProjectTemplates.9.0.net8\templates\**\*.csproj;$(RepoRoot)src\Aspire.ProjectTemplates.9.0.net9\templates\**\*.csproj" />
+    <ProjectToBuild Include="$(RepoRoot)src\**\*.csproj" Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)eng\dcppack\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)eng\dashboardpack\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)playground\**\*.csproj" />

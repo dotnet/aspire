@@ -9,21 +9,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 // Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
 builder.Services.AddDaprClient();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
 app.UseCloudEvents();
 app.MapSubscribeHandler();
 
@@ -42,8 +32,7 @@ app.MapGet("/weatherforecast", async (DaprClient client) =>
 
     return forecasts;
 })
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+.WithName("GetWeatherForecast");
 
 app.MapPost("/subscriptions/weather", [Topic("pubsub", "weather")] (ILogger<Program> logger, WeatherForecastMessage message) =>
 {

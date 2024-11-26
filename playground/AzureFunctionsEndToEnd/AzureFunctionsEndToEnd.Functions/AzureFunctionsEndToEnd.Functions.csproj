@@ -35,11 +35,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
-  <!-- HACK: Simulate running the Azure Functions project via `dotnet run` by spawning the host via a run command. -->
-  <PropertyGroup>
-    <RunCommand>func</RunCommand>
-    <RunArguments>start --csharp --verbose</RunArguments>
-  </PropertyGroup>
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Azure.Storage.Blobs" />
     <AspireProjectOrPackageReference Include="Aspire.Azure.Storage.Queues" />

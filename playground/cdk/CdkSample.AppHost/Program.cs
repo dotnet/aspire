@@ -1,12 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable AZPROVISION001 // Because we use the CDK callbacks.
-
 using Azure.Provisioning.ApplicationInsights;
-using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.OperationalInsights;
+using Azure.Provisioning.ServiceBus;
 using Azure.Provisioning.Storage;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -15,26 +13,30 @@ var cosmosdb = builder.AddAzureCosmosDB("cosmos").AddDatabase("cosmosdb");
 
 var sku = builder.AddParameter("storagesku");
 var locationOverride = builder.AddParameter("locationOverride");
-var storage = builder.AddAzureStorage("storage", (_, construct, account) =>
-{
-    account.Sku = new StorageSku() { Name = sku.AsProvisioningParameter(construct) };
-    account.Location = locationOverride.AsProvisioningParameter(construct);
-});
+var storage = builder.AddAzureStorage("storage")
+    .ConfigureInfrastructure(infrastructure =>
+    {
+        var account = infrastructure.GetProvisionableResources().OfType<StorageAccount>().Single();
+        account.Sku = new StorageSku() { Name = sku.AsProvisioningParameter(infrastructure) };
+        account.Location = locationOverride.AsProvisioningParameter(infrastructure);
+    });
 
 var blobs = storage.AddBlobs("blobs");
 
-var sqldb = builder.AddSqlServer("sql").AsAzureSqlDatabase().AddDatabase("sqldb");
+var sqldb = builder.AddAzureSqlServer("sql").AddDatabase("sqldb");
 
 var signaturesecret = builder.AddParameter("signaturesecret", secret: true);
-var keyvault = builder.AddAzureKeyVault("mykv", (_, construct, keyVault) =>
+var keyvault = builder.AddAzureKeyVault("mykv")
+    .ConfigureInfrastructure(infrastructure =>
 {
+    var keyVault = infrastructure.GetProvisionableResources().OfType<KeyVaultService>().Single();
     var secret = new KeyVaultSecret("mysecret")
     {
         Parent = keyVault,
         Name = "mysecret",
-        Properties = new SecretProperties { Value = signaturesecret.AsProvisioningParameter(construct) }
+        Properties = new SecretProperties { Value = signaturesecret.AsProvisioningParameter(infrastructure) }
     };
-    construct.Add(secret);
+    infrastructure.Add(secret);
 });
 
 var cache = builder.AddAzureRedis("cache");
@@ -49,28 +51,27 @@ var pgsql2 = builder.AddAzurePostgresFlexibleServer("pgsql2")
     .AddDatabase("pgsql2db");
 
 var sb = builder.AddAzureServiceBus("servicebus")
-    .AddQueue("queue1",
-        (_, construct, queue) =>
-        {
-            queue.MaxDeliveryCount = 5;
-            queue.LockDuration = new StringLiteral("PT5M");
-            // TODO: this should be
-            // queue.LockDuration = TimeSpan.FromMinutes(5);
-        })
-    .AddTopic("topic1",
-        (_, construct, topic) =>
-        {
-            topic.EnablePartitioning = true;
-        })
+    .AddQueue("queue1")
+    .ConfigureInfrastructure(infrastructure =>
+    {
+        var queue = infrastructure.GetProvisionableResources().OfType<ServiceBusQueue>().Single(q => q.BicepIdentifier == "queue1");
+        queue.MaxDeliveryCount = 5;
+        queue.LockDuration = TimeSpan.FromMinutes(5);
+    })
+    .AddTopic("topic1")
+    .ConfigureInfrastructure(infrastructure =>
+    {
+        var topic = infrastructure.GetProvisionableResources().OfType<ServiceBusTopic>().Single(q => q.BicepIdentifier == "topic1");
+        topic.EnablePartitioning = true;
+    })
     .AddTopic("topic2")
-    .AddSubscription("topic1", "subscription1",
-        (_, construct, subscription) =>
-        {
-            subscription.LockDuration = new StringLiteral("PT5M");
-            // TODO: this should be
-            //subscription.LockDuration = TimeSpan.FromMinutes(5);
-            subscription.RequiresSession = true;
-        })
+    .AddSubscription("topic1", "subscription1")
+    .ConfigureInfrastructure(infrastructure =>
+    {
+        var subscription = infrastructure.GetProvisionableResources().OfType<ServiceBusSubscription>().Single(q => q.BicepIdentifier == "subscription1");
+        subscription.LockDuration = TimeSpan.FromMinutes(5);
+        subscription.RequiresSession = true;
+    })
     .AddSubscription("topic1", "subscription2")
     .AddTopic("topic3", new[] { "sub1", "sub2" });
 
@@ -80,23 +81,22 @@ var search = builder.AddAzureSearch("search");
 
 var signalr = builder.AddAzureSignalR("signalr");
 
-var logAnalyticsWorkspace = builder.AddAzureLogAnalyticsWorkspace(
-    "logAnalyticsWorkspace",
-    (_, _, logAnalyticsWorkspace) =>
+var logAnalyticsWorkspace = builder.AddAzureLogAnalyticsWorkspace("logAnalyticsWorkspace")
+    .ConfigureInfrastructure(infrastructure =>
     {
+        var logAnalyticsWorkspace = infrastructure.GetProvisionableResources().OfType<OperationalInsightsWorkspace>().Single();
         logAnalyticsWorkspace.Sku = new OperationalInsightsWorkspaceSku()
         {
             Name = OperationalInsightsWorkspaceSkuName.PerNode
         };
     });
 
-var appInsights = builder.AddAzureApplicationInsights(
-    "appInsights",
-    logAnalyticsWorkspace,
-    (_, _, appInsights) =>
-{
-    appInsights.IngestionMode = ComponentIngestionMode.LogAnalytics;
-});
+var appInsights = builder.AddAzureApplicationInsights("appInsights", logAnalyticsWorkspace)
+    .ConfigureInfrastructure(infrastructure =>
+    {
+        var appInsights = infrastructure.GetProvisionableResources().OfType<ApplicationInsightsComponent>().Single();
+        appInsights.IngestionMode = ComponentIngestionMode.LogAnalytics;
+    });
 
 builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithExternalHttpEndpoints()

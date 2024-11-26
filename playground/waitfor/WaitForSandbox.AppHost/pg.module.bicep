@@ -9,7 +9,7 @@ param administratorLoginPassword string
 param keyVaultName string
 
 resource pg 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
-  name: take('pg${uniqueString(resourceGroup().id)}', 24)
+  name: take('pg-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
     administratorLogin: administratorLogin
@@ -66,7 +66,7 @@ resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   parent: keyVault
 }
 
-resource db_connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
+resource db_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   name: 'db-connectionString'
   properties: {
     value: 'Host=${pg.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword};Database=db'

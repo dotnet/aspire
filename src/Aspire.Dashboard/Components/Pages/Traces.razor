@@ -1,6 +1,7 @@
 ﻿@page "/traces"
 @page "/traces/resource/{applicationName}"
 
+@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
@@ -53,12 +54,12 @@
             <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             @if (ViewportInformation.IsDesktop)
             {
-                <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="@FilterLoc[nameof(StructuredFiltering.AddFilter)]" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
+                <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="@FilterLoc[nameof(StructuredFiltering.AddFilter)]" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size20.Filter())" /></FluentButton>
             }
             else
             {
                 <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="@FilterLoc[nameof(StructuredFiltering.AddFilter)]" OnClick="() => OpenFilterAsync(null)">
-                    <FluentIcon Class="align-text-bottom" Value="@(new Icons.Regular.Size16.Filter())" /> @FilterLoc[nameof(StructuredFiltering.AddFilter)]
+                    <FluentIcon Class="align-text-bottom" Value="@(new Icons.Regular.Size20.Filter())" /> @FilterLoc[nameof(StructuredFiltering.AddFilter)]
                 </FluentButton>
             }
         </ToolbarSection>
@@ -78,7 +79,7 @@
                                     ShowHover="true"
                                     ItemKey="@(r => r.TraceId)"
                                     OnRowClick="@(r => r.ExecuteOnDefault(d => NavigationManager.NavigateTo(DashboardUrls.TraceDetailUrl(d.TraceId))))"
-                                    Class="enable-row-click">
+                                    Class="main-grid enable-row-click">
                         <ChildContent>
                             <AspireTemplateColumn ColumnId="@TimestampColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
                                 @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Truncated)
@@ -92,15 +93,15 @@
                             <AspireTemplateColumn ColumnId="@SpansColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Traces.TracesSpansColumnHeader)]">
                                 <FluentOverflow>
                                     <ChildContent>
-                                        @foreach (var item in context.Spans.GroupBy(s => s.Source.Application).OrderBy(g => g.Min(s => s.StartTime)))
+                                        @foreach (var item in TraceHelpers.GetOrderedApplications(context))
                                         {
                                             <FluentOverflowItem>
-                                                <span class="trace-tag trace-service-tag" title="@(GetSpansTooltip(item))" style="border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(item.Key)));">
-                                                    @if (item.Any(s => s.Status == OtlpSpanStatusCode.Error))
+                                                <span class="trace-tag trace-service-tag" title="@(GetSpansTooltip(item))" style="border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(item.Application)));">
+                                                    @if (item.ErroredSpans > 0)
                                                     {
                                                         <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
                                                     }
-                                                    @GetResourceName(item.Key) (@item.Count())
+                                                    @GetResourceName(item.Application) (@item.TotalSpans)
                                                 </span>
                                             </FluentOverflowItem>
                                         }
@@ -158,7 +159,7 @@
             </div>
         </MainSection>
         <FooterSection>
-            <TotalItemsFooter @ref="_totalItemsFooter" />
+            <TotalItemsFooter @ref="_totalItemsFooter" TotalItemCount="@_totalItemsCount" />
         </FooterSection>
     </AspirePageContentLayout>
 </div>

@@ -160,6 +160,9 @@
   <data name="GridValueCopyToClipboard" xml:space="preserve">
     <value>Copy to clipboard</value>
   </data>
+  <data name="ExceptionDetailsTitle" xml:space="preserve">
+    <value>Exception details</value>
+  </data>
   <data name="GridValueCopied" xml:space="preserve">
     <value>Copied!</value>
   </data>
@@ -180,6 +183,9 @@
   </data>
   <data name="PropertyGridValueColumnHeader" xml:space="preserve">
     <value>Value</value>
+  </data>
+  <data name="StateColumnHeader" xml:space="preserve">
+    <value>State</value>
   </data>
   <data name="SpanDetailsResource" xml:space="preserve">
     <value>Resource &lt;strong&gt;{0}&lt;/strong&gt;</value>
@@ -299,6 +305,9 @@
   <data name="ResourceDetailsVolumesHeader" xml:space="preserve">
     <value>Volumes</value>
   </data>
+  <data name="ResourceHealthChecksHeader" xml:space="preserve">
+    <value>Health checks</value>
+  </data>
   <data name="ResourceDetailsResourceHeader" xml:space="preserve">
     <value>Resource</value>
   </data>
@@ -403,5 +412,14 @@
   </data>
   <data name="ActionStructuredLogsText" xml:space="preserve">
     <value>Structured logs</value>
+  </data>
+  <data name="ResourceDetailsTypeHeader" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="ResourceDetailsReferences" xml:space="preserve">
+    <value>References</value>
+  </data>
+  <data name="ResourceDetailsBackReferences" xml:space="preserve">
+    <value>Back references</value>
   </data>
 </root>

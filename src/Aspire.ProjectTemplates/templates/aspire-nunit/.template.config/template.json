@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json.schemastore.org/template",
+  "author": "Microsoft",
+  "classifications": [
+    "Common",
+    ".NET Aspire",
+    "Cloud",
+    "Web",
+    "Web API",
+    "API",
+    "Service",
+    "Test"
+  ],
+  "name": ".NET Aspire Test Project (NUnit)",
+  "defaultName": "Tests",
+  "description": "A project that contains NUnit integration tests of a .NET Aspire app host project.",
+  "shortName": "aspire-nunit",
+  "sourceName": "Aspire.Tests.1",
+  "preferNameDirectory": true,
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "precedence": "9000",
+  "identity": "Aspire.Tests.NUnit.CSharp.8.0",
+  "thirdPartyNotices": "https://aka.ms/dotnet/aspire/third-party-notices",
+  "groupIdentity": "Aspire.Tests.NUnit",
+  "sources": [
+    {
+      "source": "./9.0",
+      "target": "./",
+      "condition": "AspireVersionActual == 9.0"
+    },
+    {
+      "source": "./8.2",
+      "target": "./",
+      "condition": "AspireVersionActual == 8.2"
+    }
+  ],
+  "symbols": {
+    "Framework": {
+      "type": "parameter",
+      "description": "The target framework for the project.",
+      "datatype": "choice",
+      "choices": [
+        {
+          "choice": "net8.0",
+          "description": "Target net8.0"
+        },
+        {
+          "choice": "net9.0",
+          "description": "Target net9.0"
+        }
+      ],
+      "replaces": "net8.0",
+      "defaultValue": "net9.0"
+    },
+    "AspireVersion": {
+      "type": "parameter",
+      "description": "The version of .NET Aspire to use.",
+      "displayName": ".NET Aspire version",
+      "datatype": "choice",
+      "isEnabled": "Framework == net8.0",
+      "choices": [
+          {
+             "choice": "9.0",
+             "displayName": "9.0",
+             "description": "Chooses .NET Aspire 9.0"
+          },
+          {
+            "choice": "8.2",
+            "displayName": "8.2",
+            "description": "Chooses .NET Aspire 8.2"
+         }
+      ],
+      "defaultValue": "9.0"
+    },
+    "AspireVersionDefault": {
+      "type": "generated",
+      "generator": "constant",
+      "parameters": {
+        "value": "9.0"
+      }
+    },
+    "AspireVersionActual": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "AspireVersion",
+        "fallbackVariableName": "AspireVersionDefault"
+      },
+      "replaces": "aspireVersion"
+    },
+    "hostIdentifier": {
+      "type": "bind",
+      "binding": "HostIdentifier"
+    },
+    "skipRestore": {
+      "type": "parameter",
+      "datatype": "bool",
+      "description": "If specified, skips the automatic restore of the project on create.",
+      "defaultValue": "false"
+    }
+  },
+  "primaryOutputs": [
+    {
+      "path": "Aspire.Tests.1.csproj"
+    }
+  ],
+  "postActions": [
+    {
+      "id": "restore",
+      "condition": "(!skipRestore)",
+      "description": "Restore NuGet packages required by this project.",
+      "manualInstructions": [
+        {
+          "text": "Run 'dotnet restore'"
+        }
+      ],
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
+    }
+  ]
+}

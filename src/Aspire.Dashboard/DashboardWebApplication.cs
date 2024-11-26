@@ -95,6 +95,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
     public IReadOnlyList<string> ValidationFailures => _validationFailures;
 
+    public IServiceProvider Services { get; }
+
     // our localization list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
     internal static HashSet<string> LocalizedCultures { get; } = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -117,9 +119,14 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 #if !DEBUG
         builder.Logging.AddFilter("Default", LogLevel.Information);
         builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
-        builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
+        // Suppress TokenDeserializeException error log from anti-forgery.
+        // When dashboard is upgrade or run in a container the old anti-forgery cookie is no longer valid on first request.
+        // Silently ignore and allow anti-forgery to automatically create a new valid cookie.
+        builder.Logging.AddFilter("Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery", LogLevel.None);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
+        builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
 #else
+
         // Log more when running the dashboard as debug.
         builder.Logging.SetMinimumLevel(LogLevel.Debug);
         builder.Logging.AddFilter("Aspire.Dashboard", LogLevel.Debug);
@@ -163,6 +170,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             _dashboardOptionsMonitor = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
             _validationFailures = failureMessages.ToList();
             _logger = GetLogger();
+            Services = _app.Services;
             WriteVersion(_logger);
             WriteValidationFailures(_logger, _validationFailures);
             return;
@@ -224,6 +232,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         // Data from the server.
         builder.Services.TryAddScoped<IDashboardClient, DashboardClient>();
+        builder.Services.TryAddSingleton<IDashboardClientStatus, DashboardClientStatus>();
 
         // OTLP services.
         builder.Services.AddGrpc();
@@ -240,7 +249,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         builder.Services.AddFluentUIComponents();
 
-        builder.Services.AddScoped<IEffectiveThemeResolver, BrowserEffectiveThemeResolver>();
+        builder.Services.AddScoped<IThemeResolver, BrowserThemeResolver>();
         builder.Services.AddScoped<ThemeManager>();
         // ShortcutManager is scoped because we want shortcuts to apply one browser window.
         builder.Services.AddScoped<ShortcutManager>();
@@ -266,6 +275,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _dashboardOptionsMonitor = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
 
+        Services = _app.Services;
         _logger = GetLogger();
 
         var supportedCultures = GetSupportedCultures();
@@ -278,6 +288,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _app.Lifetime.ApplicationStarted.Register(() =>
         {
+            EndpointInfo? frontendEndpointInfo = null;
             if (_frontendEndPointAccessor.Count > 0)
             {
                 if (dashboardOptions.Otlp.Cors.IsCorsEnabled)
@@ -295,17 +306,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     });
                 }
 
-                var frontendEndpointInfo = _frontendEndPointAccessor[0]();
+                frontendEndpointInfo = _frontendEndPointAccessor[0]();
                 _logger.LogInformation("Now listening on: {DashboardUri}", frontendEndpointInfo.GetResolvedAddress());
-
-                var options = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>().CurrentValue;
-                if (options.Frontend.AuthMode == FrontendAuthMode.BrowserToken)
-                {
-                    // DOTNET_RUNNING_IN_CONTAINER is a well-known environment variable added by official .NET images.
-                    // https://learn.microsoft.com/dotnet/core/tools/dotnet-environment-variables#dotnet_running_in_container-and-dotnet_running_in_containers
-                    var isContainer = _app.Configuration.GetBool("DOTNET_RUNNING_IN_CONTAINER") ?? false;
-                    LoggingHelpers.WriteDashboardUrl(_logger, frontendEndpointInfo.GetResolvedAddress(replaceIPAnyWithLocalhost: true), options.Frontend.BrowserToken, isContainer);
-                }
             }
 
             if (_otlpServiceGrpcEndPointAccessor != null)
@@ -323,6 +325,19 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             {
                 _logger.LogWarning("OTLP server is unsecured. Untrusted apps can send telemetry to the dashboard. For more information, visit https://go.microsoft.com/fwlink/?linkid=2267030");
             }
+
+            // Log frontend login URL last at startup so it's easy to find in the logs.
+            if (frontendEndpointInfo != null)
+            {
+                var options = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>().CurrentValue;
+                if (options.Frontend.AuthMode == FrontendAuthMode.BrowserToken)
+                {
+                    // DOTNET_RUNNING_IN_CONTAINER is a well-known environment variable added by official .NET images.
+                    // https://learn.microsoft.com/dotnet/core/tools/dotnet-environment-variables#dotnet_running_in_container-and-dotnet_running_in_containers
+                    var isContainer = _app.Configuration.GetBool("DOTNET_RUNNING_IN_CONTAINER") ?? false;
+                    LoggingHelpers.WriteDashboardUrl(_logger, frontendEndpointInfo.GetResolvedAddress(replaceIPAnyWithLocalhost: true), options.Frontend.BrowserToken, isContainer);
+                }
+            }
         });
 
         // Redirect browser directly to /structuredlogs address if the dashboard is running without a resource service.
@@ -331,7 +346,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             if (context.Request.Path.Equals(TargetLocationInterceptor.ResourcesPath, StringComparisons.UrlPath))
             {
-                var client = context.RequestServices.GetRequiredService<IDashboardClient>();
+                var client = context.RequestServices.GetRequiredService<IDashboardClientStatus>();
                 if (!client.IsEnabled)
                 {
                     context.Response.Redirect(TargetLocationInterceptor.StructuredLogsPath);

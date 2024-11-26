@@ -15,6 +15,9 @@ public static class SqlServerBuilderExtensions
     /// <summary>
     /// Adds a SQL Server resource to the application model. A container is used for local development.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="SqlServerContainerImageTags.Tag"/> tag of the <inheritdoc cref="SqlServerContainerImageTags.Registry"/>/<inheritdoc cref="SqlServerContainerImageTags.Image"/> container image.
+    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="password">The parameter used to provide the administrator password for the SQL Server resource. If <see langword="null"/> a random password will be generated.</param>
@@ -88,7 +91,7 @@ public static class SqlServerBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/opt/mssql", isReadOnly);
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/var/opt/mssql", isReadOnly);
     }
 
     /// <summary>

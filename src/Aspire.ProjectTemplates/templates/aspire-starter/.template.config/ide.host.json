@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json.schemastore.org/ide.host",
+  "icon": "ide/AspireStarter.ico",
+  "displayOverviewPage": "0",
+  "disableHttpsSymbol": "NoHttps",
+  "unsupportedHosts": [
+    {
+      "id": "vs",
+      "version": "(,17.9)"
+    }
+  ],
+  "symbolInfo": [
+    {
+      "id": "AspireVersion",
+      "isVisible": true,
+      "persistenceScope": "shared",
+      "persistenceScopeName": "aspireTemplates"
+    },
+    {
+      "id": "UseRedisCache",
+      "isVisible": true,
+      "persistenceScope": "templateGroup"
+    },
+    {
+      "id": "TestFramework",
+      "isVisible": true,
+      "persistenceScope": "templateGroup"
+    }
+  ]
+}

@@ -7,6 +7,7 @@ using System.IO.Pipelines;
 using System.Net.Sockets;
 using System.Text;
 using Aspire.Dashboard.Utils;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -18,6 +19,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 {
     private const int LoggingSocketConnectionBacklog = 3;
     private readonly ApplicationExecutor _appExecutor;
+    private readonly DistributedApplicationModel _applicationModel;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
     private readonly DcpOptions _dcpOptions;
@@ -43,7 +45,8 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         DistributedApplicationExecutionContext executionContext,
         ApplicationExecutor appExecutor,
         IDcpDependencyCheckService dependencyCheckService,
-        Locations locations)
+        Locations locations,
+        DistributedApplicationModel applicationModel)
     {
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<DcpHostService>();
@@ -52,6 +55,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         _appExecutor = appExecutor;
         _dependencyCheckService = dependencyCheckService;
         _locations = locations;
+        _applicationModel = applicationModel;
     }
 
     private bool IsSupported => !_executionContext.IsPublishMode;
@@ -64,10 +68,37 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         }
 
         // Ensure DCP is installed and has all required dependencies
-        _ = await _dependencyCheckService.GetDcpInfoAsync(cancellationToken).ConfigureAwait(false);
+        var dcpInfo = await _dependencyCheckService.GetDcpInfoAsync(cancellationToken).ConfigureAwait(false);
 
+        EnsureDcpContainerRuntime(dcpInfo);
         EnsureDcpHostRunning();
         await _appExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private void EnsureDcpContainerRuntime(DcpInfo? dcpInfo)
+    {
+        if (dcpInfo is null)
+        {
+            return;
+        }
+
+        // If we don't have any resources that need a container then we
+        // don't need to check for a healthy container runtime.
+        if (!_applicationModel.Resources.Any(c => c.IsContainer()))
+        {
+            return;
+        }
+
+        AspireEventSource.Instance.ContainerRuntimeHealthCheckStart();
+
+        try
+        {
+            DcpDependencyCheck.CheckDcpInfoAndLogErrors(_logger, _dcpOptions, dcpInfo);
+        }
+        finally
+        {
+            AspireEventSource.Instance?.ContainerRuntimeHealthCheckStop();
+        }
     }
 
     public async Task StopAsync(CancellationToken cancellationToken = default)

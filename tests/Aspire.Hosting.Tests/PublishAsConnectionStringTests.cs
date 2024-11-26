@@ -3,6 +3,7 @@
 
 using Xunit;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Hosting.Tests;
 
@@ -17,7 +18,7 @@ public class PublishAsConnectionStringTests
 
         Assert.True(redis.Resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out _));
 
-        var manifest = await ManifestUtils.GetManifest(redis.Resource);
+        var manifest = await ManifestUtils.GetManifest(redis.Resource).DefaultTimeout();
 
         var expected =
             """

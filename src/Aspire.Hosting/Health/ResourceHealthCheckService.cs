@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Frozen;
+using System.Collections.Immutable;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -10,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Health;
 
-internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> logger, ResourceNotificationService resourceNotificationService, HealthCheckService healthCheckService, IServiceProvider services, IDistributedApplicationEventing eventing) : BackgroundService
+internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> logger, ResourceNotificationService resourceNotificationService, HealthCheckService healthCheckService, IServiceProvider services, IDistributedApplicationEventing eventing, TimeProvider timeProvider) : BackgroundService
 {
     private readonly Dictionary<string, ResourceEvent> _latestEvents = new();
 
@@ -61,7 +62,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
         var registrationKeysToCheck = annotations.DistinctBy(a => a.Key).Select(a => a.Key).ToFrozenSet();
 
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5), timeProvider);
 
         do
         {
@@ -82,21 +83,51 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                         cancellationToken).ConfigureAwait(false);
                 }
 
-                if (_latestEvents[resource.Name].Snapshot.HealthStatus == report.Status)
+                var latestEvent = _latestEvents.GetValueOrDefault(resource.Name);
+                if (latestEvent is not null
+                    && !latestEvent.Snapshot.HealthReports.Any(r => r.Status is null) // don't count events before we have health reports
+                    && latestEvent.Snapshot.HealthStatus == report.Status)
                 {
-                    // If the last health status is the same as this health status then we don't need
-                    // to publish anything as it just creates noise.
-                    continue;
+                    await SlowDownMonitoringAsync(latestEvent, cancellationToken).ConfigureAwait(false);
+
+                    // If none of the health report statuses have changed, we should not update the resource health reports.
+                    if (!ContainsAnyHealthReportChange(report, latestEvent.Snapshot.HealthReports))
+                    {
+                        continue;
+                    }
+
+                    static bool ContainsAnyHealthReportChange(HealthReport report, ImmutableArray<HealthReportSnapshot> latestHealthReportSnapshots)
+                    {
+                        var healthCheckNameToStatus = latestHealthReportSnapshots.ToDictionary(p => p.Name);
+                        foreach (var (key, value) in report.Entries)
+                        {
+                            if (!healthCheckNameToStatus.TryGetValue(key, out var checkReportSnapshot))
+                            {
+                                return true;
+                            }
+
+                            if (checkReportSnapshot.Status != value.Status
+                                || !StringComparers.HealthReportPropertyValue.Equals(checkReportSnapshot.Description, value.Description)
+                                || !StringComparers.HealthReportPropertyValue.Equals(checkReportSnapshot.ExceptionText, value.Exception?.ToString()))
+                            {
+                                return true;
+                            }
+                        }
+
+                        return false;
+                    }
                 }
 
-                await resourceNotificationService.PublishUpdateAsync(resource, s => s with
+                await resourceNotificationService.PublishUpdateAsync(resource, s =>
                 {
-                    HealthStatus = report.Status
+                    var healthReports = MergeHealthReports(s.HealthReports, report);
+
+                    return s with
+                    {
+                        // HealthStatus is automatically re-computed after health reports change.
+                        HealthReports = healthReports
+                    };
                 }).ConfigureAwait(false);
-
-                var lastEvent = _latestEvents[resource.Name];
-                await SlowDownMonitoringAsync(lastEvent, cancellationToken).ConfigureAwait(false);
-
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
@@ -113,14 +144,45 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
         async Task SlowDownMonitoringAsync(ResourceEvent lastEvent, CancellationToken cancellationToken)
         {
-            var releaseAfter = DateTime.Now.AddSeconds(30);
+            var releaseAfter = timeProvider.GetUtcNow().AddSeconds(30);
 
             // If we've waited for 30 seconds, or we received an updated event, or the health status is no longer
             // healthy then we stop slowing down the monitoring loop.
-            while (DateTime.Now < releaseAfter && _latestEvents[lastEvent.Resource.Name] == lastEvent && lastEvent.Snapshot.HealthStatus == HealthStatus.Healthy)
+            while (timeProvider.GetUtcNow() < releaseAfter && _latestEvents[lastEvent.Resource.Name] == lastEvent && lastEvent.Snapshot.HealthStatus == HealthStatus.Healthy)
             {
                 await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
             }
+        }
+
+        ImmutableArray<HealthReportSnapshot> MergeHealthReports(ImmutableArray<HealthReportSnapshot> healthReports, HealthReport report)
+        {
+            var builder = healthReports.ToBuilder();
+
+            foreach (var (key, entry) in report.Entries)
+            {
+                var snapshot = new HealthReportSnapshot(key, entry.Status, entry.Description, entry.Exception?.ToString());
+
+                var found = false;
+                for (var i = 0; i < builder.Count; i++)
+                {
+                    var existing = builder[i];
+                    if (existing.Name == key)
+                    {
+                        // Replace the existing entry.
+                        builder[i] = snapshot;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    // Add a new entry.
+                    builder.Add(snapshot);
+                }
+            }
+
+            return builder.ToImmutable();
         }
     }
 }

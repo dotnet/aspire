@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
-using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -11,6 +10,8 @@ using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
+using Humanizer;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Model;
@@ -18,27 +19,80 @@ namespace Aspire.Dashboard.Model;
 [DebuggerDisplay("Name = {Name}, ResourceType = {ResourceType}, State = {State}, Properties = {Properties.Count}")]
 public sealed class ResourceViewModel
 {
+    private readonly ImmutableArray<HealthReportViewModel> _healthReports = [];
+    private readonly KnownResourceState? _knownState;
+
     public required string Name { get; init; }
     public required string ResourceType { get; init; }
     public required string DisplayName { get; init; }
     public required string Uid { get; init; }
     public required string? State { get; init; }
     public required string? StateStyle { get; init; }
-    public required ReadinessState ReadinessState { get; init; }
     public required DateTime? CreationTimeStamp { get; init; }
     public required DateTime? StartTimeStamp { get; init; }
     public required DateTime? StopTimeStamp { get; init; }
     public required ImmutableArray<EnvironmentVariableViewModel> Environment { get; init; }
     public required ImmutableArray<UrlViewModel> Urls { get; init; }
     public required ImmutableArray<VolumeViewModel> Volumes { get; init; }
-    public required FrozenDictionary<string, ResourcePropertyViewModel> Properties { get; init; }
+    public required ImmutableArray<RelationshipViewModel> Relationships { get; init; }
+    public required ImmutableDictionary<string, ResourcePropertyViewModel> Properties { get; init; }
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
-    public KnownResourceState? KnownState { get; init; }
+    /// <summary>The health status of the resource. <see langword="null"/> indicates that health status is expected but not yet available.</summary>
+    public HealthStatus? HealthStatus { get; private set; }
+
+    public required ImmutableArray<HealthReportViewModel> HealthReports
+    {
+        get => _healthReports;
+        init
+        {
+            _healthReports = value;
+            HealthStatus = ComputeHealthStatus(value, KnownState);
+        }
+    }
+
+    public KnownResourceState? KnownState
+    {
+        get => _knownState;
+        init
+        {
+            _knownState = value;
+            HealthStatus = ComputeHealthStatus(_healthReports, value);
+        }
+    }
 
     internal bool MatchesFilter(string filter)
     {
         // TODO let ResourceType define the additional data values we include in searches
         return Name.Contains(filter, StringComparisons.UserTextSearch);
+    }
+
+    public string? GetResourcePropertyValue(string propertyName)
+    {
+        if (Properties.TryGetValue(propertyName, out var value))
+        {
+            if (value.Value.TryConvertToString(out var s))
+            {
+                return s;
+            }
+        }
+
+        return null;
+    }
+
+    internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportViewModel> healthReports, KnownResourceState? state)
+    {
+        if (state != KnownResourceState.Running)
+        {
+            return null;
+        }
+
+        return healthReports.Length == 0
+            // If there are no health reports and the resource is running, assume it's healthy.
+            ? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy
+            // If there are health reports, the health status is the minimum of the health status of the reports.
+            // If any of the reports is null (first health check has not returned), the health status is unhealthy.
+            : healthReports.MinBy(r => r.HealthStatus)?.HealthStatus
+              ?? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy;
     }
 
     public static string GetResourceName(ResourceViewModel resource, IDictionary<string, ResourceViewModel> allResources)
@@ -51,7 +105,7 @@ public sealed class ResourceViewModel
                 continue;
             }
 
-            if (item.DisplayName == resource.DisplayName)
+            if (string.Equals(item.DisplayName, resource.DisplayName, StringComparisons.ResourceName))
             {
                 count++;
                 if (count >= 2)
@@ -67,20 +121,36 @@ public sealed class ResourceViewModel
     }
 }
 
-public enum ReadinessState
+public sealed class ResourceViewModelNameComparer : IComparer<ResourceViewModel>
 {
-    Unknown,
-    NotReady,
-    Ready
+    public static readonly ResourceViewModelNameComparer Instance = new();
+
+    public int Compare(ResourceViewModel? x, ResourceViewModel? y)
+    {
+        Debug.Assert(x != null);
+        Debug.Assert(y != null);
+
+        // Use display name by itself first.
+        // This is to avoid the problem of using the full name where one resource is called "database" and another is called "database-admin".
+        // The full names could end up "database-xyz" and "database-admin-xyz", which would put resources out of order.
+        var displayNameResult = StringComparers.ResourceName.Compare(x.DisplayName, y.DisplayName);
+        if (displayNameResult != 0)
+        {
+            return displayNameResult;
+        }
+
+        // Display names are the same so compare with full names.
+        return StringComparers.ResourceName.Compare(x.Name, y.Name);
+    }
 }
 
-[DebuggerDisplay("CommandType = {CommandType}, DisplayName = {DisplayName}")]
+[DebuggerDisplay("Name = {Name}, DisplayName = {DisplayName}")]
 public sealed class CommandViewModel
 {
     private sealed record IconKey(string IconName, IconVariant IconVariant);
     private static readonly ConcurrentDictionary<IconKey, CustomIcon?> s_iconCache = new();
 
-    public string CommandType { get; }
+    public string Name { get; }
     public CommandViewModelState State { get; }
     public string DisplayName { get; }
     public string DisplayDescription { get; }
@@ -90,12 +160,12 @@ public sealed class CommandViewModel
     public string IconName { get; }
     public IconVariant IconVariant { get; }
 
-    public CommandViewModel(string commandType, CommandViewModelState state, string displayName, string displayDescription, string confirmationMessage, Value? parameter, bool isHighlighted, string iconName, IconVariant iconVariant)
+    public CommandViewModel(string name, CommandViewModelState state, string displayName, string displayDescription, string confirmationMessage, Value? parameter, bool isHighlighted, string iconName, IconVariant iconVariant)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(commandType);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
 
-        CommandType = commandType;
+        Name = name;
         State = state;
         DisplayName = displayName;
         DisplayDescription = displayDescription;
@@ -189,10 +259,12 @@ public sealed class ResourcePropertyViewModel : IPropertyGridItem
     public bool IsValueSensitive { get; }
     public bool IsValueMasked { get; set; }
     internal int Priority { get; }
+    private readonly string _key;
 
-    string? IPropertyGridItem.Name => KnownProperty?.DisplayName ?? Name;
-
+    string IPropertyGridItem.Name => KnownProperty?.DisplayName ?? Name;
     string? IPropertyGridItem.Value => _displayValue.Value;
+
+    object IPropertyGridItem.Key => _key;
 
     public ResourcePropertyViewModel(string name, Value value, bool isValueSensitive, KnownProperty? knownProperty, int priority, BrowserTimeProvider timeProvider)
     {
@@ -204,6 +276,9 @@ public sealed class ResourcePropertyViewModel : IPropertyGridItem
         KnownProperty = knownProperty;
         Priority = priority;
         IsValueMasked = isValueSensitive;
+
+        // Known and unknown properties are displayed together. Avoid any duplicate keys.
+        _key = KnownProperty != null ? KnownProperty.Key : $"unknown-{Name}";
 
         _tooltip = new(() => value.HasStringValue ? value.StringValue : value.ToString());
 
@@ -261,13 +336,64 @@ public sealed class UrlViewModel
     }
 }
 
-public sealed record class VolumeViewModel(string? Source, string Target, string MountType, bool IsReadOnly) : IPropertyGridItem
+public sealed record class VolumeViewModel(int index, string Source, string Target, string MountType, bool IsReadOnly) : IPropertyGridItem
 {
-    string? IPropertyGridItem.Name => Source;
-
+    string IPropertyGridItem.Name => Source;
     string? IPropertyGridItem.Value => Target;
+
+    // Source could be empty for an anomymous volume so it can't be used as a key.
+    // Because there is no good key in data, use index of the volume in results.
+    object IPropertyGridItem.Key => index;
 
     public bool MatchesFilter(string filter) =>
         Source?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
         Target?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
+}
+
+public sealed record class HealthReportViewModel(string Name, HealthStatus? HealthStatus, string? Description, string? ExceptionText)
+{
+    private readonly string? _humanizedHealthStatus = HealthStatus?.Humanize();
+
+    public string? DisplayedDescription
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(Description))
+            {
+                return Description;
+            }
+
+            if (!string.IsNullOrWhiteSpace(ExceptionText))
+            {
+                var newLineIndex = ExceptionText.IndexOfAny(['\n', '\r']);
+                return newLineIndex > 0 ? ExceptionText[..newLineIndex] : ExceptionText;
+            }
+
+            return null;
+        }
+    }
+
+    public bool MatchesFilter(string filter)
+    {
+        return
+            Name?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
+            Description?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
+            _humanizedHealthStatus?.Contains(filter, StringComparison.OrdinalIgnoreCase) is true;
+    }
+}
+
+[DebuggerDisplay("ResourceName = {ResourceName}, Type = {Type}")]
+public sealed class RelationshipViewModel
+{
+    public string ResourceName { get; }
+    public string Type { get; }
+
+    public RelationshipViewModel(string resourceName, string type)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(resourceName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(type);
+
+        ResourceName = resourceName;
+        Type = type;
+    }
 }

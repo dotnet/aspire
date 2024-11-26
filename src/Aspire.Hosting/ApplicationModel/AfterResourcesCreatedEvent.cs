@@ -6,7 +6,7 @@ using Aspire.Hosting.Eventing;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// This experimental event is published after all resuorces have been created.
+/// This event is published after all resources have been created.
 /// </summary>
 /// <param name="services">The <see cref="IServiceProvider"/> instance.</param>
 /// <param name="model">The <see cref="DistributedApplicationModel"/> instance.</param>

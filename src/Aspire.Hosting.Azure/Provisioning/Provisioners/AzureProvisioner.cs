@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Utils;
@@ -27,7 +28,7 @@ namespace Aspire.Hosting.Azure;
 // Provisions azure resources for development purposes
 internal sealed class AzureProvisioner(
     IOptions<AzureProvisionerOptions> options,
-    IOptions<AzureResourceOptions> provisioningOptions,
+    IOptions<AzureProvisioningOptions> provisioningOptions,
     DistributedApplicationExecutionContext executionContext,
     IConfiguration configuration,
     IHostEnvironment environment,
@@ -83,12 +84,12 @@ internal sealed class AzureProvisioner(
             return;
         }
 
-        // set the ProvisioningContext on the resource, if necessary
+        // set the ProvisioningBuildOptions on the resource, if necessary
         foreach (var r in azureResources)
         {
-            if (r.AzureResource is AzureConstructResource constructResource)
+            if (r.AzureResource is AzureProvisioningResource provisioningResource)
             {
-                constructResource.ProvisioningContext = provisioningOptions.Value.ProvisioningContext;
+                provisioningResource.ProvisioningBuildOptions = provisioningOptions.Value.ProvisioningBuildOptions;
             }
         }
 
@@ -105,7 +106,7 @@ internal sealed class AzureProvisioner(
             _ => null
         };
 
-        // Create a map of parents to their children used to propogate state changes later.
+        // Create a map of parents to their children used to propagate state changes later.
         _parentChildLookup = appModel.Resources.OfType<IResourceWithParent>().ToLookup(r => r.Parent);
 
         // Sets the state of the resource and all of its children
@@ -126,7 +127,11 @@ internal sealed class AzureProvisioner(
             var childResources = _parentChildLookup[resource.Resource];
             foreach (var child in childResources)
             {
-                await notificationService.PublishUpdateAsync(child, stateFactory).ConfigureAwait(false);
+                await notificationService.PublishUpdateAsync(child, s =>
+                {
+                    s = s with { Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, resource.Resource.Name) };
+                    return stateFactory(s);
+                }).ConfigureAwait(false);
             }
         }
 
@@ -378,7 +383,7 @@ internal sealed class AzureProvisioner(
         {
             logger.LogInformation(
                 "Using DefaultAzureCredential for provisioning. This may not work in all environments. " +
-                "See https://aka.ms/azsdk/net/identity/default-azure-credential for more information.");
+                "See https://aka.ms/azsdk/net/identity/credential-chains#defaultazurecredential-overview for more information.");
         }
         else
         {

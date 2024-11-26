@@ -25,9 +25,9 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
             param sku string = 'Standard'
 
-            param principalId string
-
             param principalType string
+
+            param principalId string
 
             resource sb 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
               name: take('sb-${uniqueString(resourceGroup().id)}', 50)
@@ -53,7 +53,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
               scope: sb
             }
 
-            resource device-connection-state-events1234567890-even-longer 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
+            resource device_connection_state_events1234567890_even_longer 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
               name: 'device-connection-state-events1234567890-even-longer'
               parent: sb
             }

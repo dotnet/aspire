@@ -9,7 +9,7 @@
     grid-template-columns: 1fr auto auto;
 }
 
-::deep .cellText {
+::deep .grid-value {
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
@@ -19,9 +19,10 @@
     opacity: 0;
     cursor: pointer;
     width: 0;
+    display: inline-block;
 }
 
-::deep:hover .defaultHidden, ::deep:focus-within .defaultHidden  {
+::deep:hover .defaultHidden, ::deep:focus-within .defaultHidden {
     opacity: 1;  /* safari has a bug where hover is not always called on an invisible element, so we use opacity instead */
     width: auto;
 }

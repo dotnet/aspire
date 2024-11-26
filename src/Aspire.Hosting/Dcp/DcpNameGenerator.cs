@@ -64,7 +64,7 @@ internal sealed class DcpNameGenerator
     {
         var nameSuffix = container.GetContainerLifetimeType() switch
         {
-            ContainerLifetime.Default => GetRandomNameSuffix(),
+            ContainerLifetime.Session => GetRandomNameSuffix(),
             // Compute a short hash of the content root path to differentiate between multiple AppHost projects with similar resource names
             _ => _configuration["AppHost:Sha256"]!.Substring(0, RandomNameSuffixLength).ToLowerInvariant(),
         };

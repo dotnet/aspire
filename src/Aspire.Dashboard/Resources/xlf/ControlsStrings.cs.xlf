@@ -92,6 +92,11 @@
         <target state="translated">Událost</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExceptionDetailsTitle">
+        <source>Exception details</source>
+        <target state="new">Exception details</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FilterPlaceholder">
         <source>Filter...</source>
         <target state="translated">Filtrovat…</target>
@@ -277,6 +282,11 @@
         <target state="translated">Hodnota</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceDetailsBackReferences">
+        <source>Back references</source>
+        <target state="new">Back references</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceDetailsEndpointsHeader">
         <source>Endpoints</source>
         <target state="translated">Koncové body</target>
@@ -287,9 +297,19 @@
         <target state="translated">Proměnné prostředí</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceDetailsReferences">
+        <source>References</source>
+        <target state="new">References</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceDetailsResourceHeader">
         <source>Resource</source>
         <target state="translated">Prostředek</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceDetailsTypeHeader">
+        <source>Type</source>
+        <target state="new">Type</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsVolumesHeader">
@@ -301,6 +321,11 @@
         <source>{0} (replica of {1})</source>
         <target state="translated">{0} (replika sady {1})</target>
         <note>{0} is a resource name, {1} is a replica set name</note>
+      </trans-unit>
+      <trans-unit id="ResourceHealthChecksHeader">
+        <source>Health checks</source>
+        <target state="new">Health checks</target>
+        <note />
       </trans-unit>
       <trans-unit id="ResourceLabel">
         <source>Resource</source>
@@ -371,6 +396,11 @@
         <source>Start time &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="translated">Čas spuštění: &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="StateColumnHeader">
+        <source>State</source>
+        <target state="new">State</target>
+        <note />
       </trans-unit>
       <trans-unit id="StructuredFilteringAddFilter">
         <source>Add filter</source>

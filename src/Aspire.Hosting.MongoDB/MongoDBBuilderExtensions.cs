@@ -22,8 +22,11 @@ public static class MongoDBBuilderExtensions
     private const string PasswordEnvVarName = "MONGO_INITDB_ROOT_PASSWORD";
 
     /// <summary>
-    /// Adds a MongoDB resource to the application model. A container is used for local development. This version of the package defaults to the <inheritdoc cref="MongoDBContainerImageTags.Tag"/> tag of the <inheritdoc cref="MongoDBContainerImageTags.Image"/> container image.
+    /// Adds a MongoDB resource to the application model. A container is used for local development.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="MongoDBContainerImageTags.Tag"/> tag of the <inheritdoc cref="MongoDBContainerImageTags.Image"/> container image.
+    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port for MongoDB.</param>
@@ -34,7 +37,7 @@ public static class MongoDBBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a MongoDB resource to the application model. A container is used for local development. This version the package defaults to the 7.0.8 tag of the mongo container image.
+    /// <inheritdoc cref="AddMongoDB(IDistributedApplicationBuilder, string, int?)"/>
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -121,8 +124,11 @@ public static class MongoDBBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a MongoExpress administration and development platform for MongoDB to the application model. This version of the package defaults to the <inheritdoc cref="MongoDBContainerImageTags.MongoExpressTag"/> tag of the <inheritdoc cref="MongoDBContainerImageTags.MongoExpressImage"/> container image
+    /// Adds a MongoExpress administration and development platform for MongoDB to the application model.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="MongoDBContainerImageTags.MongoExpressTag"/> tag of the <inheritdoc cref="MongoDBContainerImageTags.MongoExpressImage"/> container image.
+    /// </remarks>
     /// <param name="builder">The MongoDB server resource builder.</param>
     /// <param name="configureContainer">Configuration callback for Mongo Express container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
@@ -173,7 +179,7 @@ public static class MongoDBBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data/db", isReadOnly);
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/data/db", isReadOnly);
     }
 
     /// <summary>

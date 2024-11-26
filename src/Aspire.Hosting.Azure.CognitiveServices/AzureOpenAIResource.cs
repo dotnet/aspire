@@ -8,9 +8,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents an Azure OpenAI resource.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="configureConstruct">Configures the underlying Azure resource using the CDK.</param>
-public class AzureOpenAIResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
-    AzureConstructResource(name, configureConstruct),
+/// <param name="configureInfrastructure">Configures the underlying Azure resource using the CDK.</param>
+public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
+    AzureProvisioningResource(name, configureInfrastructure),
     IResourceWithConnectionString
 {
     private readonly List<AzureOpenAIDeployment> _deployments = [];

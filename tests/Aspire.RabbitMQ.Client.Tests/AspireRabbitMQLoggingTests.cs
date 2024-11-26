@@ -29,7 +29,7 @@ public class AspireRabbitMQLoggingTests
     public async Task EndToEndLoggingTest()
     {
         await using var rabbitMqContainer = new RabbitMqBuilder()
-            .WithImage($"{TestConstants.AspireTestContainerRegistry}/{RabbitMQContainerImageTags.Image}:{RabbitMQContainerImageTags.Tag}")
+            .WithImage($"{ComponentTestConstants.AspireTestContainerRegistry}/{RabbitMQContainerImageTags.Image}:{RabbitMQContainerImageTags.Tag}")
             .Build();
         await rabbitMqContainer.StartAsync();
 

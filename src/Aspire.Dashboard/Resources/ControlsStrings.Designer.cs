@@ -259,6 +259,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Exception details.
+        /// </summary>
+        public static string ExceptionDetailsTitle {
+            get {
+                return ResourceManager.GetString("ExceptionDetailsTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Filter....
         /// </summary>
         public static string FilterPlaceholder {
@@ -556,6 +565,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Back references.
+        /// </summary>
+        public static string ResourceDetailsBackReferences {
+            get {
+                return ResourceManager.GetString("ResourceDetailsBackReferences", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Endpoints.
         /// </summary>
         public static string ResourceDetailsEndpointsHeader {
@@ -574,11 +592,29 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to References.
+        /// </summary>
+        public static string ResourceDetailsReferences {
+            get {
+                return ResourceManager.GetString("ResourceDetailsReferences", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Resource.
         /// </summary>
         public static string ResourceDetailsResourceHeader {
             get {
                 return ResourceManager.GetString("ResourceDetailsResourceHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Type.
+        /// </summary>
+        public static string ResourceDetailsTypeHeader {
+            get {
+                return ResourceManager.GetString("ResourceDetailsTypeHeader", resourceCulture);
             }
         }
         
@@ -597,6 +633,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourceDropdownReplicaAccessibleTitle {
             get {
                 return ResourceManager.GetString("ResourceDropdownReplicaAccessibleTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Health checks.
+        /// </summary>
+        public static string ResourceHealthChecksHeader {
+            get {
+                return ResourceManager.GetString("ResourceHealthChecksHeader", resourceCulture);
             }
         }
         
@@ -723,6 +768,15 @@ namespace Aspire.Dashboard.Resources {
         public static string SpanDetailsStartTime {
             get {
                 return ResourceManager.GetString("SpanDetailsStartTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to State.
+        /// </summary>
+        public static string StateColumnHeader {
+            get {
+                return ResourceManager.GetString("StateColumnHeader", resourceCulture);
             }
         }
         

@@ -6,7 +6,7 @@
 
 @inject IStringLocalizer<Columns> Loc
 
-<span title="@FormatName(Resource)"><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)" /></span>
+<span class="resource-name-text" title="@FormatName(Resource)"><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)" /></span>
 
 @if (Resource.Properties.TryGetValue(KnownProperties.Container.Lifetime, out var value) &&
     value.Value.HasStringValue &&
@@ -32,8 +32,7 @@
     private static class KnownContainerLifetimes
     {
         // Matches members from Aspire.Hosting.ApplicationModel.ContainerLifetime
-
-        public const string Default = nameof(Default);
+        public const string Session = nameof(Session);
         public const string Persistent = nameof(Persistent);
     }
 }

@@ -77,7 +77,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         {
             if (_jsModule is not null)
             {
-                var newValue = ThemeManager.Theme!;
+                var newValue = ThemeManager.SelectedTheme!;
 
                 var effectiveTheme = await _jsModule.InvokeAsync<string>("updateTheme", newValue);
                 ThemeManager.EffectiveTheme = effectiveTheme;
@@ -192,11 +192,10 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     public async Task LaunchSettingsAsync()
     {
-        DialogParameters parameters = new()
+        var parameters = new DialogParameters
         {
             Title = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogTitle)],
-            PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)],
-            PrimaryActionEnabled = true,
+            PrimaryAction =  Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)].Value,
             SecondaryAction = null,
             TrapFocus = true,
             Modal = true,
@@ -217,7 +216,17 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             await _openPageDialog.CloseAsync();
         }
 
-        _openPageDialog = await DialogService.ShowPanelAsync<SettingsDialog>(parameters).ConfigureAwait(true);
+        // Ensure the currently set theme is immediately available to display in settings dialog.
+        await ThemeManager.EnsureInitializedAsync();
+
+        if (ViewportInformation.IsDesktop)
+        {
+            _openPageDialog = await DialogService.ShowPanelAsync<SettingsDialog>(parameters).ConfigureAwait(true);
+        }
+        else
+        {
+            _openPageDialog = await DialogService.ShowDialogAsync<SettingsDialog>(parameters).ConfigureAwait(true);
+        }
     }
 
     public IReadOnlySet<AspireKeyboardShortcut> SubscribedShortcuts { get; } = new HashSet<AspireKeyboardShortcut>

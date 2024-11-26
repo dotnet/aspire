@@ -17,6 +17,11 @@
         <target state="new">Structured logs</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceActionTelemetryTooltip">
+        <source>No telemetry found for this resource.</source>
+        <target state="new">No telemetry found for this resource.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceActionTracesText">
         <source>Traces</source>
         <target state="new">Traces</target>
@@ -83,8 +88,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerLifetimeProperty">
-        <source>Lifetime</source>
-        <target state="new">Lifetime</target>
+        <source>Container lifetime</source>
+        <target state="new">Container lifetime</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerPortsProperty">
@@ -123,8 +128,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsHealthStateProperty">
-        <source>Health State</source>
-        <target state="new">Health State</target>
+        <source>Health state</source>
+        <target state="new">Health state</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
@@ -216,6 +221,16 @@
         <source>Type filter: Filtered</source>
         <target state="translated">형식 필터: 필터링됨</target>
         <note />
+      </trans-unit>
+      <trans-unit id="WaitingForHealthDataMessage">
+        <source>Waiting for health data...</source>
+        <target state="new">Waiting for health data...</target>
+        <note>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
+      </trans-unit>
+      <trans-unit id="WaitingHealthDataStatusMessage">
+        <source>Waiting...</source>
+        <target state="new">Waiting...</target>
+        <note>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
       </trans-unit>
     </body>
   </file>

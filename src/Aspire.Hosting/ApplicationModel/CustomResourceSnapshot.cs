@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dcp.Model;
 using HealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
 
@@ -12,6 +13,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public sealed record CustomResourceSnapshot
 {
+    private readonly ImmutableArray<HealthReportSnapshot> _healthReports = [];
+    private readonly ResourceStateSnapshot? _state;
+
     /// <summary>
     /// The type of the resource.
     /// </summary>
@@ -40,7 +44,15 @@ public sealed record CustomResourceSnapshot
     /// <summary>
     /// Represents the state of the resource.
     /// </summary>
-    public ResourceStateSnapshot? State { get; init; }
+    public ResourceStateSnapshot? State
+    {
+        get => _state;
+        init
+        {
+            _state = value;
+            HealthStatus = ComputeHealthStatus(_healthReports, value?.Text);
+        }
+    }
 
     /// <summary>
     /// The exit code of the resource.
@@ -48,9 +60,31 @@ public sealed record CustomResourceSnapshot
     public int? ExitCode { get; init; }
 
     /// <summary>
-    /// The health status of the resource.
+    /// Gets the health status of the resource.
     /// </summary>
-    public HealthStatus? HealthStatus { get; init; }
+    /// <remarks>
+    /// <para>
+    /// This value is derived from <see cref="HealthReports"/>.
+    /// </para>
+    /// </remarks>
+    public HealthStatus? HealthStatus { get; private set; }
+
+    /// <summary>
+    /// The health reports for this resource.
+    /// </summary>
+    /// <remarks>
+    /// May be zero or more. If there are no health reports, the resource is considered healthy
+    /// so long as no heath checks are registered for the resource.
+    /// </remarks>
+    public ImmutableArray<HealthReportSnapshot> HealthReports
+    {
+        get => _healthReports;
+        internal init
+        {
+            _healthReports = value;
+            HealthStatus = ComputeHealthStatus(value, State?.Text);
+        }
+    }
 
     /// <summary>
     /// The environment variables that should show up in the dashboard for this resource.
@@ -71,12 +105,33 @@ public sealed record CustomResourceSnapshot
     /// The commands available in the dashboard for this resource.
     /// </summary>
     public ImmutableArray<ResourceCommandSnapshot> Commands { get; init; } = [];
+
+    /// <summary>
+    /// The relationships to other resources.
+    /// </summary>
+    public ImmutableArray<RelationshipSnapshot> Relationships { get; init; } = [];
+
+    internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportSnapshot> healthReports, string? state)
+    {
+        if (state != KnownResourceStates.Running)
+        {
+            return null;
+        }
+
+        return healthReports.Length == 0
+            // If there are no health reports and the resource is running, assume it's healthy.
+            ? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy
+            // If there are health reports, the health status is the minimum of the health status of the reports.
+            // If any of the reports is null (first health check has not returned), the health status is unhealthy.
+            : healthReports.MinBy(r => r.Status)?.Status
+                ?? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy;
+    }
 }
 
 /// <summary>
 /// A snapshot of the resource state
 /// </summary>
-/// <param name="Text">The text for the state update.</param>
+/// <param name="Text">The text for the state update. See <see cref="KnownResourceStates"/> for expected values.</param>
 /// <param name="Style">The style for the state update. Use <seealso cref="KnownResourceStateStyles"/> for the supported styles.</param>
 public sealed record ResourceStateSnapshot(string Text, string? Style)
 {
@@ -107,11 +162,18 @@ public sealed record UrlSnapshot(string Name, string Url, bool IsInternal);
 /// <summary>
 /// A snapshot of a volume, mounted to a container.
 /// </summary>
-/// <param name="Source">The name of the volume. Can be <c>null</c> if the mount is an anonymous volume.</param>
+/// <param name="Source">The name of the volume. Can be <see langword="null"/> if the mount is an anonymous volume.</param>
 /// <param name="Target">The target of the mount.</param>
 /// <param name="MountType">Gets the mount type, such as <see cref="VolumeMountType.Bind"/> or <see cref="VolumeMountType.Volume"/></param>
 /// <param name="IsReadOnly">Whether the volume mount is read-only or not.</param>
 public sealed record VolumeSnapshot(string? Source, string Target, string MountType, bool IsReadOnly);
+
+/// <summary>
+/// A snapshot of a relationship.
+/// </summary>
+/// <param name="ResourceName">The name of the resource the relationship is to.</param>
+/// <param name="Type">The relationship type.</param>
+public sealed record RelationshipSnapshot(string ResourceName, string Type);
 
 /// <summary>
 /// A snapshot of the resource property.
@@ -139,7 +201,7 @@ public sealed record ResourcePropertySnapshot(string Name, object? Value)
 /// <summary>
 /// A snapshot of a resource command.
 /// </summary>
-/// <param name="Type">The type of command. The type uniquely identifies the command.</param>
+/// <param name="Name">The name of command. The name uniquely identifies the command.</param>
 /// <param name="State">The state of the command.</param>
 /// <param name="DisplayName">The display name visible in UI for the command.</param>
 /// <param name="DisplayDescription">
@@ -157,7 +219,16 @@ public sealed record ResourcePropertySnapshot(string Name, object? Value)
 /// <param name="IconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
 /// <param name="IconVariant">The icon variant.</param>
 /// <param name="IsHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
-public sealed record ResourceCommandSnapshot(string Type, ResourceCommandState State, string DisplayName, string? DisplayDescription, object? Parameter, string? ConfirmationMessage, string? IconName, IconVariant? IconVariant, bool IsHighlighted);
+public sealed record ResourceCommandSnapshot(string Name, ResourceCommandState State, string DisplayName, string? DisplayDescription, object? Parameter, string? ConfirmationMessage, string? IconName, IconVariant? IconVariant, bool IsHighlighted);
+
+/// <summary>
+/// A report produced by a health check about a resource.
+/// </summary>
+/// <param name="Name">The name of the health check that produced this report.</param>
+/// <param name="Status">The state of the resource, according to the report, or <see langword="null"/> if a health report has not yet been received for this health check.</param>
+/// <param name="Description">An optional description of the report, for display.</param>
+/// <param name="ExceptionText">An optional string containing exception details.</param>
+public sealed record HealthReportSnapshot(string Name, HealthStatus? Status, string? Description, string? ExceptionText);
 
 /// <summary>
 /// The state of a resource command.
@@ -253,4 +324,24 @@ public static class KnownResourceStates
     /// List of terminal states.
     /// </summary>
     public static readonly IReadOnlyList<string> TerminalStates = [Finished, FailedToStart, Exited];
+}
+
+internal static class ResourceSnapshotBuilder
+{
+    public static ImmutableArray<RelationshipSnapshot> BuildRelationships(IResource resource)
+    {
+        var relationships = ImmutableArray.CreateBuilder<RelationshipSnapshot>();
+
+        if (resource is IResourceWithParent resourceWithParent)
+        {
+            relationships.Add(new(resourceWithParent.Parent.Name, KnownRelationshipTypes.Parent));
+        }
+
+        foreach (var annotation in resource.Annotations.OfType<ResourceRelationshipAnnotation>())
+        {
+            relationships.Add(new(annotation.Resource.Name, annotation.Type));
+        }
+
+        return relationships.ToImmutable();
+    }
 }

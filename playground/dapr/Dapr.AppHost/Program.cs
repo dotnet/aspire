@@ -1,7 +1,13 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
+var rmq = builder.AddRabbitMQ("rabbitMQ")
+                   .WithManagementPlugin()
+                   .WithEndpoint("tcp", e => e.Port = 5672)
+                   .WithEndpoint("management", e => e.Port = 15672);
+
 var stateStore = builder.AddDaprStateStore("statestore");
-var pubSub = builder.AddDaprPubSub("pubsub");
+var pubSub = builder.AddDaprPubSub("pubsub")
+                    .WaitFor(rmq);
 
 builder.AddProject<Projects.DaprServiceA>("servicea")
        .WithDaprSidecar()
@@ -11,6 +17,11 @@ builder.AddProject<Projects.DaprServiceA>("servicea")
 builder.AddProject<Projects.DaprServiceB>("serviceb")
        .WithDaprSidecar()
        .WithReference(pubSub);
+
+// console app with no appPort (sender only)
+builder.AddProject<Projects.DaprServiceC>("servicec")
+       .WithReference(stateStore)
+       .WithDaprSidecar();
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

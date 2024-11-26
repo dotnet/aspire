@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/ide.host",
+  "icon": "ide/AspireXunit.ico",
+  "displayOverviewPage": "0",
+  "symbolInfo": [
+    {
+      "id": "AspireVersion",
+      "isVisible": true,
+      "persistenceScope": "shared",
+      "persistenceScopeName": "aspireTemplates"
+    }
+  ],
+  "unsupportedHosts": [
+    {
+      "id": "vs",
+      "version": "(,17.9)"
+    }
+  ]
+}

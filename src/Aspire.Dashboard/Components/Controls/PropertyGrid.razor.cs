@@ -26,12 +26,27 @@ public interface IPropertyGridItem
     /// <summary>
     /// Gets the display name of the item.
     /// </summary>
-    string? Name { get; }
+    string Name { get; }
+
+    /// <summary>
+    /// Gets the key of the item. Must be unique.
+    /// </summary>
+    public object Key => Name;
 
     /// <summary>
     /// Gets the display value of the item.
     /// </summary>
     string? Value { get; }
+
+    /// <summary>
+    /// Overrides the value to copy. If <see langword="null"/>, <see cref="Value"/> is copied.
+    /// </summary>
+    public string? ValueToCopy => null;
+
+    /// <summary>
+    /// Overrides the value to visualize. If <see langword="null"/>, <see cref="Value"/> is visualized.
+    /// </summary>
+    public string? ValueToVisualize => null;
 
     /// <summary>
     /// Gets whether this item's value is sensitive and should be masked.
@@ -81,7 +96,7 @@ public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem
     public IQueryable<TItem>? Items { get; set; }
 
     [Parameter]
-    public Func<TItem, object?> ItemKey { get; init; } = static item => item.Name;
+    public Func<TItem, object?> ItemKey { get; init; } = static item => item.Key;
 
     [Parameter]
     public string GridTemplateColumns { get; set; } = "1fr 1fr";
@@ -124,6 +139,14 @@ public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem
 
     [Parameter]
     public GenerateHeaderOption GenerateHeader { get; set; } = GenerateHeaderOption.Sticky;
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    // Return null if empty so GridValue knows there is no template.
+    private RenderFragment? GetContentAfterValue(TItem context) => ContentAfterValue == s_emptyChildContent
+        ? null
+        : ContentAfterValue(context);
 
     private async Task OnIsValueMaskedChanged(TItem item, bool isValueMasked)
     {

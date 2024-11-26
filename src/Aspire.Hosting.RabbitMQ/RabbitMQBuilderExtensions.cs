@@ -17,7 +17,7 @@ public static class RabbitMQBuilderExtensions
     /// Adds a RabbitMQ container to the application model.
     /// </summary>
     /// <remarks>
-    /// The default image and tag are "rabbitmq" and "3.13".
+    /// This version of the package defaults to the <inheritdoc cref="RabbitMQContainerImageTags.Tag"/> tag of the <inheritdoc cref="RabbitMQContainerImageTags.Image"/> container image.
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -85,7 +85,7 @@ public static class RabbitMQBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/rabbitmq", isReadOnly)
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/var/lib/rabbitmq", isReadOnly)
                       .RunWithStableNodeName();
     }
 
@@ -109,8 +109,9 @@ public static class RabbitMQBuilderExtensions
     /// Configures the RabbitMQ container resource to enable the RabbitMQ management plugin.
     /// </summary>
     /// <remarks>
-    /// This method only supports the default RabbitMQ container image and tags, e.g. <c>3</c>, <c>3.12-alpine</c>, <c>3.12.13-management-alpine</c>, etc.<br />
+    /// This method only supports custom tags matching the default RabbitMQ ones for the corresponding management tag to be inferred automatically, e.g. <c>4</c>, <c>4.0-alpine</c>, <c>4.0.2-management-alpine</c>, etc.<br />
     /// Calling this method on a resource configured with an unrecognized image registry, name, or tag will result in a <see cref="DistributedApplicationException"/> being thrown.
+    /// This version of the package defaults to the <inheritdoc cref="RabbitMQContainerImageTags.ManagementTag"/> tag of the <inheritdoc cref="RabbitMQContainerImageTags.Image"/> container image.
     /// </remarks>
     /// <param name="builder">The resource builder.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
@@ -156,7 +157,7 @@ public static class RabbitMQBuilderExtensions
             if (string.IsNullOrEmpty(existingTag))
             {
                 // Set to default tag with management
-                annotation.Tag = RabbitMQContainerImageTags.TagManagement;
+                annotation.Tag = RabbitMQContainerImageTags.ManagementTag;
                 handled = true;
             }
             else if (existingTag.EndsWith(management, StringComparison.OrdinalIgnoreCase)
