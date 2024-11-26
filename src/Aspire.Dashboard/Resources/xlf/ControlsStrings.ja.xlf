@@ -4,22 +4,22 @@
     <body>
       <trans-unit id="ActionStructuredLogsText">
         <source>Structured logs</source>
-        <target state="new">Structured logs</target>
+        <target state="translated">構造化ログ</target>
         <note />
       </trans-unit>
       <trans-unit id="ActionViewDetailsText">
         <source>View details</source>
-        <target state="new">View details</target>
+        <target state="translated">詳細を表示します</target>
         <note />
       </trans-unit>
       <trans-unit id="ActionsButtonText">
         <source>Actions</source>
-        <target state="new">Actions</target>
+        <target state="translated">アクション</target>
         <note />
       </trans-unit>
       <trans-unit id="ActionsColumnHeader">
         <source>Actions</source>
-        <target state="new">Actions</target>
+        <target state="translated">アクション</target>
         <note />
       </trans-unit>
       <trans-unit id="ApplicationLower">
@@ -94,7 +94,7 @@
       </trans-unit>
       <trans-unit id="ExceptionDetailsTitle">
         <source>Exception details</source>
-        <target state="new">Exception details</target>
+        <target state="translated">例外の詳細</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
@@ -169,22 +169,22 @@
       </trans-unit>
       <trans-unit id="LabelAll">
         <source>(All)</source>
-        <target state="new">(All)</target>
+        <target state="translated">(すべて)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelEmpty">
         <source>(Empty)</source>
-        <target state="new">(Empty)</target>
+        <target state="translated">(空)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelNone">
         <source>(None)</source>
-        <target state="new">(None)</target>
+        <target state="translated">(なし)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelUnset">
         <source>(Unset)</source>
-        <target state="new">(Unset)</target>
+        <target state="translated">(設定解除)</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -314,7 +314,7 @@
       </trans-unit>
       <trans-unit id="ResourceDetailsVolumesHeader">
         <source>Volumes</source>
-        <target state="new">Volumes</target>
+        <target state="translated">ボリューム</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDropdownReplicaAccessibleTitle">
@@ -324,7 +324,7 @@
       </trans-unit>
       <trans-unit id="ResourceHealthChecksHeader">
         <source>Health checks</source>
-        <target state="new">Health checks</target>
+        <target state="translated">正常性チェック</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceLabel">
@@ -399,7 +399,7 @@
       </trans-unit>
       <trans-unit id="StateColumnHeader">
         <source>State</source>
-        <target state="new">State</target>
+        <target state="translated">状態</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredFilteringAddFilter">

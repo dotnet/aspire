@@ -4,22 +4,22 @@
     <body>
       <trans-unit id="ActionStructuredLogsText">
         <source>Structured logs</source>
-        <target state="new">Structured logs</target>
+        <target state="translated">Strukturované protokoly</target>
         <note />
       </trans-unit>
       <trans-unit id="ActionViewDetailsText">
         <source>View details</source>
-        <target state="new">View details</target>
+        <target state="translated">Zobrazit podrobnosti</target>
         <note />
       </trans-unit>
       <trans-unit id="ActionsButtonText">
         <source>Actions</source>
-        <target state="new">Actions</target>
+        <target state="translated">Akce</target>
         <note />
       </trans-unit>
       <trans-unit id="ActionsColumnHeader">
         <source>Actions</source>
-        <target state="new">Actions</target>
+        <target state="translated">Akce</target>
         <note />
       </trans-unit>
       <trans-unit id="ApplicationLower">
@@ -94,7 +94,7 @@
       </trans-unit>
       <trans-unit id="ExceptionDetailsTitle">
         <source>Exception details</source>
-        <target state="new">Exception details</target>
+        <target state="translated">Podrobnosti o výjimce</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
@@ -169,22 +169,22 @@
       </trans-unit>
       <trans-unit id="LabelAll">
         <source>(All)</source>
-        <target state="new">(All)</target>
+        <target state="translated">(vše)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelEmpty">
         <source>(Empty)</source>
-        <target state="new">(Empty)</target>
+        <target state="translated">(prázdné)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelNone">
         <source>(None)</source>
-        <target state="new">(None)</target>
+        <target state="translated">(žádné)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelUnset">
         <source>(Unset)</source>
-        <target state="new">(Unset)</target>
+        <target state="translated">(nenastaveno)</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -324,7 +324,7 @@
       </trans-unit>
       <trans-unit id="ResourceHealthChecksHeader">
         <source>Health checks</source>
-        <target state="new">Health checks</target>
+        <target state="translated">Kontroly stavu</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceLabel">
@@ -399,7 +399,7 @@
       </trans-unit>
       <trans-unit id="StateColumnHeader">
         <source>State</source>
-        <target state="new">State</target>
+        <target state="translated">Stav</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredFilteringAddFilter">
