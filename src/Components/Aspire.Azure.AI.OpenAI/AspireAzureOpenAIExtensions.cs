@@ -33,6 +33,7 @@ public static class AspireAzureOpenAIExtensions
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureOpenAISettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{AzureOpenAIClient, AzureOpenAIClientOptions}"/>.</param>
+    /// <returns>An <see cref="AspireAzureOpenAIClientBuilder"/> that can be used to register additional services.</returns>
     /// <remarks>Reads the configuration from "Aspire.Azure.AI.OpenAI" section.</remarks>
     public static AspireAzureOpenAIClientBuilder AddAzureOpenAIClient(
         this IHostApplicationBuilder builder,
@@ -57,6 +58,7 @@ public static class AspireAzureOpenAIExtensions
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureOpenAISettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{AzureOpenAIClient, OpenAIClientOptions}"/>.</param>
+    /// <returns>An <see cref="AspireAzureOpenAIClientBuilder"/> that can be used to register additional services.</returns>
     /// <remarks>Reads the configuration from "Aspire.Azure.AI.OpenAI:{name}" section.</remarks>
     public static AspireAzureOpenAIClientBuilder AddKeyedAzureOpenAIClient(
         this IHostApplicationBuilder builder,

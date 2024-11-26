@@ -1,4 +1,9 @@
 #nullable enable
+Aspire.OpenAI.AspireOpenAIClientBuilder
+Aspire.OpenAI.AspireOpenAIClientBuilder.AspireOpenAIClientBuilder(Microsoft.Extensions.Hosting.IHostApplicationBuilder! hostBuilder, string! connectionName, string? serviceKey) -> void
+Aspire.OpenAI.AspireOpenAIClientBuilder.ConnectionName.get -> string!
+Aspire.OpenAI.AspireOpenAIClientBuilder.HostBuilder.get -> Microsoft.Extensions.Hosting.IHostApplicationBuilder!
+Aspire.OpenAI.AspireOpenAIClientBuilder.ServiceKey.get -> string?
 Aspire.OpenAI.OpenAISettings
 Aspire.OpenAI.OpenAISettings.DisableMetrics.get -> bool
 Aspire.OpenAI.OpenAISettings.DisableMetrics.set -> void
@@ -10,5 +15,5 @@ Aspire.OpenAI.OpenAISettings.Key.get -> string?
 Aspire.OpenAI.OpenAISettings.Key.set -> void
 Aspire.OpenAI.OpenAISettings.OpenAISettings() -> void
 Microsoft.Extensions.Hosting.AspireOpenAIExtensions
-static Microsoft.Extensions.Hosting.AspireOpenAIExtensions.AddKeyedOpenAIClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.OpenAI.OpenAISettings!>? configureSettings = null, System.Action<OpenAI.OpenAIClientOptions!>? configureOptions = null) -> void
-static Microsoft.Extensions.Hosting.AspireOpenAIExtensions.AddOpenAIClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.OpenAI.OpenAISettings!>? configureSettings = null, System.Action<OpenAI.OpenAIClientOptions!>? configureOptions = null) -> void
+static Microsoft.Extensions.Hosting.AspireOpenAIExtensions.AddKeyedOpenAIClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.OpenAI.OpenAISettings!>? configureSettings = null, System.Action<OpenAI.OpenAIClientOptions!>? configureOptions = null) -> Aspire.OpenAI.AspireOpenAIClientBuilder!
+static Microsoft.Extensions.Hosting.AspireOpenAIExtensions.AddOpenAIClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.OpenAI.OpenAISettings!>? configureSettings = null, System.Action<OpenAI.OpenAIClientOptions!>? configureOptions = null) -> Aspire.OpenAI.AspireOpenAIClientBuilder!
