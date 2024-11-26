@@ -12,7 +12,8 @@ namespace Aspire.Dashboard.Components.Dialogs;
 public partial class SettingsDialog : IDialogContentComponent, IDisposable
 {
     private string? _currentSetting;
-    private CultureInfo? _selectedUiCulture = CultureInfo.CurrentUICulture;
+    private List<CultureInfo> _languageOptions = null!;
+    private CultureInfo? _selectedUiCulture;
 
     private IDisposable? _themeChangedSubscription;
 
@@ -24,6 +25,25 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
 
     protected override void OnInitialized()
     {
+        _languageOptions = DashboardWebApplication.LocalizedCultures
+            .Select(CultureInfo.GetCultureInfo)
+            .OrderBy(c => c.NativeName)
+            .ToList();
+
+        // User may also be using a variant of one of the supported cultures, in which case we should select the culture we support
+        // this doesn't work for zh as we support two different zh cultures
+        if (!_languageOptions.Contains(CultureInfo.CurrentUICulture)
+                 && !StringComparers.Culture.Equals(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, "zh")
+                 && _languageOptions.FirstOrDefault(c => StringComparers.Culture.Equals(c.TwoLetterISOLanguageName, CultureInfo.CurrentUICulture.TwoLetterISOLanguageName)) is var matchedCulture)
+        {
+            _selectedUiCulture = matchedCulture;
+        }
+        // Otherwise, the user is using a language we do support or a fallback language
+        else
+        {
+            _selectedUiCulture = CultureInfo.CurrentUICulture;
+        }
+
         _currentSetting = ThemeManager.SelectedTheme ?? ThemeManager.ThemeSettingSystem;
 
         // Handle value being changed in a different browser window.

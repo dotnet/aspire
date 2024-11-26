@@ -21,9 +21,8 @@
                         Autocomplete="ComboboxAutocomplete.List"
                         Immediate="true"
                         Label="@Loc[nameof(Dialogs.SettingsDialogLanguage)]"
-                        Items="@DashboardWebApplication.LocalizedCultures.Select(CultureInfo.GetCultureInfo)"
-                        OptionText="@(l => l.DisplayName.Humanize())"
-                        OptionValue="@(l => l.Name)"
+                        Items="@_languageOptions"
+                        OptionText="@(c => c.NativeName.Humanize())"
                         @bind-SelectedOption="@_selectedUiCulture"
                         @bind-SelectedOption:after="@OnLanguageChanged"/>
 
