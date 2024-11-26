@@ -63,12 +63,11 @@ public static class AspireAzureOpenAIClientBuilderChatClientExtensions
             ? services.GetRequiredService<AzureOpenAIClient>()
             : services.GetRequiredKeyedService<AzureOpenAIClient>(builder.ServiceKey);
 
-        var chatClientBuilder = new ChatClientBuilder(services);
+        deploymentName ??= GetRequiredDeploymentName(builder.HostBuilder.Configuration, builder.ConnectionName);
+        var chatClientBuilder = new ChatClientBuilder(openAiClient.AsChatClient(deploymentName));
         configurePipeline?.Invoke(chatClientBuilder);
 
-        deploymentName ??= GetRequiredDeploymentName(builder.HostBuilder.Configuration, builder.ConnectionName);
-
-        return chatClientBuilder.Use(openAiClient.AsChatClient(deploymentName));
+        return chatClientBuilder.Build(services);
     }
 
     private static string GetRequiredDeploymentName(IConfiguration configuration, string connectionName)

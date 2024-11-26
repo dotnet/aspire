@@ -11,7 +11,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Azure SDK for .NET dependencies -->
-    <PackageVersion Include="Azure.AI.OpenAI" Version="2.0.0" />
+    <PackageVersion Include="Azure.AI.OpenAI" Version="2.1.0-beta.2" />
     <PackageVersion Include="Azure.Data.Tables" Version="12.9.1" />
     <PackageVersion Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.3.2" />
     <PackageVersion Include="Azure.Messaging.EventHubs" Version="5.11.5" />
@@ -118,7 +118,7 @@
     <PackageVersion Include="NATS.Net" Version="2.5.3" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.6" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(NpgsqlEntityFrameworkCorePostgreSQLPackageVersion)" />
-    <PackageVersion Include="OpenAI" Version="2.0.0" />
+    <PackageVersion Include="OpenAI" Version="2.1.0-beta.2" />
     <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.23.60" />
     <PackageVersion Include="Oracle.ManagedDataAccess.OpenTelemetry" Version="23.6.0" />
     <PackageVersion Include="Polly.Core" Version="8.4.2" />
