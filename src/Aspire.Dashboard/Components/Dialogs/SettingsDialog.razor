@@ -17,14 +17,14 @@
             <FluentRadio Value="@ThemeManager.ThemeSettingDark">@Loc[nameof(Dialogs.SettingsDialogDarkTheme)]</FluentRadio>
         </FluentRadioGroup>
 
-        <FluentCombobox TOption="CultureInfo"
-                        Autocomplete="ComboboxAutocomplete.List"
-                        Immediate="true"
-                        Label="@Loc[nameof(Dialogs.SettingsDialogLanguage)]"
-                        Items="@_languageOptions"
-                        OptionText="@(c => c.NativeName.Humanize())"
-                        @bind-SelectedOption="@_selectedUiCulture"
-                        @bind-SelectedOption:after="@OnLanguageChanged"/>
+        <FluentSelect
+            TOption="CultureInfo"
+            Immediate="true"
+            Label="@Loc[nameof(Dialogs.SettingsDialogLanguage)]"
+            Items="@_languageOptions"
+            OptionText="@(c => c.NativeName.Humanize())"
+            @bind-SelectedOption="@_selectedUiCulture"
+            @bind-SelectedOption:after="@OnLanguageChanged"/>
 
         <div class="version">@string.Format(Loc[nameof(Dialogs.SettingsDialogVersion)], VersionHelpers.DashboardDisplayVersion)</div>
     </FluentStack>
