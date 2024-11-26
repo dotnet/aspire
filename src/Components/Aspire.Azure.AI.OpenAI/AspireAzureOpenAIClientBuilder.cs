@@ -2,8 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Azure.AI.OpenAI;
+using Microsoft.Extensions.Hosting;
 
-namespace Microsoft.Extensions.Hosting;
+namespace Aspire.Azure.AI.OpenAI;
 
 /// <summary>
 /// A builder for configuring an <see cref="AzureOpenAIClient"/> service registration.
