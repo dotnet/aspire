@@ -177,6 +177,11 @@
         <target state="translated">Escuro</target>
         <note />
       </trans-unit>
+      <trans-unit id="SettingsDialogLanguage">
+        <source>Language</source>
+        <target state="new">Language</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">
         <source>Light</source>
         <target state="translated">Claro</target>

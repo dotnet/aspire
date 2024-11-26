@@ -28,6 +28,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Server.Kestrel;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
@@ -437,6 +438,19 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             _app.MapPost("/authentication/logout", () => TypedResults.SignOut(authenticationSchemes: [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]));
         }
+
+        _app.MapGet("/api/set-language", (string? language, string redirectUrl, HttpContext httpContext) =>
+        {
+            if (language is not null)
+            {
+                httpContext.Response.Cookies.Append(
+                    CookieRequestCultureProvider.DefaultCookieName,
+                    // keep current culture for formatting, etc., but change ui (display) culture
+                    CookieRequestCultureProvider.MakeCookieValue(new RequestCulture(CultureInfo.CurrentCulture.Name, language)));
+            }
+
+            return Task.FromResult(Results.LocalRedirect(redirectUrl));
+        });
     }
 
     internal static string[] GetSupportedCultures()

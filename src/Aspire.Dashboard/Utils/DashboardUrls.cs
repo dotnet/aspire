@@ -136,4 +136,12 @@ internal static class DashboardUrls
 
         return url;
     }
+
+    public static string SetLanguageUrl(string language, string redirectUrl)
+    {
+        var languageEscaped = Uri.EscapeDataString(language);
+        var redirectUrlEscaped = Uri.EscapeDataString(redirectUrl);
+
+        return $"/api/set-language?language={languageEscaped}&redirectUrl={redirectUrlEscaped}";
+    }
 }

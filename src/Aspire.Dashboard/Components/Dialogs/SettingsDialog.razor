@@ -1,10 +1,12 @@
-﻿@using Aspire.Dashboard.Model
+﻿@using System.Globalization
+@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
+@using Humanizer
 @inject IStringLocalizer<Dialogs> Loc
 
 <FluentDialogBody>
-    <FluentStack Orientation="Orientation.Vertical" Style="display: flex; height: 100%" VerticalGap="0">
+    <FluentStack Orientation="Orientation.Vertical" Style="display: flex; height: 100%" VerticalGap="5">
         <FluentRadioGroup TValue="string"
                           Label="@Loc[nameof(Dialogs.SettingsDialogTheme)]"
                           @bind-Value="@_currentSetting"
@@ -15,7 +17,16 @@
             <FluentRadio Value="@ThemeManager.ThemeSettingDark">@Loc[nameof(Dialogs.SettingsDialogDarkTheme)]</FluentRadio>
         </FluentRadioGroup>
 
+        <FluentCombobox TOption="CultureInfo"
+                        Autocomplete="ComboboxAutocomplete.List"
+                        Immediate="true"
+                        Label="@Loc[nameof(Dialogs.SettingsDialogLanguage)]"
+                        Items="@DashboardWebApplication.LocalizedCultures.Select(CultureInfo.GetCultureInfo)"
+                        OptionText="@(l => l.DisplayName.Humanize())"
+                        OptionValue="@(l => l.Name)"
+                        @bind-SelectedOption="@_selectedUiCulture"
+                        @bind-SelectedOption:after="@OnLanguageChanged"/>
+
         <div class="version">@string.Format(Loc[nameof(Dialogs.SettingsDialogVersion)], VersionHelpers.DashboardDisplayVersion)</div>
     </FluentStack>
-
 </FluentDialogBody>
