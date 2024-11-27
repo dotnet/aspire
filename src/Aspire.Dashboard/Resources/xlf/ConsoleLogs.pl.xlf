@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="DownloadLogs">
         <source>Download logs</source>
-        <target state="new">Download logs</target>
+        <target state="translated">Pobierz dzienniki</target>
         <note />
       </trans-unit>
       <trans-unit id="LogStatusLabel">
