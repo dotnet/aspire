@@ -18,9 +18,9 @@ public class AspireOpenAIClientBuilderChatClientExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:OpenAI:Endpoint", "https://aspireopenaitests.openai.azure.com/"),
-            new KeyValuePair<string, string?>("Aspire:OpenAI:Deployment", "testdeployment1"),
-            new KeyValuePair<string, string?>("Aspire:OpenAI:Key", "fake"),
+            new ("Aspire:OpenAI:Endpoint", "https://aspireopenaitests.openai.azure.com/"),
+            new ("Aspire:OpenAI:Deployment", "testdeployment1"),
+            new ("Aspire:OpenAI:Key", "fake"),
         ]);
 
         if (useKeyed)
@@ -50,7 +50,7 @@ public class AspireOpenAIClientBuilderChatClientExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake;{connectionStringKey}=testdeployment1")
+            new("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake;{connectionStringKey}=testdeployment1")
         ]);
 
         if (useKeyed)
@@ -78,7 +78,7 @@ public class AspireOpenAIClientBuilderChatClientExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake")
+            new("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake")
         ]);
 
         if (useKeyed)
@@ -106,7 +106,7 @@ public class AspireOpenAIClientBuilderChatClientExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake;Deployment=testdeployment1;Model=something")
+            new("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake;Deployment=testdeployment1;Model=something")
         ]);
 
         if (useKeyed)
@@ -137,7 +137,7 @@ public class AspireOpenAIClientBuilderChatClientExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake")
+            new("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake")
         ]);
 
         if (useKeyed)
@@ -170,7 +170,7 @@ public class AspireOpenAIClientBuilderChatClientExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake")
+            new("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake")
         ]);
 
         if (useKeyed)
@@ -197,7 +197,7 @@ public class AspireOpenAIClientBuilderChatClientExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake")
+            new("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake")
         ]);
 
         if (useKeyed)
