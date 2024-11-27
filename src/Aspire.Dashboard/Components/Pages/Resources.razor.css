@@ -37,7 +37,3 @@
     height: 24px;
     display: inline-block;
 }
-
-::deep .resource-name-text {
-    vertical-align: middle;
-}

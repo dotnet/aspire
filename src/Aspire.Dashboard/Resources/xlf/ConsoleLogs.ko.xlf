@@ -57,6 +57,11 @@
         <target state="translated">로그를 보는 중...</target>
         <note />
       </trans-unit>
+      <trans-unit id="DownloadLogs">
+        <source>Download logs</source>
+        <target state="new">Download logs</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LogStatusLabel">
         <source>Service log status</source>
         <target state="translated">서비스 로그 상태</target>

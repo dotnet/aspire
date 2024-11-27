@@ -162,6 +162,13 @@ enum HealthStatus {
     DEGRADED = 2;
 }
 
+message ResourceRelationship {
+    // The name of the resource.
+    string resource_name = 1;
+    // The type of relationship.
+    string type = 2;
+}
+
 message ResourceProperty {
     // Name of the data item, e.g. "container.id", "executable.pid", "project.path", ...
     string name = 1;
@@ -197,7 +204,7 @@ message Resource {
     // - Projects: process_id, project_path
     repeated ResourceProperty properties = 12;
 
-    // The list of urls that this resource exposes
+    // The list of urls that this resource exposes.
     repeated Url urls = 13;
 
     // The style of the state. This is used to determine the state icon.
@@ -215,6 +222,9 @@ message Resource {
     optional google.protobuf.Timestamp started_at = 18;
     // The resource stop time.
     optional google.protobuf.Timestamp stopped_at = 19;
+
+    // The list of relationships for this resource.
+    repeated ResourceRelationship relationships = 20;
 }
 
 ////////////////////////////////////////////

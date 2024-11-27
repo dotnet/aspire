@@ -57,6 +57,11 @@
         <target state="translated">ログを監視しています...</target>
         <note />
       </trans-unit>
+      <trans-unit id="DownloadLogs">
+        <source>Download logs</source>
+        <target state="new">Download logs</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LogStatusLabel">
         <source>Service log status</source>
         <target state="translated">サービス ログの状態</target>

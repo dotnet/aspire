@@ -6,18 +6,12 @@
     <PatchVersion>0</PatchVersion>
     <VersionPrefix>$(MajorVersion).$(MinorVersion).$(PatchVersion)</VersionPrefix>
     <PreReleaseVersionLabel>preview.1</PreReleaseVersionLabel>
-    <!--
-      When running package validation as part of the build, we want to ensure we didn't break the API against the previous
-      version of each package. The following property points to the package version that should be used as baseline.
-      This should get updated each time packages are shipped.
-    -->
-    <BaselineVersionForPackageValidation>8.0.1</BaselineVersionForPackageValidation>
     <DefaultTargetFramework>net8.0</DefaultTargetFramework>
     <AllTargetFrameworks>$(DefaultTargetFramework);net9.0</AllTargetFrameworks>
     <!-- dotnet 8.0 versions for running tests -->
-    <DotNetRuntimePreviousVersionForTesting>8.0.10</DotNetRuntimePreviousVersionForTesting>
+    <DotNetRuntimePreviousVersionForTesting>8.0.11</DotNetRuntimePreviousVersionForTesting>
     <!-- dotnet 8.0 versions for running tests - used for workload tests -->
-    <DotNetSdkPreviousVersionForTesting>8.0.403</DotNetSdkPreviousVersionForTesting>
+    <DotNetSdkPreviousVersionForTesting>8.0.404</DotNetSdkPreviousVersionForTesting>
     <UseVSTestRunner>true</UseVSTestRunner>
     <!-- Enable to remove prerelease label. -->
     <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">false</StabilizePackageVersion>
@@ -27,18 +21,19 @@
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
     <MicrosoftDotnetSdkInternalPackageVersion>8.0.100-rtm.23512.16</MicrosoftDotnetSdkInternalPackageVersion>
     <!-- DCP -->
-    <MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>0.9.0</MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>0.9.0</MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>
-    <MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>0.9.0</MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>0.9.0</MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>
-    <MicrosoftDeveloperControlPlanewindows386PackageVersion>0.9.0</MicrosoftDeveloperControlPlanewindows386PackageVersion>
-    <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.9.0</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.9.0</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>0.9.1</MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>0.9.1</MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>0.9.1</MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>0.9.1</MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanewindows386PackageVersion>0.9.1</MicrosoftDeveloperControlPlanewindows386PackageVersion>
+    <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.9.1</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.9.1</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
     <!-- Other -->
     <MicrosoftDotNetRemoteExecutorPackageVersion>9.0.0-beta.24572.2</MicrosoftDotNetRemoteExecutorPackageVersion>
     <MicrosoftDotNetXUnitExtensionsPackageVersion>9.0.0-beta.24572.2</MicrosoftDotNetXUnitExtensionsPackageVersion>
     <MicrosoftDotNetBuildTasksInstallersPackageVersion>9.0.0-beta.24572.2</MicrosoftDotNetBuildTasksInstallersPackageVersion>
     <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>9.0.0-beta.24572.2</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
+    <MicrosoftExtensionsAIPackageVersion>9.0.1-preview.1.24570.5</MicrosoftExtensionsAIPackageVersion>
     <MicrosoftExtensionsHttpResiliencePackageVersion>9.0.0</MicrosoftExtensionsHttpResiliencePackageVersion>
     <MicrosoftExtensionsDiagnosticsTestingPackageVersion>9.0.0</MicrosoftExtensionsDiagnosticsTestingPackageVersion>
     <MicrosoftExtensionsConfigurationAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsConfigurationAbstractionsPackageVersion>
@@ -67,7 +62,7 @@
     <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>8.0.11</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
     <MicrosoftEntityFrameworkCoreToolsPackageVersion>8.0.11</MicrosoftEntityFrameworkCoreToolsPackageVersion>
     <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.0-preview.5.24272.3</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
-    <NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>8.0.10</NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>
+    <NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>8.0.11</NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>
     <!-- for templates -->
     <MicrosoftAspNetCorePackageVersionForNet9>9.0.0</MicrosoftAspNetCorePackageVersionForNet9>
     <!-- System dependencies -->
@@ -92,7 +87,7 @@
     <MicrosoftEntityFrameworkCoreDesignPackageVersion>9.0.0</MicrosoftEntityFrameworkCoreDesignPackageVersion>
     <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>9.0.0</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
     <MicrosoftEntityFrameworkCoreToolsPackageVersion>9.0.0</MicrosoftEntityFrameworkCoreToolsPackageVersion>
-    <NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>9.0.0-rc.2</NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>
+    <NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>9.0.0</NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>
     <!-- System dependencies -->
     <SystemFormatsAsn1PackageVersion>9.0.0</SystemFormatsAsn1PackageVersion>
     <SystemTextJsonPackageVersion>9.0.0</SystemTextJsonPackageVersion>

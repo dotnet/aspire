@@ -6,8 +6,8 @@
     <PackageTags>$(ComponentEfCorePackageTags) postgressql postgres npgsql sql</PackageTags>
     <Description>A PostgreSQL® provider for Entity Framework Core that integrates with Aspire, including connection pooling, health checks, logging, and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)PostgreSQL_logo.3colors.540x557.png</PackageIconFullPath>
-    <!-- We need to ingest the stable version of EF npgsql in order for us to produce stable  bits. -->
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <!-- This package hasn't shipped 9.0.0 yet, so use the previous stable version until it does -->
+    <PackageValidationBaselineVersion>8.2.2</PackageValidationBaselineVersion>
   </PropertyGroup>
 
   <PropertyGroup>
