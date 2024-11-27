@@ -86,8 +86,13 @@ public partial class StructuredLogDetails
 
     private bool ApplyFilter(TelemetryPropertyViewModel vm)
     {
+        if (string.IsNullOrEmpty(vm.Name) || string.IsNullOrEmpty(vm.Value))
+        {
+            return false;
+        }
+
         return vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
-            vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true;
+            vm.Value.Contains(_filter, StringComparison.CurrentCultureIgnoreCase);
     }
 
     // Sometimes a parent ID is added and the value is 0000000000. Don't display unhelpful IDs.
