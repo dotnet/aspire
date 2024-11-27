@@ -163,4 +163,10 @@
   <data name="ConsoleLogsResourceCommands" xml:space="preserve">
     <value>Resource commands</value>
   </data>
+  <data name="ConsoleLogsTimestampShow" xml:space="preserve">
+    <value>Show timestamps</value>
+  </data>
+  <data name="ConsoleLogsTimestampHide" xml:space="preserve">
+    <value>Hide timestamps</value>
+  </data>
 </root>

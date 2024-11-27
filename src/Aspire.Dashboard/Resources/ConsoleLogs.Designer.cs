@@ -160,6 +160,24 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Hide timestamps.
+        /// </summary>
+        public static string ConsoleLogsTimestampHide {
+            get {
+                return ResourceManager.GetString("ConsoleLogsTimestampHide", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Show timestamps.
+        /// </summary>
+        public static string ConsoleLogsTimestampShow {
+            get {
+                return ResourceManager.GetString("ConsoleLogsTimestampShow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unknown state.
         /// </summary>
         public static string ConsoleLogsUnknownState {
