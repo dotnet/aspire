@@ -58,7 +58,7 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
         });
     }
 
-    private async Task SettingChangedAsync()
+    private async Task ThemeChangedAsync()
     {
         // The field is being transiently set to null when the value changes. Maybe a bug in FluentUI?
         // This should never be set to null by the dashboard so we can ignore null values.

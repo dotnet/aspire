@@ -10,7 +10,7 @@
         <FluentRadioGroup TValue="string"
                           Label="@Loc[nameof(Dialogs.SettingsDialogTheme)]"
                           @bind-Value="@_currentSetting"
-                          @bind-Value:after="SettingChangedAsync"
+                          @bind-Value:after="ThemeChangedAsync"
                           Orientation="Orientation.Vertical">
             <FluentRadio Value="@ThemeManager.ThemeSettingSystem">@Loc[nameof(Dialogs.SettingsDialogSystemTheme)]</FluentRadio>
             <FluentRadio Value="@ThemeManager.ThemeSettingLight">@Loc[nameof(Dialogs.SettingsDialogLightTheme)]</FluentRadio>
