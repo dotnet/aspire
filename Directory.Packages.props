@@ -6,7 +6,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-    <TestcontainersPackageVersion>3.10.0</TestcontainersPackageVersion>
+    <TestcontainersPackageVersion>4.0.0</TestcontainersPackageVersion>
     <AzureProvisiongVersion>1.0.0</AzureProvisiongVersion>
   </PropertyGroup>
   <ItemGroup>
