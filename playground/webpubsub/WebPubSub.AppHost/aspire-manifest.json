@@ -6,8 +6,9 @@
       "connectionString": "{wps1.outputs.endpoint}",
       "path": "wps1.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "ChatForAspire_url_0": "{webfrontend.bindings.https.url}/eventhandler/",
+        "principalType": "",
+        "principalId": ""
       }
     },
     "webfrontend": {

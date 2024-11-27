@@ -9,11 +9,13 @@ using System.Text.Json.Serialization;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Codespaces;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -27,10 +29,12 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              ResourceNotificationService resourceNotificationService,
                                              ResourceLoggerService resourceLoggerService,
                                              ILoggerFactory loggerFactory,
-                                             DcpNameGenerator nameGenerator) : IDistributedApplicationLifecycleHook, IAsyncDisposable
+                                             DcpNameGenerator nameGenerator,
+                                             IHostApplicationLifetime hostApplicationLifetime,
+                                             CodespacesUrlRewriter codespaceUrlRewriter) : IDistributedApplicationLifecycleHook, IAsyncDisposable
 {
-    private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _dashboardLogsTask;
+    private CancellationTokenSource? _dashboardLogsCts;
 
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
@@ -49,14 +53,20 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             AddDashboardResource(appModel);
         }
 
-        _dashboardLogsTask = WatchDashboardLogsAsync(_shutdownCts.Token);
+        // Stop watching logs from the dashboard when the app host is stopping. Part of the app host shutdown is tearing down the dashboard service.
+        // Dashboard services are killed while the dashboard is using them and will cause the dashboard to report an error accessing data.
+        // By stopping here we prevent the app host from printing errors from the dashboard caused by shutdown.
+        _dashboardLogsCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
+
+        _dashboardLogsTask = WatchDashboardLogsAsync(_dashboardLogsCts.Token);
 
         return Task.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()
     {
-        _shutdownCts.Cancel();
+        // Stop listening to logs if the lifecycle hook is disposed without the app being shutdown.
+        _dashboardLogsCts?.Cancel();
 
         if (_dashboardLogsTask is not null)
         {
@@ -170,38 +180,19 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             {
                 context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName] = otlpHttpEndpointUrl;
 
-                var model = context.ExecutionContext.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
-                var allResourceEndpoints = model.Resources
-                    .Where(r => !string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName))
-                    .SelectMany(r => r.Annotations)
-                    .OfType<EndpointAnnotation>()
-                    .ToList();
+                // Use explicitly defined allowed origins if configured.
+                var allowedOrigins = configuration[KnownConfigNames.DashboardCorsAllowedOrigins];
 
-                var corsOrigins = new HashSet<string>(StringComparers.UrlHost);
-                foreach (var endpoint in allResourceEndpoints)
+                // If allowed origins are not configured then calculate allowed origins from endpoints.
+                if (string.IsNullOrEmpty(allowedOrigins))
                 {
-                    if (endpoint.UriScheme is "http" or "https")
-                    {
-                        // Prefer allocated endpoint over EndpointAnnotation.Port.
-                        var origin = endpoint.AllocatedEndpoint?.UriString;
-                        var targetOrigin = (endpoint.TargetPort != null)
-                            ? $"{endpoint.UriScheme}://localhost:{endpoint.TargetPort}"
-                            : null;
-
-                        if (origin != null)
-                        {
-                            corsOrigins.Add(origin);
-                        }
-                        if (targetOrigin != null)
-                        {
-                            corsOrigins.Add(targetOrigin);
-                        }
-                    }
+                    var model = context.ExecutionContext.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
+                    allowedOrigins = GetAllowedOriginsFromResourceEndpoints(model);
                 }
 
-                if (corsOrigins.Count > 0)
+                if (!string.IsNullOrEmpty(allowedOrigins))
                 {
-                    context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName] = string.Join(',', corsOrigins);
+                    context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName] = allowedOrigins;
                     context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.EnvVarName] = "*";
                 }
             }
@@ -246,16 +237,58 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
             // We need to print out the url so that dotnet watch can launch the dashboard
             // technically this is too early, but it's late ne
-            if (StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
+            if (!StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
             {
-                distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", firstDashboardUrl.ToString().TrimEnd('/'));
+                return;
             }
+
+            var dashboardUrl = codespaceUrlRewriter.RewriteUrl(firstDashboardUrl.ToString());
+
+            distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl.TrimEnd('/'));
 
             if (!string.IsNullOrEmpty(browserToken))
             {
-                LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrls, browserToken, isContainer: false);
+                LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrl, browserToken, isContainer: false);
             }
         }));
+    }
+
+    private static string? GetAllowedOriginsFromResourceEndpoints(DistributedApplicationModel model)
+    {
+        var allResourceEndpoints = model.Resources
+            .Where(r => !string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName))
+            .SelectMany(r => r.Annotations)
+            .OfType<EndpointAnnotation>()
+            .ToList();
+
+        var corsOrigins = new HashSet<string>(StringComparers.UrlHost);
+        foreach (var endpoint in allResourceEndpoints)
+        {
+            if (endpoint.UriScheme is "http" or "https")
+            {
+                // Prefer allocated endpoint over EndpointAnnotation.Port.
+                var origin = endpoint.AllocatedEndpoint?.UriString;
+                var targetOrigin = (endpoint.TargetPort != null)
+                    ? $"{endpoint.UriScheme}://localhost:{endpoint.TargetPort}"
+                    : null;
+
+                if (origin != null)
+                {
+                    corsOrigins.Add(origin);
+                }
+                if (targetOrigin != null)
+                {
+                    corsOrigins.Add(targetOrigin);
+                }
+            }
+        }
+
+        if (corsOrigins.Count > 0)
+        {
+            return string.Join(',', corsOrigins);
+        }
+
+        return null;
     }
 
     private async Task WatchDashboardLogsAsync(CancellationToken cancellationToken)

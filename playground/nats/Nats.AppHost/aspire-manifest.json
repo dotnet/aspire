@@ -3,9 +3,13 @@
   "resources": {
     "nats": {
       "type": "container.v0",
-      "connectionString": "nats://{nats.bindings.tcp.host}:{nats.bindings.tcp.port}",
+      "connectionString": "nats://nats:{nats-password.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}",
       "image": "docker.io/library/nats:2.10",
       "args": [
+        "--user",
+        "nats",
+        "--pass",
+        "{nats-password.value}",
         "-js"
       ],
       "bindings": {
@@ -64,6 +68,22 @@
           "scheme": "https",
           "protocol": "tcp",
           "transport": "http"
+        }
+      }
+    },
+    "nats-password": {
+      "type": "parameter.v0",
+      "value": "{nats-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "special": false
+            }
+          }
         }
       }
     }

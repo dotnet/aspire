@@ -41,8 +41,22 @@ public class OtlpSpan
     public OtlpScope Scope { get; }
     public TimeSpan Duration => EndTime - StartTime;
 
-    public IEnumerable<OtlpSpan> GetChildSpans() => Trace.Spans.Where(s => s.ParentSpanId == SpanId);
-    public OtlpSpan? GetParentSpan() => string.IsNullOrEmpty(ParentSpanId) ? null : Trace.Spans.Where(s => s.SpanId == ParentSpanId).FirstOrDefault();
+    public IEnumerable<OtlpSpan> GetChildSpans() => GetChildSpans(this, Trace.Spans);
+    public static IEnumerable<OtlpSpan> GetChildSpans(OtlpSpan parentSpan, OtlpSpanCollection spans) => spans.Where(s => s.ParentSpanId == parentSpan.SpanId);
+    public OtlpSpan? GetParentSpan()
+    {
+        if (string.IsNullOrEmpty(ParentSpanId))
+        {
+            return null;
+        }
+
+        if (Trace.Spans.TryGetValue(ParentSpanId, out var span))
+        {
+            return span;
+        }
+
+        return null;
+    }
 
     public OtlpSpan(OtlpApplicationView applicationView, OtlpTrace trace, OtlpScope scope)
     {
@@ -71,28 +85,28 @@ public class OtlpSpan
         };
     }
 
-    public Dictionary<string, string> AllProperties()
+    public List<OtlpDisplayField> AllProperties()
     {
-        var props = new Dictionary<string, string>
+        var props = new List<OtlpDisplayField>
         {
-            { "SpanId", SpanId },
-            { "Name", Name },
-            { "Kind", Kind.ToString() },
+            new OtlpDisplayField { DisplayName = "SpanId", Key = KnownTraceFields.SpanIdField, Value = SpanId },
+            new OtlpDisplayField { DisplayName = "Name", Key = KnownTraceFields.NameField, Value = Name },
+            new OtlpDisplayField { DisplayName = "Kind", Key = KnownTraceFields.KindField, Value = Kind.ToString() },
         };
 
         if (Status != OtlpSpanStatusCode.Unset)
         {
-            props.Add("Status", Status.ToString());
+            props.Add(new OtlpDisplayField { DisplayName = "Status", Key = KnownTraceFields.StatusField, Value = Status.ToString() });
         }
 
         if (!string.IsNullOrEmpty(StatusMessage))
         {
-            props.Add("StatusMessage", StatusMessage);
+            props.Add(new OtlpDisplayField { DisplayName = "StatusMessage", Key = KnownTraceFields.StatusField, Value = Status.ToString() });
         }
 
         foreach (var kv in Attributes.OrderBy(a => a.Key))
         {
-            props.TryAdd(kv.Key, kv.Value);
+            props.Add(new OtlpDisplayField { DisplayName = kv.Key, Key = $"unknown-{kv.Key}", Value = kv.Value });
         }
 
         return props;
@@ -107,12 +121,12 @@ public class OtlpSpan
     {
         return field switch
         {
-            KnownTraceFields.ApplicationField => span.Source.Application.ApplicationName,
+            KnownResourceFields.ServiceNameField => span.Source.Application.ApplicationName,
             KnownTraceFields.TraceIdField => span.TraceId,
             KnownTraceFields.SpanIdField => span.SpanId,
             KnownTraceFields.KindField => span.Kind.ToString(),
             KnownTraceFields.StatusField => span.Status.ToString(),
-            KnownTraceFields.SourceField => span.Scope.ScopeName,
+            KnownSourceFields.NameField => span.Scope.ScopeName,
             KnownTraceFields.NameField => span.Name,
             _ => span.Attributes.GetValue(field)
         };

@@ -17,6 +17,9 @@ public static class SeqBuilderExtensions
     /// <summary>
     /// Adds a Seq server resource to the application model. A container is used for local development.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="SeqContainerImageTags.Tag"/> tag of the <inheritdoc cref="SeqContainerImageTags.Image"/> container image.
+    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name to give the resource.</param>
     /// <param name="port">The host port for the Seq server.</param>
@@ -45,7 +48,7 @@ public static class SeqBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SeqResource> WithDataVolume(this IResourceBuilder<SeqResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), SeqContainerDataDirectory, isReadOnly);
+        => builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), SeqContainerDataDirectory, isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the data folder to a Seq container resource.

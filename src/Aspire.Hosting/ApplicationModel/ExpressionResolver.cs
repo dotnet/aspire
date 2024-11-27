@@ -99,19 +99,32 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
         {
             // HostUrl is a bit of a hack that is not modeled as an expression
             // So in this one case, we need to fix up the container host name 'manually'
-            // This is only used for OTEL_EXPORTER_OTLP_ENDPOINT
-            var uri = new UriBuilder(value);
-            if (uri.Host is "localhost" or "127.0.0.1" or "[::1]")
+            // Internally, this is only used for OTEL_EXPORTER_OTLP_ENDPOINT, but HostUrl
+            // is public, so we don't control how it is used
+            try
             {
-                var hasEndingSlash = value.EndsWith('/');
-                uri.Host = containerHostName;
-                value = uri.ToString();
-
-                // Remove trailing slash if we didn't have one before (UriBuilder always adds one)
-                if (!hasEndingSlash && value.EndsWith('/'))
+                var uri = new UriBuilder(value);
+                if (uri.Host is "localhost" or "127.0.0.1" or "[::1]")
                 {
-                    value = value[..^1];
+                    var hasEndingSlash = value.EndsWith('/');
+                    uri.Host = containerHostName;
+                    value = uri.ToString();
+
+                    // Remove trailing slash if we didn't have one before (UriBuilder always adds one)
+                    if (!hasEndingSlash && value.EndsWith('/'))
+                    {
+                        value = value[..^1];
+                    }
                 }
+            }
+            catch (UriFormatException)
+            {
+                // HostUrl was meant to only be used with valid URLs. However, this was not
+                // previously enforced. So we need to handle the case where it's not a valid URL,
+                // by falling back to a simple string replacement.
+                value = value.Replace("localhost", containerHostName, StringComparison.OrdinalIgnoreCase)
+                             .Replace("127.0.0.1", containerHostName)
+                             .Replace("[::1]", containerHostName);
             }
         }
 

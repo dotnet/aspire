@@ -2,9 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Tests.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
+
 public class ExpressionResolverTests
 {
     [Theory]
@@ -49,7 +51,7 @@ public class ExpressionResolverTests
 
         // First test ExpressionResolver directly
         var csRef = new ConnectionStringReference(target.Resource, false);
-        var connectionString = await ExpressionResolver.ResolveAsync(sourceIsContainer, csRef, "ContainerHostName", CancellationToken.None);
+        var connectionString = await ExpressionResolver.ResolveAsync(sourceIsContainer, csRef, "ContainerHostName", CancellationToken.None).DefaultTimeout();
         Assert.Equal(expectedConnectionString, connectionString);
 
         // Then test it indirectly with a resource reference, which exercises a more complete code path
@@ -60,14 +62,46 @@ public class ExpressionResolverTests
             source = source.WithImage("someimage");
         }
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(source.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName");
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(source.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName").DefaultTimeout();
         Assert.Equal(expectedConnectionString, config["ConnectionStrings__testresource"]);
+    }
+
+    [Theory]
+    [InlineData(false, "http://localhost:18889", "http://localhost:18889")]
+    [InlineData(true, "http://localhost:18889", "http://ContainerHostName:18889")]
+    [InlineData(false, "http://127.0.0.1:18889", "http://127.0.0.1:18889")]
+    [InlineData(true, "http://127.0.0.1:18889", "http://ContainerHostName:18889")]
+    [InlineData(false, "http://[::1]:18889", "http://[::1]:18889")]
+    [InlineData(true, "http://[::1]:18889", "http://ContainerHostName:18889")]
+    [InlineData(false, "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy", "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(true, "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy", "Server=ContainerHostName,1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(false, "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy", "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(true, "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy", "Server=ContainerHostName,1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(false, "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy", "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(true, "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy", "Server=ContainerHostName,1433;User ID=sa;Password=xxx;Database=yyy")]
+    public async Task HostUrlPropertyGetsResolved(bool container, string hostUrlVal, string expectedValue)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var test = builder.AddResource(new ContainerResource("testSource"))
+            .WithEnvironment(env =>
+            {
+                env.EnvironmentVariables["envname"] = new HostUrl(hostUrlVal);
+            });
+
+        if (container)
+        {
+            test = test.WithImage("someimage");
+        }
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName").DefaultTimeout();
+        Assert.Equal(expectedValue, config["envname"]);
     }
 
     [Theory]
     [InlineData(false, "http://localhost:18889")]
     [InlineData(true, "http://ContainerHostName:18889")]
-    public async Task HostUrlPropertyGetsResolved(bool container, string expectedValue)
+    public async Task HostUrlPropertyGetsResolvedInOtlpExporterEndpoint(bool container, string expectedValue)
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -79,7 +113,7 @@ public class ExpressionResolverTests
             test = test.WithImage("someimage");
         }
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName");
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName").DefaultTimeout();
         Assert.Equal(expectedValue, config["OTEL_EXPORTER_OTLP_ENDPOINT"]);
     }
 }

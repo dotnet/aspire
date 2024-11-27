@@ -61,15 +61,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to None.
-        /// </summary>
-        public static string EndpointsColumnDisplayNone {
-            get {
-                return ResourceManager.GetString("EndpointsColumnDisplayNone", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Endpoints.
         /// </summary>
         public static string EndpointsColumnDisplayOverflowTitle {
@@ -210,6 +201,16 @@ namespace Aspire.Dashboard.Resources {
         public static string SourceColumnSourceCopyFullPathToClipboard {
             get {
                 return ResourceManager.GetString("SourceColumnSourceCopyFullPathToClipboard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Container runtime was found but appears to be unhealthy. Ensure that it is running.
+        ///For more information, see https://aka.ms/dotnet/aspire/container-runtime-unhealthy.
+        /// </summary>
+        public static string StateColumnResourceContainerRuntimeUnhealthy {
+            get {
+                return ResourceManager.GetString("StateColumnResourceContainerRuntimeUnhealthy", resourceCulture);
             }
         }
         

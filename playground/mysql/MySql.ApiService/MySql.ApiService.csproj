@@ -10,7 +10,6 @@
 
   <ItemGroup>
     <PackageReference Include="Dapper" />
-    <PackageReference Include="Swashbuckle.AspNetCore" />
   </ItemGroup>
 
   <ItemGroup>

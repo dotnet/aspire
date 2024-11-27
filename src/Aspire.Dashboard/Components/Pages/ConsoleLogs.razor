@@ -1,6 +1,7 @@
 ﻿@page "/consolelogs"
 @page "/consolelogs/resource/{resourceName}"
 
+@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
 @namespace Aspire.Dashboard.Components.Pages
 
@@ -25,6 +26,30 @@
                 // This takes up too much horizontal space on mobile, so show on a new line on mobile
                 <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@PageViewModel.Status</FluentLabel>
             }
+
+            @{
+                var menuItems = new List<MenuButtonItem>
+                {
+                    new()
+                    {
+                        IsDisabled = PageViewModel.SelectedResource is null,
+                        OnClick = DownloadLogsAsync,
+                        AdditionalAttributes = new Dictionary<string, object>
+                        {
+                            { "data-action", "download" },
+                            { "data-resource", PageViewModel.SelectedResource?.Name ?? string.Empty }
+                        },
+                        Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.DownloadLogs)],
+                        Icon = new Icons.Regular.Size16.ArrowDownload()
+                    }
+                };
+            }
+
+            <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
+                              Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
+                              Items="@menuItems"
+                              Title="@ControlsStringsLoc[nameof(ControlsStrings.ActionsButtonText)]"
+                              slot="end" />
         </ToolbarSection>
 
         <MobilePageTitleToolbarSection>

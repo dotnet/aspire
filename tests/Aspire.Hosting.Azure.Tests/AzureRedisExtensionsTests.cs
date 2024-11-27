@@ -50,11 +50,11 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
                   capacity: 1
                 }
                 enableNonSslPort: false
+                disableAccessKeyAuthentication: true
                 minimumTlsVersion: '1.2'
                 redisConfiguration: {
                   'aad-enabled': 'true'
                 }
-                disableAccessKeyAuthentication: 'true'
               }
               tags: {
                 'aspire-resource-name': 'redis-cache'
@@ -116,7 +116,6 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
                 }
                 enableNonSslPort: false
                 minimumTlsVersion: '1.2'
-                redisConfiguration: { }
               }
               tags: {
                 'aspire-resource-name': 'redis-cache'

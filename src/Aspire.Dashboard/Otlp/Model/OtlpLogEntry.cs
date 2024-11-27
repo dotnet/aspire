@@ -52,7 +52,9 @@ public class OtlpLogEntry
         Flags = record.Flags;
         Severity = MapSeverity(record.SeverityNumber);
 
-        Message = OtlpHelpers.TruncateString(record.Body.GetString(), context.Options.MaxAttributeLength);
+        Message = record.Body is { } body
+            ? OtlpHelpers.TruncateString(body.GetString(), context.Options.MaxAttributeLength)
+            : string.Empty;
         OriginalFormat = originalFormat;
         SpanId = record.SpanId.ToHexString();
         TraceId = record.TraceId.ToHexString();
@@ -95,11 +97,11 @@ public class OtlpLogEntry
         return field switch
         {
             KnownStructuredLogFields.MessageField => log.Message,
-            KnownStructuredLogFields.ApplicationField => log.ApplicationView.Application.ApplicationName,
             KnownStructuredLogFields.TraceIdField => log.TraceId,
             KnownStructuredLogFields.SpanIdField => log.SpanId,
             KnownStructuredLogFields.OriginalFormatField => log.OriginalFormat,
             KnownStructuredLogFields.CategoryField => log.Scope.ScopeName,
+            KnownResourceFields.ServiceNameField => log.ApplicationView.Application.ApplicationName,
             _ => log.Attributes.GetValue(field)
         };
     }

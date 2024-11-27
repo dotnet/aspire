@@ -12,7 +12,7 @@ fluent-toolbar p {
 
 fluent-toolbar[orientation=horizontal] {
     width: 100%;
-    padding-right: calc(var(--design-unit)* 2px);
+    padding-right: calc(var(--design-unit) * 2px);
 }
 
 fluent-toolbar::part(positioning-region) {
@@ -180,9 +180,19 @@ h1 {
          height: 130px;
     }
 
+    fluent-toolbar[orientation=horizontal].main-toolbar {
+        padding-left: calc(var(--design-unit) * 2px);
+        padding-right: calc(var(--design-unit) * 2px);
+    }
+
     /* we want less padding on mobile screens to preserve screen height for other elements */
     .page-header {
-        padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 0.5px) 0;
+        padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 2.5px) 0;
+        width: fit-content;
+    }
+
+    .page-header > h1 {
+        white-space: normal;
     }
 
     .hidden-on-mobile {
@@ -190,16 +200,21 @@ h1 {
     }
 }
 
- @media (min-width: 768px) {
+@media (min-width: 768px) {
     #components-reconnect-modal {
         left: 30% !important;
         right: 30% !important;
         height: 105px;
     }
 
-     .page-header {
-         padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 2.5px);
-     }
+    fluent-toolbar[orientation=horizontal].main-toolbar {
+        padding-left: calc(var(--design-unit) * 4px);
+        padding-right: calc(var(--design-unit) * 2px);
+    }
+
+    .page-header {
+        padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 4.5px);
+    }
  }
 
 .datagrid-overflow-area,
@@ -299,6 +314,13 @@ fluent-data-grid-cell .long-inner-content {
 .version {
     text-align: end;
     font-size: small;
+    width: 100%;
+    flex-grow: 1;
+
+    /* right/bottom align the inner version text */
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: flex-end;
 }
 
 .anchor-no-padding::part(control) {
@@ -423,6 +445,7 @@ fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=stea
 
 .property-grid-container fluent-accordion {
     gap: calc(var(--design-unit) * 2px);
+    margin-bottom: calc(var(--design-unit) * 1px);
     --fill-color: var(--neutral-layer-1);
 }
 
@@ -480,7 +503,7 @@ fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=stea
 
 .total-items-footer {
     padding-top: calc(var(--design-unit) * 2.5px);
-    padding-left: calc(var(--design-unit) * 2.5px);
+    padding-left: calc(var(--design-unit) * 4.5px);
     padding-bottom: calc(var(--design-unit) * 2.5px);
 }
 
@@ -651,4 +674,46 @@ fluent-data-grid-cell.no-ellipsis {
     display: inline-flex;
     column-gap: 4px;
     align-items: center;
+}
+
+.empty-data::before {
+    content: "-"
+}
+
+.main-grid-expand-container {
+    display: inline-block;
+    width: 20px;
+}
+
+.main-grid-expand-container svg {
+    transition: transform 0.1s linear;
+    pointer-events: none;
+}
+
+.main-grid-collapsed svg {
+    transform: rotate(0deg);
+}
+
+.main-grid-expanded svg {
+    transform: rotate(90deg);
+}
+
+.main-grid-expand-button {
+    width: 20px;
+    height: 24px;
+    min-width: 20px;
+    vertical-align: middle;
+}
+
+.main-grid fluent-data-grid-row[row-type='sticky-header'] fluent-data-grid-cell:first-child {
+    margin-left: 8px;
+}
+
+.main-grid fluent-data-grid-row[row-type='default'] fluent-data-grid-cell.expand-col {
+    padding-left: 0;
+    border-left: 0;
+}
+
+.main-grid fluent-data-grid-row[row-type='default'] fluent-data-grid-cell:first-child:not(.expand-col) {
+    margin-left: 8px;
 }

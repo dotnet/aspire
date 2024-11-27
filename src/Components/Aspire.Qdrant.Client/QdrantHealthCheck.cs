@@ -2,13 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Qdrant.Client;
 
 namespace Aspire.Qdrant.Client;
 internal sealed class QdrantHealthCheck : IHealthCheck
 {
-    private readonly HttpClient _client;
+    private readonly QdrantClient _client;
 
-    public QdrantHealthCheck(HttpClient client)
+    public QdrantHealthCheck(QdrantClient client)
     {
         ArgumentNullException.ThrowIfNull(client, nameof(client));
         _client = client;
@@ -18,9 +19,9 @@ internal sealed class QdrantHealthCheck : IHealthCheck
     {
         try
         {
-            var response = await _client.GetAsync("/readyz", cancellationToken).ConfigureAwait(false);
+            var response = await _client.HealthAsync(cancellationToken).ConfigureAwait(false);
 
-            return response.IsSuccessStatusCode
+            return response?.Title is not null
                 ? HealthCheckResult.Healthy()
                 : new HealthCheckResult(HealthStatus.Unhealthy);
         }

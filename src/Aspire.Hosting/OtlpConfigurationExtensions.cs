@@ -27,6 +27,10 @@ public static class OtlpConfigurationExtensions
     /// <param name="environment">The host environment to check if the application is running in development mode.</param>
     public static void AddOtlpEnvironment(IResource resource, IConfiguration configuration, IHostEnvironment environment)
     {
+        ArgumentNullException.ThrowIfNull(resource);
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(environment);
+
         // Configure OpenTelemetry in projects using environment variables.
         // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/configuration/sdk-environment-variables.md
 
@@ -112,6 +116,8 @@ public static class OtlpConfigurationExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithOtlpExporter<T>(this IResourceBuilder<T> builder) where T : IResourceWithEnvironment
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         AddOtlpEnvironment(builder.Resource, builder.ApplicationBuilder.Configuration, builder.ApplicationBuilder.Environment);
         return builder;
     }

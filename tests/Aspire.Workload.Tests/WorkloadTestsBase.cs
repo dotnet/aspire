@@ -177,26 +177,29 @@ public partial class WorkloadTestsBase
                 var cellLocs = await rowLoc.Locator("//fluent-data-grid-cell[@role='gridcell']").AllAsync();
 
                 // is the resource name expected?
-                var resourceName = await cellLocs[1].InnerTextAsync();
+                var resourceNameCell = cellLocs[0];
+                var resourceName = await resourceNameCell.InnerTextAsync();
+                resourceName = resourceName.Trim();
                 if (!expectedRowsTable.TryGetValue(resourceName, out var expectedRow))
                 {
-                    Assert.Fail($"Row with unknown name found: {resourceName}");
+                    Assert.Fail($"Row with unknown name found: '{resourceName}'. Expected values: {string.Join(", ", expectedRowsTable.Keys.Select(k => $"'{k}'"))}");
                 }
                 if (foundNames.Contains(resourceName))
                 {
                     continue;
                 }
 
-                AssertEqual(expectedRow.Name, resourceName, $"Name for {resourceName}");
+                AssertEqual(expectedRow.Name, resourceName, $"Name for '{resourceName}'");
 
-                var actualState = await cellLocs[2].InnerTextAsync().ConfigureAwait(false);
+                var stateCell = cellLocs[1];
+                var actualState = await stateCell.InnerTextAsync().ConfigureAwait(false);
                 actualState = actualState.Trim();
                 if (expectedRow.State != actualState && actualState != "Finished" && !actualState.Contains("failed", StringComparison.OrdinalIgnoreCase))
                 {
                     testOutput.WriteLine($"[{expectedRow.Name}] expected state: '{expectedRow.State}', actual state: '{actualState}'");
                     continue;
                 }
-                AssertEqual(expectedRow.State, (await cellLocs[2].InnerTextAsync()).Trim(), $"State for {resourceName}");
+                AssertEqual(expectedRow.State, (await stateCell.InnerTextAsync()).Trim(), $"State for {resourceName}");
 
                 // Match endpoints
 
@@ -218,10 +221,10 @@ public partial class WorkloadTestsBase
 
                 AssertEqual(expectedEndpoints.Length, endpointsFound.Count, $"#endpoints for {resourceName}");
 
-                // endpointsFound: ["foo", "https://localhost:7589/weatherforecast"]
+                // endpointsFound: ["foo", "https://localhost:7589/"]
                 foreach (var endpointFound in endpointsFound)
                 {
-                    // matchedEndpoints: ["https://localhost:7589/weatherforecast"]
+                    // matchedEndpoints: ["https://localhost:7589/"]
                     string[] matchedEndpoints = expectedEndpoints.Where(e => Regex.IsMatch(endpointFound, e)).ToArray();
                     if (matchedEndpoints.Length == 0)
                     {
@@ -233,7 +236,8 @@ public partial class WorkloadTestsBase
                 AssertEqual(expectedEndpoints.Length, matchingEndpoints, $"Expected number of endpoints for {resourceName}");
 
                 // Check 'Source' column
-                AssertEqual(expectedRow.Source, await cellLocs[4].InnerTextAsync(), $"Source for {resourceName}");
+                var sourceCell = cellLocs[4];
+                AssertEqual(expectedRow.Source, await sourceCell.InnerTextAsync(), $"Source for {resourceName}");
 
                 foundRows.Add(expectedRow with { Endpoints = endpointsFound.ToArray() });
                 foundNames.Add(resourceName);
@@ -296,8 +300,11 @@ public partial class WorkloadTestsBase
                 throw;
             }
 
-            string url = resourceRows.First(r => r.Name == "webfrontend").Endpoints[0];
-            await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckWebFrontendWorksAsync(context, url, _testOutput, project.LogPath);
+            string apiServiceUrl = resourceRows.First(r => r.Name == "apiservice").Endpoints[0];
+            await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckApiServiceWorksAsync(apiServiceUrl, _testOutput, project.LogPath);
+
+            string webFrontEnd = resourceRows.First(r => r.Name == "webfrontend").Endpoints[0];
+            await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckWebFrontendWorksAsync(context, webFrontEnd, _testOutput, project.LogPath);
         }
         else
         {

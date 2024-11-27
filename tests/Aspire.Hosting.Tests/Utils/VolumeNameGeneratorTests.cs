@@ -3,6 +3,7 @@
 
 using static Aspire.Hosting.Utils.VolumeNameGenerator;
 using Xunit;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Tests.Utils;
 
@@ -17,7 +18,7 @@ public class VolumeNameGeneratorTests
 
         var resource = builder.AddResource(new TestResource("myresource"));
 
-        var volumeName = CreateVolumeName(resource, "data");
+        var volumeName = Generate(resource, "data");
 
         Assert.Equal($"{volumePrefix}-{resource.Resource.Name}-data", volumeName);
     }
@@ -29,7 +30,7 @@ public class VolumeNameGeneratorTests
         var builder = DistributedApplication.CreateBuilder();
         var resource = builder.AddResource(new TestResource("myresource"));
 
-        Assert.Throws<ArgumentException>(nameof(suffix), () => CreateVolumeName(resource, suffix));
+        Assert.Throws<ArgumentException>(nameof(suffix), () => Generate(resource, suffix));
     }
 
     public static object[][] InvalidNameParts => [
@@ -46,5 +47,25 @@ public class VolumeNameGeneratorTests
         public string Name { get; } = name;
 
         public ResourceAnnotationCollection Annotations { get; } = [];
+    }
+
+    [Fact]
+    public void VolumeNameDiffersBetweenPublishAndRun()
+    {
+        var runBuilder = TestDistributedApplicationBuilder.Create();
+        var publishBuilder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var runVolumePrefix = $"{Sanitize(runBuilder.Environment.ApplicationName).ToLowerInvariant()}-{runBuilder.Configuration["AppHost:Sha256"]!.ToLowerInvariant()[..10]}";
+        var publishVolumePrefix = $"{Sanitize(publishBuilder.Environment.ApplicationName).ToLowerInvariant()}-{publishBuilder.Configuration["AppHost:Sha256"]!.ToLowerInvariant()[..10]}";
+
+        var runResource = runBuilder.AddResource(new TestResource("myresource"));
+        var publishResource = publishBuilder.AddResource(new TestResource("myresource"));
+
+        var runVolumeName = Generate(runResource, "data");
+        var publishVolumeName = Generate(publishResource, "data");
+
+        Assert.Equal($"{runVolumePrefix}-{runResource.Resource.Name}-data", runVolumeName);
+        Assert.Equal($"{publishVolumePrefix}-{publishResource.Resource.Name}-data", publishVolumeName);
+        Assert.NotEqual(runVolumeName, publishVolumeName);
     }
 }

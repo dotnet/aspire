@@ -19,17 +19,39 @@ public static class NatsBuilderExtensions
 {
     /// <summary>
     /// Adds a NATS server resource to the application model. A container is used for local development.
+    /// This configures a default user name and password for the NATS server.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="NatsContainerImageTags.Tag"/> tag of the <inheritdoc cref="NatsContainerImageTags.Image"/> container image.
+    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port for NATS server.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<NatsServerResource> AddNats(this IDistributedApplicationBuilder builder, [ResourceName] string name, int? port = null)
+    public static IResourceBuilder<NatsServerResource> AddNats(this IDistributedApplicationBuilder builder, [ResourceName] string name, int? port)
+    {
+        return AddNats(builder, name, port, null);
+    }
+
+    /// <summary>
+    /// Adds a NATS server resource to the application model. A container is used for local development.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="port">The host port for NATS server.</param>
+    /// <param name="userName">The parameter used to provide the user name for the PostgreSQL resource. If <see langword="null"/> a default value will be used.</param>
+    /// <param name="password">The parameter used to provide the administrator password for the PostgreSQL resource. If <see langword="null"/> a random password will be generated.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<NatsServerResource> AddNats(this IDistributedApplicationBuilder builder, [ResourceName] string name, int? port = null,
+        IResourceBuilder<ParameterResource>? userName = null,
+        IResourceBuilder<ParameterResource>? password = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
 
-        var nats = new NatsServerResource(name);
+        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special: false);
+
+        var nats = new NatsServerResource(name, userName?.Resource, passwordParameter);
 
         NatsConnection? natsConnection = null;
 
@@ -43,7 +65,15 @@ public static class NatsBuilderExtensions
                 LoggerFactory = @event.Services.GetRequiredService<ILoggerFactory>(),
             };
 
-            options = options with { Url = connectionString };
+            options = options with
+            {
+                Url = connectionString,
+                AuthOpts = new()
+                {
+                    Username = await nats.UserNameReference.GetValueAsync(ct).ConfigureAwait(false),
+                    Password = nats.PasswordParameter!.Value,
+                }
+            };
 
             natsConnection = new NatsConnection(options);
         });
@@ -58,10 +88,17 @@ public static class NatsBuilderExtensions
               timeout: default));
 
         return builder.AddResource(nats)
-                      .WithEndpoint(targetPort: 4222, port: port, name: NatsServerResource.PrimaryEndpointName)
-                      .WithImage(NatsContainerImageTags.Image, NatsContainerImageTags.Tag)
-                      .WithImageRegistry(NatsContainerImageTags.Registry)
-                      .WithHealthCheck(healthCheckKey);
+            .WithEndpoint(targetPort: 4222, port: port, name: NatsServerResource.PrimaryEndpointName)
+            .WithImage(NatsContainerImageTags.Image, NatsContainerImageTags.Tag)
+            .WithImageRegistry(NatsContainerImageTags.Registry)
+            .WithHealthCheck(healthCheckKey)
+            .WithArgs(context =>
+            {
+                context.Args.Add("--user");
+                context.Args.Add(nats.UserNameReference);
+                context.Args.Add("--pass");
+                context.Args.Add(nats.PasswordParameter!);
+            });
     }
 
     /// <summary>
@@ -107,7 +144,7 @@ public static class NatsBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/nats",
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/var/lib/nats",
                 isReadOnly)
             .WithArgs("-sd", "/var/lib/nats");
     }

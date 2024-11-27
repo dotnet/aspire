@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Codespaces;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
@@ -131,6 +132,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         LogBuilderConstructing(options, innerBuilderOptions);
         _innerBuilder = new HostApplicationBuilder(innerBuilderOptions);
 
+        _innerBuilder.Services.AddSingleton(TimeProvider.System);
+
         _innerBuilder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
         _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
         _innerBuilder.Logging.AddFilter("Aspire.Hosting.Dashboard", LogLevel.Error);
@@ -151,9 +154,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var appHostName = options.ProjectName ?? _innerBuilder.Environment.ApplicationName;
         AppHostPath = Path.Join(AppHostDirectory, appHostName);
 
-        var appHostShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath));
-        var appHostSha = Convert.ToHexString(appHostShaBytes);
-
         // Set configuration
         ConfigurePublishingOptions(options);
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -161,7 +161,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             // Make the app host directory available to the application via configuration
             ["AppHost:Directory"] = AppHostDirectory,
             ["AppHost:Path"] = AppHostPath,
-            ["AppHost:Sha256"] = appHostSha,
         });
 
         _executionContextOptions = _innerBuilder.Configuration["Publishing:Publisher"] switch
@@ -172,11 +171,30 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
 
-        // 
         Eventing.Subscribe<BeforeResourceStartedEvent>(async (@event, ct) =>
         {
             var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
             await rns.WaitForDependenciesAsync(@event.Resource, ct).ConfigureAwait(false);
+        });
+
+        // Conditionally configure AppHostSha based on execution context. For local scenarios, we want to
+        // account for the path the AppHost is running from to disambiguate between different projects
+        // with the same name as seen in https://github.com/dotnet/aspire/issues/5413. For publish scenarios,
+        // we want to use a stable hash based only on the project name.
+        string appHostSha;
+        if (ExecutionContext.IsPublishMode)
+        {
+            var appHostNameShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostName));
+            appHostSha = Convert.ToHexString(appHostNameShaBytes);
+        }
+        else
+        {
+            var appHostShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath));
+            appHostSha = Convert.ToHexString(appHostShaBytes);
+        }
+        _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["AppHost:Sha256"] = appHostSha
         });
 
         // Core things
@@ -236,6 +254,16 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                         }
                     );
                 }
+                else
+                {
+                    // The dashboard is enabled but is unsecured. Set auth mode config setting to reflect this state.
+                    _innerBuilder.Configuration.AddInMemoryCollection(
+                        new Dictionary<string, string?>
+                        {
+                            ["AppHost:ResourceService:AuthMode"] = nameof(ResourceServiceAuthMode.Unsecured)
+                        }
+                    );
+                }
 
                 _innerBuilder.Services.AddSingleton<DashboardCommandExecutor>();
                 _innerBuilder.Services.AddOptions<TransportOptions>().ValidateOnStart().PostConfigure(MapTransportOptionsFromCustomKeys);
@@ -259,6 +287,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             // We need a unique path per application instance
             _innerBuilder.Services.AddSingleton(new Locations());
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
+
+            // Codespaces
+            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CodespacesOptions>, ConfigureCodespacesOptions>());
+            _innerBuilder.Services.AddSingleton<CodespacesUrlRewriter>();
+            _innerBuilder.Services.AddHostedService<CodespacesResourceUrlRewriterService>();
 
             Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
         }

@@ -9,11 +9,13 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents an Azure Web PubSub resource.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="configureConstruct">Callback to populate the construct with Azure resources.</param>
-public class AzureWebPubSubResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
-    AzureConstructResource(name, configureConstruct),
+/// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
+public class AzureWebPubSubResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
+    AzureProvisioningResource(name, configureInfrastructure),
     IResourceWithConnectionString
 {
+    internal Dictionary<string, AzureWebPubSubHubResource> Hubs { get; } = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>
     /// Gets the "endpoint" output reference from the bicep template for Azure Web PubSub.
     /// </summary>

@@ -57,6 +57,11 @@
         <target state="translated">Surveillance en cours des journaux... Merci de patienter.</target>
         <note />
       </trans-unit>
+      <trans-unit id="DownloadLogs">
+        <source>Download logs</source>
+        <target state="new">Download logs</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LogStatusLabel">
         <source>Service log status</source>
         <target state="translated">État du journal de service</target>

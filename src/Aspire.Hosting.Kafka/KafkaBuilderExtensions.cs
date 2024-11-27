@@ -21,8 +21,11 @@ public static class KafkaBuilderExtensions
     private const string Target = "/var/lib/kafka/data";
 
     /// <summary>
-    /// Adds a Kafka resource to the application. A container is used for local development. This version of the package defaults to the <inheritdoc cref="KafkaContainerImageTags.Tag"/> tag of the <inheritdoc cref="KafkaContainerImageTags.Image"/> container image.
+    /// Adds a Kafka resource to the application. A container is used for local development.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="KafkaContainerImageTags.Tag"/> tag of the <inheritdoc cref="KafkaContainerImageTags.Image"/> container image.
+    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency</param>
     /// <param name="port">The host port of Kafka broker.</param>
@@ -77,8 +80,11 @@ public static class KafkaBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a Kafka UI container to the application. This version of the package defaults to the <inheritdoc cref="KafkaContainerImageTags.KafkaUiTag"/> tag of the <inheritdoc cref="KafkaContainerImageTags.KafkaUiImage"/> container image.
+    /// Adds a Kafka UI container to the application.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="KafkaContainerImageTags.KafkaUiTag"/> tag of the <inheritdoc cref="KafkaContainerImageTags.KafkaUiImage"/> container image.
+    /// </remarks>
     /// <param name="builder">The Kafka server resource builder.</param>
     /// <param name="configureContainer">Configuration callback for KafkaUI container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
@@ -172,7 +178,7 @@ public static class KafkaBuilderExtensions
 
         return builder
             .WithEnvironment(ConfigureLogDirs)
-            .WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), Target, isReadOnly);
+            .WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), Target, isReadOnly);
     }
 
     /// <summary>

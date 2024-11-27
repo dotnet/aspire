@@ -14,8 +14,8 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <remarks>
 /// The holder of this annotation is waiting on the resource in the <see cref="WaitAnnotation.Resource"/> property.
 /// </remarks>
-[DebuggerDisplay("Resource = {Resource.Name}")]
-public class WaitAnnotation(IResource resource, WaitType waitType, int exitCode = 0) : IResourceAnnotation
+[DebuggerDisplay("Type = {GetType().Name,nq}, Resource = {Resource.Name}")]
+public sealed class WaitAnnotation(IResource resource, WaitType waitType, int exitCode = 0) : IResourceAnnotation
 {
     /// <summary>
     /// The resource that will be waited on.

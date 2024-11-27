@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Lifecycle;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -9,8 +10,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 builder.Services.TryAddLifecycleHook<TestResourceLifecycleHook>();
 
 AddTestResource("healthy", HealthStatus.Healthy, "I'm fine, thanks for asking.");
-AddTestResource("unhealthy", HealthStatus.Unhealthy, "I can't do that, Dave.", exception: GetException("Feeling unhealthy."));
-AddTestResource("degraded", HealthStatus.Degraded, "Had better days.", exception: GetException("Feeling degraded."));
+AddTestResource("unhealthy", HealthStatus.Unhealthy, "I can't do that, Dave.", exceptionMessage: "Feeling unhealthy.");
+AddTestResource("degraded", HealthStatus.Degraded, "Had better days.", exceptionMessage: "Feeling degraded.");
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
@@ -24,30 +25,37 @@ builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard
 
 builder.Build().Run();
 
-static string GetException(string message)
+void AddTestResource(string name, HealthStatus status, string? description = null, string? exceptionMessage = null)
 {
-    try
-    {
-        throw new InvalidOperationException(message);
-    }
-    catch (InvalidOperationException ex)
-    {
-        return ex.ToString();
-    }
-}
+    var hasHealthyAfterFirstRunCheckRun = false;
+    builder.Services.AddHealthChecks()
+                    .AddCheck(
+                        $"{name}_check",
+                        () => new HealthCheckResult(status, description, new InvalidOperationException(exceptionMessage))
+                        )
+                        .AddCheck($"{name}_resource_healthy_after_first_run_check", () =>
+                        {
+                            if (!hasHealthyAfterFirstRunCheckRun)
+                            {
+                                hasHealthyAfterFirstRunCheckRun = true;
+                                return new HealthCheckResult(HealthStatus.Unhealthy, "Initial failure state.");
+                            }
 
-IResourceBuilder<TestResource> AddTestResource(string name, HealthStatus status, string? description = null, string? exception = null)
-{
-    return builder
+                            return new HealthCheckResult(HealthStatus.Healthy, "Healthy beginning second health check run.");
+                        });
+
+    builder
         .AddResource(new TestResource(name))
+        .WithHealthCheck($"{name}_check")
+        .WithHealthCheck($"{name}_resource_healthy_after_first_run_check")
         .WithInitialState(new()
         {
             ResourceType = "Test Resource",
             State = "Starting",
             Properties = [],
-            HealthReports = [new HealthReportSnapshot($"{name}_check", status, description, exception)]
         })
         .ExcludeFromManifest();
+    return;
 }
 
 internal sealed class TestResource(string name) : Resource(name);

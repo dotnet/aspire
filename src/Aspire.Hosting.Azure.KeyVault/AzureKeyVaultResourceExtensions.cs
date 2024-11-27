@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -23,26 +22,11 @@ public static class AzureKeyVaultResourceExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
-#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.AddAzureKeyVault(name, null);
-#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    }
-
-    /// <summary>
-    /// Adds an Azure Key Vault resource to the application model.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.KeyVault.KeyVaultService"/> resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<IResourceBuilder<AzureKeyVaultResource>, ResourceModuleConstruct, KeyVaultService>? configureResource)
-    {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
-            var keyVault = new KeyVaultService(construct.Resource.GetBicepIdentifier())
+            var keyVault = new KeyVaultService(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Properties = new KeyVaultProperties()
                 {
@@ -55,34 +39,25 @@ public static class AzureKeyVaultResourceExtensions
                     EnableRbacAuthorization = true
                 }
             };
-            construct.Add(keyVault);
+            infrastructure.Add(keyVault);
 
-            construct.Add(new ProvisioningOutput("vaultUri", typeof(string))
+            infrastructure.Add(new ProvisioningOutput("vaultUri", typeof(string))
             {
-                Value =
-                    new MemberExpression(
-                        new MemberExpression(
-                            new IdentifierExpression(keyVault.IdentifierName),
-                            "properties"),
-                        "vaultUri")
-                // TODO: this should be
-                //Value = keyVault.VaultUri
+                Value = keyVault.Properties.VaultUri
             });
 
-            keyVault.Tags["aspire-resource-name"] = construct.Resource.Name;
+            keyVault.Tags["aspire-resource-name"] = infrastructure.AspireResource.Name;
 
-            construct.Add(keyVault.CreateRoleAssignment(KeyVaultBuiltInRole.KeyVaultAdministrator, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            infrastructure.Add(principalTypeParameter);
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalIdParameter);
 
-            var resource = (AzureKeyVaultResource)construct.Resource;
-            var resourceBuilder = builder.CreateResourceBuilder(resource);
-            configureResource?.Invoke(resourceBuilder, construct, keyVault);
+            infrastructure.Add(keyVault.CreateRoleAssignment(KeyVaultBuiltInRole.KeyVaultAdministrator, principalTypeParameter, principalIdParameter));
         };
-        var resource = new AzureKeyVaultResource(name, configureConstruct);
 
+        var resource = new AzureKeyVaultResource(name, configureInfrastructure);
         return builder.AddResource(resource)
-                      // These ambient parameters are only available in development time.
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 }

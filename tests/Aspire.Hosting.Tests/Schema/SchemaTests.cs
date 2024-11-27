@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
+using Azure.Provisioning.KeyVault;
 using Json.Schema;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -129,6 +130,58 @@ public class SchemaTests
                         builder.AddExecutable("executable", "hellworld", "foo", "arg1", "arg2");
                     }
                 },
+
+                { "VanillaProjectBasedContainerApp", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddProject<Projects.ServiceA>("project")
+                               .PublishAsAzureContainerApp((_, _) => { });
+
+                    }
+                },
+
+                { "CustomizedProjectBasedContainerApp", (IDistributedApplicationBuilder builder) =>
+                    {
+                        var minReplicas = builder.AddParameter("minReplicas");
+
+                        builder.AddProject<Projects.ServiceA>("project")
+                               .PublishAsAzureContainerApp((infrastructure, app) =>
+                               {
+                                   app.Template.Scale.MinReplicas = minReplicas.AsProvisioningParameter(infrastructure);
+                               });
+
+                    }
+                },
+
+                { "VanillaContainerBasedContainerApp", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddContainer("mycontainer", "myimage")
+                               .PublishAsAzureContainerApp((_, _) => { });
+
+                    }
+                },
+
+                { "CustomizedContainerBasedContainerApp", (IDistributedApplicationBuilder builder) =>
+                    {
+                        var minReplicas = builder.AddParameter("minReplicas");
+
+                        builder.AddContainer("mycontainer", "myimage")
+                               .PublishAsAzureContainerApp((infrastructure, app) =>
+                               {
+                                   app.Template.Scale.MinReplicas = minReplicas.AsProvisioningParameter(infrastructure);
+                               });
+
+                    }
+                },
+
+                { "VanillaBicepResource", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddAzureInfrastructure("infrastructure", infrastructure =>
+                        {
+                            var kv = KeyVaultService.FromExisting("doesnotexist");
+                            infrastructure.Add(kv);
+                        });
+                    }
+                },
             };
 
             return data;
@@ -224,6 +277,25 @@ public class SchemaTests
                   "type": "value.v0",
                   "connectionString": "{valueresource.value}",
                   "value": "this.should.not.be.here"
+                }
+              }
+            }
+            """;
+
+        var manifestJson = JsonNode.Parse(manifestText);
+        var schema = GetSchema();
+        Assert.False(schema.Evaluate(manifestJson).IsValid);
+    }
+
+    [Fact]
+    public void InvalidBicepResourceFailsValidationToProveItIsntBeingIgnored()
+    {
+        var manifestText = """
+            {
+              "resources": {
+                "invalidbicepresource": {
+                  "type": "azure.bicep.v0",
+                  "invalidproperty": "invalidvalue"
                 }
               }
             }

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
@@ -9,9 +10,9 @@ namespace Aspire.Hosting.Azure;
 /// Represents an resource for Azure Postgres Flexible Server.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="configureConstruct">Callback to configure construct.</param>
-public class AzurePostgresFlexibleServerResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
-    AzureConstructResource(name, configureConstruct),
+/// <param name="configureInfrastructure">Callback to configure infrastructure.</param>
+public class AzurePostgresFlexibleServerResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
+    AzureProvisioningResource(name, configureInfrastructure),
     IResourceWithConnectionString
 {
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
@@ -29,6 +30,9 @@ public class AzurePostgresFlexibleServerResource(string name, Action<ResourceMod
     /// This is set when password authentication is used. The connection string is stored in a secret in the Azure Key Vault.
     /// </summary>
     internal BicepSecretOutputReference? ConnectionStringSecretOutput { get; set; }
+
+    [MemberNotNullWhen(true, nameof(ConnectionStringSecretOutput))]
+    internal bool UsePasswordAuthentication => ConnectionStringSecretOutput is not null;
 
     /// <summary>
     /// Gets the inner PostgresServerResource resource.
@@ -55,8 +59,9 @@ public class AzurePostgresFlexibleServerResource(string name, Action<ResourceMod
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         InnerResource?.ConnectionStringExpression ??
-            (ConnectionStringSecretOutput is not null ? ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
-            ReferenceExpression.Create($"{ConnectionStringOutput}"));
+            (UsePasswordAuthentication ?
+                ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
+                ReferenceExpression.Create($"{ConnectionStringOutput}"));
 
     /// <summary>
     /// A dictionary where the key is the resource name and the value is the database name.

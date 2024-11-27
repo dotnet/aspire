@@ -452,8 +452,9 @@ public class AddPostgresTests
     public async Task WithPostgresProducesValidServersJsonFile()
     {
         var builder = DistributedApplication.CreateBuilder();
+        var username = builder.AddParameter("pg-user", "myuser");
         var pg1 = builder.AddPostgres("mypostgres1").WithPgAdmin(pga => pga.WithHostPort(8081));
-        var pg2 = builder.AddPostgres("mypostgres2").WithPgAdmin(pga => pga.WithHostPort(8081));
+        var pg2 = builder.AddPostgres("mypostgres2", username).WithPgAdmin(pga => pga.WithHostPort(8081));
 
         // Add fake allocated endpoints.
         pg1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
@@ -486,7 +487,7 @@ public class AddPostgresTests
         Assert.Equal("Servers", servers.GetProperty("2").GetProperty("Group").GetString());
         Assert.Equal("mypostgres2", servers.GetProperty("2").GetProperty("Host").GetString());
         Assert.Equal(5432, servers.GetProperty("2").GetProperty("Port").GetInt32());
-        Assert.Equal("postgres", servers.GetProperty("2").GetProperty("Username").GetString());
+        Assert.Equal("myuser", servers.GetProperty("2").GetProperty("Username").GetString());
         Assert.Equal("prefer", servers.GetProperty("2").GetProperty("SSLMode").GetString());
         Assert.Equal("postgres", servers.GetProperty("2").GetProperty("MaintenanceDB").GetString());
         Assert.Equal($"echo '{pg2.Resource.PasswordParameter.Value}'", servers.GetProperty("2").GetProperty("PasswordExecCommand").GetString());

@@ -181,35 +181,46 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     /// </summary>
     public static class KnownParameters
     {
+        private const string PrincipalIdConst = "principalId";
+        private const string PrincipalNameConst = "principalName";
+        private const string PrincipalTypeConst = "principalType";
+        private const string KeyVaultNameConst = "keyVaultName";
+        private const string LocationConst = "location";
+        private const string LogAnalyticsWorkspaceIdConst = "logAnalyticsWorkspaceId";
+
         /// <summary>
         /// The principal id of the current user or managed identity.
         /// </summary>
-        public static readonly string PrincipalId = "principalId";
+        public static readonly string PrincipalId = PrincipalIdConst;
 
         /// <summary>
         /// The principal name of the current user or managed identity.
         /// </summary>
-        public static readonly string PrincipalName = "principalName";
+        public static readonly string PrincipalName = PrincipalNameConst;
 
         /// <summary>
         /// The principal type of the current user or managed identity. Either 'User' or 'ServicePrincipal'.
         /// </summary>
-        public static readonly string PrincipalType = "principalType";
+        public static readonly string PrincipalType = PrincipalTypeConst;
 
         /// <summary>
         /// The name of the key vault resource used to store secret outputs.
         /// </summary>
-        public static readonly string KeyVaultName = "keyVaultName";
+        public static readonly string KeyVaultName = KeyVaultNameConst;
 
         /// <summary>
         /// The location of the resource. This is required for all resources.
         /// </summary>
-        public static readonly string Location = "location";
+        public static readonly string Location = LocationConst;
 
         /// <summary>
         /// The resource id of the log analytics workspace.
         /// </summary>
-        public static readonly string LogAnalyticsWorkspaceId = "logAnalyticsWorkspaceId";
+        public static readonly string LogAnalyticsWorkspaceId = LogAnalyticsWorkspaceIdConst;
+
+        internal static bool IsKnownParameterName(string name) =>
+            name is PrincipalIdConst or PrincipalNameConst or PrincipalTypeConst or KeyVaultNameConst or LocationConst or LogAnalyticsWorkspaceIdConst;
+
     }
 }
 
@@ -242,7 +253,7 @@ public readonly struct BicepTemplateFile(string path, bool deleteFileOnDispose) 
 /// </summary>
 /// <param name="name">The name of the KeyVault secret.</param>
 /// <param name="resource">The <see cref="AzureBicepResource"/>.</param>
-public class BicepSecretOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
+public sealed class BicepSecretOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>
     /// Name of the KeyVault secret.
@@ -296,7 +307,7 @@ public class BicepSecretOutputReference(string name, AzureBicepResource resource
 /// </summary>
 /// <param name="name">The name of the output</param>
 /// <param name="resource">The <see cref="AzureBicepResource"/>.</param>
-public class BicepOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
+public sealed class BicepOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>
     /// Name of the output.

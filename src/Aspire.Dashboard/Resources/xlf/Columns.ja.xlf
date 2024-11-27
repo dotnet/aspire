@@ -2,11 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ja" original="../Columns.resx">
     <body>
-      <trans-unit id="EndpointsColumnDisplayNone">
-        <source>None</source>
-        <target state="translated">なし</target>
-        <note />
-      </trans-unit>
       <trans-unit id="EndpointsColumnDisplayOverflowTitle">
         <source>Endpoints</source>
         <target state="translated">エンドポイント</target>
@@ -86,6 +81,13 @@
         <source>Copy file path to clipboard</source>
         <target state="translated">ファイル パスをクリップボードにコピーする</target>
         <note />
+      </trans-unit>
+      <trans-unit id="StateColumnResourceContainerRuntimeUnhealthy">
+        <source>Container runtime was found but appears to be unhealthy. Ensure that it is running.
+For more information, see https://aka.ms/dotnet/aspire/container-runtime-unhealthy</source>
+        <target state="new">Container runtime was found but appears to be unhealthy. Ensure that it is running.
+For more information, see https://aka.ms/dotnet/aspire/container-runtime-unhealthy</target>
+        <note>Contains a new line</note>
       </trans-unit>
       <trans-unit id="StateColumnResourceExited">
         <source>{0} is no longer running</source>

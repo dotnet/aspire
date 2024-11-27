@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using HealthChecks.Uris;
@@ -25,9 +26,12 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the environment variable.</param>
     /// <param name="value">The value of the environment variable.</param>
-    /// <returns>A resource configured with the specified environment variable.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, string? value) where T : IResourceWithEnvironment
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         return builder.WithAnnotation(new EnvironmentAnnotation(name, value ?? string.Empty));
     }
 
@@ -38,10 +42,13 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the environment variable.</param>
     /// <param name="value">The value of the environment variable.</param>
-    /// <returns>A resource configured with the specified environment variable.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, in ReferenceExpression.ExpressionInterpolatedStringHandler value)
         where T : IResourceWithEnvironment
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         var expression = value.GetExpression();
 
         return builder.WithEnvironment(context =>
@@ -57,10 +64,14 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the environment variable.</param>
     /// <param name="value">The value of the environment variable.</param>
-    /// <returns>A resource configured with the specified environment variable.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, ReferenceExpression value)
         where T : IResourceWithEnvironment
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(value);
+
         return builder.WithEnvironment(context =>
         {
             context.EnvironmentVariables[name] = value;
@@ -74,9 +85,13 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the environment variable.</param>
     /// <param name="callback">A callback that allows for deferred execution of a specific environment variable. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
-    /// <returns>A resource configured with the specified environment variable.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, Func<string> callback) where T : IResourceWithEnvironment
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(callback);
+
         return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, callback));
     }
 
@@ -86,9 +101,12 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback that allows for deferred execution for computing many environment variables. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
-    /// <returns>A resource configured with the environment variable callback.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, Action<EnvironmentCallbackContext> callback) where T : IResourceWithEnvironment
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
         return builder.WithAnnotation(new EnvironmentCallbackAnnotation(callback));
     }
 
@@ -98,9 +116,12 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback that allows for deferred execution for computing many environment variables. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
-    /// <returns>A resource configured with the environment variable callback.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, Func<EnvironmentCallbackContext, Task> callback) where T : IResourceWithEnvironment
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
         return builder.WithAnnotation(new EnvironmentCallbackAnnotation(callback));
     }
 
@@ -111,9 +132,13 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the environment variable.</param>
     /// <param name="endpointReference">The endpoint from which to extract the url.</param>
-    /// <returns>A resource configured with the environment variable callback.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, EndpointReference endpointReference) where T : IResourceWithEnvironment
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(endpointReference);
+
         return builder.WithEnvironment(context =>
         {
             context.EnvironmentVariables[name] = endpointReference;
@@ -127,9 +152,13 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">Name of environment variable</param>
     /// <param name="parameter">Resource builder for the parameter resource.</param>
-    /// <returns>A resource configured with the environment variable callback.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> parameter) where T : IResourceWithEnvironment
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(parameter);
+
         return builder.WithEnvironment(context =>
         {
             context.EnvironmentVariables[name] = parameter.Resource;
@@ -150,6 +179,10 @@ public static class ResourceBuilderExtensions
         IResourceBuilder<IResourceWithConnectionString> resource)
         where T : IResourceWithEnvironment
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(envVarName);
+        ArgumentNullException.ThrowIfNull(resource);
+
         return builder.WithEnvironment(context =>
         {
             context.EnvironmentVariables[envVarName] = new ConnectionStringReference(resource.Resource, optional: false);
@@ -165,6 +198,9 @@ public static class ResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : IResourceWithArgs
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(args);
+
         return builder.WithArgs(context => context.Args.AddRange(args));
     }
 
@@ -177,6 +213,9 @@ public static class ResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, params object[] args) where T : IResourceWithArgs
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(args);
+
         return builder.WithArgs(context => context.Args.AddRange(args));
     }
 
@@ -189,6 +228,9 @@ public static class ResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, Action<CommandLineArgsCallbackContext> callback) where T : IResourceWithArgs
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
         return builder.WithArgs(context =>
         {
             callback(context);
@@ -205,6 +247,9 @@ public static class ResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, Func<CommandLineArgsCallbackContext, Task> callback) where T : IResourceWithArgs
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
         return builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(callback));
     }
 
@@ -214,9 +259,12 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">Callback method which takes a <see cref="ManifestPublishingContext"/> which can be used to inject JSON into the manifest.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithManifestPublishingCallback<T>(this IResourceBuilder<T> builder, Action<ManifestPublishingContext> callback) where T : IResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
         // You can only ever have one manifest publishing callback, so it must be a replace operation.
         return builder.WithAnnotation(new ManifestPublishingCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
     }
@@ -227,9 +275,12 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">Callback method which takes a <see cref="ManifestPublishingContext"/> which can be used to inject JSON into the manifest.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithManifestPublishingCallback<T>(this IResourceBuilder<T> builder, Func<ManifestPublishingContext, Task> callback) where T : IResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
         // You can only ever have one manifest publishing callback, so it must be a replace operation.
         return builder.WithAnnotation(new ManifestPublishingCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
     }
@@ -240,9 +291,12 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="resource">Resource to which connection string generation is redirected.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithConnectionStringRedirection<T>(this IResourceBuilder<T> builder, IResourceWithConnectionString resource) where T : IResourceWithConnectionString
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(resource);
+
         // You can only ever have one manifest publishing callback, so it must be a replace operation.
         return builder.WithAnnotation(new ConnectionStringRedirectAnnotation(resource), ResourceAnnotationMutationBehavior.Replace);
     }
@@ -286,21 +340,23 @@ public static class ResourceBuilderExtensions
     /// <param name="connectionName">An override of the source resource's name for the connection string. The resulting connection string will be "ConnectionStrings__connectionName" if this is not null.</param>
     /// <param name="optional"><see langword="true"/> to allow a missing connection string; <see langword="false"/> to throw an exception if the connection string is not found.</param>
     /// <exception cref="DistributedApplicationException">Throws an exception if the connection string resolves to null. It can be null if the resource has no connection string, and if the configuration has no connection string for the source resource.</exception>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithConnectionString> source, string? connectionName = null, bool optional = false)
         where TDestination : IResourceWithEnvironment
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+
         var resource = source.Resource;
         connectionName ??= resource.Name;
+
+        builder.WithRelationship(resource, KnownRelationshipTypes.Reference);
 
         return builder.WithEnvironment(context =>
         {
             var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
 
-            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional)
-            {
-                ConnectionName = connectionName
-            };
+            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional);
         });
     }
 
@@ -311,10 +367,13 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
     /// <param name="source">The resource from which to extract service discovery information.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithServiceDiscovery> source)
         where TDestination : IResourceWithEnvironment
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+
         ApplyEndpoints(builder, source.Resource);
         return builder;
     }
@@ -327,10 +386,14 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
     /// <param name="name">The name of the service.</param>
     /// <param name="uri">The uri of the service.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, string name, Uri uri)
         where TDestination : IResourceWithEnvironment
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(uri);
+
         if (!uri.IsAbsoluteUri)
         {
             throw new InvalidOperationException("The uri for service reference must be absolute.");
@@ -351,10 +414,13 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
     /// <param name="endpointReference">The endpoint from which to extract the url.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, EndpointReference endpointReference)
         where TDestination : IResourceWithEnvironment
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(endpointReference);
+
         ApplyEndpoints(builder, endpointReference.Resource, endpointReference.EndpointName);
         return builder;
     }
@@ -389,19 +455,25 @@ public static class ResourceBuilderExtensions
         {
             endpointReferenceAnnotation.EndpointNames.Add(endpointName);
         }
+
+        builder.WithRelationship(resourceWithEndpoints, KnownRelationshipTypes.Reference);
     }
 
     /// <summary>
-    /// Changes an existing creates a new endpoint if it doesn't exist and invokes callback to modify the defaults.
+    /// Changes an existing endpoint or creates a new endpoint if it doesn't exist and invokes callback to modify the defaults.
     /// </summary>
     /// <param name="builder">Resource builder for resource with endpoints.</param>
     /// <param name="endpointName">Name of endpoint to change.</param>
     /// <param name="callback">Callback that modifies the endpoint.</param>
     /// <param name="createIfNotExists">Create endpoint if it does not exist.</param>
-    /// <returns></returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
     public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, [EndpointName] string endpointName, Action<EndpointAnnotation> callback, bool createIfNotExists = true) where T : IResourceWithEndpoints
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(endpointName);
+        ArgumentNullException.ThrowIfNull(callback);
+
         var endpoint = builder.Resource.Annotations
             .OfType<EndpointAnnotation>()
             .Where(ea => StringComparers.EndpointAnnotationName.Equals(ea.Name, endpointName))
@@ -444,6 +516,8 @@ public static class ResourceBuilderExtensions
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
     public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int? port = null, int? targetPort = null, string? scheme = null, [EndpointName] string? name = null, string? env = null, bool isProxied = true, bool? isExternal = null) where T : IResourceWithEndpoints
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         var annotation = new EndpointAnnotation(
             protocol: ProtocolType.Tcp,
             uriScheme: scheme,
@@ -489,6 +563,8 @@ public static class ResourceBuilderExtensions
     /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
     public static IResourceBuilder<T> WithHttpEndpoint<T>(this IResourceBuilder<T> builder, int? port = null, int? targetPort = null, [EndpointName] string? name = null, string? env = null, bool isProxied = true) where T : IResourceWithEndpoints
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithEndpoint(targetPort: targetPort, port: port, scheme: "http", name: name, env: env, isProxied: isProxied);
     }
 
@@ -507,6 +583,8 @@ public static class ResourceBuilderExtensions
     /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
     public static IResourceBuilder<T> WithHttpsEndpoint<T>(this IResourceBuilder<T> builder, int? port = null, int? targetPort = null, [EndpointName] string? name = null, string? env = null, bool isProxied = true) where T : IResourceWithEndpoints
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithEndpoint(targetPort: targetPort, port: port, scheme: "https", name: name, env: env, isProxied: isProxied);
     }
 
@@ -515,9 +593,11 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <returns></returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithExternalHttpEndpoints<T>(this IResourceBuilder<T> builder) where T : IResourceWithEndpoints
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (!builder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out var endpoints))
         {
             return builder;
@@ -544,6 +624,8 @@ public static class ResourceBuilderExtensions
     /// <returns>An <see cref="EndpointReference"/> that can be used to resolve the address of the endpoint after resource allocation has occurred.</returns>
     public static EndpointReference GetEndpoint<T>(this IResourceBuilder<T> builder, [EndpointName] string name) where T : IResourceWithEndpoints
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.Resource.GetEndpoint(name);
     }
 
@@ -555,6 +637,8 @@ public static class ResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> AsHttp2Service<T>(this IResourceBuilder<T> builder) where T : IResourceWithEndpoints
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithAnnotation(new Http2ServiceAnnotation());
     }
 
@@ -566,6 +650,8 @@ public static class ResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> ExcludeFromManifest<T>(this IResourceBuilder<T> builder) where T : IResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithAnnotation(ManifestPublishingCallbackAnnotation.Ignore);
     }
 
@@ -575,7 +661,7 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder for the resource that will be waiting.</param>
     /// <param name="dependency">The resource builder for the dependency resource.</param>
-    /// <returns>The resource builder.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>This method is useful when a resource should wait until another has started running. This can help
     /// reduce errors in logs during local development where dependency resources.</para>
@@ -598,6 +684,9 @@ public static class ResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T : IResourceWithWaitSupport
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(dependency);
+
         if (builder.Resource as IResource == dependency.Resource)
         {
             throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for itself.");
@@ -617,6 +706,8 @@ public static class ResourceBuilderExtensions
             builder.WaitFor(parentBuilder);
         }
 
+        builder.WithRelationship(dependency.Resource, KnownRelationshipTypes.WaitFor);
+
         return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilHealthy));
     }
 
@@ -627,7 +718,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder for the resource that will be waiting.</param>
     /// <param name="dependency">The resource builder for the dependency resource.</param>
     /// <param name="exitCode">The exit code which is interpreted as successful.</param>
-    /// <returns>The resource builder.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>This method is useful when a resource should wait until another has completed. A common usage pattern
     /// would be to include a console application that initializes the database schema or performs other one off
@@ -641,13 +732,16 @@ public static class ResourceBuilderExtensions
     /// var pgsql = builder.AddPostgres("postgres");
     /// var dbprep = builder.AddProject&lt;Projects.DbPrepApp&gt;("dbprep")
     ///                     .WithReference(pgsql);
-    /// builder.AddProject&lt;Projects.DatabasePrepTool&gt;("dbprep")
+    /// builder.AddProject&lt;Projects.DatabasePrepTool&gt;("dbpreptool")
     ///        .WithReference(pgsql)
     ///        .WaitForCompletion(dbprep);
     /// </code>
     /// </example>
     public static IResourceBuilder<T> WaitForCompletion<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, int exitCode = 0) where T : IResourceWithWaitSupport
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(dependency);
+
         if (builder.Resource as IResource == dependency.Resource)
         {
             throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for itself.");
@@ -658,6 +752,8 @@ public static class ResourceBuilderExtensions
             throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for its parent '{dependency.Resource.Name}'.");
         }
 
+        builder.WithRelationship(dependency.Resource, KnownRelationshipTypes.WaitFor);
+
         return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitForCompletion, exitCode));
     }
 
@@ -667,7 +763,7 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="key">The key for the health check.</param>
-    /// <returns>The resource builder.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
     /// The <see cref="WithHealthCheck{T}(IResourceBuilder{T}, string)"/> method is used in conjunction with
@@ -682,7 +778,7 @@ public static class ResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var startAfter = DateTime.Now.AddSeconds(30);
-    /// 
+    ///
     /// builder.Services.AddHealthChecks().AddCheck(mycheck", () =>
     /// {
     ///     return DateTime.Now > startAfter ? HealthCheckResult.Healthy() : HealthCheckResult.Unhealthy();
@@ -699,6 +795,9 @@ public static class ResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<T> WithHealthCheck<T>(this IResourceBuilder<T> builder, string key) where T : IResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(key);
+
         if (builder.Resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var annotations) && annotations.Any(a => a.Key == key))
         {
             throw new DistributedApplicationException($"Resource '{builder.Resource.Name}' already has a health check with key '{key}'.");
@@ -717,7 +816,7 @@ public static class ResourceBuilderExtensions
     /// <param name="path">The relative path to test.</param>
     /// <param name="statusCode">The result code to interpret as healthy.</param>
     /// <param name="endpointName">The name of the endpoint to derive the base address from.</param>
-    /// <returns>A resource builder.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
     /// This method adds a health check to the health check service which polls the specified endpoint on the resource
@@ -726,20 +825,22 @@ public static class ResourceBuilderExtensions
     /// </para>
     /// </remarks>
     /// <example>
-    /// This example shows add a HTTP health check to a backend project
-    /// to make sure that the front end does not start until the backend is
+    /// This example shows adding an HTTP health check to a backend project.
+    /// The health check makes sure that the front end does not start until the backend is
     /// reporting a healthy status based on the return code returned from the
     /// "/health" path on the backend server.
     /// <code lang="C#">
     /// var builder = DistributedApplication.CreateBuilder(args);
     /// var backend = builder.AddProject&lt;Projects.Backend&gt;("backend")
     ///                      .WithHttpHealthCheck("/health");
-    /// builder.AddProject&lt;Projects.Backend&gt;("backend")
+    /// builder.AddProject&lt;Projects.Frontend&gt;("frontend")
     ///        .WithReference(backend).WaitFor(backend);
     /// </code>
     /// </example>
     public static IResourceBuilder<T> WithHttpHealthCheck<T>(this IResourceBuilder<T> builder, string? path = null, int? statusCode = null, string? endpointName = null) where T : IResourceWithEndpoints
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         endpointName = endpointName ?? "http";
         return builder.WithHttpHealthCheckInternal(
             path: path,
@@ -810,7 +911,7 @@ public static class ResourceBuilderExtensions
     /// <param name="path">The relative path to test.</param>
     /// <param name="statusCode">The result code to interpret as healthy.</param>
     /// <param name="endpointName">The name of the endpoint to derive the base address from.</param>
-    /// <returns>A resource builder.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
     /// This method adds a health check to the health check service which polls the specified endpoint on the resource
@@ -819,20 +920,22 @@ public static class ResourceBuilderExtensions
     /// </para>
     /// </remarks>
     /// <example>
-    /// This example shows add a HTTPS health check to a backend project
-    /// to make sure that the front end does not start until the backend is
+    /// This example shows adding an HTTPS health check to a backend project.
+    /// The health check makes sure that the front end does not start until the backend is
     /// reporting a healthy status based on the return code returned from the
     /// "/health" path on the backend server.
     /// <code lang="C#">
     /// var builder = DistributedApplication.CreateBuilder(args);
     /// var backend = builder.AddProject&lt;Projects.Backend&gt;("backend")
     ///                      .WithHttpsHealthCheck("/health");
-    /// builder.AddProject&lt;Projects.Backend&gt;("backend")
+    /// builder.AddProject&lt;Projects.Frontend&gt;("frontend")
     ///        .WithReference(backend).WaitFor(backend);
     /// </code>
     /// </example>
     public static IResourceBuilder<T> WithHttpsHealthCheck<T>(this IResourceBuilder<T> builder, string? path = null, int? statusCode = null, string? endpointName = null) where T : IResourceWithEndpoints
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         endpointName = endpointName ?? "https";
         return builder.WithHttpHealthCheckInternal(
             path: path,
@@ -846,7 +949,7 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="type">The type of command. The type uniquely identifies the command.</param>
+    /// <param name="name">The name of command. The name uniquely identifies the command.</param>
     /// <param name="displayName">The display name visible in UI.</param>
     /// <param name="executeCommand">
     /// A callback that is executed when the command is executed. The callback is run inside the .NET Aspire host.
@@ -871,7 +974,7 @@ public static class ResourceBuilderExtensions
     /// <param name="iconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
     /// <param name="iconVariant">The icon variant.</param>
     /// <param name="isHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
-    /// <returns>The resource builder.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>The <c>WithCommand</c> method is used to add commands to the resource. Commands are displayed in the dashboard
     /// and can be executed by a user using the dashboard UI.</para>
@@ -879,7 +982,7 @@ public static class ResourceBuilderExtensions
     /// </remarks>
     public static IResourceBuilder<T> WithCommand<T>(
         this IResourceBuilder<T> builder,
-        string type,
+        string name,
         string displayName,
         Func<ExecuteCommandContext, Task<ExecuteCommandResult>> executeCommand,
         Func<UpdateCommandStateContext, ResourceCommandState>? updateState = null,
@@ -890,13 +993,53 @@ public static class ResourceBuilderExtensions
         IconVariant? iconVariant = null,
         bool isHighlighted = false) where T : IResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(displayName);
+        ArgumentNullException.ThrowIfNull(executeCommand);
+
         // Replace existing annotation with the same name.
-        var existingAnnotation = builder.Resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Type == type);
+        var existingAnnotation = builder.Resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Name == name);
         if (existingAnnotation != null)
         {
             builder.Resource.Annotations.Remove(existingAnnotation);
         }
 
-        return builder.WithAnnotation(new ResourceCommandAnnotation(type, displayName, updateState ?? (c => ResourceCommandState.Enabled), executeCommand, displayDescription, parameter, confirmationMessage, iconName, iconVariant, isHighlighted));
+        return builder.WithAnnotation(new ResourceCommandAnnotation(name, displayName, updateState ?? (c => ResourceCommandState.Enabled), executeCommand, displayDescription, parameter, confirmationMessage, iconName, iconVariant, isHighlighted));
+    }
+
+    /// <summary>
+    /// Adds a <see cref="ResourceRelationshipAnnotation"/> to the resource annotations to add a relationship.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="resource">The resource that the relationship is to.</param>
+    /// <param name="type">The relationship type.</param>
+    /// <returns>A resource builder.</returns>
+    /// <remarks>
+    /// <para>
+    /// The <c>WithRelationship</c> method is used to add relationships to the resource. Relationships are used to link
+    /// resources together in UI. The <paramref name="type"/> indicates information about the relationship type.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// This example shows adding a relationship between two resources.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var backend = builder.AddProject&lt;Projects.Backend&gt;("backend");
+    /// var manager = builder.AddProject&lt;Projects.Manager&gt;("manager")
+    ///                      .WithRelationship(backend.Resource, "Manager");
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithRelationship<T>(
+        this IResourceBuilder<T> builder,
+        IResource resource,
+        string type) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(resource);
+        ArgumentNullException.ThrowIfNull(type);
+
+        return builder.WithAnnotation(new ResourceRelationshipAnnotation(resource, type));
     }
 }

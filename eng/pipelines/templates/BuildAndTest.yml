@@ -21,7 +21,7 @@ parameters:
     default: false
 
 steps:
-  # Internal pipeline: Build with pack+sign+archive
+  # Internal pipeline: Build with pack+sign
   - ${{ if ne(parameters.runAsPublic, 'true') }}:
     - script: ${{ parameters.buildScript }}
               -restore -build
@@ -29,7 +29,6 @@ steps:
               -sign $(_SignArgs)
               -publish $(_PublishArgs)
               -configuration ${{ parameters.buildConfig }}
-              /p:ArchiveTests=true
               /bl:${{ parameters.repoLogPath }}/build.binlog
               $(_OfficialBuildIdArgs)
               $(_InternalBuildArgs)
@@ -46,7 +45,9 @@ steps:
               $(_OfficialBuildIdArgs)
       displayName: Build
 
-  - ${{ if or(ne(parameters.runAsPublic, 'true'), ne(parameters.runHelixTests, 'true')) }}:
+  # Non-helix tests are run only on the public pipeline
+  - ${{ if and(eq(parameters.runAsPublic, 'true'), ne(parameters.runHelixTests, 'true')) }}:
+    # non-helix tests
     - ${{ if ne(parameters.isWindows, 'true') }}:
       - script: mkdir ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
                 cd ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
@@ -73,7 +74,8 @@ steps:
 
       displayName: Run non-helix tests
 
-  - ${{ if or(ne(parameters.runAsPublic, 'true'), eq(parameters.runHelixTests, 'true')) }}:
+  # Helix tests are run only on the public pipeline
+  - ${{ if and(eq(parameters.runAsPublic, 'true'), eq(parameters.runHelixTests, 'true')) }}:
     - script: ${{ parameters.buildScript }}
               /p:Configuration=${{ parameters.buildConfig }}
               $(_OfficialBuildIdArgs)
@@ -86,6 +88,7 @@ steps:
     - template: /eng/pipelines/templates/send-to-helix.yml
       parameters:
         HelixProjectPath: '$(Build.SourcesDirectory)/tests/helix/send-to-helix-ci.proj'
+        # Code coverage on windows is disabled: <issue>
         HelixProjectArguments: /m /p:ContinuousIntegrationBuild=true /p:Configuration=${{ parameters.buildConfig }} /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
 
         ${{ if eq(parameters.isWindows, 'true') }}:
@@ -116,24 +119,18 @@ steps:
       continueOnError: true
       condition: always()
 
-  - task: CopyFiles@2
-    inputs:
-      Contents: '${{ parameters.repoArtifactsPath }}/**/*.cobertura.xml'
-      TargetFolder: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
-      flattenFolders: true
-    displayName: Gather code coverage results
-
+  # Code coverage - only on public pipelines
   - ${{ if eq(parameters.runAsPublic, 'true') }}:
+    - task: CopyFiles@2
+      inputs:
+        Contents: '${{ parameters.repoArtifactsPath }}/**/*.cobertura.xml'
+        TargetFolder: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
+        flattenFolders: true
+      displayName: Gather code coverage results
+
     - task: PublishPipelineArtifact@1
       displayName: Publish coverage results (cobertura.xml)
       inputs:
         targetPath: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
         artifactName: '$(Agent.JobName)_CodeCoverageResults'
         publishLocation: 'pipeline'
-
-  - ${{ if ne(parameters.runAsPublic, 'true') }}:
-    - task: 1ES.PublishPipelineArtifact@1
-      displayName: Publish code coverage results
-      inputs:
-        targetPath: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
-        artifactName: '$(Agent.JobName)_CodeCoverageResults'

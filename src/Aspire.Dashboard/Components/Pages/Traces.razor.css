@@ -2,6 +2,7 @@
     color: var(--foreground-subtext-rest);
     padding-left: 0.5rem;
     font-size: 12px;
+    font-weight: normal;
 }
 
 .trace-tag {

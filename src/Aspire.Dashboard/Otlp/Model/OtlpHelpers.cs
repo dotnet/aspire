@@ -196,7 +196,7 @@ public static class OtlpHelpers
         }
 
         var readLimit = Math.Min(attributes.Count, context.Options.MaxAttributeCount);
-        var values = new List<KeyValuePair<string, string>>(readLimit);
+        List<KeyValuePair<string, string>>? values = null;
         for (var i = 0; i < attributes.Count; i++)
         {
             var attribute = attributes[i];
@@ -205,6 +205,8 @@ public static class OtlpHelpers
             {
                 continue;
             }
+
+            values ??= new List<KeyValuePair<string, string>>(readLimit);
 
             var value = TruncateString(attribute.Value.GetString(), context.Options.MaxAttributeLength);
 
@@ -228,7 +230,7 @@ public static class OtlpHelpers
             }
         }
 
-        return values.ToArray();
+        return values?.ToArray() ?? [];
 
         static int GetIndex(List<KeyValuePair<string, string>> values, string name)
         {
@@ -390,18 +392,14 @@ public static class OtlpHelpers
         return sb.ToString();
     }
 
-    public static PagedResult<T> GetItems<T>(IEnumerable<T> results, int startIndex, int? count)
+    public static PagedResult<T> GetItems<T>(IEnumerable<T> results, int startIndex, int count)
     {
         return GetItems<T, T>(results, startIndex, count, null);
     }
 
-    public static PagedResult<TResult> GetItems<TSource, TResult>(IEnumerable<TSource> results, int startIndex, int? count, Func<TSource, TResult>? select)
+    public static PagedResult<TResult> GetItems<TSource, TResult>(IEnumerable<TSource> results, int startIndex, int count, Func<TSource, TResult>? select)
     {
-        var query = results.Skip(startIndex);
-        if (count != null)
-        {
-            query = query.Take(count.Value);
-        }
+        var query = results.Skip(startIndex).Take(count);
         List<TResult> items;
         if (select != null)
         {

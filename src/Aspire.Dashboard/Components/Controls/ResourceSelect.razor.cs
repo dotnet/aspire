@@ -4,7 +4,6 @@
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Microsoft.AspNetCore.Components;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
 
@@ -31,8 +30,10 @@ public partial class ResourceSelect
     [Parameter]
     public bool CanSelectGrouping { get; set; }
 
-    [Inject]
-    public required IJSRuntime JS { get; init; }
+    private async Task SelectedResourceChangedCore()
+    {
+        await SelectedResourceChanged.InvokeAsync(SelectedResource);
+    }
 
     private static void ValuedChanged(string value)
     {

@@ -376,11 +376,10 @@ public class ResourceNotificationService
             {
                 _logger.LogTrace("Resource {Resource}/{ResourceId} update published: " +
                     "ResourceType = {ResourceType}, CreationTimeStamp = {CreationTimeStamp:s}, State = {{ Text = {StateText}, Style = {StateStyle} }}, " +
-                    "HealthStatus = {HealthStatus} " +
                     "ExitCode = {ExitCode}, EnvironmentVariables = {{ {EnvironmentVariables} }}, Urls = {{ {Urls} }}, " +
                     "Properties = {{ {Properties} }}",
                     resource.Name, resourceId,
-                    newState.ResourceType, newState.CreationTimeStamp, newState.State?.Text, newState.State?.Style, newState.HealthStatus,
+                    newState.ResourceType, newState.CreationTimeStamp, newState.State?.Text, newState.State?.Style,
                     newState.ExitCode, string.Join(", ", newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")), string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
                     string.Join(", ", newState.Properties.Select(p => $"{p.Name} = {p.Value}")));
             }
@@ -398,7 +397,7 @@ public class ResourceNotificationService
 
         foreach (var annotation in resource.Annotations.OfType<ResourceCommandAnnotation>())
         {
-            var existingCommand = FindByType(previousState.Commands, annotation.Type);
+            var existingCommand = FindByName(previousState.Commands, annotation.Name);
 
             if (existingCommand == null)
             {
@@ -442,11 +441,11 @@ public class ResourceNotificationService
 
         return previousState with { Commands = builder.ToImmutable() };
 
-        static ResourceCommandSnapshot? FindByType(ImmutableArray<ResourceCommandSnapshot> commands, string type)
+        static ResourceCommandSnapshot? FindByName(ImmutableArray<ResourceCommandSnapshot> commands, string name)
         {
             for (var i = 0; i < commands.Length; i++)
             {
-                if (commands[i].Type == type)
+                if (commands[i].Name == name)
                 {
                     return commands[i];
                 }
@@ -459,7 +458,7 @@ public class ResourceNotificationService
         {
             var state = annotation.UpdateState(new UpdateCommandStateContext { ResourceSnapshot = previousState, ServiceProvider = serviceProvider });
 
-            return new ResourceCommandSnapshot(annotation.Type, state, annotation.DisplayName, annotation.DisplayDescription, annotation.Parameter, annotation.ConfirmationMessage, annotation.IconName, annotation.IconVariant, annotation.IsHighlighted);
+            return new ResourceCommandSnapshot(annotation.Name, state, annotation.DisplayName, annotation.DisplayDescription, annotation.Parameter, annotation.ConfirmationMessage, annotation.IconName, annotation.IconVariant, annotation.IsHighlighted);
         }
     }
 
@@ -493,9 +492,7 @@ public class ResourceNotificationService
             {
                 ResourceType = resource.GetType().Name,
                 Properties = [],
-                HealthStatus = resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out _)
-                    ? null // Indicates that the resource has health check annotations but the health status is unknown.
-                    : HealthStatus.Healthy
+                Relationships = ResourceSnapshotBuilder.BuildRelationships(resource)
             };
         }
 

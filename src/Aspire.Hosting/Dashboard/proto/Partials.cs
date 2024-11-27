@@ -45,6 +45,15 @@ partial class Resource
             resource.Urls.Add(new Url { Name = url.Name, FullUrl = url.Url, IsInternal = url.IsInternal });
         }
 
+        foreach (var relationship in snapshot.Relationships)
+        {
+            resource.Relationships.Add(new ResourceRelationship
+            {
+                ResourceName = relationship.ResourceName,
+                Type = relationship.Type
+            });
+        }
+
         foreach (var property in snapshot.Properties)
         {
             resource.Properties.Add(new ResourceProperty { Name = property.Name, Value = property.Value, IsSensitive = property.IsSensitive });
@@ -54,7 +63,7 @@ partial class Resource
         {
             resource.Volumes.Add(new Volume
             {
-                Source = volume.Source,
+                Source = volume.Source ?? string.Empty,
                 Target = volume.Target,
                 MountType = volume.MountType,
                 IsReadOnly = volume.IsReadOnly
@@ -63,17 +72,19 @@ partial class Resource
 
         foreach (var command in snapshot.Commands)
         {
-            resource.Commands.Add(new ResourceCommand { CommandType = command.Type, DisplayName = command.DisplayName, DisplayDescription = command.DisplayDescription ?? string.Empty, Parameter = ResourceSnapshot.ConvertToValue(command.Parameter), ConfirmationMessage = command.ConfirmationMessage ?? string.Empty, IconName = command.IconName ?? string.Empty, IconVariant = MapIconVariant(command.IconVariant), IsHighlighted = command.IsHighlighted, State = MapCommandState(command.State) });
-        }
-
-        if (snapshot.HealthStatus is not null)
-        {
-            resource.HealthStatus = MapHealthStatus(snapshot.HealthStatus.Value);
+            resource.Commands.Add(new ResourceCommand { Name = command.Name, DisplayName = command.DisplayName, DisplayDescription = command.DisplayDescription ?? string.Empty, Parameter = ResourceSnapshot.ConvertToValue(command.Parameter), ConfirmationMessage = command.ConfirmationMessage ?? string.Empty, IconName = command.IconName ?? string.Empty, IconVariant = MapIconVariant(command.IconVariant), IsHighlighted = command.IsHighlighted, State = MapCommandState(command.State) });
         }
 
         foreach (var report in snapshot.HealthReports)
         {
-            resource.HealthReports.Add(new HealthReport { Key = report.Name, Description = report.Description ?? "", Status = MapHealthStatus(report.Status), Exception = report.ExceptionText ?? "" });
+            var healthReport = new HealthReport { Key = report.Name, Description = report.Description ?? "", Exception = report.ExceptionText ?? "" };
+
+            if (report.Status is not null)
+            {
+                healthReport.Status = MapHealthStatus(report.Status.Value);
+            }
+
+            resource.HealthReports.Add(healthReport);
         }
 
         return resource;

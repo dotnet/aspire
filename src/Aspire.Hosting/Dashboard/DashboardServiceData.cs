@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Dashboard;
 /// Models the state for <see cref="DashboardService"/>, as that service is constructed
 /// for each gRPC request. This long-lived object holds state across requests.
 /// </summary>
-internal sealed class DashboardServiceData : IAsyncDisposable
+internal sealed class DashboardServiceData : IDisposable
 {
     private readonly CancellationTokenSource _cts = new();
     private readonly ResourcePublisher _resourcePublisher;
@@ -45,10 +45,10 @@ internal sealed class DashboardServiceData : IAsyncDisposable
                     Urls = snapshot.Urls,
                     Volumes = snapshot.Volumes,
                     Environment = snapshot.EnvironmentVariables,
+                    Relationships = snapshot.Relationships,
                     ExitCode = snapshot.ExitCode,
                     State = snapshot.State?.Text,
                     StateStyle = snapshot.State?.Style,
-                    HealthStatus = snapshot.HealthStatus,
                     HealthReports = snapshot.HealthReports,
                     Commands = snapshot.Commands
                 };
@@ -79,10 +79,9 @@ internal sealed class DashboardServiceData : IAsyncDisposable
         cancellationToken);
     }
 
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
-        await _cts.CancelAsync().ConfigureAwait(false);
-
+        _cts.Cancel();
         _cts.Dispose();
     }
 
@@ -93,7 +92,7 @@ internal sealed class DashboardServiceData : IAsyncDisposable
         logger.LogInformation("Executing command '{Type}'.", type);
         if (_resourcePublisher.TryGetResource(resourceId, out _, out var resource))
         {
-            var annotation = resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Type == type);
+            var annotation = resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Name == type);
             if (annotation != null)
             {
                 try

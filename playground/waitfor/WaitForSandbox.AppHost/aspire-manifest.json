@@ -6,9 +6,9 @@
       "connectionString": "{pg.secretOutputs.connectionString}",
       "path": "pg.module.bicep",
       "params": {
-        "keyVaultName": "",
         "administratorLogin": "{pg-username.value}",
-        "administratorLoginPassword": "{pg-password.value}"
+        "administratorLoginPassword": "{pg-password.value}",
+        "keyVaultName": ""
       }
     },
     "db": {

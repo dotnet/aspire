@@ -5,7 +5,6 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Resources;
 using Aspire.Tests.Shared.Telemetry;
-using Microsoft.Extensions.Localization;
 using OpenTelemetry.Proto.Common.V1;
 using Xunit;
 
@@ -40,13 +39,5 @@ public sealed class DefaultInstrumentUnitResolverTests
 
         // Assert
         Assert.Equal(expected, result);
-    }
-
-    private sealed class TestStringLocalizer<T> : IStringLocalizer<T>
-    {
-        public LocalizedString this[string name] => new LocalizedString(name, $"Localized:{name}");
-        public LocalizedString this[string name, params object[] arguments] => new LocalizedString(name, $"Localized:{name}");
-
-        public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => [];
     }
 }

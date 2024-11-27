@@ -3,9 +3,9 @@ param location string = resourceGroup().location
 
 param sku string = 'Standard'
 
-param principalId string
-
 param principalType string
+
+param principalId string
 
 resource servicebus 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
   name: take('servicebus-${uniqueString(resourceGroup().id)}', 50)

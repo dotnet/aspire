@@ -1,5 +1,5 @@
 ::deep .unread-logs-errors-link {
-    vertical-align: middle;
+    vertical-align: super;
     --unread-logs-badge-color: #ffffff;
 }
 
@@ -31,4 +31,9 @@
 */
 ::deep fluent-data-grid {
     overflow-x: clip;
+}
+
+::deep .resources-name-container {
+    height: 24px;
+    display: inline-block;
 }

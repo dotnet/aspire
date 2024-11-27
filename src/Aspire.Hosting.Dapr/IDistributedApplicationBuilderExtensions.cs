@@ -43,7 +43,6 @@ public static class IDistributedApplicationBuilderExtensions
     public static IResourceBuilder<IDaprComponentResource> AddDaprComponent(this IDistributedApplicationBuilder builder, [ResourceName] string name, string type, DaprComponentOptions? options = null)
     {
         var resource = new DaprComponentResource(name, type) { Options = options };
-
         return builder
             .AddResource(resource)
             .WithInitialState(new()

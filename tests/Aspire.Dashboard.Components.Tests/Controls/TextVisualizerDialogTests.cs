@@ -39,7 +39,7 @@ public class TextVisualizerDialogTests : TestContext
                            ]
                            """;
 
-        var cut = SetUpDialog(out var dialogService, out _);
+        var cut = SetUpDialog(out var dialogService);
         await dialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(rawJson, string.Empty), []);
 
         var instance = cut.FindComponent<TextVisualizerDialog>().Instance;
@@ -61,7 +61,7 @@ public class TextVisualizerDialogTests : TestContext
             </parent>
             """;
 
-        var cut = SetUpDialog(out var dialogService, out _);
+        var cut = SetUpDialog(out var dialogService);
         await dialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(rawXml, string.Empty), []);
 
         var instance = cut.FindComponent<TextVisualizerDialog>().Instance;
@@ -87,7 +87,7 @@ public class TextVisualizerDialogTests : TestContext
             <test>text content</test>
             """;
 
-        var cut = SetUpDialog(out var dialogService, out _);
+        var cut = SetUpDialog(out var dialogService);
         await dialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(rawXml, string.Empty), []);
 
         var instance = cut.FindComponent<TextVisualizerDialog>().Instance;
@@ -102,7 +102,7 @@ public class TextVisualizerDialogTests : TestContext
     {
         const string rawText = """{{{{{{"test": 4}""";
 
-        var cut = SetUpDialog(out var dialogService, out _);
+        var cut = SetUpDialog(out var dialogService);
         await dialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(rawText, string.Empty), []);
 
         var instance = cut.FindComponent<TextVisualizerDialog>().Instance;
@@ -116,8 +116,8 @@ public class TextVisualizerDialogTests : TestContext
     public async Task Render_TextVisualizerDialog_WithDifferentThemes_LineClassesChange()
     {
         var xml = @"<hello><!-- world --></hello>";
-
-        var cut = SetUpDialog(out var dialogService, out var themeManager);
+        var themeManager = new ThemeManager(new TestThemeResolver { EffectiveTheme = "Light" });
+        var cut = SetUpDialog(out var dialogService, themeManager: themeManager);
         themeManager.EffectiveTheme = "Light";
         await dialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(xml, string.Empty), []);
 
@@ -135,15 +135,15 @@ public class TextVisualizerDialogTests : TestContext
     {
         var xml = @"<hello><!-- world --></hello>";
 
-        var cut = SetUpDialog(out var dialogService, out var _);
+        var cut = SetUpDialog(out var dialogService);
         await dialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(xml, string.Empty), []);
 
         Assert.NotEmpty(cut.FindAll(".theme-a11y-dark-min"));
     }
 
-    private IRenderedFragment SetUpDialog(out IDialogService dialogService, out ThemeManager themeManager)
+    private IRenderedFragment SetUpDialog(out IDialogService dialogService, ThemeManager? themeManager = null)
     {
-        themeManager = new ThemeManager(new TestEffectiveThemeResolver());
+        themeManager ??= new ThemeManager(new TestThemeResolver());
 
         Services.AddFluentUIComponents();
         Services.AddSingleton(themeManager);
@@ -157,6 +157,11 @@ public class TextVisualizerDialogTests : TestContext
             builder.OpenComponent<FluentDialogProvider>(0);
             builder.CloseComponent();
         });
+
+        // Setting a provider ID on menu service is required to simulate <FluentMenuProvider> on the page.
+        // This makes FluentMenu render without error.
+        var menuService = Services.GetRequiredService<IMenuService>();
+        menuService.ProviderId = "Test";
 
         dialogService = Services.GetRequiredService<IDialogService>();
         return cut;
