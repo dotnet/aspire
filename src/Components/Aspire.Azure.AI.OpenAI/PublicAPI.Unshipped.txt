@@ -1,6 +1,6 @@
 #nullable enable
 Aspire.Azure.AI.OpenAI.AspireAzureOpenAIClientBuilder
-Aspire.Azure.AI.OpenAI.AspireAzureOpenAIClientBuilder.AspireAzureOpenAIClientBuilder(Microsoft.Extensions.Hosting.IHostApplicationBuilder! hostBuilder, string! connectionName, string? serviceKey) -> void
+Aspire.Azure.AI.OpenAI.AspireAzureOpenAIClientBuilder.AspireAzureOpenAIClientBuilder(Microsoft.Extensions.Hosting.IHostApplicationBuilder! hostBuilder, string! connectionName, string? serviceKey, bool disableTracing) -> void
 Aspire.Azure.AI.OpenAI.AzureOpenAISettings
 Aspire.Azure.AI.OpenAI.AzureOpenAISettings.AzureOpenAISettings() -> void
 Aspire.Azure.AI.OpenAI.AzureOpenAISettings.Credential.get -> Azure.Core.TokenCredential?

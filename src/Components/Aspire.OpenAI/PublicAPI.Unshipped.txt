@@ -1,7 +1,8 @@
 #nullable enable
 Aspire.OpenAI.AspireOpenAIClientBuilder
-Aspire.OpenAI.AspireOpenAIClientBuilder.AspireOpenAIClientBuilder(Microsoft.Extensions.Hosting.IHostApplicationBuilder! hostBuilder, string! connectionName, string? serviceKey) -> void
+Aspire.OpenAI.AspireOpenAIClientBuilder.AspireOpenAIClientBuilder(Microsoft.Extensions.Hosting.IHostApplicationBuilder! hostBuilder, string! connectionName, string? serviceKey, bool disableTracing) -> void
 Aspire.OpenAI.AspireOpenAIClientBuilder.ConnectionName.get -> string!
+Aspire.OpenAI.AspireOpenAIClientBuilder.DisableTracing.get -> bool
 Aspire.OpenAI.AspireOpenAIClientBuilder.HostBuilder.get -> Microsoft.Extensions.Hosting.IHostApplicationBuilder!
 Aspire.OpenAI.AspireOpenAIClientBuilder.ServiceKey.get -> string?
 Aspire.OpenAI.OpenAISettings

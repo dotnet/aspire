@@ -18,8 +18,9 @@ public class AspireAzureOpenAIClientBuilder : AspireOpenAIClientBuilder
     /// <param name="hostBuilder">The <see cref="IHostApplicationBuilder"/> with which services are being registered.</param>
     /// <param name="connectionName">The name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="serviceKey">The service key used to register the <see cref="AzureOpenAIClient"/> service, if any.</param>
-    public AspireAzureOpenAIClientBuilder(IHostApplicationBuilder hostBuilder, string connectionName, string? serviceKey)
-        : base(hostBuilder, connectionName, serviceKey)
+    /// <param name="disableTracing">A flag to indicate whether tracing should be disabled.</param>
+    public AspireAzureOpenAIClientBuilder(IHostApplicationBuilder hostBuilder, string connectionName, string? serviceKey, bool disableTracing)
+        : base(hostBuilder, connectionName, serviceKey, disableTracing)
     {
     }
 

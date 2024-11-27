@@ -22,11 +22,13 @@ public class AspireOpenAIClientBuilder
     /// <param name="hostBuilder">The <see cref="IHostApplicationBuilder"/> with which services are being registered.</param>
     /// <param name="connectionName">The name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="serviceKey">The service key used to register the <see cref="OpenAIClient"/> service, if any.</param>
-    public AspireOpenAIClientBuilder(IHostApplicationBuilder hostBuilder, string connectionName, string? serviceKey)
+    /// <param name="disableTracing">A flag to indicate whether tracing should be disabled.</param>
+    public AspireOpenAIClientBuilder(IHostApplicationBuilder hostBuilder, string connectionName, string? serviceKey, bool disableTracing)
     {
         HostBuilder = hostBuilder;
         ConnectionName = connectionName;
         ServiceKey = serviceKey;
+        DisableTracing = disableTracing;
     }
 
     /// <summary>
@@ -43,6 +45,11 @@ public class AspireOpenAIClientBuilder
     /// Gets the service key used to register the <see cref="OpenAIClient"/> service, if any.
     /// </summary>
     public string? ServiceKey { get; }
+
+    /// <summary>
+    /// Gets a flag indicating whether tracing should be disabled.
+    /// </summary>
+    public bool DisableTracing { get; }
 
     /// <summary>
     /// Gets the name of the configuration section for this component type.

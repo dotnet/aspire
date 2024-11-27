@@ -36,9 +36,7 @@ public static class AspireOpenAIExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(connectionName);
 
-        AddOpenAIClient(builder, DefaultConfigSectionName, configureSettings, configureOptions, connectionName, serviceKey: null);
-
-        return new AspireOpenAIClientBuilder(builder, connectionName, serviceKey: null);
+        return AddOpenAIClient(builder, DefaultConfigSectionName, configureSettings, configureOptions, connectionName, serviceKey: null);
     }
 
     /// <summary>
@@ -59,12 +57,10 @@ public static class AspireOpenAIExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddOpenAIClient(builder, DefaultConfigSectionName, configureSettings, configureOptions, connectionName: name, serviceKey: name);
-
-        return new AspireOpenAIClientBuilder(builder, name, name);
+        return AddOpenAIClient(builder, DefaultConfigSectionName, configureSettings, configureOptions, connectionName: name, serviceKey: name);
     }
 
-    private static void AddOpenAIClient(
+    private static AspireOpenAIClientBuilder AddOpenAIClient(
         this IHostApplicationBuilder builder,
         string configurationSectionName,
         Action<OpenAISettings>? configureSettings,
@@ -125,6 +121,8 @@ public static class AspireOpenAIExtensions
             builder.Services.AddOpenTelemetry()
                 .WithMetrics(b => b.AddMeter("OpenAI.*"));
         }
+
+        return new AspireOpenAIClientBuilder(builder, connectionName, serviceKey, settings.DisableTracing);
 
         OpenAIClient ConfigureOpenAI(IServiceProvider serviceProvider)
         {

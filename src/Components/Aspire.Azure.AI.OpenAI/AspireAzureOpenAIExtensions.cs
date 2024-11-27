@@ -41,12 +41,12 @@ public static class AspireAzureOpenAIExtensions
         Action<AzureOpenAISettings>? configureSettings = null,
         Action<IAzureClientBuilder<AzureOpenAIClient, AzureOpenAIClientOptions>>? configureClientBuilder = null)
     {
-        new OpenAIComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
+        var settings = new OpenAIComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
 
         // Add the AzureOpenAIClient service as OpenAIClient. That way the service can be resolved by both service Types.
         builder.Services.TryAddSingleton(typeof(OpenAIClient), static provider => provider.GetRequiredService<AzureOpenAIClient>());
 
-        return new AspireAzureOpenAIClientBuilder(builder, connectionName, serviceKey: null);
+        return new AspireAzureOpenAIClientBuilder(builder, connectionName, serviceKey: null, disableTracing: settings.DisableTracing);
     }
 
     /// <summary>
@@ -68,12 +68,12 @@ public static class AspireAzureOpenAIExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        new OpenAIComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+        var settings = new OpenAIComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
 
         // Add the AzureOpenAIClient service as OpenAIClient. That way the service can be resolved by both service Types.
         builder.Services.TryAddKeyedSingleton(typeof(OpenAIClient), serviceKey: name, static (provider, key) => provider.GetRequiredKeyedService<AzureOpenAIClient>(key));
 
-        return new AspireAzureOpenAIClientBuilder(builder, name, name);
+        return new AspireAzureOpenAIClientBuilder(builder, name, name, settings.DisableTracing);
     }
 
     private sealed class OpenAIComponent : AzureComponent<AzureOpenAISettings, AzureOpenAIClient, AzureOpenAIClientOptions>
