@@ -9,45 +9,50 @@
 
 <div class="page-content-container">
     <AspirePageContentLayout
-        AddNewlineOnToolbar="true"
-        @ref="@_contentLayout"
-        MainContentStyle="margin-top: 10px;"
-        MobileToolbarButtonText="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSelectResourceToolbar)]">
+    AddNewlineOnToolbar="true"
+    @ref="@_contentLayout"
+    MainContentStyle="margin-top: 10px;"
+    MobileToolbarButtonText="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSelectResourceToolbar)]">
         <PageTitleSection>
             <h1 class="page-header">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsHeader)]</h1>
         </PageTitleSection>
         <ToolbarSection>
             <ResourceSelect Resources="_resources"
-                            AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.ResourceLabel)]"
-                            @bind-SelectedResource="PageViewModel.SelectedOption"
-                            @bind-SelectedResource:after="HandleSelectedOptionChangedAsync" />
+            AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.ResourceLabel)]"
+            @bind-SelectedResource="PageViewModel.SelectedOption"
+            @bind-SelectedResource:after="HandleSelectedOptionChangedAsync" />
             @if (ViewportInformation.IsDesktop)
             {
                 // This takes up too much horizontal space on mobile, so show on a new line on mobile
                 <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@PageViewModel.Status</FluentLabel>
             }
 
-            @{
-                var menuItems = new List<MenuButtonItem>
-                {
-                    new()
+            @foreach (var command in _highlightedCommands)
+            {
+                <FluentButton Appearance="Appearance.Lightweight"
+                              Title="@(!string.IsNullOrEmpty(command.DisplayDescription) ? command.DisplayDescription : command.DisplayName)"
+                              Disabled="@(command.State == CommandViewModelState.Disabled)"
+                              OnClick="@(() => ExecuteResourceCommandAsync(command))"
+                              slot="end">
+                    @if (!string.IsNullOrEmpty(command.IconName) && CommandViewModel.ResolveIconName(command.IconName, command.IconVariant) is { } icon)
                     {
-                        IsDisabled = PageViewModel.SelectedResource is null,
-                        OnClick = DownloadLogsAsync,
-                        AdditionalAttributes = new Dictionary<string, object>
-                        {
-                            { "data-action", "download" },
-                            { "data-resource", PageViewModel.SelectedResource?.Name ?? string.Empty }
-                        },
-                        Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.DownloadLogs)],
-                        Icon = new Icons.Regular.Size16.ArrowDownload()
+                        <FluentIcon Value="@icon" Width="16px" />
                     }
-                };
+                    else
+                    {
+                        @command.DisplayName
+                    }
+                </FluentButton>
+            }
+
+            @if (_highlightedCommands.Count > 0)
+            {
+                <FluentDivider Class="action-divider" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" slot="end" />
             }
 
             <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
                               Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
-                              Items="@menuItems"
+                              Items="@_menuItems"
                               Title="@ControlsStringsLoc[nameof(ControlsStrings.ActionsButtonText)]"
                               slot="end" />
         </ToolbarSection>
