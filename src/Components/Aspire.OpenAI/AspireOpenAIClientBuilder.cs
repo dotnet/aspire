@@ -56,6 +56,10 @@ public class AspireOpenAIClientBuilder
         var configuration = HostBuilder.Configuration;
         if (configuration.GetConnectionString(ConnectionName) is string connectionString)
         {
+            // The reason we accept either 'Deployment' or 'Model' as the key is because OpenAI's terminology
+            // is 'Model' and Azure OpenAI's terminology is 'Deployment'. It may seem awkward if we picked just
+            // one of these, as it might not match the usage scenario. We could restrict it based on which backend
+            // you're using, but that adds an unnecessary failure case for no clear benefit.
             var connectionBuilder = new DbConnectionStringBuilder { ConnectionString = connectionString };
             var deploymentValue = ConnectionStringValue(connectionBuilder, DeploymentKey);
             var modelValue = ConnectionStringValue(connectionBuilder, ModelKey);
