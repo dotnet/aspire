@@ -125,7 +125,7 @@ internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
             return GetEnumerator();
         }
 
-        public int Count => 5;
+        public int Count => 4;
 
         public KeyValuePair<string, object?> this[int index]
         {
@@ -139,24 +139,23 @@ internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
 
                 return index switch
                 {
-                    0 => new(EventData.PayloadNames[0], EventData.Payload[0]),
-                    < 5 => GetExData(EventData, index),
+                    < 4 => GetExData(EventData, index),
                     _ => throw new UnreachableException()
                 };
 
                 static KeyValuePair<string, object?> GetExData(EventWrittenEventArgs eventData, int index)
                 {
-                    Debug.Assert(index >= 1 && index <= 4);
+                    Debug.Assert(index >= 0 && index <= 3);
                     Debug.Assert(eventData.Payload?.Count == 2);
                     var exData = eventData.Payload[1] as IDictionary<string, object?>;
                     Debug.Assert(exData is not null && exData.Count == 4);
 
                     return index switch
                     {
-                        1 => new("exception.type", exData["Type"]),
-                        2 => new("exception.message", exData["Message"]),
-                        3 => new("exception.stacktrace", exData["StackTrace"]),
-                        4 => new("exception.innerexception", exData["InnerException"]),
+                        0 => new("exception.type", exData["Type"]),
+                        1 => new("exception.message", exData["Message"]),
+                        2 => new("exception.stacktrace", exData["StackTrace"]),
+                        3 => new("exception.innerexception", exData["InnerException"]),
                         _ => throw new UnreachableException()
                     };
                 }
