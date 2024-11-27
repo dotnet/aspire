@@ -169,16 +169,17 @@ public class AspireAzureOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake")
+            new("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake"),
+            new("Aspire:Azure:AI:OpenAI:DisableTracing", disableOpenTelemetry.ToString()),
         ]);
 
         if (useKeyed)
         {
-            builder.AddAzureOpenAIClient("openai").AddKeyedEmbeddingGenerator("openai_embeddinggenerator", "testdeployment1", disableOpenTelemetry);
+            builder.AddAzureOpenAIClient("openai").AddKeyedEmbeddingGenerator("openai_embeddinggenerator", "testdeployment1");
         }
         else
         {
-            builder.AddAzureOpenAIClient("openai").AddEmbeddingGenerator("testdeployment1", disableOpenTelemetry);
+            builder.AddAzureOpenAIClient("openai").AddEmbeddingGenerator("testdeployment1");
         }
 
         using var host = builder.Build();

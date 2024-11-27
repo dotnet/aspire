@@ -18,15 +18,13 @@ public static class AspireOpenAIClientBuilderEmbeddingGeneratorExtensions
     /// </summary>
     /// <param name="builder">An <see cref="AspireOpenAIClientBuilder" />.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
-    /// <param name="disableOpenTelemetry">Optional. If <see langword="true"/>, skips registering open telemetry support in the <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/> pipeline.</param>
     /// <returns>A <see cref="EmbeddingGeneratorBuilder{TInput, TEmbedding}"/> that can be used to build a pipeline around the inner <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/>.</returns>
     public static EmbeddingGeneratorBuilder<string, Embedding<float>> AddEmbeddingGenerator(
         this AspireOpenAIClientBuilder builder,
-        string? deploymentName = null,
-        bool disableOpenTelemetry = false)
+        string? deploymentName = null)
     {
         return builder.HostBuilder.Services.AddEmbeddingGenerator(
-            services => CreateInnerEmbeddingGenerator(services, builder, deploymentName, disableOpenTelemetry));
+            services => CreateInnerEmbeddingGenerator(services, builder, deploymentName));
     }
 
     /// <summary>
@@ -35,24 +33,21 @@ public static class AspireOpenAIClientBuilderEmbeddingGeneratorExtensions
     /// <param name="builder">An <see cref="AspireOpenAIClientBuilder" />.</param>
     /// <param name="serviceKey">The service key with which the <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/> will be registered.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
-    /// <param name="disableOpenTelemetry">Optional. If <see langword="true"/>, skips registering open telemetry support in the <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/> pipeline.</param>
     /// <returns>A <see cref="EmbeddingGeneratorBuilder{TInput, TEmbedding}"/> that can be used to build a pipeline around the inner <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/>.</returns>
     public static EmbeddingGeneratorBuilder<string, Embedding<float>> AddKeyedEmbeddingGenerator(
         this AspireOpenAIClientBuilder builder,
         string serviceKey,
-        string? deploymentName = null,
-        bool disableOpenTelemetry = false)
+        string? deploymentName = null)
     {
         return builder.HostBuilder.Services.AddKeyedEmbeddingGenerator(
             serviceKey,
-            services => CreateInnerEmbeddingGenerator(services, builder, deploymentName, disableOpenTelemetry));
+            services => CreateInnerEmbeddingGenerator(services, builder, deploymentName));
     }
 
     private static IEmbeddingGenerator<string, Embedding<float>> CreateInnerEmbeddingGenerator(
         IServiceProvider services,
         AspireOpenAIClientBuilder builder,
-        string? deploymentName,
-        bool disableOpenTelemetry)
+        string? deploymentName)
     {
         var openAiClient = builder.ServiceKey is null
             ? services.GetRequiredService<OpenAIClient>()
@@ -61,7 +56,7 @@ public static class AspireOpenAIClientBuilderEmbeddingGeneratorExtensions
         deploymentName ??= builder.GetRequiredDeploymentName();
         var result = openAiClient.AsEmbeddingGenerator(deploymentName);
 
-        return disableOpenTelemetry
+        return builder.DisableTracing
             ? result
             : new OpenTelemetryEmbeddingGenerator<string, Embedding<float>>(result);
     }

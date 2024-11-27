@@ -18,15 +18,13 @@ public static class AspireOpenAIClientBuilderChatClientExtensions
     /// </summary>
     /// <param name="builder">An <see cref="AspireOpenAIClientBuilder" />.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
-    /// <param name="disableOpenTelemetry">Optional. If <see langword="true"/>, skips registering open telemetry support in the <see cref="IChatClient"/> pipeline.</param>
     /// <returns>A <see cref="ChatClientBuilder"/> that can be used to build a pipeline around the inner <see cref="IChatClient"/>.</returns>
     public static ChatClientBuilder AddChatClient(
         this AspireOpenAIClientBuilder builder,
-        string? deploymentName = null,
-        bool disableOpenTelemetry = false)
+        string? deploymentName = null)
     {
         return builder.HostBuilder.Services.AddChatClient(
-            services => CreateInnerChatClient(services, builder, deploymentName, disableOpenTelemetry));
+            services => CreateInnerChatClient(services, builder, deploymentName));
     }
 
     /// <summary>
@@ -35,24 +33,21 @@ public static class AspireOpenAIClientBuilderChatClientExtensions
     /// <param name="builder">An <see cref="AspireOpenAIClientBuilder" />.</param>
     /// <param name="serviceKey">The service key with which the <see cref="IChatClient"/> will be registered.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
-    /// <param name="disableOpenTelemetry">Optional. If <see langword="true"/>, skips registering open telemetry support in the <see cref="IChatClient"/> pipeline.</param>
     /// <returns>A <see cref="ChatClientBuilder"/> that can be used to build a pipeline around the inner <see cref="IChatClient"/>.</returns>
     public static ChatClientBuilder AddKeyedChatClient(
         this AspireOpenAIClientBuilder builder,
         string serviceKey,
-        string? deploymentName = null,
-        bool disableOpenTelemetry = false)
+        string? deploymentName = null)
     {
         return builder.HostBuilder.Services.AddKeyedChatClient(
             serviceKey,
-            services => CreateInnerChatClient(services, builder, deploymentName, disableOpenTelemetry));
+            services => CreateInnerChatClient(services, builder, deploymentName));
     }
 
     private static IChatClient CreateInnerChatClient(
         IServiceProvider services,
         AspireOpenAIClientBuilder builder,
-        string? deploymentName,
-        bool disableOpenTelemetry)
+        string? deploymentName)
     {
         var openAiClient = builder.ServiceKey is null
             ? services.GetRequiredService<OpenAIClient>()
@@ -61,8 +56,6 @@ public static class AspireOpenAIClientBuilderChatClientExtensions
         deploymentName ??= builder.GetRequiredDeploymentName();
         var result = openAiClient.AsChatClient(deploymentName);
 
-        return disableOpenTelemetry
-            ? result
-            : new OpenTelemetryChatClient(result);
+        return builder.DisableTracing ? result : new OpenTelemetryChatClient(result);
     }
 }

@@ -169,16 +169,17 @@ public class AspireAzureOpenAIClientBuilderChatClientExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake")
+            new("ConnectionStrings:openai", $"Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake"),
+            new("Aspire:Azure:AI:OpenAI:DisableTracing", disableOpenTelemetry.ToString()),
         ]);
 
         if (useKeyed)
         {
-            builder.AddAzureOpenAIClient("openai").AddKeyedChatClient("openai_chatclient", "testdeployment1", disableOpenTelemetry);
+            builder.AddAzureOpenAIClient("openai").AddKeyedChatClient("openai_chatclient", "testdeployment1");
         }
         else
         {
-            builder.AddAzureOpenAIClient("openai").AddChatClient("testdeployment1", disableOpenTelemetry);
+            builder.AddAzureOpenAIClient("openai").AddChatClient("testdeployment1");
         }
 
         using var host = builder.Build();
