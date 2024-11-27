@@ -158,7 +158,7 @@ public class AspireOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
                 host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
         });
 
-        Assert.StartsWith($"An {nameof(IEmbeddingGenerator<string, Embedding<float>>)} could not be configured", ex.Message);
+        Assert.StartsWith("The deployment could not be determined", ex.Message);
     }
 
     [Theory]

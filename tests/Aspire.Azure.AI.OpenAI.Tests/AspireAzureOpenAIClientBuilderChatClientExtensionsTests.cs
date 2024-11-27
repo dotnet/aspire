@@ -157,7 +157,7 @@ public class AspireAzureOpenAIClientBuilderChatClientExtensionsTests
                 host.Services.GetRequiredService<IChatClient>();
         });
 
-        Assert.StartsWith($"An {nameof(IChatClient)} could not be configured", ex.Message);
+        Assert.StartsWith("The deployment could not be determined", ex.Message);
     }
 
     [Theory]

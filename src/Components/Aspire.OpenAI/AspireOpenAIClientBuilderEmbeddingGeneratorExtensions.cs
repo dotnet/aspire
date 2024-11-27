@@ -1,10 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Data.Common;
 using Aspire.OpenAI;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenAI;
 
@@ -15,9 +13,6 @@ namespace Microsoft.Extensions.Hosting;
 /// </summary>
 public static class AspireOpenAIClientBuilderEmbeddingGeneratorExtensions
 {
-    private const string DeploymentKey = "Deployment";
-    private const string ModelKey = "Model";
-
     /// <summary>
     /// Registers a singleton <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/> in the services provided by the <paramref name="builder"/>.
     /// </summary>
@@ -63,49 +58,11 @@ public static class AspireOpenAIClientBuilderEmbeddingGeneratorExtensions
             ? services.GetRequiredService<OpenAIClient>()
             : services.GetRequiredKeyedService<OpenAIClient>(builder.ServiceKey);
 
-        deploymentName ??= GetRequiredDeploymentName(builder);
+        deploymentName ??= builder.GetRequiredDeploymentName();
         var result = openAiClient.AsEmbeddingGenerator(deploymentName);
 
         return disableOpenTelemetry
             ? result
             : new OpenTelemetryEmbeddingGenerator<string, Embedding<float>>(result);
     }
-
-    private static string GetRequiredDeploymentName(AspireOpenAIClientBuilder builder)
-    {
-        string? deploymentName = null;
-
-        var configuration = builder.HostBuilder.Configuration;
-        var connectionName = builder.ConnectionName;
-        if (configuration.GetConnectionString(connectionName) is string connectionString)
-        {
-            var connectionBuilder = new DbConnectionStringBuilder { ConnectionString = connectionString };
-            var deploymentValue = ConnectionStringValue(connectionBuilder, DeploymentKey);
-            var modelValue = ConnectionStringValue(connectionBuilder, ModelKey);
-            if (deploymentValue is not null && modelValue is not null)
-            {
-                throw new InvalidOperationException(
-                    $"The connection string '{connectionName}' contains both '{DeploymentKey}' and '{ModelKey}' keys. Either of these may be specified, but not both.");
-            }
-
-            deploymentName = deploymentValue ?? modelValue;
-        }
-
-        var configurationSectionName = builder.ConfigurationSectionName;
-        if (string.IsNullOrEmpty(deploymentName))
-        {
-            var configSection = configuration.GetSection(configurationSectionName);
-            deploymentName = configSection[DeploymentKey];
-        }
-
-        if (string.IsNullOrEmpty(deploymentName))
-        {
-            throw new InvalidOperationException($"An {nameof(IEmbeddingGenerator<string, Embedding<float>>)} could not be configured. Ensure a '{DeploymentKey}' or '{ModelKey}' value is provided in 'ConnectionStrings:{connectionName}', or specify a '{DeploymentKey}' in the '{configurationSectionName}' configuration section, or specify a '{nameof(deploymentName)}' in the call.");
-        }
-
-        return deploymentName;
-    }
-
-    private static string? ConnectionStringValue(DbConnectionStringBuilder connectionString, string key)
-        => connectionString.TryGetValue(key, out var value) ? value as string : null;
 }
