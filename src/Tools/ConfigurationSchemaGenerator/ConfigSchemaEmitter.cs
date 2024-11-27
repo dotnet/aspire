@@ -61,7 +61,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         {
             var categoryNode = new JsonObject();
             categoryNode["$ref"] = "#/definitions/logLevelThreshold";
-            ReplaceNodeWithKeyCasingChange(propertiesNode, categories[i], categoryNode);
+            ReplaceNode(propertiesNode, categories[i], categoryNode);
         }
 
         parent["definitions"] = new JsonObject
@@ -138,7 +138,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             else
             {
                 pathSegmentNode = new JsonObject();
-                ReplaceNodeWithKeyCasingChange(propertiesNode, pathSegment, pathSegmentNode);
+                ReplaceNode(propertiesNode, pathSegment, pathSegmentNode);
                 ownsPathSegment = true;
             }
         }
@@ -148,7 +148,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
 
             if (backupCasingOfPathSegmentName != pathSegment)
             {
-                ReplaceNodeWithKeyCasingChange(propertiesNode, pathSegment, pathSegmentNode);
+                ReplaceNode(propertiesNode, pathSegment, pathSegmentNode);
             }
             else
             {
@@ -172,7 +172,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             else if (backupCasingOfPathSegmentName != null)
             {
                 var existingValue = propertiesNode[pathSegment];
-                ReplaceNodeWithKeyCasingChange(propertiesNode, backupCasingOfPathSegmentName, existingValue);
+                ReplaceNode(propertiesNode, backupCasingOfPathSegmentName, existingValue);
             }
         }
 
@@ -284,7 +284,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         var backupPropertyNode = currentNode[property.ConfigurationKeyName];
 
         var propertyNode = new JsonObject();
-        ReplaceNodeWithKeyCasingChange(currentNode, property.ConfigurationKeyName, propertyNode);
+        ReplaceNode(currentNode, property.ConfigurationKeyName, propertyNode);
 
         var hasGenerated = GenerateType(propertyNode, propertyType);
         if (hasGenerated)
@@ -339,7 +339,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         }
         else
         {
-            ReplaceNodeWithKeyCasingChange(parentNode, name, backupNode);
+            ReplaceNode(parentNode, name, backupNode);
         }
     }
 
@@ -715,10 +715,10 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         return result;
     }
 
-    private static void ReplaceNodeWithKeyCasingChange(JsonObject jsonObject, string key, JsonNode value)
+    private static void ReplaceNode(JsonObject jsonObject, string key, JsonNode value)
     {
-#if NET9_0_OR_GREATER
-        // In .NET 9, the key casing is never adapted. See https://github.com/dotnet/runtime/issues/108790.
+        // In System.Text.Json v9, the casing of the new key is not adapted. See https://github.com/dotnet/runtime/issues/108790.
+        // So instead, remove the existing node and insert a new one with the updated key.
         var index = jsonObject.IndexOf(key);
         if (index != -1)
         {
@@ -729,16 +729,6 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         {
             jsonObject[key] = value;
         }
-#else
-        // In .NET 8, the key casing is adapted, except when the value doesn't change.
-        if (ReferenceEquals(jsonObject[key], value))
-        {
-            // There's no API to preserve property order.
-            jsonObject.Remove(key);
-        }
-
-        jsonObject[key] = value;
-#endif
     }
 
     private sealed class SchemaOrderJsonNodeConverter : JsonConverter<JsonNode>

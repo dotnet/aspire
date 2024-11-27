@@ -78,7 +78,7 @@
   <Target Name="CalculateConfigurationSchemaGeneratorPath">
     <MSBuild Projects="$(ConfigurationSchemaGeneratorProjectPath)"
              Targets="GetTargetPath"
-             Properties="$(Properties);TargetFramework=$(DefaultTargetFramework)">
+             RemoveProperties="TargetFramework">
       <Output TaskParameter="TargetOutputs" PropertyName="ConfigurationSchemaGeneratorPath" />
     </MSBuild>
   </Target>

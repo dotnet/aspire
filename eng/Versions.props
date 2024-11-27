@@ -82,7 +82,10 @@
   <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0'">
     <!-- Other -->
     <MicrosoftExtensionsConfigurationAbstractionsPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsConfigurationAbstractionsPackageVersion>
+    <MicrosoftExtensionsConfigurationBinderPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsConfigurationBinderPackageVersion>
     <MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>
+    <MicrosoftExtensionsHostingAbstractionsPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsHostingAbstractionsPackageVersion>
+    <MicrosoftExtensionsHostingPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsHostingPackageVersion>
     <MicrosoftExtensionsLoggingAbstractionsPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsLoggingAbstractionsPackageVersion>
     <MicrosoftExtensionsOptionsPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsOptionsPackageVersion>
     <MicrosoftExtensionsPrimitivesPackageVersion>9.0.0-rc.2.24473.5</MicrosoftExtensionsPrimitivesPackageVersion>
