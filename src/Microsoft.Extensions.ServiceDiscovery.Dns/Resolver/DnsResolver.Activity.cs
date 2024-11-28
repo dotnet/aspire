@@ -2,8 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-// using System.Diagnostics.Metrics;
-// using System.Diagnostics.Tracing;
+using System.Diagnostics.Metrics;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
@@ -11,9 +10,9 @@ internal partial class DnsResolver
 {
     internal static class Telemetry
     {
-        //     private static readonly Meter s_meter = new Meter("Microsoft.Extensions.ServiceDiscovery.Dns.Resolver");
-        //     private static readonly Counter<long> s_queryCounter = s_meter.CreateCounter<long>("queries", "Number of DNS queries");
-        //     private static readonly Histogram<double> s_queryDuration = s_meter.CreateHistogram<double>("query.duration", "ms", "DNS query duration");
+        private static readonly Meter s_meter = new Meter("Microsoft.Extensions.ServiceDiscovery.Dns.Resolver");
+        private static readonly Counter<long> s_queryCounter = s_meter.CreateCounter<long>("queries", "Number of DNS queries");
+        private static readonly Histogram<double> s_queryDuration = s_meter.CreateHistogram<double>("query.duration", "ms", "DNS query duration");
 
         public static NameResolutionActivity StartNameResolution(string hostName, QueryType queryType)
         {
@@ -22,10 +21,13 @@ internal partial class DnsResolver
 
         public static void StopNameResolution(in NameResolutionActivity activity, object? answers, SendQueryError error)
         {
-            if (!activity.Stop(answers, error, out TimeSpan _))
+            if (!activity.Stop(answers, error, out TimeSpan duration))
             {
                 return;
             }
+
+            s_queryCounter.Add(1);
+            s_queryDuration.Record(duration.TotalMilliseconds);
         }
     }
 
