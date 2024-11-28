@@ -66,12 +66,12 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
 
-        NameResolutionActivity activity = Telemetry.StartNameResolution(name, QueryType.SRV);
+        NameResolutionActivity activity = Telemetry.StartNameResolution(name, QueryType.SRV, _timeProvider.GetTimestamp());
         SendQueryResult result = await SendQueryWithRetriesAsync(name, QueryType.SRV, cancellationToken).ConfigureAwait(false);
 
         if (result.Error is not SendQueryError.NoError)
         {
-            Telemetry.StopNameResolution(activity, null, result.Error);
+            Telemetry.StopNameResolution(name, QueryType.SRV, activity, null, result.Error, _timeProvider.GetTimestamp());
             return Array.Empty<ServiceResult>();
         }
 
@@ -112,7 +112,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
         }
 
         ServiceResult[] res = results.ToArray();
-        Telemetry.StopNameResolution(activity, res, result.Error);
+        Telemetry.StopNameResolution(name, QueryType.SRV, activity, res, result.Error, _timeProvider.GetTimestamp());
         return res;
     }
 
@@ -178,11 +178,11 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
         }
 
         var queryType = addressFamily == AddressFamily.InterNetwork ? QueryType.A : QueryType.AAAA;
-        NameResolutionActivity activity = Telemetry.StartNameResolution(name, queryType);
+        NameResolutionActivity activity = Telemetry.StartNameResolution(name, queryType, _timeProvider.GetTimestamp());
         SendQueryResult result = await SendQueryWithRetriesAsync(name, queryType, cancellationToken).ConfigureAwait(false);
         if (result.Error is not SendQueryError.NoError)
         {
-            Telemetry.StopNameResolution(activity, null, result.Error);
+            Telemetry.StopNameResolution(name, queryType, activity, null, result.Error, _timeProvider.GetTimestamp());
             return Array.Empty<AddressResult>();
         }
 
@@ -222,7 +222,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
         }
 
         AddressResult[] res = results.ToArray();
-        Telemetry.StopNameResolution(activity, res, result.Error);
+        Telemetry.StopNameResolution(name, queryType, activity, res, result.Error, _timeProvider.GetTimestamp());
         return res;
     }
 

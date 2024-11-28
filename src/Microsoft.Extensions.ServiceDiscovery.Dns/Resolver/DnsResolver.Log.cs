@@ -9,7 +9,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
 {
     internal static partial class Log
     {
-        [LoggerMessage(1, LogLevel.Information, "Resolving {QueryType} {QueryName} on {Server} attempt {Attempt}", EventName = "Query")]
+        [LoggerMessage(1, LogLevel.Debug, "Resolving {QueryType} {QueryName} on {Server} attempt {Attempt}", EventName = "Query")]
         public static partial void Query(ILogger logger, QueryType queryType, string queryName, IPEndPoint server, int attempt);
 
         [LoggerMessage(2, LogLevel.Debug, "Result truncated for {QueryType} {QueryName} from {Server} attempt {Attempt}. Restarting over TCP", EventName = "ResultTruncated")]
@@ -18,7 +18,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
         [LoggerMessage(3, LogLevel.Error, "Server {Server} replied with {ResponseCode} when querying {QueryType} {QueryName}", EventName = "ErrorResponseCode")]
         public static partial void ErrorResponseCode(ILogger logger, QueryType queryType, string queryName, IPEndPoint server, QueryResponseCode responseCode);
 
-        [LoggerMessage(4, LogLevel.Information, "Query {QueryType} {QueryName} on {Server} attempt {Attempt} timed out.", EventName = "Timeout")]
+        [LoggerMessage(4, LogLevel.Warning, "Query {QueryType} {QueryName} on {Server} attempt {Attempt} timed out.", EventName = "Timeout")]
         public static partial void Timeout(ILogger logger, QueryType queryType, string queryName, IPEndPoint server, int attempt);
 
         [LoggerMessage(5, LogLevel.Warning, "Query {QueryType} {QueryName} on {Server} attempt {Attempt} returned no data", EventName = "NoData")]

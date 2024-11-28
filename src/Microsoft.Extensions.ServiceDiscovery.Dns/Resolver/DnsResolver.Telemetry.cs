@@ -11,23 +11,41 @@ internal partial class DnsResolver
     internal static class Telemetry
     {
         private static readonly Meter s_meter = new Meter("Microsoft.Extensions.ServiceDiscovery.Dns.Resolver");
-        private static readonly Counter<long> s_queryCounter = s_meter.CreateCounter<long>("queries", "Number of DNS queries");
         private static readonly Histogram<double> s_queryDuration = s_meter.CreateHistogram<double>("query.duration", "ms", "DNS query duration");
 
-        public static NameResolutionActivity StartNameResolution(string hostName, QueryType queryType)
+        private static bool IsEnabled() => s_queryDuration.Enabled;
+
+        public static NameResolutionActivity StartNameResolution(string hostName, QueryType queryType, long startingTimestamp)
         {
-            return new NameResolutionActivity(hostName, queryType);
+            if (IsEnabled())
+            {
+                return new NameResolutionActivity(hostName, queryType, startingTimestamp);
+            }
+
+            return default;
         }
 
-        public static void StopNameResolution(in NameResolutionActivity activity, object? answers, SendQueryError error)
+        public static void StopNameResolution(string hostName, QueryType queryType, in NameResolutionActivity activity, object? answers, SendQueryError error, long endingTimestamp)
         {
-            if (!activity.Stop(answers, error, out TimeSpan duration))
+            activity.Stop(answers, error, endingTimestamp, out TimeSpan duration);
+
+            if (!IsEnabled())
             {
                 return;
             }
 
-            s_queryCounter.Add(1);
-            s_queryDuration.Record(duration.TotalMilliseconds);
+            var hostNameTag = KeyValuePair.Create("dns.question.name", (object?)hostName);
+            var queryTypeTag = KeyValuePair.Create("dns.question.type", (object?)queryType);
+
+            if (answers is not null)
+            {
+                s_queryDuration.Record(duration.TotalSeconds, hostNameTag, queryTypeTag);
+            }
+            else
+            {
+                var errorTypeTag = KeyValuePair.Create("error.type", (object?)error.ToString());
+                s_queryDuration.Record(duration.TotalSeconds, hostNameTag, queryTypeTag, errorTypeTag);
+            }
         }
     }
 
@@ -40,9 +58,9 @@ internal partial class DnsResolver
         private readonly long _startingTimestamp;
         private readonly Activity? _activity;  // null if activity is not started
 
-        public NameResolutionActivity(string hostName, QueryType queryType)
+        public NameResolutionActivity(string hostName, QueryType queryType, long startingTimestamp)
         {
-            _startingTimestamp = Stopwatch.GetTimestamp();
+            _startingTimestamp = startingTimestamp;
             _activity = s_activitySource.StartActivity(ActivityName, ActivityKind.Client);
             if (_activity is not null)
             {
@@ -55,12 +73,13 @@ internal partial class DnsResolver
             }
         }
 
-        public bool Stop(object? answers, SendQueryError error, out TimeSpan duration)
+        public void Stop(object? answers, SendQueryError error, long endingTimestamp, out TimeSpan duration)
         {
+            duration = Stopwatch.GetElapsedTime(_startingTimestamp, endingTimestamp);
+
             if (_activity is null)
             {
-                duration = TimeSpan.Zero;
-                return false;
+                return;
             }
 
             if (_activity.IsAllDataRequested)
@@ -91,8 +110,6 @@ internal partial class DnsResolver
             }
 
             _activity.Stop();
-            duration = Stopwatch.GetElapsedTime(_startingTimestamp);
-            return true;
         }
     }
 }
