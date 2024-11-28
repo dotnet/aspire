@@ -94,8 +94,8 @@ public class AddSqlServerTests
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<SqlServerServerResource>());
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
 
-        Assert.Equal("Server=127.0.0.1,1433;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true", connectionString);
-        Assert.Equal("Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={pass.value};TrustServerCertificate=true", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Server=127.0.0.1,1433;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true;Integrated Security=false", connectionString);
+        Assert.Equal("Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={pass.value};TrustServerCertificate=true;Integrated Security=false", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public class AddSqlServerTests
         var connectionStringResource = (IResourceWithConnectionString)sqlResource;
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
 
-        Assert.Equal("Server=127.0.0.1,1433;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true;Database=mydb", connectionString);
+        Assert.Equal("Server=127.0.0.1,1433;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true;Integrated Security=false;Database=mydb", connectionString);
         Assert.Equal("{sqlserver.connectionString};Database=mydb", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
@@ -135,7 +135,7 @@ public class AddSqlServerTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver-password.value};TrustServerCertificate=true",
+              "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver-password.value};TrustServerCertificate=true;Integrated Security=false",
               "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}:{{SqlServerContainerImageTags.Tag}}",
               "env": {
                 "ACCEPT_EULA": "Y",
@@ -175,7 +175,7 @@ public class AddSqlServerTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={pass.value};TrustServerCertificate=true",
+              "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={pass.value};TrustServerCertificate=true;Integrated Security=false",
               "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}:{{SqlServerContainerImageTags.Tag}}",
               "env": {
                 "ACCEPT_EULA": "Y",

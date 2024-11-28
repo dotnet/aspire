@@ -16,7 +16,7 @@
     },
     "sql2": {
       "type": "container.v0",
-      "connectionString": "Server={sql2.bindings.tcp.host},{sql2.bindings.tcp.port};User ID=sa;Password={sql2-password.value};TrustServerCertificate=true",
+      "connectionString": "Server={sql2.bindings.tcp.host},{sql2.bindings.tcp.port};User ID=sa;Password={sql2-password.value};TrustServerCertificate=true;Integrated Security=false",
       "image": "mcr.microsoft.com/mssql/server:2022-latest",
       "env": {
         "ACCEPT_EULA": "Y",
