@@ -10,15 +10,15 @@ namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
 internal struct DnsDataReader : IDisposable
 {
+    public byte[]? RawData { get; private set; }
     private ReadOnlyMemory<byte> _buffer;
-    private byte[]? _pooled;
     private int _position;
 
     public DnsDataReader(ReadOnlyMemory<byte> buffer, byte[]? returnToPool = null)
     {
         _buffer = buffer;
         _position = 0;
-        _pooled = returnToPool;
+        RawData = returnToPool;
     }
 
     public bool TryReadHeader(out DnsMessageHeader header)
@@ -109,10 +109,10 @@ internal struct DnsDataReader : IDisposable
 
     public void Dispose()
     {
-        if (_pooled is not null)
+        if (RawData is not null)
         {
-            ArrayPool<byte>.Shared.Return(_pooled);
-            _pooled = null!;
+            ArrayPool<byte>.Shared.Return(RawData);
+            RawData = null!;
         }
 
         _buffer = default;

@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -74,7 +75,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
             return Array.Empty<ServiceResult>();
         }
 
-        DnsResponse response = result.Response;
+        using DnsResponse response = result.Response;
 
         var results = new List<ServiceResult>(response.Answers.Count);
 
@@ -185,7 +186,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
             return Array.Empty<AddressResult>();
         }
 
-        DnsResponse response = result.Response;
+        using DnsResponse response = result.Response;
         var results = new List<AddressResult>(response.Answers.Count);
 
         // servers send back CNAME records together with associated A/AAAA records
@@ -200,8 +201,16 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
 
             if (answer.Type == QueryType.CNAME)
             {
-                bool success = DnsPrimitives.TryReadQName(answer.Data.Span, 0, out currentAlias!, out _);
-                Debug.Assert(success, "Failed to read CNAME");
+                // Although RFC does not necessarily allow pointers segments in CNAME domain names, some servers do use them
+                // so we need to pass the entire buffer to TryReadQName with the proper offset. The data should be always
+                // backed by the array containing the full response.
+
+                var success = MemoryMarshal.TryGetArray(answer.Data, out ArraySegment<byte> segment);
+                Debug.Assert(success, "Failed to get array segment");
+                if (!DnsPrimitives.TryReadQName(segment.Array.AsSpan(0, segment.Offset + segment.Count), segment.Offset, out currentAlias!, out _))
+                {
+                    throw new InvalidOperationException("Invalid response: CNAME record");
+                }
                 continue;
             }
 
@@ -329,7 +338,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
             {
                 return new SendQueryResult
                 {
-                    Response = new DnsResponse(header, queryStartedTime, queryStartedTime, null!, null!, null!),
+                    Response = new DnsResponse(Array.Empty<byte>(), header, queryStartedTime, queryStartedTime, null!, null!, null!),
                     Error = SendQueryError.ServerError
                 };
             }
@@ -337,7 +346,6 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
             if (header.ResponseCode != QueryResponseCode.NoError && !isLastServer)
             {
                 // we exhausted attempts on this server, try the next one
-                responseReader.Dispose();
                 return default;
             }
 
@@ -346,8 +354,9 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
             List<DnsResourceRecord> authorities = ReadRecords(header.AuthorityCount, ref ttl, ref responseReader);
             List<DnsResourceRecord> additionals = ReadRecords(header.AdditionalRecordCount, ref ttl, ref responseReader);
 
-            DnsResponse response = new(header, queryStartedTime, queryStartedTime.AddSeconds(ttl), answers, authorities, additionals);
-            responseReader.Dispose();
+            // we transfer ownership of RawData to the response
+            DnsResponse response = new(responseReader.RawData!, header, queryStartedTime, queryStartedTime.AddSeconds(ttl), answers, authorities, additionals);
+            responseReader = default; // avoid disposing (and returning RawData to the pool)
 
             return new SendQueryResult { Response = response, Error = ValidateResponse(response) };
         }
@@ -369,8 +378,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
                 }
 
                 ttl = Math.Min(ttl, record.Ttl);
-                // copy the data to a new array since the underlying array is pooled
-                records.Add(new DnsResourceRecord(record.Name, record.Type, record.Class, record.Ttl, record.Data.ToArray()));
+                records.Add(new DnsResourceRecord(record.Name, record.Type, record.Class, record.Ttl, record.Data));
             }
 
             return records;
