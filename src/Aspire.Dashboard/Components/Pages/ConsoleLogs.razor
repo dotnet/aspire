@@ -20,19 +20,13 @@
                             AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.ResourceLabel)]"
                             @bind-SelectedResource="PageViewModel.SelectedOption"
                             @bind-SelectedResource:after="HandleSelectedOptionChangedAsync" />
-            @if (ViewportInformation.IsDesktop)
-            {
-                // This takes up too much horizontal space on mobile, so show on a new line on mobile
-                <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@PageViewModel.Status</FluentLabel>
-            }
 
             @foreach (var command in _highlightedCommands)
             {
                 <FluentButton Appearance="Appearance.Lightweight"
                               Title="@(!string.IsNullOrEmpty(command.DisplayDescription) ? command.DisplayDescription : command.DisplayName)"
                               Disabled="@(command.State == CommandViewModelState.Disabled)"
-                              OnClick="@(() => ExecuteResourceCommandAsync(command))"
-                              slot="end">
+                              OnClick="@(() => ExecuteResourceCommandAsync(command))">
                     @if (!string.IsNullOrEmpty(command.IconName) && CommandViewModel.ResolveIconName(command.IconName, command.IconVariant) is { } icon)
                     {
                         <FluentIcon Value="@icon" Width="16px" />
@@ -44,15 +38,24 @@
                 </FluentButton>
             }
 
-            @if (_highlightedCommands.Count > 0)
+            @if (_resourceMenuItems.Count > 0)
             {
-                <FluentDivider Class="action-divider" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" slot="end" />
+                <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
+                                  Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
+                                  Items="@_resourceMenuItems"
+                                  Title="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceCommands)]" />
+            }
+
+            @if (ViewportInformation.IsDesktop)
+            {
+                // This takes up too much horizontal space on mobile, so show on a new line on mobile
+                <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]" slot="end">@PageViewModel.Status</FluentLabel>
             }
 
             <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
-                              Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
-                              Items="@_menuItems"
-                              Title="@ControlsStringsLoc[nameof(ControlsStrings.ActionsButtonText)]"
+                              Icon="@(new Icons.Regular.Size20.Settings())"
+                              Items="@_logsMenuItems"
+                              Title="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSettings)]"
                               slot="end" />
         </ToolbarSection>
 

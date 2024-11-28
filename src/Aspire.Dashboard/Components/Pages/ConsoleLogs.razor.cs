@@ -85,7 +85,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private SelectViewModel<ResourceTypeDetails> _noSelection = null!;
     private AspirePageContentLayout? _contentLayout;
     private readonly List<CommandViewModel> _highlightedCommands = new();
-    private readonly List<MenuButtonItem> _menuItems = new();
+    private readonly List<MenuButtonItem> _logsMenuItems = new();
+    private readonly List<MenuButtonItem> _resourceMenuItems = new();
 
     // State
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
@@ -172,7 +173,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                         }
                     }
 
-                    UpdateMenuButton();
+                    UpdateMenuButtons();
                     await InvokeAsync(StateHasChanged);
                 }
             });
@@ -198,7 +199,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             return;
         }
 
-        UpdateMenuButton();
+        UpdateMenuButtons();
 
         var selectedResourceName = PageViewModel.SelectedResource?.Name;
         if (!string.Equals(selectedResourceName, _consoleLogsSubscription?.Name, StringComparisons.ResourceName))
@@ -243,20 +244,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         }
     }
 
-    private void UpdateMenuButton()
+    private void UpdateMenuButtons()
     {
         _highlightedCommands.Clear();
-        _menuItems.Clear();
+        _logsMenuItems.Clear();
+        _resourceMenuItems.Clear();
 
-        _menuItems.Add(new()
+        _logsMenuItems.Add(new()
         {
             IsDisabled = PageViewModel.SelectedResource is null,
             OnClick = DownloadLogsAsync,
-            AdditionalAttributes = new Dictionary<string, object>
-            {
-                { "data-action", "download" },
-                { "data-resource", PageViewModel.SelectedResource?.Name ?? string.Empty }
-            },
             Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.DownloadLogs)],
             Icon = new Icons.Regular.Size16.ArrowDownload()
         });
@@ -271,13 +268,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             var menuCommands = PageViewModel.SelectedResource.Commands.Where(c => !_highlightedCommands.Contains(c) && c.State != CommandViewModelState.Hidden).ToList();
             if (menuCommands.Count > 0)
             {
-                _menuItems.Add(new MenuButtonItem { IsDivider = true });
-
                 foreach (var command in menuCommands)
                 {
                     var icon = (!string.IsNullOrEmpty(command.IconName) && CommandViewModel.ResolveIconName(command.IconName, command.IconVariant) is { } i) ? i : null;
 
-                    _menuItems.Add(new MenuButtonItem
+                    _resourceMenuItems.Add(new MenuButtonItem
                     {
                         Text = command.DisplayName,
                         Tooltip = command.DisplayDescription,
