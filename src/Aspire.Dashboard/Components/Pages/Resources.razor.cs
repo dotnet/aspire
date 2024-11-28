@@ -8,6 +8,7 @@ using System.Text;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -70,6 +71,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private FluentDataGrid<ResourceGridViewModel> _dataGrid = null!;
     private GridColumnManager _manager = null!;
     private int _maxHighlightedCount;
+
+    private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
+    private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
 
     private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && !resource.IsHiddenState();
 
@@ -151,6 +155,20 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
+        _resizeLabels = ColumnResizeLabels.Default with
+        {
+            ExactLabel = ControlsStringsLoc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeLabel)],
+            ResizeMenu = ControlsStringsLoc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeButtonText)]
+
+        };
+        _sortLabels = ColumnSortLabels.Default with
+        {
+            SortMenu = ControlsStringsLoc[nameof(ControlsStrings.FluentDataGridHeaderCellSortButtonText)],
+            SortMenuAscendingLabel = ControlsStringsLoc[nameof(ControlsStrings.FluentDataGridHeaderCellSortAscendingButtonText)],
+            SortMenuDescendingLabel = ControlsStringsLoc[nameof(ControlsStrings.FluentDataGridHeaderCellSortDescendingButtonText)]
+
+        };
+
         _gridColumns = [
             new GridColumn(Name: NameColumn, DesktopWidth: "1.5fr", MobileWidth: "1.5fr"),
             new GridColumn(Name: StateColumn, DesktopWidth: "1.25fr", MobileWidth: "1.25fr"),
@@ -253,7 +271,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         // Rearrange resources based on parent information.
         // This must happen after resources are ordered so nested resources are in the right order.
         // Collapsed resources are filtered out of results.
-        var orderedResources = ResourceGridViewModel.OrderNestedResources(filteredResources.ToList(), r => !_expandedResourceNames.Contains(r.Name))
+        var orderedResources = ResourceGridViewModel.OrderNestedResources([.. filteredResources], r => !_expandedResourceNames.Contains(r.Name))
             .Where(r => !r.IsHidden)
             .ToList();
 
