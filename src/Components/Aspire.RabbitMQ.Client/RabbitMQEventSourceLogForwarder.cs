@@ -125,7 +125,20 @@ internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
             return GetEnumerator();
         }
 
-        public int Count => 5;
+        public int Count
+        {
+            get
+            {
+                Debug.Assert(EventData.PayloadNames?.Count == 2 && EventData.Payload?.Count == 2);
+                Debug.Assert(EventData.PayloadNames[0] == "message");
+                Debug.Assert(EventData.PayloadNames[1] == "ex");
+
+                var exData = EventData.Payload[1] as IDictionary<string, object?>;
+                Debug.Assert(exData is not null && exData.Count == 4);
+
+                return string.IsNullOrEmpty(exData["InnerException"]?.ToString()) ? 4 : 5;
+            }
+        }
 
         public KeyValuePair<string, object?> this[int index]
         {
@@ -135,7 +148,7 @@ internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
                 Debug.Assert(EventData.PayloadNames[0] == "message");
                 Debug.Assert(EventData.PayloadNames[1] == "ex");
 
-                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, 5);
+                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Count);
 
                 return index switch
                 {
