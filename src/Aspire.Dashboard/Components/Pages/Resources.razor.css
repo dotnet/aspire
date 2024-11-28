@@ -37,3 +37,7 @@
     height: 24px;
     display: inline-block;
 }
+
+::deep tr.resource-row :first-child {
+    padding-inline-start: 0;
+}
