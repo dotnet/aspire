@@ -24,12 +24,16 @@ internal static class DashboardUrls
         return url;
     }
 
-    public static string ConsoleLogsUrl(string? resource = null)
+    public static string ConsoleLogsUrl(string? resource = null, bool? hideTimestamp = null)
     {
         var url = $"/{ConsoleLogBasePath}";
         if (resource != null)
         {
             url += $"/resource/{Uri.EscapeDataString(resource)}";
+        }
+        if (hideTimestamp ?? false)
+        {
+            url = QueryHelpers.AddQueryString(url, "hideTimestamp", "true");
         }
 
         return url;
