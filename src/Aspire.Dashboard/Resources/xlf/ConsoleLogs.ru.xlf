@@ -57,6 +57,16 @@
         <target state="new">Console logs settings</target>
         <note />
       </trans-unit>
+      <trans-unit id="ConsoleLogsTimestampHide">
+        <source>Hide timestamps</source>
+        <target state="new">Hide timestamps</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsTimestampShow">
+        <source>Show timestamps</source>
+        <target state="new">Show timestamps</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
         <source>Unknown state</source>
         <target state="translated">Неизвестное состояние</target>
