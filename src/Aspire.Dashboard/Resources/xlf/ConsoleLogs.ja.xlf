@@ -42,9 +42,19 @@
         <target state="translated">{0} のコンソール ログ</target>
         <note>{0} is an application name</note>
       </trans-unit>
+      <trans-unit id="ConsoleLogsResourceCommands">
+        <source>Resource commands</source>
+        <target state="new">Resource commands</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">
         <source>Select resource</source>
         <target state="translated">リソースの選択</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsSettings">
+        <source>Console logs settings</source>
+        <target state="new">Console logs settings</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
