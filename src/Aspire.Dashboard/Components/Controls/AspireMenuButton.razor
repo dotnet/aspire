@@ -1,9 +1,19 @@
 ﻿@namespace Aspire.Dashboard.Components
+@using System.Collections.Immutable
 @using Aspire.Dashboard.Model
 @using Microsoft.FluentUI.AspNetCore.Components.DesignTokens
 @inherits FluentComponentBase
 
-<FluentButton Id="@MenuButtonId" Title="@Title" Appearance="@ButtonAppearance" aria-haspopup="true" aria-expanded="@_visible" @onclick="ToggleMenu" @onkeydown="OnKeyDown" Disabled="@(!Items.Where(i => !i.IsDivider).Any())">
+@{
+    var additionalButtonAttributes = new Dictionary<string, object>(AdditionalAttributes ?? ImmutableDictionary<string, object>.Empty)
+    {
+        { "aria-haspopup", "true" },
+        { "aria-expanded", _visible },
+        { "onkeydown", (KeyboardEventArgs args) => OnKeyDown(args) }
+    };
+}
+
+<FluentButton Id="@MenuButtonId" Title="@Title" Appearance="@ButtonAppearance" @onclick="ToggleMenu" Disabled="@(!Items.Where(i => !i.IsDivider).Any())" AdditionalAttributes="@additionalButtonAttributes">
     @if (string.IsNullOrWhiteSpace(Text))
     {
         <FluentIcon Value="@_icon" />
@@ -18,13 +28,18 @@
 <FluentMenu Anchor="@MenuButtonId" aria-labelledby="button" @bind-Open="@_visible" VerticalThreshold="200">
     @foreach (var item in Items)
     {
-        @if (item.IsDivider) 
+        @if (item.IsDivider)
         {
             <FluentDivider />
         }
         else
         {
-            <FluentMenuItem OnClick="() => HandleItemClicked(item)" title="@item.Tooltip" Disabled="@item.IsDisabled">
+            var additionalMenuItemAttributes = new Dictionary<string, object>(item.AdditionalAttributes ?? ImmutableDictionary<string, object>.Empty)
+            {
+                { "title", item.Tooltip ?? string.Empty }
+            };
+
+            <FluentMenuItem OnClick="() => HandleItemClicked(item)" Disabled="@item.IsDisabled" AdditionalAttributes="@additionalMenuItemAttributes">
                 @item.Text
                 @if (item.Icon != null)
                 {

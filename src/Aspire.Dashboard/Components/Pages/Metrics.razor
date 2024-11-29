@@ -26,7 +26,8 @@
                             AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
                             @bind-SelectedResource="PageViewModel.SelectedApplication"
                             @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync"
-                            CanSelectGrouping="true" />
+                            CanSelectGrouping="true"
+                            LabelClass="toolbar-left" />
             @if (!ViewportInformation.IsDesktop)
             {
                 <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" Style="margin-right:5px;"/>

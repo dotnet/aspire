@@ -13,17 +13,27 @@ internal static class DashboardUrls
     public const string StructuredLogsBasePath = "structuredlogs";
     public const string TracesBasePath = "traces";
 
-    public static string ResourcesUrl()
+    public static string ResourcesUrl(string? resource = null)
     {
-        return "/";
+        var url = "/";
+        if (resource != null)
+        {
+            url = QueryHelpers.AddQueryString(url, "resource", resource);
+        }
+
+        return url;
     }
 
-    public static string ConsoleLogsUrl(string? resource = null)
+    public static string ConsoleLogsUrl(string? resource = null, bool? hideTimestamp = null)
     {
         var url = $"/{ConsoleLogBasePath}";
         if (resource != null)
         {
             url += $"/resource/{Uri.EscapeDataString(resource)}";
+        }
+        if (hideTimestamp ?? false)
+        {
+            url = QueryHelpers.AddQueryString(url, "hideTimestamp", "true");
         }
 
         return url;

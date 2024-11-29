@@ -49,15 +49,15 @@ public static class AzureKeyVaultResourceExtensions
             keyVault.Tags["aspire-resource-name"] = infrastructure.AspireResource.Name;
 
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            infrastructure.Add(principalTypeParameter);
             var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalIdParameter);
+
             infrastructure.Add(keyVault.CreateRoleAssignment(KeyVaultBuiltInRole.KeyVaultAdministrator, principalTypeParameter, principalIdParameter));
         };
 
         var resource = new AzureKeyVaultResource(name, configureInfrastructure);
         return builder.AddResource(resource)
-                      // These ambient parameters are only available in development time.
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 }

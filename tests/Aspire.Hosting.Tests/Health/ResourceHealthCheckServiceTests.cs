@@ -2,10 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Threading.Channels;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Time.Testing;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -129,12 +131,14 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        AutoResetEvent? are = null;
+        var channel = Channel.CreateUnbounded<DateTimeOffset>();
 
-        builder.Services.AddHealthChecks().AddCheck("resource_check", () =>
+        var timeProvider = new FakeTimeProvider(DateTimeOffset.Now);
+
+        builder.Services.AddSingleton<TimeProvider>(timeProvider);
+        builder.Services.AddHealthChecks().AddAsyncCheck("resource_check", async () =>
         {
-            are?.Set();
-
+            await channel.Writer.WriteAsync(timeProvider.GetUtcNow());
             return HealthCheckResult.Unhealthy();
         });
 
@@ -154,21 +158,18 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         }).DefaultTimeout();
         await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, abortTokenSource.Token).DefaultTimeout();
 
-        are = new AutoResetEvent(false);
+        var firstCheck = await channel.Reader.ReadAsync(abortTokenSource.Token).DefaultTimeout();
+        timeProvider.Advance(TimeSpan.FromSeconds(5));
 
-        // Allow one event to through since it could be half way through.
-        are.WaitOne();
+        var secondCheck = await channel.Reader.ReadAsync(abortTokenSource.Token).DefaultTimeout();
+        timeProvider.Advance(TimeSpan.FromSeconds(5));
 
-        var stopwatch = Stopwatch.StartNew();
-        are.WaitOne();
-        stopwatch.Stop();
-
-        // When not in a healthy state the delay should be ~3 seconds but
-        // we'll check for 10 seconds to make sure we haven't got down
-        // the 30 second slow path.
-        Assert.True(stopwatch.ElapsedMilliseconds < 10000);
+        var thirdCheck = await channel.Reader.ReadAsync(abortTokenSource.Token).DefaultTimeout();
 
         await app.StopAsync(abortTokenSource.Token).DefaultTimeout();
+
+        var duration = thirdCheck - firstCheck;
+        Assert.Equal(TimeSpan.FromSeconds(10), duration);
     }
 
     [Fact]

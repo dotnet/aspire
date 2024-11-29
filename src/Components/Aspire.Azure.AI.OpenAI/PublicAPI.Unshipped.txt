@@ -1,4 +1,6 @@
 #nullable enable
+Aspire.Azure.AI.OpenAI.AspireAzureOpenAIClientBuilder
+Aspire.Azure.AI.OpenAI.AspireAzureOpenAIClientBuilder.AspireAzureOpenAIClientBuilder(Microsoft.Extensions.Hosting.IHostApplicationBuilder! hostBuilder, string! connectionName, string? serviceKey, bool disableTracing) -> void
 Aspire.Azure.AI.OpenAI.AzureOpenAISettings
 Aspire.Azure.AI.OpenAI.AzureOpenAISettings.AzureOpenAISettings() -> void
 Aspire.Azure.AI.OpenAI.AzureOpenAISettings.Credential.get -> Azure.Core.TokenCredential?
@@ -13,7 +15,8 @@ Aspire.Azure.AI.OpenAI.AzureOpenAISettings.Key.get -> string?
 Aspire.Azure.AI.OpenAI.AzureOpenAISettings.Key.set -> void
 Microsoft.Extensions.Hosting.AspireAzureOpenAIExtensions
 Microsoft.Extensions.Hosting.AspireConfigurableOpenAIExtensions
-static Microsoft.Extensions.Hosting.AspireAzureOpenAIExtensions.AddAzureOpenAIClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Azure.AI.OpenAI.AzureOpenAISettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.AI.OpenAI.AzureOpenAIClient!, Azure.AI.OpenAI.AzureOpenAIClientOptions!>!>? configureClientBuilder = null) -> void
-static Microsoft.Extensions.Hosting.AspireAzureOpenAIExtensions.AddKeyedAzureOpenAIClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.Azure.AI.OpenAI.AzureOpenAISettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.AI.OpenAI.AzureOpenAIClient!, Azure.AI.OpenAI.AzureOpenAIClientOptions!>!>? configureClientBuilder = null) -> void
+override Aspire.Azure.AI.OpenAI.AspireAzureOpenAIClientBuilder.ConfigurationSectionName.get -> string!
+static Microsoft.Extensions.Hosting.AspireAzureOpenAIExtensions.AddAzureOpenAIClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Azure.AI.OpenAI.AzureOpenAISettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.AI.OpenAI.AzureOpenAIClient!, Azure.AI.OpenAI.AzureOpenAIClientOptions!>!>? configureClientBuilder = null) -> Aspire.Azure.AI.OpenAI.AspireAzureOpenAIClientBuilder!
+static Microsoft.Extensions.Hosting.AspireAzureOpenAIExtensions.AddKeyedAzureOpenAIClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.Azure.AI.OpenAI.AzureOpenAISettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.AI.OpenAI.AzureOpenAIClient!, Azure.AI.OpenAI.AzureOpenAIClientOptions!>!>? configureClientBuilder = null) -> Aspire.Azure.AI.OpenAI.AspireAzureOpenAIClientBuilder!
 static Microsoft.Extensions.Hosting.AspireConfigurableOpenAIExtensions.AddKeyedOpenAIClientFromConfiguration(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name) -> void
 static Microsoft.Extensions.Hosting.AspireConfigurableOpenAIExtensions.AddOpenAIClientFromConfiguration(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName) -> void
