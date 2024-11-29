@@ -19,7 +19,8 @@
             <ResourceSelect Resources="_resources"
                             AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.ResourceLabel)]"
                             @bind-SelectedResource="PageViewModel.SelectedOption"
-                            @bind-SelectedResource:after="HandleSelectedOptionChangedAsync" />
+                            @bind-SelectedResource:after="HandleSelectedOptionChangedAsync"
+                            LabelClass="toolbar-left" />
 
             @foreach (var command in _highlightedCommands)
             {
