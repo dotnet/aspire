@@ -510,7 +510,7 @@ public class ProjectResourceTests
             """;
 
         Assert.Equal(expectedManifest, manifest.ToString());
-    }
+    }    
 
     [Fact]
     public async Task VerifyManifestWithArgs()
