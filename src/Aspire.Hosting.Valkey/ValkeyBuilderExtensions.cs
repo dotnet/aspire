@@ -20,7 +20,7 @@ public static class ValkeyBuilderExtensions
     /// Adds a Valkey container to the application model.
     /// </summary>
     /// <remarks>
-    /// This version of the package defaults to the <inheritdoc cref="ValkeyContainerImageTags.Tag"/> tag of the <inheritdoc cref="ValkeyContainerImageTags.Image"/> container image.
+    /// This version of the package defaults to the <inheritdoc cref="ValkeyContainerImageTags.Tag" path="/summary"/> tag of the <inheritdoc cref="ValkeyContainerImageTags.Image" path="/summary"/> container image.
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
