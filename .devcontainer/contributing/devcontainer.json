@@ -20,10 +20,6 @@
 		}
 	},
 
-	"remoteEnv": {
-		"DOES_NOT_EXIST": "${localEnv:DOES_NOT_EXIST}"
-	},
-
 	"hostRequirements": {
 		"cpus": 8,
 		"memory": "32gb",
