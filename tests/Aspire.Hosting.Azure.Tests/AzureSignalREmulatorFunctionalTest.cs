@@ -15,6 +15,25 @@ using Xunit.Abstractions;
 namespace Aspire.Hosting.Azure.Tests;
 public class AzureSignalREmulatorFunctionalTest(ITestOutputHelper testOutputHelper)
 {
+    [Fact]
+    public async Task AddAzureSignalREmulator()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var signalR = builder.AddAzureSignalR("signalr").RunAsEmulator(e =>
+        {
+            e.WithEndpoint("emulator", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 10001));
+        });
+
+        Assert.True(signalR.Resource.IsEmulator);
+
+        var connectionStringExpr = signalR.Resource.ConnectionStringExpression;
+        var connectionString = await connectionStringExpr.GetValueAsync(CancellationToken.None);
+        var postfix = ";AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;";
+        Assert.Equal("Endpoint={signalr.bindings.emulator.scheme}://{signalr.bindings.emulator.host}:{signalr.bindings.emulator.port}" + postfix, connectionStringExpr.ValueExpression);
+        Assert.Equal("Endpoint=http://localhost:10001" + postfix, connectionString);
+        Assert.Equal(connectionString, await ((IResourceWithConnectionString)signalR.Resource).GetConnectionStringAsync());
+    }
 
     [Fact]
     [RequiresDocker]

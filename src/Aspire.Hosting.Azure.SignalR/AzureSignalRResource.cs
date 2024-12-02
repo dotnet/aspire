@@ -15,7 +15,6 @@ public class AzureSignalRResource(string name, Action<AzureResourceInfrastructur
     IResourceWithConnectionString,
     IResourceWithEndpoints
 {
-
     internal EndpointReference EmulatorEndpoint => new(this, "emulator");
     /// <summary>
     /// Gets a value indicating whether the Azure SignalR resource is running in the local emulator.
