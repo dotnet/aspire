@@ -375,7 +375,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Language.
+        ///   Looks up a localized string similar to Language (reloads on change).
         /// </summary>
         public static string SettingsDialogLanguage {
             get {

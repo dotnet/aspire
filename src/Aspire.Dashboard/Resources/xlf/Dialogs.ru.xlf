@@ -178,8 +178,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
-        <source>Language</source>
-        <target state="new">Language</target>
+        <source>Language (reloads on change)</source>
+        <target state="new">Language (reloads on change)</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">
