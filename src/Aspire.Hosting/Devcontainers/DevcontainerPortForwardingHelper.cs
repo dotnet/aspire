@@ -11,6 +11,8 @@ internal class DevcontainerPortForwardingHelper
     private const string CodespaceSettingsPath = "/home/vscode/.vscode-remote/data/Machine/settings.json";
     private const string LocalDevcontainerSettingsPath = "/home/vscode/.vscode-server/data/Machine/settings.json";
     private const string PortAttributesFieldName = "remote.portsAttributes";
+    private const int WriteLockTimeoutMs = 2000; 
+    private static readonly SemaphoreSlim s_writeLock = new SemaphoreSlim(1);
 
     public static async Task SetPortAttributesAsync(int port, string protocol, string label, CancellationToken cancellationToken = default)
     {
@@ -18,6 +20,13 @@ internal class DevcontainerPortForwardingHelper
         ArgumentNullException.ThrowIfNullOrEmpty(label);
 
         var settingsPath = GetSettingsPath();
+
+        var acquired = await s_writeLock.WaitAsync(WriteLockTimeoutMs, cancellationToken).ConfigureAwait(false);
+
+        if (!acquired)
+        {
+            throw new DistributedApplicationException($"Failed to acquire semaphore for settings file: {settingsPath}");
+        }
 
         var settingsContent = await File.ReadAllTextAsync(settingsPath, cancellationToken).ConfigureAwait(false);
         var settings = (JsonObject)JsonObject.Parse(settingsContent)!;
@@ -52,6 +61,8 @@ internal class DevcontainerPortForwardingHelper
 
         settingsContent = settings.ToString();
         await File.WriteAllTextAsync(settingsPath, settingsContent, cancellationToken).ConfigureAwait(false);
+
+        s_writeLock.Release();
 
         static string GetSettingsPath()
         {
