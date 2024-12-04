@@ -16,7 +16,7 @@ namespace Aspire.Hosting.Azure.Tests;
 public class AzureSignalREmulatorFunctionalTest(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    public async Task AddAzureSignalREmulator()
+    public async Task VerifyAzureSignalRConnectionString()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
