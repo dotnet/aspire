@@ -62,7 +62,7 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
 
     private void OnLanguageChanged()
     {
-        if (_selectedUiCulture is null || StringComparers.Culture.Equals(CultureInfo.CurrentUICulture.Name, _selectedUiCulture.Name))
+        if (_selectedUiCulture is null || StringComparers.CultureName.Equals(CultureInfo.CurrentUICulture.Name, _selectedUiCulture.Name))
         {
             return;
         }

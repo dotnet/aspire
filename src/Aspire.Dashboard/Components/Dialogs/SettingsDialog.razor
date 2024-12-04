@@ -27,7 +27,10 @@
                 Items="@_languageOptions"
                 OptionText="@(c => c.NativeName.Humanize())"
                 @bind-SelectedOption="@_selectedUiCulture"
-                @bind-SelectedOption:after="@OnLanguageChanged"/>
+                @bind-SelectedOption:after="@OnLanguageChanged"
+                Style="margin-bottom: 2px;"/>
+
+            <p class="setting-subtext">@Loc[nameof(Dialogs.SettingsDialogLanguagePageReloads)]</p>
         </div>
 
         <div class="version">@string.Format(Loc[nameof(Dialogs.SettingsDialogVersion)], VersionHelpers.DashboardDisplayVersion)</div>

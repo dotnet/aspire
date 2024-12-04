@@ -375,11 +375,20 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Language (reloads on change).
+        ///   Looks up a localized string similar to Language.
         /// </summary>
         public static string SettingsDialogLanguage {
             get {
                 return ResourceManager.GetString("SettingsDialogLanguage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The page will reload on language change..
+        /// </summary>
+        public static string SettingsDialogLanguagePageReloads {
+            get {
+                return ResourceManager.GetString("SettingsDialogLanguagePageReloads", resourceCulture);
             }
         }
         

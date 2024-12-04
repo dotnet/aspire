@@ -35,16 +35,27 @@ internal static class GlobalizationHelpers
        }
 
        // this doesn't work for zh as we support two different zh cultures
-       if (matchParent && !StringComparers.Culture.Equals(culture.TwoLetterISOLanguageName, "zh"))
+       if (matchParent && !StringComparers.CultureName.Equals(culture.TwoLetterISOLanguageName, "zh"))
        {
+           var count = 0;
            var parent = culture.Parent;
            while (!Equals(parent, parent.Parent))
            {
+               // ensure we don't get stuck in an infinite loop by limiting the number of parent levels we check
+               // to 5
+               if (count == 5)
+               {
+                   matchedCulture = null;
+                   return false;
+               }
+
                if (cultureOptions.Contains(parent))
                {
                    matchedCulture = parent;
                    return true;
                }
+
+               count++;
            }
        }
 

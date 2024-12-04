@@ -434,7 +434,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             _app.MapPost("/authentication/logout", () => TypedResults.SignOut(authenticationSchemes: [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]));
         }
 
-        _app.MapGet("/api/set-language", (string? language, string redirectUrl, HttpContext httpContext) =>
+        _app.MapGet("/api/set-language", (string? language, string? redirectUrl, HttpContext httpContext) =>
         {
             if (string.IsNullOrEmpty(language) || string.IsNullOrEmpty(redirectUrl))
             {
