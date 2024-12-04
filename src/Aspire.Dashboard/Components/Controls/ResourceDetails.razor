@@ -82,7 +82,9 @@
                         </FluentBadge>
                     </div>
 
-                    <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlStringsLoc)"
+                    <FluentDataGrid TGridItem="VolumeViewModel"
+                                    ItemKey="@(vm => ((IPropertyGridItem)vm).Key)"
+                                    ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlStringsLoc)"
                                     ResizeType="DataGridResizeType.Discrete"
                                     Items="@FilteredVolumes"
                                     ResizableColumns="true"
@@ -112,7 +114,7 @@
                                 <ContentBeforeValue>
                                     @if (context.IsReadOnly)
                                     {
-                                        <FluentIcon Value="@(new Icons.Regular.Size16.LockClosed())" Style="vertical-align: text-bottom; margin-right: 3px" />
+                                        <FluentIcon Value="@(new Icons.Regular.Size16.LockClosed())" Class="volume-mount-type-icon" />
                                     }
                                 </ContentBeforeValue>
                             </GridValue>

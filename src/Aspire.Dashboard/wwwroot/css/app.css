@@ -722,3 +722,8 @@ fluent-data-grid-cell.no-ellipsis {
 .toolbar-left {
     margin-left: 0;
 }
+
+.volume-mount-type-icon {
+    vertical-align: text-bottom;
+    margin-right: 3px
+}
