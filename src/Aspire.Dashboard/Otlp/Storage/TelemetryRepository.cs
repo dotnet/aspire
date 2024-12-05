@@ -566,6 +566,22 @@ public sealed class TelemetryRepository
         }
     }
 
+    public void ClearTraces()
+    {
+        _tracesLock.EnterWriteLock();
+
+        try
+        {
+            _traces.Clear();
+        }
+        finally
+        {
+            _tracesLock.ExitWriteLock();
+        }
+
+        RaiseSubscriptionChanged(_tracesSubscriptions);
+    }
+
     public Dictionary<string, int> GetTraceFieldValues(string attributeName)
     {
         _tracesLock.EnterReadLock();
