@@ -6,7 +6,6 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.SignalR;
 using Azure.Provisioning;
 using Azure.Provisioning.SignalR;
-using Microsoft.Azure.SignalR.Management;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -81,6 +80,7 @@ public static class AzureSignalRExtensions
         }
 
         string? connectionString = null;
+        string? hostname = null;
         builder
             .WithEndpoint(name: "emulator", targetPort: 8888, scheme: "http")
             .WithAnnotation(new ContainerImageAnnotation
@@ -94,19 +94,13 @@ public static class AzureSignalRExtensions
         {
             connectionString = await builder.Resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false)
                         ?? throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
+            hostname = builder.Resource.EmulatorEndpoint.Url;
         });
         var healthCheckKey = $"{builder.Resource.Name}_check";
         var healthCheckRegistration = new HealthCheckRegistration(
             healthCheckKey,
             sp => {
-                // Use SignalR Management SDK to init a client for health test
-                var client = new ServiceManagerBuilder()
-                .WithOptions(option => {
-                    option.ConnectionString = connectionString ?? throw new InvalidOperationException("Connection string is unavailable");
-                    option.ServiceTransportType = ServiceTransportType.Transient;
-                })
-                .BuildServiceManager();
-                return new AzureSignalRHealthCheck(client);
+                return new AzureSignalRHealthCheck(hostname ?? throw new InvalidOperationException("Hostname is unavailable"));
             },
             failureStatus: default,
             tags: default
