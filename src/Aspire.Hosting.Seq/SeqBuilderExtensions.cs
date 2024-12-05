@@ -14,6 +14,7 @@ public static class SeqBuilderExtensions
     // The path within the container in which Seq stores its data
     private const string SeqContainerDataDirectory = "/data";
 
+    private const string AcceptEulaEnvVarName = "ACCEPT_EULA";
     private const string UserEnvVarName = "SEQ_FIRSTRUN_ADMINUSERNAME";
     private const string PasswordEnvVarName = "SEQ_FIRSTRUN_ADMINPASSWORD";
 
@@ -38,7 +39,7 @@ public static class SeqBuilderExtensions
             .WithHttpEndpoint(port: port, targetPort: 80, name: SeqResource.PrimaryEndpointName)
             .WithImage(SeqContainerImageTags.Image, SeqContainerImageTags.Tag)
             .WithImageRegistry(SeqContainerImageTags.Registry)
-            .WithEnvironment("ACCEPT_EULA", "Y");
+            .WithEnvironment(AcceptEulaEnvVarName, "Y");
 
         return resourceBuilder;
     }
