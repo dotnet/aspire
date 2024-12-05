@@ -5,7 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Aspire.Hosting.Codespaces;
+namespace Aspire.Hosting.Devcontainers.Codespaces;
 
 /// <summary>
 /// GitHub Codespaces configuration values.
