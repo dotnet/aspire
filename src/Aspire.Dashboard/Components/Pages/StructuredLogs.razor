@@ -30,6 +30,7 @@
                             @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync"
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
+            <FluentButton Appearance="Appearance.Stealth" aria-label="@Loc[nameof(Dashboard.Resources.StructuredLogs.ClearStructuredLogs)]" class="telemetry-filter-button" OnClick="() => ClearStructuredLogs()"><FluentIcon Value="@(new Icons.Regular.Size20.Delete())" /></FluentButton>
             <FluentSearch @bind-Value="_filter"
                           @bind-Value:after="HandleAfterFilterBindAsync"
                           Immediate="true"

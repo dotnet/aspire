@@ -7,6 +7,11 @@
         <target state="new">Log message</target>
         <note />
       </trans-unit>
+      <trans-unit id="ClearStructuredLogs">
+        <source>Clear Structured logs</source>
+        <target state="new">Clear Structured logs</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MessageExceededLimitBody">
         <source>A maximum of {0} structured logs are stored. Old structured logs are automatically removed.</source>
         <target state="translated">Un maximum de {0} journaux structurés est stocké. Les anciens journaux structurés sont automatiquement supprimés.</target>

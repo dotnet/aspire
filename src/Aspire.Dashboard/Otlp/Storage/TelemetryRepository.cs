@@ -582,6 +582,22 @@ public sealed class TelemetryRepository
         RaiseSubscriptionChanged(_tracesSubscriptions);
     }
 
+    public void ClearStructuredLogs()
+    {
+        _logsLock.EnterWriteLock();
+
+        try
+        {
+            _logs.Clear();
+        }
+        finally
+        {
+            _logsLock.ExitWriteLock();
+        }
+
+        RaiseSubscriptionChanged(_logSubscriptions);
+    }
+
     public Dictionary<string, int> GetTraceFieldValues(string attributeName)
     {
         _tracesLock.EnterReadLock();
