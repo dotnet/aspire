@@ -12,7 +12,10 @@ namespace Aspire.Hosting;
 public static class SeqBuilderExtensions
 {
     // The path within the container in which Seq stores its data
-    const string SeqContainerDataDirectory = "/data";
+    private const string SeqContainerDataDirectory = "/data";
+
+    private const string UserEnvVarName = "SEQ_FIRSTRUN_ADMINUSERNAME";
+    private const string PasswordEnvVarName = "SEQ_FIRSTRUN_ADMINPASSWORD";
 
     /// <summary>
     /// Adds a Seq server resource to the application model. A container is used for local development.
@@ -41,9 +44,31 @@ public static class SeqBuilderExtensions
     }
 
     /// <summary>
+    /// Enable authentication, providing a username and password for the default admin user.
+    /// </summary>
+    /// <remarks>If container storage is persisted, the username and password will also be
+    /// persisted and must be managed through the Seq web interface. This method will not enable
+    /// authentication if the container has already been persisted without authentication enabled.</remarks>
+    /// <param name="builder">The Seq resource builder.</param>
+    /// <param name="username">A parameter containing a username for the default Seq admin user.</param>
+    /// <param name="password">A parameter a password for the default admin user.</param>
+    /// <exception cref="ArgumentException">The supplied username or password is blank.</exception>
+    public static IResourceBuilder<SeqResource> WithAuthentication(
+        this IResourceBuilder<SeqResource> builder,
+        IResourceBuilder<ParameterResource> username,
+        IResourceBuilder<ParameterResource> password)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(username.Resource.Value, nameof(username));
+        ArgumentException.ThrowIfNullOrWhiteSpace(password.Resource.Value, nameof(username));
+        return builder
+            .WithEnvironment(UserEnvVarName, username.Resource.Value)
+            .WithEnvironment(PasswordEnvVarName, password.Resource.Value);
+    }
+
+    /// <summary>
     /// Adds a named volume for the data folder to a Seq container resource.
     /// </summary>
-    /// <param name="builder">The resource builder.</param>
+    /// <param name="builder">The Seq resource builder.</param>
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
@@ -53,7 +78,7 @@ public static class SeqBuilderExtensions
     /// <summary>
     /// Adds a bind mount for the data folder to a Seq container resource.
     /// </summary>
-    /// <param name="builder">The resource builder.</param>
+    /// <param name="builder">The Seq resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
