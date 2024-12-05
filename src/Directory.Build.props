@@ -5,6 +5,10 @@
     <SkipArcadeNoWarnCS1591>true</SkipArcadeNoWarnCS1591>
     <EnablePackageValidation Condition="'$(EnablePackageValidation)' == ''">true</EnablePackageValidation>
     <PackageValidationBaselineVersion Condition="'$(EnablePackageValidation)' == 'true' and '$(PackageValidationBaselineVersion)' == ''">$(BaselineVersionForPackageValidation)</PackageValidationBaselineVersion>
+
+    <!-- Azure Cosmos is now emitting a wanring if you are and end-user application and are not referencing Newtonsoft directly.
+    We disable that warning for this project as we are not a consumer application. -->
+    <AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
   </PropertyGroup>
 
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />

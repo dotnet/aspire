@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsAspireHost>true</IsAspireHost>
+    <!-- This is an apphost project, doesn't need a Newtonsoft.Json reference -->
+    <AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
     <UserSecretsId>dafae173-3ac0-4100-8cab-602852cb28dd</UserSecretsId>
   </PropertyGroup>
 
