@@ -65,7 +65,7 @@ public static class AzureSignalRExtensions
     }
 
     /// <summary>
-    /// Configures an Azure SignalR resource to be emulated. This resource requires an <see cref="AzureSignalRResource"/> to be added to the application model and will be run in Serverless mode.
+    /// Configures an Azure SignalR resource to be emulated. This resource requires an <see cref="AzureSignalRResource"/> to be added to the application model. Please note that the resource will be emulated in <b>Serverless mode</b>.
     /// </summary>
     /// <remarks>
     /// This version of the package defaults to the <inheritdoc cref="SignalREmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="SignalREmulatorContainerImageTags.Registry"/>/<inheritdoc cref="SignalREmulatorContainerImageTags.Image"/> container image.

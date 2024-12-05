@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>SignalRServerless.Functions</RootNamespace>
-  </PropertyGroup>	
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Functions.Worker" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" />
@@ -21,6 +21,9 @@
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Azure.Storage.Blobs" />
     <AspireProjectOrPackageReference Include="Aspire.Azure.Storage.Queues" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="local.settings.json" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />

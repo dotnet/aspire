@@ -6,6 +6,7 @@ using Microsoft.Azure.Functions.Worker.Http;
 
 namespace SignalRServerless.Functions;
 
+// Reference: https://github.com/aspnet/AzureSignalR-samples/tree/main/samples/QuickStartServerless/csharp-isolated
 public class Functions
 {
     private static readonly HttpClient s_httpClient = new();
