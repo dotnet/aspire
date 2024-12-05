@@ -11,6 +11,7 @@
     <AspireProjectOrPackageReference Include="Aspire.Microsoft.Azure.Cosmos" />
     <AspireProjectOrPackageReference Include="Aspire.Microsoft.EntityFrameworkCore.Cosmos" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
+    <PackageReference Include="Newtonsoft.Json" />
   </ItemGroup>
 
 </Project>
