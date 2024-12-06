@@ -11,7 +11,6 @@ namespace Aspire.RabbitMQ.Client;
 internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
 {
     private static readonly Func<ErrorEventSourceEvent, Exception?, string> s_formatErrorEvent = FormatErrorEvent;
-    private static readonly Func<EventSourceEvent, Exception?, string> s_formatEvent = FormatEvent;
 
     private readonly ILogger _logger;
     private RabbitMQEventSourceListener? _listener;
@@ -50,14 +49,11 @@ internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
                 (eventData.EventId == 1 && eventData.EventName == "Info") ||
                 (eventData.EventId == 2 && eventData.EventName == "Warn"));
 
-            _logger.Log(level, eventId, s_formatEvent(new EventSourceEvent(eventData), null));
+            _logger.Log(level, eventId, eventData.Payload?[0]?.ToString() ?? "<empty>");
         }
     }
 
     private static string FormatErrorEvent(ErrorEventSourceEvent eventSourceEvent, Exception? ex) =>
-        eventSourceEvent.EventData.Payload?[0]?.ToString() ?? "<empty>";
-
-    private static string FormatEvent(EventSourceEvent eventSourceEvent, Exception? ex) =>
         eventSourceEvent.EventData.Payload?[0]?.ToString() ?? "<empty>";
 
     public void Dispose() => _listener?.Dispose();
@@ -72,36 +68,6 @@ internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
         EventLevel.LogAlways => LogLevel.Information,
         _ => throw new ArgumentOutOfRangeException(nameof(level), level, null),
     };
-
-    private readonly struct EventSourceEvent : IReadOnlyList<KeyValuePair<string, object?>>
-    {
-        public EventWrittenEventArgs EventData { get; }
-
-        public EventSourceEvent(EventWrittenEventArgs eventData)
-        {
-            // only Info and Warn events are expected, which always have 'message' as the only payload
-            Debug.Assert(eventData.PayloadNames?.Count == 1 && eventData.PayloadNames[0] == "message");
-
-            EventData = eventData;
-        }
-
-        public IEnumerator<KeyValuePair<string, object?>> GetEnumerator()
-        {
-            for (var i = 0; i < Count; i++)
-            {
-                yield return this[i];
-            }
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        public int Count => EventData.PayloadNames?.Count ?? 0;
-
-        public KeyValuePair<string, object?> this[int index] => new(EventData.PayloadNames![index], EventData.Payload![index]);
-    }
 
     private readonly struct ErrorEventSourceEvent : IReadOnlyList<KeyValuePair<string, object?>>
     {
