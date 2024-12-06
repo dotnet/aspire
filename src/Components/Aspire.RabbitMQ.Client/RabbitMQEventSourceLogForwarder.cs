@@ -101,9 +101,8 @@ internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
                 Debug.Assert(EventData.PayloadNames[0] == "message");
                 Debug.Assert(EventData.PayloadNames[1] == "ex");
 
-                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, 5);
-                Debug.Assert(index >= 0 && index <= 3);
-                Debug.Assert(EventData.Payload?.Count == 2);
+                ArgumentOutOfRangeException.ThrowIfNegative(index);  
+                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Count);
 
                 var exData = EventData.Payload[1] as IDictionary<string, object?>;
                 Debug.Assert(exData is not null && exData.Count == 4);
