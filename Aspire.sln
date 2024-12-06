@@ -631,6 +631,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DaprServiceC", "playground\
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dashboard", "Dashboard", "{830F7CA9-8E51-4D62-832F-91F53F85B7AE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.FluentUI.AspNetCore.Components", "..\..\FluentUI\fluentui-blazor\src\Core\Microsoft.FluentUI.AspNetCore.Components.csproj", "{A5BC27B2-FD07-BC9E-67C5-3353ACBDBFB5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1653,6 +1655,10 @@ Global
 		{B26653B9-439E-4850-A7F8-43C6E5121952}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B26653B9-439E-4850-A7F8-43C6E5121952}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B26653B9-439E-4850-A7F8-43C6E5121952}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A5BC27B2-FD07-BC9E-67C5-3353ACBDBFB5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A5BC27B2-FD07-BC9E-67C5-3353ACBDBFB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A5BC27B2-FD07-BC9E-67C5-3353ACBDBFB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A5BC27B2-FD07-BC9E-67C5-3353ACBDBFB5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

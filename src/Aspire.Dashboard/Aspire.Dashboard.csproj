@@ -50,7 +50,7 @@
     <PackageReference Include="Humanizer.Core" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
-    <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" />
+    <!--<PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" />-->
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" />
   </ItemGroup>
 
@@ -249,5 +249,9 @@
   <ItemGroup>
     <Content Remove="wwwroot\js\README.md" />
     <None Include="wwwroot\js\README.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\FluentUI\fluentui-blazor\src\Core\Microsoft.FluentUI.AspNetCore.Components.csproj" />
   </ItemGroup>
 </Project>
