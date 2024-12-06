@@ -50,7 +50,7 @@ internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
                 (eventData.EventId == 1 && eventData.EventName == "Info") ||
                 (eventData.EventId == 2 && eventData.EventName == "Warn"));
 
-            _logger.Log(level, eventId, new EventSourceEvent(eventData), null, s_formatEvent);
+            _logger.Log(level, eventId, s_formatEvent(new EventSourceEvent(eventData), null));
         }
     }
 
@@ -136,29 +136,20 @@ internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
                 Debug.Assert(EventData.PayloadNames[1] == "ex");
 
                 ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, 5);
+                Debug.Assert(index >= 0 && index <= 3);
+                Debug.Assert(EventData.Payload?.Count == 2);
+
+                var exData = EventData.Payload[1] as IDictionary<string, object?>;
+                Debug.Assert(exData is not null && exData.Count == 4);
 
                 return index switch
                 {
-                    < 4 => GetExData(EventData, index),
+                    0 => new("exception.type", exData["Type"]),
+                    1 => new("exception.message", exData["Message"]),
+                    2 => new("exception.stacktrace", exData["StackTrace"]),
+                    3 => new("exception.innerexception", exData["InnerException"]),
                     _ => throw new UnreachableException()
                 };
-
-                static KeyValuePair<string, object?> GetExData(EventWrittenEventArgs eventData, int index)
-                {
-                    Debug.Assert(index >= 0 && index <= 3);
-                    Debug.Assert(eventData.Payload?.Count == 2);
-                    var exData = eventData.Payload[1] as IDictionary<string, object?>;
-                    Debug.Assert(exData is not null && exData.Count == 4);
-
-                    return index switch
-                    {
-                        0 => new("exception.type", exData["Type"]),
-                        1 => new("exception.message", exData["Message"]),
-                        2 => new("exception.stacktrace", exData["StackTrace"]),
-                        3 => new("exception.innerexception", exData["InnerException"]),
-                        _ => throw new UnreachableException()
-                    };
-                }
             }
         }
     }
