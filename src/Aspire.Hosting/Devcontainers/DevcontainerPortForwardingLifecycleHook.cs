@@ -14,12 +14,14 @@ internal sealed class DevcontainerPortForwardingLifecycleHook : IDistributedAppl
     private readonly ILogger _hostingLogger;
     private readonly IOptions<CodespacesOptions> _codespacesOptions;
     private readonly IOptions<DevcontainersOptions> _devcontainersOptions;
+    private readonly DevcontainerSettingsWriter _settingsWriter;
 
-    public DevcontainerPortForwardingLifecycleHook(ILoggerFactory loggerFactory, IOptions<CodespacesOptions> codespacesOptions, IOptions<DevcontainersOptions> devcontainersOptions)
+    public DevcontainerPortForwardingLifecycleHook(ILoggerFactory loggerFactory, IOptions<CodespacesOptions> codespacesOptions, IOptions<DevcontainersOptions> devcontainersOptions, DevcontainerSettingsWriter settingsWriter)
     {
         _hostingLogger = loggerFactory.CreateLogger("Aspire.Hosting");
         _codespacesOptions = codespacesOptions;
         _devcontainersOptions = devcontainersOptions;
+        _settingsWriter = settingsWriter;
     }
 
     public async Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
@@ -60,7 +62,7 @@ internal sealed class DevcontainerPortForwardingLifecycleHook : IDistributedAppl
                 //       and writing it each time. Its like this for now beause I need to use the logic
                 //       in a few places (here and when we print out the Dashboard URL) - but will need
                 //       to come back and optimize this to support some kind of batching.
-                await DevcontainerPortForwardingHelper.SetPortAttributesAsync(
+                await _settingsWriter.SetPortAttributesAsync(
                     endpoint.AllocatedEndpoint!.Port,
                     endpoint.UriScheme,
                     $"{resource.Name}-{endpoint.Name}",
