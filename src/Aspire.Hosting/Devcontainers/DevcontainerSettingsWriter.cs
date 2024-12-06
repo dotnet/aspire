@@ -106,7 +106,7 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
                 // This is OK, but it should be rare enough that if it starts happening we probably
                 // want to know about it in logs that end users submit so we know to take a closer
                 // look at what is going on.
-                logger.LogWarning("Race condition detected when creating Devcontainer settings file: {Path}", path)
+                logger.LogWarning("Race condition detected when creating Devcontainer settings file: {Path}", path);
             }
         }
     }
