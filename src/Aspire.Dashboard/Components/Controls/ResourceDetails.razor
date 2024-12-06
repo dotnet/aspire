@@ -90,7 +90,7 @@
                                     ResizableColumns="true"
                                     Style="width:100%"
                                     GenerateHeader="GenerateHeaderOption.Sticky"
-                                    GridTemplateColumns="1fr 1.5fr 1fr"
+                                    GridTemplateColumns="1fr 1fr 0.5fr"
                                     ShowHover="true">
                         <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<VolumeViewModel>.ByAscending(i => i.Source))" Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]">
                             <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]"
@@ -98,19 +98,15 @@
                                        EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
                                        HighlightText="@_filter" />
                         </AspireTemplateColumn>
-
                         <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<VolumeViewModel>.ByAscending(i => i.Target))" Title="@ControlStringsLoc[nameof(ControlsStrings.VolumePathColumnHeader)]">
                             <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.VolumePathColumnHeader)]"
                                        Value="@context.Target"
                                        EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
                                        HighlightText="@_filter" />
                         </AspireTemplateColumn>
-
                         <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<VolumeViewModel>.ByAscending(i => i.MountType))" Title="@ControlStringsLoc[nameof(ControlsStrings.VolumeMountTypeColumnHeader)]">
                             <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.VolumeMountTypeColumnHeader)]"
-                                       Value="@context.MountType.Humanize()"
-                                       EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
-                                       HighlightText="@_filter">
+                                       Value="@context.MountType.Humanize()">
                                 <ContentBeforeValue>
                                     @if (context.IsReadOnly)
                                     {
