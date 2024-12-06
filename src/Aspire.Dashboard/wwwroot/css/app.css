@@ -208,7 +208,7 @@ h1 {
     }
 
     fluent-toolbar[orientation=horizontal].main-toolbar {
-        padding-left: calc(var(--design-unit) * 4px);
+        padding-left: calc(var(--design-unit) * 4.5px);
         padding-right: calc(var(--design-unit) * 2px);
     }
 
@@ -250,8 +250,9 @@ fluent-data-grid .loading-content-cell {
 }
 
 .top-messagebar {
-    padding: calc(var(--design-unit) * 2px);
-    padding-bottom: 0;
+    padding: calc(var(--design-unit) * 4px);
+    padding-top: calc(var(--design-unit) * 2px);
+    padding-bottom: 0 !important;
 }
 
 .fluent-messagebar.intent-warning {
@@ -682,7 +683,7 @@ fluent-switch.table-switch::part(label) {
 
 .main-grid-expand-container {
     display: inline-block;
-    width: 20px;
+    width: 18px;
 }
 
 .main-grid-expand-container svg {
@@ -699,15 +700,15 @@ fluent-switch.table-switch::part(label) {
 }
 
 .main-grid-expand-button {
-    width: 20px;
+    width: 18px;
     height: 24px;
-    min-width: 20px;
+    min-width: 18px;
     vertical-align: middle;
 }
 
 /* VNB - Not needed anymore?*/
 .main-grid .fluent-data-grid-row[row-type='sticky-header'] th:first-child {
-    margin-left: 8px;
+    margin-left: 5px;
 }
 
 .main-grid .fluent-data-grid-row[row-type='default'] td.expand-col {
@@ -716,5 +717,9 @@ fluent-switch.table-switch::part(label) {
 }
 
 .main-grid .fluent-data-grid-row[row-type='default'] td:first-child:not(.expand-col) {
-    margin-left: 8px;
+    margin-left: 5px;
+}
+
+.toolbar-left {
+    margin-left: 0;
 }

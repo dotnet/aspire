@@ -18,6 +18,7 @@ using Aspire.Hosting.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
+using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
@@ -63,11 +64,18 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     [Inject]
     public required IJSRuntime JS { get; init; }
 
+    [Inject]
+    public required DashboardCommandExecutor DashboardCommandExecutor { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 
     [Parameter]
     public string? ResourceName { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "hideTimestamp")]
+    public bool? HideTimestamp { get; set; }
 
     private readonly CancellationTokenSource _resourceSubscriptionCts = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
@@ -80,6 +88,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     // UI
     private SelectViewModel<ResourceTypeDetails> _noSelection = null!;
     private AspirePageContentLayout? _contentLayout;
+    private readonly List<CommandViewModel> _highlightedCommands = new();
+    private readonly List<MenuButtonItem> _logsMenuItems = new();
+    private readonly List<MenuButtonItem> _resourceMenuItems = new();
 
     // State
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
@@ -92,7 +103,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         _resourceSubscriptionToken = _resourceSubscriptionCts.Token;
         _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
         _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelNone)] };
-        PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
+        PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)], HideTimestamp = false };
 
         var loadingTcs = new TaskCompletionSource();
 
@@ -166,6 +177,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                         }
                     }
 
+                    UpdateMenuButtons();
                     await InvokeAsync(StateHasChanged);
                 }
             });
@@ -190,6 +202,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         {
             return;
         }
+
+        UpdateMenuButtons();
 
         var selectedResourceName = PageViewModel.SelectedResource?.Name;
         if (!string.Equals(selectedResourceName, _consoleLogsSubscription?.Name, StringComparisons.ResourceName))
@@ -233,6 +247,79 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             }
         }
     }
+
+    private void UpdateMenuButtons()
+    {
+        _highlightedCommands.Clear();
+        _logsMenuItems.Clear();
+        _resourceMenuItems.Clear();
+
+        _logsMenuItems.Add(new()
+        {
+            IsDisabled = PageViewModel.SelectedResource is null,
+            OnClick = DownloadLogsAsync,
+            Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.DownloadLogs)],
+            Icon = new Icons.Regular.Size16.ArrowDownload()
+        });
+
+        if (PageViewModel.HideTimestamp)
+        {
+            _logsMenuItems.Add(new()
+            {
+                OnClick = () => ToggleTimestamp(hideTimestamp: false),
+                Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampShow)],
+                Icon = new Icons.Regular.Size16.CalendarClock()
+            });
+        }
+        else
+        {
+            _logsMenuItems.Add(new()
+            {
+                OnClick = () => ToggleTimestamp(hideTimestamp: true),
+                Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampHide)],
+                Icon = new Icons.Regular.Size16.DismissSquareMultiple()
+            });
+        }
+
+        if (PageViewModel.SelectedResource != null)
+        {
+            if (ViewportInformation.IsDesktop)
+            {
+                _highlightedCommands.AddRange(PageViewModel.SelectedResource.Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden).Take(DashboardUIHelpers.MaxHighlightedCommands));
+            }
+
+            var menuCommands = PageViewModel.SelectedResource.Commands.Where(c => !_highlightedCommands.Contains(c) && c.State != CommandViewModelState.Hidden).ToList();
+            if (menuCommands.Count > 0)
+            {
+                foreach (var command in menuCommands)
+                {
+                    var icon = (!string.IsNullOrEmpty(command.IconName) && CommandViewModel.ResolveIconName(command.IconName, command.IconVariant) is { } i) ? i : null;
+
+                    _resourceMenuItems.Add(new MenuButtonItem
+                    {
+                        Text = command.DisplayName,
+                        Tooltip = command.DisplayDescription,
+                        Icon = icon,
+                        OnClick = () => ExecuteResourceCommandAsync(command),
+                        IsDisabled = command.State == CommandViewModelState.Disabled
+                    });
+                }
+            }
+        }
+    }
+
+    private async Task ToggleTimestamp(bool hideTimestamp)
+    {
+        PageViewModel.HideTimestamp = hideTimestamp;
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
+    }
+
+    private async Task ExecuteResourceCommandAsync(CommandViewModel command)
+    {
+        await DashboardCommandExecutor.ExecuteAsync(PageViewModel.SelectedResource!, command, GetResourceName);
+    }
+
+    private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceByName);
 
     internal static ImmutableList<SelectViewModel<ResourceTypeDetails>> GetConsoleLogResourceSelectViewModels(
         ConcurrentDictionary<string, ResourceViewModel> resourcesByName,
@@ -449,11 +536,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         public required string Status { get; set; }
         public required SelectViewModel<ResourceTypeDetails> SelectedOption { get; set; }
         public required ResourceViewModel? SelectedResource { get; set; }
+        public required bool HideTimestamp { get; set; }
     }
 
     public class ConsoleLogsPageState
     {
         public string? SelectedResource { get; set; }
+        public bool HideTimestamp { get; set; }
     }
 
     public Task UpdateViewModelFromQueryAsync(ConsoleLogsViewModel viewModel)
@@ -472,19 +561,26 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             viewModel.SelectedResource = null;
             viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
         }
+
+        if (HideTimestamp is { } hideTimestamp)
+        {
+            viewModel.HideTimestamp = hideTimestamp;
+        }
+
         return Task.CompletedTask;
     }
 
     public string GetUrlFromSerializableViewModel(ConsoleLogsPageState serializable)
     {
-        return DashboardUrls.ConsoleLogsUrl(serializable.SelectedResource);
+        return DashboardUrls.ConsoleLogsUrl(serializable.SelectedResource, serializable.HideTimestamp);
     }
 
     public ConsoleLogsPageState ConvertViewModelToSerializable()
     {
         return new ConsoleLogsPageState
         {
-            SelectedResource = PageViewModel.SelectedResource?.Name
+            SelectedResource = PageViewModel.SelectedResource?.Name,
+            HideTimestamp = PageViewModel.HideTimestamp
         };
     }
 }

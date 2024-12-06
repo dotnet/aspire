@@ -216,7 +216,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         {
                             updatedArgs.AddRange(daprAppChannelAddressArg(endPoint.Value.appEndpoint.Host)());
                         }
-                        if (sidecarOptions?.AppProtocol is null && endPoint is { appEndpoint.IsAllocated: true }) 
+                        if (sidecarOptions?.AppProtocol is null && endPoint is { appEndpoint.IsAllocated: true })
                         {
                             updatedArgs.AddRange(daprAppProtocol(endPoint.Value.protocol)());
                         }
@@ -329,7 +329,10 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             yield return Path.Combine(homePath, "dapr", "dapr");
 
             // Linux & MacOS path:
-            yield return Path.Combine("/usr", "local", "bin", "dapr");
+            yield return "/usr/local/bin/dapr";
+
+            // Arch Linux path:
+            yield return "/usr/bin/dapr";
 
             // MacOS Homebrew path:
             if (OperatingSystem.IsMacOS() && Environment.GetEnvironmentVariable("HOMEBREW_PREFIX") is string homebrewPrefix)

@@ -35,7 +35,9 @@
 
 ::deep .resources-name-container {
     height: 24px;
-    display: inline-block;
+    display: inline-flex;
+    vertical-align: middle;
+    align-items: center;
 }
 
 ::deep tr.resource-row :first-child {

@@ -148,5 +148,6 @@
 
 ::deep .span-overview-container {
     height: 24px;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
 }

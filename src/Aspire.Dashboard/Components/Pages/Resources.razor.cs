@@ -38,9 +38,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
     [Inject]
-    public required IDialogService DialogService { get; init; }
-    [Inject]
-    public required IToastService ToastService { get; init; }
+    public required DashboardCommandExecutor DashboardCommandExecutor { get; init; }
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
     [Inject]
@@ -302,7 +300,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         // Don't attempt to display more than 2 highlighted commands. Many commands will take up too much space.
         // Extra highlighted commands are still available in the menu.
-        _maxHighlightedCount = Math.Min(maxHighlightedCount, 2);
+        _maxHighlightedCount = Math.Min(maxHighlightedCount, DashboardUIHelpers.MaxHighlightedCommands);
     }
 
     protected override async Task OnParametersSetAsync()
@@ -413,98 +411,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     private async Task ExecuteResourceCommandAsync(ResourceViewModel resource, CommandViewModel command)
     {
-        if (!string.IsNullOrWhiteSpace(command.ConfirmationMessage))
-        {
-            var dialogReference = await DialogService.ShowConfirmationAsync(command.ConfirmationMessage);
-            var result = await dialogReference.Result;
-            if (result.Cancelled)
-            {
-                return;
-            }
-        }
-
-        var messageResourceName = GetResourceName(resource);
-
-        var toastParameters = new ToastParameters<CommunicationToastContent>()
-        {
-            Id = Guid.NewGuid().ToString(),
-            Intent = ToastIntent.Progress,
-            Title = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandStarting)], messageResourceName, command.DisplayName),
-            Content = new CommunicationToastContent()
-        };
-
-        // Show a toast immediately to indicate the command is starting.
-        ToastService.ShowCommunicationToast(toastParameters);
-
-        var response = await DashboardClient.ExecuteResourceCommandAsync(resource.Name, resource.ResourceType, command, CancellationToken.None);
-
-        // Update toast with the result;
-        if (response.Kind == ResourceCommandResponseKind.Succeeded)
-        {
-            toastParameters.Title = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandSuccess)], messageResourceName, command.DisplayName);
-            toastParameters.Intent = ToastIntent.Success;
-            toastParameters.Icon = GetIntentIcon(ToastIntent.Success);
-        }
-        else
-        {
-            toastParameters.Title = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandFailed)], messageResourceName, command.DisplayName);
-            toastParameters.Intent = ToastIntent.Error;
-            toastParameters.Icon = GetIntentIcon(ToastIntent.Error);
-            toastParameters.Content.Details = response.ErrorMessage;
-            toastParameters.PrimaryAction = Loc[nameof(Dashboard.Resources.Resources.ResourceCommandToastViewLogs)];
-            toastParameters.OnPrimaryAction = EventCallback.Factory.Create<ToastResult>(this, () => NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: resource.Name)));
-        }
-
-        ToastService.UpdateToast(toastParameters.Id, toastParameters);
-    }
-
-    // Copied from FluentUI.
-    private static (Icon Icon, Color Color)? GetIntentIcon(ToastIntent intent)
-    {
-        return intent switch
-        {
-            ToastIntent.Success => (new Icons.Filled.Size24.CheckmarkCircle(), Color.Success),
-            ToastIntent.Warning => (new Icons.Filled.Size24.Warning(), Color.Warning),
-            ToastIntent.Error => (new Icons.Filled.Size24.DismissCircle(), Color.Error),
-            ToastIntent.Info => (new Icons.Filled.Size24.Info(), Color.Info),
-            ToastIntent.Progress => (new Icons.Regular.Size24.Flash(), Color.Neutral),
-            ToastIntent.Upload => (new Icons.Regular.Size24.ArrowUpload(), Color.Neutral),
-            ToastIntent.Download => (new Icons.Regular.Size24.ArrowDownload(), Color.Neutral),
-            ToastIntent.Event => (new Icons.Regular.Size24.CalendarLtr(), Color.Neutral),
-            ToastIntent.Mention => (new Icons.Regular.Size24.Person(), Color.Neutral),
-            ToastIntent.Custom => null,
-            _ => throw new InvalidOperationException()
-        };
-    }
-
-    private static (string Value, string? ContentAfterValue, string ValueToCopy, string Tooltip)? GetSourceColumnValueAndTooltip(ResourceViewModel resource)
-    {
-        // NOTE projects are also executables, so we have to check for projects first
-        if (resource.IsProject() && resource.TryGetProjectPath(out var projectPath))
-        {
-            return (Value: Path.GetFileName(projectPath), ContentAfterValue: null, ValueToCopy: projectPath, Tooltip: projectPath);
-        }
-
-        if (resource.TryGetExecutablePath(out var executablePath))
-        {
-            resource.TryGetExecutableArguments(out var arguments);
-            var argumentsString = arguments.IsDefaultOrEmpty ? "" : string.Join(" ", arguments);
-            var fullCommandLine = $"{executablePath} {argumentsString}";
-
-            return (Value: Path.GetFileName(executablePath), ContentAfterValue: argumentsString, ValueToCopy: fullCommandLine, Tooltip: fullCommandLine);
-        }
-
-        if (resource.TryGetContainerImage(out var containerImage))
-        {
-            return (Value: containerImage, ContentAfterValue: null, ValueToCopy: containerImage, Tooltip: containerImage);
-        }
-
-        if (resource.Properties.TryGetValue(KnownProperties.Resource.Source, out var property) && property.Value is { HasStringValue: true, StringValue: var value })
-        {
-            return (Value: value, ContentAfterValue: null, ValueToCopy: value, Tooltip: value);
-        }
-
-        return null;
+        await DashboardCommandExecutor.ExecuteAsync(resource, command, GetResourceName);
     }
 
     private static string GetEndpointsTooltip(ResourceViewModel resource)

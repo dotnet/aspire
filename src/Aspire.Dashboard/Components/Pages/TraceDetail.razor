@@ -30,7 +30,7 @@
                 </div>
             </PageTitleSection>
             <ToolbarSection>
-                <div>
+                <div class="toolbar-left">
                     @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong title="@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Full)">@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Truncated)</strong>
                 </div>
                 <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />

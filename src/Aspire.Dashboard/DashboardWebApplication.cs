@@ -233,6 +233,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         // Data from the server.
         builder.Services.TryAddScoped<IDashboardClient, DashboardClient>();
         builder.Services.TryAddSingleton<IDashboardClientStatus, DashboardClientStatus>();
+        builder.Services.TryAddScoped<DashboardCommandExecutor>();
 
         // OTLP services.
         builder.Services.AddGrpc();
@@ -335,6 +336,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     // DOTNET_RUNNING_IN_CONTAINER is a well-known environment variable added by official .NET images.
                     // https://learn.microsoft.com/dotnet/core/tools/dotnet-environment-variables#dotnet_running_in_container-and-dotnet_running_in_containers
                     var isContainer = _app.Configuration.GetBool("DOTNET_RUNNING_IN_CONTAINER") ?? false;
+
                     LoggingHelpers.WriteDashboardUrl(_logger, frontendEndpointInfo.GetResolvedAddress(replaceIPAnyWithLocalhost: true), options.Frontend.BrowserToken, isContainer);
                 }
             }
