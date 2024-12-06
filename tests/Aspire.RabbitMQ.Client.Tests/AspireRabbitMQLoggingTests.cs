@@ -130,22 +130,19 @@ public class AspireRabbitMQLoggingTests
         Assert.Equal(logMessage, logs[0].Message);
 
         var errorEvent = Assert.IsAssignableFrom<IReadOnlyList<KeyValuePair<string, object?>>>(logs[0].State);
-        Assert.Equal(5, errorEvent.Count);
+        Assert.Equal(4, errorEvent.Count);
 
-        Assert.Equal("message", errorEvent[0].Key);
-        Assert.Equal(logMessage, errorEvent[0].Value);
+        Assert.Equal("exception.type", errorEvent[0].Key);
+        Assert.Equal("System.InvalidOperationException", errorEvent[0].Value);
 
-        Assert.Equal("exception.type", errorEvent[1].Key);
-        Assert.Equal("System.InvalidOperationException", errorEvent[1].Value);
+        Assert.Equal("exception.message", errorEvent[1].Key);
+        Assert.Equal(exceptionMessage, errorEvent[1].Value);
 
-        Assert.Equal("exception.message", errorEvent[2].Key);
-        Assert.Equal(exceptionMessage, errorEvent[2].Value);
+        Assert.Equal("exception.stacktrace", errorEvent[2].Key);
+        Assert.Contains("AspireRabbitMQLoggingTests.TestException", errorEvent[2].Value?.ToString());
 
-        Assert.Equal("exception.stacktrace", errorEvent[3].Key);
-        Assert.Contains("AspireRabbitMQLoggingTests.TestException", errorEvent[3].Value?.ToString());
-
-        Assert.Equal("exception.innerexception", errorEvent[4].Key);
-        Assert.True(string.IsNullOrEmpty(errorEvent[4].Value?.ToString()));
+        Assert.Equal("exception.innerexception", errorEvent[3].Key);
+        Assert.True(string.IsNullOrEmpty(errorEvent[3].Value?.ToString()));
     }
 
     private sealed class LoggerProvider(TestLogger logger) : ILoggerProvider
