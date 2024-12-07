@@ -25,9 +25,7 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
 
     protected override void OnInitialized()
     {
-        _languageOptions = [.. GlobalizationHelpers.LocalizedCultures
-            .Select(CultureInfo.GetCultureInfo)
-            .OrderBy(c => c.NativeName)];
+        _languageOptions = [.. GlobalizationHelpers.LocalizedCultures.OrderBy(c => c.NativeName)];
 
         _selectedUiCulture = _languageOptions.ToHashSet().TryGetCulture(CultureInfo.CurrentUICulture, matchParent: true, out var matchedCulture)
             ? matchedCulture :

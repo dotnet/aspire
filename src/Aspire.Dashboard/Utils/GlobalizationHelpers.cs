@@ -1,29 +1,90 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using Microsoft.AspNetCore.Localization;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Utils;
 
 internal static class GlobalizationHelpers
 {
-    // our localization list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
-    public static HashSet<string> LocalizedCultures { get; } = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant", // Standard cultures for compliance.
-    };
+    private const int MaxCultureParentDepth = 5;
 
-    public static string[] GetSupportedCultures()
-    {
-        var supportedCultures = CultureInfo.GetCultures(CultureTypes.AllCultures)
-            .Where(culture => LocalizedCultures.Contains(culture.TwoLetterISOLanguageName) || LocalizedCultures.Contains(culture.Name))
-            .Select(culture => culture.Name)
-            .ToList();
+    public static List<CultureInfo> LocalizedCultures { get; }
 
-        // Non-standard culture but it is the default in many Chinese browsers. Adding zh-CN allows OS culture customization to flow through the dashboard.
-        supportedCultures.Add("zh-CN");
-        return supportedCultures.ToArray();
+    public static List<CultureInfo> AllCultures { get; }
+
+    public static Dictionary<string, List<CultureInfo>> ExpandedLocalizedCultures { get; }
+
+    static GlobalizationHelpers()
+    {
+        // our localization list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
+        var localizedCultureNames = new string[]
+        {
+            "en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant", // Standard cultures for compliance.
+        };
+
+        LocalizedCultures = localizedCultureNames.Select(CultureInfo.GetCultureInfo).ToList();
+
+        AllCultures = GetAllCultures();
+
+        ExpandedLocalizedCultures = GetExpandedLocalizedCultures(LocalizedCultures, AllCultures);
+    }
+
+    private static Dictionary<string, List<CultureInfo>> GetExpandedLocalizedCultures(List<CultureInfo> localizedCultures, List<CultureInfo> allCultures)
+    {
+        var dict = new Dictionary<string, List<CultureInfo>>(StringComparers.CultureName);
+        foreach (var localizedCulture in localizedCultures)
+        {
+            var selfAndChildren = new List<CultureInfo> { localizedCulture };
+            dict[localizedCulture.Name] = selfAndChildren;
+
+            foreach (var culture in allCultures)
+            {
+                var current = culture;
+                var parentCount = 0;
+
+                // The top-level parent of all cultures is invariant culture.
+                while (current.Parent != CultureInfo.InvariantCulture)
+                {
+                    if (current.Parent.Equals(localizedCulture))
+                    {
+                        selfAndChildren.Add(culture);
+                        break;
+                    }
+                    if (parentCount >= MaxCultureParentDepth)
+                    {
+                        // A recursion limit ensures there is no chance of an infinite loop from a circular parent chain.
+                        break;
+                    }
+                    parentCount++;
+                    current = current.Parent;
+                }
+            }
+        }
+
+        return dict;
+    }
+
+    private static List<CultureInfo> GetAllCultures()
+    {
+        var allCultures = CultureInfo.GetCultures(CultureTypes.AllCultures).ToList();
+
+        // "zh-CN" is a non-standard culture but it is the default in many Chinese browsers.
+        // Ensuring zh-CN is present allows OS culture customization to flow through the dashboard.
+        if (!allCultures.Any(c => c.Name == "zh-CN"))
+        {
+            var simplifiedChinese = CultureInfo.GetCultureInfo("zh-CN");
+            if (simplifiedChinese != null)
+            {
+                allCultures.Add(simplifiedChinese);
+            }
+        }
+
+        return allCultures;
     }
 
     public static bool TryGetCulture(this ISet<CultureInfo> cultureOptions, CultureInfo culture, bool matchParent, [NotNullWhen(true)] out CultureInfo? matchedCulture)
@@ -42,8 +103,7 @@ internal static class GlobalizationHelpers
            while (!Equals(parent, parent.Parent))
            {
                // ensure we don't get stuck in an infinite loop by limiting the number of parent levels we check
-               // to 5
-               if (count == 5)
+               if (count >= MaxCultureParentDepth)
                {
                    matchedCulture = null;
                    return false;
@@ -61,5 +121,38 @@ internal static class GlobalizationHelpers
 
        matchedCulture = null;
        return false;
+    }
+
+    internal static async Task<RequestCulture?> ResolveSetCultureToAcceptedCulture(string acceptLanguage, List<CultureInfo> availableCultures)
+    {
+        var tempHttpContext = new DefaultHttpContext();
+        tempHttpContext.Request.Headers["Accept-Language"] = acceptLanguage;
+
+        // Temp culture that will be set if the request culture cannot be resolved.
+        var defaultCulture = new CultureInfo("aa-bb");
+        var defaultRequestCulture = new RequestCulture(defaultCulture, defaultCulture);
+
+        // Use the RequestLocalizationMiddleware to resolve the culture. This is hacky but it avoids us duplicating all the logic.
+        var middleware = new RequestLocalizationMiddleware(c => Task.CompletedTask, Options.Create(new RequestLocalizationOptions
+        {
+            SupportedCultures = availableCultures,
+            SupportedUICultures = availableCultures,
+            RequestCultureProviders = new List<IRequestCultureProvider>
+                {
+                    new AcceptLanguageHeaderRequestCultureProvider()
+                },
+            DefaultRequestCulture = defaultRequestCulture
+        }), NullLoggerFactory.Instance);
+
+        await middleware.Invoke(tempHttpContext).ConfigureAwait(false);
+
+        var result = tempHttpContext.Features.Get<IRequestCultureFeature>()?.RequestCulture;
+        if (result == null || result == defaultRequestCulture)
+        {
+            // The Accept-Language values are not compatible with the set language.
+            return null;
+        }
+
+        return result;
     }
 }

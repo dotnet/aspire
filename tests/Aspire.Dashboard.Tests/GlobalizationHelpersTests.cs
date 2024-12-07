@@ -13,12 +13,15 @@ public class GlobalizationHelpersTests
     public void GetSupportedCultures_IncludesPopularCultures()
     {
         // Act
-        var supportedCultures = GlobalizationHelpers.GetSupportedCultures();
+        var supportedCultures = GlobalizationHelpers.ExpandedLocalizedCultures
+            .SelectMany(kvp => kvp.Value)
+            .Select(c => c.Name)
+            .ToList();
 
         // Assert
         foreach (var localizedCulture in GlobalizationHelpers.LocalizedCultures)
         {
-            Assert.Contains(localizedCulture, supportedCultures);
+            Assert.Contains(localizedCulture.Name, supportedCultures);
         }
 
         // A few cultures we expect to be available
