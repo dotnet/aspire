@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Components;
@@ -33,6 +34,9 @@ public partial class ResourceDetails
     private bool _showAll;
     private ResourceViewModel? _resource;
     private readonly HashSet<string> _unmaskedItemNames = new();
+
+    private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
+    private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
 
     internal IQueryable<EnvironmentVariableViewModel> FilteredEnvironmentVariables =>
         Resource.Environment
@@ -120,6 +124,23 @@ public partial class ResourceDetails
                 }
             }
         }
+    }
+
+    protected override void OnInitialized()
+    {
+        _resizeLabels = ColumnResizeLabels.Default with
+        {
+            ExactLabel = @Loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeLabel)],
+            ResizeMenu = @Loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeButtonText)]
+
+        };
+        _sortLabels = ColumnSortLabels.Default with
+        {
+            SortMenu = Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortButtonText)],
+            SortMenuAscendingLabel = Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortAscendingButtonText)],
+            SortMenuDescendingLabel = Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortDescendingButtonText)]
+
+        };
     }
 
     private IEnumerable<ResourceDetailRelationship> GetRelationships()

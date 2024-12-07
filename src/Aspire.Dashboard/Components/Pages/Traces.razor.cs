@@ -41,6 +41,9 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     private FluentDataGrid<OtlpTrace> _dataGrid = null!;
     private GridColumnManager _manager = null!;
 
+    private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
+    private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
+
     public string SessionStorageKey => BrowserStorageKeys.TracesPageState;
     public string BasePath => DashboardUrls.TracesBasePath;
     public TracesPageViewModel PageViewModel { get; set; } = null!;
@@ -137,6 +140,20 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
 
     protected override Task OnInitializedAsync()
     {
+        _resizeLabels = ColumnResizeLabels.Default with
+        {
+            ExactLabel = @Loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeLabel)],
+            ResizeMenu = @Loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeButtonText)]
+
+        };
+        _sortLabels = ColumnSortLabels.Default with
+        {
+            SortMenu = Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortButtonText)],
+            SortMenuAscendingLabel = Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortAscendingButtonText)],
+            SortMenuDescendingLabel = Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortDescendingButtonText)]
+
+        };
+
         _gridColumns = [
             new GridColumn(Name: TimestampColumn, DesktopWidth: "0.8fr", MobileWidth: "0.8fr"),
             new GridColumn(Name: NameColumn, DesktopWidth: "2fr", MobileWidth: "2fr"),

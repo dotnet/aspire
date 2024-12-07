@@ -6,6 +6,7 @@ using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;

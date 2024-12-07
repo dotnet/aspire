@@ -14,19 +14,6 @@ public class AspirePropertyColumn<TGridItem, TProp> : PropertyColumn<TGridItem, 
     [Parameter]
     public string? ColumnId { get; set; }
 
-    [Parameter]
-    public bool UseCustomHeaderTemplate { get; set; } = true;
-
-    protected override void OnParametersSet()
-    {
-        base.OnParametersSet();
-
-        if (UseCustomHeaderTemplate)
-        {
-            HeaderCellItemTemplate = AspireFluentDataGridHeaderCell.RenderHeaderContent(Grid);
-        }
-    }
-
     protected override bool ShouldRender()
     {
         if (ColumnManager is not null && ColumnId is not null && !ColumnManager.IsColumnVisible(ColumnId))
