@@ -1,7 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <PreserveCompilationContext>true</PreserveCompilationContext>
     <CopyDocumentationFilesFromPackages>true</CopyDocumentationFilesFromPackages>
   </PropertyGroup>
@@ -18,8 +18,10 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" VersionOverride="$(MicrosoftExtensionsHostingPackageVersion)" />
     <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="System.Text.Json" VersionOverride="9.0.0" />
   </ItemGroup>
 
   <ItemGroup>
