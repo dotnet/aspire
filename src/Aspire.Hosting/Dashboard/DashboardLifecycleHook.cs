@@ -34,7 +34,9 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              IHostApplicationLifetime hostApplicationLifetime,
                                              CodespacesUrlRewriter codespaceUrlRewriter,
                                              IOptions<CodespacesOptions> codespacesOptions,
-                                             IOptions<DevcontainersOptions> devcontainersOptions) : IDistributedApplicationLifecycleHook, IAsyncDisposable
+                                             IOptions<DevcontainersOptions> devcontainersOptions,
+                                             DevcontainerSettingsWriter settingsWriter
+                                             ) : IDistributedApplicationLifecycleHook, IAsyncDisposable
 {
     private Task? _dashboardLogsTask;
     private CancellationTokenSource? _dashboardLogsCts;
@@ -249,7 +251,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
             if (codespacesOptions.Value.IsCodespace || devcontainersOptions.Value.IsDevcontainer)
             {
-                await DevcontainerPortForwardingHelper.SetPortAttributesAsync(
+                await settingsWriter.SetPortAttributesAsync(
                     firstDashboardUrl.Port,
                     firstDashboardUrl.Scheme,
                     "aspire-dashboard",
