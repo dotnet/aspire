@@ -17,6 +17,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="$(VendoringDir)OpenTelemetry.Instrumentation.ConfluentKafka\**\*.cs" LinkBase="OpenTelemetry.Instrumentation.ConfluentKafka" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.Kafka" />
     <PackageReference Include="Confluent.Kafka" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
