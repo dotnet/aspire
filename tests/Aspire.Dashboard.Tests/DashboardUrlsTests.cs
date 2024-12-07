@@ -76,4 +76,10 @@ public class DashboardUrlsTests
 
         Assert.Equal($"/metrics/resource/resource{PlaceholderAllCharactersEncoded}?meter=meter{PlaceholderAllButExclamationMarkEncoded}&instrument=meter{PlaceholderAllButExclamationMarkEncoded}&duration=10&view=table", url);
     }
+
+    [Fact]
+    public void SetLanguagesUrl_HtmlValues_CorrectlyEscaped()
+    {
+        Assert.Equal("/api/set-language?language=fr-FR&redirectUrl=%2Fhi", DashboardUrls.SetLanguageUrl("fr-FR", "/hi"));
+    }
 }
