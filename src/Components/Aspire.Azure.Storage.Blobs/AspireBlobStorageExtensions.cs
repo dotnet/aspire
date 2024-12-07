@@ -37,6 +37,8 @@ public static class AspireBlobStorageExtensions
         Action<AzureStorageBlobsSettings>? configureSettings = null,
         Action<IAzureClientBuilder<BlobServiceClient, BlobClientOptions>>? configureClientBuilder = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
         new BlobStorageComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
     }
 
@@ -64,9 +66,11 @@ public static class AspireBlobStorageExtensions
     private sealed class BlobStorageComponent : AzureComponent<AzureStorageBlobsSettings, BlobServiceClient, BlobClientOptions>
     {
         protected override IAzureClientBuilder<BlobServiceClient, BlobClientOptions> AddClient(
-            AzureClientFactoryBuilder azureFactoryBuilder, AzureStorageBlobsSettings settings, string connectionName,
+            AzureClientFactoryBuilder azureFactoryBuilder,
+            AzureStorageBlobsSettings settings,
+            string connectionName,
             string configurationSectionName)
-        {
+        {          
             return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<BlobServiceClient, BlobClientOptions>((options, cred) =>
             {
                 var connectionString = settings.ConnectionString;
