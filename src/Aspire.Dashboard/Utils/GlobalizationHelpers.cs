@@ -39,7 +39,7 @@ internal static class GlobalizationHelpers
         var dict = new Dictionary<string, List<CultureInfo>>(StringComparers.CultureName);
         foreach (var localizedCulture in localizedCultures)
         {
-            var selfAndChildren = new List<CultureInfo> { localizedCulture };
+            var selfAndChildren = new List<CultureInfo>();
             dict[localizedCulture.Name] = selfAndChildren;
 
             foreach (var culture in allCultures)
@@ -48,9 +48,9 @@ internal static class GlobalizationHelpers
                 var parentCount = 0;
 
                 // The top-level parent of all cultures is invariant culture.
-                while (current.Parent != CultureInfo.InvariantCulture)
+                while (current != CultureInfo.InvariantCulture)
                 {
-                    if (current.Parent.Equals(localizedCulture))
+                    if (current.Equals(localizedCulture))
                     {
                         selfAndChildren.Add(culture);
                         break;
@@ -87,43 +87,42 @@ internal static class GlobalizationHelpers
         return allCultures;
     }
 
-    public static bool TryGetCulture(this ISet<CultureInfo> cultureOptions, CultureInfo culture, bool matchParent, [NotNullWhen(true)] out CultureInfo? matchedCulture)
+    public static bool TryGetKnownParentCulture(List<CultureInfo> knownCultures, CultureInfo culture, [NotNullWhen(true)] out CultureInfo? matchedCulture)
     {
-       if (cultureOptions.Contains(culture))
-       {
-           matchedCulture = culture;
-           return true;
-       }
+        if (knownCultures.Contains(culture))
+        {
+            matchedCulture = culture;
+            return true;
+        }
 
-       // this doesn't work for zh as we support two different zh cultures
-       if (matchParent && !StringComparers.CultureName.Equals(culture.TwoLetterISOLanguageName, "zh"))
-       {
-           var count = 0;
-           var parent = culture.Parent;
-           while (!Equals(parent, parent.Parent))
-           {
-               // ensure we don't get stuck in an infinite loop by limiting the number of parent levels we check
-               if (count >= MaxCultureParentDepth)
-               {
-                   matchedCulture = null;
-                   return false;
-               }
+        var count = 0;
+        var current = culture;
 
-               if (cultureOptions.Contains(parent))
-               {
-                   matchedCulture = parent;
-                   return true;
-               }
+        // The top-level parent of all cultures is invariant culture.
+        while (current != CultureInfo.InvariantCulture)
+        {
+            // ensure we don't get stuck in an infinite loop by limiting the number of parent levels we check
+            if (count >= MaxCultureParentDepth)
+            {
+                matchedCulture = null;
+                return false;
+            }
 
-               count++;
-           }
-       }
+            if (knownCultures.Contains(current))
+            {
+                matchedCulture = current;
+                return true;
+            }
 
-       matchedCulture = null;
-       return false;
+            count++;
+            current = current.Parent;
+        }
+
+        matchedCulture = null;
+        return false;
     }
 
-    internal static async Task<RequestCulture?> ResolveSetCultureToAcceptedCulture(string acceptLanguage, List<CultureInfo> availableCultures)
+    internal static async Task<RequestCulture?> ResolveSetCultureToAcceptedCultureAsync(string acceptLanguage, List<CultureInfo> availableCultures)
     {
         var tempHttpContext = new DefaultHttpContext();
         tempHttpContext.Request.Headers["Accept-Language"] = acceptLanguage;

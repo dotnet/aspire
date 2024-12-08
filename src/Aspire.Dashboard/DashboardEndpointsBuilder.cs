@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
@@ -65,7 +64,7 @@ public static class DashboardEndpointsBuilder
             RequestCulture? requestCulture = null;
             if (acceptLanguage != null)
             {
-                requestCulture = await GlobalizationHelpers.ResolveSetCultureToAcceptedCulture(acceptLanguage, availableCultures).ConfigureAwait(false);
+                requestCulture = await GlobalizationHelpers.ResolveSetCultureToAcceptedCultureAsync(acceptLanguage, availableCultures).ConfigureAwait(false);
             }
             requestCulture ??= new RequestCulture(newLanguage.Name, newLanguage.Name);
 

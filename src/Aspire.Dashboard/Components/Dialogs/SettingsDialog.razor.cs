@@ -27,7 +27,7 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     {
         _languageOptions = [.. GlobalizationHelpers.LocalizedCultures.OrderBy(c => c.NativeName)];
 
-        _selectedUiCulture = _languageOptions.ToHashSet().TryGetCulture(CultureInfo.CurrentUICulture, matchParent: true, out var matchedCulture)
+        _selectedUiCulture = GlobalizationHelpers.TryGetKnownParentCulture(_languageOptions, CultureInfo.CurrentUICulture, out var matchedCulture)
             ? matchedCulture :
             // Otherwise, Blazor has fallen back to a supported language
             CultureInfo.CurrentUICulture;
