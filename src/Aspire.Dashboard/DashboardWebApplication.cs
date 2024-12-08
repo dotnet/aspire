@@ -29,7 +29,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Server.Kestrel;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
@@ -275,11 +274,14 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         Services = _app.Services;
         _logger = GetLogger();
 
-        var supportedCultures = GlobalizationHelpers.GetSupportedCultures();
+        var supportedCultureNames = GlobalizationHelpers.ExpandedLocalizedCultures
+            .SelectMany(kvp => kvp.Value)
+            .Select(c => c.Name)
+            .ToArray();
 
         _app.UseRequestLocalization(new RequestLocalizationOptions()
-            .AddSupportedCultures(supportedCultures)
-            .AddSupportedUICultures(supportedCultures));
+            .AddSupportedCultures(supportedCultureNames)
+            .AddSupportedUICultures(supportedCultureNames));
 
         WriteVersion(_logger);
 
@@ -413,44 +415,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapGrpcService<OtlpGrpcTraceService>();
         _app.MapGrpcService<OtlpGrpcLogsService>();
 
-        if (dashboardOptions.Frontend.AuthMode == FrontendAuthMode.BrowserToken)
-        {
-            _app.MapPost("/api/validatetoken", async (string token, HttpContext httpContext, IOptionsMonitor<DashboardOptions> dashboardOptions) =>
-            {
-                return await ValidateTokenMiddleware.TryAuthenticateAsync(token, httpContext, dashboardOptions).ConfigureAwait(false);
-            });
-
-#if DEBUG
-            // Available in local debug for testing.
-            _app.MapGet("/api/signout", async (HttpContext httpContext) =>
-            {
-                await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(
-                    httpContext,
-                    CookieAuthenticationDefaults.AuthenticationScheme).ConfigureAwait(false);
-                httpContext.Response.Redirect("/");
-            });
-#endif
-        }
-        else if (dashboardOptions.Frontend.AuthMode == FrontendAuthMode.OpenIdConnect)
-        {
-            _app.MapPost("/authentication/logout", () => TypedResults.SignOut(authenticationSchemes: [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]));
-        }
-
-        _app.MapGet("/api/set-language", (string? language, string? redirectUrl, HttpContext httpContext) =>
-        {
-            if (string.IsNullOrEmpty(language) || string.IsNullOrEmpty(redirectUrl))
-            {
-                return Task.FromResult(Results.BadRequest());
-            }
-
-            httpContext.Response.Cookies.Append(
-                CookieRequestCultureProvider.DefaultCookieName,
-                // keep current culture for formatting, etc., but change ui (display) culture
-                CookieRequestCultureProvider.MakeCookieValue(new RequestCulture(CultureInfo.CurrentCulture.Name, language)),
-                new CookieOptions { Expires = DateTimeOffset.UtcNow.AddYears(1) }); // consistent with theme cookie expiry
-
-            return Task.FromResult(Results.LocalRedirect(redirectUrl));
-        });
+        _app.MapDashboardApi(dashboardOptions);
     }
 
     private ILogger<DashboardWebApplication> GetLogger()
