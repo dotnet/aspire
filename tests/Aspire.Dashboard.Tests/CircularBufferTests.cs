@@ -622,4 +622,27 @@ public class CircularBufferTests
             i => Assert.Equal("11", i),
             i => Assert.Equal("12", i));
     }
+
+    [Fact]
+    public void Clear_EmptiesBuffer_ResetsIndex()
+    {
+        var b = CreateBuffer(5);
+
+        b.Insert(0, "0");
+        b.Insert(0, "1");
+        b.Insert(0, "2");
+
+        b.Clear();
+
+        Assert.Empty(b);
+
+        b.Insert(0, "0");
+        b.Insert(0, "1");
+        b.Insert(0, "2");
+
+        Assert.Collection(b,
+            i => Assert.Equal("2", i),
+            i => Assert.Equal("1", i),
+            i => Assert.Equal("0", i));
+    }
 }

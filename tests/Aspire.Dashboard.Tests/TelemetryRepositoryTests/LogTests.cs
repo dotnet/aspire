@@ -1010,4 +1010,53 @@ public class LogTests
             s => Assert.Equal("key-1", s),
             s => Assert.Equal("key-2", s));
     }
+
+    [Fact]
+    public void ClearLogs()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord() }
+                    }
+                }
+            }
+        });
+
+        // Act
+        repository.ClearStructuredLogs();
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var applications = repository.GetApplications();
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+            });
+
+        var logs = repository.GetLogs(new GetLogsContext
+        {
+            ApplicationKey = applications[0].ApplicationKey,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+
+        Assert.Equal(0, logs.TotalItemCount);
+        Assert.Empty(logs.Items);
+    }
 }

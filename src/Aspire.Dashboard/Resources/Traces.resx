@@ -157,4 +157,7 @@
     <value>A maximum of {0} traces are stored. Old traces are automatically removed.</value>
     <comment>{0} is the max count</comment>
   </data>
+  <data name="ClearTraces" xml:space="preserve">
+    <value>Clear traces</value>
+  </data>
 </root>
