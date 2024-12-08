@@ -122,16 +122,17 @@ internal static class GlobalizationHelpers
         return false;
     }
 
+    // Temp culture that will be set if the request culture cannot be resolved.
+    private static readonly RequestCulture s_fallbackRequestCulture = new RequestCulture(CultureInfo.InvariantCulture, CultureInfo.InvariantCulture);
+
     internal static async Task<RequestCulture?> ResolveSetCultureToAcceptedCultureAsync(string acceptLanguage, List<CultureInfo> availableCultures)
     {
         var tempHttpContext = new DefaultHttpContext();
         tempHttpContext.Request.Headers["Accept-Language"] = acceptLanguage;
 
-        // Temp culture that will be set if the request culture cannot be resolved.
-        var defaultCulture = new CultureInfo("aa-bb");
-        var defaultRequestCulture = new RequestCulture(defaultCulture, defaultCulture);
-
-        // Use the RequestLocalizationMiddleware to resolve the culture. This is hacky but it avoids us duplicating all the logic.
+        // Use the RequestLocalizationMiddleware to resolve the culture.
+        // This is hacky and not efficent to create and run middleware, but this is only called once when setting the language.
+        // Reusing the middleware avoids us duplicating the culture matching logic.
         var middleware = new RequestLocalizationMiddleware(c => Task.CompletedTask, Options.Create(new RequestLocalizationOptions
         {
             SupportedCultures = availableCultures,
@@ -140,14 +141,15 @@ internal static class GlobalizationHelpers
                 {
                     new AcceptLanguageHeaderRequestCultureProvider()
                 },
-            DefaultRequestCulture = defaultRequestCulture
+            DefaultRequestCulture = s_fallbackRequestCulture
         }), NullLoggerFactory.Instance);
 
         await middleware.Invoke(tempHttpContext).ConfigureAwait(false);
 
         var result = tempHttpContext.Features.Get<IRequestCultureFeature>()?.RequestCulture;
-        if (result == null || result == defaultRequestCulture)
+        if (result == null || result == s_fallbackRequestCulture)
         {
+            // No result was set or the result is the fallback culture.
             // The Accept-Language values are not compatible with the set language.
             return null;
         }
