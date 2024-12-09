@@ -14,7 +14,7 @@
     margin-left: 0; /* by default there shouldn't be a margin on the button container because it has no contents */
 }
 
-::deep .masking-enabled .button-container, ::deep:hover .button-container, ::deep:focus-within .button-container {
+::deep .masking-enabled .button-container, fluent-data-grid-cell:hover .button-container, fluent-data-grid-cell:focus-within .button-container {
     /* the button container always has contents if masking is enabled or it is hovered over, so display margin */
     margin-left: calc((6 + (var(--design-unit) * var(--density))) * 1px);
 }
@@ -26,7 +26,7 @@
     display: inline-block;
 }
 
-::deep:hover .defaultHidden, ::deep:focus-within .defaultHidden {
+fluent-data-grid-cell:hover .defaultHidden, fluent-data-grid-cell:focus-within .defaultHidden {
     opacity: 1; /* safari has a bug where hover is not always called on an invisible element, so we use opacity instead */
     width: auto;
 }
