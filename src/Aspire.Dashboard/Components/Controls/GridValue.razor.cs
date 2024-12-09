@@ -41,12 +41,6 @@ public partial class GridValue
     public RenderFragment? ContentInButtonArea { get; set; }
 
     /// <summary>
-    /// If set, copies this value instead of <see cref="Value"/>.
-    /// </summary>
-    [Parameter]
-    public string? ValueToCopy { get; set; }
-
-    /// <summary>
     /// If set, this value is visualized rather than <see cref="Value"/>.
     /// </summary>
     [Parameter]
@@ -151,6 +145,6 @@ public partial class GridValue
 
     private async Task OpenTextVisualizerAsync()
     {
-        await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, ValueDescription, Value ?? string.Empty);
+        await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, ValueDescription, ValueToVisualize ?? Value ?? string.Empty);
     }
 }
