@@ -7,7 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Aspire.Hosting.Codespaces;
+namespace Aspire.Hosting.Devcontainers.Codespaces;
 
 internal sealed class CodespacesResourceUrlRewriterService(ILogger<CodespacesResourceUrlRewriterService> logger, IOptions<CodespacesOptions> options, CodespacesUrlRewriter codespaceUrlRewriter, ResourceNotificationService resourceNotificationService) : BackgroundService
 {

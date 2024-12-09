@@ -14,4 +14,7 @@ internal static class DashboardUIHelpers
     // If there is no count then default to a limit to avoid getting all data.
     // Given the size of rows on dashboard grids, 100 rows should always fill the grid on the screen.
     public const int DefaultDataGridResultCount = 100;
+
+    // Don't attempt to display more than 2 highlighted commands. Many commands will take up too much space.
+    public const int MaxHighlightedCommands = 2;
 }

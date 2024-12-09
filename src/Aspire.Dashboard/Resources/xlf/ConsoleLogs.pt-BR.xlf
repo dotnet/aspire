@@ -42,9 +42,29 @@
         <target state="translated">{0} logs do console</target>
         <note>{0} is an application name</note>
       </trans-unit>
+      <trans-unit id="ConsoleLogsResourceCommands">
+        <source>Resource commands</source>
+        <target state="new">Resource commands</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">
         <source>Select resource</source>
         <target state="translated">Selecionar recurso</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsSettings">
+        <source>Console logs settings</source>
+        <target state="new">Console logs settings</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsTimestampHide">
+        <source>Hide timestamps</source>
+        <target state="new">Hide timestamps</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsTimestampShow">
+        <source>Show timestamps</source>
+        <target state="new">Show timestamps</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">

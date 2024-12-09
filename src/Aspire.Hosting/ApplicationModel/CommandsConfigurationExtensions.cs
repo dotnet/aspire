@@ -44,7 +44,7 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Hidden;
                 }
             },
-            displayDescription: null,
+            displayDescription: "Start resource",
             parameter: null,
             confirmationMessage: null,
             iconName: "Play",
@@ -76,7 +76,7 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Hidden;
                 }
             },
-            displayDescription: null,
+            displayDescription: "Stop resource",
             parameter: null,
             confirmationMessage: null,
             iconName: "Stop",
@@ -105,7 +105,7 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Enabled;
                 }
             },
-            displayDescription: null,
+            displayDescription: "Restart resource",
             parameter: null,
             confirmationMessage: null,
             iconName: "ArrowCounterclockwise",

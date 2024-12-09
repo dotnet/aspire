@@ -24,12 +24,16 @@ internal static class DashboardUrls
         return url;
     }
 
-    public static string ConsoleLogsUrl(string? resource = null)
+    public static string ConsoleLogsUrl(string? resource = null, bool? hideTimestamp = null)
     {
         var url = $"/{ConsoleLogBasePath}";
         if (resource != null)
         {
             url += $"/resource/{Uri.EscapeDataString(resource)}";
+        }
+        if (hideTimestamp ?? false)
+        {
+            url = QueryHelpers.AddQueryString(url, "hideTimestamp", "true");
         }
 
         return url;
@@ -133,6 +137,15 @@ internal static class DashboardUrls
         {
             url = QueryHelpers.AddQueryString(url, "t", token);
         }
+
+        return url;
+    }
+
+    public static string SetLanguageUrl(string language, string redirectUrl)
+    {
+        var url = "/api/set-language";
+        url = QueryHelpers.AddQueryString(url, "language", language);
+        url = QueryHelpers.AddQueryString(url, "redirectUrl", redirectUrl);
 
         return url;
     }
