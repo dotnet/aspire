@@ -21,7 +21,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     private IDisposable? _locationChangingRegistration;
     private IJSObjectReference? _jsModule;
     private IJSObjectReference? _keyboardHandlers;
-    private IJSObjectReference? _textVisualizerHandler;
     private DotNetObjectReference<ShortcutManager>? _shortcutManagerReference;
     private DotNetObjectReference<MainLayout>? _layoutReference;
     private IDialogReference? _openPageDialog;
@@ -141,7 +140,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             _shortcutManagerReference = DotNetObjectReference.Create(ShortcutManager);
             _layoutReference = DotNetObjectReference.Create(this);
             _keyboardHandlers = await JS.InvokeAsync<IJSObjectReference>("window.registerGlobalKeydownListener", _shortcutManagerReference);
-            _textVisualizerHandler = await JS.InvokeAsync<IJSObjectReference>("window.registerOpenTextVisualizerOnClick", _layoutReference);
             ShortcutManager.AddGlobalKeydownListener(this);
         }
     }
@@ -298,11 +296,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             {
                 await JS.InvokeVoidAsync("window.unregisterGlobalKeydownListener", h);
             }
-
-            if (_textVisualizerHandler is not null)
-            {
-                await JS.InvokeVoidAsync("window.unregisterOpenTextVisualizerOnClick", _textVisualizerHandler);
-            }
         }
         catch (JSDisconnectedException)
         {
@@ -312,6 +305,5 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         await JSInteropHelpers.SafeDisposeAsync(_jsModule);
         await JSInteropHelpers.SafeDisposeAsync(_keyboardHandlers);
-        await JSInteropHelpers.SafeDisposeAsync(_textVisualizerHandler);
     }
 }

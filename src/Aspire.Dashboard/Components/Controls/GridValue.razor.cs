@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
+using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
@@ -87,17 +88,20 @@ public partial class GridValue
     [Parameter]
     public bool StopClickPropagation { get; set; }
 
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+
     [Inject]
     public required IJSRuntime JS { get; init; }
+
+    [Inject]
+    public required IDialogService DialogService { get; init; }
 
     private readonly Icon _maskIcon = new Icons.Regular.Size16.EyeOff();
     private readonly Icon _unmaskIcon = new Icons.Regular.Size16.Eye();
     private readonly string _cellTextId = $"celltext-{Guid.NewGuid():N}";
-    private readonly string _copyId = $"copy-{Guid.NewGuid():N}";
-    private readonly string _menuAnchorId = $"menu-{Guid.NewGuid():N}";
     private string? _value;
     private string? _formattedValue;
-    private bool _isMenuOpen;
 
     protected override void OnInitialized()
     {
@@ -145,8 +149,8 @@ public partial class GridValue
         await IsMaskedChanged.InvokeAsync(IsMasked);
     }
 
-    private void ToggleMenuOpen()
+    private async Task OpenTextVisualizerAsync()
     {
-        _isMenuOpen = !_isMenuOpen;
+        await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, ValueDescription, Value ?? string.Empty);
     }
 }
