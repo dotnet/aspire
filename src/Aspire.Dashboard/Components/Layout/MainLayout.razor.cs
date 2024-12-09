@@ -272,16 +272,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         StateHasChanged();
     }
 
-    [JSInvokable]
-    public async Task OpenTextVisualizerAsync(IJSStreamReference valueStream, string valueDescription)
-    {
-        await using var referenceStream = await valueStream.OpenReadStreamAsync();
-        using var reader = new StreamReader(referenceStream);
-        var value = await reader.ReadToEndAsync();
-
-        await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, valueDescription, value);
-    }
-
     public async ValueTask DisposeAsync()
     {
         _shortcutManagerReference?.Dispose();
