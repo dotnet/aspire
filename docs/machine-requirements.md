@@ -37,7 +37,7 @@ Currently it's only tested with Docker Desktop.
 ### Install VS Code with DevContainers Extension
 
 * [VS Code](https://code.visualstudio.com/Download)
-* [DevContainers Extension](https://marketplace.visualstudio.com/items?itemName=ms-VS Code-remote.remote-containers)
+* [DevContainers Extension](https://marketplace.visualstudio.com/items?itemName=ms-VSCode-remote.remote-containers)
 
 ## (Browser) Codespaces
 
