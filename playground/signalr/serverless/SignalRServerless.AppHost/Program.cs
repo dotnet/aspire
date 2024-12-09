@@ -14,7 +14,7 @@ var signalr = builder
 builder.AddAzureFunctionsProject<Projects.SignalRServerless_Functions>("funcapp")
     .WithHostStorage(storage)
     .WithExternalHttpEndpoints()
-    .WithEnvironment("SignalR_ConnectionString", signalr) // Injected connection string as env variable
+    .WithEnvironment("AzureSignalRConnectionString", signalr) // Injected connection string as env variable
     .WithReference(signalr)
     .WithReference(blob)
     .WithReference(queue);
