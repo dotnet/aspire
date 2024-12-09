@@ -35,15 +35,6 @@
         </span>
     }
 
-    @{
-        (string, object)[] uncapturedCopyAttributes = [
-            ("alt", PreCopyToolTip),
-            ("title", string.Empty),
-            ("aria-label", Loc[nameof(ControlsStrings.GridValueCopyToClipboard)]),
-            ("tabindex", "0")
-        ];
-    }
-
     @* Button area *@
 
     <div @onclick:stopPropagation="true" class="button-container">
