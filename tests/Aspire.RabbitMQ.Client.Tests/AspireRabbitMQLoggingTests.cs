@@ -98,7 +98,7 @@ public class AspireRabbitMQLoggingTests
     }
 
     [Fact]
-    public void TestException()
+    public void TestExceptionWithoutInnerException()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Services.AddSingleton<RabbitMQEventSourceLogForwarder>();
@@ -130,6 +130,52 @@ public class AspireRabbitMQLoggingTests
         Assert.Equal(logMessage, logs[0].Message);
 
         var errorEvent = Assert.IsAssignableFrom<IReadOnlyList<KeyValuePair<string, object?>>>(logs[0].State);
+        Assert.Equal(3, errorEvent.Count);
+
+        Assert.Equal("exception.type", errorEvent[0].Key);
+        Assert.Equal("System.InvalidOperationException", errorEvent[0].Value);
+
+        Assert.Equal("exception.message", errorEvent[1].Key);
+        Assert.Equal(exceptionMessage, errorEvent[1].Value);
+
+        Assert.Equal("exception.stacktrace", errorEvent[2].Key);
+        Assert.Contains("AspireRabbitMQLoggingTests.TestException", errorEvent[2].Value?.ToString());
+    }
+
+    [Fact]
+    public void TestExceptionWithInnerException()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Services.AddSingleton<RabbitMQEventSourceLogForwarder>();
+
+        var logger = new TestLogger();
+        builder.Services.AddSingleton<ILoggerProvider>(sp => new LoggerProvider(logger));
+
+        using var host = builder.Build();
+        host.Services.GetRequiredService<RabbitMQEventSourceLogForwarder>().Start();
+
+        var exceptionMessage = "Test exception";
+        Exception testException;
+        InvalidOperationException innerException = new("Inner exception");
+        try
+        {
+            throw new InvalidOperationException(exceptionMessage, innerException);
+        }
+        catch (Exception ex)
+        {
+            testException = ex;
+        }
+
+        Assert.NotNull(testException);
+        var logMessage = "This is an error message.";
+        RabbitMqClientEventSource.Log.Error(logMessage, testException);
+
+        var logs = logger.Logs.ToArray();
+        Assert.Single(logs);
+        Assert.Equal(LogLevel.Error, logs[0].Level);
+        Assert.Equal(logMessage, logs[0].Message);
+
+        var errorEvent = Assert.IsAssignableFrom<IReadOnlyList<KeyValuePair<string, object?>>>(logs[0].State);
         Assert.Equal(4, errorEvent.Count);
 
         Assert.Equal("exception.type", errorEvent[0].Key);
@@ -142,7 +188,7 @@ public class AspireRabbitMQLoggingTests
         Assert.Contains("AspireRabbitMQLoggingTests.TestException", errorEvent[2].Value?.ToString());
 
         Assert.Equal("exception.innerexception", errorEvent[3].Key);
-        Assert.True(string.IsNullOrEmpty(errorEvent[3].Value?.ToString()));
+        Assert.Equal($"{innerException.GetType()}: {innerException.Message}", errorEvent[3].Value?.ToString());
     }
 
     private sealed class LoggerProvider(TestLogger logger) : ILoggerProvider
