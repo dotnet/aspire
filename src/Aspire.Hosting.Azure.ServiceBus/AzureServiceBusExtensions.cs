@@ -365,9 +365,9 @@ public static class AzureServiceBusExtensions
         }
 
         // To use the existing ServiceBus health check we would need to know if there is any queue or topic defined.
-        // We can register a health check for a queue and then no-op if there are no queues. Same for topics. This custom
-        // can be registered and will then iterate over the queues and topics. If no queues or no topics are defined
-        // then the health check will be successful.
+        // We can register a health check for a queue and then no-op if there are no queues. Same for topics. This
+        // custom ServiceBusHealthCheck can be registered and will then iterate over the queues and topics.
+        // If no queues or no topics are defined then the health check will be successful.
 
         builder.ApplicationBuilder.Services.AddHealthChecks()
           .Add(new HealthCheckRegistration(
