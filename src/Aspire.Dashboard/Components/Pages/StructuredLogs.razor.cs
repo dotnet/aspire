@@ -237,6 +237,11 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
     }
 
+    private void ClearStructuredLogs()
+    {
+        TelemetryRepository.ClearStructuredLogs();
+    }
+
     private async Task OnShowPropertiesAsync(OtlpLogEntry entry, string? buttonId)
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
