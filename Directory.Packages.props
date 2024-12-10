@@ -96,7 +96,7 @@
     <!-- NuGet dependencies -->
     <PackageVersion Include="NuGet.ProjectModel" Version="6.11.1" />
     <!-- external dependencies -->
-    <PackageVersion Include="Confluent.Kafka" Version="2.6.0" />
+    <PackageVersion Include="Confluent.Kafka" Version="2.6.1" />
     <PackageVersion Include="Dapper" Version="2.1.44" />
     <PackageVersion Include="DnsClient" Version="1.8.0" />
     <PackageVersion Include="Elastic.Clients.Elasticsearch" Version="8.15.10" />
