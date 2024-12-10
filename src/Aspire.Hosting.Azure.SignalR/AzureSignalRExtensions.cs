@@ -99,13 +99,19 @@ public static class AzureSignalRExtensions
         var healthCheckKey = $"{builder.Resource.Name}_check";
         var healthCheckRegistration = new HealthCheckRegistration(
             healthCheckKey,
-            sp => {
-                return new AzureSignalRHealthCheck(hostname ?? throw new InvalidOperationException("Hostname is unavailable"));
+            sp =>
+            {
+                var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
+                if (hostname == null)
+                {
+                    throw new InvalidOperationException("Hostname is unavailable");
+                }
+                return new AzureSignalRHealthCheck(new Uri(hostname), clientFactory);
             },
             failureStatus: default,
             tags: default
         );
-        builder.ApplicationBuilder.Services.AddHealthChecks().Add(healthCheckRegistration);
+        builder.ApplicationBuilder.Services.AddHttpClient().AddHealthChecks().Add(healthCheckRegistration);
         if (configureContainer != null)
         {
             var surrogate = new AzureSignalREmulatorResource(builder.Resource);

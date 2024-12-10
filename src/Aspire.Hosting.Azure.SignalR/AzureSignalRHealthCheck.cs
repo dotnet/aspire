@@ -6,21 +6,23 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 namespace Aspire.Hosting.Azure.SignalR;
 internal sealed class AzureSignalRHealthCheck : IHealthCheck
 {
-    private readonly HttpClient _client;
-    private readonly String _hostName;
+    private readonly Uri _hostName;
+    private readonly IHttpClientFactory _clientFactory;
 
-    public AzureSignalRHealthCheck(string hostName)
+    public AzureSignalRHealthCheck(Uri hostName, IHttpClientFactory clientFactory)
     {
         ArgumentNullException.ThrowIfNull(hostName, nameof(hostName));
-        _client = new HttpClient();
         _hostName = hostName;
+        _clientFactory = clientFactory;
     }
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
+        using HttpClient client = _clientFactory.CreateClient();
         try
         {
-            var response = await _client.GetAsync(_hostName + "/api/health", cancellationToken).ConfigureAwait(false);
+            Console.WriteLine($"Checking health of {_hostName.AbsoluteUri}");
+            var response = await client.GetAsync(_hostName.AbsoluteUri + "api/health", cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 return new HealthCheckResult(context.Registration.FailureStatus, description: $"The health check endpoint returned status code {response.StatusCode}.");
