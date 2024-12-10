@@ -17,7 +17,7 @@ public static class RabbitMQBuilderExtensions
     /// Adds a RabbitMQ container to the application model.
     /// </summary>
     /// <remarks>
-    /// This version of the package defaults to the <inheritdoc cref="RabbitMQContainerImageTags.Tag"/> tag of the <inheritdoc cref="RabbitMQContainerImageTags.Image"/> container image.
+    /// This version of the package defaults to the <inheritdoc cref="RabbitMQContainerImageTags.Tag" path="/summary"/> tag of the <inheritdoc cref="RabbitMQContainerImageTags.Image" path="/summary"/> container image.
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -111,7 +111,7 @@ public static class RabbitMQBuilderExtensions
     /// <remarks>
     /// This method only supports custom tags matching the default RabbitMQ ones for the corresponding management tag to be inferred automatically, e.g. <c>4</c>, <c>4.0-alpine</c>, <c>4.0.2-management-alpine</c>, etc.<br />
     /// Calling this method on a resource configured with an unrecognized image registry, name, or tag will result in a <see cref="DistributedApplicationException"/> being thrown.
-    /// This version of the package defaults to the <inheritdoc cref="RabbitMQContainerImageTags.ManagementTag"/> tag of the <inheritdoc cref="RabbitMQContainerImageTags.Image"/> container image.
+    /// This version of the package defaults to the <inheritdoc cref="RabbitMQContainerImageTags.ManagementTag" path="/summary"/> tag of the <inheritdoc cref="RabbitMQContainerImageTags.Image" path="/summary"/> container image.
     /// </remarks>
     /// <param name="builder">The resource builder.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>

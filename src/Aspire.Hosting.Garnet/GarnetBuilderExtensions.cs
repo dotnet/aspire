@@ -20,7 +20,7 @@ public static class GarnetBuilderExtensions
     /// Adds a Garnet container to the application model.
     /// </summary>
     /// <remarks>
-    /// This version of the package defaults to the <inheritdoc cref="GarnetContainerImageTags.Tag"/> tag of the <inheritdoc cref="GarnetContainerImageTags.Registry"/>/<inheritdoc cref="GarnetContainerImageTags.Image"/> container image.
+    /// This version of the package defaults to the <inheritdoc cref="GarnetContainerImageTags.Tag" path="/summary"/> tag of the <inheritdoc cref="GarnetContainerImageTags.Registry" path="/summary"/>/<inheritdoc cref="GarnetContainerImageTags.Image" path="/summary"/> container image.
     /// </remarks>
     /// <example>
     /// Use in application host
