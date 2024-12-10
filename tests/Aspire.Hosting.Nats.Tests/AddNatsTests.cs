@@ -3,7 +3,6 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -110,7 +109,7 @@ public class AddNatsTests
         Assert.Equal(NatsContainerImageTags.Image, containerAnnotation.Image);
         Assert.Equal(NatsContainerImageTags.Registry, containerAnnotation.Registry);
 
-        var args = await ArgumentEvaluator.GetArgumentListAsync(containerResource);
+        var args = await containerResource.GetArgumentListAsync();
 
         Assert.Collection(args,
             arg => Assert.Equal("--user", arg),
@@ -156,7 +155,7 @@ public class AddNatsTests
         Assert.Equal(NatsContainerImageTags.Image, containerAnnotation.Image);
         Assert.Equal(NatsContainerImageTags.Registry, containerAnnotation.Registry);
 
-        var args = await ArgumentEvaluator.GetArgumentListAsync(containerResource);
+        var args = await containerResource.GetArgumentListAsync();
 
         Assert.Collection(args,
             arg => Assert.Equal("--user", arg),

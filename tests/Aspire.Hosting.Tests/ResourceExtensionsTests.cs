@@ -259,6 +259,32 @@ public class ResourceExtensionsTests
             });
     }
 
+    [Fact]
+    public async Task GetArgumentListAsyncReturnCorrectArguments()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.Configuration["Parameters:DummyKey"] = "DummyValue";
+
+        var dummyParameter = builder.AddParameter("DummyKey").Resource;
+        var resource = new DummyResource("dummy");
+        var container = builder.AddResource(resource)
+         .WithArgs(["--arg1", "--arg2"])
+         .WithArgs(context =>
+         {
+             context.Args.Add("--arg3");
+         })
+         .WithArgs(dummyParameter);
+
+        var args = await container.Resource.GetArgumentListAsync().DefaultTimeout();
+
+        Assert.Collection(args,
+            arg => Assert.Equal("--arg1", arg),
+            arg => Assert.Equal("--arg2", arg),
+            arg => Assert.Equal("--arg3", arg),
+            arg => Assert.Equal("DummyValue", arg)
+            );
+    }
+
     private sealed class ParentResource(string name) : Resource(name)
     {
 
@@ -275,6 +301,11 @@ public class ResourceExtensionsTests
     }
 
     private sealed class AnotherDummyAnnotation : IResourceAnnotation
+    {
+
+    }
+
+    private sealed class DummyResource(string name) : Resource(name), IResourceWithArgs
     {
 
     }
