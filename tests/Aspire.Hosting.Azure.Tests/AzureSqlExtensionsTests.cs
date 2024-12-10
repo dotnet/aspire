@@ -161,15 +161,15 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         Assert.True(sql.Resource.IsContainer(), "The resource should now be a container resource.");
         var serverConnectionString = await sql.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=", serverConnectionString);
-        Assert.EndsWith(";TrustServerCertificate=true", serverConnectionString);
+        Assert.EndsWith(";TrustServerCertificate=true;Integrated Security=false", serverConnectionString);
 
         var db1ConnectionString = await db1.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=", db1ConnectionString);
-        Assert.EndsWith(";TrustServerCertificate=true;Database=db1", db1ConnectionString);
+        Assert.EndsWith(";TrustServerCertificate=true;Integrated Security=false;Database=db1", db1ConnectionString);
 
         var db2ConnectionString = await db2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=", db2ConnectionString);
-        Assert.EndsWith(";TrustServerCertificate=true;Database=db2Name", db2ConnectionString);
+        Assert.EndsWith(";TrustServerCertificate=true;Integrated Security=false;Database=db2Name", db2ConnectionString);
     }
 
     [Theory]

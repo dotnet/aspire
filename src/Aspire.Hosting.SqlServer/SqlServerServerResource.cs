@@ -35,7 +35,7 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
 
     private ReferenceExpression ConnectionString =>
         ReferenceExpression.Create(
-            $"Server={PrimaryEndpoint.Property(EndpointProperty.IPV4Host)},{PrimaryEndpoint.Property(EndpointProperty.Port)};User ID=sa;Password={PasswordParameter};TrustServerCertificate=true");
+            $"Server={PrimaryEndpoint.Property(EndpointProperty.IPV4Host)},{PrimaryEndpoint.Property(EndpointProperty.Port)};User ID=sa;Password={PasswordParameter};TrustServerCertificate=true;Integrated Security=false");
 
     /// <summary>
     /// Gets the connection string expression for the SQL Server.
@@ -57,7 +57,7 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     /// Gets the connection string for the SQL Server.
     /// </summary>
     /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    /// <returns>A connection string for the SQL Server in the form "Server=host,port;User ID=sa;Password=password;TrustServerCertificate=true".</returns>
+    /// <returns>A connection string for the SQL Server in the form "Server=host,port;User ID=sa;Password=password;TrustServerCertificate=true;Integrated Security=false".</returns>
     public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
     {
         if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
