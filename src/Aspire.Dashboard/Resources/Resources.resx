@@ -133,6 +133,9 @@
   <data name="ResourcesResourceTypesHeader" xml:space="preserve">
     <value>Resource types</value>
   </data>
+  <data name="ResourcesResourceStatesHeader" xml:space="preserve">
+    <value>State</value>
+  </data>
   <data name="ResourcesEnvironmentVariablesHeader" xml:space="preserve">
     <value>Environment variables for {0}</value>
     <comment>{0} is a resource</comment>

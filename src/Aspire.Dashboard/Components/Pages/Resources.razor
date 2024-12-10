@@ -56,13 +56,20 @@
 
         <MainSection>
             <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isTypeFilterVisible" AutoFocus="true" FixedPlacement="true">
-                <Header>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)]</Header>
                 <Body>
-                    <SelectResourceTypes AllResourceTypes="_allResourceTypes"
-                                         VisibleResourceTypes="_visibleResourceTypes"
-                                         OnAllResourceTypesCheckedChangedAsync="@OnAllResourceTypesCheckedChangedAsync"
-                                         AreAllTypesVisible="@(() => AreAllTypesVisible)"
-                                         OnResourceTypeVisibilityChangedAsync="@OnResourceTypeVisibilityChangedAsync" />
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="5">
+                    <div>
+                        <h4>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)]</h4>
+                        <SelectResourceTypes AllResourceTypes="_allResourceTypes"
+                                             VisibleResourceTypes="_visibleResourceTypes"
+                                             OnAllResourceTypesCheckedChangedAsync="@OnAllResourceTypesCheckedChangedAsync"
+                                             AreAllTypesVisible="@(() => AreAllTypesVisible)"
+                                             OnResourceTypeVisibilityChangedAsync="@OnResourceTypeVisibilityChangedAsync"/>
+                    </div>
+                    <div>
+                        <h4>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceStatesHeader)]</h4>
+                    </div>
+                </FluentStack>
                 </Body>
             </FluentPopover>
 
