@@ -286,14 +286,6 @@ public static class AzureServiceBusExtensions
 
         Directory.CreateDirectory(Path.GetDirectoryName(configHostFile)!);
 
-        if (!OperatingSystem.IsWindows())
-        {
-            File.SetUnixFileMode(configHostFile,
-                UnixFileMode.UserRead | UnixFileMode.UserWrite
-                | UnixFileMode.GroupRead | UnixFileMode.GroupWrite
-                | UnixFileMode.OtherRead | UnixFileMode.OtherWrite);
-        }
-
         var password = PasswordGenerator.Generate(16, true, true, true, true, 0, 0, 0, 0);
 
         var customMountAnnotation = new ContainerMountAnnotation(
@@ -403,6 +395,14 @@ public static class AzureServiceBusExtensions
 
                 using var stream = new FileStream(configFileMount.Source!, FileMode.Create);
                 using var writer = new Utf8JsonWriter(stream);
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    File.SetUnixFileMode(configHostFile,
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite
+                        | UnixFileMode.GroupRead | UnixFileMode.GroupWrite
+                        | UnixFileMode.OtherRead | UnixFileMode.OtherWrite);
+                }
 
                 writer.WriteStartObject();                      // {
                 writer.WriteStartObject("UserConfig");          //   "UserConfig": {
