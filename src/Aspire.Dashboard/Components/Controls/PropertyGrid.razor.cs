@@ -39,11 +39,6 @@ public interface IPropertyGridItem
     string? Value { get; }
 
     /// <summary>
-    /// Overrides the value to copy. If <see langword="null"/>, <see cref="Value"/> is copied.
-    /// </summary>
-    public string? ValueToCopy => null;
-
-    /// <summary>
     /// Overrides the value to visualize. If <see langword="null"/>, <see cref="Value"/> is visualized.
     /// </summary>
     public string? ValueToVisualize => null;

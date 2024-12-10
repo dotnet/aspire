@@ -5,8 +5,7 @@
 @inject IStringLocalizer<Resources> ResourcesLoc
 
 <GridValue Value="@Value"
-           ValueToCopy="@ValueToCopy"
-           ValueToVisualize="@ValueToCopy"
+           ValueToVisualize="@ValueToVisualize"
            ValueDescription="@ResourcesLoc[nameof(Resources.ResourcesSourceColumnHeader)]"
            EnableHighlighting="true"
            HighlightText="@FilterText"
@@ -32,7 +31,7 @@
     public required string? ContentAfterValue { get; set; }
 
     [Parameter, EditorRequired]
-    public required string ValueToCopy { get; set; }
+    public required string ValueToVisualize { get; set; }
 
     [Parameter, EditorRequired]
     public required string Tooltip { get; set; }

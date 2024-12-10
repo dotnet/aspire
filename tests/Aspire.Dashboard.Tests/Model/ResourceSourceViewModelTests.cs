@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
@@ -40,7 +40,7 @@ public class ResourceSourceViewModelTests
             Assert.NotNull(actual);
             Assert.Equal(expected.Value, actual.Value);
             Assert.Equal(expected.ContentAfterValue, actual.ContentAfterValue);
-            Assert.Equal(expected.ValueToCopy, actual.ValueToCopy);
+            Assert.Equal(expected.ValueToVisualize, actual.ValueToVisualize);
             Assert.Equal(expected.Tooltip, actual.Tooltip);
         }
 
@@ -65,7 +65,7 @@ public class ResourceSourceViewModelTests
             new ResourceSourceViewModel(
                 value: "project",
                 contentAfterValue: "arg1 arg2",
-                valueToCopy: "path/to/executable arg1 arg2",
+                valueToVisualize: "path/to/executable arg1 arg2",
                 tooltip: "path/to/executable arg1 arg2"));
 
         // Project without executable arguments
@@ -79,7 +79,7 @@ public class ResourceSourceViewModelTests
             new ResourceSourceViewModel(
                 value: "project",
                 contentAfterValue: null,
-                valueToCopy: "path/to/project",
+                valueToVisualize: "path/to/project",
                 tooltip: "path/to/project"));
 
         // Executable with arguments
@@ -93,7 +93,7 @@ public class ResourceSourceViewModelTests
             new ResourceSourceViewModel(
                 value: "executable",
                 contentAfterValue: "arg1 arg2",
-                valueToCopy: "path/to/executable arg1 arg2",
+                valueToVisualize: "path/to/executable arg1 arg2",
                 tooltip: "path/to/executable arg1 arg2"));
 
         // Container image
@@ -107,7 +107,7 @@ public class ResourceSourceViewModelTests
             new ResourceSourceViewModel(
                 value: "my-container-image",
                 contentAfterValue: null,
-                valueToCopy: "my-container-image",
+                valueToVisualize: "my-container-image",
                 tooltip: "my-container-image"));
 
         // Resource source property
@@ -121,7 +121,7 @@ public class ResourceSourceViewModelTests
             new ResourceSourceViewModel(
                 value: "source-value",
                 contentAfterValue: null,
-                valueToCopy: "source-value",
+                valueToVisualize: "source-value",
                 tooltip: "source-value"));
 
         // Executable path without arguments
@@ -135,7 +135,7 @@ public class ResourceSourceViewModelTests
             new ResourceSourceViewModel(
                 value: "executable",
                 contentAfterValue: null,
-                valueToCopy: "path/to/executable",
+                valueToVisualize: "path/to/executable",
                 tooltip: ""));
 
         return data;
