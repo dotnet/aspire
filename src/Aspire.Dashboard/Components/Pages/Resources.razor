@@ -5,7 +5,6 @@
 @using System.Globalization
 @using Aspire.Dashboard.Components.Controls.Grid
 @using Aspire.Dashboard.Model
-@using Humanizer
 @inject IStringLocalizer<Dashboard.Resources.Resources> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 @inject IStringLocalizer<Columns> ColumnsLoc
@@ -43,8 +42,18 @@
             else
             {
                 <div>
-                    <p>TODO REPLACE WITH WHAT'S IN THE MAIN SECTION COMPONENT</p>
-
+                    <ResourceFilters
+                        AllResourceStates="@_allResourceStates"
+                        VisibleResourceStates="@_visibleResourceStates"
+                        AllResourceTypes="@_allResourceTypes"
+                        VisibleResourceTypes="@_visibleResourceTypes"
+                        AllResourceHealthStates="@_allResourceHealthStates"
+                        VisibleResourceHealthStates="@_visibleResourceHealthStates"
+                        OnAllFilterVisibilityCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
+                        OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync"
+                        AreAllTypesVisible="@AreAllTypesVisible"
+                        AreAllStatesVisible="@AreAllStatesVisible"
+                        AreAllHealthStatesVisible="@AreAllHealthStatesVisible" />
                 </div>
             }
         </ToolbarSection>
@@ -52,27 +61,18 @@
         <MainSection>
             <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isFilterPopupVisible" AutoFocus="true" FixedPlacement="true">
                 <Body>
-                <FluentStack Orientation="Orientation.Vertical">
-                    <div>
-                        <h4>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)]</h4>
-                        <SelectResourceOptions
-                            AllValues="_allResourceTypes"
-                            VisibleValues="_visibleResourceTypes"
-                            OnAllResourceTypesCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
-                            @bind-AreAllVisible="@AreAllTypesVisible"
-                            OnValueVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync"/>
-                    </div>
-                    <div>
-                        <h4>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceStatesHeader)]</h4>
-                        <SelectResourceOptions
-                            AllValues="_allResourceStates"
-                            VisibleValues="_visibleResourceStates"
-                            OnAllResourceTypesCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
-                            @bind-AreAllVisible="@AreAllStatesVisible"
-                            OnValueVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync"/>
-
-                    </div>
-                </FluentStack>
+                    <ResourceFilters
+                        AllResourceStates="@_allResourceStates"
+                        VisibleResourceStates="@_visibleResourceStates"
+                        AllResourceTypes="@_allResourceTypes"
+                        VisibleResourceTypes="@_visibleResourceTypes"
+                        AllResourceHealthStates="@_allResourceHealthStates"
+                        VisibleResourceHealthStates="@_visibleResourceHealthStates"
+                        OnAllFilterVisibilityCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
+                        OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync"
+                        AreAllTypesVisible="@AreAllTypesVisible"
+                        AreAllStatesVisible="@AreAllStatesVisible"
+                        AreAllHealthStatesVisible="@AreAllHealthStatesVisible" />
                 </Body>
             </FluentPopover>
 

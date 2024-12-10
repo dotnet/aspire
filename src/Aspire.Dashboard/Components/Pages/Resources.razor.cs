@@ -9,6 +9,7 @@ using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
+using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -54,6 +55,10 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     public string? VisibleStates { get; set; }
 
     [Parameter]
+    [SupplyParameterFromQuery]
+    public string? VisibleHealthStates { get; set; }
+
+    [Parameter]
     [SupplyParameterFromQuery(Name = "resource")]
     public string? ResourceName { get; set; }
 
@@ -71,18 +76,23 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private GridColumnManager _manager = null!;
     private int _maxHighlightedCount;
 
+    // Filters in the resource popup
     private readonly ConcurrentDictionary<string, bool> _allResourceTypes = [];
     private readonly ConcurrentDictionary<string, bool> _visibleResourceTypes = new(StringComparers.ResourceName);
 
     private readonly ConcurrentDictionary<string, bool> _allResourceStates = [];
     private readonly ConcurrentDictionary<string, bool> _visibleResourceStates = new(StringComparer.Ordinal);
 
-    private string GetStateOrDefaultText(string? state) => state ?? Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceHasNoState)];
+    private readonly ConcurrentDictionary<string, bool> _allResourceHealthStates = [];
+    private readonly ConcurrentDictionary<string, bool> _visibleResourceHealthStates = new(StringComparer.Ordinal);
+
+    private string GetStateOrDefaultText(string? state) => !string.IsNullOrEmpty(state) ? state : Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceHasNoState)];
 
     private bool Filter(ResourceViewModel resource)
     {
         return _visibleResourceTypes.ContainsKey(resource.ResourceType)
                && _visibleResourceStates.ContainsKey(GetStateOrDefaultText(resource.State))
+                && _visibleResourceHealthStates.ContainsKey(GetStateOrDefaultText(resource.HealthStatus?.Humanize()))
                && (_filter.Length == 0 || resource.MatchesFilter(_filter))
                && !resource.IsHiddenState();
     }
@@ -112,6 +122,12 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     {
         get => SelectResourceOptions<string>.GetFieldVisibility(_visibleResourceStates, _allResourceStates, StringComparer.Ordinal);
         set => SelectResourceOptions<string>.SetFieldVisibility(_visibleResourceStates, _allResourceStates, value, StateHasChanged);
+    }
+
+    private bool? AreAllHealthStatesVisible
+    {
+        get => SelectResourceOptions<string>.GetFieldVisibility(_visibleResourceHealthStates, _allResourceHealthStates, StringComparer.Ordinal);
+        set => SelectResourceOptions<string>.SetFieldVisibility(_visibleResourceHealthStates, _allResourceHealthStates, value, StateHasChanged);
     }
 
     private readonly GridSort<ResourceGridViewModel> _nameSort = GridSort<ResourceGridViewModel>.ByAscending(p => p.Resource, ResourceViewModelNameComparer.Instance);
@@ -155,6 +171,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         {
             var preselectedVisibleResourceTypes = VisibleTypes?.Split(',').ToHashSet();
             var preselectedVisibleResourceStates = VisibleStates?.Split(',').ToHashSet();
+            var preselectedVisibleResourceHealthStates = VisibleHealthStates?.Split(',').ToHashSet();
 
             var (snapshot, subscription) = await DashboardClient.SubscribeResourcesAsync(_watchTaskCancellationTokenSource.Token);
 
@@ -165,6 +182,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
                 _allResourceTypes.TryAdd(resource.ResourceType, true);
                 _allResourceStates.TryAdd(GetStateOrDefaultText(resource.State), true);
+                _allResourceHealthStates.TryAdd(GetStateOrDefaultText(resource.HealthStatus?.Humanize()), true);
 
                 if (preselectedVisibleResourceTypes is null || preselectedVisibleResourceTypes.Contains(resource.ResourceType))
                 {
@@ -174,6 +192,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 if (preselectedVisibleResourceStates is null || preselectedVisibleResourceStates.Contains(resource.State ?? string.Empty))
                 {
                     _visibleResourceStates.TryAdd(GetStateOrDefaultText(resource.State), true);
+                }
+
+                if (preselectedVisibleResourceHealthStates is null || preselectedVisibleResourceHealthStates.Contains(resource.HealthStatus?.Humanize() ?? string.Empty))
+                {
+                    _visibleResourceHealthStates.TryAdd(GetStateOrDefaultText(resource.HealthStatus?.Humanize()), true);
                 }
 
                 Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
@@ -197,7 +220,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                                 SelectedResource = resource;
                             }
 
-                            // If someone has filtered out a resource type or state then don't remove filter because an update was received.
+                            // If someone has filtered out a resource type/state/health state then don't remove filter because an update was received.
                             // Only automatically set resource type/state to visible if it is a new resource.
                             if (_allResourceTypes.TryAdd(resource.ResourceType, true))
                             {
@@ -207,6 +230,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                             if (_allResourceStates.TryAdd(GetStateOrDefaultText(resource.State), true))
                             {
                                 _visibleResourceStates[GetStateOrDefaultText(resource.State)] = true;
+                            }
+
+                            if (_allResourceHealthStates.TryAdd(GetStateOrDefaultText(resource.HealthStatus?.Humanize()), true))
+                            {
+                                _visibleResourceHealthStates[GetStateOrDefaultText(resource.HealthStatus?.Humanize())] = true;
                             }
                         }
                         else if (changeType == ResourceViewModelChangeType.Delete)

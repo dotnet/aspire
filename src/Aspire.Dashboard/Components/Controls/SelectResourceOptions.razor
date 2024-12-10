@@ -15,7 +15,7 @@
                     @bind-CheckState:get="@AreAllVisible"
                     @bind-CheckState:set="@OnAllValuesCheckedChangedInternalAsync"
     />
-    @foreach (var (resourceType, _) in AllValues)
+    @foreach (var (resourceType, _) in AllValues.OrderBy(pair => pair.Key.ToString(), StringComparer.OrdinalIgnoreCase))
     {
         var isChecked = VisibleValues.ContainsKey(resourceType);
         <FluentCheckbox Label="@(resourceType.ToString())"
