@@ -25,7 +25,7 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
 
     protected override void OnInitialized()
     {
-        // Order cultures in the dropdown with ordinal culture. This prevents the order of languages changing when the culture changes.
+        // Order cultures in the dropdown with invariant culture. This prevents the order of languages changing when the culture changes.
         _languageOptions = [.. GlobalizationHelpers.LocalizedCultures.OrderBy(c => c.NativeName, StringComparer.InvariantCultureIgnoreCase)];
 
         _selectedUiCulture = GlobalizationHelpers.TryGetKnownParentCulture(_languageOptions, CultureInfo.CurrentUICulture, out var matchedCulture)
