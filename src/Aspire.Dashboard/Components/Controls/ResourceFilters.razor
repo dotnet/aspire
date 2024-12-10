@@ -1,4 +1,6 @@
 ﻿@using System.Collections.Concurrent
+@using Aspire.Dashboard.Model
+@using Humanizer
 
 @inject IStringLocalizer<Dashboard.Resources.Resources> Loc
 
@@ -6,6 +8,8 @@
     <div>
         <h4>@Loc[nameof(Resources.Resources.ResourcesResourceTypesHeader)]</h4>
         <SelectResourceOptions
+            Resources="AllResources"
+            ResourceContainsValue="@((r, type) => StringComparers.ResourceType.Equals(r.ResourceType, type))"
             AllValues="AllResourceTypes"
             VisibleValues="VisibleResourceTypes"
             OnAllResourceTypesCheckedChangedAsync="OnAllFilterVisibilityCheckedChangedAsync"
@@ -15,6 +19,8 @@
     <div>
         <h4>@Loc[nameof(Resources.Resources.ResourcesResourceStatesHeader)]</h4>
         <SelectResourceOptions
+            Resources="AllResources"
+            ResourceContainsValue="@((r, state) => StringComparers.ResourceState.Equals(Pages.Resources.GetStateOrDefaultText(r.State, Loc), state))"
             AllValues="AllResourceStates"
             VisibleValues="VisibleResourceStates"
             OnAllResourceTypesCheckedChangedAsync="OnAllFilterVisibilityCheckedChangedAsync"
@@ -24,6 +30,8 @@
     <div>
         <h4>@Loc[nameof(Resources.Resources.ResourcesDetailsHealthStateProperty)]</h4>
         <SelectResourceOptions
+            Resources="AllResources"
+            ResourceContainsValue="@((r, healthStatus) => StringComparer.Ordinal.Equals(Pages.Resources.GetStateOrDefaultText(r.HealthStatus?.Humanize(), Loc), healthStatus))"
             AllValues="AllResourceHealthStates"
             VisibleValues="VisibleResourceHealthStates"
             OnAllResourceTypesCheckedChangedAsync="OnAllFilterVisibilityCheckedChangedAsync"
@@ -33,36 +41,39 @@
 </FluentStack>
 
 @code {
-    [Parameter]
+    [Parameter, EditorRequired]
+    public required IEnumerable<ResourceViewModel> AllResources { get; set; }
+
+    [Parameter, EditorRequired]
     public required ConcurrentDictionary<string, bool> AllResourceTypes { get; set; }
 
-    [Parameter]
+    [Parameter, EditorRequired]
     public required ConcurrentDictionary<string, bool> VisibleResourceTypes { get; set; }
 
-    [Parameter]
+    [Parameter, EditorRequired]
     public required ConcurrentDictionary<string, bool> AllResourceStates { get; set; }
 
-    [Parameter]
+    [Parameter, EditorRequired]
     public required ConcurrentDictionary<string, bool> VisibleResourceStates { get; set; }
 
-    [Parameter]
+    [Parameter, EditorRequired]
     public required ConcurrentDictionary<string, bool> AllResourceHealthStates { get; set; }
 
-    [Parameter]
+    [Parameter, EditorRequired]
     public required ConcurrentDictionary<string, bool> VisibleResourceHealthStates { get; set; }
 
-    [Parameter]
+    [Parameter, EditorRequired]
     public required Func<Task> OnAllFilterVisibilityCheckedChangedAsync { get; set; }
 
-    [Parameter]
+    [Parameter, EditorRequired]
     public required Func<string, bool, Task> OnResourceFilterVisibilityChangedAsync { get; set; }
 
-    [Parameter]
-    public bool? AreAllTypesVisible { get; set; }
+    [Parameter, EditorRequired]
+    public required bool? AreAllTypesVisible { get; set; }
 
-    [Parameter]
-    public bool? AreAllStatesVisible { get; set; }
+    [Parameter, EditorRequired]
+    public required bool? AreAllStatesVisible { get; set; }
 
-    [Parameter]
-    public bool? AreAllHealthStatesVisible { get; set; }
+    [Parameter, EditorRequired]
+    public required bool? AreAllHealthStatesVisible { get; set; }
 }

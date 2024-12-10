@@ -11,6 +11,7 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -75,24 +76,28 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private FluentDataGrid<ResourceGridViewModel> _dataGrid = null!;
     private GridColumnManager _manager = null!;
     private int _maxHighlightedCount;
+    private List<ResourceViewModel> _visibleResources = [];
 
     // Filters in the resource popup
     private readonly ConcurrentDictionary<string, bool> _allResourceTypes = [];
     private readonly ConcurrentDictionary<string, bool> _visibleResourceTypes = new(StringComparers.ResourceName);
 
     private readonly ConcurrentDictionary<string, bool> _allResourceStates = [];
-    private readonly ConcurrentDictionary<string, bool> _visibleResourceStates = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, bool> _visibleResourceStates = new(StringComparers.ResourceState);
 
     private readonly ConcurrentDictionary<string, bool> _allResourceHealthStates = [];
     private readonly ConcurrentDictionary<string, bool> _visibleResourceHealthStates = new(StringComparer.Ordinal);
 
-    private string GetStateOrDefaultText(string? state) => !string.IsNullOrEmpty(state) ? state : Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceHasNoState)];
+    internal static string GetStateOrDefaultText(string? state, IStringLocalizer<Dashboard.Resources.Resources> loc)
+    {
+        return !string.IsNullOrEmpty(state) ? state : loc[nameof(Dashboard.Resources.Resources.ResourcesResourceHasNoState)];
+    }
 
     private bool Filter(ResourceViewModel resource)
     {
         return _visibleResourceTypes.ContainsKey(resource.ResourceType)
-               && _visibleResourceStates.ContainsKey(GetStateOrDefaultText(resource.State))
-                && _visibleResourceHealthStates.ContainsKey(GetStateOrDefaultText(resource.HealthStatus?.Humanize()))
+               && _visibleResourceStates.ContainsKey(GetStateOrDefaultText(resource.State, Loc))
+                && _visibleResourceHealthStates.ContainsKey(GetStateOrDefaultText(resource.HealthStatus?.Humanize(), Loc))
                && (_filter.Length == 0 || resource.MatchesFilter(_filter))
                && !resource.IsHiddenState();
     }
@@ -182,8 +187,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 var added = _resourceByName.TryAdd(resource.Name, resource);
 
                 _allResourceTypes.TryAdd(resource.ResourceType, true);
-                _allResourceStates.TryAdd(GetStateOrDefaultText(resource.State), true);
-                _allResourceHealthStates.TryAdd(GetStateOrDefaultText(resource.HealthStatus?.Humanize()), true);
+                _allResourceStates.TryAdd(GetStateOrDefaultText(resource.State, Loc), true);
+                _allResourceHealthStates.TryAdd(GetStateOrDefaultText(resource.HealthStatus?.Humanize(), Loc), true);
 
                 if (preselectedVisibleResourceTypes is null || preselectedVisibleResourceTypes.Contains(resource.ResourceType))
                 {
@@ -192,12 +197,12 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
                 if (preselectedVisibleResourceStates is null || preselectedVisibleResourceStates.Contains(resource.State ?? string.Empty))
                 {
-                    _visibleResourceStates.TryAdd(GetStateOrDefaultText(resource.State), true);
+                    _visibleResourceStates.TryAdd(GetStateOrDefaultText(resource.State, Loc), true);
                 }
 
                 if (preselectedVisibleResourceHealthStates is null || preselectedVisibleResourceHealthStates.Contains(resource.HealthStatus?.Humanize() ?? string.Empty))
                 {
-                    _visibleResourceHealthStates.TryAdd(GetStateOrDefaultText(resource.HealthStatus?.Humanize()), true);
+                    _visibleResourceHealthStates.TryAdd(GetStateOrDefaultText(resource.HealthStatus?.Humanize(), Loc), true);
                 }
 
                 Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
@@ -228,14 +233,14 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                                 _visibleResourceTypes[resource.ResourceType] = true;
                             }
 
-                            if (_allResourceStates.TryAdd(GetStateOrDefaultText(resource.State), true))
+                            if (_allResourceStates.TryAdd(GetStateOrDefaultText(resource.State, Loc), true))
                             {
-                                _visibleResourceStates[GetStateOrDefaultText(resource.State)] = true;
+                                _visibleResourceStates[GetStateOrDefaultText(resource.State, Loc)] = true;
                             }
 
-                            if (_allResourceHealthStates.TryAdd(GetStateOrDefaultText(resource.HealthStatus?.Humanize()), true))
+                            if (_allResourceHealthStates.TryAdd(GetStateOrDefaultText(resource.HealthStatus?.Humanize(), Loc), true))
                             {
-                                _visibleResourceHealthStates[GetStateOrDefaultText(resource.HealthStatus?.Humanize())] = true;
+                                _visibleResourceHealthStates[GetStateOrDefaultText(resource.HealthStatus?.Humanize(), Loc)] = true;
                             }
                         }
                         else if (changeType == ResourceViewModelChangeType.Delete)
@@ -271,9 +276,12 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         // Paging visible resources.
         var query = orderedResources
             .Skip(request.StartIndex)
-            .Take(request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount);
+            .Take(request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount)
+            .ToList();
 
-        return ValueTask.FromResult(GridItemsProviderResult.From(query.ToList(), orderedResources.Count));
+        _visibleResources = query.Select(gridItem => gridItem.Resource).ToList();
+
+        return ValueTask.FromResult(GridItemsProviderResult.From(query, orderedResources.Count));
     }
 
     private void UpdateMaxHighlightedCount()

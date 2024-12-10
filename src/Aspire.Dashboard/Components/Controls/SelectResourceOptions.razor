@@ -1,6 +1,7 @@
 ﻿@namespace Aspire.Dashboard.Components
 
 @using System.Collections.Concurrent
+@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
 
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
@@ -15,7 +16,10 @@
                     @bind-CheckState:get="@AreAllVisible"
                     @bind-CheckState:set="@OnAllValuesCheckedChangedInternalAsync"
     />
-    @foreach (var (resourceType, _) in AllValues.OrderBy(pair => pair.Key.ToString(), StringComparer.OrdinalIgnoreCase))
+
+    @foreach (var (resourceType, _) in AllValues
+                  .Where(pair => Resources.Any(resource => ResourceContainsValue(resource, pair.Key)))
+                  .OrderBy(pair => pair.Key.ToString(), StringComparer.OrdinalIgnoreCase))
     {
         var isChecked = VisibleValues.ContainsKey(resourceType);
         <FluentCheckbox Label="@(resourceType.ToString())"
@@ -42,4 +46,10 @@
 
     [Parameter, EditorRequired]
     public required Func<TValue, bool, Task> OnValueVisibilityChangedAsync { get; set; }
+
+    [Parameter, EditorRequired]
+    public required IEnumerable<ResourceViewModel> Resources { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Func<ResourceViewModel, TValue, bool> ResourceContainsValue { get; set; }
 }

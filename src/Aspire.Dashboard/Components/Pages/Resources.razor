@@ -43,6 +43,7 @@
             {
                 <div>
                     <ResourceFilters
+                        AllResources="@_visibleResources"
                         AllResourceStates="@_allResourceStates"
                         VisibleResourceStates="@_visibleResourceStates"
                         AllResourceTypes="@_allResourceTypes"
@@ -61,7 +62,8 @@
         <MainSection>
             <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isFilterPopupVisible" AutoFocus="true" FixedPlacement="true">
                 <Body>
-                    <ResourceFilters
+                <ResourceFilters
+                        AllResources="@_visibleResources"
                         AllResourceStates="@_allResourceStates"
                         VisibleResourceStates="@_visibleResourceStates"
                         AllResourceTypes="@_allResourceTypes"
