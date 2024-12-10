@@ -32,7 +32,7 @@
             <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             @if (ViewportInformation.IsDesktop)
             {
-                <FluentButton id="typeFilterButton" slot="end"
+                <FluentButton id="resourceFilterButton" slot="end"
                               Appearance="@(AreAllVisibleInAnyFilter ? Appearance.Stealth : Appearance.Accent)"
                               IconEnd="@(new Icons.Regular.Size20.Filter())"
                               @onclick="() => _isFilterPopupVisible = !_isFilterPopupVisible"
@@ -60,7 +60,7 @@
         </ToolbarSection>
 
         <MainSection>
-            <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isFilterPopupVisible" AutoFocus="true" FixedPlacement="true">
+            <FluentPopover AnchorId="resourceFilterButton" @bind-Open="_isFilterPopupVisible" AutoFocus="true" FixedPlacement="true">
                 <Body>
                 <ResourceFilters
                         AllResources="@_visibleResources"
