@@ -116,7 +116,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         await _dataGrid.SafeRefreshDataAsync();
     }
 
-    private bool AreAllVisibleInAnyFilter => AreAllTypesVisible is true || AreAllStatesVisible is true;
+    private bool AreAllVisibleInAnyFilter => AreAllTypesVisible is true || AreAllStatesVisible is true || AreAllHealthStatesVisible is true;
 
     private bool? AreAllTypesVisible
     {
