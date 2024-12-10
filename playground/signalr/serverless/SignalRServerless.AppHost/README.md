@@ -4,7 +4,7 @@ This sample is an Aspire AppHost project that demonstrates how to use Azure Sign
 Original sample can be found [here](https://github.com/aspnet/AzureSignalR-samples/tree/main/samples/DotnetIsolated-BidirectionChat)
 
 ## Requirements
-- Please make sure you match the project constraints for Aspire Azure Functions [here](https://learn.microsoft.com/en-us/dotnet/aspire/serverless/functions?tabs=dotnet-cli&pivots=visual-studio#azure-function-project-constraints)
+- Please make sure you match the project constraints for Aspire Azure Functions [here](https://learn.microsoft.com/dotnet/aspire/serverless/functions#azure-function-project-constraints)
 
 ## How to run
 - Set the SignalRServerless.AppHost as the startup project
