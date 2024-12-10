@@ -206,6 +206,8 @@ public static class PostgresBuilderExtensions
 
             configureContainer?.Invoke(pgAdminContainerBuilder);
 
+            pgAdminContainerBuilder.WithRelationship(builder.Resource, "PgAdmin");
+
             return builder;
         }
     }
@@ -267,7 +269,6 @@ public static class PostgresBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<PostgresServerResource> WithPgWeb(this IResourceBuilder<PostgresServerResource> builder, Action<IResourceBuilder<PgWebContainerResource>>? configureContainer = null, string? containerName = null)
     {
-
         if (builder.ApplicationBuilder.Resources.OfType<PgWebContainerResource>().SingleOrDefault() is { } existingPgWebResource)
         {
             var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingPgWebResource);
@@ -289,6 +290,8 @@ public static class PostgresBuilderExtensions
                                                .ExcludeFromManifest();
 
             configureContainer?.Invoke(pgwebContainerBuilder);
+
+            pgwebContainerBuilder.WithRelationship(builder.Resource, "PgWeb");
 
             builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>(async (e, ct) =>
             {

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dcp.Model;
 using HealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
 
@@ -105,6 +106,11 @@ public sealed record CustomResourceSnapshot
     /// </summary>
     public ImmutableArray<ResourceCommandSnapshot> Commands { get; init; } = [];
 
+    /// <summary>
+    /// The relationships to other resources.
+    /// </summary>
+    public ImmutableArray<RelationshipSnapshot> Relationships { get; init; } = [];
+
     internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportSnapshot> healthReports, string? state)
     {
         if (state != KnownResourceStates.Running)
@@ -161,6 +167,13 @@ public sealed record UrlSnapshot(string Name, string Url, bool IsInternal);
 /// <param name="MountType">Gets the mount type, such as <see cref="VolumeMountType.Bind"/> or <see cref="VolumeMountType.Volume"/></param>
 /// <param name="IsReadOnly">Whether the volume mount is read-only or not.</param>
 public sealed record VolumeSnapshot(string? Source, string Target, string MountType, bool IsReadOnly);
+
+/// <summary>
+/// A snapshot of a relationship.
+/// </summary>
+/// <param name="ResourceName">The name of the resource the relationship is to.</param>
+/// <param name="Type">The relationship type.</param>
+public sealed record RelationshipSnapshot(string ResourceName, string Type);
 
 /// <summary>
 /// A snapshot of the resource property.
@@ -311,4 +324,24 @@ public static class KnownResourceStates
     /// List of terminal states.
     /// </summary>
     public static readonly IReadOnlyList<string> TerminalStates = [Finished, FailedToStart, Exited];
+}
+
+internal static class ResourceSnapshotBuilder
+{
+    public static ImmutableArray<RelationshipSnapshot> BuildRelationships(IResource resource)
+    {
+        var relationships = ImmutableArray.CreateBuilder<RelationshipSnapshot>();
+
+        if (resource is IResourceWithParent resourceWithParent)
+        {
+            relationships.Add(new(resourceWithParent.Parent.Name, KnownRelationshipTypes.Parent));
+        }
+
+        foreach (var annotation in resource.Annotations.OfType<ResourceRelationshipAnnotation>())
+        {
+            relationships.Add(new(annotation.Resource.Name, annotation.Type));
+        }
+
+        return relationships.ToImmutable();
+    }
 }

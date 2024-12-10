@@ -182,9 +182,9 @@ public class LogEntriesTests
         var timestamp = DateTime.UtcNow;
 
         // Act
-        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(1), Content = "1" });
-        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(3), Content = "3" });
-        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(2), Content = "2" });
+        logEntries.InsertSorted(LogEntry.Create(timestamp.AddSeconds(1), "1", isErrorMessage: false));
+        logEntries.InsertSorted(LogEntry.Create(timestamp.AddSeconds(3), "3", isErrorMessage: false));
+        logEntries.InsertSorted(LogEntry.Create(timestamp.AddSeconds(2), "2", isErrorMessage: false));
 
         // Assert
         var entries = logEntries.GetEntries();
@@ -203,9 +203,9 @@ public class LogEntriesTests
         var timestamp = DateTime.UtcNow;
 
         // Act
-        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(1), Content = "1" });
-        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(2), Content = "2" });
-        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(3), Content = "3" });
+        logEntries.InsertSorted(LogEntry.Create(timestamp.AddSeconds(1), "1", isErrorMessage: false));
+        logEntries.InsertSorted(LogEntry.Create(timestamp.AddSeconds(2), "2", isErrorMessage: false));
+        logEntries.InsertSorted(LogEntry.Create(timestamp.AddSeconds(3), "3", isErrorMessage: false));
 
         // Assert
         var entries = logEntries.GetEntries();
@@ -223,9 +223,9 @@ public class LogEntriesTests
         var timestamp = DateTime.UtcNow;
 
         // Act
-        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(1), Content = "1" });
-        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(3), Content = "3" });
-        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(2), Content = "2" });
+        logEntries.InsertSorted(LogEntry.Create(timestamp.AddSeconds(1), "1", isErrorMessage: false));
+        logEntries.InsertSorted(LogEntry.Create(timestamp.AddSeconds(3), "3", isErrorMessage: false));
+        logEntries.InsertSorted(LogEntry.Create(timestamp.AddSeconds(2), "2", isErrorMessage: false));
 
         // Assert
         var entries = logEntries.GetEntries();
