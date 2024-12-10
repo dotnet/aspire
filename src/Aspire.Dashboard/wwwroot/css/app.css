@@ -729,3 +729,8 @@ fluent-data-grid-cell.no-ellipsis {
     color: var(--foreground-settings-text);
     font-size: var(--type-ramp-minus-1-font-size);
 }
+
+.volume-mount-type-icon {
+    vertical-align: text-bottom;
+    margin-right: 3px
+}
