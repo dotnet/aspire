@@ -70,15 +70,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Clear Structured logs.
-        /// </summary>
-        public static string ClearStructuredLogs {
-            get {
-                return ResourceManager.GetString("ClearStructuredLogs", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to A maximum of {0} structured logs are stored. Old structured logs are automatically removed..
         /// </summary>
         public static string MessageExceededLimitBody {

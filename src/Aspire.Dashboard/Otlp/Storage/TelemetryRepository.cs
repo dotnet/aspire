@@ -566,7 +566,14 @@ public sealed class TelemetryRepository
         }
     }
 
-    public void ClearTraces()
+    public void ClearAllSignals()
+    {
+        ClearStructuredLogs();
+        ClearTraces();
+        ClearMetrics();
+    }
+
+    private void ClearTraces()
     {
         _tracesLock.EnterWriteLock();
 
@@ -582,7 +589,7 @@ public sealed class TelemetryRepository
         RaiseSubscriptionChanged(_tracesSubscriptions);
     }
 
-    public void ClearStructuredLogs()
+    private void ClearStructuredLogs()
     {
         _logsLock.EnterWriteLock();
 
@@ -596,6 +603,16 @@ public sealed class TelemetryRepository
         }
 
         RaiseSubscriptionChanged(_logSubscriptions);
+    }
+
+    private void ClearMetrics()
+    {
+        foreach (var item in _applications)
+        {
+            item.Value.ClearMetrics();
+        }
+
+        RaiseSubscriptionChanged(_metricsSubscriptions);
     }
 
     public Dictionary<string, int> GetTraceFieldValues(string attributeName)

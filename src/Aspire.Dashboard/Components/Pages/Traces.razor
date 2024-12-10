@@ -27,7 +27,6 @@
                             @bind-SelectedResource:after="HandleSelectedApplicationChanged"
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
-            <FluentButton Appearance="Appearance.Stealth" aria-label="@Loc[nameof(Dashboard.Resources.Traces.ClearTraces)]" class="telemetry-filter-button" OnClick="() => ClearTraces()"><FluentIcon Value="@(new Icons.Regular.Size20.Delete())" /></FluentButton>
             <FluentSearch @bind-Value="_filter"
                           @bind-Value:after="HandleAfterFilterBindAsync"
                           Immediate="true"

@@ -61,15 +61,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Clear traces.
-        /// </summary>
-        public static string ClearTraces {
-            get {
-                return ResourceManager.GetString("ClearTraces", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to A maximum of {0} traces are stored. Old traces are automatically removed..
         /// </summary>
         public static string MessageExceededLimitBody {

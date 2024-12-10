@@ -327,11 +327,6 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
-    private void ClearTraces()
-    {
-        TelemetryRepository.ClearTraces();
-    }
-
     public class TracesPageViewModel
     {
         public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }

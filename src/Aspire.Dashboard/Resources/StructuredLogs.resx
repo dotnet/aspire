@@ -179,7 +179,4 @@
   <data name="ActionLogMessageText" xml:space="preserve">
     <value>Log message</value>
   </data>
-  <data name="ClearStructuredLogs" xml:space="preserve">
-    <value>Clear Structured logs</value>
-  </data>
 </root>
