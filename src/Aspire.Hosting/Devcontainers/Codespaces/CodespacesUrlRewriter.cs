@@ -3,7 +3,7 @@
 
 using Microsoft.Extensions.Options;
 
-namespace Aspire.Hosting.Codespaces;
+namespace Aspire.Hosting.Devcontainers.Codespaces;
 
 internal sealed class CodespacesUrlRewriter(IOptions<CodespacesOptions> options)
 {

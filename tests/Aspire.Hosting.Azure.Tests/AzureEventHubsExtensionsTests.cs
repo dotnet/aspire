@@ -63,6 +63,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/6751")]
     public async Task VerifyAzureEventHubsEmulatorResource()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);

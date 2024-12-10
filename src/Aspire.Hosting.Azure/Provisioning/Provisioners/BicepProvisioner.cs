@@ -121,16 +121,17 @@ internal sealed class BicepProvisioner(
 
         var resourceLogger = loggerService.GetLogger(resource);
 
-        PopulateWellKnownParameters(resource, context);
-
         if (FindFullPathFromPath("az") is not { } azPath)
         {
             throw new AzureCliNotOnPathException();
         }
 
         var template = resource.GetBicepTemplateFile();
-
         var path = template.Path;
+
+        // GetBicepTemplateFile may have added new well-known parameters, so we need
+        // to populate them only after calling GetBicepTemplateFile.
+        PopulateWellKnownParameters(resource, context);
 
         KeyVaultResource? keyVault = null;
 

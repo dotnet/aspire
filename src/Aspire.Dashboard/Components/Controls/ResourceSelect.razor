@@ -2,10 +2,10 @@
 
 @inject IStringLocalizer<ControlsStrings> Loc
 
-<FluentInputLabel
-    Label="@Loc[nameof(ControlsStrings.ResourceLabel)]"
-    ForId="@_selectId"
-    Orientation="Orientation.Horizontal" />
+<FluentInputLabel Label="@Loc[nameof(ControlsStrings.ResourceLabel)]"
+                  ForId="@_selectId"
+                  Orientation="Orientation.Horizontal"
+                  class="@LabelClass" />
 
 <FluentSelect Items="Resources"
               Id="@_selectId"

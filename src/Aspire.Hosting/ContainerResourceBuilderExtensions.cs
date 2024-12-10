@@ -122,7 +122,7 @@ public static class ContainerResourceBuilderExtensions
     /// <typeparam name="T">Type of container resource.</typeparam>
     /// <param name="builder">Builder for the container resource.</param>
     /// <param name="tag">Tag value.</param>
-    /// <returns></returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithImageTag<T>(this IResourceBuilder<T> builder, string tag) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -143,7 +143,7 @@ public static class ContainerResourceBuilderExtensions
     /// <typeparam name="T">Type of container resource.</typeparam>
     /// <param name="builder">Builder for the container resource.</param>
     /// <param name="registry">Registry value.</param>
-    /// <returns></returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithImageRegistry<T>(this IResourceBuilder<T> builder, string? registry) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -164,7 +164,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">Builder for the container resource.</param>
     /// <param name="image">Image value.</param>
     /// <param name="tag">Tag value.</param>
-    /// <returns></returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithImage<T>(this IResourceBuilder<T> builder, string image, string tag = "latest") where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -190,7 +190,7 @@ public static class ContainerResourceBuilderExtensions
     /// <typeparam name="T">Type of container resource.</typeparam>
     /// <param name="builder">Builder for the container resource.</param>
     /// <param name="sha256">Registry value.</param>
-    /// <returns></returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithImageSHA256<T>(this IResourceBuilder<T> builder, string sha256) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -228,7 +228,7 @@ public static class ContainerResourceBuilderExtensions
     /// <remarks>
     /// This is intended to pass additional arguments to the underlying container runtime run command to enable advanced features such as exposing GPUs to the container. To pass runtime arguments to the actual container, use the <see cref="ResourceBuilderExtensions.WithArgs{T}(IResourceBuilder{T}, Action{CommandLineArgsCallbackContext})"/> method.
     /// </remarks>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">Builder for the container resource.</param>
     /// <param name="callback">A callback that allows for deferred execution for computing arguments. This runs after resources have been allocation by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
@@ -274,8 +274,11 @@ public static class ContainerResourceBuilderExtensions
     /// Marking a container resource to have a <see cref="ContainerLifetime.Persistent"/> lifetime.
     /// <code language="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithContainerLifetime(ContainerLifetimeType.Persistent);
+    ///        .WithLifetime(ContainerLifetime.Persistent);
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     public static IResourceBuilder<T> WithLifetime<T>(this IResourceBuilder<T> builder, ContainerLifetime lifetime) where T : ContainerResource
@@ -294,7 +297,7 @@ public static class ContainerResourceBuilderExtensions
     /// Changes the resource to be published as a container in the manifest.
     /// </summary>
     /// <param name="builder">Resource builder.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> PublishAsContainer<T>(this IResourceBuilder<T> builder) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -310,7 +313,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="contextPath">Path to be used as the context for the container image build.</param>
     /// <param name="dockerfilePath">Override path for the Dockerfile if it is not in the <paramref name="contextPath"/>.</param>
     /// <param name="stage">The stage representing the image to be published in a multi-stage Dockerfile.</param>
-    /// <returns>A <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
     /// When this method is called an annotation is added to the <see cref="ContainerResource"/> that specifies the context path and
@@ -332,8 +335,10 @@ public static class ContainerResourceBuilderExtensions
     /// Creates a container called <c>mycontainer</c> with an image called <c>myimage</c>.
     /// <code language="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
     /// builder.AddContainer("mycontainer", "myimage")
     ///        .WithDockerfile("path/to/context");
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
@@ -391,7 +396,9 @@ public static class ContainerResourceBuilderExtensions
     /// Creates a container called <c>mycontainer</c> based on a Dockerfile in the context path <c>path/to/context</c>.
     /// <code language="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
     /// builder.AddDockerfile("mycontainer", "path/to/context");
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
@@ -417,7 +424,7 @@ public static class ContainerResourceBuilderExtensions
     /// <typeparam name="T">The type of container resource.</typeparam>
     /// <param name="builder">The resource builder for the container resource.</param>
     /// <param name="name">The desired container name. Must be a valid container name or your runtime will report an error.</param>
-    /// <returns>The resource bulder for the container resource.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithContainerName<T>(this IResourceBuilder<T> builder, string name) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -433,7 +440,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">The resource builder for the container resource.</param>
     /// <param name="name">The name of the build argument.</param>
     /// <param name="value">The value of the build argument.</param>
-    /// <returns>The resource builder for the container resource.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="InvalidOperationException">
     /// Thrown when <see cref="ContainerResourceBuilderExtensions.WithBuildArg{T}(IResourceBuilder{T}, string, object)"/> is
     /// called before <see cref="ContainerResourceBuilderExtensions.WithDockerfile{T}(IResourceBuilder{T}, string, string?, string?)"/>.
@@ -449,9 +456,12 @@ public static class ContainerResourceBuilderExtensions
     /// Adding a static build argument.
     /// <code language="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
     /// builder.AddContainer("mycontainer", "myimage")
     ///        .WithDockerfile("../mycontainer")
     ///        .WithBuildArg("CUSTOM_BRANDING", "/app/static/branding/custom");
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     public static IResourceBuilder<T> WithBuildArg<T>(this IResourceBuilder<T> builder, string name, object value) where T : ContainerResource
@@ -479,7 +489,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">The resource builder for the container resource.</param>
     /// <param name="name">The name of the build argument.</param>
     /// <param name="value">The resource builder for a parameter resource.</param>
-    /// <returns>The resource builder for the container resource.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="InvalidOperationException">
     /// Thrown when <see cref="ContainerResourceBuilderExtensions.WithBuildArg{T}(IResourceBuilder{T}, string, IResourceBuilder{ParameterResource})"/> is
     /// called before <see cref="ContainerResourceBuilderExtensions.WithDockerfile{T}(IResourceBuilder{T}, string, string?, string?)"/>.
@@ -495,10 +505,14 @@ public static class ContainerResourceBuilderExtensions
     /// Adding a build argument based on a parameter..
     /// <code language="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
     /// var branding = builder.AddParameter("branding");
+    ///
     /// builder.AddContainer("mycontainer", "myimage")
     ///        .WithDockerfile("../mycontainer")
     ///        .WithBuildArg("CUSTOM_BRANDING", branding);
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     public static IResourceBuilder<T> WithBuildArg<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> value) where T : ContainerResource
@@ -522,7 +536,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">The resource builder for the container resource.</param>
     /// <param name="name">The name of the secret build argument.</param>
     /// <param name="value">The resource builder for a parameter resource.</param>
-    /// <returns>The resource builder for the container resource.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="InvalidOperationException">
     /// Thrown when <see cref="ContainerResourceBuilderExtensions.WithBuildSecret{T}(IResourceBuilder{T}, string, IResourceBuilder{ParameterResource})"/> is
     /// called before <see cref="ContainerResourceBuilderExtensions.WithDockerfile{T}(IResourceBuilder{T}, string, string?, string?)"/>.
@@ -538,10 +552,14 @@ public static class ContainerResourceBuilderExtensions
     /// Adding a build secret based on a parameter.
     /// <code language="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
     /// var accessToken = builder.AddParameter("accessToken", secret: true);
+    ///
     /// builder.AddContainer("mycontainer", "myimage")
     ///        .WithDockerfile("../mycontainer")
     ///        .WithBuildSecret("ACCESS_TOKEN", accessToken);
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     public static IResourceBuilder<T> WithBuildSecret<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> value) where T : ContainerResource
