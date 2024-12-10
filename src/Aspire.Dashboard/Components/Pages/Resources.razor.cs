@@ -50,6 +50,10 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     public string? VisibleTypes { get; set; }
 
     [Parameter]
+    [SupplyParameterFromQuery]
+    public string? VisibleStates { get; set; }
+
+    [Parameter]
     [SupplyParameterFromQuery(Name = "resource")]
     public string? ResourceName { get; set; }
 
@@ -57,11 +61,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
-    private readonly ConcurrentDictionary<string, bool> _allResourceTypes = [];
-    private readonly ConcurrentDictionary<string, bool> _visibleResourceTypes = new(StringComparers.ResourceName);
     private readonly HashSet<string> _expandedResourceNames = [];
     private string _filter = "";
-    private bool _isTypeFilterVisible;
+    private bool _isFilterPopupVisible;
     private Task? _resourceSubscriptionTask;
     private bool _isLoading = true;
     private string? _elementIdBeforeDetailsViewOpened;
@@ -69,25 +71,26 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private GridColumnManager _manager = null!;
     private int _maxHighlightedCount;
 
-    private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && !resource.IsHiddenState();
+    private readonly ConcurrentDictionary<string, bool> _allResourceTypes = [];
+    private readonly ConcurrentDictionary<string, bool> _visibleResourceTypes = new(StringComparers.ResourceName);
 
-    private async Task OnAllResourceTypesCheckedChangedAsync(bool? areAllTypesVisible)
+    private readonly ConcurrentDictionary<string, bool> _allResourceStates = [];
+    private readonly ConcurrentDictionary<string, bool> _visibleResourceStates = new(StringComparer.Ordinal);
+
+    private string GetStateOrDefaultText(string? state) => state ?? Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceHasNoState)];
+
+    private bool Filter(ResourceViewModel resource)
     {
-        AreAllTypesVisible = areAllTypesVisible;
-        await _dataGrid.SafeRefreshDataAsync();
+        return _visibleResourceTypes.ContainsKey(resource.ResourceType)
+               && _visibleResourceStates.ContainsKey(GetStateOrDefaultText(resource.State))
+               && (_filter.Length == 0 || resource.MatchesFilter(_filter))
+               && !resource.IsHiddenState();
     }
 
-    private async Task OnResourceTypeVisibilityChangedAsync(string resourceType, bool isVisible)
-    {
-        if (isVisible)
-        {
-            _visibleResourceTypes[resourceType] = true;
-        }
-        else
-        {
-            _visibleResourceTypes.TryRemove(resourceType, out _);
-        }
+    private async Task OnAllFilterVisibilityCheckedChangedAsync() => await _dataGrid.SafeRefreshDataAsync();
 
+    private async Task OnResourceFilterVisibilityChangedAsync(string resourceType, bool isVisible)
+    {
         await ClearSelectedResourceAsync();
         await _dataGrid.SafeRefreshDataAsync();
     }
@@ -97,49 +100,18 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         return ClearSelectedResourceAsync();
     }
 
+    private bool AreAllVisibleInAnyFilter => AreAllTypesVisible is true || AreAllStatesVisible is true;
+
     private bool? AreAllTypesVisible
     {
-        get
-        {
-            static bool SetEqualsKeys(ConcurrentDictionary<string, bool> left, ConcurrentDictionary<string, bool> right)
-            {
-                // PERF: This is inefficient since Keys locks and copies the keys.
-                var keysLeft = left.Keys;
-                var keysRight = right.Keys;
+        get => SelectResourceOptions<string>.GetFieldVisibility(_visibleResourceTypes, _allResourceTypes, StringComparers.ResourceType);
+        set => SelectResourceOptions<string>.SetFieldVisibility(_visibleResourceTypes, _allResourceTypes, value, StateHasChanged);
+    }
 
-                return keysLeft.Count == keysRight.Count && keysLeft.OrderBy(key => key, StringComparers.ResourceType).SequenceEqual(keysRight.OrderBy(key => key, StringComparers.ResourceType), StringComparers.ResourceType);
-            }
-
-            return SetEqualsKeys(_visibleResourceTypes, _allResourceTypes)
-                ? true
-                : _visibleResourceTypes.IsEmpty
-                    ? false
-                    : null;
-        }
-        set
-        {
-            static bool UnionWithKeys(ConcurrentDictionary<string, bool> left, ConcurrentDictionary<string, bool> right)
-            {
-                // .Keys locks and copies the keys so avoid it here.
-                foreach (var (key, _) in right)
-                {
-                    left[key] = true;
-                }
-
-                return true;
-            }
-
-            if (value is true)
-            {
-                UnionWithKeys(_visibleResourceTypes, _allResourceTypes);
-            }
-            else if (value is false)
-            {
-                _visibleResourceTypes.Clear();
-            }
-
-            StateHasChanged();
-        }
+    private bool? AreAllStatesVisible
+    {
+        get => SelectResourceOptions<string>.GetFieldVisibility(_visibleResourceStates, _allResourceStates, StringComparer.Ordinal);
+        set => SelectResourceOptions<string>.SetFieldVisibility(_visibleResourceStates, _allResourceStates, value, StateHasChanged);
     }
 
     private readonly GridSort<ResourceGridViewModel> _nameSort = GridSort<ResourceGridViewModel>.ByAscending(p => p.Resource, ResourceViewModelNameComparer.Instance);
@@ -182,6 +154,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         async Task SubscribeResourcesAsync()
         {
             var preselectedVisibleResourceTypes = VisibleTypes?.Split(',').ToHashSet();
+            var preselectedVisibleResourceStates = VisibleStates?.Split(',').ToHashSet();
 
             var (snapshot, subscription) = await DashboardClient.SubscribeResourcesAsync(_watchTaskCancellationTokenSource.Token);
 
@@ -191,10 +164,16 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 var added = _resourceByName.TryAdd(resource.Name, resource);
 
                 _allResourceTypes.TryAdd(resource.ResourceType, true);
+                _allResourceStates.TryAdd(GetStateOrDefaultText(resource.State), true);
 
                 if (preselectedVisibleResourceTypes is null || preselectedVisibleResourceTypes.Contains(resource.ResourceType))
                 {
                     _visibleResourceTypes.TryAdd(resource.ResourceType, true);
+                }
+
+                if (preselectedVisibleResourceStates is null || preselectedVisibleResourceStates.Contains(resource.State ?? string.Empty))
+                {
+                    _visibleResourceStates.TryAdd(GetStateOrDefaultText(resource.State), true);
                 }
 
                 Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
@@ -218,11 +197,16 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                                 SelectedResource = resource;
                             }
 
+                            // If someone has filtered out a resource type or state then don't remove filter because an update was received.
+                            // Only automatically set resource type/state to visible if it is a new resource.
                             if (_allResourceTypes.TryAdd(resource.ResourceType, true))
                             {
-                                // If someone has filtered out a resource type then don't remove filter because an update was received.
-                                // Only automatically set resource type to visible if it is a new resource.
                                 _visibleResourceTypes[resource.ResourceType] = true;
+                            }
+
+                            if (_allResourceStates.TryAdd(GetStateOrDefaultText(resource.State), true))
+                            {
+                                _visibleResourceStates[GetStateOrDefaultText(resource.State)] = true;
                             }
                         }
                         else if (changeType == ResourceViewModelChangeType.Delete)

@@ -34,40 +34,43 @@
             @if (ViewportInformation.IsDesktop)
             {
                 <FluentButton id="typeFilterButton" slot="end"
-                              Appearance="@(AreAllTypesVisible is true ? Appearance.Stealth : Appearance.Accent)"
+                              Appearance="@(AreAllVisibleInAnyFilter ? Appearance.Stealth : Appearance.Accent)"
                               IconEnd="@(new Icons.Regular.Size20.Filter())"
-                              @onclick="() => _isTypeFilterVisible = !_isTypeFilterVisible"
-                              Title="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])"
-                              aria-label="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])" />
+                              @onclick="() => _isFilterPopupVisible = !_isFilterPopupVisible"
+                              Title="@(AreAllVisibleInAnyFilter ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])"
+                              aria-label="@(AreAllVisibleInAnyFilter ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])"></FluentButton>
             }
             else
             {
                 <div>
-                    <h5>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)]</h5>
+                    <p>TODO REPLACE WITH WHAT'S IN THE MAIN SECTION COMPONENT</p>
 
-                    <SelectResourceTypes AllResourceTypes="_allResourceTypes"
-                                         VisibleResourceTypes="_visibleResourceTypes"
-                                         OnAllResourceTypesCheckedChangedAsync="@OnAllResourceTypesCheckedChangedAsync"
-                                         AreAllTypesVisible="@(() => AreAllTypesVisible)"
-                                         OnResourceTypeVisibilityChangedAsync="@OnResourceTypeVisibilityChangedAsync" />
                 </div>
             }
         </ToolbarSection>
 
         <MainSection>
-            <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isTypeFilterVisible" AutoFocus="true" FixedPlacement="true">
+            <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isFilterPopupVisible" AutoFocus="true" FixedPlacement="true">
                 <Body>
-                <FluentStack Orientation="Orientation.Vertical" VerticalGap="5">
+                <FluentStack Orientation="Orientation.Vertical">
                     <div>
                         <h4>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)]</h4>
-                        <SelectResourceTypes AllResourceTypes="_allResourceTypes"
-                                             VisibleResourceTypes="_visibleResourceTypes"
-                                             OnAllResourceTypesCheckedChangedAsync="@OnAllResourceTypesCheckedChangedAsync"
-                                             AreAllTypesVisible="@(() => AreAllTypesVisible)"
-                                             OnResourceTypeVisibilityChangedAsync="@OnResourceTypeVisibilityChangedAsync"/>
+                        <SelectResourceOptions
+                            AllValues="_allResourceTypes"
+                            VisibleValues="_visibleResourceTypes"
+                            OnAllResourceTypesCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
+                            @bind-AreAllVisible="@AreAllTypesVisible"
+                            OnValueVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync"/>
                     </div>
                     <div>
                         <h4>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceStatesHeader)]</h4>
+                        <SelectResourceOptions
+                            AllValues="_allResourceStates"
+                            VisibleValues="_visibleResourceStates"
+                            OnAllResourceTypesCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
+                            @bind-AreAllVisible="@AreAllStatesVisible"
+                            OnValueVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync"/>
+
                     </div>
                 </FluentStack>
                 </Body>
