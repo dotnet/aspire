@@ -566,6 +566,55 @@ public sealed class TelemetryRepository
         }
     }
 
+    public void ClearAllSignals()
+    {
+        ClearStructuredLogs();
+        ClearTraces();
+        ClearMetrics();
+    }
+
+    private void ClearTraces()
+    {
+        _tracesLock.EnterWriteLock();
+
+        try
+        {
+            _traces.Clear();
+        }
+        finally
+        {
+            _tracesLock.ExitWriteLock();
+        }
+
+        RaiseSubscriptionChanged(_tracesSubscriptions);
+    }
+
+    private void ClearStructuredLogs()
+    {
+        _logsLock.EnterWriteLock();
+
+        try
+        {
+            _logs.Clear();
+        }
+        finally
+        {
+            _logsLock.ExitWriteLock();
+        }
+
+        RaiseSubscriptionChanged(_logSubscriptions);
+    }
+
+    private void ClearMetrics()
+    {
+        foreach (var item in _applications)
+        {
+            item.Value.ClearMetrics();
+        }
+
+        RaiseSubscriptionChanged(_metricsSubscriptions);
+    }
+
     public Dictionary<string, int> GetTraceFieldValues(string attributeName)
     {
         _tracesLock.EnterReadLock();

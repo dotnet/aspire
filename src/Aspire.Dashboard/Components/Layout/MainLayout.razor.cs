@@ -4,6 +4,7 @@
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -64,6 +65,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     [Inject]
     public required ILocalStorage LocalStorage { get; init; }
+
+    [Inject]
+    public required TelemetryRepository TelemetryRepository { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
@@ -186,6 +190,11 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     private void HandleDialogClose(DialogInstance dialogResult)
     {
         _openPageDialog = null;
+    }
+
+    private void ClearAllSignals()
+    {
+        TelemetryRepository.ClearAllSignals();
     }
 
     public async Task LaunchSettingsAsync()

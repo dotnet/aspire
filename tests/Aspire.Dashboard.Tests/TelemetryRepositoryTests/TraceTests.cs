@@ -1557,4 +1557,55 @@ public class TraceTests
                     });
             });
     }
+
+    [Fact]
+    public void ClearTraces()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10))
+                        }
+                    }
+                }
+            }
+        });
+
+        // Act
+        repository.ClearTraces();
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+        var applications = repository.GetApplications();
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+            });
+
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = applications[0].ApplicationKey,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+
+        Assert.Equal(0, traces.PagedResult.TotalItemCount);
+        Assert.Empty(traces.PagedResult.Items);
+    }
 }
