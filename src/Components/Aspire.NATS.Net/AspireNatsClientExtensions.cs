@@ -204,6 +204,6 @@ public static class AspireNatsClientExtensions
             return null;
         }
 
-        return (_, builder) => func(builder);
+        return (_, options) => func(options);
     }
 }
