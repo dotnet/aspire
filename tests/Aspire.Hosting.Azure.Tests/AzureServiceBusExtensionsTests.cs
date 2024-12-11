@@ -118,6 +118,8 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     [RequiresDocker]
     public async Task VerifyAzureServiceBusEmulatorResource()
     {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(output);
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
             .RunAsEmulator()
@@ -134,15 +136,18 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         using var host = hb.Build();
         await host.StartAsync();
 
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceAsync(serviceBus.Resource.Name, KnownResourceStates.Running, cts.Token);
+
         var serviceBusClient = host.Services.GetRequiredService<ServiceBusClient>();
-        var sender = serviceBusClient.CreateSender("queue1");
 
-        await sender.SendMessageAsync(new ServiceBusMessage("Hello world!"));
+        await using var sender = serviceBusClient.CreateSender("queue1");
+        await sender.SendMessageAsync(new ServiceBusMessage("Hello, World!"), cts.Token);
 
-        var receiver = serviceBusClient.CreateReceiver("queue1");
-        var message = await receiver.PeekMessageAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        await using var receiver = serviceBusClient.CreateReceiver("queue1");
+        var message = await receiver.ReceiveMessageAsync(cancellationToken: cts.Token);
 
-        Assert.Equal("Hello world!", message.Body.ToString());
+        Assert.Equal("Hello, World!", message.Body.ToString());
     }
 
     [Fact]
@@ -267,7 +272,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         global::Azure.Provisioning.ServiceBus.ServiceBusRule? rule = null;
 
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
-            .AddQueue("queue1", queue =>
+            .WithQueue("queue1", queue =>
             {
                 queue.DeadLetteringOnMessageExpiration = true;
                 queue.DefaultMessageTimeToLive = TimeSpan.FromMinutes(1);
@@ -278,35 +283,39 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                 queue.RequiresDuplicateDetection = true;
                 queue.RequiresSession = true;
             })
-            .AddTopic("topic1", topic =>
+            .WithTopic("topic1", topic =>
             {
                 topic.DefaultMessageTimeToLive = TimeSpan.FromMinutes(1);
                 topic.DuplicateDetectionHistoryTimeWindow = TimeSpan.FromSeconds(20);
                 topic.RequiresDuplicateDetection = true;
-            })
-            .AddSubscription("topic1", "subscription1", subscription =>
-            {
-                subscription.DeadLetteringOnMessageExpiration = true;
-                subscription.DefaultMessageTimeToLive = TimeSpan.FromMinutes(1);
-                subscription.LockDuration = TimeSpan.FromMinutes(5);
-                subscription.MaxDeliveryCount = 10;
-                subscription.ForwardDeadLetteredMessagesTo = "";
-                subscription.RequiresSession = true;
-            })
-            .AddRule("topic1", "subscription1", "rule1", rule =>
-            {
-                rule.FilterType = ServiceBusFilterType.SqlFilter;
-                rule.CorrelationFilter = new()
+
+                var subscription = new ServiceBusSubscription("subscription1")
                 {
-                    ContentType = "application/text",
-                    CorrelationId = "id1",
-                    Subject = "subject1",
-                    MessageId = "msgid1",
-                    ReplyTo = "someQueue",
-                    ReplyToSessionId = "sessionId",
-                    SessionId = "session1",
-                    SendTo = "xyz"
+                    DeadLetteringOnMessageExpiration = true,
+                    DefaultMessageTimeToLive = TimeSpan.FromMinutes(1),
+                    LockDuration = TimeSpan.FromMinutes(5),
+                    MaxDeliveryCount = 10,
+                    ForwardDeadLetteredMessagesTo = "",
+                    RequiresSession = true,
                 };
+                topic.Subscriptions.Add(subscription);
+
+                var rule = new ServiceBusRule("rule1")
+                {
+                    FilterType = ServiceBusFilterType.SqlFilter,
+                    CorrelationFilter = new()
+                    {
+                        ContentType = "application/text",
+                        CorrelationId = "id1",
+                        Subject = "subject1",
+                        MessageId = "msgid1",
+                        ReplyTo = "someQueue",
+                        ReplyToSessionId = "sessionId",
+                        SessionId = "session1",
+                        SendTo = "xyz"
+                    }
+                };
+                subscription.Rules.Add(rule);
             })
             .ConfigureInfrastructure(infrastructure =>
             {
@@ -366,7 +375,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
             .RunAsEmulator()
-            .AddQueue("queue1", queue =>
+            .WithQueue("queue1", queue =>
             {
                 queue.DeadLetteringOnMessageExpiration = true;
                 queue.DefaultMessageTimeToLive = TimeSpan.FromMinutes(1);
@@ -377,35 +386,39 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                 queue.RequiresDuplicateDetection = true;
                 queue.RequiresSession = true;
             })
-            .AddTopic("topic1", topic =>
+            .WithTopic("topic1", topic =>
             {
                 topic.DefaultMessageTimeToLive = TimeSpan.FromMinutes(1);
                 topic.DuplicateDetectionHistoryTimeWindow = TimeSpan.FromSeconds(20);
                 topic.RequiresDuplicateDetection = true;
-            })
-            .AddSubscription("topic1", "subscription1", subscription =>
-            {
-                subscription.DeadLetteringOnMessageExpiration = true;
-                subscription.DefaultMessageTimeToLive = TimeSpan.FromMinutes(1);
-                subscription.LockDuration = TimeSpan.FromMinutes(5);
-                subscription.MaxDeliveryCount = 10;
-                subscription.ForwardDeadLetteredMessagesTo = "";
-                subscription.RequiresSession = true;
-            })
-            .AddRule("topic1", "subscription1", "rule1", rule =>
-            {
-                rule.FilterType = ServiceBusFilterType.SqlFilter;
-                rule.CorrelationFilter = new()
+
+                var subscription = new ServiceBusSubscription("subscription1")
                 {
-                    ContentType = "application/text",
-                    CorrelationId = "id1",
-                    Subject = "subject1",
-                    MessageId = "msgid1",
-                    ReplyTo = "someQueue",
-                    ReplyToSessionId = "sessionId",
-                    SessionId = "session1",
-                    SendTo = "xyz"
+                    DeadLetteringOnMessageExpiration = true,
+                    DefaultMessageTimeToLive = TimeSpan.FromMinutes(1),
+                    LockDuration = TimeSpan.FromMinutes(5),
+                    MaxDeliveryCount = 10,
+                    ForwardDeadLetteredMessagesTo = "",
+                    RequiresSession = true,
                 };
+                topic.Subscriptions.Add(subscription);
+
+                var rule = new ServiceBusRule("rule1")
+                {
+                    FilterType = ServiceBusFilterType.SqlFilter,
+                    CorrelationFilter = new()
+                    {
+                        ContentType = "application/text",
+                        CorrelationId = "id1",
+                        Subject = "subject1",
+                        MessageId = "msgid1",
+                        ReplyTo = "someQueue",
+                        ReplyToSessionId = "sessionId",
+                        SessionId = "session1",
+                        SendTo = "xyz"
+                    }
+                };
+                subscription.Rules.Add(rule);
             });
 
         using var app = builder.Build();
@@ -417,9 +430,76 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         var configJsonContent = File.ReadAllText(volumeAnnotation.Source!);
 
-        Assert.Equal("""
-            {"UserConfig":{"Namespaces":[{"Name":"servicebusns","Queues":[{"Name":"queue1","Properties":{"DeadLetteringOnMessageExpiration":true,"DefaultMessageTimeToLive":"PT1M","DuplicateDetectionHistoryTimeWindow":"PT20S","ForwardDeadLetteredMessagesTo":"someQueue","LockDuration":"PT5M","MaxDeliveryCount":10,"RequiresDuplicateDetection":true,"RequiresSession":true}}],"Topics":[{"Name":"topic1","Properties":{"DefaultMessageTimeToLive":"PT1M","DuplicateDetectionHistoryTimeWindow":"PT20S","RequiresDuplicateDetection":true},"Subscriptions":[{"Name":"subscription1","Properties":{"DeadLetteringOnMessageExpiration":true,"DefaultMessageTimeToLive":"PT1M","ForwardDeadLetteredMessagesTo":"","LockDuration":"PT5M","MaxDeliveryCount":10,"RequiresSession":true},"Rules":[{"Name":"rule1","Properties":{"FilterType":"Sql","CorrelationFilter":{"CorrelationId":"id1","MessageId":"msgid1","To":"xyz","ReplyTo":"someQueue","Label":"subject1","SessionId":"session1","ReplyToSessionId":"sessionId","ContentType":"application/text"}}}]}]}]}],"Logging":{"Type":"File"}}}
-            """, configJsonContent);
+        Assert.Equal(/*json*/"""
+        {
+          "UserConfig": {
+            "Namespaces": [
+              {
+                "Name": "servicebusns",
+                "Queues": [
+                  {
+                    "Name": "queue1",
+                    "Properties": {
+                      "DeadLetteringOnMessageExpiration": true,
+                      "DefaultMessageTimeToLive": "PT1M",
+                      "DuplicateDetectionHistoryTimeWindow": "PT20S",
+                      "ForwardDeadLetteredMessagesTo": "someQueue",
+                      "LockDuration": "PT5M",
+                      "MaxDeliveryCount": 10,
+                      "RequiresDuplicateDetection": true,
+                      "RequiresSession": true
+                    }
+                  }
+                ],
+                "Topics": [
+                  {
+                    "Name": "topic1",
+                    "Properties": {
+                      "DefaultMessageTimeToLive": "PT1M",
+                      "DuplicateDetectionHistoryTimeWindow": "PT20S",
+                      "RequiresDuplicateDetection": true
+                    },
+                    "Subscriptions": [
+                      {
+                        "Name": "subscription1",
+                        "Properties": {
+                          "DeadLetteringOnMessageExpiration": true,
+                          "DefaultMessageTimeToLive": "PT1M",
+                          "ForwardDeadLetteredMessagesTo": "",
+                          "LockDuration": "PT5M",
+                          "MaxDeliveryCount": 10,
+                          "RequiresSession": true
+                        },
+                        "Rules": [
+                          {
+                            "Name": "rule1",
+                            "Properties": {
+                              "FilterType": "Sql",
+                              "CorrelationFilter": {
+                                "CorrelationId": "id1",
+                                "MessageId": "msgid1",
+                                "To": "xyz",
+                                "ReplyTo": "someQueue",
+                                "Label": "subject1",
+                                "SessionId": "session1",
+                                "ReplyToSessionId": "sessionId",
+                                "ContentType": "application/text"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "Logging": {
+              "Type": "File"
+            }
+          }
+        }
+        """, configJsonContent);
     }
 
     [Fact]
@@ -429,7 +509,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
             .RunAsEmulator()
-            .AddQueue("queue1", queue =>
+            .WithQueue("queue1", queue =>
             {
                 queue.DefaultMessageTimeToLive = TimeSpan.FromMinutes(1);
             });
@@ -444,7 +524,27 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         var configJsonContent = File.ReadAllText(volumeAnnotation.Source!);
 
         Assert.Equal("""
-            {"UserConfig":{"Namespaces":[{"Name":"servicebusns","Queues":[{"Name":"queue1","Properties":{"DefaultMessageTimeToLive":"PT1M"}}],"Topics":[]}],"Logging":{"Type":"File"}}}
+            {
+              "UserConfig": {
+                "Namespaces": [
+                  {
+                    "Name": "servicebusns",
+                    "Queues": [
+                      {
+                        "Name": "queue1",
+                        "Properties": {
+                          "DefaultMessageTimeToLive": "PT1M"
+                        }
+                      }
+                    ],
+                    "Topics": []
+                  }
+                ],
+                "Logging": {
+                  "Type": "File"
+                }
+              }
+            }
             """, configJsonContent);
     }
 
@@ -469,7 +569,20 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         var configJsonContent = File.ReadAllText(volumeAnnotation.Source!);
 
         Assert.Equal("""
-            {"UserConfig":{"Namespaces":[{"Name":"servicebusns","Queues":[],"Topics":[]}],"Logging":{"Type":"Console"}}}
+            {
+              "UserConfig": {
+                "Namespaces": [
+                  {
+                    "Name": "servicebusns",
+                    "Queues": [],
+                    "Topics": []
+                  }
+                ],
+                "Logging": {
+                  "Type": "Console"
+                }
+              }
+            }
             """, configJsonContent);
     }
 }

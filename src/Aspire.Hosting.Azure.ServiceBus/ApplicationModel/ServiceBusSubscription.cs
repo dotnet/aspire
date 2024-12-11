@@ -27,16 +27,10 @@ public class ServiceBusSubscription
     /// <summary>
     /// Initializes a new instance of the <see cref="ServiceBusSubscription"/> class.
     /// </summary>
-    public ServiceBusSubscription(string id, string name)
+    public ServiceBusSubscription(string name)
     {
-        Id = id;
         Name = name;
     }
-
-    /// <summary>
-    /// The subscription id.
-    /// </summary>
-    public string Id { get; }
 
     /// <summary>
     /// The subscription name.
@@ -87,12 +81,17 @@ public class ServiceBusSubscription
     public bool? RequiresSession { get; set; }
 
     /// <summary>
+    /// The rules for this subscription.
+    /// </summary>
+    public List<ServiceBusRule> Rules { get; } = [];
+
+    /// <summary>
     /// Converts the current instance to a provisioning entity.
     /// </summary>
     /// <returns>A <see cref="global::Azure.Provisioning.ServiceBus.ServiceBusSubscription"/> instance.</returns>
     public global::Azure.Provisioning.ServiceBus.ServiceBusSubscription ToProvisioningEntity()
     {
-        var subscription = new global::Azure.Provisioning.ServiceBus.ServiceBusSubscription(Id);
+        var subscription = new global::Azure.Provisioning.ServiceBus.ServiceBusSubscription(AzureResourceInfrastructure.NormalizeBicepIdentifier(Name));
 
         if (Name != null)
         {

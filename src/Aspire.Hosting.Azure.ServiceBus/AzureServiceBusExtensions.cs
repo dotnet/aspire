@@ -72,27 +72,20 @@ public static class AzureServiceBusExtensions
                 cdkTopic.Parent = serviceBusNamespace;
                 infrastructure.Add(cdkTopic);
 
-                // Topics are added in the dictionary with their normalized names.
-                topicDictionary.Add(topic.Id, cdkTopic);
-            }
-            var subscriptionDictionary = new Dictionary<(string, string), AzureProvisioning.ServiceBusSubscription>();
-            foreach (var (topicName, subscription) in azureResource.Subscriptions)
-            {
-                var cdkSubscription = subscription.ToProvisioningEntity();
-                var topic = topicDictionary[topicName];
-                cdkSubscription.Parent = topic;
-                infrastructure.Add(cdkSubscription);
+                foreach (var subscription in topic.Subscriptions)
+                {
+                    var cdkSubscription = subscription.ToProvisioningEntity();
+                    cdkSubscription.Parent = cdkTopic;
+                    infrastructure.Add(cdkSubscription);
 
-                // Subscriptions are added in the dictionary with their normalized names.
-                subscriptionDictionary.Add((topicName, subscription.Id), cdkSubscription);
-            }
-            foreach (var (topicName, subscriptionName, rule) in azureResource.Rules)
-            {
-                var cdkRule = rule.ToProvisioningEntity();
-                var subscription = subscriptionDictionary[(topicName, subscriptionName)];
-                cdkRule.Parent = subscription;
-                infrastructure.Add(cdkRule);
-            }
+                    foreach (var rule in subscription.Rules)
+                    {
+                        var cdkRule = rule.ToProvisioningEntity();
+                        cdkRule.Parent = cdkSubscription;
+                        infrastructure.Add(cdkRule);
+                    }
+                }
+            }            
         };
 
         var resource = new AzureServiceBusResource(name, configureInfrastructure);
@@ -110,17 +103,11 @@ public static class AzureServiceBusExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string[] subscriptions, Action<ServiceBusTopic>? configure = null)
     {
-        var normalizedTopicName = Infrastructure.NormalizeBicepIdentifier(name);
-        var topic = new ServiceBusTopic(normalizedTopicName, name);
+        var topic = new ServiceBusTopic(name);
 
         configure?.Invoke(topic);
 
         builder.Resource.Topics.Add(topic);
-        foreach (var subscriptionName in subscriptions)
-        {
-            var subscription = new ServiceBusSubscription(Infrastructure.NormalizeBicepIdentifier(subscriptionName), subscriptionName);
-            builder.Resource.Subscriptions.Add((normalizedTopicName, subscription));
-        }
         return builder;
     }
 
@@ -132,7 +119,7 @@ public static class AzureServiceBusExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name)
     {
-        return builder.AddQueue(name, null);
+        return builder.WithQueue(name);
     }
 
     /// <summary>
@@ -142,9 +129,9 @@ public static class AzureServiceBusExtensions
     /// <param name="name">The name of the queue.</param>
     /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusQueue"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<ServiceBusQueue>? configure = null)
+    public static IResourceBuilder<AzureServiceBusResource> WithQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<ServiceBusQueue>? configure = null)
     {
-        var queue = new ServiceBusQueue(Infrastructure.NormalizeBicepIdentifier(name), name);
+        var queue = new ServiceBusQueue(name);
 
         configure?.Invoke(queue);
 
@@ -159,7 +146,7 @@ public static class AzureServiceBusExtensions
     /// <param name="name">The name of the topic.</param>
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name)
     {
-        return builder.AddTopic(name, configure: (topic) => { });
+        return builder.WithTopic(name);
     }
 
     /// <summary>
@@ -170,14 +157,13 @@ public static class AzureServiceBusExtensions
     /// <param name="subscriptions">The name of the subscriptions.</param>
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string[] subscriptions)
     {
-        builder.AddTopic(name, configure: (topic) => { });
-
-        foreach (var subscription in subscriptions)
+        return builder.WithTopic(name, topic =>
         {
-            builder.AddSubscription(name, subscription);
-        }
-
-        return builder;
+            foreach (var subscription in subscriptions)
+            {
+                topic.Subscriptions.Add(new ServiceBusSubscription(name));
+            }
+        });
     }
 
     /// <summary>
@@ -187,9 +173,9 @@ public static class AzureServiceBusExtensions
     /// <param name="name">The name of the topic.</param>
     /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusTopic"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<ServiceBusTopic> configure)
+    public static IResourceBuilder<AzureServiceBusResource> WithTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<ServiceBusTopic>? configure = null)
     {
-        var topic = new ServiceBusTopic(Infrastructure.NormalizeBicepIdentifier(name), name);
+        var topic = new ServiceBusTopic(name);
         configure?.Invoke(topic);
 
         builder.Resource.Topics.Add(topic);
@@ -205,47 +191,10 @@ public static class AzureServiceBusExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusResource> AddSubscription(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName)
     {
-        return builder.AddSubscription(topicName, subscriptionName, null);
-    }
+        var topic = builder.Resource.Topics.FirstOrDefault(x => x.Name == topicName) ?? new ServiceBusTopic(topicName);
+        topic.Subscriptions.Add(new ServiceBusSubscription(subscriptionName));
 
-    /// <summary>
-    /// Adds an Azure Service Bus Subscription resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
-    /// </summary>
-    /// <param name="builder">The Azure Service Bus resource builder.</param>
-    /// <param name="topicName">The name of the topic.</param>
-    /// <param name="subscriptionName">The name of the subscription.</param>
-    /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusSubscription"/>.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureServiceBusResource> AddSubscription(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName, Action<ServiceBusSubscription>? configure = null)
-    {
-        var normalizedTopicName = Infrastructure.NormalizeBicepIdentifier(topicName);
-        var normalizedSubscriptionName = Infrastructure.NormalizeBicepIdentifier(subscriptionName);
-
-        var subscription = new ServiceBusSubscription(normalizedSubscriptionName, subscriptionName);
-        configure?.Invoke(subscription);
-        builder.Resource.Subscriptions.Add((normalizedTopicName, subscription));
-        return builder;
-    }
-
-    /// <summary>
-    /// Adds an Azure Service Bus Rule resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
-    /// </summary>
-    /// <param name="builder">The Azure Service Bus resource builder.</param>
-    /// <param name="topicName">The name of the topic.</param>
-    /// <param name="subscriptionName">The name of the subscription.</param>
-    /// <param name="ruleName">The name of the rule</param>
-    /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusRule"/>.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureServiceBusResource> AddRule(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName, string ruleName, Action<ServiceBusRule>? configure = null)
-    {
-        var normalizedTopicName = Infrastructure.NormalizeBicepIdentifier(topicName);
-        var normalizedSubscriptionName = Infrastructure.NormalizeBicepIdentifier(subscriptionName);
-        var normalizedRuleName = Infrastructure.NormalizeBicepIdentifier(ruleName);
-
-        var rule = new ServiceBusRule(normalizedRuleName, ruleName);
-        configure?.Invoke(rule);
-
-        builder.Resource.Rules.Add((normalizedTopicName, normalizedSubscriptionName, rule));
+        builder.Resource.Topics.Add(topic);
         return builder;
     }
 
@@ -394,7 +343,7 @@ public static class AzureServiceBusExtensions
                 }
 
                 using var stream = new FileStream(configFileMount.Source!, FileMode.Create);
-                using var writer = new Utf8JsonWriter(stream);
+                using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
 
                 if (!OperatingSystem.IsWindows())
                 {
@@ -427,24 +376,15 @@ public static class AzureServiceBusExtensions
                     topic.WriteJsonObjectProperties(writer);
 
                     writer.WriteStartArray("Subscriptions");    //             "Subscriptions": [
-                    foreach (var (topicName, subscription) in emulatorResource.Subscriptions)
+                    foreach (var subscription in topic.Subscriptions)
                     {
-                        if (topicName != topic.Id)
-                        {
-                            continue;
-                        }
                         writer.WriteStartObject();              //               "{ (Subscription)"
                         subscription.WriteJsonObjectProperties(writer);
 
                         #region Rules
                         writer.WriteStartArray("Rules");        //                 "Rules": [
-                        foreach (var (ruleTopicName, ruleSubscriptionName, rule) in emulatorResource.Rules)
+                        foreach (var rule in subscription.Rules)
                         {
-                            if (ruleTopicName != topic.Id && ruleSubscriptionName != subscription.Id)
-                            {
-                                continue;
-                            }
-
                             writer.WriteStartObject();
                             rule.WriteJsonObjectProperties(writer);
                             writer.WriteEndObject();
@@ -493,7 +433,7 @@ public static class AzureServiceBusExtensions
                     readStream.Close();
 
                     using var writeStream = new FileStream(configFileMount.Source!, FileMode.Open, FileAccess.Write);
-                    using var writer = new Utf8JsonWriter(writeStream);
+                    using var writer = new Utf8JsonWriter(writeStream, new JsonWriterOptions { Indented = true });
 
                     if (jsonObject == null)
                     {

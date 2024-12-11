@@ -20,16 +20,10 @@ public class ServiceBusRule
     /// <summary>
     /// Initializes a new instance of the <see cref="ServiceBusRule"/> class.
     /// </summary>
-    public ServiceBusRule(string id, string name)
+    public ServiceBusRule(string name)
     {
-        Id = id;
         Name = name;
     }
-
-    /// <summary>
-    /// The rule id.
-    /// </summary>
-    public string Id { get; }
 
     /// <summary>
     /// The rule name.
@@ -52,7 +46,7 @@ public class ServiceBusRule
     /// <returns>A <see cref="global::Azure.Provisioning.ServiceBus.ServiceBusRule"/> instance.</returns>
     public global::Azure.Provisioning.ServiceBus.ServiceBusRule ToProvisioningEntity()
     {
-        var rule = new global::Azure.Provisioning.ServiceBus.ServiceBusRule(Id);
+        var rule = new global::Azure.Provisioning.ServiceBus.ServiceBusRule(AzureResourceInfrastructure.NormalizeBicepIdentifier(Name));
 
         if (Name != null)
         {

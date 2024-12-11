@@ -16,8 +16,6 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
 {
     internal List<ServiceBusQueue> Queues { get; } = [];
     internal List<ServiceBusTopic> Topics { get; } = [];
-    internal List<(string TopicName, ServiceBusSubscription Subscription)> Subscriptions { get; } = [];
-    internal List<(string TopicName, string SubscriptionName, ServiceBusRule Rule)> Rules { get; } = [];
 
     /// <summary>
     /// Gets the "serviceBusEndpoint" output reference from the bicep template for the Azure Storage resource.

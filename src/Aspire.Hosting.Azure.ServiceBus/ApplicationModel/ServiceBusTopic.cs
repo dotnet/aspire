@@ -32,16 +32,10 @@ public class ServiceBusTopic
     /// <summary>
     /// Initializes a new instance of the <see cref="ServiceBusTopic"/> class.
     /// </summary>
-    public ServiceBusTopic(string id, string name)
+    public ServiceBusTopic(string name)
     {
-        Id = id;
         Name = name;
     }
-
-    /// <summary>
-    /// The topic id.
-    /// </summary>
-    public string Id { get; }
 
     /// <summary>
     /// The topic name.
@@ -68,12 +62,17 @@ public class ServiceBusTopic
     public bool? RequiresDuplicateDetection { get; set; }
 
     /// <summary>
+    /// The subscriptions for this topic.
+    /// </summary>
+    public List<ServiceBusSubscription> Subscriptions { get; } = [];
+
+    /// <summary>
     /// Converts the current instance to a provisioning entity.
     /// </summary>
     /// <returns>A <see cref="global::Azure.Provisioning.ServiceBus.ServiceBusTopic"/> instance.</returns>
     public global::Azure.Provisioning.ServiceBus.ServiceBusTopic ToProvisioningEntity()
     {
-        var topic = new global::Azure.Provisioning.ServiceBus.ServiceBusTopic(Id);
+        var topic = new global::Azure.Provisioning.ServiceBus.ServiceBusTopic(AzureResourceInfrastructure.NormalizeBicepIdentifier(Name));
 
         if (Name != null)
         {

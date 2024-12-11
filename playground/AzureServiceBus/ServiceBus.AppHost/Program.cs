@@ -1,13 +1,13 @@
 using System.Text.Json.Nodes;
+using Aspire.Hosting.Azure.ServiceBus;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
 var serviceBus = builder.AddAzureServiceBus("sbemulator");
 
 serviceBus
-    .AddQueue("myQueue", queue =>
+    .WithQueue("myQueue", queue =>
     {
-        queue.Name = "queue.1";
         queue.DeadLetteringOnMessageExpiration = false;
         queue.DefaultMessageTimeToLive = TimeSpan.FromHours(1);
         queue.DuplicateDetectionHistoryTimeWindow = TimeSpan.FromSeconds(20);
@@ -17,38 +17,41 @@ serviceBus
         queue.RequiresDuplicateDetection = false;
         queue.RequiresSession = false;
     })
-    //.AddTopic("myTopic", topic =>
-    //{
-    //    topic.Name = "topic.1";
-    //    topic.DefaultMessageTimeToLive = TimeSpan.FromHours(1);
-    //    topic.DuplicateDetectionHistoryTimeWindow = TimeSpan.FromSeconds(20);
-    //    topic.RequiresDuplicateDetection = false;
-    //})
-    //.AddSubscription("myTopic", "mySubscription", sub =>
-    //{
-    //    sub.Name = "subscription.1";
-    //    sub.DeadLetteringOnMessageExpiration = false;
-    //    sub.DefaultMessageTimeToLive = TimeSpan.FromHours(1);
-    //    sub.LockDuration = TimeSpan.FromMinutes(1);
-    //    sub.MaxDeliveryCount = 10;
-    //    sub.ForwardDeadLetteredMessagesTo = "";
-    //    sub.RequiresSession = false;
-    //})
-    //.AddRule("myTopic", "mySubscription", "myRule", rule =>
-    //{
-    //    rule.Name = "app-prop-filter-1";
-    //    rule.CorrelationFilter = new()
-    //    {
-    //        ContentType = "application/text",
-    //        CorrelationId = "id1",
-    //        Subject = "subject1",
-    //        MessageId = "msgid1",
-    //        ReplyTo = "someQueue",
-    //        ReplyToSessionId = "sessionId",
-    //        SessionId = "session1",
-    //        SendTo = "xyz"
-    //    };
-    //})
+    .WithTopic("myTopic", topic =>
+    {
+        topic.Name = "topic.1";
+        topic.DefaultMessageTimeToLive = TimeSpan.FromHours(1);
+        topic.DuplicateDetectionHistoryTimeWindow = TimeSpan.FromSeconds(20);
+        topic.RequiresDuplicateDetection = false;
+
+        var subscription = new ServiceBusSubscription("mySubscription")
+        {
+            Name = "subscription.1",
+            DeadLetteringOnMessageExpiration = false,
+            DefaultMessageTimeToLive = TimeSpan.FromHours(1),
+            LockDuration = TimeSpan.FromMinutes(1),
+            MaxDeliveryCount = 10,
+            ForwardDeadLetteredMessagesTo = "",
+            RequiresSession = false
+        };
+        topic.Subscriptions.Add(subscription);
+
+        var rule = new ServiceBusRule("app-prop-filter-1")
+        {
+            CorrelationFilter = new()
+            {
+                ContentType = "application/text",
+                CorrelationId = "id1",
+                Subject = "subject1",
+                MessageId = "msgid1",
+                ReplyTo = "someQueue",
+                ReplyToSessionId = "sessionId",
+                SessionId = "session1",
+                SendTo = "xyz"
+            }
+        };
+        subscription.Rules.Add(rule);
+    })
     ;
 
 serviceBus.RunAsEmulator(configure => configure.ConfigureJson(document =>

@@ -26,16 +26,10 @@ public class ServiceBusQueue
     /// <summary>
     /// Initializes a new instance of the <see cref="ServiceBusQueue"/> class.
     /// </summary>
-    public ServiceBusQueue(string id, string name)
+    public ServiceBusQueue(string name)
     {
-        Id = id;
         Name = name;
     }
-
-    /// <summary>
-    /// The queue id.
-    /// </summary>
-    public string Id { get; }
 
     /// <summary>
     /// The queue name.
@@ -102,7 +96,7 @@ public class ServiceBusQueue
     /// <returns>A <see cref="global::Azure.Provisioning.ServiceBus.ServiceBusQueue"/> instance.</returns>
     public global::Azure.Provisioning.ServiceBus.ServiceBusQueue ToProvisioningEntity()
     {
-        var queue = new global::Azure.Provisioning.ServiceBus.ServiceBusQueue(Id);
+        var queue = new global::Azure.Provisioning.ServiceBus.ServiceBusQueue(AzureResourceInfrastructure.NormalizeBicepIdentifier(Name));
 
         queue.Name = Name;
 
