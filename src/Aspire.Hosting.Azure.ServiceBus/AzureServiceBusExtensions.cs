@@ -131,11 +131,15 @@ public static class AzureServiceBusExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusResource> WithQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<ServiceBusQueue>? configure = null)
     {
-        var queue = new ServiceBusQueue(name);
+        var queue = builder.Resource.Queues.FirstOrDefault(x => x.Name == name);
+
+        if (queue == null)
+        {
+            queue = new ServiceBusQueue(name);
+            builder.Resource.Queues.Add(queue);
+        }
 
         configure?.Invoke(queue);
-
-        builder.Resource.Queues.Add(queue);
         return builder;
     }
 
@@ -161,7 +165,10 @@ public static class AzureServiceBusExtensions
         {
             foreach (var subscription in subscriptions)
             {
-                topic.Subscriptions.Add(new ServiceBusSubscription(name));
+                if (!topic.Subscriptions.Any(x => x.Name == subscription))
+                {
+                    topic.Subscriptions.Add(new ServiceBusSubscription(subscription));
+                }
             }
         });
     }
@@ -175,10 +182,15 @@ public static class AzureServiceBusExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusResource> WithTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<ServiceBusTopic>? configure = null)
     {
-        var topic = new ServiceBusTopic(name);
-        configure?.Invoke(topic);
+        var topic = builder.Resource.Topics.FirstOrDefault(x => x.Name == name);
 
-        builder.Resource.Topics.Add(topic);
+        if (topic == null)
+        {
+            topic = new ServiceBusTopic(name);
+            builder.Resource.Topics.Add(topic);
+        }
+
+        configure?.Invoke(topic);
         return builder;
     }
 
@@ -191,10 +203,14 @@ public static class AzureServiceBusExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusResource> AddSubscription(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName)
     {
-        var topic = builder.Resource.Topics.FirstOrDefault(x => x.Name == topicName) ?? new ServiceBusTopic(topicName);
-        topic.Subscriptions.Add(new ServiceBusSubscription(subscriptionName));
+        builder.WithTopic(topicName, topic =>
+        {
+            if (!topic.Subscriptions.Any(x => x.Name == subscriptionName))
+            {
+                topic.Subscriptions.Add(new ServiceBusSubscription(subscriptionName));
+            }
+        });
 
-        builder.Resource.Topics.Add(topic);
         return builder;
     }
 

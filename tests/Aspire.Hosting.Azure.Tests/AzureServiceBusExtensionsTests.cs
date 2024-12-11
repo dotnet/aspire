@@ -18,6 +18,103 @@ namespace Aspire.Hosting.Azure.Tests;
 public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 {
     [Fact]
+    public async Task NameResourcesAreReused()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var serviceBus = builder.AddAzureServiceBus("sb");
+
+        serviceBus.AddQueue("queue1");
+        serviceBus.AddQueue("queue1");
+        serviceBus.WithQueue("queue1", queue => queue.DefaultMessageTimeToLive = TimeSpan.FromSeconds(1));
+        serviceBus.AddTopic("topic1");
+        serviceBus.AddTopic("topic1");
+        serviceBus.WithTopic("topic1", topic =>
+        {
+            topic.DefaultMessageTimeToLive = TimeSpan.FromSeconds(1);
+            var subscription = new ServiceBusSubscription("subscription1");
+            subscription.Rules.Add(new ServiceBusRule("rule1"));
+            topic.Subscriptions.Add(subscription);
+        });
+        serviceBus.AddSubscription("topic1", "subscription1");
+        serviceBus.AddSubscription("topic1", "subscription2");
+
+        var manifest = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
+
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param sku string = 'Standard'
+
+            param principalType string
+
+            param principalId string
+
+            resource sb 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
+              name: take('sb-${uniqueString(resourceGroup().id)}', 50)
+              location: location
+              properties: {
+                disableLocalAuth: true
+              }
+              sku: {
+                name: sku
+              }
+              tags: {
+                'aspire-resource-name': 'sb'
+              }
+            }
+
+            resource sb_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(sb.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
+                principalType: principalType
+              }
+              scope: sb
+            }
+
+            resource queue1 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
+              name: 'queue1'
+              properties: {
+                defaultMessageTimeToLive: 'PT1S'
+              }
+              parent: sb
+            }
+
+            resource topic1 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
+              name: 'topic1'
+              properties: {
+                defaultMessageTimeToLive: 'PT1S'
+              }
+              parent: sb
+            }
+
+            resource subscription1 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
+              name: 'subscription1'
+              parent: topic1
+            }
+
+            resource rule1 'Microsoft.ServiceBus/namespaces/topics/subscriptions/rules@2024-01-01' = {
+              name: 'rule1'
+              properties: {
+                filterType: 'CorrelationFilter'
+              }
+              parent: subscription1
+            }
+            
+            resource subscription2 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
+              name: 'subscription2'
+              parent: topic1
+            }
+
+            output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
+            """;
+        output.WriteLine(manifest.BicepText);
+        Assert.Equal(expectedBicep, manifest.BicepText);
+    }
+
+    [Fact]
     public async Task TopicNamesCanBeLongerThan24()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
