@@ -175,7 +175,7 @@
     <PackageVersion Include="Microsoft.Orleans.Client" Version="9.0.1" />
     <PackageVersion Include="Microsoft.Orleans.Server" Version="9.0.1" />
     <PackageVersion Include="Microsoft.Orleans.Sdk" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.SignalRService" Version="1.13.0" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.SignalRService" Version="1.7.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.2.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.1.0" />
     <!-- playground apps dependencies for AzureFunctionsEndToEnd -->
