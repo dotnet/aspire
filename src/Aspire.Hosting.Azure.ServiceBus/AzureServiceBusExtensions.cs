@@ -7,6 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.ServiceBus;
 using Aspire.Hosting.Utils;
+using Azure.Messaging.ServiceBus;
 using Azure.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -326,11 +327,13 @@ public static class AzureServiceBusExtensions
         // custom ServiceBusHealthCheck can be registered and will then iterate over the queues and topics.
         // If no queues or no topics are defined then the health check will be successful.
 
+        var noRetryOptions = new ServiceBusClientOptions { RetryOptions = new ServiceBusRetryOptions { MaxRetries = 0 } };
+
         builder.ApplicationBuilder.Services.AddHealthChecks()
           .Add(new HealthCheckRegistration(
               healthCheckKey,
               sp => new ServiceBusHealthCheck(
-                  () => connectionString ?? throw new DistributedApplicationException($"{nameof(connectionString)} was not initialized."),
+                  () => new ServiceBusClient(connectionString, noRetryOptions) ?? throw new DistributedApplicationException($"{nameof(connectionString)} was not initialized."),
                   () => queueNames ?? throw new DistributedApplicationException($"{nameof(queueNames)} was not initialized."),
                   () => topicNames ?? throw new DistributedApplicationException($"{nameof(topicNames)} was not initialized.")),
               failureStatus: default,

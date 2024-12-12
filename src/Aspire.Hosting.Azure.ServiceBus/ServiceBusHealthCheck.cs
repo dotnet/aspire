@@ -12,17 +12,19 @@ namespace Aspire.Hosting.Azure.ServiceBus;
 /// </summary>
 internal sealed class ServiceBusHealthCheck : IHealthCheck
 {
-    private readonly Func<string> _connectionStringFactory;
+    private readonly Func<ServiceBusClient> _clientFactory;
     private readonly Func<IEnumerable<string>> _queueNamesFactory;
     private readonly Func<IEnumerable<string>> _topicNamesFactory;
 
-    public ServiceBusHealthCheck(Func<string> connectionStringFactory, Func<IEnumerable<string>> queueNamesFactory, Func<IEnumerable<string>> topicNamesFactory)
+    private ServiceBusClient? _serviceBusClient;
+
+    public ServiceBusHealthCheck(Func<ServiceBusClient> clientFactory, Func<IEnumerable<string>> queueNamesFactory, Func<IEnumerable<string>> topicNamesFactory)
     {
-        ArgumentNullException.ThrowIfNull(connectionStringFactory);
+        ArgumentNullException.ThrowIfNull(clientFactory);
         ArgumentNullException.ThrowIfNull(queueNamesFactory);
         ArgumentNullException.ThrowIfNull(topicNamesFactory);
 
-        _connectionStringFactory = connectionStringFactory;
+        _clientFactory = clientFactory;
         _queueNamesFactory = queueNamesFactory;
         _topicNamesFactory = topicNamesFactory;
     }
@@ -34,18 +36,18 @@ internal sealed class ServiceBusHealthCheck : IHealthCheck
 
         try
         {
-            var serviceBusClient = new ServiceBusClient(_connectionStringFactory());
+            _serviceBusClient ??= _clientFactory();
 
             foreach (var queueName in _queueNamesFactory())
             {
-                var receiver = serviceBusClient.CreateReceiver(queueName);
-                await receiver.PeekMessageAsync(1, cancellationToken).ConfigureAwait(false);
+                var receiver = _serviceBusClient.CreateReceiver(queueName);
+                await receiver.PeekMessageAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             }
 
             foreach (var topicName in _topicNamesFactory())
             {
-                var receiver = serviceBusClient.CreateReceiver(topicName);
-                await receiver.PeekMessageAsync(1, cancellationToken).ConfigureAwait(false);
+                var receiver = _serviceBusClient.CreateReceiver(topicName);
+                await receiver.PeekMessageAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             }
 
             return HealthCheckResult.Healthy();
