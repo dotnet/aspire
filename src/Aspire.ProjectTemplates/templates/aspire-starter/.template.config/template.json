@@ -9,7 +9,11 @@
     "Web API",
     "API",
     "Service",
-    "Cloud"
+    "Cloud",
+    "Test",
+    "MSTest",
+    "NUnit",
+    "xUnit"
   ],
   "name": ".NET Aspire Starter App",
   "defaultName": "AspireApp",
