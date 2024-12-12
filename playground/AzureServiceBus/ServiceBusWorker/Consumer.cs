@@ -7,7 +7,7 @@ internal sealed class Consumer(ServiceBusClient client, ILogger<Consumer> logger
 {
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
-        var processor = client.CreateProcessor("queue.1", new ServiceBusProcessorOptions
+        var processor = client.CreateProcessor("queue1", new ServiceBusProcessorOptions
         {
             AutoCompleteMessages = true,
             MaxConcurrentCalls = 1, // Process one message at a time

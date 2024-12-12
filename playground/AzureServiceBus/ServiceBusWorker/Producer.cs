@@ -10,7 +10,7 @@ internal sealed class Producer(ServiceBusClient client, ILogger<Producer> logger
     {
         logger.LogInformation("Starting producer...");
 
-        await using var sender = client.CreateSender("queue.1");
+        await using var sender = client.CreateSender("queue1");
 
         var periodicTimer = new PeriodicTimer(TimeSpan.FromSeconds(5));
 

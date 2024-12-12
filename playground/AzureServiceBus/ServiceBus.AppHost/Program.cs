@@ -6,33 +6,15 @@ var builder = DistributedApplication.CreateBuilder(args);
 var serviceBus = builder.AddAzureServiceBus("sbemulator");
 
 serviceBus
-    .WithQueue("myQueue", queue =>
+    .WithQueue("queue1", queue =>
     {
         queue.DeadLetteringOnMessageExpiration = false;
-        queue.DefaultMessageTimeToLive = TimeSpan.FromHours(1);
-        queue.DuplicateDetectionHistoryTimeWindow = TimeSpan.FromSeconds(20);
-        queue.ForwardDeadLetteredMessagesTo = "";
-        queue.LockDuration = TimeSpan.FromMinutes(1);
-        queue.MaxDeliveryCount = 10;
-        queue.RequiresDuplicateDetection = false;
-        queue.RequiresSession = false;
     })
-    .WithTopic("myTopic", topic =>
+    .WithTopic("topic1", topic =>
     {
-        topic.Name = "topic.1";
-        topic.DefaultMessageTimeToLive = TimeSpan.FromHours(1);
-        topic.DuplicateDetectionHistoryTimeWindow = TimeSpan.FromSeconds(20);
-        topic.RequiresDuplicateDetection = false;
-
-        var subscription = new ServiceBusSubscription("mySubscription")
+        var subscription = new ServiceBusSubscription("sub1")
         {
-            Name = "subscription.1",
-            DeadLetteringOnMessageExpiration = false,
-            DefaultMessageTimeToLive = TimeSpan.FromHours(1),
-            LockDuration = TimeSpan.FromMinutes(1),
             MaxDeliveryCount = 10,
-            ForwardDeadLetteredMessagesTo = "",
-            RequiresSession = false
         };
         topic.Subscriptions.Add(subscription);
 
