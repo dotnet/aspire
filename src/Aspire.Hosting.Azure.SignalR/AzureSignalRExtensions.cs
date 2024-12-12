@@ -3,8 +3,11 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Azure.SignalR;
 using Azure.Provisioning;
 using Azure.Provisioning.SignalR;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting;
 
@@ -59,5 +62,63 @@ public static class AzureSignalRExtensions
         var resource = new AzureSignalRResource(name, configureInfrastructure);
         return builder.AddResource(resource)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
+    }
+
+    /// <summary>
+    /// Configures an Azure SignalR resource to be emulated. This resource requires an <see cref="AzureSignalRResource"/> to be added to the application model. Please note that the resource will be emulated in <b>Serverless mode</b>.
+    /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="SignalREmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="SignalREmulatorContainerImageTags.Registry"/>/<inheritdoc cref="SignalREmulatorContainerImageTags.Image"/> container image.
+    /// </remarks>
+    /// <param name="builder">The Azure storage resource builder.</param>
+    /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureSignalRResource> RunAsEmulator(this IResourceBuilder<AzureSignalRResource> builder, Action<IResourceBuilder<AzureSignalREmulatorResource>>? configureContainer = null)
+    {
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
+
+        string? connectionString = null;
+        string? hostname = null;
+        builder
+            .WithEndpoint(name: "emulator", targetPort: 8888, scheme: "http")
+            .WithAnnotation(new ContainerImageAnnotation
+            {
+                Registry = SignalREmulatorContainerImageTags.Registry,
+                Image = SignalREmulatorContainerImageTags.Image,
+                Tag = SignalREmulatorContainerImageTags.Tag
+            });
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(builder.Resource, async (@event, ct) =>
+        {
+            connectionString = await builder.Resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false)
+                        ?? throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
+            hostname = builder.Resource.EmulatorEndpoint.Url;
+        });
+        var healthCheckKey = $"{builder.Resource.Name}_check";
+        var healthCheckRegistration = new HealthCheckRegistration(
+            healthCheckKey,
+            sp =>
+            {
+                var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
+                if (hostname == null)
+                {
+                    throw new InvalidOperationException("Hostname is unavailable");
+                }
+                return new AzureSignalRHealthCheck(new Uri(hostname), clientFactory);
+            },
+            failureStatus: default,
+            tags: default
+        );
+        builder.ApplicationBuilder.Services.AddHttpClient().AddHealthChecks().Add(healthCheckRegistration);
+        if (configureContainer != null)
+        {
+            var surrogate = new AzureSignalREmulatorResource(builder.Resource);
+            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
+            configureContainer(surrogateBuilder);
+        }
+        return builder.WithHealthCheck(healthCheckKey);
     }
 }

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "SignalRServerless.Functions": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7071"
+    }
+  }
+}
