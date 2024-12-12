@@ -52,6 +52,7 @@ serviceBuilder.WithHttpCommand("/big-trace", "Big trace", method: HttpMethod.Get
 serviceBuilder.WithHttpCommand("/trace-limit", "Trace limit", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
 serviceBuilder.WithHttpCommand("/log-message", "Log message", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
 serviceBuilder.WithHttpCommand("/log-message-limit", "Log message limit", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
+serviceBuilder.WithHttpCommand("/multiple-traces-linked", "Multiple traces linked", method: HttpMethod.Get, iconName: "ContentViewGalleryLightning");
 
 builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice");
 

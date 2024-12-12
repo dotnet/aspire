@@ -6,8 +6,8 @@
       "connectionString": "Endpoint=https://{signalr1.outputs.hostName};AuthType=azure",
       "path": "signalr1.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "principalId": ""
       }
     },
     "webfrontend": {

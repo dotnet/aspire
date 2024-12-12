@@ -57,12 +57,7 @@ internal sealed class LogParser
         }
 
         // 5. Create the LogEntry
-        var logEntry = new LogEntry
-        {
-            Timestamp = timestamp,
-            Content = content,
-            Type = isErrorOutput ? LogEntryType.Error : LogEntryType.Default
-        };
+        var logEntry = LogEntry.Create(timestamp, content, rawText, isErrorOutput);
 
         return logEntry;
     }

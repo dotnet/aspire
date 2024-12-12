@@ -53,6 +53,7 @@ fluent-toolbar::part(end) {
     --badge-color-error: var(--foreground-on-accent-rest);
     --foreground-subtext-rest: #5D5D5D;
     --foreground-subtext-hover: #6C6C6C;
+    --foreground-settings-text: var(--foreground-subtext-rest);
     --error-ui-foreground-color: #131313;
     --error-ui-accent-foreground-color: #1d00d0;
     --reconnection-ui-bg: rgb(255, 255, 255);
@@ -86,6 +87,7 @@ fluent-toolbar::part(end) {
     --log-warning: #3F3A2B;
     --foreground-subtext-rest: #8D8D8D;
     --foreground-subtext-hover: #A1A1A1;
+    --foreground-settings-text: #A8A8A8;
     --error-ui-foreground-color: #000000;
     --error-ui-accent-foreground-color: #512bd4;
     --reconnection-ui-bg: #D6D6D6;
@@ -208,7 +210,7 @@ h1 {
     }
 
     fluent-toolbar[orientation=horizontal].main-toolbar {
-        padding-left: calc(var(--design-unit) * 4px);
+        padding-left: calc(var(--design-unit) * 4.5px);
         padding-right: calc(var(--design-unit) * 2px);
     }
 
@@ -250,8 +252,9 @@ fluent-data-grid .loading-content-cell .stack-horizontal {
 }
 
 .top-messagebar {
-    padding: calc(var(--design-unit) * 2px);
-    padding-bottom: 0;
+    padding: calc(var(--design-unit) * 4px);
+    padding-top: calc(var(--design-unit) * 2px);
+    padding-bottom: 0 !important;
 }
 
 .fluent-messagebar.intent-warning {
@@ -682,7 +685,7 @@ fluent-data-grid-cell.no-ellipsis {
 
 .main-grid-expand-container {
     display: inline-block;
-    width: 20px;
+    width: 18px;
 }
 
 .main-grid-expand-container svg {
@@ -699,14 +702,14 @@ fluent-data-grid-cell.no-ellipsis {
 }
 
 .main-grid-expand-button {
-    width: 20px;
+    width: 18px;
     height: 24px;
-    min-width: 20px;
+    min-width: 18px;
     vertical-align: middle;
 }
 
 .main-grid fluent-data-grid-row[row-type='sticky-header'] fluent-data-grid-cell:first-child {
-    margin-left: 8px;
+    margin-left: 5px;
 }
 
 .main-grid fluent-data-grid-row[row-type='default'] fluent-data-grid-cell.expand-col {
@@ -715,5 +718,19 @@ fluent-data-grid-cell.no-ellipsis {
 }
 
 .main-grid fluent-data-grid-row[row-type='default'] fluent-data-grid-cell:first-child:not(.expand-col) {
-    margin-left: 8px;
+    margin-left: 5px;
+}
+
+.toolbar-left {
+    margin-left: 0;
+}
+
+.setting-subtext {
+    color: var(--foreground-settings-text);
+    font-size: var(--type-ramp-minus-1-font-size);
+}
+
+.volume-mount-type-icon {
+    vertical-align: text-bottom;
+    margin-right: 3px
 }

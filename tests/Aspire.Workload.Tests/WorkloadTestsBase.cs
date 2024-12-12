@@ -237,7 +237,9 @@ public partial class WorkloadTestsBase
 
                 // Check 'Source' column
                 var sourceCell = cellLocs[4];
-                AssertEqual(expectedRow.Source, await sourceCell.InnerTextAsync(), $"Source for {resourceName}");
+                // Since this will be the entire command, we can just confirm that the path of the executable contains
+                // the expected source (executable/project)
+                Assert.Contains(expectedRow.SourceContains, await sourceCell.InnerTextAsync());
 
                 foundRows.Add(expectedRow with { Endpoints = endpointsFound.ToArray() });
                 foundNames.Add(resourceName);

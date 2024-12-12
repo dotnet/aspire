@@ -17,6 +17,15 @@ namespace Aspire.Hosting.Testing.Tests;
 public class TestingBuilderTests
 {
     [Fact]
+    public void TestingBuilderHasAllPropertiesFromRealBuilder()
+    {
+        var realBuilderProperties = typeof(IDistributedApplicationBuilder).GetProperties().Select(p => p.Name).ToList();
+        var testBuilderProperties = typeof(IDistributedApplicationTestingBuilder).GetProperties().Select(p => p.Name).ToList();
+        var missingProperties = realBuilderProperties.Except(testBuilderProperties).ToList();
+        Assert.Empty(missingProperties);
+    }
+
+    [Fact]
     [RequiresDocker]
     public async Task CanLoadFromDirectoryOutsideOfAppContextBaseDirectory()
     {

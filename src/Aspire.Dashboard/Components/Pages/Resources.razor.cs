@@ -36,9 +36,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
     [Inject]
-    public required IDialogService DialogService { get; init; }
-    [Inject]
-    public required IToastService ToastService { get; init; }
+    public required DashboardCommandExecutor DashboardCommandExecutor { get; init; }
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
     [Inject]
@@ -51,13 +49,17 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     [SupplyParameterFromQuery]
     public string? VisibleTypes { get; set; }
 
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "resource")]
+    public string? ResourceName { get; set; }
+
     private ResourceViewModel? SelectedResource { get; set; }
 
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly ConcurrentDictionary<string, bool> _allResourceTypes = [];
     private readonly ConcurrentDictionary<string, bool> _visibleResourceTypes = new(StringComparers.ResourceName);
-    private readonly List<string> _expandedResourceNames = [];
+    private readonly HashSet<string> _expandedResourceNames = [];
     private string _filter = "";
     private bool _isTypeFilterVisible;
     private Task? _resourceSubscriptionTask;
@@ -142,7 +144,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     private readonly GridSort<ResourceGridViewModel> _nameSort = GridSort<ResourceGridViewModel>.ByAscending(p => p.Resource, ResourceViewModelNameComparer.Instance);
     private readonly GridSort<ResourceGridViewModel> _stateSort = GridSort<ResourceGridViewModel>.ByAscending(p => p.Resource.State).ThenAscending(p => p.Resource, ResourceViewModelNameComparer.Instance);
-    private readonly GridSort<ResourceGridViewModel> _startTimeSort = GridSort<ResourceGridViewModel>.ByDescending(p => p.Resource.CreationTimeStamp).ThenAscending(p => p.Resource, ResourceViewModelNameComparer.Instance);
+    private readonly GridSort<ResourceGridViewModel> _startTimeSort = GridSort<ResourceGridViewModel>.ByDescending(p => p.Resource.StartTimeStamp).ThenAscending(p => p.Resource, ResourceViewModelNameComparer.Instance);
     private readonly GridSort<ResourceGridViewModel> _typeSort = GridSort<ResourceGridViewModel>.ByAscending(p => p.Resource.ResourceType).ThenAscending(p => p.Resource, ResourceViewModelNameComparer.Instance);
 
     protected override async Task OnInitializedAsync()
@@ -254,11 +256,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             .ToList();
 
         // Paging visible resources.
-        var query = orderedResources.Skip(request.StartIndex);
-        if (request.Count != null)
-        {
-            query = query.Take(request.Count.Value);
-        }
+        var query = orderedResources
+            .Skip(request.StartIndex)
+            .Take(request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount);
 
         return ValueTask.FromResult(GridItemsProviderResult.From(query.ToList(), orderedResources.Count));
     }
@@ -281,7 +281,21 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         // Don't attempt to display more than 2 highlighted commands. Many commands will take up too much space.
         // Extra highlighted commands are still available in the menu.
-        _maxHighlightedCount = Math.Min(maxHighlightedCount, 2);
+        _maxHighlightedCount = Math.Min(maxHighlightedCount, DashboardUIHelpers.MaxHighlightedCommands);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ResourceName is not null)
+        {
+            if (_resourceByName.TryGetValue(ResourceName, out var selectedResource))
+            {
+                await ShowResourceDetailsAsync(selectedResource, buttonId: null);
+            }
+
+            // Navigate to remove ?resource=xxx in the URL.
+            NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(), new NavigationOptions { ReplaceHistoryEntry = true });
+        }
     }
 
     private bool ApplicationErrorCountsChanged(Dictionary<ApplicationKey, int> newApplicationUnviewedErrorCounts)
@@ -313,6 +327,24 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         else
         {
             SelectedResource = resource;
+
+            // Ensure that the selected resource is visible in the grid. All parents must be expanded.
+            var current = resource;
+            while (current != null)
+            {
+                if (current.GetResourcePropertyValue(KnownProperties.Resource.ParentName) is { Length: > 0 } value)
+                {
+                    if (_resourceByName.TryGetValue(value, out current))
+                    {
+                        _expandedResourceNames.Add(value);
+                        continue;
+                    }
+                }
+
+                break;
+            }
+
+            await _dataGrid.SafeRefreshDataAsync();
         }
     }
 
@@ -360,98 +392,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     private async Task ExecuteResourceCommandAsync(ResourceViewModel resource, CommandViewModel command)
     {
-        if (!string.IsNullOrWhiteSpace(command.ConfirmationMessage))
-        {
-            var dialogReference = await DialogService.ShowConfirmationAsync(command.ConfirmationMessage);
-            var result = await dialogReference.Result;
-            if (result.Cancelled)
-            {
-                return;
-            }
-        }
-
-        var messageResourceName = GetResourceName(resource);
-
-        var toastParameters = new ToastParameters<CommunicationToastContent>()
-        {
-            Id = Guid.NewGuid().ToString(),
-            Intent = ToastIntent.Progress,
-            Title = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandStarting)], messageResourceName, command.DisplayName),
-            Content = new CommunicationToastContent()
-        };
-
-        // Show a toast immediately to indicate the command is starting.
-        ToastService.ShowCommunicationToast(toastParameters);
-
-        var response = await DashboardClient.ExecuteResourceCommandAsync(resource.Name, resource.ResourceType, command, CancellationToken.None);
-
-        // Update toast with the result;
-        if (response.Kind == ResourceCommandResponseKind.Succeeded)
-        {
-            toastParameters.Title = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandSuccess)], messageResourceName, command.DisplayName);
-            toastParameters.Intent = ToastIntent.Success;
-            toastParameters.Icon = GetIntentIcon(ToastIntent.Success);
-        }
-        else
-        {
-            toastParameters.Title = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandFailed)], messageResourceName, command.DisplayName);
-            toastParameters.Intent = ToastIntent.Error;
-            toastParameters.Icon = GetIntentIcon(ToastIntent.Error);
-            toastParameters.Content.Details = response.ErrorMessage;
-            toastParameters.PrimaryAction = Loc[nameof(Dashboard.Resources.Resources.ResourceCommandToastViewLogs)];
-            toastParameters.OnPrimaryAction = EventCallback.Factory.Create<ToastResult>(this, () => NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: resource.Name)));
-        }
-
-        ToastService.UpdateToast(toastParameters.Id, toastParameters);
-    }
-
-    // Copied from FluentUI.
-    private static (Icon Icon, Color Color)? GetIntentIcon(ToastIntent intent)
-    {
-        return intent switch
-        {
-            ToastIntent.Success => (new Icons.Filled.Size24.CheckmarkCircle(), Color.Success),
-            ToastIntent.Warning => (new Icons.Filled.Size24.Warning(), Color.Warning),
-            ToastIntent.Error => (new Icons.Filled.Size24.DismissCircle(), Color.Error),
-            ToastIntent.Info => (new Icons.Filled.Size24.Info(), Color.Info),
-            ToastIntent.Progress => (new Icons.Regular.Size24.Flash(), Color.Neutral),
-            ToastIntent.Upload => (new Icons.Regular.Size24.ArrowUpload(), Color.Neutral),
-            ToastIntent.Download => (new Icons.Regular.Size24.ArrowDownload(), Color.Neutral),
-            ToastIntent.Event => (new Icons.Regular.Size24.CalendarLtr(), Color.Neutral),
-            ToastIntent.Mention => (new Icons.Regular.Size24.Person(), Color.Neutral),
-            ToastIntent.Custom => null,
-            _ => throw new InvalidOperationException()
-        };
-    }
-
-    private static (string Value, string? ContentAfterValue, string ValueToCopy, string Tooltip)? GetSourceColumnValueAndTooltip(ResourceViewModel resource)
-    {
-        // NOTE projects are also executables, so we have to check for projects first
-        if (resource.IsProject() && resource.TryGetProjectPath(out var projectPath))
-        {
-            return (Value: Path.GetFileName(projectPath), ContentAfterValue: null, ValueToCopy: projectPath, Tooltip: projectPath);
-        }
-
-        if (resource.TryGetExecutablePath(out var executablePath))
-        {
-            resource.TryGetExecutableArguments(out var arguments);
-            var argumentsString = arguments.IsDefaultOrEmpty ? "" : string.Join(" ", arguments);
-            var fullCommandLine = $"{executablePath} {argumentsString}";
-
-            return (Value: Path.GetFileName(executablePath), ContentAfterValue: argumentsString, ValueToCopy: fullCommandLine, Tooltip: fullCommandLine);
-        }
-
-        if (resource.TryGetContainerImage(out var containerImage))
-        {
-            return (Value: containerImage, ContentAfterValue: null, ValueToCopy: containerImage, Tooltip: containerImage);
-        }
-
-        if (resource.Properties.TryGetValue(KnownProperties.Resource.Source, out var property) && property.Value is { HasStringValue: true, StringValue: var value })
-        {
-            return (Value: value, ContentAfterValue: null, ValueToCopy: value, Tooltip: value);
-        }
-
-        return null;
+        await DashboardCommandExecutor.ExecuteAsync(resource, command, GetResourceName);
     }
 
     private static string GetEndpointsTooltip(ResourceViewModel resource)

@@ -16,7 +16,7 @@ public class StructuredLogsViewModel
     private ApplicationKey? _applicationKey;
     private string _filterText = string.Empty;
     private int _logsStartIndex;
-    private int? _logsCount;
+    private int _logsCount;
     private LogLevel? _logLevel;
 
     public StructuredLogsViewModel(TelemetryRepository telemetryRepository)
@@ -60,7 +60,7 @@ public class StructuredLogsViewModel
     }
 
     public int StartIndex { get => _logsStartIndex; set => SetValue(ref _logsStartIndex, value); }
-    public int? Count { get => _logsCount; set => SetValue(ref _logsCount, value); }
+    public int Count { get => _logsCount; set => SetValue(ref _logsCount, value); }
     public LogLevel? LogLevel { get => _logLevel; set => SetValue(ref _logLevel, value); }
 
     private void SetValue<T>(ref T field, T value)
