@@ -235,6 +235,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
         await rns.WaitForResourceAsync(serviceBus.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await rns.WaitForResourceHealthyAsync(serviceBus.Resource.Name, cts.Token);
 
         var serviceBusClient = host.Services.GetRequiredService<ServiceBusClient>();
 
