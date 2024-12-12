@@ -43,18 +43,11 @@
             {
                 <div>
                     <ResourceFilters
-                        AllResources="@_visibleResources"
-                        AllResourceStates="@_allResourceStates"
-                        VisibleResourceStates="@_visibleResourceStates"
-                        AllResourceTypes="@_allResourceTypes"
-                        VisibleResourceTypes="@_visibleResourceTypes"
-                        AllResourceHealthStates="@_allResourceHealthStates"
-                        VisibleResourceHealthStates="@_visibleResourceHealthStates"
+                        AllResourceStates="@_resourceStatesToVisibility"
+                        AllResourceTypes="@_resourceTypesToVisibility"
+                        AllResourceHealthStates="@_resourceHealthStatusesToVisibility"
                         OnAllFilterVisibilityCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
-                        OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync"
-                        AreAllTypesVisible="@AreAllTypesVisible"
-                        AreAllStatesVisible="@AreAllStatesVisible"
-                        AreAllHealthStatesVisible="@AreAllHealthStatesVisible" />
+                        OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync" />
                 </div>
             }
         </ToolbarSection>
@@ -63,18 +56,11 @@
             <FluentPopover AnchorId="resourceFilterButton" @bind-Open="_isFilterPopupVisible" AutoFocus="true" FixedPlacement="true">
                 <Body>
                 <ResourceFilters
-                        AllResources="@_visibleResources"
-                        AllResourceStates="@_allResourceStates"
-                        VisibleResourceStates="@_visibleResourceStates"
-                        AllResourceTypes="@_allResourceTypes"
-                        VisibleResourceTypes="@_visibleResourceTypes"
-                        AllResourceHealthStates="@_allResourceHealthStates"
-                        VisibleResourceHealthStates="@_visibleResourceHealthStates"
+                        AllResourceStates="@_resourceStatesToVisibility"
+                        AllResourceTypes="@_resourceTypesToVisibility"
+                        AllResourceHealthStates="@_resourceHealthStatusesToVisibility"
                         OnAllFilterVisibilityCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
-                        OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync"
-                        AreAllTypesVisible="@AreAllTypesVisible"
-                        AreAllStatesVisible="@AreAllStatesVisible"
-                        AreAllHealthStatesVisible="@AreAllHealthStatesVisible" />
+                        OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync" />
                 </Body>
             </FluentPopover>
 

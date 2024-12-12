@@ -9,8 +9,7 @@ public partial class SelectResourceOptions<TValue>
 {
     private async Task OnAllValuesCheckedChangedInternalAsync(bool? newAreAllVisible)
     {
-        AreAllVisible = newAreAllVisible;
-        await AreAllVisibleChanged.InvokeAsync(AreAllVisible);
+        SetCheckState(newAreAllVisible, AllValues);
         await OnAllResourceTypesCheckedChangedAsync();
     }
 
@@ -18,56 +17,55 @@ public partial class SelectResourceOptions<TValue>
     {
         if (isVisible)
         {
-            VisibleValues[value] = true;
+            AllValues[value] = true;
         }
         else
         {
-            VisibleValues.TryRemove(value, out _);
+            AllValues[value] = false;
         }
 
         await OnValueVisibilityChangedAsync(value, isVisible);
     }
 
-    internal static bool? GetFieldVisibility(ConcurrentDictionary<TValue, bool> visibleValues, ConcurrentDictionary<TValue, bool> allValues, StringComparer comparer)
+    private static void SetCheckState(bool? newAreAllVisible, ConcurrentDictionary<TValue, bool> values)
     {
-        static bool SetEqualsKeys(ConcurrentDictionary<TValue, bool> left, ConcurrentDictionary<TValue, bool> right, StringComparer comparer)
+        if (newAreAllVisible is null)
         {
-            // PERF: This is inefficient since Keys locks and copies the keys.
-            var keysLeft = left.Keys.Select(key => key.ToString()).ToList();
-            var keysRight = right.Keys.Select(key => key.ToString()).ToList();
-
-            return keysLeft.Count == keysRight.Count && keysLeft.OrderBy(key => key, comparer).SequenceEqual(keysRight.OrderBy(key => key, comparer), comparer);
+            return;
         }
 
-        return SetEqualsKeys(visibleValues, allValues, comparer)
-            ? true
-            : visibleValues.IsEmpty
-                ? false
-                : null;
+        foreach (var key in values.Keys)
+        {
+            values[key] = newAreAllVisible.Value;
+        }
     }
 
-    internal static void SetFieldVisibility(ConcurrentDictionary<TValue, bool> visibleValues, ConcurrentDictionary<TValue, bool> allValues, bool? value, Action stateHasChanged)
+    private static bool? GetCheckState(ConcurrentDictionary<TValue, bool> values)
     {
-        static bool UnionWithKeys(ConcurrentDictionary<TValue, bool> left, ConcurrentDictionary<TValue, bool> right)
+        if (values.IsEmpty)
         {
-            // .Keys locks and copies the keys so avoid it here.
-            foreach (var (key, _) in right)
-            {
-                left[key] = true;
-            }
-
             return true;
         }
 
-        if (value is true)
+        var areAllChecked = true;
+        var areAllUnchecked = true;
+
+        foreach (var value in values.Values)
         {
-            UnionWithKeys(visibleValues, allValues);
-        }
-        else if (value is false)
-        {
-            visibleValues.Clear();
+            if (value)
+            {
+                areAllUnchecked = false;
+            }
+            else
+            {
+                areAllChecked = false;
+            }
         }
 
-        stateHasChanged();
+        return areAllChecked
+            ? true
+            : areAllUnchecked
+                ? false
+                : null;
     }
 }
