@@ -53,7 +53,11 @@
         </ToolbarSection>
 
         <MainSection>
-            <FluentPopover AnchorId="resourceFilterButton" @bind-Open="_isFilterPopupVisible" AutoFocus="true" FixedPlacement="true">
+            <FluentPopover AnchorId="resourceFilterButton"
+                           @bind-Open="_isFilterPopupVisible"
+                           AutoFocus="true"
+                           FixedPlacement="true"
+                           Class="resources-popup">
                 <Body>
                 <ResourceFilters
                         AllResourceStates="@_resourceStatesToVisibility"

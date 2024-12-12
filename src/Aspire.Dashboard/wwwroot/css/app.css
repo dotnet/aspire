@@ -729,3 +729,8 @@ fluent-data-grid-cell.no-ellipsis {
     color: var(--foreground-settings-text);
     font-size: var(--type-ramp-minus-1-font-size);
 }
+
+.resources-popup {
+    max-height: 400px;
+    overflow-y: scroll;
+}
