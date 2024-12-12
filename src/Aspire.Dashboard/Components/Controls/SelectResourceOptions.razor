@@ -17,9 +17,7 @@
                     @bind-CheckState:set="@OnAllValuesCheckedChangedInternalAsync"
     />
 
-    @foreach (var (resourceType, _) in AllValues
-                  .Where(pair => Resources.Any(resource => ResourceContainsValue(resource, pair.Key)))
-                  .OrderBy(pair => pair.Key.ToString(), StringComparer.OrdinalIgnoreCase))
+    @foreach (var (resourceType, _) in AllValues.OrderBy(pair => pair.Key.ToString(), StringComparer.OrdinalIgnoreCase))
     {
         var isChecked = VisibleValues.ContainsKey(resourceType);
         <FluentCheckbox Label="@(resourceType.ToString())"
@@ -49,7 +47,4 @@
 
     [Parameter, EditorRequired]
     public required IEnumerable<ResourceViewModel> Resources { get; set; }
-
-    [Parameter, EditorRequired]
-    public required Func<ResourceViewModel, TValue, bool> ResourceContainsValue { get; set; }
 }
