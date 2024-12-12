@@ -730,6 +730,11 @@ fluent-data-grid-cell.no-ellipsis {
     font-size: var(--type-ramp-minus-1-font-size);
 }
 
+.volume-mount-type-icon {
+    vertical-align: text-bottom;
+    margin-right: 3px
+}
+
 .resources-popup {
     max-height: 400px;
     overflow-y: scroll;
