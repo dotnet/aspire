@@ -221,7 +221,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
             .RunAsEmulator()
             .AddQueue("queue1")
-            .AddQueue("topic1");
+            .AddTopic("topic1");
 
         using var app = builder.Build();
         await app.StartAsync();

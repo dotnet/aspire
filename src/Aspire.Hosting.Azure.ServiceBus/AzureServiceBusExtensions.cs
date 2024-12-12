@@ -337,6 +337,8 @@ public static class AzureServiceBusExtensions
               tags: default,
               timeout: default));
 
+        builder.WithHealthCheck(healthCheckKey);
+
         builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
         {
             var serviceBusEmulatorResources = builder.ApplicationBuilder.Resources.OfType<AzureServiceBusResource>().Where(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);

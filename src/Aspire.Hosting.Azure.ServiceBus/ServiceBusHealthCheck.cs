@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Azure.Messaging.ServiceBus.Administration;
+using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting.Azure.ServiceBus;
@@ -30,18 +30,22 @@ internal sealed class ServiceBusHealthCheck : IHealthCheck
     /// <inheritdoc />
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
-        var serviceBusManagementClient = new ServiceBusAdministrationClient(_connectionStringFactory());
+        // ServiceBusAdministrationClient is not available in the emulator
 
         try
         {
+            var serviceBusClient = new ServiceBusClient(_connectionStringFactory());
+
             foreach (var queueName in _queueNamesFactory())
             {
-                await serviceBusManagementClient.GetQueueRuntimePropertiesAsync(queueName, cancellationToken).ConfigureAwait(false);
+                var receiver = serviceBusClient.CreateReceiver(queueName);
+                await receiver.PeekMessageAsync(1, cancellationToken).ConfigureAwait(false);
             }
 
             foreach (var topicName in _topicNamesFactory())
             {
-                await serviceBusManagementClient.GetTopicRuntimePropertiesAsync(topicName, cancellationToken).ConfigureAwait(false);
+                var receiver = serviceBusClient.CreateReceiver(topicName);
+                await receiver.PeekMessageAsync(1, cancellationToken).ConfigureAwait(false);
             }
 
             return HealthCheckResult.Healthy();
