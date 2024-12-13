@@ -5,7 +5,6 @@
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <RootNamespace>SignalRServerless.Functions</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Functions.Worker" />
@@ -26,14 +25,14 @@
     <Content Include="local.settings.json" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
   <ItemGroup>	
     <None Update="content/index.html">	
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>	
     </None>	
     <None Update="host.json">	
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>	
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>	
   </ItemGroup>
   <ItemGroup>

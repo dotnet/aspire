@@ -70,7 +70,7 @@ public static class AzureSignalRExtensions
     /// <remarks>
     /// This version of the package defaults to the <inheritdoc cref="SignalREmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="SignalREmulatorContainerImageTags.Registry"/>/<inheritdoc cref="SignalREmulatorContainerImageTags.Image"/> container image.
     /// </remarks>
-    /// <param name="builder">The Azure storage resource builder.</param>
+    /// <param name="builder">The Azure SignalR resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureSignalRResource> RunAsEmulator(this IResourceBuilder<AzureSignalRResource> builder, Action<IResourceBuilder<AzureSignalREmulatorResource>>? configureContainer = null)
@@ -102,11 +102,11 @@ public static class AzureSignalRExtensions
             healthCheckKey,
             sp =>
             {
-                var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
                 if (hostname == null)
                 {
                     throw new InvalidOperationException("Hostname is unavailable");
                 }
+                var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
                 return new AzureSignalRHealthCheck(new Uri(hostname), clientFactory);
             },
             failureStatus: default,

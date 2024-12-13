@@ -6,5 +6,4 @@ Aspire.Hosting.ApplicationModel.AzureSignalRResource.IsEmulator.get -> bool
 Aspire.Hosting.Azure.AzureSignalREmulatorResource
 Aspire.Hosting.Azure.AzureSignalREmulatorResource.AzureSignalREmulatorResource(Aspire.Hosting.ApplicationModel.AzureSignalRResource! innerResource) -> void
 override Aspire.Hosting.Azure.AzureSignalREmulatorResource.Annotations.get -> Aspire.Hosting.ApplicationModel.ResourceAnnotationCollection!
-override Aspire.Hosting.Azure.AzureSignalREmulatorResource.Name.get -> string!
 static Aspire.Hosting.AzureSignalRExtensions.RunAsEmulator(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.AzureSignalRResource!>! builder, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureSignalREmulatorResource!>!>? configureContainer = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.AzureSignalRResource!>!

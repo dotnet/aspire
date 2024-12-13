@@ -4,12 +4,12 @@
 namespace Aspire.Hosting.Azure.SignalR;
 internal static class SignalREmulatorContainerImageTags
 {
-    /// <summary>mcr.microsoft.com</summary>
+    /// <remarks>mcr.microsoft.com</remarks>
     public const string Registry = "mcr.microsoft.com";
 
-    /// <summary>signalr/signalr-emulator</summary>
+    /// <remarks>signalr/signalr-emulator</remarks>
     public const string Image = "signalr/signalr-emulator";
 
-    /// <summary>latest</summary>
-    public const string Tag = "latest"; // latest is the only arch-agnostic tag
+    /// <remarks>latest</remarks>
+    public const string Tag = "latest";
 }
