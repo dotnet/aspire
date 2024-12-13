@@ -494,12 +494,12 @@
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">
         <source>Mount type</source>
-        <target state="new">Mount type</target>
+        <target state="translated">Тип подключения</target>
         <note />
       </trans-unit>
       <trans-unit id="VolumePathColumnHeader">
         <source>Path</source>
-        <target state="new">Path</target>
+        <target state="translated">Путь</target>
         <note />
       </trans-unit>
     </body>
