@@ -1,4 +1,4 @@
-﻿@page "/traces"
+@page "/traces"
 @page "/traces/resource/{applicationName}"
 
 @using Aspire.Dashboard.Model
@@ -27,6 +27,11 @@
                             @bind-SelectedResource:after="HandleSelectedApplicationChanged"
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
+
+            <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
+                              Icon="@(new Icons.Regular.Size20.ChevronDown())"
+                              Items="@_removeTracesMenuItems" />
+
             <FluentSearch @bind-Value="_filter"
                           @bind-Value:after="HandleAfterFilterBindAsync"
                           Immediate="true"

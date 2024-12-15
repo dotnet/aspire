@@ -21,6 +21,9 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewModel, Traces.TracesPageState>
 {
+    private static readonly Icon s_removeSelectedResourceIcon = new Icons.Regular.Size16.Dismiss();
+    private static readonly Icon s_removeAllResourcesIcon = new Icons.Regular.Size16.Delete();
+
     private const string TimestampColumn = nameof(TimestampColumn);
     private const string NameColumn = nameof(NameColumn);
     private const string SpansColumn = nameof(SpansColumn);
@@ -40,6 +43,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     private AspirePageContentLayout? _contentLayout;
     private FluentDataGrid<OtlpTrace> _dataGrid = null!;
     private GridColumnManager _manager = null!;
+    private readonly List<MenuButtonItem> _removeTracesMenuItems = new();
 
     public string SessionStorageKey => BrowserStorageKeys.TracesPageState;
     public string BasePath => DashboardUrls.TracesBasePath;
@@ -180,11 +184,13 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         _applicationViewModels = ApplicationsSelectHelpers.CreateApplications(_applications);
         _applicationViewModels.Insert(0, _allApplication);
         UpdateSubscription();
+        UpdateRemoveTracesMenuItems();
     }
 
     private Task HandleSelectedApplicationChanged()
     {
         _applicationChanged = true;
+        UpdateRemoveTracesMenuItems();
         return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
@@ -325,6 +331,38 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         }
 
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
+    }
+
+    private void UpdateRemoveTracesMenuItems()
+    {
+        // Set up the menu
+        if (_removeTracesMenuItems.Count == 0)
+        {
+            _removeTracesMenuItems.Add(new MenuButtonItem
+            {
+                Icon = s_removeSelectedResourceIcon,
+                OnClick = () => RemoveTraces(true),
+            });
+            _removeTracesMenuItems.Add(new MenuButtonItem
+            {
+                Icon = s_removeAllResourcesIcon,
+                OnClick = () => RemoveTraces(false),
+                Text = ControlsStringsLoc[name: nameof(ControlsStrings.RemoveAll)],
+            });
+        }
+
+        var selectedApplication = PageViewModel.SelectedApplication;
+        _removeTracesMenuItems[0].IsDisabled = selectedApplication?.Id == null;
+        _removeTracesMenuItems[0].Text = string.Format(CultureInfo.InvariantCulture,
+            ControlsStringsLoc[name: nameof(ControlsStrings.RemoveForResouece)],
+            selectedApplication?.Name);
+    }
+
+    private Task RemoveTraces(bool removeSelected)
+    {
+        var selectedApplication = removeSelected ? PageViewModel.SelectedApplication.Id?.GetApplicationKey() : null;
+        TelemetryRepository.ClearTraces(selectedApplication);
+        return Task.CompletedTask;
     }
 
     public class TracesPageViewModel

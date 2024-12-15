@@ -282,6 +282,16 @@
         <target state="translated">Valeur</target>
         <note />
       </trans-unit>
+      <trans-unit id="RemoveAll">
+        <source>Remove all</source>
+        <target state="new">Remove all</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RemoveForResouece">
+        <source>Remove for {0}</source>
+        <target state="new">Remove for {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceDetailsBackReferences">
         <source>Back references</source>
         <target state="new">Back references</target>

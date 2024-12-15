@@ -566,6 +566,52 @@ public sealed class TelemetryRepository
         }
     }
 
+    public void ClearTraces(ApplicationKey? applicationKey = null)
+    {
+        List<OtlpApplication>? applications = null;
+        if (applicationKey.HasValue)
+        {
+            applications = GetApplications(applicationKey.Value);
+        }
+
+        _tracesLock.EnterWriteLock();
+        try
+        {
+            if (applications is null || applications.Count == 0)
+            {
+                // Nothing selected, clear everything.
+                _traces.Clear();
+            }
+            else
+            {
+                for (var i = _traces.Count - 1; i >= 0; i--)
+                {
+                    // We check if the trace originates from the application, if so, remove the entire trace
+                    if (ApplicationViewContainedInApplications(_traces[i].FirstSpan.Source, applications))
+                    {
+                        _traces.RemoveAt(i);
+                        continue;
+                    }
+
+                    // Otherwise we check if it has any span from the application, if so, remove the spans
+                    for (var j = _traces[i].Spans.Count - 1; j >= 0; j--)
+                    {
+                        if (ApplicationViewContainedInApplications(_traces[i].Spans[j].Source, applications))
+                        {
+                            _traces[i].Spans.RemoveAt(j);
+                        }
+                }
+            }
+        }
+        }
+        finally
+        {
+            _tracesLock.ExitWriteLock();
+        }
+
+        RaiseSubscriptionChanged(_tracesSubscriptions);
+    }
+
     public Dictionary<string, int> GetTraceFieldValues(string attributeName)
     {
         _tracesLock.EnterReadLock();
@@ -691,6 +737,18 @@ public sealed class TelemetryRepository
         foreach (var span in t.Spans)
         {
             if (span.Source.ApplicationKey == applicationKey)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool ApplicationViewContainedInApplications(OtlpApplicationView applicationView, ICollection<OtlpApplication> applications)
+    {
+        foreach (var application in applications)
+        {
+            if (applicationView.ApplicationKey == application.ApplicationKey)
             {
                 return true;
             }

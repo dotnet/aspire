@@ -565,6 +565,24 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Remove all.
+        /// </summary>
+        public static string RemoveAll {
+            get {
+                return ResourceManager.GetString("RemoveAll", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove for {0}.
+        /// </summary>
+        public static string RemoveForResouece {
+            get {
+                return ResourceManager.GetString("RemoveForResouece", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Back references.
         /// </summary>
         public static string ResourceDetailsBackReferences {
