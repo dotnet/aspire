@@ -21,6 +21,9 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs.StructuredLogsPageViewModel, StructuredLogs.StructuredLogsPageState>
 {
+    private static readonly Icon s_removeSelectedResourceIcon = new Icons.Regular.Size16.Dismiss();
+    private static readonly Icon s_removeAllResourcesIcon = new Icons.Regular.Size16.Delete();
+
     private const string ResourceColumn = nameof(ResourceColumn);
     private const string LogLevelColumn = nameof(LogLevelColumn);
     private const string TimestampColumn = nameof(TimestampColumn);
@@ -44,6 +47,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private FluentDataGrid<OtlpLogEntry> _dataGrid = null!;
     private GridColumnManager _manager = null!;
     private IList<GridColumn> _gridColumns = null!;
+    private readonly List<MenuButtonItem> _removeStructuredLogsMenuItems = new();
 
     public string BasePath => DashboardUrls.StructuredLogsBasePath;
     public string SessionStorageKey => BrowserStorageKeys.StructuredLogsPageState;
@@ -206,12 +210,14 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         _applications = TelemetryRepository.GetApplications();
         _applicationViewModels = ApplicationsSelectHelpers.CreateApplications(_applications);
         _applicationViewModels.Insert(0, _allApplication);
+        UpdateRemoveStructuredLogsMenuItems();
     }
 
     private Task HandleSelectedApplicationChangedAsync()
     {
         _applicationChanged = true;
 
+        UpdateRemoveStructuredLogsMenuItems();
         return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
@@ -423,6 +429,39 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
 
         await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
+    }
+
+    private void UpdateRemoveStructuredLogsMenuItems()
+    {
+        // Set up the menu
+        if (_removeStructuredLogsMenuItems.Count == 0)
+        {
+            _removeStructuredLogsMenuItems.Add(new MenuButtonItem
+            {
+                Icon = s_removeSelectedResourceIcon,
+                OnClick = () => RemoveStructureLogs(true)
+            });
+            _removeStructuredLogsMenuItems.Add(new MenuButtonItem
+            {
+                Icon = s_removeAllResourcesIcon,
+                OnClick = () => RemoveStructureLogs(false),
+                Text = ControlsStringsLoc[name: nameof(ControlsStrings.RemoveAll)],
+            });
+        }
+
+        var selectedApplication = PageViewModel.SelectedApplication;
+        _removeStructuredLogsMenuItems[0].IsDisabled = PageViewModel.SelectedApplication?.Id == null;
+        _removeStructuredLogsMenuItems[0].Text = string.Format(CultureInfo.InvariantCulture,
+            ControlsStringsLoc[name: nameof(ControlsStrings.RemoveForResouece)],
+            selectedApplication?.Name);
+        
+    }
+
+    private Task RemoveStructureLogs(bool removeSelected)
+    {
+        var selectedApplication = removeSelected ? PageViewModel.SelectedApplication.Id?.GetApplicationKey() : null;
+        TelemetryRepository.ClearStructuredLogs(selectedApplication);
+        return Task.CompletedTask;
     }
 
     public class StructuredLogsPageViewModel

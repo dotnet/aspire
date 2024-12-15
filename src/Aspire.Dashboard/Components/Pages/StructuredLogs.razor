@@ -30,6 +30,11 @@
                             @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync"
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
+
+            <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
+                              Icon="@(new Icons.Regular.Size20.ChevronDown())"
+                              Items="@_removeStructuredLogsMenuItems" />
+
             <FluentSearch @bind-Value="_filter"
                           @bind-Value:after="HandleAfterFilterBindAsync"
                           Immediate="true"

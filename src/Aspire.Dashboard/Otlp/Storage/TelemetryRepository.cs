@@ -600,9 +600,9 @@ public sealed class TelemetryRepository
                         {
                             _traces[i].Spans.RemoveAt(j);
                         }
+                    }
                 }
             }
-        }
         }
         finally
         {
@@ -610,6 +610,43 @@ public sealed class TelemetryRepository
         }
 
         RaiseSubscriptionChanged(_tracesSubscriptions);
+    }
+
+    public void ClearStructuredLogs(ApplicationKey? applicationKey = null)
+    {
+        List<OtlpApplication>? applications = null;
+        if (applicationKey.HasValue)
+        {
+            applications = GetApplications(applicationKey.Value);
+        }
+
+        _logsLock.EnterWriteLock();
+
+        try
+        {
+            if (applications is null || applications.Count == 0)
+            {
+                // Nothing selected, clear everything.
+                _logs.Clear();
+            }
+            else
+            {
+                for (var i = _logs.Count - 1; i >= 0; i--)
+                {
+                    if (ApplicationViewContainedInApplications(_logs[i].ApplicationView, applications))
+                    {
+                        _logs.RemoveAt(i);
+                        continue;
+                    }
+                }
+            }
+        }
+        finally
+        {
+            _logsLock.ExitWriteLock();
+        }
+
+        RaiseSubscriptionChanged(_logSubscriptions);
     }
 
     public Dictionary<string, int> GetTraceFieldValues(string attributeName)
