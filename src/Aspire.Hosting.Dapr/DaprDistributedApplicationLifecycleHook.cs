@@ -36,6 +36,8 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
     {
         string appHostDirectory = _configuration["AppHost:Directory"] ?? throw new InvalidOperationException("Unable to obtain the application host directory.");
 
+        // TODO: Get here all reference annotations here.
+        // Wait for all references to be ready.
         var onDemandResourcesPaths = await StartOnDemandDaprComponentsAsync(appModel, cancellationToken).ConfigureAwait(false);
 
         var sideCars = new List<ExecutableResource>();
@@ -71,7 +73,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             var aggregateResourcesPaths = sidecarOptions?.ResourcesPaths.Select(path => NormalizePath(path)).ToHashSet() ?? new HashSet<string>();
 
             var componentReferenceAnnotations = resource.Annotations.OfType<DaprComponentReferenceAnnotation>();
-
+            
             var waitAnnotationsToCopyToDaprCli = new List<WaitAnnotation>();
 
             foreach (var componentReferenceAnnotation in componentReferenceAnnotations)

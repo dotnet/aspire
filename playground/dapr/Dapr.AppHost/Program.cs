@@ -7,7 +7,7 @@ var rmq = builder.AddRabbitMQ("rabbitMQ")
 
 var stateStore = builder.AddDaprStateStore("statestore");
 var pubSub = builder.AddDaprPubSub("pubsub")
-                    .WaitFor(rmq);
+              .WithReference(rmq);
 
 builder.AddProject<Projects.DaprServiceA>("servicea")
        .WithDaprSidecar()

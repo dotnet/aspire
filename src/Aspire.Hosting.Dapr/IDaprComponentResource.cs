@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Dapr;
 /// <summary>
 /// Represents a Dapr component resource.
 /// </summary>
-public interface IDaprComponentResource : IResource, IResourceWithWaitSupport
+public interface IDaprComponentResource : IResource, IResourceWithWaitSupport, IResourceWithEnvironment
 {
     /// <summary>
     /// Gets the type of the Dapr component.
