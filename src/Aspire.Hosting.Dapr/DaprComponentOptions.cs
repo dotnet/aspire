@@ -29,5 +29,5 @@ public sealed record DaprComponentOptions
     /// The optional secret store ref.
     /// Is required if the <see cref="Metadata"/> contains a reference to a secret.
     /// </summary>
-    public DaprComponentResource? SecretStore { get; init; }
+    public IDaprComponentResource? SecretStore { get; init; }
 }
