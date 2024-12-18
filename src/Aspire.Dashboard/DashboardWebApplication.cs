@@ -172,6 +172,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
         else
         {
+             DashboardUrls.SetBasePath(dashboardOptions.PathBase);
             _validationFailures = Array.Empty<string>();
         }
 
@@ -369,7 +370,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         // Configure the HTTP request pipeline.
         if (!_app.Environment.IsDevelopment())
         {
-            _app.UseExceptionHandler("/error");
+            _app.UseExceptionHandler($"{DashboardUrls.BasePath}error");
             if (isAllHttps)
             {
                 _app.UseHsts();
@@ -416,6 +417,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapGrpcService<OtlpGrpcLogsService>();
 
         _app.MapDashboardApi(dashboardOptions);
+
+        _app.UsePathBase(dashboardOptions.PathBase);
+       
     }
 
     private ILogger<DashboardWebApplication> GetLogger()

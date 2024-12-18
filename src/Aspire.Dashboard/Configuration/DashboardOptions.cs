@@ -12,6 +12,7 @@ namespace Aspire.Dashboard.Configuration;
 public sealed class DashboardOptions
 {
     public string? ApplicationName { get; set; }
+    public string PathBase { get; set; } = "/";
     public OtlpOptions Otlp { get; set; } = new();
     public FrontendOptions Frontend { get; set; } = new();
     public ResourceServiceClientOptions ResourceServiceClient { get; set; } = new();

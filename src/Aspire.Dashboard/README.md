@@ -123,3 +123,5 @@ Limits are per-resource. For example, a `MaxLogCount` value of 10,000 configures
 ### Other
 
 - `Dashboard:ApplicationName` specifies the application name to be displayed in the UI. This applies only when no resource service URL is specified. When a resource service exists, the service specifies the application name.
+
+- `Dashboard:PathBase` specifies the path base utilized by [PathMiddleware](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.usepathbaseextensions.usepathbase) to control how links are handled behind a reverse proxy
