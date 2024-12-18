@@ -13,7 +13,6 @@ internal sealed class Consumer(ServiceBusClient client, ILogger<Consumer> logger
             MaxConcurrentCalls = 1, // Process one message at a time
         });
 
-        // Whenever a message is available on the queue
         processor.ProcessMessageAsync += MessageHandler;
 
         processor.ProcessErrorAsync += ErrorHandler;
