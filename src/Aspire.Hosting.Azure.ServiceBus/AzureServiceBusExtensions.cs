@@ -496,7 +496,7 @@ public static class AzureServiceBusExtensions
     /// <param name="builder">The builder for the <see cref="AzureServiceBusEmulatorResource"/>.</param>
     /// <param name="path">Path to the file on the AppHost where the emulator configuration is located.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureServiceBusEmulatorResource> WithConfigJson(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, string path)
+    public static IResourceBuilder<AzureServiceBusEmulatorResource> WithConfigurationFile(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, string path)
     => builder.WithBindMount(path, AzureServiceBusEmulatorResource.EmulatorConfigJsonPath, isReadOnly: false);
 
     /// <summary>
@@ -505,7 +505,7 @@ public static class AzureServiceBusExtensions
     /// <param name="builder">The builder for the <see cref="AzureServiceBusEmulatorResource"/>.</param>
     /// <param name="configJson">A callback to update the JSON object representation of the configuration.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureServiceBusEmulatorResource> ConfigureJson(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, Action<JsonNode> configJson)
+    public static IResourceBuilder<AzureServiceBusEmulatorResource> ConfigureEmulator(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, Action<JsonNode> configJson)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configJson);

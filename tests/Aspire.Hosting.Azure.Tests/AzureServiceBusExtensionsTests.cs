@@ -651,7 +651,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
-            .RunAsEmulator(configure => configure.ConfigureJson(document =>
+            .RunAsEmulator(configure => configure.ConfigureEmulator(document =>
             {
                 document["UserConfig"]!["Logging"] = new JsonObject { ["Type"] = "Console" };
             }));

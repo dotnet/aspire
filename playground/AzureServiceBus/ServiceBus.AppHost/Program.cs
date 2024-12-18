@@ -36,7 +36,7 @@ serviceBus
     })
     ;
 
-serviceBus.RunAsEmulator(configure => configure.ConfigureJson(document =>
+serviceBus.RunAsEmulator(configure => configure.ConfigureEmulator(document =>
 {
     document["UserConfig"]!["Logging"] = new JsonObject { ["Type"] = "Console" };
 }));
