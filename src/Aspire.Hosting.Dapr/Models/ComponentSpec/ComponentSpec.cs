@@ -4,7 +4,8 @@ namespace Aspire.Hosting.Dapr.Models.ComponentSpec;
 /// <summary>
 /// The dapr component spec
 /// </summary>
-public sealed class ComponentSpec{
+public sealed class ComponentSpec
+{
     /// <summary>
     /// The api version for the component spec
     /// </summary>
@@ -29,5 +30,5 @@ public sealed class ComponentSpec{
     /// Defined scopes where the component can be accessed from
     /// </summary>
     public List<string> Scopes { get; init; } = new();
-    
+
 }

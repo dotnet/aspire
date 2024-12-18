@@ -1,7 +1,11 @@
-#nullable enable
+﻿#nullable enable
 Aspire.Hosting.Dapr.DaprComponentOptions
+Aspire.Hosting.Dapr.DaprComponentOptions.Configuration.get -> System.Collections.Generic.List<Aspire.Hosting.Dapr.Models.ComponentSpec.MetadataValue!>?
+Aspire.Hosting.Dapr.DaprComponentOptions.Configuration.init -> void
 Aspire.Hosting.Dapr.DaprComponentOptions.LocalPath.get -> string?
 Aspire.Hosting.Dapr.DaprComponentOptions.LocalPath.init -> void
+Aspire.Hosting.Dapr.DaprComponentOptions.SecretStore.get -> Aspire.Hosting.Dapr.IDaprComponentResource?
+Aspire.Hosting.Dapr.DaprComponentOptions.SecretStore.init -> void
 Aspire.Hosting.Dapr.DaprComponentReferenceAnnotation
 Aspire.Hosting.Dapr.DaprComponentReferenceAnnotation.Component.get -> Aspire.Hosting.Dapr.IDaprComponentResource!
 Aspire.Hosting.Dapr.DaprComponentReferenceAnnotation.Component.init -> void
@@ -77,6 +81,8 @@ Aspire.Hosting.Dapr.DaprSidecarOptions.RunFile.get -> string?
 Aspire.Hosting.Dapr.DaprSidecarOptions.RunFile.init -> void
 Aspire.Hosting.Dapr.DaprSidecarOptions.RuntimePath.get -> string?
 Aspire.Hosting.Dapr.DaprSidecarOptions.RuntimePath.init -> void
+Aspire.Hosting.Dapr.DaprSidecarOptions.SchedulerHostAddress.get -> string?
+Aspire.Hosting.Dapr.DaprSidecarOptions.SchedulerHostAddress.init -> void
 Aspire.Hosting.Dapr.DaprSidecarOptions.UnixDomainSocket.get -> string?
 Aspire.Hosting.Dapr.DaprSidecarOptions.UnixDomainSocket.init -> void
 Aspire.Hosting.Dapr.DaprSidecarOptionsAnnotation
@@ -87,12 +93,64 @@ Aspire.Hosting.Dapr.IDaprComponentResource
 Aspire.Hosting.Dapr.IDaprComponentResource.Options.get -> Aspire.Hosting.Dapr.DaprComponentOptions?
 Aspire.Hosting.Dapr.IDaprComponentResource.Type.get -> string!
 Aspire.Hosting.Dapr.IDaprSidecarResource
+Aspire.Hosting.Dapr.Models.ComponentSpec.Auth
+Aspire.Hosting.Dapr.Models.ComponentSpec.Auth.Auth() -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.Auth.SecretStore.get -> string!
+Aspire.Hosting.Dapr.Models.ComponentSpec.Auth.SecretStore.init -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.ComponentSpec
+Aspire.Hosting.Dapr.Models.ComponentSpec.ComponentSpec.Auth.get -> Aspire.Hosting.Dapr.Models.ComponentSpec.Auth?
+Aspire.Hosting.Dapr.Models.ComponentSpec.ComponentSpec.Auth.init -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.ComponentSpec.ComponentSpec() -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.ComponentSpec.Metadata.get -> Aspire.Hosting.Dapr.Models.ComponentSpec.Metadata!
+Aspire.Hosting.Dapr.Models.ComponentSpec.ComponentSpec.Metadata.init -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.ComponentSpec.Scopes.get -> System.Collections.Generic.List<string!>!
+Aspire.Hosting.Dapr.Models.ComponentSpec.ComponentSpec.Scopes.init -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.ComponentSpec.Spec.get -> Aspire.Hosting.Dapr.Models.ComponentSpec.Spec!
+Aspire.Hosting.Dapr.Models.ComponentSpec.ComponentSpec.Spec.init -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.Metadata
+Aspire.Hosting.Dapr.Models.ComponentSpec.Metadata.Metadata() -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.Metadata.Name.get -> string!
+Aspire.Hosting.Dapr.Models.ComponentSpec.Metadata.Name.init -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.Metadata.Namespace.get -> string?
+Aspire.Hosting.Dapr.Models.ComponentSpec.Metadata.Namespace.init -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.MetadataDirectValue<TValue>
+Aspire.Hosting.Dapr.Models.ComponentSpec.MetadataDirectValue<TValue>.MetadataDirectValue() -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.MetadataDirectValue<TValue>.Value.get -> TValue
+Aspire.Hosting.Dapr.Models.ComponentSpec.MetadataDirectValue<TValue>.Value.init -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.MetadataSecretValue
+Aspire.Hosting.Dapr.Models.ComponentSpec.MetadataSecretValue.MetadataSecretValue() -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.MetadataSecretValue.SecretKeyRef.get -> Aspire.Hosting.Dapr.Models.ComponentSpec.SecretKeyRef!
+Aspire.Hosting.Dapr.Models.ComponentSpec.MetadataSecretValue.SecretKeyRef.init -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.MetadataValue
+Aspire.Hosting.Dapr.Models.ComponentSpec.MetadataValue.MetadataValue() -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.MetadataValue.Name.get -> string!
+Aspire.Hosting.Dapr.Models.ComponentSpec.MetadataValue.Name.init -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.SecretKeyRef
+Aspire.Hosting.Dapr.Models.ComponentSpec.SecretKeyRef.Key.get -> string!
+Aspire.Hosting.Dapr.Models.ComponentSpec.SecretKeyRef.Key.init -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.SecretKeyRef.Name.get -> string!
+Aspire.Hosting.Dapr.Models.ComponentSpec.SecretKeyRef.Name.init -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.SecretKeyRef.SecretKeyRef(string! Name, string? Key = null) -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.Spec
+Aspire.Hosting.Dapr.Models.ComponentSpec.Spec.IgnoreErrors.get -> bool?
+Aspire.Hosting.Dapr.Models.ComponentSpec.Spec.IgnoreErrors.init -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.Spec.InitTimeout.get -> string?
+Aspire.Hosting.Dapr.Models.ComponentSpec.Spec.InitTimeout.init -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.Spec.Metadata.get -> System.Collections.Generic.List<Aspire.Hosting.Dapr.Models.ComponentSpec.MetadataValue!>!
+Aspire.Hosting.Dapr.Models.ComponentSpec.Spec.Metadata.init -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.Spec.Spec() -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.Spec.Type.get -> string!
+Aspire.Hosting.Dapr.Models.ComponentSpec.Spec.Type.init -> void
+Aspire.Hosting.Dapr.Models.ComponentSpec.Spec.Version.get -> string!
+Aspire.Hosting.Dapr.Models.ComponentSpec.Spec.Version.init -> void
 Aspire.Hosting.IDistributedApplicationBuilderExtensions
 Aspire.Hosting.IDistributedApplicationResourceBuilderExtensions
+readonly Aspire.Hosting.Dapr.Models.ComponentSpec.ComponentSpec.ApiVersion -> string!
+readonly Aspire.Hosting.Dapr.Models.ComponentSpec.ComponentSpec.Kind -> string!
 static Aspire.Hosting.IDistributedApplicationBuilderExtensions.AddDapr(this Aspire.Hosting.IDistributedApplicationBuilder! builder, System.Action<Aspire.Hosting.Dapr.DaprOptions!>? configure = null) -> Aspire.Hosting.IDistributedApplicationBuilder!
 static Aspire.Hosting.IDistributedApplicationBuilderExtensions.AddDaprComponent(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! type, Aspire.Hosting.Dapr.DaprComponentOptions? options = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Dapr.IDaprComponentResource!>!
-static Aspire.Hosting.IDistributedApplicationBuilderExtensions.AddDaprPubSub(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, Aspire.Hosting.Dapr.DaprComponentOptions? options = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Dapr.IDaprComponentResource!>!
-static Aspire.Hosting.IDistributedApplicationBuilderExtensions.AddDaprStateStore(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, Aspire.Hosting.Dapr.DaprComponentOptions? options = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Dapr.IDaprComponentResource!>!
+static Aspire.Hosting.IDistributedApplicationBuilderExtensions.AddDaprPubSub(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! type = "in-memory", Aspire.Hosting.Dapr.DaprComponentOptions? options = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Dapr.IDaprComponentResource!>!
+static Aspire.Hosting.IDistributedApplicationBuilderExtensions.AddDaprStateStore(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! type = "in-memory", Aspire.Hosting.Dapr.DaprComponentOptions? options = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Dapr.IDaprComponentResource!>!
 static Aspire.Hosting.IDistributedApplicationResourceBuilderExtensions.WithDaprSidecar<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, Aspire.Hosting.Dapr.DaprSidecarOptions? options = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.IDistributedApplicationResourceBuilderExtensions.WithDaprSidecar<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! appId) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.IDistributedApplicationResourceBuilderExtensions.WithDaprSidecar<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Dapr.IDaprSidecarResource!>!>! configureSidecar) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!

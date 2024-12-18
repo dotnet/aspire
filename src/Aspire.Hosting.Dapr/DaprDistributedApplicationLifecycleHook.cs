@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dapr.Models.ComponentSpec;
 using Aspire.Hosting.Lifecycle;
@@ -9,9 +12,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
-using System.Net.Sockets;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using static Aspire.Hosting.Dapr.CommandLineArgs;
@@ -253,7 +253,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         context.Writer.TryWriteNumber("metricsPort", sidecarOptions?.MetricsPort);
                         context.Writer.TryWriteString("placementHostAddress", sidecarOptions?.PlacementHostAddress);
                         context.Writer.TryWriteNumber("profilePort", sidecarOptions?.ProfilePort);
-                        context.Writer.TryWriteStringArray("resourcesPath", sidecarOptions?.ResourcesPaths.Select(path => context.GetManifestRelativePath(path+ "/")));
+                        context.Writer.TryWriteStringArray("resourcesPath", sidecarOptions?.ResourcesPaths.Select(path => context.GetManifestRelativePath(path + "/")));
                         context.Writer.TryWriteString("runFile", context.GetManifestRelativePath(sidecarOptions?.RunFile));
                         context.Writer.TryWriteString("runtimePath", context.GetManifestRelativePath(sidecarOptions?.RuntimePath));
                         context.Writer.TryWriteString("schedulerHostAddress", sidecarOptions?.SchedulerHostAddress);
@@ -415,10 +415,11 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 Version = "v1",
                 Metadata = component.Options?.Configuration ?? new List<MetadataValue>()
             },
-            Auth = component.Options?.SecretStore is not null ? 
-                new() {
+            Auth = component.Options?.SecretStore is not null ?
+                new()
+                {
                     SecretStore = component.Options.SecretStore.Name
-                } 
+                }
                 : null
         };
 
@@ -451,14 +452,14 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         string componentPath = Path.Combine(componentDirectory, $"{component.Name}.yaml");
         var serializer = new SerializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
-            
+
             .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitNull)
             .Build();
         serializer.Serialize(File.CreateText(componentPath), spec);
         var content = serializer.Serialize(spec);
         await File.WriteAllTextAsync(componentPath, content, cancellationToken).ConfigureAwait(false);
         return (component.Name, componentPath);
-       
+
     }
 
     private string GetComponentPath(string componantName)

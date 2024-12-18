@@ -5,7 +5,7 @@ namespace Aspire.Hosting.Dapr.Models.ComponentSpec;
 /// <summary>
 /// A metadata value that references a secret
 /// </summary>
-public sealed class MetadataSecretValue: MetadataValue
+public sealed class MetadataSecretValue : MetadataValue
 {
     /// <summary>
     /// The secret reference
