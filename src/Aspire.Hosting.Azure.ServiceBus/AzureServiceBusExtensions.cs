@@ -288,9 +288,8 @@ public static class AzureServiceBusExtensions
             context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", password);
         }));
 
-        string? connectionString = null;
-        string[]? queueNames = null;
-        string[]? topicNames = null;
+        ServiceBusClient? serviceBusClient = null;
+        string? queueOrTopicName = null;
 
         builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(builder.Resource, async (@event, ct) =>
         {
@@ -302,15 +301,19 @@ public static class AzureServiceBusExtensions
                 return;
             }
 
-            connectionString = await builder.Resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+            var connectionString = await builder.Resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
 
             if (connectionString == null)
             {
                 throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
             }
 
-            queueNames = serviceBusEmulatorResources.SelectMany(x => x.Queues).Select(x => x.Name).ToArray();
-            topicNames = serviceBusEmulatorResources.SelectMany(x => x.Topics).Select(x => x.Name).ToArray();
+            var noRetryOptions = new ServiceBusClientOptions { RetryOptions = new ServiceBusRetryOptions { MaxRetries = 0 } };
+            serviceBusClient = new ServiceBusClient(connectionString, noRetryOptions);
+
+            queueOrTopicName =
+                serviceBusEmulatorResources.SelectMany(x => x.Queues).Select(x => x.Name).FirstOrDefault()
+                ?? serviceBusEmulatorResources.SelectMany(x => x.Topics).Select(x => x.Name).FirstOrDefault();
         });
 
         var healthCheckKey = $"{builder.Resource.Name}_check";
@@ -323,19 +326,15 @@ public static class AzureServiceBusExtensions
         }
 
         // To use the existing ServiceBus health check we would need to know if there is any queue or topic defined.
-        // We can register a health check for a queue and then no-op if there are no queues. Same for topics. This
-        // custom ServiceBusHealthCheck can be registered and will then iterate over the queues and topics.
+        // We can register a health check for a queue and then no-op if there are no queues. Same for topics.
         // If no queues or no topics are defined then the health check will be successful.
-
-        var noRetryOptions = new ServiceBusClientOptions { RetryOptions = new ServiceBusRetryOptions { MaxRetries = 0 } };
 
         builder.ApplicationBuilder.Services.AddHealthChecks()
           .Add(new HealthCheckRegistration(
               healthCheckKey,
               sp => new ServiceBusHealthCheck(
-                  () => new ServiceBusClient(connectionString, noRetryOptions) ?? throw new DistributedApplicationException($"{nameof(connectionString)} was not initialized."),
-                  () => queueNames ?? throw new DistributedApplicationException($"{nameof(queueNames)} was not initialized."),
-                  () => topicNames ?? throw new DistributedApplicationException($"{nameof(topicNames)} was not initialized.")),
+                  () => serviceBusClient ?? throw new DistributedApplicationException($"{nameof(serviceBusClient)} was not initialized."),
+                  () => queueOrTopicName),
               failureStatus: default,
               tags: default,
               timeout: default));

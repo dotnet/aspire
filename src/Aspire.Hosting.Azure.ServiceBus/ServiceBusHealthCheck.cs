@@ -13,40 +13,36 @@ namespace Aspire.Hosting.Azure.ServiceBus;
 internal sealed class ServiceBusHealthCheck : IHealthCheck
 {
     private readonly Func<ServiceBusClient> _clientFactory;
-    private readonly Func<IEnumerable<string>> _queueNamesFactory;
-    private readonly Func<IEnumerable<string>> _topicNamesFactory;
+    private readonly Func<string?> _nameFactory;
 
     private ServiceBusClient? _serviceBusClient;
 
-    public ServiceBusHealthCheck(Func<ServiceBusClient> clientFactory, Func<IEnumerable<string>> queueNamesFactory, Func<IEnumerable<string>> topicNamesFactory)
+    public ServiceBusHealthCheck(Func<ServiceBusClient> clientFactory, Func<string?> nameFactory)
     {
         ArgumentNullException.ThrowIfNull(clientFactory);
-        ArgumentNullException.ThrowIfNull(queueNamesFactory);
-        ArgumentNullException.ThrowIfNull(topicNamesFactory);
+        ArgumentNullException.ThrowIfNull(nameFactory);
 
         _clientFactory = clientFactory;
-        _queueNamesFactory = queueNamesFactory;
-        _topicNamesFactory = topicNamesFactory;
+        _nameFactory = nameFactory;
     }
 
     /// <inheritdoc />
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
-        // ServiceBusAdministrationClient is not available in the emulator
+        // The emulator doesn't support ServiceBusAdministrationClient which would be the preferred method to check the health of the service.
+        // A ServiceBusClient is used instead.
 
         try
         {
             _serviceBusClient ??= _clientFactory();
 
-            foreach (var queueName in _queueNamesFactory())
-            {
-                var receiver = _serviceBusClient.CreateReceiver(queueName);
-                await receiver.PeekMessageAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-            }
+            // We can assume that if a queue/topic is up and working then all queues or topics are too
 
-            foreach (var topicName in _topicNamesFactory())
+            var queueOrTopicName = _nameFactory();
+
+            if (!string.IsNullOrWhiteSpace(queueOrTopicName))
             {
-                var receiver = _serviceBusClient.CreateReceiver(topicName);
+                var receiver = _serviceBusClient.CreateReceiver(queueOrTopicName);
                 await receiver.PeekMessageAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             }
 
