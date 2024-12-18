@@ -49,8 +49,9 @@ builder.AddProject<Projects.DaprServiceB>("serviceb")
 
 // console app with no appPort (sender only)
 builder.AddProject<Projects.DaprServiceC>("servicec")
+       .WithDaprSidecar()
        .WithReference(stateStore)
-       .WithDaprSidecar();
+       .WithReference(secretStore);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
