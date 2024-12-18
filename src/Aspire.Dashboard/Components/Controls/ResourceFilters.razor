@@ -1,0 +1,45 @@
+﻿@using System.Collections.Concurrent
+
+@inject IStringLocalizer<Dashboard.Resources.Resources> Loc
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="15">
+    <div>
+        <h4>@Loc[nameof(Resources.Resources.ResourcesResourceTypesHeader)]</h4>
+        <SelectResourceOptions
+            AllValues="AllResourceTypes"
+            OnAllResourceTypesCheckedChangedAsync="OnAllFilterVisibilityCheckedChangedAsync"
+            OnValueVisibilityChangedAsync="OnResourceFilterVisibilityChangedAsync"/>
+    </div>
+    <div>
+        <h4>@Loc[nameof(Resources.Resources.ResourcesResourceStatesHeader)]</h4>
+        <SelectResourceOptions
+            AllValues="AllResourceStates"
+            OnAllResourceTypesCheckedChangedAsync="OnAllFilterVisibilityCheckedChangedAsync"
+            OnValueVisibilityChangedAsync="OnResourceFilterVisibilityChangedAsync"/>
+    </div>
+    <div>
+        <h4>@Loc[nameof(Resources.Resources.ResourcesDetailsHealthStateProperty)]</h4>
+        <SelectResourceOptions
+            AllValues="AllResourceHealthStates"
+            OnAllResourceTypesCheckedChangedAsync="OnAllFilterVisibilityCheckedChangedAsync"
+            OnValueVisibilityChangedAsync="OnResourceFilterVisibilityChangedAsync"/>
+    </div>
+</FluentStack>
+
+@code {
+
+    [Parameter, EditorRequired]
+    public required ConcurrentDictionary<string, bool> AllResourceTypes { get; set; }
+
+    [Parameter, EditorRequired]
+    public required ConcurrentDictionary<string, bool> AllResourceStates { get; set; }
+
+    [Parameter, EditorRequired]
+    public required ConcurrentDictionary<string, bool> AllResourceHealthStates { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Func<Task> OnAllFilterVisibilityCheckedChangedAsync { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Func<string, bool, Task> OnResourceFilterVisibilityChangedAsync { get; set; }
+}

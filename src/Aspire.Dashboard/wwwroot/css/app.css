@@ -734,3 +734,8 @@ fluent-data-grid-cell.no-ellipsis {
     vertical-align: text-bottom;
     margin-right: 3px
 }
+
+.resources-popup {
+    max-height: 400px;
+    overflow-y: scroll;
+}

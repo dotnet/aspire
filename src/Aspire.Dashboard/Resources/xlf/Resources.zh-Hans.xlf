@@ -162,6 +162,16 @@
         <target state="translated">环境</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesResourceHasNoState">
+        <source>No state</source>
+        <target state="new">No state</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesResourceStatesHeader">
+        <source>State</source>
+        <target state="new">State</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">
         <source>Source</source>
         <target state="translated">源</target>
