@@ -19,7 +19,7 @@ namespace Aspire.Hosting.Azure.ServiceBus;
 /// - MaxSizeInMegabytes
 /// - Status
 ///
-/// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(Aspire.Hosting.ApplicationModel.IResourceBuilder{T}, Action{Aspire.Hosting.Azure.AzureResourceInfrastructure})"/> to configure these specific properties.
+/// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure these specific properties.
 /// </remarks>
 public class ServiceBusQueue
 {
