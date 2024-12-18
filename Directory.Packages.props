@@ -128,6 +128,7 @@
     <PackageVersion Include="RabbitMQ.Client" Version="[6.8.1,7.0.0)" />
     <PackageVersion Include="StackExchange.Redis" Version="2.8.22" />
     <PackageVersion Include="System.IO.Hashing" Version="8.0.0" />
+    <PackageVersion Include="YamlDotNet.Signed" Version="6.0.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.2.0" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.6" />

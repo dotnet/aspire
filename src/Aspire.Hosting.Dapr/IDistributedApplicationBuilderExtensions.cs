@@ -49,7 +49,7 @@ public static class IDistributedApplicationBuilderExtensions
             {
                 Properties = [],
                 ResourceType = "DaprComponent",
-                State = KnownResourceStates.Hidden
+                State = KnownResourceStates.Starting
             })
             .WithAnnotation(new ManifestPublishingCallbackAnnotation(context => WriteDaprComponentResourceToManifest(context, resource)), ResourceAnnotationMutationBehavior.Replace);
     }
@@ -59,11 +59,12 @@ public static class IDistributedApplicationBuilderExtensions
     /// </summary>
     /// <param name="builder">The distributed application builder instance.</param>
     /// <param name="name">The name of the component.</param>
+    /// <param name="type">The type of the implementation for the pubsub.</param>
     /// <param name="options">Options for configuring the component, if any.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<IDaprComponentResource> AddDaprPubSub(this IDistributedApplicationBuilder builder, [ResourceName] string name, DaprComponentOptions? options = null)
+    public static IResourceBuilder<IDaprComponentResource> AddDaprPubSub(this IDistributedApplicationBuilder builder, [ResourceName] string name, string type = "in-memory", DaprComponentOptions? options = null)
     {
-        return builder.AddDaprComponent(name, DaprConstants.BuildingBlocks.PubSub, options);
+        return builder.AddDaprComponent(name, $"{DaprConstants.BuildingBlocks.PubSub}.{type}", options);
     }
 
     /// <summary>
@@ -71,11 +72,12 @@ public static class IDistributedApplicationBuilderExtensions
     /// </summary>
     /// <param name="builder">The distributed application builder instance.</param>
     /// <param name="name">The name of the component.</param>
+    /// <param name="type">The type of the implementation for the statestore.</param>
     /// <param name="options">Options for configuring the component, if any.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<IDaprComponentResource> AddDaprStateStore(this IDistributedApplicationBuilder builder, [ResourceName] string name, DaprComponentOptions? options = null)
+    public static IResourceBuilder<IDaprComponentResource> AddDaprStateStore(this IDistributedApplicationBuilder builder, [ResourceName] string name, string type = "in-memory", DaprComponentOptions? options = null)
     {
-        return builder.AddDaprComponent(name, DaprConstants.BuildingBlocks.StateStore, options);
+        return builder.AddDaprComponent(name, $"{DaprConstants.BuildingBlocks.StateStore}.{type}", options);
     }
 
     private static void WriteDaprComponentResourceToManifest(ManifestPublishingContext context, DaprComponentResource resource)
