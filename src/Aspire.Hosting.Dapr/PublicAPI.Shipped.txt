@@ -81,8 +81,6 @@ Aspire.Hosting.Dapr.DaprSidecarOptions.RunFile.get -> string?
 Aspire.Hosting.Dapr.DaprSidecarOptions.RunFile.init -> void
 Aspire.Hosting.Dapr.DaprSidecarOptions.RuntimePath.get -> string?
 Aspire.Hosting.Dapr.DaprSidecarOptions.RuntimePath.init -> void
-Aspire.Hosting.Dapr.DaprSidecarOptions.SchedulerHostAddress.get -> string?
-Aspire.Hosting.Dapr.DaprSidecarOptions.SchedulerHostAddress.init -> void
 Aspire.Hosting.Dapr.DaprSidecarOptions.UnixDomainSocket.get -> string?
 Aspire.Hosting.Dapr.DaprSidecarOptions.UnixDomainSocket.init -> void
 Aspire.Hosting.Dapr.DaprSidecarOptionsAnnotation
