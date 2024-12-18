@@ -21,10 +21,10 @@ internal sealed class Consumer(ServiceBusClient client, ILogger<Consumer> logger
         await processor.StartProcessingAsync(cancellationToken);
     }
 
-    private static Task MessageHandler(ProcessMessageEventArgs args)
+    private Task MessageHandler(ProcessMessageEventArgs args)
     {
         // Process the message
-        Console.WriteLine($"Received message: {Encoding.UTF8.GetString(args.Message.Body)}");
+        logger.LogInformation("Received message: {Message}", Encoding.UTF8.GetString(args.Message.Body));
 
         return Task.CompletedTask;
     }
