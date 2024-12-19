@@ -1682,16 +1682,16 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               parent: sb
             }
 
-            resource t2 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
-              name: 't2'
-              parent: sb
-            }
-
             resource s3 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
               name: 's3'
               parent: t1
             }
 
+            resource t2 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
+              name: 't2'
+              parent: sb
+            }
+            
             output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
             """;
         output.WriteLine(manifest.BicepText);
