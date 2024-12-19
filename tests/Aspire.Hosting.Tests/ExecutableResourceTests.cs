@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
@@ -36,7 +35,7 @@ public class ExecutableResourceTests
 
         using var app = appBuilder.Build();
 
-        var args = await ArgumentEvaluator.GetArgumentListAsync(exe2.Resource).DefaultTimeout();
+        var args = await exe2.Resource.GetArgumentListAsync().DefaultTimeout();
 
         Assert.Collection(args,
             arg => Assert.Equal("app.py", arg),

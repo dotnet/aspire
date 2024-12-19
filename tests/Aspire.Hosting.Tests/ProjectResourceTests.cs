@@ -584,7 +584,7 @@ public class ProjectResourceTests
 
         using var app = appBuilder.Build();
 
-        var args = await ArgumentEvaluator.GetArgumentListAsync(project.Resource).DefaultTimeout();
+        var args = await project.Resource.GetArgumentListAsync().DefaultTimeout();
 
         Assert.Collection(args,
             arg => Assert.Equal("arg1", arg),
