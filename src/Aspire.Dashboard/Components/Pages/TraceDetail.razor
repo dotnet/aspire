@@ -9,7 +9,12 @@
 @inject IStringLocalizer<Dashboard.Resources.TraceDetail> Loc
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
 
-<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.TraceDetail.TraceDetailPageTitle)" Loc="@Loc" /></PageTitle>
+<PageTitle>
+    <AspirePageTitle
+        AdditionalText="@(_trace?.RootSpan?.Name)"
+        ResourceName="@nameof(Dashboard.Resources.TraceDetail.TraceDetailPageTitle)"
+        Loc="@Loc"/>
+</PageTitle>
 
 <div class="page-content-container">
     @if (_trace is { } trace)
@@ -26,7 +31,7 @@
                     <h1>
                         <span>@GetResourceName(headerSpan.Source): @headerSpan.Name</span>
                         <span class="trace-id">@OtlpHelpers.ToShortenedId(trace.TraceId)</span>
-                    </h1>                    
+                    </h1>
                 </div>
             </PageTitleSection>
             <ToolbarSection>

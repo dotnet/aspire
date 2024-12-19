@@ -13,7 +13,12 @@
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 @implements IDisposable
 
-<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Traces.TracesPageTitle)" Loc="@Loc" /></PageTitle>
+<PageTitle>
+    <AspirePageTitle
+        AdditionalText="@PageViewModel.SelectedApplication.Id?.ReplicaSetName"
+        ResourceName="@nameof(Dashboard.Resources.Traces.TracesPageTitle)"
+        Loc="@Loc"/>
+</PageTitle>
 
 <div class="page-content-container">
     <AspirePageContentLayout AddNewlineOnToolbar="true" @ref="@_contentLayout">

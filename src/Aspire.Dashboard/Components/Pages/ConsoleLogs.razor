@@ -5,14 +5,12 @@
 @using Aspire.Dashboard.Resources
 @namespace Aspire.Dashboard.Components.Pages
 
-@if (PageViewModel.SelectedResource is null)
-{
-    <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle)" Loc="@Loc" /></PageTitle>
-}
-else
-{
-    <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle)" Loc="@Loc" /> (@PageViewModel.SelectedResource.DisplayName)</PageTitle>
-}
+<PageTitle>
+    <AspirePageTitle
+        AdditionalText="@PageViewModel.SelectedOption.Id?.ReplicaSetName"
+        ResourceName="@nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle)"
+        Loc="@Loc"/>
+</PageTitle>
 
 <div class="page-content-container">
     <AspirePageContentLayout AddNewlineOnToolbar="true"
