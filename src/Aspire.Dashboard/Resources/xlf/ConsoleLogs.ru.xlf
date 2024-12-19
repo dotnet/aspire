@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsResourceCommands">
         <source>Resource commands</source>
-        <target state="new">Resource commands</target>
+        <target state="translated">Команды ресурсов</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">
@@ -54,17 +54,17 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsSettings">
         <source>Console logs settings</source>
-        <target state="new">Console logs settings</target>
+        <target state="translated">Настройки журналов консоли</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampHide">
         <source>Hide timestamps</source>
-        <target state="new">Hide timestamps</target>
+        <target state="translated">Скрыть метки времени</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampShow">
         <source>Show timestamps</source>
-        <target state="new">Show timestamps</target>
+        <target state="translated">Показать метки времени</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
@@ -79,7 +79,7 @@
       </trans-unit>
       <trans-unit id="DownloadLogs">
         <source>Download logs</source>
-        <target state="new">Download logs</target>
+        <target state="translated">Скачать журналы</target>
         <note />
       </trans-unit>
       <trans-unit id="LogStatusLabel">
