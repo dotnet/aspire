@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure.ServiceBus;
 /// Represents a Service Bus Queue.
 /// </summary>
 /// <remarks>
-/// List of properties from the CDK that are not exposed here:
+/// List of properties from Azure.Provisioning.ServiceBus that are not exposed here:
 /// - AutoDeleteOnIdle
 /// - EnableBatchedOperations
 /// - EnableExpress
