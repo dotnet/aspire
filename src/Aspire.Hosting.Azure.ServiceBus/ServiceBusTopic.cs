@@ -70,7 +70,7 @@ public class ServiceBusTopic
     /// Converts the current instance to a provisioning entity.
     /// </summary>
     /// <returns>A <see cref="global::Azure.Provisioning.ServiceBus.ServiceBusTopic"/> instance.</returns>
-    public global::Azure.Provisioning.ServiceBus.ServiceBusTopic ToProvisioningEntity()
+    internal global::Azure.Provisioning.ServiceBus.ServiceBusTopic ToProvisioningEntity()
     {
         var topic = new global::Azure.Provisioning.ServiceBus.ServiceBusTopic(AzureResourceInfrastructure.NormalizeBicepIdentifier(Name));
 
@@ -98,7 +98,7 @@ public class ServiceBusTopic
     /// Converts the current instance to a JSON object.
     /// </summary>
     /// <param name="writer">The Utf8JsonWriter to write the JSON object to.</param>
-    public void WriteJsonObjectProperties(Utf8JsonWriter writer)
+    internal void WriteJsonObjectProperties(Utf8JsonWriter writer)
     {
         var topic = this;
 

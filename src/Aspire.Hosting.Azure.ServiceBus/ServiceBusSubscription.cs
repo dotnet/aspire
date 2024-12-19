@@ -89,7 +89,7 @@ public class ServiceBusSubscription
     /// Converts the current instance to a provisioning entity.
     /// </summary>
     /// <returns>A <see cref="global::Azure.Provisioning.ServiceBus.ServiceBusSubscription"/> instance.</returns>
-    public global::Azure.Provisioning.ServiceBus.ServiceBusSubscription ToProvisioningEntity()
+    internal global::Azure.Provisioning.ServiceBus.ServiceBusSubscription ToProvisioningEntity()
     {
         var subscription = new global::Azure.Provisioning.ServiceBus.ServiceBusSubscription(AzureResourceInfrastructure.NormalizeBicepIdentifier(Name));
 
@@ -133,7 +133,7 @@ public class ServiceBusSubscription
     /// Converts the current instance to a JSON object.
     /// </summary>
     /// <param name="writer">The Utf8JsonWriter to write the JSON object to.</param>
-    public void WriteJsonObjectProperties(Utf8JsonWriter writer)
+    internal void WriteJsonObjectProperties(Utf8JsonWriter writer)
     {
         var subscription = this;
 
