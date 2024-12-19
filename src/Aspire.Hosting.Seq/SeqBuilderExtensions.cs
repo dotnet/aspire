@@ -18,7 +18,7 @@ public static class SeqBuilderExtensions
     /// Adds a Seq server resource to the application model. A container is used for local development.
     /// </summary>
     /// <remarks>
-    /// This version of the package defaults to the <inheritdoc cref="SeqContainerImageTags.Tag"/> tag of the <inheritdoc cref="SeqContainerImageTags.Image"/> container image.
+    /// This version of the package defaults to the <inheritdoc cref="SeqContainerImageTags.Tag" path="/summary"/> tag of the <inheritdoc cref="SeqContainerImageTags.Image" path="/summary"/> container image.
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name to give the resource.</param>
