@@ -29,7 +29,7 @@
                 OptionText="@(c => c.NativeName.Humanize())"
                 @bind-SelectedOption="@_selectedUiCulture"
                 @bind-SelectedOption:after="@OnLanguageChanged"
-                Style="margin-bottom: 2px; width: 90%"/>
+                Style="margin-bottom: 2px;"/>
 
             <p class="setting-subtext">@Loc[nameof(Dialogs.SettingsDialogLanguagePageReloads)]</p>
         </div>
