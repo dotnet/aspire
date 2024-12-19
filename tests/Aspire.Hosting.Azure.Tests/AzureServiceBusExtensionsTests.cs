@@ -23,6 +23,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create();
         var serviceBus = builder.AddAzureServiceBus("sb");
 
+#pragma warning disable CS0618 // Type or member is obsolete
         serviceBus.AddQueue("queue1");
         serviceBus.AddQueue("queue1");
         serviceBus.WithQueue("queue1", queue => queue.DefaultMessageTimeToLive = TimeSpan.FromSeconds(1));
@@ -37,6 +38,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         });
         serviceBus.AddSubscription("topic1", "subscription1");
         serviceBus.AddSubscription("topic1", "subscription2");
+#pragma warning restore CS0618 // Type or member is obsolete
 
         var manifest = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
@@ -114,13 +116,24 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
-    [Fact]
-    public async Task TopicNamesCanBeLongerThan24()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task TopicNamesCanBeLongerThan24(bool useObsoleteMethods)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var serviceBus = builder.AddAzureServiceBus("sb");
 
-        serviceBus.AddTopic("device-connection-state-events1234567890-even-longer");
+        if (useObsoleteMethods)
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            serviceBus.AddTopic("device-connection-state-events1234567890-even-longer");
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+        else
+        {
+            serviceBus.WithTopic("device-connection-state-events1234567890-even-longer");
+        }
 
         var manifest = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
@@ -183,7 +196,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         });
 
         var resource = builder.AddAzureServiceBus("resource")
-                              .AddQueue("queue1")
+                              .WithQueue("queue1")
                               .RunAsEmulator()
                               .WithHealthCheck("blocking_check");
 
@@ -220,7 +233,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(output);
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
             .RunAsEmulator()
-            .AddQueue("queue1");
+            .WithQueue("queue1");
 
         using var app = builder.Build();
         await app.StartAsync();
@@ -324,7 +337,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create();
         var serviceBus = builder.AddAzureServiceBus("sb").RunAsEmulator(configureContainer: builder =>
         {
-            builder.WithGatewayPort(port);
+            builder.WithHostPort(port);
         });
 
         Assert.Collection(

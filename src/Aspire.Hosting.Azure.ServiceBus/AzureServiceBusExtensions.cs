@@ -95,29 +95,12 @@ public static class AzureServiceBusExtensions
     }
 
     /// <summary>
-    /// Adds an Azure Service Bus Topic resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
-    /// </summary>
-    /// <param name="builder">The Azure Service Bus resource builder.</param>
-    /// <param name="name">The name of the topic.</param>
-    /// <param name="subscriptions">The name of the subscriptions.</param>
-    /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusTopic"/>.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string[] subscriptions, Action<ServiceBusTopic>? configure = null)
-    {
-        var topic = new ServiceBusTopic(name);
-
-        configure?.Invoke(topic);
-
-        builder.Resource.Topics.Add(topic);
-        return builder;
-    }
-
-    /// <summary>
     /// Adds an Azure Service Bus Queue resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the queue.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(WithQueue)} instead to add an Azure Service Bus Queue.")]
     public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name)
     {
         return builder.WithQueue(name);
@@ -149,6 +132,7 @@ public static class AzureServiceBusExtensions
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the topic.</param>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(WithTopic)} instead to add an Azure Service Bus Topic.")]
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name)
     {
         return builder.WithTopic(name);
@@ -160,6 +144,7 @@ public static class AzureServiceBusExtensions
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the topic.</param>
     /// <param name="subscriptions">The name of the subscriptions.</param>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(WithTopic)} instead to add an Azure Service Bus Topic and Subscriptions.")]
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string[] subscriptions)
     {
         return builder.WithTopic(name, topic =>
@@ -202,6 +187,7 @@ public static class AzureServiceBusExtensions
     /// <param name="topicName">The name of the topic.</param>
     /// <param name="subscriptionName">The name of the subscription.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(WithTopic)} instead to add an Azure Service Bus Subscription to a Topic.")]
     public static IResourceBuilder<AzureServiceBusResource> AddSubscription(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName)
     {
         builder.WithTopic(topicName, topic =>
