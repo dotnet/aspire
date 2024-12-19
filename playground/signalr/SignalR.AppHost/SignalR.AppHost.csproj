@@ -17,8 +17,11 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Dapr" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.SignalR" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Functions" />
 
     <ProjectReference Include="..\SignalRWeb\SignalRWeb.csproj" />
+    <ProjectReference Include="..\SignalR.Functions\SignalR.Functions.csproj" />
   </ItemGroup>
 
 </Project>
