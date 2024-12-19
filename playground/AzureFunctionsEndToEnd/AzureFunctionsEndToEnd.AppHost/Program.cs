@@ -6,7 +6,7 @@ var blob = storage.AddBlobs("blob");
 var eventHubs = builder.AddAzureEventHubs("eventhubs").RunAsEmulator().AddEventHub("myhub");
 
 #if !SKIP_PROVISIONED_AZURE_RESOURCE
-var serviceBus = builder.AddAzureServiceBus("messaging").AddQueue("myqueue");
+var serviceBus = builder.AddAzureServiceBus("messaging").WithQueue("myqueue");
 #endif
 
 var funcApp = builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_Functions>("funcapp")
