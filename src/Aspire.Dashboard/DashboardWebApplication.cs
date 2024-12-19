@@ -268,10 +268,13 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             options.Cookie.Name = DashboardAntiForgeryCookieName;
         });
 
-        builder.Services.Configure<ForwardedHeadersOptions>(options =>
+        if (string.Equals(builder.Configuration["FORWARDEDHEADERS_ENABLED"], "true", StringComparison.OrdinalIgnoreCase))
         {
-            options.ForwardedHeaders = ForwardedHeaders.All;
-        });
+            builder.Services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.All;
+            });
+        }
 
         _app = builder.Build();
 
