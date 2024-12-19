@@ -39,9 +39,19 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
 
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
     {
-        // Injected to support Azure Functions listener initialization.
-        target[$"{connectionName}__fullyQualifiedNamespace"] = ServiceBusEndpoint;
-        // Injected to support Aspire client integration for Service Bus in Azure Functions projects.
-        target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__FullyQualifiedNamespace"] = ServiceBusEndpoint;
+        if (IsEmulator)
+        {
+            // Injected to support Azure Functions listener initialization.
+            target[$"{connectionName}__fullyQualifiedNamespace"] = ConnectionStringExpression;
+            // Injected to support Aspire client integration for Service Bus in Azure Functions projects.
+            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__FullyQualifiedNamespace"] = ConnectionStringExpression;
+        }
+        else
+        {
+            // Injected to support Azure Functions listener initialization.
+            target[$"{connectionName}__fullyQualifiedNamespace"] = ServiceBusEndpoint;
+            // Injected to support Aspire client integration for Service Bus in Azure Functions projects.
+            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__FullyQualifiedNamespace"] = ServiceBusEndpoint;
+        }
     }
 }
