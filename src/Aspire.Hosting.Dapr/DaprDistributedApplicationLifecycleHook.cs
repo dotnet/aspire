@@ -15,6 +15,7 @@ using Microsoft.Extensions.Options;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using static Aspire.Hosting.Dapr.CommandLineArgs;
+using static Aspire.Hosting.Dapr.DaprConstants;
 
 namespace Aspire.Hosting.Dapr;
 
@@ -403,6 +404,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
     private async Task<(string, string)> CreateComponentSpec(DaprComponentResource component, CancellationToken cancellationToken)
     {
+        var refType = DaprSupportedRefTypes.Where(r => r.Type == component.Type).SingleOrDefault();
         var spec = new ComponentSpec
         {
             Metadata = new Metadata
@@ -412,7 +414,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             Spec = new Spec
             {
                 Type = component.Type,
-                Version = "v1",
+                Version = refType?.Version ?? "v1",
                 Metadata = component.Options?.Configuration ?? new List<MetadataValue>()
             },
             Auth = component.Options?.SecretStore is not null ?
@@ -438,11 +440,14 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             {
                 throw new InvalidOperationException($"The resource '{reference.Name}' does not have a connection string.");
             }
-            spec.Spec.Metadata.Add(new MetadataDirectValue<string>()
+            if (refType?.propertyMapping is not null)
             {
-                Name = "connectionString",
-                Value = connectionString
-            });
+                spec.Spec.Metadata.AddRange(refType.propertyMapping(connectionString));
+            }
+            else
+            {
+                throw new InvalidOperationException($"The component '{component.Name}' does not support connection strings.");
+            }
         }
 
         string componentDirectory = GetComponentPath(component.Name);
