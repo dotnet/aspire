@@ -75,14 +75,15 @@ public class BasketService(IBasketRepository repository, IConfiguration configur
                 return new();
             }
 
-            using var channel = _messageConnection.CreateModel();
-            channel.QueueDeclare(queueName, durable: true, exclusive: false);
+            using var channel = await _messageConnection.CreateChannelAsync();
+            await channel.QueueDeclareAsync(queueName, durable: true, exclusive: false);
 
-            var props = channel.CreateBasicProperties();
+            var props = new BasicProperties();
             props.Persistent = true; // or props.DeliveryMode = 2;
-            channel.BasicPublish(
-                exchange: "",
+            await channel.BasicPublishAsync(
+                exchange: string.Empty,
                 routingKey: queueName,
+                mandatory: true,
                 basicProperties: props,
                 body: JsonSerializer.SerializeToUtf8Bytes(order));
         }
