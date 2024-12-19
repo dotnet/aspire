@@ -65,12 +65,7 @@ public partial class TraceDetail : ComponentBase, IDisposable
 
         foreach (var resolver in OutgoingPeerResolvers)
         {
-            _peerChangesSubscriptions.Add(resolver.OnPeerChanges(async () =>
-            {
-                UpdateDetailViewData();
-                await InvokeAsync(StateHasChanged);
-                await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
-            }));
+            _peerChangesSubscriptions.Add(resolver.OnPeerChanges(UpdateViewPostSubscriptionChange));
         }
     }
 
@@ -168,13 +163,20 @@ public partial class TraceDetail : ComponentBase, IDisposable
         if (_tracesSubscription is null || _tracesSubscription.ApplicationKey != _trace.FirstSpan.Source.ApplicationKey)
         {
             _tracesSubscription?.Dispose();
-            _tracesSubscription = TelemetryRepository.OnNewTraces(_trace.FirstSpan.Source.ApplicationKey, SubscriptionType.Read, () => InvokeAsync(async () =>
-            {
-                UpdateDetailViewData();
-                await InvokeAsync(StateHasChanged);
-                await _dataGrid.SafeRefreshDataAsync();
-            }));
+            _tracesSubscription = TelemetryRepository.OnNewTraces(_trace.FirstSpan.Source.ApplicationKey, SubscriptionType.Read, UpdateViewPostSubscriptionChange);
         }
+    }
+
+    private async Task UpdateViewPostSubscriptionChange()
+    {
+        UpdateDetailViewData();
+        await InvokeAsync(StateHasChanged);
+        if (_trace == null)
+        {
+            // The trace might have disappeared, in this case, we do not want to update the datagrid, as it will be removed from view.
+            return;
+        }
+        await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
     private string GetRowClass(SpanWaterfallViewModel viewModel)

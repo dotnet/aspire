@@ -142,6 +142,20 @@ public class OtlpApplication
         }
     }
 
+    public void ClearMetrics()
+    {
+        _metricsLock.EnterWriteLock();
+
+        try
+        {
+            _instruments.Clear();
+        }
+        finally
+        {
+            _metricsLock.ExitWriteLock();
+        }
+    }
+
     public static Dictionary<string, List<OtlpApplication>> GetReplicasByApplicationName(IEnumerable<OtlpApplication> allApplications)
     {
         return allApplications
