@@ -1,17 +1,21 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dapr.Models.ComponentSpec;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
-using System.Net.Sockets;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 using static Aspire.Hosting.Dapr.CommandLineArgs;
+using static Aspire.Hosting.Dapr.DaprConstants;
 
 namespace Aspire.Hosting.Dapr;
 
@@ -21,22 +25,28 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
     private readonly IHostEnvironment _environment;
     private readonly ILogger<DaprDistributedApplicationLifecycleHook> _logger;
     private readonly DaprOptions _options;
+    private readonly ResourceNotificationService _resourceNotificationService;
 
-    private string? _onDemandResourcesRootPath;
+    private readonly string _onDemandResourcesRootPath;
 
-    public DaprDistributedApplicationLifecycleHook(IConfiguration configuration, IHostEnvironment environment, ILogger<DaprDistributedApplicationLifecycleHook> logger, IOptions<DaprOptions> options)
+    public DaprDistributedApplicationLifecycleHook(
+        IConfiguration configuration,
+        IHostEnvironment environment,
+        ILogger<DaprDistributedApplicationLifecycleHook> logger,
+        IOptions<DaprOptions> options,
+        ResourceNotificationService resourceNotificationService)
     {
         _configuration = configuration;
         _environment = environment;
         _logger = logger;
         _options = options.Value;
+        _resourceNotificationService = resourceNotificationService;
+        _onDemandResourcesRootPath = Directory.CreateTempSubdirectory("aspire-dapr.").FullName;
     }
 
-    public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
         string appHostDirectory = _configuration["AppHost:Directory"] ?? throw new InvalidOperationException("Unable to obtain the application host directory.");
-
-        var onDemandResourcesPaths = await StartOnDemandDaprComponentsAsync(appModel, cancellationToken).ConfigureAwait(false);
 
         var sideCars = new List<ExecutableResource>();
 
@@ -76,30 +86,14 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
             foreach (var componentReferenceAnnotation in componentReferenceAnnotations)
             {
+                // Wait for components itself to be ready.
+                waitAnnotationsToCopyToDaprCli.Add(new WaitAnnotation(componentReferenceAnnotation.Component, WaitType.WaitUntilHealthy));
                 // Whilst we are passing over each component annotations collect the list of annotations to copy to the Dapr CLI.
                 if (componentReferenceAnnotation.Component.TryGetAnnotationsOfType<WaitAnnotation>(out var componentWaitAnnotations))
                 {
                     waitAnnotationsToCopyToDaprCli.AddRange(componentWaitAnnotations);
                 }
-
-                if (componentReferenceAnnotation.Component.Options?.LocalPath is not null)
-                {
-                    var localPathDirectory = Path.GetDirectoryName(NormalizePath(componentReferenceAnnotation.Component.Options.LocalPath));
-
-                    if (localPathDirectory is not null)
-                    {
-                        aggregateResourcesPaths.Add(localPathDirectory);
-                    }
-                }
-                else if (onDemandResourcesPaths.TryGetValue(componentReferenceAnnotation.Component.Name, out var onDemandResourcesPath))
-                {
-                    string onDemandResourcesPathDirectory = Path.GetDirectoryName(onDemandResourcesPath)!;
-
-                    if (onDemandResourcesPathDirectory is not null)
-                    {
-                        aggregateResourcesPaths.Add(onDemandResourcesPathDirectory);
-                    }
-                }
+                aggregateResourcesPaths.Add(GetComponentPath(componentReferenceAnnotation.Component.Name));
             }
 
             // It is possible that we have duplicate wate annotations so we just dedupe them here.
@@ -260,7 +254,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         context.Writer.TryWriteNumber("metricsPort", sidecarOptions?.MetricsPort);
                         context.Writer.TryWriteString("placementHostAddress", sidecarOptions?.PlacementHostAddress);
                         context.Writer.TryWriteNumber("profilePort", sidecarOptions?.ProfilePort);
-                        context.Writer.TryWriteStringArray("resourcesPath", sidecarOptions?.ResourcesPaths.Select(path => context.GetManifestRelativePath(path)));
+                        context.Writer.TryWriteStringArray("resourcesPath", sidecarOptions?.ResourcesPaths.Select(path => context.GetManifestRelativePath(path + "/")));
                         context.Writer.TryWriteString("runFile", context.GetManifestRelativePath(sidecarOptions?.RunFile));
                         context.Writer.TryWriteString("runtimePath", context.GetManifestRelativePath(sidecarOptions?.RuntimePath));
                         context.Writer.TryWriteString("schedulerHostAddress", sidecarOptions?.SchedulerHostAddress);
@@ -273,6 +267,13 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         }
 
         appModel.Resources.AddRange(sideCars);
+        return Task.CompletedTask;
+    }
+
+    public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    {
+        StartOnDemandDaprComponentsAsync(appModel, cancellationToken);
+        return Task.CompletedTask;
     }
 
     // This method resolves the application's endpoint and the protocol that the dapr side car will use.
@@ -359,13 +360,13 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         }
     }
 
-    private async Task<IReadOnlyDictionary<string, string>> StartOnDemandDaprComponentsAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+    private void StartOnDemandDaprComponentsAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
         var onDemandComponents =
             appModel
                 .Resources
                 .OfType<DaprComponentResource>()
-                .Where(component => component.Options?.LocalPath is null)
+                // .Where(component => component.Options?.LocalPath is null)
                 .ToList();
 
         var onDemandResourcesPaths = new Dictionary<string, string>();
@@ -374,115 +375,103 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         {
             _logger.LogInformation("Starting Dapr-related resources...");
 
-            _onDemandResourcesRootPath = Directory.CreateTempSubdirectory("aspire-dapr.").FullName;
-
             foreach (var component in onDemandComponents)
             {
-                Func<string, Task<string>> contentWriter =
-                    async content =>
-                    {
-                        string componentDirectory = Path.Combine(_onDemandResourcesRootPath, component.Name);
+                // we don't await this task, because we want to wait in the background for all dependencies to be ready
+                _ = StartComponent(onDemandResourcesPaths, component, cancellationToken);
+            }
+        }
+    }
 
-                        Directory.CreateDirectory(componentDirectory);
+    private async Task StartComponent(Dictionary<string, string> onDemandResourcesPaths, DaprComponentResource component, CancellationToken cancellationToken)
+    {
+        var resourcePath = await CreateComponentSpec(component, cancellationToken).ConfigureAwait(false);
+        onDemandResourcesPaths.Add(resourcePath.Item1, resourcePath.Item2);
 
-                        string componentPath = Path.Combine(componentDirectory, $"{component.Name}.yaml");
+        await _resourceNotificationService.WaitForDependenciesAsync(component, cancellationToken).ConfigureAwait(false);
+        if (component.TryGetAnnotationsOfType<WaitAnnotation>(out var waitAnnotations))
+        {
+            foreach (var waitAnnotation in waitAnnotations)
+            {
+                await _resourceNotificationService.WaitForResourceHealthyAsync(waitAnnotation.Resource.Name, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        await _resourceNotificationService.PublishUpdateAsync(component, s => s with
+        {
+            State = KnownResourceStates.Running
+        }).ConfigureAwait(false);
+    }
 
-                        await File.WriteAllTextAsync(componentPath, content, cancellationToken).ConfigureAwait(false);
-
-                        return componentPath;
-                    };
-
-                string componentPath = await (component.Type switch
+    private async Task<(string, string)> CreateComponentSpec(DaprComponentResource component, CancellationToken cancellationToken)
+    {
+        var refType = DaprSupportedRefTypes.Where(r => r.Type == component.Type).SingleOrDefault();
+        var spec = new ComponentSpec
+        {
+            Metadata = new Metadata
+            {
+                Name = component.Name
+            },
+            Spec = new Spec
+            {
+                Type = component.Type,
+                Version = refType?.Version ?? "v1",
+                Metadata = component.Options?.Configuration ?? new List<MetadataValue>()
+            },
+            Auth = component.Options?.SecretStore is not null ?
+                new()
                 {
-                    DaprConstants.BuildingBlocks.PubSub => GetPubSubAsync(component, contentWriter, cancellationToken),
-                    DaprConstants.BuildingBlocks.StateStore => GetStateStoreAsync(component, contentWriter, cancellationToken),
-                    _ => throw new InvalidOperationException($"Unsupported Dapr component type '{component.Type}'.")
-                }).ConfigureAwait(false);
+                    SecretStore = component.Options.SecretStore.Name
+                }
+                : null
+        };
 
-                onDemandResourcesPaths.Add(component.Name, componentPath);
+        // analyze the component references, and lookup if there is a reference with a connection string
+        if (component.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var resourceRelationshipAnnotations))
+        {
+            var resources = resourceRelationshipAnnotations.Where(r => r.Resource is IResourceWithConnectionString && r.Type == "Reference");
+            if (resources.Count() > 1)
+            {
+                throw new InvalidOperationException($"The component '{component.Name}' has more than one resource with a connection string.");
+            }
+            var reference = (IResourceWithConnectionString)resources.Single().Resource;
+
+            var connectionString = await reference.GetValueAsync(cancellationToken).ConfigureAwait(false);
+            if (connectionString is null)
+            {
+                throw new InvalidOperationException($"The resource '{reference.Name}' does not have a connection string.");
+            }
+            if (refType?.propertyMapping is not null)
+            {
+                spec.Spec.Metadata.AddRange(refType.propertyMapping(connectionString));
+            }
+            else
+            {
+                throw new InvalidOperationException($"The component '{component.Name}' does not support connection strings.");
             }
         }
 
-        return onDemandResourcesPaths;
+        string componentDirectory = GetComponentPath(component.Name);
+
+        Directory.CreateDirectory(componentDirectory);
+
+        string componentPath = Path.Combine(componentDirectory, $"{component.Name}.yaml");
+        var serializer = new SerializerBuilder()
+            .WithNamingConvention(CamelCaseNamingConvention.Instance)
+
+            .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitNull)
+            .Build();
+        serializer.Serialize(File.CreateText(componentPath), spec);
+        var content = serializer.Serialize(spec);
+        await File.WriteAllTextAsync(componentPath, content, cancellationToken).ConfigureAwait(false);
+        return (component.Name, componentPath);
+
     }
 
-    private async Task<string> GetPubSubAsync(DaprComponentResource component, Func<string, Task<string>> contentWriter, CancellationToken cancellationToken)
+    private string GetComponentPath(string componantName)
     {
-        string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        string daprDefaultComponentsDirectory = Path.Combine(userDirectory, ".dapr", "components");
-        string daprDefaultStateStorePath = Path.Combine(daprDefaultComponentsDirectory, "pubsub.yaml");
-
-        if (File.Exists(daprDefaultStateStorePath))
-        {
-            _logger.LogInformation("Using default Dapr pub-sub for component '{ComponentName}'.", component.Name);
-
-            string defaultContent = await File.ReadAllTextAsync(daprDefaultStateStorePath, cancellationToken).ConfigureAwait(false);
-            string newContent = defaultContent.Replace("name: pubsub", $"name: {component.Name}");
-
-            return await contentWriter(newContent).ConfigureAwait(false);
-        }
-        else
-        {
-            _logger.LogInformation("Using in-memory Dapr pub-sub for component '{ComponentName}'.", component.Name);
-
-            return await contentWriter(GetInMemoryPubSubContent(component)).ConfigureAwait(false);
-        }
+        return Path.Combine(_onDemandResourcesRootPath, componantName);
     }
 
-    private async Task<string> GetStateStoreAsync(DaprComponentResource component, Func<string, Task<string>> contentWriter, CancellationToken cancellationToken)
-    {
-        string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        string daprDefaultComponentsDirectory = Path.Combine(userDirectory, ".dapr", "components");
-        string daprDefaultStateStorePath = Path.Combine(daprDefaultComponentsDirectory, "statestore.yaml");
-
-        if (File.Exists(daprDefaultStateStorePath))
-        {
-            _logger.LogInformation("Using default Dapr state store for component '{ComponentName}'.", component.Name);
-
-            string defaultContent = await File.ReadAllTextAsync(daprDefaultStateStorePath, cancellationToken).ConfigureAwait(false);
-            string newContent = defaultContent.Replace("name: statestore", $"name: {component.Name}");
-
-            return await contentWriter(newContent).ConfigureAwait(false);
-        }
-        else
-        {
-            _logger.LogInformation("Using in-memory Dapr state store for component '{ComponentName}'.", component.Name);
-
-            return await contentWriter(GetInMemoryStateStoreContent(component)).ConfigureAwait(false);
-        }
-    }
-
-    private static string GetInMemoryPubSubContent(DaprComponentResource component)
-    {
-        // NOTE: This component can only be used within a single Dapr application.
-
-        return
-            $"""
-            apiVersion: dapr.io/v1alpha1
-            kind: Component
-            metadata:
-                name: {component.Name}
-            spec:
-                type: pubsub.in-memory
-                version: v1
-                metadata: []
-            """;
-    }
-
-    private static string GetInMemoryStateStoreContent(DaprComponentResource component)
-    {
-        return
-            $"""
-            apiVersion: dapr.io/v1alpha1
-            kind: Component
-            metadata:
-                name: {component.Name}
-            spec:
-                type: state.in-memory
-                version: v1
-                metadata: []
-            """;
-    }
 }
 
 internal static class IListExtensions
