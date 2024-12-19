@@ -3,6 +3,9 @@ using Aspire.Hosting.Dapr.Models.ComponentSpec;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+var redis = builder.AddRedis("redis")
+       .WithRedisCommander();
+
 var rmq = builder.AddRabbitMQ("rabbitMQ")
                    .WithManagementPlugin()
                    .WithEndpoint("tcp", e => e.Port = 5672)
@@ -17,7 +20,7 @@ var secretStore = builder.AddDaprComponent("secrets", "secretstores.local.file",
        }
 });
 
-var stateStore = builder.AddDaprStateStore("statestore", options: new DaprComponentOptions
+var stateStore = builder.AddDaprStateStore("statestore", "redis", options: new DaprComponentOptions
 {
        Configuration = new List<MetadataValue>
               {
@@ -26,7 +29,7 @@ var stateStore = builder.AddDaprStateStore("statestore", options: new DaprCompon
               },
        SecretStore = secretStore.Resource
 }
-);
+).WaitFor(redis).WithReference(redis);
 var pubSub = builder.AddDaprPubSub("pubsub", "rabbitmq", options: new DaprComponentOptions
 {
        Configuration = new List<MetadataValue>
