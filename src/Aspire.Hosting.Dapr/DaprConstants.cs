@@ -80,7 +80,28 @@ internal static class DaprConstants
             return result;
         }),
         new ("bindings.azure.signalr", "v1", s => new List<MetadataValue> { new MetadataDirectValue<string>{Name = "connectionString", Value = s} }),
-        new ("bindings.azure.signalr", "v1", s => new List<MetadataValue> { new MetadataDirectValue<string>{Name = "connectionString", Value = s} })
+        new ("bindings.azure.signalr", "v1", s => new List<MetadataValue> { new MetadataDirectValue<string>{Name = "connectionString", Value = s} }),
+        new ("lock.redis", "v1", s => {
+            var connectionStringParts = s.Split(',');
+            var hostname = connectionStringParts.First().Split("://").Last();
+            var settings = connectionStringParts.Skip(1).Select(p => p.Split('=')).ToDictionary(p => p[0], p => p[1]);
+            var result = new List<MetadataValue> {
+                new MetadataDirectValue<string>{Name = "redisHost", Value = hostname}
+            };
+            if(settings.TryGetValue("password", out var password))
+            {
+                result.Add(new MetadataDirectValue<string> { Name = "redisPassword", Value = password});
+            }
+            if(settings.TryGetValue("ssl", out var ssl))
+            {
+                if(ssl == "true")
+                {
+                    ssl = "true";
+                }
+                result.Add(new MetadataDirectValue<bool> { Name = "enableTLS", Value = true});
+            }
+            return result;
+        }),
     ];
 
     /// <summary>
