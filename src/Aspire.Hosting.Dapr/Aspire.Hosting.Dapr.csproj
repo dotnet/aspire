@@ -18,4 +18,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="YamlDotNet.Signed" />
+  </ItemGroup>
 </Project>
