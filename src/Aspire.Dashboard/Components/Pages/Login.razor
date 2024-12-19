@@ -4,7 +4,7 @@
 @attribute [AllowAnonymous]
 @inject IStringLocalizer<Dashboard.Resources.Login> Loc
 
-<PageTitle><AspirePageTitle ResourceName="@nameof(Dashboard.Resources.Login.PageTitle)" Loc="@Loc" /></PageTitle>
+<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Login.PageTitle)" Loc="@Loc" /></PageTitle>
 
 <div class="token-backdrop">
     <EditForm EditContext="@EditContext" OnValidSubmit="@SubmitAsync" FormName="token_validation">
@@ -15,7 +15,7 @@
             </div>
             <div class="token-entry-container">
                 <div class="token-entry-header">
-                    <h1><AspirePageTitle ResourceName="@nameof(Dashboard.Resources.Login.Header)" Loc="@Loc" /></h1>
+                    <h1><ApplicationName ResourceName="@nameof(Dashboard.Resources.Login.Header)" Loc="@Loc" /></h1>
                 </div>
                 <div class="token-entry">
                     @*

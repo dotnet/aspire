@@ -8,7 +8,7 @@ using Microsoft.Extensions.Localization;
 
 namespace Aspire.Dashboard.Components;
 
-public sealed partial class AspirePageTitle : ComponentBase, IDisposable
+public sealed partial class ApplicationName : ComponentBase, IDisposable
 {
     private CancellationTokenSource? _disposalCts;
 

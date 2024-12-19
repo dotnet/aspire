@@ -26,7 +26,7 @@ public class ApplicationNameTests : TestContext
         Services.AddSingleton<IKnownPropertyLookup>(new MockKnownPropertyLookup());
 
         // Act
-        var cut = RenderComponent<AspirePageTitle>();
+        var cut = RenderComponent<ApplicationName>();
 
         // Assert
         cut.MarkupMatches("Aspire");
@@ -41,7 +41,7 @@ public class ApplicationNameTests : TestContext
         Services.AddSingleton<IDashboardClient, MockDashboardClient>();
 
         // Act
-        var cut = RenderComponent<AspirePageTitle>();
+        var cut = RenderComponent<ApplicationName>();
 
         // Assert
         cut.MarkupMatches("&lt;marquee&gt;An HTML title!&lt;/marquee&gt;");
