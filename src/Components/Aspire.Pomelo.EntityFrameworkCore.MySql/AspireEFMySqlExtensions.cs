@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using Aspire;
 using Aspire.Pomelo.EntityFrameworkCore.MySql;
@@ -10,7 +11,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MySqlConnector;
-using MySqlConnector.Logging;
 using Polly;
 using Polly.Registry;
 using Polly.Retry;
@@ -68,6 +68,7 @@ public static partial class AspireEFMySqlExtensions
 
         configureSettings?.Invoke(settings);
 
+        builder.Services.AddMySqlDataSource(settings.ConnectionString ?? string.Empty);
         builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
 
         const string resilienceKey = "Microsoft.Extensions.Hosting.AspireEFMySqlExtensions.ServerVersion";
@@ -90,14 +91,6 @@ public static partial class AspireEFMySqlExtensions
 
         void ConfigureDbContext(IServiceProvider serviceProvider, DbContextOptionsBuilder dbContextOptionsBuilder)
         {
-            // use the legacy method of setting the ILoggerFactory because Pomelo EF Core doesn't use MySqlDataSource
-            if (serviceProvider.GetService<ILoggerFactory>() is { } loggerFactory)
-            {
-                MySqlConnectorLogManager.Provider = new MicrosoftExtensionsLoggingLoggerProvider(loggerFactory);
-            }
-
-            var connectionString = settings.ConnectionString ?? string.Empty;
-
             ServerVersion serverVersion;
             if (settings.ServerVersion is null)
             {
@@ -105,14 +98,14 @@ public static partial class AspireEFMySqlExtensions
 
                 var resiliencePipelineProvider = serviceProvider.GetRequiredService<ResiliencePipelineProvider<string>>();
                 var resiliencePipeline = resiliencePipelineProvider.GetPipeline(resilienceKey);
-                serverVersion = resiliencePipeline.Execute(static cs => ServerVersion.AutoDetect(cs), connectionString);
+                serverVersion = resiliencePipeline.Execute(static cs => ServerVersion.AutoDetect(cs), settings.ConnectionString);
             }
             else
             {
                 serverVersion = ServerVersion.Parse(settings.ServerVersion);
             }
 
-            var builder = dbContextOptionsBuilder.UseMySql(connectionString, serverVersion, builder =>
+            var builder = dbContextOptionsBuilder.UseMySql(serviceProvider.GetRequiredService<DbDataSource>(), serverVersion, builder =>
             {
                 // delay validating the ConnectionString until the DbContext is configured. This ensures an exception doesn't happen until a Logger is established.
                 ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
