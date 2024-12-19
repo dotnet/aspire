@@ -515,12 +515,12 @@ public static class AzureServiceBusExtensions
     }
 
     /// <summary>
-    /// Configures the gateway port for the Azure Service Bus emulator.
+    /// Configures the host port for the Azure Service Bus emulator is exposed on instead of using randomly assigned port.
     /// </summary>
     /// <param name="builder">Builder for the Azure Service Bus emulator container</param>
-    /// <param name="port">Host port to bind to the emulator gateway port.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used, a random port will be assigned.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureServiceBusEmulatorResource> WithGatewayPort(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, int? port)
+    public static IResourceBuilder<AzureServiceBusEmulatorResource> WithHostPort(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, int? port)
     {
         return builder.WithEndpoint("emulator", endpoint =>
         {
