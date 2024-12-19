@@ -1,5 +1,3 @@
 ﻿#nullable enable
 Aspire.Hosting.Dapr.DaprSidecarOptions.SchedulerHostAddress.get -> string?
 Aspire.Hosting.Dapr.DaprSidecarOptions.SchedulerHostAddress.init -> void
-static Aspire.Hosting.IDistributedApplicationBuilderExtensions.AddDaprPubSub(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, Aspire.Hosting.Dapr.DaprComponentOptions? options = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Dapr.IDaprComponentResource!>!
-static Aspire.Hosting.IDistributedApplicationBuilderExtensions.AddDaprStateStore(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, Aspire.Hosting.Dapr.DaprComponentOptions? options = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Dapr.IDaprComponentResource!>!
