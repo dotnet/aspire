@@ -268,7 +268,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             options.Cookie.Name = DashboardAntiForgeryCookieName;
         });
 
-        if (string.Equals(builder.Configuration["FORWARDEDHEADERS_ENABLED"], "true", StringComparison.OrdinalIgnoreCase))
+        if (builder.Configuration.GetBool("ASPNETCORE_FORWARDEDHEADERS_ENABLED") ?? false)
         {
             builder.Services.Configure<ForwardedHeadersOptions>(options =>
             {
