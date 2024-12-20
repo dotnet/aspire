@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>9c946452-f682-49a4-9209-29ed63174447</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Messaging.ServiceBus" />
+    <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+</Project>
