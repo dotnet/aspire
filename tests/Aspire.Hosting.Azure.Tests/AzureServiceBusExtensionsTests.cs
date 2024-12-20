@@ -479,6 +479,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     }
 
     [Fact]
+    [RequiresDocker]
     public async Task AzureServiceBusEmulatorResourceGeneratesConfigJson()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -532,8 +533,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             });
 
         using var app = builder.Build();
-
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
+        await app.StartAsync();
 
         var serviceBusEmulatorResource = builder.Resources.OfType<AzureServiceBusResource>().Single(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
         var volumeAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
@@ -610,9 +610,12 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
           }
         }
         """, configJsonContent);
+
+        await app.StopAsync();
     }
 
     [Fact]
+    [RequiresDocker]
     public async Task AzureServiceBusEmulatorResourceGeneratesConfigJsonOnlyChangedProperties()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -625,8 +628,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             });
 
         using var app = builder.Build();
-
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
+        await app.StartAsync();
 
         var serviceBusEmulatorResource = builder.Resources.OfType<AzureServiceBusResource>().Single(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
         var volumeAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
@@ -656,9 +658,12 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
               }
             }
             """, configJsonContent);
+
+        await app.StopAsync();
     }
 
     [Fact]
+    [RequiresDocker]
     public async Task AzureServiceBusEmulatorResourceGeneratesConfigJsonWithCustomizations()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -670,8 +675,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             }));
 
         using var app = builder.Build();
-
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
+        await app.StartAsync();
 
         var serviceBusEmulatorResource = builder.Resources.OfType<AzureServiceBusResource>().Single(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
         var volumeAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
@@ -694,5 +698,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
               }
             }
             """, configJsonContent);
+
+        await app.StopAsync();
     }
 }

@@ -277,7 +277,7 @@ public static class AzureServiceBusExtensions
         ServiceBusClient? serviceBusClient = null;
         string? queueOrTopicName = null;
 
-        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(builder.Resource, async (@event, ct) =>
+        builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>(async (@event, ct) =>
         {
             var serviceBusEmulatorResources = builder.ApplicationBuilder.Resources.OfType<AzureServiceBusResource>().Where(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
 
@@ -294,48 +294,16 @@ public static class AzureServiceBusExtensions
                 throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
             }
 
+            // Retrieve a queue/topic name to configure the health check
+
             var noRetryOptions = new ServiceBusClientOptions { RetryOptions = new ServiceBusRetryOptions { MaxRetries = 0 } };
             serviceBusClient = new ServiceBusClient(connectionString, noRetryOptions);
 
             queueOrTopicName =
                 serviceBusEmulatorResources.SelectMany(x => x.Queues).Select(x => x.Name).FirstOrDefault()
                 ?? serviceBusEmulatorResources.SelectMany(x => x.Topics).Select(x => x.Name).FirstOrDefault();
-        });
 
-        var healthCheckKey = $"{builder.Resource.Name}_check";
-
-        if (configureContainer != null)
-        {
-            var surrogate = new AzureServiceBusEmulatorResource(builder.Resource);
-            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
-            configureContainer(surrogateBuilder);
-        }
-
-        // To use the existing ServiceBus health check we would need to know if there is any queue or topic defined.
-        // We can register a health check for a queue and then no-op if there are no queues. Same for topics.
-        // If no queues or no topics are defined then the health check will be successful.
-
-        builder.ApplicationBuilder.Services.AddHealthChecks()
-          .Add(new HealthCheckRegistration(
-              healthCheckKey,
-              sp => new ServiceBusHealthCheck(
-                  () => serviceBusClient ?? throw new DistributedApplicationException($"{nameof(serviceBusClient)} was not initialized."),
-                  () => queueOrTopicName),
-              failureStatus: default,
-              tags: default,
-              timeout: default));
-
-        builder.WithHealthCheck(healthCheckKey);
-
-        builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
-        {
-            var serviceBusEmulatorResources = builder.ApplicationBuilder.Resources.OfType<AzureServiceBusResource>().Where(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
-
-            if (!serviceBusEmulatorResources.Any())
-            {
-                // No-op if there is no Azure Service Bus emulator resource.
-                return Task.CompletedTask;
-            }
+            // Create JSON configuration file
 
             foreach (var emulatorResource in serviceBusEmulatorResources)
             {
@@ -387,7 +355,6 @@ public static class AzureServiceBusExtensions
                         writer.WriteStartObject();              //               "{ (Subscription)"
                         subscription.WriteJsonObjectProperties(writer);
 
-                        #region Rules
                         writer.WriteStartArray("Rules");        //                 "Rules": [
                         foreach (var rule in subscription.Rules)
                         {
@@ -397,7 +364,6 @@ public static class AzureServiceBusExtensions
                         }
 
                         writer.WriteEndArray();                 //                  ] (/Rules)
-                        #endregion Rules
 
                         writer.WriteEndObject();                //               } (/Subscription)
                     }
@@ -449,10 +415,32 @@ public static class AzureServiceBusExtensions
                     jsonObject.WriteTo(writer);
                 }
             }
-
-            return Task.CompletedTask;
-
         });
+
+        var healthCheckKey = $"{builder.Resource.Name}_check";
+
+        if (configureContainer != null)
+        {
+            var surrogate = new AzureServiceBusEmulatorResource(builder.Resource);
+            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
+            configureContainer(surrogateBuilder);
+        }
+
+        // To use the existing ServiceBus health check we would need to know if there is any queue or topic defined.
+        // We can register a health check for a queue and then no-op if there are no queues. Same for topics.
+        // If no queues or no topics are defined then the health check will be successful.
+
+        builder.ApplicationBuilder.Services.AddHealthChecks()
+          .Add(new HealthCheckRegistration(
+              healthCheckKey,
+              sp => new ServiceBusHealthCheck(
+                  () => serviceBusClient ?? throw new DistributedApplicationException($"{nameof(serviceBusClient)} was not initialized."),
+                  () => queueOrTopicName),
+              failureStatus: default,
+              tags: default,
+              timeout: default));
+
+        builder.WithHealthCheck(healthCheckKey);
 
         return builder;
     }
