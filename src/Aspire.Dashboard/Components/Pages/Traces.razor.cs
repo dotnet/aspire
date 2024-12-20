@@ -184,12 +184,12 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         _applicationViewModels = ApplicationsSelectHelpers.CreateApplications(_applications);
         _applicationViewModels.Insert(0, _allApplication);
         UpdateSubscription();
-        UpdateRemoveTracesMenuItems();
     }
 
     private Task HandleSelectedApplicationChanged()
     {
         _applicationChanged = true;
+
         UpdateRemoveTracesMenuItems();
         return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
@@ -208,6 +208,8 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
                 await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             });
         }
+
+        UpdateRemoveTracesMenuItems();
     }
 
     private async Task HandleAfterFilterBindAsync()

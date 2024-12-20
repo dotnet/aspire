@@ -241,6 +241,8 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
                 await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             });
         }
+
+        UpdateRemoveStructuredLogsMenuItems();
     }
 
     private async Task OnShowPropertiesAsync(OtlpLogEntry entry, string? buttonId)

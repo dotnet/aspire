@@ -155,7 +155,6 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         _applicationViewModels = ApplicationsSelectHelpers.CreateApplications(_applications);
         _applicationViewModels.Insert(0, _selectApplication);
         UpdateSubscription();
-        UpdateMetricsMenuItems();
     }
 
     private async Task HandleSelectedApplicationChangedAsync()
@@ -319,6 +318,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
                 }
             });
         }
+
+        UpdateMetricsMenuItems();
     }
 
     public void Dispose()
