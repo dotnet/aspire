@@ -28,6 +28,11 @@
                             @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync"
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
+
+            <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
+                              Icon="@(new Icons.Regular.Size20.ChevronDown())"
+                              Items="@_removeMetricsMenuItems" />
+
             @if (!ViewportInformation.IsDesktop)
             {
                 <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" Style="margin-right:5px;"/>

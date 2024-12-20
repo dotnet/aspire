@@ -649,6 +649,26 @@ public sealed class TelemetryRepository
         RaiseSubscriptionChanged(_logSubscriptions);
     }
 
+    public void ClearMetrics(ApplicationKey? applicationKey = null)
+    {
+        List<OtlpApplication> applications;
+        if (applicationKey.HasValue)
+        {
+            applications = GetApplications(applicationKey.Value);
+        }
+        else
+        {
+            applications = _applications.Values.ToList();
+        }
+
+        foreach(var app in applications)
+        {
+            app.ClearMetrics();
+        }
+
+        RaiseSubscriptionChanged(_metricsSubscriptions);
+    }
+
     public Dictionary<string, int> GetTraceFieldValues(string attributeName)
     {
         _tracesLock.EnterReadLock();

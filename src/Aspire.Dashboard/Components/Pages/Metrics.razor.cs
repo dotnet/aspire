@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Model;
@@ -16,6 +17,9 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.MetricsViewModel, Metrics.MetricsPageState>
 {
+    private static readonly Icon s_removeSelectedResourceIcon = new Icons.Regular.Size16.Dismiss();
+    private static readonly Icon s_removeAllResourcesIcon = new Icons.Regular.Size16.Delete();
+
     private SelectViewModel<ResourceTypeDetails> _selectApplication = null!;
     private List<SelectViewModel<TimeSpan>> _durations = null!;
     private static readonly TimeSpan s_defaultDuration = TimeSpan.FromMinutes(5);
@@ -26,6 +30,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
     private Subscription? _applicationsSubscription;
     private Subscription? _metricsSubscription;
+    private readonly List<MenuButtonItem> _removeMetricsMenuItems = new();
 
     public string BasePath => DashboardUrls.MetricsBasePath;
     public string SessionStorageKey => BrowserStorageKeys.MetricsPageState;
@@ -150,6 +155,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         _applicationViewModels = ApplicationsSelectHelpers.CreateApplications(_applications);
         _applicationViewModels.Insert(0, _selectApplication);
         UpdateSubscription();
+        UpdateMetricsMenuItems();
     }
 
     private async Task HandleSelectedApplicationChangedAsync()
@@ -169,6 +175,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             }
         }
 
+        UpdateMetricsMenuItems();
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
         _treeMetricSelector?.OnResourceChanged();
     }
@@ -185,6 +192,38 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         }
 
         return false;
+    }
+
+    private void UpdateMetricsMenuItems()
+    {
+        // Set up the menu
+        if (_removeMetricsMenuItems.Count == 0)
+        {
+            _removeMetricsMenuItems.Add(new MenuButtonItem
+            {
+                Icon = s_removeSelectedResourceIcon,
+                OnClick = () => RemoveMetrics(true)
+            });
+            _removeMetricsMenuItems.Add(new MenuButtonItem
+            {
+                Icon = s_removeAllResourcesIcon,
+                OnClick = () => RemoveMetrics(false),
+                Text = ControlsStringsLoc[name: nameof(ControlsStrings.RemoveAll)],
+            });
+        }
+
+        var selectedApplication = PageViewModel.SelectedApplication;
+        _removeMetricsMenuItems[0].IsDisabled = PageViewModel.SelectedApplication?.Id == null;
+        _removeMetricsMenuItems[0].Text = string.Format(CultureInfo.InvariantCulture,
+            ControlsStringsLoc[name: nameof(ControlsStrings.RemoveForResouece)],
+            selectedApplication?.Name);
+    }
+
+    private Task RemoveMetrics(bool removeSelected)
+    {
+        var selectedApplication = removeSelected ? PageViewModel.SelectedApplication.Id?.GetApplicationKey() : null;
+        TelemetryRepository.ClearMetrics(selectedApplication);
+        return Task.CompletedTask;
     }
 
     private Task HandleSelectedDurationChangedAsync()
@@ -272,7 +311,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
                     // If there are more instruments than before then update the UI.
                     var instruments = TelemetryRepository.GetInstrumentsSummaries(selectedApplicationKey.Value);
 
-                    if (PageViewModel.Instruments is null || instruments.Count > PageViewModel.Instruments.Count)
+                    if (PageViewModel.Instruments is null || instruments.Count != PageViewModel.Instruments.Count)
                     {
                         PageViewModel.Instruments = instruments;
                         await InvokeAsync(StateHasChanged);
