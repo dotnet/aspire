@@ -272,7 +272,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             builder.Services.Configure<ForwardedHeadersOptions>(options =>
             {
-                options.ForwardedHeaders = ForwardedHeaders.All;
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedProto;
             });
         }
 
