@@ -259,6 +259,8 @@ message WatchResourcesChanges {
 message WatchResourcesRequest {
     // True if the client is establishing this connection because a prior one closed unexpectedly.
     optional bool is_reconnect = 1;
+    // The display locale of the client.
+    optional string locale = 2;
 }
 
 // A message received from the server when watching resources. Has multiple types of payload.

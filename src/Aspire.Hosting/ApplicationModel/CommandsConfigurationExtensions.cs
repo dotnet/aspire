@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Properties;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -21,7 +23,7 @@ internal static class CommandsConfigurationExtensions
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
             name: StartCommandName,
-            displayName: "Start",
+            displayNameProducer: context => Commands.ResourceManager.GetString(nameof(Commands.StartCommandDisplayName), CultureInfo.GetCultureInfo(context.Locale))!,
             executeCommand: async context =>
             {
                 var executor = context.ServiceProvider.GetRequiredService<ApplicationExecutor>();
@@ -44,16 +46,16 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Hidden;
                 }
             },
-            displayDescription: "Start resource",
+            displayDescriptionProducer: context => Commands.ResourceManager.GetString(nameof(Commands.StartCommandDisplayDescription), CultureInfo.GetCultureInfo(context.Locale))!,
             parameter: null,
-            confirmationMessage: null,
+            confirmationMessageProducer: null,
             iconName: "Play",
             iconVariant: IconVariant.Filled,
             isHighlighted: true));
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
             name: StopCommandName,
-            displayName: "Stop",
+            displayNameProducer: context => Commands.ResourceManager.GetString(nameof(Commands.StopCommandDisplayName), CultureInfo.GetCultureInfo(context.Locale))!,
             executeCommand: async context =>
             {
                 var executor = context.ServiceProvider.GetRequiredService<ApplicationExecutor>();
@@ -76,16 +78,16 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Hidden;
                 }
             },
-            displayDescription: "Stop resource",
+            displayDescriptionProducer: context => Commands.ResourceManager.GetString(nameof(Commands.StopCommandDisplayDescription), CultureInfo.GetCultureInfo(context.Locale))!,
             parameter: null,
-            confirmationMessage: null,
+            confirmationMessageProducer: null,
             iconName: "Stop",
             iconVariant: IconVariant.Filled,
             isHighlighted: true));
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
             name: RestartCommandName,
-            displayName: "Restart",
+            displayNameProducer: context => Commands.ResourceManager.GetString(nameof(Commands.RestartCommandDisplayName), CultureInfo.GetCultureInfo(context.Locale))!,
             executeCommand: async context =>
             {
                 var executor = context.ServiceProvider.GetRequiredService<ApplicationExecutor>();
@@ -105,9 +107,9 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Enabled;
                 }
             },
-            displayDescription: "Restart resource",
+            displayDescriptionProducer: context => Commands.ResourceManager.GetString(nameof(Commands.RestartCommandDisplayDescription), CultureInfo.GetCultureInfo(context.Locale))!,
             parameter: null,
-            confirmationMessage: null,
+            confirmationMessageProducer: null,
             iconName: "ArrowCounterclockwise",
             iconVariant: IconVariant.Regular,
             isHighlighted: false));

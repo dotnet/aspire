@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
 using System.Net.Security;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
@@ -320,8 +321,7 @@ internal sealed class DashboardClient : IDashboardClient
 
                 async Task WatchResourcesAsync()
                 {
-                    var call = _client!.WatchResources(new WatchResourcesRequest { IsReconnect = errorCount != 0 }, headers: _headers, cancellationToken: cancellationToken);
-
+                    var call = _client!.WatchResources(new WatchResourcesRequest { IsReconnect = errorCount != 0, Locale = CultureInfo.CurrentUICulture.Name }, headers: _headers, cancellationToken: cancellationToken);
                     await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
                     {
                         List<ResourceViewModelChange>? changes = null;

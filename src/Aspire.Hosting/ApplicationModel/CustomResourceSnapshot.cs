@@ -203,8 +203,8 @@ public sealed record ResourcePropertySnapshot(string Name, object? Value)
 /// </summary>
 /// <param name="Name">The name of command. The name uniquely identifies the command.</param>
 /// <param name="State">The state of the command.</param>
-/// <param name="DisplayName">The display name visible in UI for the command.</param>
-/// <param name="DisplayDescription">
+/// <param name="DisplayNameProducer">The display name visible in UI for the command.</param>
+/// <param name="DisplayDescriptionProducer">
 /// Optional description of the command, to be shown in the UI.
 /// Could be used as a tooltip. May be localized.
 /// </param>
@@ -212,14 +212,14 @@ public sealed record ResourcePropertySnapshot(string Name, object? Value)
 /// Optional parameter that configures the command in some way.
 /// Clients must return any value provided by the server when invoking the command.
 /// </param>
-/// <param name="ConfirmationMessage">
+/// <param name="ConfirmationMessageProducer">
 /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
 /// and the confirmation message before starting the command.
 /// </param>
 /// <param name="IconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
 /// <param name="IconVariant">The icon variant.</param>
 /// <param name="IsHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
-public sealed record ResourceCommandSnapshot(string Name, ResourceCommandState State, string DisplayName, string? DisplayDescription, object? Parameter, string? ConfirmationMessage, string? IconName, IconVariant? IconVariant, bool IsHighlighted);
+public sealed record ResourceCommandSnapshot(string Name, ResourceCommandState State, Func<UIStringProducerContext, string> DisplayNameProducer, Func<UIStringProducerContext, string>? DisplayDescriptionProducer, object? Parameter, Func<UIStringProducerContext, string>? ConfirmationMessageProducer, string? IconName, IconVariant? IconVariant, bool IsHighlighted);
 
 /// <summary>
 /// A report produced by a health check about a resource.

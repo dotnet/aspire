@@ -16,28 +16,28 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
     /// </summary>
     public ResourceCommandAnnotation(
         string name,
-        string displayName,
+        Func<UIStringProducerContext, string> displayNameProducer,
         Func<UpdateCommandStateContext, ResourceCommandState> updateState,
         Func<ExecuteCommandContext, Task<ExecuteCommandResult>> executeCommand,
-        string? displayDescription,
+        Func<UIStringProducerContext, string>? displayDescriptionProducer,
         object? parameter,
-        string? confirmationMessage,
+        Func<UIStringProducerContext, string>? confirmationMessageProducer,
         string? iconName,
         IconVariant? iconVariant,
         bool isHighlighted)
     {
         ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(displayName);
+        ArgumentNullException.ThrowIfNull(displayNameProducer);
         ArgumentNullException.ThrowIfNull(updateState);
         ArgumentNullException.ThrowIfNull(executeCommand);
 
         Name = name;
-        DisplayName = displayName;
+        DisplayNameProducer = displayNameProducer;
         UpdateState = updateState;
         ExecuteCommand = executeCommand;
-        DisplayDescription = displayDescription;
+        DisplayDescriptionProducer = displayDescriptionProducer;
         Parameter = parameter;
-        ConfirmationMessage = confirmationMessage;
+        ConfirmationMessageProducer = confirmationMessageProducer;
         IconName = iconName;
         IconVariant = iconVariant;
         IsHighlighted = isHighlighted;
@@ -51,7 +51,7 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
     /// <summary>
     /// The display name visible in UI.
     /// </summary>
-    public string DisplayName { get; }
+    public Func<UIStringProducerContext, string> DisplayNameProducer { get; }
 
     /// <summary>
     /// A callback that is used to update the command state.
@@ -69,7 +69,7 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
     /// Optional description of the command, to be shown in the UI.
     /// Could be used as a tooltip. May be localized.
     /// </summary>
-    public string? DisplayDescription { get; }
+    public Func<UIStringProducerContext, string>? DisplayDescriptionProducer { get; }
 
     /// <summary>
     /// Optional parameter that configures the command in some way.
@@ -81,7 +81,7 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
     /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
     /// and the confirmation message before starting the command.
     /// </summary>
-    public string? ConfirmationMessage { get; }
+    public Func<UIStringProducerContext, string>? ConfirmationMessageProducer { get; }
 
     /// <summary>
     /// The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons
@@ -176,4 +176,15 @@ public sealed class ExecuteCommandContext
     /// The cancellation token.
     /// </summary>
     public required CancellationToken CancellationToken { get; init; }
+}
+
+/// <summary>
+/// Context for <see cref="ResourceCommandAnnotation.DisplayNameProducer"/> and <see cref="ResourceCommandAnnotation.DisplayDescriptionProducer"/>.
+/// </summary>
+public sealed class UIStringProducerContext
+{
+    /// <summary>
+    /// The locale of the client.
+    /// </summary>
+    public required string Locale { get; init; }
 }
