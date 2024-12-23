@@ -566,6 +566,13 @@ public sealed class TelemetryRepository
         }
     }
 
+    public void ClearAllSignals()
+    {
+        ClearTraces(null);
+        ClearStructuredLogs(null);
+        ClearMetrics(null);
+    }
+
     public void ClearTraces(ApplicationKey? applicationKey = null)
     {
         List<OtlpApplication>? applications = null;

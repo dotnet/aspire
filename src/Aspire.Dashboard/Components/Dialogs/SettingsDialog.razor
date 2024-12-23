@@ -2,6 +2,7 @@
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @inject IStringLocalizer<Dialogs> Loc
+@inject IStringLocalizer<ControlsStrings> ControlStringsLoc
 
 <FluentDialogBody>
     <FluentStack Orientation="Orientation.Vertical" Style="display: flex; height: 100%" VerticalGap="0">
@@ -14,6 +15,14 @@
             <FluentRadio Value="@ThemeManager.ThemeSettingLight">@Loc[nameof(Dialogs.SettingsDialogLightTheme)]</FluentRadio>
             <FluentRadio Value="@ThemeManager.ThemeSettingDark">@Loc[nameof(Dialogs.SettingsDialogDarkTheme)]</FluentRadio>
         </FluentRadioGroup>
+
+        <FluentButton Appearance="Appearance.Stealth"
+                      IconStart="@(new Icons.Regular.Size16.Delete())"
+                      OnClick="ClearAllSignals"
+                      Title="@Loc[nameof(ControlsStrings.ClearAllResources)]"
+                      aria-label="@Loc[nameof(ControlsStrings.ClearAllResources)]">
+            @ControlStringsLoc[nameof(ControlsStrings.ClearAllResources)]
+        </FluentButton>
 
         <div class="version">@string.Format(Loc[nameof(Dialogs.SettingsDialogVersion)], VersionHelpers.DashboardDisplayVersion)</div>
     </FluentStack>

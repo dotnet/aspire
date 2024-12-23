@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -15,6 +16,9 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
 
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
+
+    [Inject]
+    public required TelemetryRepository TelemetryRepository { get; init; }
 
     protected override void OnInitialized()
     {
@@ -42,6 +46,11 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
             // and applies the new theme to the browser window.
             await ThemeManager.RaiseThemeChangedAsync(_currentSetting);
         }
+    }
+
+    private void ClearAllSignals()
+    {
+        TelemetryRepository.ClearAllSignals();
     }
 
     public void Dispose()
