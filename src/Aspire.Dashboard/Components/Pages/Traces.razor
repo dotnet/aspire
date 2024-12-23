@@ -1,4 +1,4 @@
-@page "/traces"
+﻿@page "/traces"
 @page "/traces/resource/{applicationName}"
 
 @using Aspire.Dashboard.Model
@@ -28,9 +28,8 @@
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
 
-            <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
-                              Icon="@(new Icons.Regular.Size20.ChevronDown())"
-                              Items="@_removeTracesMenuItems" />
+            <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication.Id?.GetApplicationKey()"
+                                HandleClearSignal="ClearTraces" />
 
             <FluentSearch @bind-Value="_filter"
                           @bind-Value:after="HandleAfterFilterBindAsync"

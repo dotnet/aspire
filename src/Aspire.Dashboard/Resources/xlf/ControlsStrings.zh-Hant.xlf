@@ -77,6 +77,16 @@
         <target state="translated">無法顯示圖表</target>
         <note />
       </trans-unit>
+      <trans-unit id="ClearAllResources">
+        <source>Clear all resources</source>
+        <target state="new">Clear all resources</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ClearSelectedResource">
+        <source>Clear {0}</source>
+        <target state="new">Clear {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">詳細資料</target>
@@ -280,16 +290,6 @@
       <trans-unit id="PropertyGridValueColumnHeader">
         <source>Value</source>
         <target state="translated">值</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="RemoveAll">
-        <source>Remove all</source>
-        <target state="new">Remove all</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="RemoveForResouece">
-        <source>Remove for {0}</source>
-        <target state="new">Remove for {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsBackReferences">

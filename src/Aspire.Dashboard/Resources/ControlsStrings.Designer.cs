@@ -196,6 +196,24 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Clear all resources.
+        /// </summary>
+        public static string ClearAllResources {
+            get {
+                return ResourceManager.GetString("ClearAllResources", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Clear {0}.
+        /// </summary>
+        public static string ClearSelectedResource {
+            get {
+                return ResourceManager.GetString("ClearSelectedResource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Details.
         /// </summary>
         public static string DetailsColumnHeader {
@@ -561,24 +579,6 @@ namespace Aspire.Dashboard.Resources {
         public static string PropertyGridValueColumnHeader {
             get {
                 return ResourceManager.GetString("PropertyGridValueColumnHeader", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Remove all.
-        /// </summary>
-        public static string RemoveAll {
-            get {
-                return ResourceManager.GetString("RemoveAll", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Remove for {0}.
-        /// </summary>
-        public static string RemoveForResouece {
-            get {
-                return ResourceManager.GetString("RemoveForResouece", resourceCulture);
             }
         }
         

@@ -29,9 +29,8 @@
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
 
-            <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
-                              Icon="@(new Icons.Regular.Size20.ChevronDown())"
-                              Items="@_removeMetricsMenuItems" />
+            <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication.Id?.GetApplicationKey()"
+                                HandleClearSignal="ClearMetrics" />
 
             @if (!ViewportInformation.IsDesktop)
             {

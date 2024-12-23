@@ -31,9 +31,8 @@
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
 
-            <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
-                              Icon="@(new Icons.Regular.Size20.ChevronDown())"
-                              Items="@_removeStructuredLogsMenuItems" />
+            <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication.Id?.GetApplicationKey()"
+                                HandleClearSignal="ClearStructureLogs" />
 
             <FluentSearch @bind-Value="_filter"
                           @bind-Value:after="HandleAfterFilterBindAsync"
