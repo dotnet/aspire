@@ -92,23 +92,32 @@ Aspire.Hosting.ApplicationModel.RelationshipSnapshot.ResourceName.get -> string!
 Aspire.Hosting.ApplicationModel.RelationshipSnapshot.ResourceName.init -> void
 Aspire.Hosting.ApplicationModel.RelationshipSnapshot.Type.get -> string!
 Aspire.Hosting.ApplicationModel.RelationshipSnapshot.Type.init -> void
-Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.ConfirmationMessageProducer.get -> System.Func<Aspire.Hosting.ApplicationModel.UIStringProducerContext!, string!>?
-Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.DisplayDescriptionProducer.get -> System.Func<Aspire.Hosting.ApplicationModel.UIStringProducerContext!, string!>?
-Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.DisplayNameProducer.get -> System.Func<Aspire.Hosting.ApplicationModel.UIStringProducerContext!, string!>!
+Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.ConfirmationMessage.get -> string?
+Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.ConfirmationMessageProducer.get -> System.Func<Aspire.Hosting.ApplicationModel.UIStringContext!, string!>?
+Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.DisplayDescription.get -> string?
+Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.DisplayDescriptionProducer.get -> System.Func<Aspire.Hosting.ApplicationModel.UIStringContext!, string!>?
+Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.DisplayName.get -> string!
+Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.DisplayNameProducer.get -> System.Func<Aspire.Hosting.ApplicationModel.UIStringContext!, string!>?
 Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.Name.get -> string!
 Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.Parameter.get -> object?
-Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.ResourceCommandAnnotation(string! name, System.Func<Aspire.Hosting.ApplicationModel.UIStringProducerContext!, string!>! displayNameProducer, System.Func<Aspire.Hosting.ApplicationModel.UpdateCommandStateContext!, Aspire.Hosting.ApplicationModel.ResourceCommandState>! updateState, System.Func<Aspire.Hosting.ApplicationModel.ExecuteCommandContext!, System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ExecuteCommandResult!>!>! executeCommand, System.Func<Aspire.Hosting.ApplicationModel.UIStringProducerContext!, string!>? displayDescriptionProducer, object? parameter, System.Func<Aspire.Hosting.ApplicationModel.UIStringProducerContext!, string!>? confirmationMessageProducer, string? iconName, Aspire.Hosting.ApplicationModel.IconVariant? iconVariant, bool isHighlighted) -> void
-Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.ConfirmationMessageProducer.get -> System.Func<Aspire.Hosting.ApplicationModel.UIStringProducerContext!, string!>?
+Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.ResourceCommandAnnotation(string! name, string! displayName, System.Func<Aspire.Hosting.ApplicationModel.UpdateCommandStateContext!, Aspire.Hosting.ApplicationModel.ResourceCommandState>! updateState, System.Func<Aspire.Hosting.ApplicationModel.ExecuteCommandContext!, System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ExecuteCommandResult!>!>! executeCommand, string? displayDescription, object? parameter, string? confirmationMessage, string? iconName, Aspire.Hosting.ApplicationModel.IconVariant? iconVariant, bool isHighlighted, System.Func<Aspire.Hosting.ApplicationModel.UIStringContext!, string!>? displayNameProducer, System.Func<Aspire.Hosting.ApplicationModel.UIStringContext!, string!>? displayDescriptionProducer, System.Func<Aspire.Hosting.ApplicationModel.UIStringContext!, string!>? confirmationMessageProducer) -> void
+Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.ConfirmationMessage.get -> string?
+Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.ConfirmationMessage.init -> void
+Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.ConfirmationMessageProducer.get -> System.Func<Aspire.Hosting.ApplicationModel.UIStringContext!, string!>?
 Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.ConfirmationMessageProducer.init -> void
-Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.DisplayDescriptionProducer.get -> System.Func<Aspire.Hosting.ApplicationModel.UIStringProducerContext!, string!>?
+Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.DisplayDescription.get -> string?
+Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.DisplayDescription.init -> void
+Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.DisplayDescriptionProducer.get -> System.Func<Aspire.Hosting.ApplicationModel.UIStringContext!, string!>?
 Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.DisplayDescriptionProducer.init -> void
-Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.DisplayNameProducer.get -> System.Func<Aspire.Hosting.ApplicationModel.UIStringProducerContext!, string!>!
+Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.DisplayName.get -> string!
+Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.DisplayName.init -> void
+Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.DisplayNameProducer.get -> System.Func<Aspire.Hosting.ApplicationModel.UIStringContext!, string!>?
 Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.DisplayNameProducer.init -> void
 Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.Name.get -> string!
 Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.Name.init -> void
 Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.Parameter.get -> object?
 Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.Parameter.init -> void
-Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.ResourceCommandSnapshot(string! Name, Aspire.Hosting.ApplicationModel.ResourceCommandState State, System.Func<Aspire.Hosting.ApplicationModel.UIStringProducerContext!, string!>! DisplayNameProducer, System.Func<Aspire.Hosting.ApplicationModel.UIStringProducerContext!, string!>? DisplayDescriptionProducer, object? Parameter, System.Func<Aspire.Hosting.ApplicationModel.UIStringProducerContext!, string!>? ConfirmationMessageProducer, string? IconName, Aspire.Hosting.ApplicationModel.IconVariant? IconVariant, bool IsHighlighted) -> void
+Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.ResourceCommandSnapshot(string! Name, Aspire.Hosting.ApplicationModel.ResourceCommandState State, string! DisplayName, string? DisplayDescription, object? Parameter, string? ConfirmationMessage, string? IconName, Aspire.Hosting.ApplicationModel.IconVariant? IconVariant, bool IsHighlighted, System.Func<Aspire.Hosting.ApplicationModel.UIStringContext!, string!>? DisplayNameProducer = null, System.Func<Aspire.Hosting.ApplicationModel.UIStringContext!, string!>? DisplayDescriptionProducer = null, System.Func<Aspire.Hosting.ApplicationModel.UIStringContext!, string!>? ConfirmationMessageProducer = null) -> void
 Aspire.Hosting.ApplicationModel.ResourceNameAttribute
 Aspire.Hosting.ApplicationModel.ResourceNameAttribute.ResourceNameAttribute() -> void
 Aspire.Hosting.ApplicationModel.IconVariant
@@ -148,10 +157,10 @@ Aspire.Hosting.ApplicationModel.ResourceRelationshipAnnotation
 Aspire.Hosting.ApplicationModel.ResourceRelationshipAnnotation.Resource.get -> Aspire.Hosting.ApplicationModel.IResource!
 Aspire.Hosting.ApplicationModel.ResourceRelationshipAnnotation.ResourceRelationshipAnnotation(Aspire.Hosting.ApplicationModel.IResource! resource, string! type) -> void
 Aspire.Hosting.ApplicationModel.ResourceRelationshipAnnotation.Type.get -> string!
-Aspire.Hosting.ApplicationModel.UIStringProducerContext
-Aspire.Hosting.ApplicationModel.UIStringProducerContext.Locale.get -> string!
-Aspire.Hosting.ApplicationModel.UIStringProducerContext.Locale.init -> void
-Aspire.Hosting.ApplicationModel.UIStringProducerContext.UIStringProducerContext() -> void
+Aspire.Hosting.ApplicationModel.UIStringContext
+Aspire.Hosting.ApplicationModel.UIStringContext.Locale.get -> string!
+Aspire.Hosting.ApplicationModel.UIStringContext.Locale.init -> void
+Aspire.Hosting.ApplicationModel.UIStringContext.UIStringContext() -> void
 Aspire.Hosting.ApplicationModel.UpdateCommandStateContext
 Aspire.Hosting.ApplicationModel.UpdateCommandStateContext.ResourceSnapshot.get -> Aspire.Hosting.ApplicationModel.CustomResourceSnapshot!
 Aspire.Hosting.ApplicationModel.UpdateCommandStateContext.ResourceSnapshot.init -> void
@@ -253,11 +262,10 @@ Aspire.Hosting.DistributedApplicationExecutionContextOptions.ServiceProvider.get
 Aspire.Hosting.DistributedApplicationExecutionContextOptions.ServiceProvider.set -> void
 static Aspire.Hosting.ResourceBuilderExtensions.WaitFor<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IResource!>! dependency) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WaitForCompletion<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IResource!>! dependency, int exitCode = 0) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
-static Aspire.Hosting.ResourceBuilderExtensions.WithCommand<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! name, string! displayName, System.Func<Aspire.Hosting.ApplicationModel.ExecuteCommandContext!, System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ExecuteCommandResult!>!>! executeCommand, System.Func<Aspire.Hosting.ApplicationModel.UpdateCommandStateContext!, Aspire.Hosting.ApplicationModel.ResourceCommandState>? updateState = null, string? displayDescription = null, object? parameter = null, string? confirmationMessage = null, string? iconName = null, Aspire.Hosting.ApplicationModel.IconVariant? iconVariant = null, bool isHighlighted = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithCommand<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! name, string! displayName, System.Func<Aspire.Hosting.ApplicationModel.ExecuteCommandContext!, System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ExecuteCommandResult!>!>! executeCommand, System.Func<Aspire.Hosting.ApplicationModel.UpdateCommandStateContext!, Aspire.Hosting.ApplicationModel.ResourceCommandState>? updateState = null, string? displayDescription = null, object? parameter = null, string? confirmationMessage = null, string? iconName = null, Aspire.Hosting.ApplicationModel.IconVariant? iconVariant = null, bool isHighlighted = false, System.Func<Aspire.Hosting.ApplicationModel.UIStringContext!, string!>? displayNameProducer = null, System.Func<Aspire.Hosting.ApplicationModel.UIStringContext!, string!>? displayDescriptionProducer = null, System.Func<Aspire.Hosting.ApplicationModel.UIStringContext!, string!>? confirmationMessageProducer = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithHealthCheck<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! key) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithHttpHealthCheck<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string? path = null, int? statusCode = null, string? endpointName = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithHttpsHealthCheck<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string? path = null, int? statusCode = null, string? endpointName = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
-static Aspire.Hosting.ResourceBuilderExtensions.WithLocalizedCommand<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! name, System.Func<Aspire.Hosting.ApplicationModel.UIStringProducerContext!, string!>! displayNameProducer, System.Func<Aspire.Hosting.ApplicationModel.ExecuteCommandContext!, System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ExecuteCommandResult!>!>! executeCommand, System.Func<Aspire.Hosting.ApplicationModel.UpdateCommandStateContext!, Aspire.Hosting.ApplicationModel.ResourceCommandState>? updateState = null, System.Func<Aspire.Hosting.ApplicationModel.UIStringProducerContext!, string!>? displayDescriptionProducer = null, object? parameter = null, System.Func<Aspire.Hosting.ApplicationModel.UIStringProducerContext!, string!>? confirmationMessageProducer = null, string? iconName = null, Aspire.Hosting.ApplicationModel.IconVariant? iconVariant = null, bool isHighlighted = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithRelationship<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, Aspire.Hosting.ApplicationModel.IResource! resource, string! type) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.Utils.VolumeNameGenerator.Generate<T>(Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! suffix) -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Exited -> string!

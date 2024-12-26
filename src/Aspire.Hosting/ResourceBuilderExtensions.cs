@@ -950,7 +950,7 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of command. The name uniquely identifies the command.</param>
-    /// <param name="displayName">The display name visible in UI.</param>
+    /// <param name="displayName">The display name visible in UI. If <paramref name="displayNameProducer"/> is specified, it will be used instead.</param>
     /// <param name="executeCommand">
     /// A callback that is executed when the command is executed. The callback is run inside the .NET Aspire host.
     /// The callback result is used to indicate success or failure in the UI.
@@ -961,7 +961,7 @@ public static class ResourceBuilderExtensions
     /// </param>
     /// <param name="displayDescription">
     /// Optional description of the command, to be shown in the UI.
-    /// Could be used as a tooltip. May be localized.
+    /// Could be used as a tooltip. If <paramref name="displayDescriptionProducer"/> is specified, it will be used instead.
     /// </param>
     /// <param name="parameter">
     /// Optional parameter that configures the command in some way.
@@ -969,11 +969,14 @@ public static class ResourceBuilderExtensions
     /// </param>
     /// <param name="confirmationMessage">
     /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
-    /// and the confirmation message before starting the command.
+    /// and the confirmation message before starting the command. If <paramref name="confirmationMessageProducer"/> is specified, it will be used instead.
     /// </param>
     /// <param name="iconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
     /// <param name="iconVariant">The icon variant.</param>
     /// <param name="isHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
+    /// <param name="displayNameProducer">A function that returns the display name to show in the UI, given the context.</param>
+    /// <param name="displayDescriptionProducer">A function that returns the display description to show in the UI, given the context.</param>
+    /// <param name="confirmationMessageProducer">A function that returns the command confirmation message to show in the UI, given the context.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>The <c>WithCommand</c> method is used to add commands to the resource. Commands are displayed in the dashboard
@@ -991,7 +994,10 @@ public static class ResourceBuilderExtensions
         string? confirmationMessage = null,
         string? iconName = null,
         IconVariant? iconVariant = null,
-        bool isHighlighted = false) where T : IResource
+        bool isHighlighted = false,
+        Func<UIStringContext, string>? displayNameProducer = null,
+        Func<UIStringContext, string>? displayDescriptionProducer = null,
+        Func<UIStringContext, string>? confirmationMessageProducer = null) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
@@ -1005,71 +1011,18 @@ public static class ResourceBuilderExtensions
             builder.Resource.Annotations.Remove(existingAnnotation);
         }
 
-        return builder.WithAnnotation(new ResourceCommandAnnotation(name, _ => displayName, updateState ?? (c => ResourceCommandState.Enabled), executeCommand, displayDescription is not null ? _ => displayDescription : null, parameter, confirmationMessage is not null ? _ => confirmationMessage : null, iconName, iconVariant, isHighlighted));
-    }
-
-    /// <summary>
-    /// Adds a <see cref="ResourceCommandAnnotation"/> to the resource annotations to add a resource command. Allows for localization of the display name, description, and confirmation message.
-    /// </summary>
-    /// <typeparam name="T">The type of the resource.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="name">The name of command. The name uniquely identifies the command.</param>
-    /// <param name="displayNameProducer">A function that will return the display name to be shown in the UI, based on <see cref="UIStringProducerContext"/>.</param>
-    /// <param name="executeCommand">
-    /// A callback that is executed when the command is executed. The callback is run inside the .NET Aspire host.
-    /// The callback result is used to indicate success or failure in the UI.
-    /// </param>
-    /// <param name="updateState">
-    /// <para>A callback that is used to update the command state. The callback is executed when the command's resource snapshot is updated.</para>
-    /// <para>If a callback isn't specified, the command is always enabled.</para>
-    /// </param>
-    /// <param name="displayDescriptionProducer">
-    /// Optional function that will return the description of the command, to be shown in the UI, based on <see cref="UIStringProducerContext"/>.
-    /// Could be used as a tooltip.
-    /// </param>
-    /// <param name="parameter">
-    /// Optional parameter that configures the command in some way.
-    /// Clients must return any value provided by the server when invoking the command.
-    /// </param>
-    /// <param name="confirmationMessageProducer">
-    /// When a confirmation message producer is specified, the UI will prompt with an OK/Cancel dialog
-    /// and the confirmation message before starting the command.
-    /// </param>
-    /// <param name="iconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
-    /// <param name="iconVariant">The icon variant.</param>
-    /// <param name="isHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
-    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks>
-    /// <para>The <c>WithCommand</c> method is used to add commands to the resource. Commands are displayed in the dashboard
-    /// and can be executed by a user using the dashboard UI.</para>
-    /// <para>When a command is executed, the <paramref name="executeCommand"/> callback is called and is run inside the .NET Aspire host.</para>
-    /// </remarks>
-    public static IResourceBuilder<T> WithLocalizedCommand<T>(
-        this IResourceBuilder<T> builder,
-        string name,
-        Func<UIStringProducerContext, string> displayNameProducer,
-        Func<ExecuteCommandContext, Task<ExecuteCommandResult>> executeCommand,
-        Func<UpdateCommandStateContext, ResourceCommandState>? updateState = null,
-        Func<UIStringProducerContext, string>? displayDescriptionProducer = null,
-        object? parameter = null,
-        Func<UIStringProducerContext, string>? confirmationMessageProducer = null,
-        string? iconName = null,
-        IconVariant? iconVariant = null,
-        bool isHighlighted = false) where T : IResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(displayNameProducer);
-        ArgumentNullException.ThrowIfNull(executeCommand);
-
-        // Replace existing annotation with the same name.
-        var existingAnnotation = builder.Resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Name == name);
-        if (existingAnnotation != null)
-        {
-            builder.Resource.Annotations.Remove(existingAnnotation);
-        }
-
-        return builder.WithAnnotation(new ResourceCommandAnnotation(name, displayNameProducer, updateState ?? (c => ResourceCommandState.Enabled), executeCommand, displayDescriptionProducer, parameter, confirmationMessageProducer, iconName, iconVariant, isHighlighted));
+        return builder.WithAnnotation(new ResourceCommandAnnotation(
+            name,
+            displayName,
+            updateState ?? (c => ResourceCommandState.Enabled),
+            executeCommand, displayDescription,
+            parameter, confirmationMessage,
+            iconName,
+            iconVariant,
+            isHighlighted,
+            displayNameProducer,
+            displayDescriptionProducer,
+            confirmationMessageProducer));
     }
 
     /// <summary>

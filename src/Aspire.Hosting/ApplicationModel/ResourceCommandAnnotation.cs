@@ -16,31 +16,37 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
     /// </summary>
     public ResourceCommandAnnotation(
         string name,
-        Func<UIStringProducerContext, string> displayNameProducer,
+        string displayName,
         Func<UpdateCommandStateContext, ResourceCommandState> updateState,
         Func<ExecuteCommandContext, Task<ExecuteCommandResult>> executeCommand,
-        Func<UIStringProducerContext, string>? displayDescriptionProducer,
+        string? displayDescription,
         object? parameter,
-        Func<UIStringProducerContext, string>? confirmationMessageProducer,
+        string? confirmationMessage,
         string? iconName,
         IconVariant? iconVariant,
-        bool isHighlighted)
+        bool isHighlighted,
+        Func<UIStringContext, string>? displayNameProducer,
+        Func<UIStringContext, string>? displayDescriptionProducer,
+        Func<UIStringContext, string>? confirmationMessageProducer)
     {
         ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(displayNameProducer);
+        ArgumentNullException.ThrowIfNull(displayName);
         ArgumentNullException.ThrowIfNull(updateState);
         ArgumentNullException.ThrowIfNull(executeCommand);
 
         Name = name;
-        DisplayNameProducer = displayNameProducer;
+        DisplayName = displayName;
         UpdateState = updateState;
         ExecuteCommand = executeCommand;
-        DisplayDescriptionProducer = displayDescriptionProducer;
+        DisplayDescription = displayDescription;
         Parameter = parameter;
-        ConfirmationMessageProducer = confirmationMessageProducer;
+        ConfirmationMessage = confirmationMessage;
         IconName = iconName;
         IconVariant = iconVariant;
         IsHighlighted = isHighlighted;
+        DisplayNameProducer = displayNameProducer;
+        DisplayDescriptionProducer = displayDescriptionProducer;
+        ConfirmationMessageProducer = confirmationMessageProducer;
     }
 
     /// <summary>
@@ -49,9 +55,15 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
     public string Name { get; }
 
     /// <summary>
-    /// The display name visible in UI.
+    /// The display name visible in UI. If <see cref="DisplayNameProducer"/> is provided,
+    /// this value is not used.
     /// </summary>
-    public Func<UIStringProducerContext, string> DisplayNameProducer { get; }
+    public string DisplayName { get; }
+
+    /// <summary>
+    /// The display name visible in UI, based on the provided context.
+    /// </summary>
+    public Func<UIStringContext, string>? DisplayNameProducer { get; }
 
     /// <summary>
     /// A callback that is used to update the command state.
@@ -67,9 +79,16 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
 
     /// <summary>
     /// Optional description of the command, to be shown in the UI.
-    /// Could be used as a tooltip. May be localized.
+    /// Could be used as a tooltip. If <see cref="DisplayDescriptionProducer"/> is provided,
+    /// this value is not used.
     /// </summary>
-    public Func<UIStringProducerContext, string>? DisplayDescriptionProducer { get; }
+    public string? DisplayDescription { get; }
+
+    /// <summary>
+    /// Optional description of the command, to be shown in the UI based on the provided context.
+    /// Could be used as a tooltip.
+    /// </summary>
+    public Func<UIStringContext, string>? DisplayDescriptionProducer { get; }
 
     /// <summary>
     /// Optional parameter that configures the command in some way.
@@ -80,8 +99,16 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
     /// <summary>
     /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
     /// and the confirmation message before starting the command.
+    ///
+    /// If <see cref="ConfirmationMessageProducer"/> is provided, this value is not used.
     /// </summary>
-    public Func<UIStringProducerContext, string>? ConfirmationMessageProducer { get; }
+    public string? ConfirmationMessage { get; }
+
+    /// <summary>
+    /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
+    /// and the confirmation message before starting the command.
+    /// </summary>
+    public Func<UIStringContext, string>? ConfirmationMessageProducer { get; }
 
     /// <summary>
     /// The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons
@@ -179,9 +206,9 @@ public sealed class ExecuteCommandContext
 }
 
 /// <summary>
-/// Context for <see cref="ResourceCommandAnnotation.DisplayNameProducer"/> and <see cref="ResourceCommandAnnotation.DisplayDescriptionProducer"/>.
+/// Context for <see cref="ResourceCommandAnnotation.DisplayName"/> and <see cref="ResourceCommandAnnotation.DisplayDescription"/>.
 /// </summary>
-public sealed class UIStringProducerContext
+public sealed class UIStringContext
 {
     /// <summary>
     /// The locale of the client.

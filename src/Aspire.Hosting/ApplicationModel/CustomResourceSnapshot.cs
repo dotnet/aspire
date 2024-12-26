@@ -203,23 +203,26 @@ public sealed record ResourcePropertySnapshot(string Name, object? Value)
 /// </summary>
 /// <param name="Name">The name of command. The name uniquely identifies the command.</param>
 /// <param name="State">The state of the command.</param>
-/// <param name="DisplayNameProducer">The display name visible in UI for the command.</param>
-/// <param name="DisplayDescriptionProducer">
+/// <param name="DisplayName">The display name visible in UI for the command. If <see cref="DisplayNameProducer"/> is provided, this is not used.</param>
+/// <param name="DisplayDescription">
 /// Optional description of the command, to be shown in the UI.
-/// Could be used as a tooltip. May be localized.
+/// Could be used as a tooltip. If <see cref="DisplayDescriptionProducer"/> is provided, this value is not used.
 /// </param>
 /// <param name="Parameter">
 /// Optional parameter that configures the command in some way.
 /// Clients must return any value provided by the server when invoking the command.
 /// </param>
-/// <param name="ConfirmationMessageProducer">
+/// <param name="ConfirmationMessage">
 /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
-/// and the confirmation message before starting the command.
+/// and the confirmation message before starting the command. If <see cref="ConfirmationMessageProducer"/> is provided, this value is not used.
 /// </param>
 /// <param name="IconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
 /// <param name="IconVariant">The icon variant.</param>
 /// <param name="IsHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
-public sealed record ResourceCommandSnapshot(string Name, ResourceCommandState State, Func<UIStringProducerContext, string> DisplayNameProducer, Func<UIStringProducerContext, string>? DisplayDescriptionProducer, object? Parameter, Func<UIStringProducerContext, string>? ConfirmationMessageProducer, string? IconName, IconVariant? IconVariant, bool IsHighlighted);
+/// <param name="DisplayNameProducer">If provided, a function to invoke to produce the display name to be shown in the UI, given client context.</param>
+/// <param name="DisplayDescriptionProducer">If provided, a function to invoke to produce the display description to be shown in the UI, given client context.</param>
+/// <param name="ConfirmationMessageProducer">If provided, a function to invoke to produce the confirmation message to be shown in the UI, given client context.</param>
+public sealed record ResourceCommandSnapshot(string Name, ResourceCommandState State, string DisplayName, string? DisplayDescription, object? Parameter, string? ConfirmationMessage, string? IconName, IconVariant? IconVariant, bool IsHighlighted, Func<UIStringContext, string>? DisplayNameProducer = null, Func<UIStringContext, string>? DisplayDescriptionProducer = null, Func<UIStringContext, string>? ConfirmationMessageProducer = null);
 
 /// <summary>
 /// A report produced by a health check about a resource.

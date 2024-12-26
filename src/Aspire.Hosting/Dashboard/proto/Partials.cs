@@ -71,7 +71,7 @@ partial class Resource
             });
         }
 
-        var displayStringProducerContext = new UIStringProducerContext
+        var displayStringProducerContext = new UIStringContext
         {
             Locale = locale
         };
@@ -81,10 +81,10 @@ partial class Resource
             resource.Commands.Add(new ResourceCommand
             {
                 Name = command.Name,
-                DisplayName = command.DisplayNameProducer(displayStringProducerContext),
-                DisplayDescription = command.DisplayDescriptionProducer?.Invoke(displayStringProducerContext) ?? string.Empty,
+                DisplayName = command.DisplayNameProducer?.Invoke(displayStringProducerContext) ?? command.DisplayName,
+                DisplayDescription = command.DisplayDescriptionProducer?.Invoke(displayStringProducerContext) ?? command.DisplayDescription ?? string.Empty,
                 Parameter = ResourceSnapshot.ConvertToValue(command.Parameter),
-                ConfirmationMessage = command.ConfirmationMessageProducer?.Invoke(displayStringProducerContext) ?? string.Empty,
+                ConfirmationMessage = command.ConfirmationMessageProducer?.Invoke(displayStringProducerContext) ?? command.ConfirmationMessage ?? string.Empty,
                 IconName = command.IconName ?? string.Empty,
                 IconVariant = MapIconVariant(command.IconVariant),
                 IsHighlighted = command.IsHighlighted,
