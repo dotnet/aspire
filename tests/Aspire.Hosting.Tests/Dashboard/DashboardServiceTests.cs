@@ -92,21 +92,24 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         using var applicationBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper: testOutputHelper);
         var builder = applicationBuilder.AddResource(testResource);
 
-        var displayNameProducer = static (string locale) => $"Display name in {locale}!";
-        var displayDescriptionProducer = static (string locale) => $"Display description in {locale}!";
-        var confirmationMessageProducer = static (string locale) => $"Confirmation message in {locale}!";
+        static string GetDisplayName(string locale) => $"Display name in {locale}!";
+        static string GetDisplayDescription(string locale) => $"Display description in {locale}!";
+        static string GetConfirmationMessage(string locale) => $"Confirmation message in {locale}!";
 
-        builder.WithLocalizedCommand(
+        builder.WithCommand(
             name: "TestName",
-            displayNameProducer: context => displayNameProducer(context.Locale),
+            displayName: string.Empty,
             executeCommand: c => Task.FromResult(CommandResults.Success()),
             updateState: c => ApplicationModel.ResourceCommandState.Enabled,
-            displayDescriptionProducer: context => displayDescriptionProducer(context.Locale),
+            displayDescription: null,
             parameter: new [] {"One", "Two"},
-            confirmationMessageProducer: context => confirmationMessageProducer(context.Locale),
+            confirmationMessage: null,
             iconName: "Icon name!",
             iconVariant: ApplicationModel.IconVariant.Filled,
-            isHighlighted: true);
+            isHighlighted: true,
+            getDisplayName: context => GetDisplayName(context.Locale),
+            getDisplayDescription: context => GetDisplayDescription(context.Locale),
+            getConfirmationMessage: context => GetConfirmationMessage(context.Locale));
 
         logger.LogInformation("Publishing resource.");
         await resourceNotificationService.PublishUpdateAsync(testResource, s =>
@@ -142,10 +145,10 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         var commandData = Assert.Single(resourceData.Commands);
 
         Assert.Equal("TestName", commandData.Name);
-        Assert.Equal(displayNameProducer(actualLocale), commandData.DisplayName);
-        Assert.Equal(displayDescriptionProducer(actualLocale), commandData.DisplayDescription);
+        Assert.Equal(GetDisplayName(actualLocale), commandData.DisplayName);
+        Assert.Equal(GetDisplayDescription(actualLocale), commandData.DisplayDescription);
         Assert.Equal(Value.ForList(Value.ForString("One"), Value.ForString("Two")), commandData.Parameter);
-        Assert.Equal(confirmationMessageProducer(actualLocale), commandData.ConfirmationMessage);
+        Assert.Equal(GetConfirmationMessage(actualLocale), commandData.ConfirmationMessage);
         Assert.Equal("Icon name!", commandData.IconName);
         Assert.Equal(ResourceService.Proto.V1.IconVariant.Filled, commandData.IconVariant);
         Assert.True(commandData.IsHighlighted);

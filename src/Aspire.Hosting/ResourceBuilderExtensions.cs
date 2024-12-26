@@ -950,7 +950,7 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of command. The name uniquely identifies the command.</param>
-    /// <param name="displayName">The display name visible in UI. If <paramref name="displayNameProducer"/> is specified, it will be used instead.</param>
+    /// <param name="displayName">The display name visible in UI. If <paramref name="getDisplayName"/> is specified, it will be used instead.</param>
     /// <param name="executeCommand">
     /// A callback that is executed when the command is executed. The callback is run inside the .NET Aspire host.
     /// The callback result is used to indicate success or failure in the UI.
@@ -961,7 +961,7 @@ public static class ResourceBuilderExtensions
     /// </param>
     /// <param name="displayDescription">
     /// Optional description of the command, to be shown in the UI.
-    /// Could be used as a tooltip. If <paramref name="displayDescriptionProducer"/> is specified, it will be used instead.
+    /// Could be used as a tooltip. If <paramref name="getDisplayDescription"/> is specified, it will be used instead.
     /// </param>
     /// <param name="parameter">
     /// Optional parameter that configures the command in some way.
@@ -969,14 +969,14 @@ public static class ResourceBuilderExtensions
     /// </param>
     /// <param name="confirmationMessage">
     /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
-    /// and the confirmation message before starting the command. If <paramref name="confirmationMessageProducer"/> is specified, it will be used instead.
+    /// and the confirmation message before starting the command. If <paramref name="getConfirmationMessage"/> is specified, it will be used instead.
     /// </param>
     /// <param name="iconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
     /// <param name="iconVariant">The icon variant.</param>
     /// <param name="isHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
-    /// <param name="displayNameProducer">A function that returns the display name to show in the UI, given the context.</param>
-    /// <param name="displayDescriptionProducer">A function that returns the display description to show in the UI, given the context.</param>
-    /// <param name="confirmationMessageProducer">A function that returns the command confirmation message to show in the UI, given the context.</param>
+    /// <param name="getDisplayName">A function that returns the display name to show in the UI, given the context.</param>
+    /// <param name="getDisplayDescription">A function that returns the display description to show in the UI, given the context.</param>
+    /// <param name="getConfirmationMessage">A function that returns the command confirmation message to show in the UI, given the context.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>The <c>WithCommand</c> method is used to add commands to the resource. Commands are displayed in the dashboard
@@ -995,9 +995,9 @@ public static class ResourceBuilderExtensions
         string? iconName = null,
         IconVariant? iconVariant = null,
         bool isHighlighted = false,
-        Func<UIStringContext, string>? displayNameProducer = null,
-        Func<UIStringContext, string>? displayDescriptionProducer = null,
-        Func<UIStringContext, string>? confirmationMessageProducer = null) where T : IResource
+        Func<UIStringContext, string>? getDisplayName = null,
+        Func<UIStringContext, string>? getDisplayDescription = null,
+        Func<UIStringContext, string>? getConfirmationMessage = null) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
@@ -1020,9 +1020,9 @@ public static class ResourceBuilderExtensions
             iconName,
             iconVariant,
             isHighlighted,
-            displayNameProducer,
-            displayDescriptionProducer,
-            confirmationMessageProducer));
+            getDisplayName,
+            getDisplayDescription,
+            getConfirmationMessage));
     }
 
     /// <summary>

@@ -81,10 +81,10 @@ partial class Resource
             resource.Commands.Add(new ResourceCommand
             {
                 Name = command.Name,
-                DisplayName = command.DisplayNameProducer?.Invoke(displayStringProducerContext) ?? command.DisplayName,
-                DisplayDescription = command.DisplayDescriptionProducer?.Invoke(displayStringProducerContext) ?? command.DisplayDescription ?? string.Empty,
+                DisplayName = command.GetDisplayName?.Invoke(displayStringProducerContext) ?? command.DisplayName,
+                DisplayDescription = command.GetDisplayDescription?.Invoke(displayStringProducerContext) ?? command.DisplayDescription ?? string.Empty,
                 Parameter = ResourceSnapshot.ConvertToValue(command.Parameter),
-                ConfirmationMessage = command.ConfirmationMessageProducer?.Invoke(displayStringProducerContext) ?? command.ConfirmationMessage ?? string.Empty,
+                ConfirmationMessage = command.GetConfirmationMessage?.Invoke(displayStringProducerContext) ?? command.ConfirmationMessage ?? string.Empty,
                 IconName = command.IconName ?? string.Empty,
                 IconVariant = MapIconVariant(command.IconVariant),
                 IsHighlighted = command.IsHighlighted,

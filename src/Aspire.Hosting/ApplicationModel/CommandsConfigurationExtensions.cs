@@ -24,7 +24,7 @@ internal static class CommandsConfigurationExtensions
         resource.Annotations.Add(new ResourceCommandAnnotation(
             name: StartCommandName,
             displayName: Commands.StartCommandDisplayName,
-            displayNameProducer: context => Commands.ResourceManager.GetString(nameof(Commands.StartCommandDisplayName), CultureInfo.GetCultureInfo(context.Locale))!,
+            getDisplayName: context => Commands.ResourceManager.GetString(nameof(Commands.StartCommandDisplayName), CultureInfo.GetCultureInfo(context.Locale))!,
             executeCommand: async context =>
             {
                 var executor = context.ServiceProvider.GetRequiredService<ApplicationExecutor>();
@@ -48,10 +48,10 @@ internal static class CommandsConfigurationExtensions
                 }
             },
             displayDescription: Commands.StartCommandDisplayDescription,
-            displayDescriptionProducer: context => Commands.ResourceManager.GetString(nameof(Commands.StartCommandDisplayDescription), CultureInfo.GetCultureInfo(context.Locale))!,
+            getDisplayDescription: context => Commands.ResourceManager.GetString(nameof(Commands.StartCommandDisplayDescription), CultureInfo.GetCultureInfo(context.Locale))!,
             parameter: null,
             confirmationMessage: null,
-            confirmationMessageProducer: null,
+            getConfirmationMessage: null,
             iconName: "Play",
             iconVariant: IconVariant.Filled,
             isHighlighted: true));
@@ -59,7 +59,7 @@ internal static class CommandsConfigurationExtensions
         resource.Annotations.Add(new ResourceCommandAnnotation(
             name: StopCommandName,
             displayName: Commands.StopCommandDisplayName,
-            displayNameProducer: context => Commands.ResourceManager.GetString(nameof(Commands.StopCommandDisplayName), CultureInfo.GetCultureInfo(context.Locale))!,
+            getDisplayName: context => Commands.ResourceManager.GetString(nameof(Commands.StopCommandDisplayName), CultureInfo.GetCultureInfo(context.Locale))!,
             executeCommand: async context =>
             {
                 var executor = context.ServiceProvider.GetRequiredService<ApplicationExecutor>();
@@ -83,10 +83,10 @@ internal static class CommandsConfigurationExtensions
                 }
             },
             displayDescription: Commands.StopCommandDisplayDescription,
-            displayDescriptionProducer: context => Commands.ResourceManager.GetString(nameof(Commands.StopCommandDisplayDescription), CultureInfo.GetCultureInfo(context.Locale))!,
+            getDisplayDescription: context => Commands.ResourceManager.GetString(nameof(Commands.StopCommandDisplayDescription), CultureInfo.GetCultureInfo(context.Locale))!,
             parameter: null,
             confirmationMessage: null,
-            confirmationMessageProducer: null,
+            getConfirmationMessage: null,
             iconName: "Stop",
             iconVariant: IconVariant.Filled,
             isHighlighted: true));
@@ -94,7 +94,7 @@ internal static class CommandsConfigurationExtensions
         resource.Annotations.Add(new ResourceCommandAnnotation(
             name: RestartCommandName,
             displayName: Commands.RestartCommandDisplayName,
-            displayNameProducer: context => Commands.ResourceManager.GetString(nameof(Commands.RestartCommandDisplayName), CultureInfo.GetCultureInfo(context.Locale))!,
+            getDisplayName: context => Commands.ResourceManager.GetString(nameof(Commands.RestartCommandDisplayName), CultureInfo.GetCultureInfo(context.Locale))!,
             executeCommand: async context =>
             {
                 var executor = context.ServiceProvider.GetRequiredService<ApplicationExecutor>();
@@ -115,10 +115,10 @@ internal static class CommandsConfigurationExtensions
                 }
             },
             displayDescription: Commands.RestartCommandDisplayDescription,
-            displayDescriptionProducer: context => Commands.ResourceManager.GetString(nameof(Commands.RestartCommandDisplayDescription), CultureInfo.GetCultureInfo(context.Locale))!,
+            getDisplayDescription: context => Commands.ResourceManager.GetString(nameof(Commands.RestartCommandDisplayDescription), CultureInfo.GetCultureInfo(context.Locale))!,
             parameter: null,
             confirmationMessage: null,
-            confirmationMessageProducer: null,
+            getConfirmationMessage: null,
             iconName: "ArrowCounterclockwise",
             iconVariant: IconVariant.Regular,
             isHighlighted: false));
