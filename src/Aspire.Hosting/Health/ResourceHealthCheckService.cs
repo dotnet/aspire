@@ -13,12 +13,11 @@ namespace Aspire.Hosting.Health;
 
 internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> logger, ResourceNotificationService resourceNotificationService, HealthCheckService healthCheckService, IServiceProvider services, IDistributedApplicationEventing eventing, TimeProvider timeProvider) : BackgroundService
 {
+    public Dictionary<string, CancellationTokenSource> TokenByResourceName { get; } = new(StringComparers.ResourceName);
     private readonly Dictionary<string, ResourceEvent> _latestEvents = new();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var resourcesStartedMonitoring = new HashSet<string>();
-
         try
         {
             var resourceEvents = resourceNotificationService.WatchAsync(stoppingToken);
@@ -27,10 +26,21 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
             {
                 _latestEvents[resourceEvent.Resource.Name] = resourceEvent;
 
-                if (!resourcesStartedMonitoring.Contains(resourceEvent.Resource.Name) && resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running)
+                var isMonitoring = TokenByResourceName.TryGetValue(resourceEvent.Resource.Name, out var cts);
+                var isRunning = resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running;
+
+                if (!isMonitoring && isRunning)
                 {
-                    _ = Task.Run(() => MonitorResourceHealthAsync(resourceEvent, stoppingToken), stoppingToken);
-                    resourcesStartedMonitoring.Add(resourceEvent.Resource.Name);
+                    cts = new CancellationTokenSource();
+                    var resourceMonitoringToken = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, cts.Token);
+                    TokenByResourceName.Add(resourceEvent.Resource.Name, cts);
+
+                    _ = Task.Run(() => MonitorResourceHealthAsync(resourceEvent, resourceMonitoringToken.Token), resourceMonitoringToken.Token);
+                }
+                else if (isMonitoring && !isRunning)
+                {
+                    TokenByResourceName.Remove(resourceEvent.Resource.Name);
+                    await cts!.CancelAsync().ConfigureAwait(false);
                 }
             }
         }

@@ -11,9 +11,13 @@ public class HealthStatusTests
 {
     private const string StartingState = "Starting";
     private const string RunningState = "Running";
+    private const string StoppingState = "Stopping";
+    private const string RuntimeUnhealthyState = "RuntimeUnhealthy";
 
     [Theory]
     [InlineData(StartingState, null, null)]
+    [InlineData(StoppingState, null, null)]
+    [InlineData(RuntimeUnhealthyState, null, null)]
     [InlineData(StartingState, null, new string[]{})]
     [InlineData(StartingState, null, new string?[]{null})]
     // we don't have a Running + HealthReports null case because that's not a valid state - by this point, we will have received the list of HealthReports
