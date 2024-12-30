@@ -26,15 +26,24 @@ var signalr = builder
             Value = "Serverless"
         });
     })
-    .RunAsEmulator();
+    .RunAsEmulator()
+    .WithEndpoint("emulator", e =>
+    {
+        e.Port = 64323;
+    });
 
-builder.AddAzureFunctionsProject<Projects.SignalR_Functions>("funcapp")
-    .WithHostStorage(storage)
+builder.AddProject<Projects.SignalRServerlessWeb>("webserverless")
     .WithExternalHttpEndpoints()
-    // Injected connection string as env variable
-    .WithEnvironment("AzureSignalRConnectionString", signalr)
     .WithReference(signalr)
-    .WithReference(blob)
-    .WithReference(queue);
+    .WaitFor(signalr);
+
+//builder.AddAzureFunctionsProject<Projects.SignalR_Functions>("funcapp")
+//    .WithHostStorage(storage)
+//    .WithExternalHttpEndpoints()
+//    // Injected connection string as env variable
+//    .WithEnvironment("AzureSignalRConnectionString", signalr)
+//    .WithReference(signalr)
+//    .WithReference(blob)
+//    .WithReference(queue);
 
 builder.Build().Run();
