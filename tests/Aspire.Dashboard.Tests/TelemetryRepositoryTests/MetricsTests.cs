@@ -1021,16 +1021,16 @@ public class MetricsTests
                     {
                         Count = 6,
                         Sum = 1,
-                        ExplicitBounds = { 1, 2 },
-                        BucketCounts = { 1, 2, 3 },
+                        ExplicitBounds = { },
+                        BucketCounts = { 1 },
                         TimeUnixNano = DateTimeToUnixNanoseconds(s_testTime.AddMinutes(1))
                     },
                     new HistogramDataPoint
                     {
                         Count = 6,
                         Sum = 1,
-                        ExplicitBounds = { 1, 2 },
-                        BucketCounts = { 1, 2, 3 },
+                        ExplicitBounds = { },
+                        BucketCounts = { 1 },
                         TimeUnixNano = DateTimeToUnixNanoseconds(s_testTime.AddMinutes(2))
                     },
                     new HistogramDataPoint
