@@ -1,4 +1,15 @@
 #nullable enable
+Aspire.ConfigurationSchemaAttribute
+Aspire.ConfigurationSchemaAttribute.ConfigurationSchemaAttribute(string! path, System.Type! type, string![]? exclusionPaths = null) -> void
+Aspire.ConfigurationSchemaAttribute.ExclusionPaths.get -> string![]?
+Aspire.ConfigurationSchemaAttribute.Path.get -> string!
+Aspire.ConfigurationSchemaAttribute.Type.get -> System.Type!
+Aspire.ConnectionStringValidation
 Aspire.HealthChecksExtensions
+Aspire.LoggingCategoriesAttribute
+Aspire.LoggingCategoriesAttribute.Categories.get -> string![]!
+Aspire.LoggingCategoriesAttribute.Categories.set -> void
+Aspire.LoggingCategoriesAttribute.LoggingCategoriesAttribute(params string![]! categories) -> void
+static Aspire.ConnectionStringValidation.ValidateConnectionString(string? connectionString, string! connectionName, string! defaultConfigSectionName, string? typeSpecificSectionName = null, bool isEfDesignTime = false) -> void
 static Aspire.HealthChecksExtensions.TryAddHealthCheck(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckRegistration! healthCheckRegistration) -> void
 static Aspire.HealthChecksExtensions.TryAddHealthCheck(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Microsoft.Extensions.DependencyInjection.IHealthChecksBuilder!>! addHealthCheck) -> void

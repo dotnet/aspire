@@ -7,8 +7,14 @@ namespace Aspire;
 /// Attribute used to automatically generate a JSON schema for a component's configuration.
 /// </summary>
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-internal sealed class ConfigurationSchemaAttribute : Attribute
+public sealed class ConfigurationSchemaAttribute : Attribute
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ConfigurationSchemaAttribute"/> class.
+    /// </summary>
+    /// <param name="path">The path corresponding to which config section <see cref="Type"/> binds to.</param>
+    /// <param name="type">The type that is bound to the configuration. This type will be walked and generate a JSON schema for all the properties.</param>
+    /// <param name="exclusionPaths">(optional) The config sections to exclude from the ConfigurationSchema. This is useful if there are properties you don't want to publicize in the config schema.</param>
     public ConfigurationSchemaAttribute(string path, Type type, string[]? exclusionPaths = null)
     {
         Path = path;
@@ -36,8 +42,12 @@ internal sealed class ConfigurationSchemaAttribute : Attribute
 /// Provides information to describe the logging categories produced by a component.
 /// </summary>
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = false)]
-internal sealed class LoggingCategoriesAttribute : Attribute
+public sealed class LoggingCategoriesAttribute : Attribute
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LoggingCategoriesAttribute"/> class.
+    /// </summary>
+    /// <param name="categories">The list of log categories produced by the component. These categories will show up under the Logging:LogLevel section in appsettings.json.</param>
     public LoggingCategoriesAttribute(params string[] categories)
     {
         Categories = categories;

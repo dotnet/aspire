@@ -12,10 +12,6 @@
   <PropertyGroup>
     <MinCodeCoverage>80</MinCodeCoverage>
   </PropertyGroup>
-  
-  <ItemGroup>
-    <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Elastic.Clients.Elasticsearch" />

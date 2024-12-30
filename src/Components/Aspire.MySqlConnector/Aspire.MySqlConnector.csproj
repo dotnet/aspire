@@ -13,11 +13,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
-    <Compile Include="..\Common\ConnectionStringValidation.cs" Link="ConnectionStringValidation.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.MySql" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
