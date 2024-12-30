@@ -7,11 +7,16 @@ using Microsoft.Extensions.Hosting;
 
 namespace Aspire;
 
-internal static class HealthChecksExtensions
+/// <summary>
+/// Provides extension methods for adding health checks to the IHostApplicationBuilder.
+/// </summary>
+public static class HealthChecksExtensions
 {
     /// <summary>
     /// Adds a HealthCheckRegistration if one hasn't already been added to the builder.
     /// </summary>
+    /// <param name="builder">The IHostApplicationBuilder to add the health check to.</param>
+    /// <param name="healthCheckRegistration">The HealthCheckRegistration to add.</param>
     public static void TryAddHealthCheck(this IHostApplicationBuilder builder, HealthCheckRegistration healthCheckRegistration)
     {
         builder.TryAddHealthCheck(healthCheckRegistration.Name, hcBuilder => hcBuilder.Add(healthCheckRegistration));
@@ -20,6 +25,9 @@ internal static class HealthChecksExtensions
     /// <summary>
     /// Invokes the <paramref name="addHealthCheck"/> action if the given <paramref name="name"/> hasn't already been added to the builder.
     /// </summary>
+    /// <param name="builder">The IHostApplicationBuilder to add the health check to.</param>
+    /// <param name="name">The name of the health check.</param>
+    /// <param name="addHealthCheck">The action to add the health check.</param>
     public static void TryAddHealthCheck(this IHostApplicationBuilder builder, string name, Action<IHealthChecksBuilder> addHealthCheck)
     {
         var healthCheckKey = $"Aspire.HealthChecks.{name}";

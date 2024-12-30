@@ -14,7 +14,6 @@
 
   <ItemGroup>
     <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
-    <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -28,6 +27,10 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Aspire.RabbitMQ.Client.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Client\Aspire.Client.csproj" />
   </ItemGroup>
 
 </Project>

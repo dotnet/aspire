@@ -1,0 +1,4 @@
+#nullable enable
+Aspire.HealthChecksExtensions
+static Aspire.HealthChecksExtensions.TryAddHealthCheck(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckRegistration! healthCheckRegistration) -> void
+static Aspire.HealthChecksExtensions.TryAddHealthCheck(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Microsoft.Extensions.DependencyInjection.IHealthChecksBuilder!>! addHealthCheck) -> void
