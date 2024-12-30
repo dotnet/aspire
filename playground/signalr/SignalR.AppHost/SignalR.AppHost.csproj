@@ -14,11 +14,8 @@
 
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Dapr" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.SignalR" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Functions" />
     <ProjectReference Include="..\SignalRServerlessWeb\SignalRServerlessWeb.csproj" />
     <ProjectReference Include="..\SignalRWeb\SignalRWeb.csproj" />
   </ItemGroup>

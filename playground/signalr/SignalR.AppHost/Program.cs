@@ -10,12 +10,7 @@ builder.AddProject<Projects.SignalRWeb>("webfrontend")
     .WithReference(defaultSignalr);
 
 // Configure Azure SignalR in serverless mode
-var storage = builder.AddAzureStorage("storage")
-    .RunAsEmulator();
-var queue = storage.AddQueues("queue");
-var blob = storage.AddBlobs("blob");
-
-var signalr = builder
+var serverlessSignalr = builder
     .AddAzureSignalR("signalrServerless")
     .ConfigureInfrastructure(i =>
     {
@@ -34,16 +29,7 @@ var signalr = builder
 
 builder.AddProject<Projects.SignalRServerlessWeb>("webserverless")
     .WithExternalHttpEndpoints()
-    .WithReference(signalr)
-    .WaitFor(signalr);
-
-//builder.AddAzureFunctionsProject<Projects.SignalR_Functions>("funcapp")
-//    .WithHostStorage(storage)
-//    .WithExternalHttpEndpoints()
-//    // Injected connection string as env variable
-//    .WithEnvironment("AzureSignalRConnectionString", signalr)
-//    .WithReference(signalr)
-//    .WithReference(blob)
-//    .WithReference(queue);
+    .WithReference(serverlessSignalr)
+    .WaitFor(serverlessSignalr);
 
 builder.Build().Run();
