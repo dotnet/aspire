@@ -1,3 +1,5 @@
+using Aspire.Hosting.Azure;
+using Azure.Provisioning;
 using Azure.Provisioning.SignalR;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -20,6 +22,9 @@ var serverlessSignalr = builder
             Flag = SignalRFeatureFlag.ServiceMode,
             Value = "Serverless"
         });
+        var principalTypeParameter = i.GetProvisionableResources().OfType<ProvisioningParameter>().First(o => o.BicepIdentifier == AzureBicepResource.KnownParameters.PrincipalType);
+        var principalIdTypeParameter = i.GetProvisionableResources().OfType<ProvisioningParameter>().First(o => o.BicepIdentifier == AzureBicepResource.KnownParameters.PrincipalId);
+        i.Add(resource.CreateRoleAssignment(SignalRBuiltInRole.SignalRRestApiOwner, principalTypeParameter, principalIdTypeParameter));
     })
     .RunAsEmulator()
     .WithEndpoint("emulator", e =>
