@@ -722,3 +722,7 @@ fluent-data-grid-cell.no-ellipsis {
 .toolbar-left {
     margin-left: 0;
 }
+
+.clear-button::part(control) {
+    padding: 0 calc((10 + (var(--design-unit) * 2 * var(--density))) * 1px);
+}

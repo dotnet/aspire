@@ -196,7 +196,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Clear all resources.
+        ///   Looks up a localized string similar to Remove all.
         /// </summary>
         public static string ClearAllResources {
             get {
@@ -205,7 +205,16 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Clear {0}.
+        ///   Looks up a localized string similar to Remove for resource.
+        /// </summary>
+        public static string ClearPendingSelectedResource {
+            get {
+                return ResourceManager.GetString("ClearPendingSelectedResource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove for {0}.
         /// </summary>
         public static string ClearSelectedResource {
             get {

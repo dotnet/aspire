@@ -423,9 +423,12 @@
     <value>Back references</value>
   </data>
   <data name="ClearAllResources" xml:space="preserve">
-    <value>Clear all resources</value>
+    <value>Remove all</value>
   </data>
   <data name="ClearSelectedResource" xml:space="preserve">
-    <value>Clear {0}</value>
+    <value>Remove for {0}</value>
+  </data>
+  <data name="ClearPendingSelectedResource" xml:space="preserve">
+    <value>Remove for resource</value>
   </data>
 </root>

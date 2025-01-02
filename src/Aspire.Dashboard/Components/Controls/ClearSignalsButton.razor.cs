@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
@@ -13,14 +14,14 @@ namespace Aspire.Dashboard.Components.Controls;
 
 public partial class ClearSignalsButton : ComponentBase
 {
-    private static readonly Icon s_clearSelectedResourceIcon = new Icons.Regular.Size16.Dismiss();
-    private static readonly Icon s_clearAllResourcesIcon = new Icons.Regular.Size16.Delete();
+    private static readonly Icon s_clearSelectedResourceIcon = new Icons.Regular.Size16.SelectAllOn();
+    private static readonly Icon s_clearAllResourcesIcon = new Icons.Regular.Size16.Stack();
 
     [Inject]
-    public required IStringLocalizer<ControlsStrings> ControlsStringsLoc { get; set; }
+    public required IStringLocalizer<ControlsStrings> ControlsStringsLoc { get; init; }
 
     [Parameter]
-    public required ApplicationKey? SelectedResource { get; set; }
+    public required SelectViewModel<ResourceTypeDetails> SelectedResource { get; set; }
 
     [Parameter]
     public required Func<ApplicationKey?, Task> HandleClearSignal { get; set; }
@@ -33,19 +34,19 @@ public partial class ClearSignalsButton : ComponentBase
 
         _clearMenuItems.Add(new()
         {
-            Icon = s_clearSelectedResourceIcon,
-            OnClick = () => HandleClearSignal(SelectedResource),
-            IsDisabled = SelectedResource == null,
-            Text = string.Format(CultureInfo.InvariantCulture,
-                    ControlsStringsLoc[name: nameof(ControlsStrings.ClearSelectedResource)],
-                    SelectedResource?.Name),
+            Icon = s_clearAllResourcesIcon,
+            OnClick = () => HandleClearSignal(null),
+            Text = ControlsStringsLoc[name: nameof(ControlsStrings.ClearAllResources)],
         });
 
         _clearMenuItems.Add(new()
         {
-            Icon = s_clearAllResourcesIcon,
-            OnClick = () => HandleClearSignal(null),
-            Text = ControlsStringsLoc[name: nameof(ControlsStrings.ClearAllResources)],
+            Icon = s_clearSelectedResourceIcon,
+            OnClick = () => HandleClearSignal(SelectedResource.Id?.GetApplicationKey()),
+            IsDisabled = SelectedResource.Id == null,
+            Text = SelectedResource.Id == null
+                ? ControlsStringsLoc[nameof(ControlsStrings.ClearPendingSelectedResource)]
+                : string.Format(CultureInfo.InvariantCulture, ControlsStringsLoc[name: nameof(ControlsStrings.ClearSelectedResource)], SelectedResource.Name),
         });
     }
 }
