@@ -728,6 +728,12 @@ fluent-data-grid-cell.no-ellipsis {
 .setting-subtext {
     color: var(--foreground-settings-text);
     font-size: var(--type-ramp-minus-1-font-size);
+    margin: 0;
+}
+
+.setting-title {
+    margin-bottom: 4px;
+    display: inline-block;
 }
 
 .volume-mount-type-icon {

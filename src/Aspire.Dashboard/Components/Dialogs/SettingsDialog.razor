@@ -7,7 +7,7 @@
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
 
 <FluentDialogBody>
-    <FluentStack Orientation="Orientation.Vertical" Style="display: flex; height: 100%" VerticalGap="8">
+    <FluentStack Orientation="Orientation.Vertical" Style="display: flex; height: 100%" VerticalGap="12">
         <div>
             <FluentRadioGroup TValue="string"
                               Label="@Loc[nameof(Dialogs.SettingsDialogTheme)]"
@@ -35,7 +35,7 @@
         </div>
 
         <div>
-            <span>Dashboard telemetry</span>
+            <span class="setting-title">Dashboard telemetry</span>
             <div>
                 <FluentButton IconStart="@(new Icons.Regular.Size16.Delete())"
                               OnClick="ClearAllSignals"
