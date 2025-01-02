@@ -194,7 +194,17 @@ public static class AspireMongoDBDriverExtensions
         configureClientSettings?.Invoke(clientSettings);
 
         clientSettings.LoggingSettings ??= new LoggingSettings(serviceProvider.GetService<ILoggerFactory>());
-
+        
+        var aspireVersion = typeof(MongoDBSettings).Assembly.GetName().Version?.ToString();
+        if (clientSettings.LibraryInfo != null)
+        {
+            clientSettings.LibraryInfo = new LibraryInfo($"{clientSettings.LibraryInfo.Name}|aspire", $"{clientSettings.LibraryInfo.Version}|{aspireVersion}");
+        }
+        else
+        {
+            clientSettings.LibraryInfo = new LibraryInfo("aspire", aspireVersion);
+        }
+        
         return new MongoClient(clientSettings);
     }
 

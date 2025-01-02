@@ -177,6 +177,16 @@
         <target state="translated">Dunkel</target>
         <note />
       </trans-unit>
+      <trans-unit id="SettingsDialogLanguage">
+        <source>Language</source>
+        <target state="translated">Sprache</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogLanguagePageReloads">
+        <source>The page will reload on language change.</source>
+        <target state="translated">Die Seite wird bei einer Sprachänderung neu geladen.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">
         <source>Light</source>
         <target state="translated">Hell</target>

@@ -19,6 +19,7 @@ using Aspire.Dashboard.Otlp;
 using Aspire.Dashboard.Otlp.Grpc;
 using Aspire.Dashboard.Otlp.Http;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Utils;
 using Aspire.Hosting;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Certificate;
@@ -96,12 +97,6 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     public IReadOnlyList<string> ValidationFailures => _validationFailures;
 
     public IServiceProvider Services { get; }
-
-    // our localization list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
-    internal static HashSet<string> LocalizedCultures { get; } = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant", // Standard cultures for compliance.
-    };
 
     /// <summary>
     /// Create a new instance of the <see cref="DashboardWebApplication"/> class.
@@ -279,11 +274,14 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         Services = _app.Services;
         _logger = GetLogger();
 
-        var supportedCultures = GetSupportedCultures();
+        var supportedCultureNames = GlobalizationHelpers.ExpandedLocalizedCultures
+            .SelectMany(kvp => kvp.Value)
+            .Select(c => c.Name)
+            .ToArray();
 
         _app.UseRequestLocalization(new RequestLocalizationOptions()
-            .AddSupportedCultures(supportedCultures)
-            .AddSupportedUICultures(supportedCultures));
+            .AddSupportedCultures(supportedCultureNames)
+            .AddSupportedUICultures(supportedCultureNames));
 
         WriteVersion(_logger);
 
@@ -417,40 +415,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapGrpcService<OtlpGrpcTraceService>();
         _app.MapGrpcService<OtlpGrpcLogsService>();
 
-        if (dashboardOptions.Frontend.AuthMode == FrontendAuthMode.BrowserToken)
-        {
-            _app.MapPost("/api/validatetoken", async (string token, HttpContext httpContext, IOptionsMonitor<DashboardOptions> dashboardOptions) =>
-            {
-                return await ValidateTokenMiddleware.TryAuthenticateAsync(token, httpContext, dashboardOptions).ConfigureAwait(false);
-            });
-
-#if DEBUG
-            // Available in local debug for testing.
-            _app.MapGet("/api/signout", async (HttpContext httpContext) =>
-            {
-                await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(
-                    httpContext,
-                    CookieAuthenticationDefaults.AuthenticationScheme).ConfigureAwait(false);
-                httpContext.Response.Redirect("/");
-            });
-#endif
-        }
-        else if (dashboardOptions.Frontend.AuthMode == FrontendAuthMode.OpenIdConnect)
-        {
-            _app.MapPost("/authentication/logout", () => TypedResults.SignOut(authenticationSchemes: [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]));
-        }
-    }
-
-    internal static string[] GetSupportedCultures()
-    {
-        var supportedCultures = CultureInfo.GetCultures(CultureTypes.AllCultures)
-            .Where(culture => LocalizedCultures.Contains(culture.TwoLetterISOLanguageName) || LocalizedCultures.Contains(culture.Name))
-            .Select(culture => culture.Name)
-            .ToList();
-
-        // Non-standard culture but it is the default in many Chinese browsers. Adding zh-CN allows OS culture customization to flow through the dashboard.
-        supportedCultures.Add("zh-CN");
-        return supportedCultures.ToArray();
+        _app.MapDashboardApi(dashboardOptions);
     }
 
     private ILogger<DashboardWebApplication> GetLogger()

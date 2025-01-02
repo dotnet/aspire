@@ -177,6 +177,16 @@
         <target state="translated">Koyu</target>
         <note />
       </trans-unit>
+      <trans-unit id="SettingsDialogLanguage">
+        <source>Language</source>
+        <target state="translated">Dil</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogLanguagePageReloads">
+        <source>The page will reload on language change.</source>
+        <target state="translated">Dil değişikliğinde sayfa yeniden yüklenemedi.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">
         <source>Light</source>
         <target state="translated">Açık</target>

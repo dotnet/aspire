@@ -177,6 +177,16 @@
         <target state="translated">ダーク</target>
         <note />
       </trans-unit>
+      <trans-unit id="SettingsDialogLanguage">
+        <source>Language</source>
+        <target state="translated">言語</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogLanguagePageReloads">
+        <source>The page will reload on language change.</source>
+        <target state="translated">言語の変更時にページが再読み込みされます。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">
         <source>Light</source>
         <target state="translated">ライト</target>
