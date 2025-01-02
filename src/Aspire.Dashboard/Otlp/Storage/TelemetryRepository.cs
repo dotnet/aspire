@@ -594,19 +594,10 @@ public sealed class TelemetryRepository
                 for (var i = _traces.Count - 1; i >= 0; i--)
                 {
                     // We check if the trace originates from the application, if so, remove the entire trace
-                    if (ApplicationViewContainedInApplications(_traces[i].FirstSpan.Source, applications))
+                    if (HasApplication(applications, _traces[i].RootOrFirstSpan.Source.ApplicationKey))
                     {
                         _traces.RemoveAt(i);
                         continue;
-                    }
-
-                    // Otherwise we check if it has any span from the application, if so, remove the spans
-                    for (var j = _traces[i].Spans.Count - 1; j >= 0; j--)
-                    {
-                        if (ApplicationViewContainedInApplications(_traces[i].Spans[j].Source, applications))
-                        {
-                            _traces[i].Spans.RemoveAt(j);
-                        }
                     }
                 }
             }
@@ -640,7 +631,7 @@ public sealed class TelemetryRepository
             {
                 for (var i = _logs.Count - 1; i >= 0; i--)
                 {
-                    if (ApplicationViewContainedInApplications(_logs[i].ApplicationView, applications))
+                    if (HasApplication(applications, _logs[i].ApplicationView.ApplicationKey))
                     {
                         _logs.RemoveAt(i);
                         continue;
@@ -668,7 +659,7 @@ public sealed class TelemetryRepository
             applications = _applications.Values.ToList();
         }
 
-        foreach(var app in applications)
+        foreach (var app in applications)
         {
             app.ClearMetrics();
         }
@@ -808,11 +799,11 @@ public sealed class TelemetryRepository
         return false;
     }
 
-    private static bool ApplicationViewContainedInApplications(OtlpApplicationView applicationView, ICollection<OtlpApplication> applications)
+    private static bool HasApplication(List<OtlpApplication> applications, ApplicationKey applicationKey)
     {
         foreach (var application in applications)
         {
-            if (applicationView.ApplicationKey == application.ApplicationKey)
+            if (applicationKey == application.ApplicationKey)
             {
                 return true;
             }
