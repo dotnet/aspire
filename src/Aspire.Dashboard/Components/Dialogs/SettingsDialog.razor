@@ -24,6 +24,7 @@
             <FluentSelect
                 TOption="CultureInfo"
                 Immediate="true"
+                Position="SelectPosition.Below"
                 Label="@Loc[nameof(Dialogs.SettingsDialogLanguage)]"
                 Items="@_languageOptions"
                 OptionText="@(c => c.NativeName.Humanize())"
