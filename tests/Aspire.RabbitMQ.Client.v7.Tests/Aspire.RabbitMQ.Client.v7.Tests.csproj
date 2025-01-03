@@ -16,7 +16,6 @@
     <ProjectReference Include="..\..\src\Components\Aspire.RabbitMQ.Client.v7\Aspire.RabbitMQ.Client.v7.csproj" />
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
 
-    <PackageReference Include="RabbitMQ.Client" VersionOverride="7.0.0" />
     <PackageReference Include="Testcontainers.RabbitMq" />
   </ItemGroup>
 

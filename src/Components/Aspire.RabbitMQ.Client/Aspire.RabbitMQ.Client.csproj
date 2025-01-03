@@ -19,11 +19,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AspNetCore.HealthChecks.Rabbitmq" />
+    <PackageReference Include="AspNetCore.HealthChecks.Rabbitmq" VersionOverride="[8.0.2,9.0.0)" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Polly.Core" />
-    <PackageReference Include="RabbitMQ.Client" />
+    <PackageReference Include="RabbitMQ.Client" VersionOverride="[6.8.1,7.0.0)" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
 
