@@ -148,8 +148,7 @@ public static class AzureEventHubsExtensions
             return builder;
         }
 
-        var configHostFile = Path.Combine(Path.GetTempPath(), "AspireEventHubsEmulator", Path.GetRandomFileName() + ".json");
-        Directory.CreateDirectory(Path.GetDirectoryName(configHostFile)!);
+        var configHostFile = Path.Combine(Directory.CreateTempSubdirectory("AspireEventHubsEmulator").FullName, "Config.json");
 
         var customMountAnnotation = new ContainerMountAnnotation(
                 configHostFile,
