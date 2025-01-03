@@ -234,9 +234,7 @@ public static class AzureServiceBusExtensions
         }
 
         // Add emulator container
-        var configHostFile = Path.Combine(Path.GetTempPath(), "AspireServiceBusEmulator", Path.GetRandomFileName() + ".json");
-
-        Directory.CreateDirectory(Path.GetDirectoryName(configHostFile)!);
+        var configHostFile = Path.Combine(Directory.CreateTempSubdirectory("AspireServiceBusEmulator").FullName, "Config.json");
 
         var password = PasswordGenerator.Generate(16, true, true, true, true, 0, 0, 0, 0);
 
