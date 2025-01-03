@@ -140,7 +140,7 @@ Then, in the _Program.cs_ file of `AppHost`, add an Event Hubs connection and an
 
 ```csharp
 var eventHubs = builder.ExecutionContext.IsPublishMode
-    ? builder.AddAzureEventHubs("eventHubsConnectionName").AddEventHub("MyHub")
+    ? builder.AddAzureEventHubs("eventHubsConnectionName").WithHub("MyHub")
     : builder.AddConnectionString("eventHubsConnectionName");
 
 var myService = builder.AddProject<Projects.MyService>()
@@ -149,7 +149,7 @@ var myService = builder.AddProject<Projects.MyService>()
 
 The `AddAzureEventHubs` method adds an Azure Event Hubs Namespace resource to the builder. Or `AddConnectionString` can be used to read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:eventHubsConnectionName` config key. The `WithReference` method passes that connection information into a connection string named `eventHubsConnectionName` in the `MyService` project.
 
-NOTE: Even though we are creating an Event Hub using the `AddEventHub` at the same time as the namespace, for this release of Aspire, the connection string will not include the `EntityPath` property, so the `EventHubName` property must be set in the settings callback for the preferred client. Future versions of Aspire will include the `EntityPath` property in the connection string and will not require the `EventHubName` property to be set in this scenario.
+NOTE: Even though we are creating an Event Hub using the `WithHub` at the same time as the namespace, for this release of Aspire, the connection string will not include the `EntityPath` property, so the `EventHubName` property must be set in the settings callback for the preferred client. Future versions of Aspire will include the `EntityPath` property in the connection string and will not require the `EventHubName` property to be set in this scenario.
 
 In the _Program.cs_ file of `MyService`, the connection can be consumed using by calling of the supported Event Hubs client extension methods:
 
