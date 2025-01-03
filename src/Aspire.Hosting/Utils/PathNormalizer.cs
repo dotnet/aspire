@@ -3,8 +3,16 @@
 
 namespace Aspire.Hosting.Utils;
 
-internal static class PathNormalizer
+/// <summary>
+/// Utility class for normalizing paths.
+/// </summary>
+public static class PathNormalizer
 {
+    /// <summary>
+    /// Normalizes the given path for the current platform.
+    /// </summary>
+    /// <param name="path">The path to normalize.</param>
+    /// <returns>The normalized path.</returns>
     public static string NormalizePathForCurrentPlatform(string path)
     {
         if (string.IsNullOrEmpty(path))
