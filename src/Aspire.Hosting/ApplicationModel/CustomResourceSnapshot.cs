@@ -203,10 +203,10 @@ public sealed record ResourcePropertySnapshot(string Name, object? Value)
 /// </summary>
 /// <param name="Name">The name of command. The name uniquely identifies the command.</param>
 /// <param name="State">The state of the command.</param>
-/// <param name="DisplayName">The display name visible in UI for the command.</param>
+/// <param name="DisplayName">The display name visible in UI for the command. If <see cref="GetDisplayName"/> is provided, this is not used.</param>
 /// <param name="DisplayDescription">
 /// Optional description of the command, to be shown in the UI.
-/// Could be used as a tooltip. May be localized.
+/// Could be used as a tooltip. If <see cref="GetDisplayDescription"/> is provided, this value is not used.
 /// </param>
 /// <param name="Parameter">
 /// Optional parameter that configures the command in some way.
@@ -214,12 +214,15 @@ public sealed record ResourcePropertySnapshot(string Name, object? Value)
 /// </param>
 /// <param name="ConfirmationMessage">
 /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
-/// and the confirmation message before starting the command.
+/// and the confirmation message before starting the command. If <see cref="GetConfirmationMessage"/> is provided, this value is not used.
 /// </param>
 /// <param name="IconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
 /// <param name="IconVariant">The icon variant.</param>
 /// <param name="IsHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
-public sealed record ResourceCommandSnapshot(string Name, ResourceCommandState State, string DisplayName, string? DisplayDescription, object? Parameter, string? ConfirmationMessage, string? IconName, IconVariant? IconVariant, bool IsHighlighted);
+/// <param name="GetDisplayName">If provided, a function to invoke to produce the display name to be shown in the UI, given client context.</param>
+/// <param name="GetDisplayDescription">If provided, a function to invoke to produce the display description to be shown in the UI, given client context.</param>
+/// <param name="GetConfirmationMessage">If provided, a function to invoke to produce the confirmation message to be shown in the UI, given client context.</param>
+public sealed record ResourceCommandSnapshot(string Name, ResourceCommandState State, string DisplayName, string? DisplayDescription, object? Parameter, string? ConfirmationMessage, string? IconName, IconVariant? IconVariant, bool IsHighlighted, Func<UIStringContext, string>? GetDisplayName = null, Func<UIStringContext, string>? GetDisplayDescription = null, Func<UIStringContext, string>? GetConfirmationMessage = null);
 
 /// <summary>
 /// A report produced by a health check about a resource.

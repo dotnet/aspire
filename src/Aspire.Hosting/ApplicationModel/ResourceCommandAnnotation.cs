@@ -24,7 +24,10 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
         string? confirmationMessage,
         string? iconName,
         IconVariant? iconVariant,
-        bool isHighlighted)
+        bool isHighlighted,
+        Func<UIStringContext, string>? getDisplayName,
+        Func<UIStringContext, string>? getDisplayDescription,
+        Func<UIStringContext, string>? getConfirmationMessage)
     {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(displayName);
@@ -41,6 +44,9 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
         IconName = iconName;
         IconVariant = iconVariant;
         IsHighlighted = isHighlighted;
+        GetDisplayName = getDisplayName;
+        GetDisplayDescription = getDisplayDescription;
+        GetConfirmationMessage = getConfirmationMessage;
     }
 
     /// <summary>
@@ -49,9 +55,15 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
     public string Name { get; }
 
     /// <summary>
-    /// The display name visible in UI.
+    /// The display name visible in UI. If <see cref="GetDisplayName"/> is provided,
+    /// this value is not used.
     /// </summary>
     public string DisplayName { get; }
+
+    /// <summary>
+    /// The display name visible in UI, based on the provided context.
+    /// </summary>
+    public Func<UIStringContext, string>? GetDisplayName { get; }
 
     /// <summary>
     /// A callback that is used to update the command state.
@@ -67,9 +79,16 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
 
     /// <summary>
     /// Optional description of the command, to be shown in the UI.
-    /// Could be used as a tooltip. May be localized.
+    /// Could be used as a tooltip. If <see cref="GetDisplayDescription"/> is provided,
+    /// this value is not used.
     /// </summary>
     public string? DisplayDescription { get; }
+
+    /// <summary>
+    /// Optional description of the command, to be shown in the UI based on the provided context.
+    /// Could be used as a tooltip.
+    /// </summary>
+    public Func<UIStringContext, string>? GetDisplayDescription { get; }
 
     /// <summary>
     /// Optional parameter that configures the command in some way.
@@ -80,8 +99,16 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
     /// <summary>
     /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
     /// and the confirmation message before starting the command.
+    ///
+    /// If <see cref="GetConfirmationMessage"/> is provided, this value is not used.
     /// </summary>
     public string? ConfirmationMessage { get; }
+
+    /// <summary>
+    /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
+    /// and the confirmation message before starting the command.
+    /// </summary>
+    public Func<UIStringContext, string>? GetConfirmationMessage { get; }
 
     /// <summary>
     /// The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons
@@ -176,4 +203,15 @@ public sealed class ExecuteCommandContext
     /// The cancellation token.
     /// </summary>
     public required CancellationToken CancellationToken { get; init; }
+}
+
+/// <summary>
+/// Context for <see cref="ResourceCommandAnnotation.DisplayName"/> and <see cref="ResourceCommandAnnotation.DisplayDescription"/>.
+/// </summary>
+public sealed class UIStringContext
+{
+    /// <summary>
+    /// The locale of the client.
+    /// </summary>
+    public required string Locale { get; init; }
 }

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Google.Protobuf.WellKnownTypes;
 
@@ -8,7 +9,7 @@ namespace Aspire.ResourceService.Proto.V1;
 
 partial class Resource
 {
-    public static Resource FromSnapshot(ResourceSnapshot snapshot)
+    public static Resource FromSnapshot(ResourceSnapshot snapshot, string locale)
     {
         var resource = new Resource
         {
@@ -70,9 +71,25 @@ partial class Resource
             });
         }
 
+        var displayStringProducerContext = new UIStringContext
+        {
+            Locale = locale
+        };
+
         foreach (var command in snapshot.Commands)
         {
-            resource.Commands.Add(new ResourceCommand { Name = command.Name, DisplayName = command.DisplayName, DisplayDescription = command.DisplayDescription ?? string.Empty, Parameter = ResourceSnapshot.ConvertToValue(command.Parameter), ConfirmationMessage = command.ConfirmationMessage ?? string.Empty, IconName = command.IconName ?? string.Empty, IconVariant = MapIconVariant(command.IconVariant), IsHighlighted = command.IsHighlighted, State = MapCommandState(command.State) });
+            resource.Commands.Add(new ResourceCommand
+            {
+                Name = command.Name,
+                DisplayName = command.GetDisplayName?.Invoke(displayStringProducerContext) ?? command.DisplayName,
+                DisplayDescription = command.GetDisplayDescription?.Invoke(displayStringProducerContext) ?? command.DisplayDescription ?? string.Empty,
+                Parameter = ResourceSnapshot.ConvertToValue(command.Parameter),
+                ConfirmationMessage = command.GetConfirmationMessage?.Invoke(displayStringProducerContext) ?? command.ConfirmationMessage ?? string.Empty,
+                IconName = command.IconName ?? string.Empty,
+                IconVariant = MapIconVariant(command.IconVariant),
+                IsHighlighted = command.IsHighlighted,
+                State = MapCommandState(command.State)
+            });
         }
 
         foreach (var report in snapshot.HealthReports)

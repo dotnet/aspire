@@ -69,8 +69,11 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         await task.DefaultTimeout();
     }
 
-    [Fact]
-    public async Task WatchResources_ResourceHasCommands_CommandsSentWithResponse()
+    [Theory]
+    [InlineData("en")]
+    [InlineData("fr")]
+    [InlineData("zh-CN")]
+    public async Task WatchResources_ResourceHasCommands_CommandsSentWithResponse(string actualLocale)
     {
         // Arrange
         var loggerFactory = LoggerFactory.Create(builder =>
@@ -88,17 +91,25 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         var testResource = new TestResource("test-resource");
         using var applicationBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper: testOutputHelper);
         var builder = applicationBuilder.AddResource(testResource);
+
+        static string GetDisplayName(string locale) => $"Display name in {locale}!";
+        static string GetDisplayDescription(string locale) => $"Display description in {locale}!";
+        static string GetConfirmationMessage(string locale) => $"Confirmation message in {locale}!";
+
         builder.WithCommand(
             name: "TestName",
-            displayName: "Display name!",
+            displayName: string.Empty,
             executeCommand: c => Task.FromResult(CommandResults.Success()),
             updateState: c => ApplicationModel.ResourceCommandState.Enabled,
-            displayDescription: "Display description!",
+            displayDescription: null,
             parameter: new [] {"One", "Two"},
-            confirmationMessage: "Confirmation message!",
+            confirmationMessage: null,
             iconName: "Icon name!",
             iconVariant: ApplicationModel.IconVariant.Filled,
-            isHighlighted: true);
+            isHighlighted: true,
+            getDisplayName: context => GetDisplayName(context.Locale),
+            getDisplayDescription: context => GetDisplayDescription(context.Locale),
+            getConfirmationMessage: context => GetConfirmationMessage(context.Locale));
 
         logger.LogInformation("Publishing resource.");
         await resourceNotificationService.PublishUpdateAsync(testResource, s =>
@@ -119,7 +130,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         // Act
         logger.LogInformation("Calling WatchResources.");
         var task = dashboardService.WatchResources(
-            new WatchResourcesRequest(),
+            new WatchResourcesRequest { Locale = actualLocale },
             writer,
             context);
 
@@ -134,10 +145,10 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         var commandData = Assert.Single(resourceData.Commands);
 
         Assert.Equal("TestName", commandData.Name);
-        Assert.Equal("Display name!", commandData.DisplayName);
-        Assert.Equal("Display description!", commandData.DisplayDescription);
+        Assert.Equal(GetDisplayName(actualLocale), commandData.DisplayName);
+        Assert.Equal(GetDisplayDescription(actualLocale), commandData.DisplayDescription);
         Assert.Equal(Value.ForList(Value.ForString("One"), Value.ForString("Two")), commandData.Parameter);
-        Assert.Equal("Confirmation message!", commandData.ConfirmationMessage);
+        Assert.Equal(GetConfirmationMessage(actualLocale), commandData.ConfirmationMessage);
         Assert.Equal("Icon name!", commandData.IconName);
         Assert.Equal(ResourceService.Proto.V1.IconVariant.Filled, commandData.IconVariant);
         Assert.True(commandData.IsHighlighted);

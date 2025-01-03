@@ -68,7 +68,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
 
             foreach (var resource in initialData)
             {
-                data.Resources.Add(Resource.FromSnapshot(resource));
+                data.Resources.Add(Resource.FromSnapshot(resource, request.Locale));
             }
 
             await responseStream.WriteAsync(new() { InitialData = data }, cancellationToken).ConfigureAwait(false);
@@ -83,7 +83,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
 
                     if (update.ChangeType is ResourceSnapshotChangeType.Upsert)
                     {
-                        change.Upsert = Resource.FromSnapshot(update.Resource);
+                        change.Upsert = Resource.FromSnapshot(update.Resource, request.Locale);
                     }
                     else if (update.ChangeType is ResourceSnapshotChangeType.Delete)
                     {
