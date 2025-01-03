@@ -398,7 +398,7 @@ public sealed class TelemetryRepository
             var results = _logs.AsEnumerable();
             if (applications?.Count > 0)
             {
-                results = results.Where(l => MatchApplications(l.ApplicationView.Application, applications));
+                results = results.Where(l => MatchApplications(l.ApplicationView.ApplicationKey, applications));
             }
 
             foreach (var filter in context.Filters)
@@ -412,18 +412,6 @@ public sealed class TelemetryRepository
         {
             _logsLock.ExitReadLock();
         }
-    }
-
-    private static bool MatchApplications(OtlpApplication application, List<OtlpApplication> applications)
-    {
-        for (var i = 0; i < applications.Count; i++)
-        {
-            if (application == applications[i])
-            {
-                return true;
-            }
-        }
-        return false;
     }
 
     public List<string> GetLogPropertyKeys(ApplicationKey? applicationKey)
@@ -441,7 +429,7 @@ public sealed class TelemetryRepository
             var applicationKeys = _logPropertyKeys.AsEnumerable();
             if (applications?.Count > 0)
             {
-                applicationKeys = applicationKeys.Where(keys => MatchApplications(keys.Application, applications));
+                applicationKeys = applicationKeys.Where(keys => MatchApplications(keys.Application.ApplicationKey, applications));
             }
 
             var keys = applicationKeys.Select(keys => keys.PropertyKey).Distinct();
@@ -468,7 +456,7 @@ public sealed class TelemetryRepository
             var applicationKeys = _tracePropertyKeys.AsEnumerable();
             if (applications?.Count > 0)
             {
-                applicationKeys = applicationKeys.Where(keys => MatchApplications(keys.Application, applications));
+                applicationKeys = applicationKeys.Where(keys => MatchApplications(keys.Application.ApplicationKey, applications));
             }
 
             var keys = applicationKeys.Select(keys => keys.PropertyKey).Distinct();
@@ -506,14 +494,7 @@ public sealed class TelemetryRepository
             {
                 results = results.Where(t =>
                 {
-                    for (var i = 0; i < applications.Count; i++)
-                    {
-                        if (HasApplication(t, applications[i].ApplicationKey))
-                        {
-                            return true;
-                        }
-                    }
-                    return false;
+                    return MatchApplications(t, applications);
                 });
             }
             if (!string.IsNullOrWhiteSpace(context.FilterText))
@@ -566,6 +547,36 @@ public sealed class TelemetryRepository
         }
     }
 
+    private static bool MatchApplications(ApplicationKey applicationKey, List<OtlpApplication> applications)
+    {
+        foreach (var application in applications)
+        {
+            if (applicationKey == application.ApplicationKey)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool MatchApplications(OtlpTrace t, List<OtlpApplication> applications)
+    {
+        for (var i = 0; i < applications.Count; i++)
+        {
+            // Spans collection type returns a struct enumerator so it's ok to foreach inside another loop.
+            foreach (var span in t.Spans)
+            {
+                if (span.Source.ApplicationKey == applications[i].ApplicationKey)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     public void ClearAllSignals()
     {
         ClearTraces(null);
@@ -593,8 +604,8 @@ public sealed class TelemetryRepository
             {
                 for (var i = _traces.Count - 1; i >= 0; i--)
                 {
-                    // We check if the trace originates from the application, if so, remove the entire trace
-                    if (HasApplication(applications, _traces[i].RootOrFirstSpan.Source.ApplicationKey))
+                    // Remove trace if any span matches one of the applications. This matches filter behavior.
+                    if (MatchApplications(_traces[i], applications))
                     {
                         _traces.RemoveAt(i);
                         continue;
@@ -631,7 +642,7 @@ public sealed class TelemetryRepository
             {
                 for (var i = _logs.Count - 1; i >= 0; i--)
                 {
-                    if (HasApplication(applications, _logs[i].ApplicationView.ApplicationKey))
+                    if (MatchApplications(_logs[i].ApplicationView.ApplicationKey, applications))
                     {
                         _logs.RemoveAt(i);
                         continue;
@@ -785,30 +796,6 @@ public sealed class TelemetryRepository
         {
             _tracesLock.ExitReadLock();
         }
-    }
-
-    private static bool HasApplication(OtlpTrace t, ApplicationKey applicationKey)
-    {
-        foreach (var span in t.Spans)
-        {
-            if (span.Source.ApplicationKey == applicationKey)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static bool HasApplication(List<OtlpApplication> applications, ApplicationKey applicationKey)
-    {
-        foreach (var application in applications)
-        {
-            if (applicationKey == application.ApplicationKey)
-            {
-                return true;
-            }
-        }
-        return false;
     }
 
     public void AddMetrics(AddContext context, RepeatedField<ResourceMetrics> resourceMetrics)
