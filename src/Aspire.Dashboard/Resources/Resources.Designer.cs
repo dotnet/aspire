@@ -393,6 +393,24 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No state.
+        /// </summary>
+        public static string ResourcesResourceHasNoState {
+            get {
+                return ResourceManager.GetString("ResourcesResourceHasNoState", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to State.
+        /// </summary>
+        public static string ResourcesResourceStatesHeader {
+            get {
+                return ResourceManager.GetString("ResourcesResourceStatesHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Resource types.
         /// </summary>
         public static string ResourcesResourceTypesHeader {
