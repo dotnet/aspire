@@ -130,7 +130,7 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
                     "Enabled": true,
                     "Version": "Tls13"
                   },
-                  "MaxMessageSize": 304,
+                  "RequestedFrameMax": 304,
                   "ClientProvidedName": "aspire-app"
                 }
               }
@@ -155,7 +155,7 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
         Assert.True(connectionFactory.Ssl.Enabled);
         Assert.Equal(SslProtocols.Tls13, connectionFactory.Ssl.Version);
         Assert.Equal(TimeSpan.FromSeconds(3), connectionFactory.SocketReadTimeout);
-        Assert.Equal((uint)304, connectionFactory.MaxMessageSize);
+        Assert.Equal((uint)304, connectionFactory.RequestedFrameMax);
         Assert.Equal("aspire-app", connectionFactory.ClientProvidedName);
     }
 

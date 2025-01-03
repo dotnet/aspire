@@ -80,17 +80,17 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var connection = host.Services.GetRequiredService<IConnection>();
 
-        using var channel = connection.CreateModel();
+        await using var channel = await connection.CreateChannelAsync();
         const string queueName = "hello";
-        channel.QueueDeclare(queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
+        await channel.QueueDeclareAsync(queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
 
         const string message = "Hello World!";
         var body = Encoding.UTF8.GetBytes(message);
 
-        channel.BasicPublish(exchange: string.Empty, routingKey: queueName, basicProperties: null, body: body);
+        await channel.BasicPublishAsync(exchange: string.Empty, routingKey: queueName, body: body);
 
-        var result = channel.BasicGet(queueName, true);
-        Assert.Equal(message, Encoding.UTF8.GetString(result.Body.Span));
+        var result = await channel.BasicGetAsync(queueName, true);
+        Assert.Equal(message, Encoding.UTF8.GetString(result!.Body.Span));
     }
 
     [Theory]
@@ -142,18 +142,19 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
 
                         var connection = host.Services.GetRequiredService<IConnection>();
 
-                        using var channel = connection.CreateModel();
+                        await using var channel = await connection.CreateChannelAsync();
                         const string queueName = "hello";
-                        channel.QueueDeclare(queueName, durable: true, exclusive: false);
+                        await channel.QueueDeclareAsync(queueName, durable: true, exclusive: false);
 
                         const string message = "Hello World!";
                         var body = Encoding.UTF8.GetBytes(message);
 
-                        var props = channel.CreateBasicProperties();
+                        var props = new BasicProperties();
                         props.Persistent = true; // or props.DeliveryMode = 2;
-                        channel.BasicPublish(
+                        await channel.BasicPublishAsync(
                             exchange: string.Empty,
                             queueName,
+                            mandatory: true,
                             props,
                             body);
                     }
@@ -199,12 +200,12 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
 
                         var connection = host.Services.GetRequiredService<IConnection>();
 
-                        using var channel = connection.CreateModel();
+                        await using var channel = await connection.CreateChannelAsync();
                         const string queueName = "hello";
-                        channel.QueueDeclare(queueName, durable: true, exclusive: false);
+                        await channel.QueueDeclareAsync(queueName, durable: true, exclusive: false);
 
-                        var result = channel.BasicGet(queueName, true);
-                        Assert.Equal("Hello World!", Encoding.UTF8.GetString(result.Body.Span));
+                        var result = await channel.BasicGetAsync(queueName, true);
+                        Assert.Equal("Hello World!", Encoding.UTF8.GetString(result!.Body.Span));
                     }
                 }
                 finally
