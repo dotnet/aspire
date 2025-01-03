@@ -173,7 +173,7 @@ public class AspireRabbitMQLoggingTests
 
         Assert.NotNull(testException);
         var logMessage = "This is an error message.";
-        RabbitMqClientEventSource.Log.Error(logMessage, testException);
+        LogError(logMessage, testException);
 
         var logs = logger.Logs.ToArray();
         Assert.Single(logs);
