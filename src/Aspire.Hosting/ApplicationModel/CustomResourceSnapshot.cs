@@ -170,7 +170,7 @@ public sealed record UrlSnapshot(string Name, string Url, bool IsInternal);
 /// <param name="Target">The target of the mount.</param>
 /// <param name="MountType">Gets the mount type, such as <see cref="VolumeMountType.Bind"/> or <see cref="VolumeMountType.Volume"/></param>
 /// <param name="IsReadOnly">Whether the volume mount is read-only or not.</param>
-[DebuggerDisplay("{Source}", Name = "{Target}", Type ="{MountType}")]
+[DebuggerDisplay("{Source}", Name = "{Target}")]
 public sealed record VolumeSnapshot(string? Source, string Target, string MountType, bool IsReadOnly);
 
 /// <summary>
@@ -178,7 +178,6 @@ public sealed record VolumeSnapshot(string? Source, string Target, string MountT
 /// </summary>
 /// <param name="ResourceName">The name of the resource the relationship is to.</param>
 /// <param name="Type">The relationship type.</param>
-[DebuggerDisplay("{Type}", Name = "{ResourceName}")]
 public sealed record RelationshipSnapshot(string ResourceName, string Type);
 
 /// <summary>
@@ -226,7 +225,7 @@ public sealed record ResourcePropertySnapshot(string Name, object? Value)
 /// <param name="IconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
 /// <param name="IconVariant">The icon variant.</param>
 /// <param name="IsHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
-[DebuggerDisplay(null, Name= "{Name}")]
+[DebuggerDisplay(null, Name = "{Name}")]
 public sealed record ResourceCommandSnapshot(string Name, ResourceCommandState State, string DisplayName, string? DisplayDescription, object? Parameter, string? ConfirmationMessage, string? IconName, IconVariant? IconVariant, bool IsHighlighted);
 
 /// <summary>
