@@ -82,7 +82,7 @@ public static partial class AspireEFPostgreSqlExtensions
         AddNpgsqlDbContextInternal<TContext>(builder, connectionName, configureSettings, configureDbContextOptions);
     }
 
-    private static void AddNpgsqlDbContextInternal<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, string connectionName, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings, Action<IServiceProvider, DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext
+    private static void AddNpgsqlDbContextInternal<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(IHostApplicationBuilder builder, string connectionName, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings, Action<IServiceProvider, DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext
     {
         builder.EnsureDbContextNotRegistered<TContext>();
 
