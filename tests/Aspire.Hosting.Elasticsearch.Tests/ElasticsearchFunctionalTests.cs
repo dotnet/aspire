@@ -140,7 +140,6 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
                                 var getResponse = await elasticsearchClient.GetAsync<Person>(IndexName, s_person.Id, token);
                                 Assert.False(getResponse.IsSuccess());
                             }, cts.Token);
-
                     }
                 }
                 finally
@@ -195,6 +194,17 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
                                 Assert.Equal(s_person.Id, getResponse.Source?.Id);
                             }, cts.Token);
 
+                        await app.StopAsync();
+
+                        // Wait for the container to be stopped and to release the volume files before continuing
+
+                        await pipeline.ExecuteAsync(
+                            async token =>
+                            {
+                                var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
+                                var getResponse = await elasticsearchClient.GetAsync<Person>(IndexName, s_person.Id, token);
+                                Assert.False(getResponse.IsSuccess());
+                            }, cts.Token);
                     }
                 }
                 finally
