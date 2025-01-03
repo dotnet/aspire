@@ -1,2 +1,2 @@
 #nullable enable
-
+static Microsoft.Extensions.Hosting.AspireEFMySqlExtensions.AddMySqlDbContext<TContext>(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Pomelo.EntityFrameworkCore.MySql.PomeloEntityFrameworkCoreMySqlSettings!>? configureSettings = null, System.Action<System.IServiceProvider!, Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>? configureDbContextOptions = null) -> void
