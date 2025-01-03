@@ -8,6 +8,8 @@
     <Description>A RabbitMQ client (version 7+) that integrates with Aspire, including health checks, logging, and telemetry.</Description>
     <MinCodeCoverage>80</MinCodeCoverage>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
+    <!-- Disable package validation as this package hasn't shipped yet. -->
+    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>
