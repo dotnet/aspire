@@ -10,6 +10,8 @@
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.RabbitMQ\RabbitMQContainerImageTags.cs" />
 
     <ProjectReference Include="..\..\src\Components\Aspire.RabbitMQ.Client\Aspire.RabbitMQ.Client.csproj" />
+    <PackageReference Include="RabbitMQ.Client" VersionOverride="[6.8.1,7.0.0)" />
+
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
 
     <PackageReference Include="Testcontainers.RabbitMq" />
