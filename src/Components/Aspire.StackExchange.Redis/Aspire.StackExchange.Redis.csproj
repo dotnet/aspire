@@ -14,11 +14,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />
-    <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Compile Include="$(VendoringDir)OpenTelemetry.Instrumentation.StackExchangeRedis\**\*.cs" LinkBase="OpenTelemetry.Instrumentation.StackExchangeRedis" />
     <!-- Tests need access to StackExchangeRedisInstrumentationOptions which is made internal in /Vendoring -->
     <InternalsVisibleTo Include="Aspire.StackExchange.Redis.Tests" />
@@ -33,6 +28,10 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="StackExchange.Redis" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Client\Aspire.Client.csproj" />
   </ItemGroup>
   
 </Project>
