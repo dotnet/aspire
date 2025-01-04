@@ -26,7 +26,7 @@ public class OtlpLogEntry
     public OtlpLogEntry(LogRecord record, OtlpApplicationView logApp, OtlpScope scope, OtlpContext context)
     {
         InternalId = Guid.NewGuid();
-        TimeStamp = OtlpHelpers.UnixNanoSecondsToDateTime(record.TimeUnixNano);
+        TimeStamp = ResolveTimeStamp(record);
 
         string? originalFormat = null;
         string? parentId = null;
@@ -61,6 +61,19 @@ public class OtlpLogEntry
         ParentId = parentId ?? string.Empty;
         ApplicationView = logApp;
         Scope = scope;
+    }
+
+    private static DateTime ResolveTimeStamp(LogRecord record)
+    {
+        // From proto docs:
+        //
+        // For converting OpenTelemetry log data to formats that support only one timestamp or
+        // when receiving OpenTelemetry log data by recipients that support only one timestamp
+        // internally the following logic is recommended:
+        //   - Use time_unix_nano if it is present, otherwise use observed_time_unix_nano.
+        var resolvedTimeUnixNano = record.TimeUnixNano != 0 ? record.TimeUnixNano : record.ObservedTimeUnixNano;
+
+        return OtlpHelpers.UnixNanoSecondsToDateTime(resolvedTimeUnixNano);
     }
 
     private static LogLevel MapSeverity(SeverityNumber severityNumber) => severityNumber switch

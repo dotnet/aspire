@@ -1215,4 +1215,45 @@ public class LogTests
         Assert.Equal("message-3", log.Message);
         Assert.Equal("TestLogger", log.Scope.ScopeName);
     }
+
+    [Fact]
+    public void AddLogs_ObservedUnixTimeNanos()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: DateTime.UnixEpoch, observedTime: s_testTime.AddMinutes(1)) }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var logs = repository.GetLogs(new GetLogsContext
+        {
+            ApplicationKey = null,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+        Assert.Collection(logs.Items,
+            app =>
+            {
+                Assert.Equal(s_testTime.AddMinutes(1), app.TimeStamp);
+            });
+    }
 }
