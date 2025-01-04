@@ -4,4 +4,99 @@
 *REMOVED*static Aspire.Hosting.AzureServiceBusExtensions.AddSubscription(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureServiceBusResource!>! builder, string! topicName, string! subscriptionName, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureServiceBusResource!>!, Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.ServiceBus.ServiceBusSubscription!>? configureSubscription) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureServiceBusResource!>!
 *REMOVED*static Aspire.Hosting.AzureServiceBusExtensions.AddTopic(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureServiceBusResource!>! builder, string! name, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureServiceBusResource!>!, Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.ServiceBus.ServiceBusTopic!>? configureTopic) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureServiceBusResource!>!
 *REMOVED*Aspire.Hosting.Azure.AzureServiceBusResource.AzureServiceBusResource(string! name, System.Action<Aspire.Hosting.ResourceModuleConstruct!>! configureConstruct) -> void
+Aspire.Hosting.Azure.AzureServiceBusEmulatorResource
+Aspire.Hosting.Azure.AzureServiceBusEmulatorResource.AzureServiceBusEmulatorResource(Aspire.Hosting.Azure.AzureServiceBusResource! innerResource) -> void
 Aspire.Hosting.Azure.AzureServiceBusResource.AzureServiceBusResource(string! name, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureInfrastructure) -> void
+Aspire.Hosting.Azure.AzureServiceBusResource.IsEmulator.get -> bool
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.ContentType.get -> string?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.ContentType.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.CorrelationId.get -> string?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.CorrelationId.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.MessageId.get -> string?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.MessageId.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.Properties.get -> System.Collections.Generic.Dictionary<string!, object!>!
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.Properties.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.ReplyTo.get -> string?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.ReplyTo.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.ReplyToSessionId.get -> string?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.ReplyToSessionId.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.RequiresPreprocessing.get -> bool?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.RequiresPreprocessing.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.SendTo.get -> string?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.SendTo.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.ServiceBusCorrelationFilter() -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.SessionId.get -> string?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.SessionId.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.Subject.get -> string?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter.Subject.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusFilterType
+Aspire.Hosting.Azure.ServiceBus.ServiceBusFilterType.CorrelationFilter = 1 -> Aspire.Hosting.Azure.ServiceBus.ServiceBusFilterType
+Aspire.Hosting.Azure.ServiceBus.ServiceBusFilterType.SqlFilter = 0 -> Aspire.Hosting.Azure.ServiceBus.ServiceBusFilterType
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.DeadLetteringOnMessageExpiration.get -> bool?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.DeadLetteringOnMessageExpiration.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.DefaultMessageTimeToLive.get -> System.TimeSpan?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.DefaultMessageTimeToLive.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.DuplicateDetectionHistoryTimeWindow.get -> System.TimeSpan?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.DuplicateDetectionHistoryTimeWindow.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.ForwardDeadLetteredMessagesTo.get -> string?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.ForwardDeadLetteredMessagesTo.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.ForwardTo.get -> string?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.ForwardTo.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.LockDuration.get -> System.TimeSpan?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.LockDuration.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.MaxDeliveryCount.get -> int?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.MaxDeliveryCount.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.Name.get -> string!
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.Name.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.RequiresDuplicateDetection.get -> bool?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.RequiresDuplicateDetection.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.RequiresSession.get -> bool?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.RequiresSession.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue.ServiceBusQueue(string! name) -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusRule
+Aspire.Hosting.Azure.ServiceBus.ServiceBusRule.CorrelationFilter.get -> Aspire.Hosting.Azure.ServiceBus.ServiceBusCorrelationFilter!
+Aspire.Hosting.Azure.ServiceBus.ServiceBusRule.CorrelationFilter.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusRule.FilterType.get -> Aspire.Hosting.Azure.ServiceBus.ServiceBusFilterType
+Aspire.Hosting.Azure.ServiceBus.ServiceBusRule.FilterType.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusRule.Name.get -> string!
+Aspire.Hosting.Azure.ServiceBus.ServiceBusRule.Name.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusRule.ServiceBusRule(string! name) -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusSubscription
+Aspire.Hosting.Azure.ServiceBus.ServiceBusSubscription.DeadLetteringOnMessageExpiration.get -> bool?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusSubscription.DeadLetteringOnMessageExpiration.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusSubscription.DefaultMessageTimeToLive.get -> System.TimeSpan?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusSubscription.DefaultMessageTimeToLive.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusSubscription.ForwardDeadLetteredMessagesTo.get -> string?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusSubscription.ForwardDeadLetteredMessagesTo.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusSubscription.ForwardTo.get -> string?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusSubscription.ForwardTo.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusSubscription.LockDuration.get -> System.TimeSpan?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusSubscription.LockDuration.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusSubscription.MaxDeliveryCount.get -> int?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusSubscription.MaxDeliveryCount.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusSubscription.Name.get -> string!
+Aspire.Hosting.Azure.ServiceBus.ServiceBusSubscription.Name.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusSubscription.RequiresSession.get -> bool?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusSubscription.RequiresSession.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusSubscription.Rules.get -> System.Collections.Generic.List<Aspire.Hosting.Azure.ServiceBus.ServiceBusRule!>!
+Aspire.Hosting.Azure.ServiceBus.ServiceBusSubscription.ServiceBusSubscription(string! name) -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusTopic
+Aspire.Hosting.Azure.ServiceBus.ServiceBusTopic.DefaultMessageTimeToLive.get -> System.TimeSpan?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusTopic.DefaultMessageTimeToLive.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusTopic.DuplicateDetectionHistoryTimeWindow.get -> System.TimeSpan?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusTopic.DuplicateDetectionHistoryTimeWindow.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusTopic.Name.get -> string!
+Aspire.Hosting.Azure.ServiceBus.ServiceBusTopic.Name.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusTopic.RequiresDuplicateDetection.get -> bool?
+Aspire.Hosting.Azure.ServiceBus.ServiceBusTopic.RequiresDuplicateDetection.set -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusTopic.ServiceBusTopic(string! name) -> void
+Aspire.Hosting.Azure.ServiceBus.ServiceBusTopic.Subscriptions.get -> System.Collections.Generic.List<Aspire.Hosting.Azure.ServiceBus.ServiceBusSubscription!>!
+override Aspire.Hosting.Azure.AzureServiceBusEmulatorResource.Annotations.get -> Aspire.Hosting.ApplicationModel.ResourceAnnotationCollection!
+static Aspire.Hosting.AzureServiceBusExtensions.ConfigureEmulator(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureServiceBusEmulatorResource!>! builder, System.Action<System.Text.Json.Nodes.JsonNode!>! configJson) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureServiceBusEmulatorResource!>!
+static Aspire.Hosting.AzureServiceBusExtensions.RunAsEmulator(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureServiceBusResource!>! builder, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureServiceBusEmulatorResource!>!>? configureContainer = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureServiceBusResource!>!
+static Aspire.Hosting.AzureServiceBusExtensions.WithConfigurationFile(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureServiceBusEmulatorResource!>! builder, string! path) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureServiceBusEmulatorResource!>!
+static Aspire.Hosting.AzureServiceBusExtensions.WithHostPort(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureServiceBusEmulatorResource!>! builder, int? port) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureServiceBusEmulatorResource!>!
+static Aspire.Hosting.AzureServiceBusExtensions.WithQueue(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureServiceBusResource!>! builder, string! name, System.Action<Aspire.Hosting.Azure.ServiceBus.ServiceBusQueue!>? configure = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureServiceBusResource!>!
+static Aspire.Hosting.AzureServiceBusExtensions.WithTopic(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureServiceBusResource!>! builder, string! name, System.Action<Aspire.Hosting.Azure.ServiceBus.ServiceBusTopic!>? configure = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureServiceBusResource!>!

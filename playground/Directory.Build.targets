@@ -5,8 +5,6 @@
     <!-- Skip dashboard when building outside the repo, like on helix. Or when
         building on CI -->
     <SkipDashboardProjectReference Condition="'$(SkipDashboardProjectReference)' == '' and ('$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true')">true</SkipDashboardProjectReference>
-    <!-- Skip resources that require provisioning on Azure when running in CI. -->
-    <SkipProvisionedAzureResource Condition="'$(SkipProvisionedAzureResource)' == '' and ('$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true' or '$(CODESPACES)' == 'true')">true</SkipProvisionedAzureResource>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(SkipDashboardProjectReference)' != 'true'">
@@ -26,6 +24,5 @@
 
   <PropertyGroup >
     <DefineConstants Condition="'$(SkipDashboardProjectReference)' == 'true'">SKIP_DASHBOARD_REFERENCE;$(DefineConstants)</DefineConstants>
-    <DefineConstants Condition="'$(SkipProvisionedAzureResource)' == 'true'">SKIP_PROVISIONED_AZURE_RESOURCE;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
 </Project>
