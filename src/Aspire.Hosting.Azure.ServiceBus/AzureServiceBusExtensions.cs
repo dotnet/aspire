@@ -66,7 +66,7 @@ public static class AzureServiceBusExtensions
                 cdkQueue.Parent = serviceBusNamespace;
                 infrastructure.Add(cdkQueue);
             }
-            var topicDictionary = new Dictionary<string, AzureProvisioning.ServiceBusTopic>();
+
             foreach (var topic in azureResource.Topics)
             {
                 var cdkTopic = topic.ToProvisioningEntity();
