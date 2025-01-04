@@ -532,7 +532,6 @@
           "showLegend": false
         },
         "tooltip": {
-          "maxHeight": 600,
           "mode": "single",
           "sort": "none"
         }
@@ -628,7 +627,6 @@
           "showLegend": false
         },
         "tooltip": {
-          "maxHeight": 600,
           "mode": "single",
           "sort": "none"
         }
