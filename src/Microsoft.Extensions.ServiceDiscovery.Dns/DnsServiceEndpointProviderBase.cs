@@ -14,7 +14,7 @@ internal abstract partial class DnsServiceEndpointProviderBase : IServiceEndpoin
     private readonly object _lock = new();
     private readonly ILogger _logger;
     private readonly CancellationTokenSource _disposeCancellation = new();
-    private readonly TimeProvider _timeProvider;
+    protected readonly TimeProvider _timeProvider;
     private long _lastRefreshTimeStamp;
     private Task _resolveTask = Task.CompletedTask;
     private bool _hasEndpoints;
