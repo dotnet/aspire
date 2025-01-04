@@ -2,9 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
-#if !SKIP_PROVISIONED_AZURE_RESOURCE
 using Azure.Messaging.ServiceBus;
-#endif
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
 
@@ -15,9 +13,7 @@ builder.AddServiceDefaults();
 builder.AddAzureQueueClient("queue");
 builder.AddAzureBlobClient("blob");
 builder.AddAzureEventHubProducerClient("eventhubs", static settings => settings.EventHubName = "myhub");
-#if !SKIP_PROVISIONED_AZURE_RESOURCE
 builder.AddAzureServiceBusClient("messaging");
-#endif
 
 var app = builder.Build();
 

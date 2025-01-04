@@ -444,31 +444,13 @@ public static class AzureServiceBusExtensions
     }
 
     /// <summary>
-    /// Adds a bind mount for the data folder to an Azure Service Bus emulator resource.
-    /// </summary>
-    /// <param name="builder">The builder for the <see cref="AzureServiceBusEmulatorResource"/>.</param>
-    /// <param name="path">Relative path to the AppHost where emulator storage is persisted between runs. Defaults to the path '.servicebus/{builder.Resource.Name}'</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureServiceBusEmulatorResource> WithDataBindMount(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, string? path = null)
-        => builder.WithBindMount(path ?? $".servicebus/{builder.Resource.Name}", "/data", isReadOnly: false);
-
-    /// <summary>
-    /// Adds a named volume for the data folder to an Azure Service Bus emulator resource.
-    /// </summary>
-    /// <param name="builder">The builder for the <see cref="AzureServiceBusEmulatorResource"/>.</param>
-    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureServiceBusEmulatorResource> WithDataVolume(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, string? name = null)
-        => builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/data", isReadOnly: false);
-
-    /// <summary>
     /// Adds a bind mount for the configuration file of an Azure Service Bus emulator resource.
     /// </summary>
     /// <param name="builder">The builder for the <see cref="AzureServiceBusEmulatorResource"/>.</param>
     /// <param name="path">Path to the file on the AppHost where the emulator configuration is located.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusEmulatorResource> WithConfigurationFile(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, string path)
-    => builder.WithBindMount(path, AzureServiceBusEmulatorResource.EmulatorConfigJsonPath, isReadOnly: false);
+        => builder.WithBindMount(path, AzureServiceBusEmulatorResource.EmulatorConfigJsonPath, isReadOnly: false);
 
     /// <summary>
     /// Alters the JSON configuration document used by the emulator.

@@ -15,8 +15,6 @@ internal sealed class ServiceBusHealthCheck : IHealthCheck
     private readonly Func<ServiceBusClient> _clientFactory;
     private readonly Func<string?> _nameFactory;
 
-    private ServiceBusClient? _serviceBusClient;
-
     public ServiceBusHealthCheck(Func<ServiceBusClient> clientFactory, Func<string?> nameFactory)
     {
         ArgumentNullException.ThrowIfNull(clientFactory);
@@ -34,7 +32,7 @@ internal sealed class ServiceBusHealthCheck : IHealthCheck
 
         try
         {
-            _serviceBusClient ??= _clientFactory();
+            var serviceBusClient = _clientFactory();
 
             // We can assume that if a queue/topic is up and working then all queues or topics are too
 
@@ -42,7 +40,7 @@ internal sealed class ServiceBusHealthCheck : IHealthCheck
 
             if (!string.IsNullOrWhiteSpace(queueOrTopicName))
             {
-                var receiver = _serviceBusClient.CreateReceiver(queueOrTopicName);
+                var receiver = serviceBusClient.CreateReceiver(queueOrTopicName);
                 await receiver.PeekMessageAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             }
 
