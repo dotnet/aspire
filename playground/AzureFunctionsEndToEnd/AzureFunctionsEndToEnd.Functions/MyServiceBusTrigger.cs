@@ -11,7 +11,7 @@ namespace AzureFunctionsEndToEnd.Functions;
 public class MyServiceBusTrigger(ILogger<MyServiceBusTrigger> logger)
 {
     [Function(nameof(MyServiceBusTrigger))]
-    public void Run([ServiceBusTrigger("myqueue", Connection = "messaging" )] ServiceBusReceivedMessage message)
+    public void Run([ServiceBusTrigger("myqueue", Connection = "messaging")] ServiceBusReceivedMessage message)
     {
         logger.LogInformation("Message ID: {id}", message.MessageId);
         logger.LogInformation("Message Body: {body}", message.Body);

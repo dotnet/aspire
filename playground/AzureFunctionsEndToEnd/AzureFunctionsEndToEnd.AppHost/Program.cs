@@ -8,14 +8,14 @@ var serviceBus = builder.AddAzureServiceBus("messaging").RunAsEmulator().WithQue
 
 var funcApp = builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_Functions>("funcapp")
     .WithExternalHttpEndpoints()
-    .WithReference(eventHubs)
-    .WithReference(serviceBus)
+    .WithReference(eventHubs).WaitFor(eventHubs)
+    .WithReference(serviceBus).WaitFor(serviceBus)
     .WithReference(blob)
     .WithReference(queue);
 
 builder.AddProject<Projects.AzureFunctionsEndToEnd_ApiService>("apiservice")
-    .WithReference(eventHubs)
-    .WithReference(serviceBus)
+    .WithReference(eventHubs).WaitFor(eventHubs)
+    .WithReference(serviceBus).WaitFor(serviceBus)
     .WithReference(queue)
     .WithReference(blob)
     .WithReference(funcApp);

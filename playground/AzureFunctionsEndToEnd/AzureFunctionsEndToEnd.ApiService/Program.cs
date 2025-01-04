@@ -52,7 +52,6 @@ app.MapGet("/publish/eventhubs", async (EventHubProducerClient client, Cancellat
     return Results.Ok("Message sent to Azure EventHubs.");
 });
 
-#if !SKIP_PROVISIONED_AZURE_RESOURCE
 app.MapGet("/publish/asb", async (ServiceBusClient client, CancellationToken cancellationToken, int length = 20) =>
 {
     var sender = client.CreateSender("myqueue");
@@ -60,7 +59,6 @@ app.MapGet("/publish/asb", async (ServiceBusClient client, CancellationToken can
     await sender.SendMessageAsync(message, cancellationToken);
     return Results.Ok("Message sent to Azure Service Bus.");
 });
-#endif
 
 app.MapGet("/", async (HttpClient client) =>
 {
