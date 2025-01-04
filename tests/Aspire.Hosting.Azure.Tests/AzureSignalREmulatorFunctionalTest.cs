@@ -30,7 +30,7 @@ public class AzureSignalREmulatorFunctionalTest(ITestOutputHelper testOutputHelp
         var connectionStringExpr = signalR.Resource.ConnectionStringExpression;
         var connectionString = await connectionStringExpr.GetValueAsync(CancellationToken.None);
         var postfix = ";AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;";
-        Assert.Equal("Endpoint={signalr.bindings.emulator.scheme}://{signalr.bindings.emulator.host}:{signalr.bindings.emulator.port}" + postfix, connectionStringExpr.ValueExpression);
+        Assert.Equal("Endpoint={signalr.bindings.emulator.url}" + postfix, connectionStringExpr.ValueExpression);
         Assert.Equal("Endpoint=http://localhost:10001" + postfix, connectionString);
         Assert.Equal(connectionString, await ((IResourceWithConnectionString)signalR.Resource).GetConnectionStringAsync());
     }
