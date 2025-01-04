@@ -1,4 +1,3 @@
-#if !SKIP_PROVISIONED_AZURE_RESOURCE
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -18,4 +17,3 @@ public class MyServiceBusTrigger(ILogger<MyServiceBusTrigger> logger)
         logger.LogInformation("Message Content-Type: {contentType}", message.ContentType);
     }
 }
-#endif
