@@ -42,9 +42,9 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
         if (IsEmulator)
         {
             // Injected to support Azure Functions listener initialization.
-            target[$"{connectionName}__fullyQualifiedNamespace"] = ConnectionStringExpression;
+            target[$"{connectionName}"] = ConnectionStringExpression;
             // Injected to support Aspire client integration for Service Bus in Azure Functions projects.
-            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__FullyQualifiedNamespace"] = ConnectionStringExpression;
+            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}"] = ConnectionStringExpression;
         }
         else
         {
