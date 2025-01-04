@@ -21,7 +21,8 @@ internal sealed class AzureSignalRHealthCheck : IHealthCheck
         using HttpClient client = _clientFactory.CreateClient();
         try
         {
-            var response = await client.GetAsync(_hostName.AbsoluteUri + "api/health", cancellationToken).ConfigureAwait(false);
+            var uri = _hostName.AbsoluteUri.EndsWith('/') ? _hostName.AbsoluteUri : _hostName.AbsoluteUri + '/';
+            var response = await client.GetAsync(uri + "api/health", cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 return new HealthCheckResult(context.Registration.FailureStatus, description: $"The health check endpoint returned status code {response.StatusCode}.");

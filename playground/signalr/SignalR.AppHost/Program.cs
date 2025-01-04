@@ -14,17 +14,17 @@ builder.AddProject<Projects.SignalRWeb>("webfrontend")
 // Configure Azure SignalR in serverless mode
 var serverlessSignalr = builder
     .AddAzureSignalR("signalrServerless")
-    .ConfigureInfrastructure(i =>
+    .ConfigureInfrastructure(infra =>
     {
-        var resource = i.GetProvisionableResources().OfType<SignalRService>().First(s => s.BicepIdentifier == i.AspireResource.GetBicepIdentifier());
+        var resource = infra.GetProvisionableResources().OfType<SignalRService>().First(s => s.BicepIdentifier == infra.AspireResource.GetBicepIdentifier());
         resource.Features.Add(new SignalRFeature()
         {
             Flag = SignalRFeatureFlag.ServiceMode,
             Value = "Serverless"
         });
-        var principalTypeParameter = i.GetProvisionableResources().OfType<ProvisioningParameter>().First(o => o.BicepIdentifier == AzureBicepResource.KnownParameters.PrincipalType);
-        var principalIdTypeParameter = i.GetProvisionableResources().OfType<ProvisioningParameter>().First(o => o.BicepIdentifier == AzureBicepResource.KnownParameters.PrincipalId);
-        i.Add(resource.CreateRoleAssignment(SignalRBuiltInRole.SignalRRestApiOwner, principalTypeParameter, principalIdTypeParameter));
+        var principalTypeParameter = infra.GetProvisionableResources().OfType<ProvisioningParameter>().First(o => o.BicepIdentifier == AzureBicepResource.KnownParameters.PrincipalType);
+        var principalIdTypeParameter = infra.GetProvisionableResources().OfType<ProvisioningParameter>().First(o => o.BicepIdentifier == AzureBicepResource.KnownParameters.PrincipalId);
+        infra.Add(resource.CreateRoleAssignment(SignalRBuiltInRole.SignalRRestApiOwner, principalTypeParameter, principalIdTypeParameter));
     })
     .RunAsEmulator()
     .WithEndpoint("emulator", e =>

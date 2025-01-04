@@ -80,7 +80,6 @@ public static class AzureSignalRExtensions
             return builder;
         }
 
-        string? connectionString = null;
         string? hostname = null;
         builder
             .WithEndpoint(name: "emulator", targetPort: 8888, scheme: "http")
@@ -91,11 +90,10 @@ public static class AzureSignalRExtensions
                 Tag = SignalREmulatorContainerImageTags.Tag
             });
 
-        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(builder.Resource, async (@event, ct) =>
+        builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
         {
-            connectionString = await builder.Resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false)
-                        ?? throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
             hostname = builder.Resource.EmulatorEndpoint.Url;
+            return Task.CompletedTask;
         });
         var healthCheckKey = $"{builder.Resource.Name}_check";
         var healthCheckRegistration = new HealthCheckRegistration(
