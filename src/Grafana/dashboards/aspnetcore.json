@@ -413,7 +413,6 @@
           "showLegend": true
         },
         "tooltip": {
-          "maxHeight": 600,
           "mode": "multi",
           "sort": "none"
         }
@@ -698,10 +697,8 @@
           "fields": "",
           "values": false
         },
-        "showPercentChange": false,
         "text": {},
-        "textMode": "value",
-        "wideLayout": true
+        "textMode": "value"
       },
       "pluginVersion": "",
       "targets": [
@@ -770,10 +767,8 @@
           "fields": "",
           "values": false
         },
-        "showPercentChange": false,
         "text": {},
-        "textMode": "value",
-        "wideLayout": true
+        "textMode": "value"
       },
       "pluginVersion": "",
       "targets": [
@@ -842,9 +837,7 @@
           "fields": "",
           "values": false
         },
-        "showPercentChange": false,
-        "textMode": "value_and_name",
-        "wideLayout": true
+        "textMode": "value_and_name"
       },
       "pluginVersion": "",
       "targets": [
@@ -911,9 +904,7 @@
           "fields": "",
           "values": false
         },
-        "showPercentChange": false,
-        "textMode": "value_and_name",
-        "wideLayout": true
+        "textMode": "value_and_name"
       },
       "pluginVersion": "",
       "targets": [
@@ -1345,7 +1336,6 @@
     "from": "now-24h",
     "to": "now"
   },
-  "timeRangeUpdatedDuringEditOrView": false,
   "timepicker": {
     "refresh_intervals": [
       "1s",
