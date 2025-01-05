@@ -1270,7 +1270,7 @@
       "type": "table"
     }
   ],
-  "refresh": "1m",
+  "refresh": "10s",
   "revision": 1,
   "schemaVersion": 39,
   "tags": [
@@ -1331,7 +1331,7 @@
     ]
   },
   "time": {
-    "from": "now-24h",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {
