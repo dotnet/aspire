@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Xml;
+using Azure.Provisioning;
 
 namespace Aspire.Hosting.Azure.ServiceBus;
 
@@ -96,7 +97,7 @@ public class ServiceBusQueue
     /// <returns>A <see cref="global::Azure.Provisioning.ServiceBus.ServiceBusQueue"/> instance.</returns>
     internal global::Azure.Provisioning.ServiceBus.ServiceBusQueue ToProvisioningEntity()
     {
-        var queue = new global::Azure.Provisioning.ServiceBus.ServiceBusQueue(AzureResourceInfrastructure.NormalizeBicepIdentifier(Name));
+        var queue = new global::Azure.Provisioning.ServiceBus.ServiceBusQueue(Infrastructure.NormalizeBicepIdentifier(Name));
 
         queue.Name = Name;
 

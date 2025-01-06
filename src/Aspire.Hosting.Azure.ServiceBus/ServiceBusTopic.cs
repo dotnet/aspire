@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Xml;
+using Azure.Provisioning;
 
 namespace Aspire.Hosting.Azure.ServiceBus;
 
@@ -72,7 +73,7 @@ public class ServiceBusTopic
     /// <returns>A <see cref="global::Azure.Provisioning.ServiceBus.ServiceBusTopic"/> instance.</returns>
     internal global::Azure.Provisioning.ServiceBus.ServiceBusTopic ToProvisioningEntity()
     {
-        var topic = new global::Azure.Provisioning.ServiceBus.ServiceBusTopic(AzureResourceInfrastructure.NormalizeBicepIdentifier(Name));
+        var topic = new global::Azure.Provisioning.ServiceBus.ServiceBusTopic(Infrastructure.NormalizeBicepIdentifier(Name));
 
         if (Name != null)
         {

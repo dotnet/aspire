@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using Azure.Provisioning;
 
 namespace Aspire.Hosting.Azure.ServiceBus;
 
@@ -46,7 +47,7 @@ public class ServiceBusRule
     /// <returns>A <see cref="global::Azure.Provisioning.ServiceBus.ServiceBusRule"/> instance.</returns>
     internal global::Azure.Provisioning.ServiceBus.ServiceBusRule ToProvisioningEntity()
     {
-        var rule = new global::Azure.Provisioning.ServiceBus.ServiceBusRule(AzureResourceInfrastructure.NormalizeBicepIdentifier(Name));
+        var rule = new global::Azure.Provisioning.ServiceBus.ServiceBusRule(Infrastructure.NormalizeBicepIdentifier(Name));
 
         if (Name != null)
         {
@@ -126,7 +127,7 @@ public class ServiceBusRule
 
         writer.WriteString(nameof(FilterType), rule.FilterType switch
         {
-            // The Emulator uses "Sql/Correlation" instead of "SqlFilter/CorrelationFilter" in the CDK (and Bicep template).
+            // The Emulator uses "Sql/Correlation" instead of "SqlFilter/CorrelationFilter" in Azure.Provisioning (and Bicep template).
             ServiceBusFilterType.SqlFilter => "Sql",
             ServiceBusFilterType.CorrelationFilter => "Correlation",
             _ => throw new NotImplementedException()
@@ -150,7 +151,7 @@ public class ServiceBusRule
         }
         if (rule.CorrelationFilter.SendTo != null)
         {
-            // The CDK uses "SentTo" instead of "To" accepted in the Emulator (and Bicep template).
+            // Azure.Provisioning uses "SentTo" instead of "To" accepted in the Emulator (and Bicep template).
             writer.WriteString("To", rule.CorrelationFilter.SendTo);
         }
         if (rule.CorrelationFilter.ReplyTo != null)
@@ -159,7 +160,7 @@ public class ServiceBusRule
         }
         if (rule.CorrelationFilter.Subject != null)
         {
-            // The CDK uses "Subject" instead of "Label" accepted in Emulator (and Bicep template).
+            // Azure.Provisioning uses "Subject" instead of "Label" accepted in Emulator (and Bicep template).
             writer.WriteString("Label", rule.CorrelationFilter.Subject);
         }
         if (rule.CorrelationFilter.SessionId != null)

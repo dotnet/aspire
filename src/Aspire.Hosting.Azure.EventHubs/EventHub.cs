@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using Azure.Provisioning;
 
 namespace Aspire.Hosting.Azure.EventHubs;
 
@@ -49,7 +50,7 @@ public class EventHub
     /// <returns>A <see cref="global::Azure.Provisioning.EventHubs.EventHub"/> instance.</returns>
     internal global::Azure.Provisioning.EventHubs.EventHub ToProvisioningEntity()
     {
-        var hub = new global::Azure.Provisioning.EventHubs.EventHub(AzureResourceInfrastructure.NormalizeBicepIdentifier(Name));
+        var hub = new global::Azure.Provisioning.EventHubs.EventHub(Infrastructure.NormalizeBicepIdentifier(Name));
 
         hub.Name = Name;
 
@@ -95,8 +96,7 @@ public class EventHub
             foreach (var consumerGroup in hub.ConsumerGroups)
             {
                 writer.WriteStartObject();
-                writer.WritePropertyName("Name");
-                writer.WriteStringValue(consumerGroup.Name);
+                consumerGroup.WriteJsonObjectProperties(writer);
                 writer.WriteEndObject();
             }
         }
