@@ -84,6 +84,20 @@ public class OtlpApplication
         }
     }
 
+    public void ClearMetrics()
+    {
+        _metricsLock.EnterWriteLock();
+
+        try
+        {
+            _instruments.Clear();
+        }
+        finally
+        {
+            _metricsLock.ExitWriteLock();
+        }
+    }
+
     private static OtlpInstrumentType MapMetricType(Metric.DataOneofCase data)
     {
         return data switch

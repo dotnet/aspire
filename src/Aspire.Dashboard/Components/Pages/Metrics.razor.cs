@@ -187,6 +187,12 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         return false;
     }
 
+    private Task ClearMetrics(ApplicationKey? key)
+    {
+        TelemetryRepository.ClearMetrics(key);
+        return Task.CompletedTask;
+    }
+
     private Task HandleSelectedDurationChangedAsync()
     {
         return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
@@ -272,7 +278,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
                     // If there are more instruments than before then update the UI.
                     var instruments = TelemetryRepository.GetInstrumentsSummaries(selectedApplicationKey.Value);
 
-                    if (PageViewModel.Instruments is null || instruments.Count > PageViewModel.Instruments.Count)
+                    if (PageViewModel.Instruments is null || instruments.Count != PageViewModel.Instruments.Count)
                     {
                         PageViewModel.Instruments = instruments;
                         await InvokeAsync(StateHasChanged);

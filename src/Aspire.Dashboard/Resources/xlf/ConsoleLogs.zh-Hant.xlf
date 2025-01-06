@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsResourceCommands">
         <source>Resource commands</source>
-        <target state="new">Resource commands</target>
+        <target state="translated">資源命令</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">
@@ -54,17 +54,17 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsSettings">
         <source>Console logs settings</source>
-        <target state="new">Console logs settings</target>
+        <target state="translated">主控台記錄設定</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampHide">
         <source>Hide timestamps</source>
-        <target state="new">Hide timestamps</target>
+        <target state="translated">隱藏時間戳記</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampShow">
         <source>Show timestamps</source>
-        <target state="new">Show timestamps</target>
+        <target state="translated">顯示時間戳記</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
@@ -79,7 +79,7 @@
       </trans-unit>
       <trans-unit id="DownloadLogs">
         <source>Download logs</source>
-        <target state="new">Download logs</target>
+        <target state="translated">下載記錄</target>
         <note />
       </trans-unit>
       <trans-unit id="LogStatusLabel">
