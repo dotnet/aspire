@@ -190,6 +190,25 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             _logger.LogDebug(ex, "One or more monitoring tasks terminated with an error.");
         }
+
+        try
+        {
+            // The app orchestrator (represented by kubernetesService here) will perform a resource cleanup
+            // (if not done already) when the app host process exits.
+            // This is just a perf optimization, so we do not care that much if this call fails.
+            // There is not much difference for single app run, but for tests that tend to launch multiple instances
+            // of app host from the same process, the gain from programmatic orchestrator shutdown is significant
+            // See https://github.com/dotnet/aspire/issues/6561 for more info.
+            await kubernetesService.StopServerAsync(Model.ResourceCleanup.Full, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Ignore.
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Application orchestrator could not be stopped programmatically.");
+        }
     }
 
     private static ILookup<IResource?, IResourceWithParent> GetParentChildLookup(DistributedApplicationModel model)
@@ -479,8 +498,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     {
         IAsyncEnumerable<IReadOnlyList<(string, bool)>>? enumerable = resource switch
         {
-            Container c when c.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, _dcpInfo?.Version, resource),
-            Executable e when e.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, _dcpInfo?.Version, resource),
+            Container c when c.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, resource),
+            Executable e when e.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, resource),
             _ => null
         };
 
@@ -1982,49 +2001,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         // RandomNameSuffixLength of lowercase characters
         var suffix = PasswordGenerator.Generate(RandomNameSuffixLength, true, false, false, false, RandomNameSuffixLength, 0, 0, 0);
         return suffix;
-    }
-
-    public async Task DeleteResourcesAsync(CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            AspireEventSource.Instance.DcpModelCleanupStart();
-            await DeleteResourcesAsync<ExecutableReplicaSet>("project", cancellationToken).ConfigureAwait(false);
-            await DeleteResourcesAsync<Executable>("project", cancellationToken).ConfigureAwait(false);
-            await DeleteResourcesAsync<Container>("container", cancellationToken).ConfigureAwait(false);
-            await DeleteResourcesAsync<Service>("service", cancellationToken).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            // Expected
-            _logger.LogDebug("Cancellation received while deleting resources.");
-        }
-        finally
-        {
-            AspireEventSource.Instance.DcpModelCleanupStop();
-            _appResources.Clear();
-        }
-    }
-
-    private async Task DeleteResourcesAsync<TResource>(string resourceType, CancellationToken cancellationToken) where TResource : CustomResource
-    {
-        var resourcesToDelete = _appResources.Select(r => r.DcpResource).OfType<TResource>();
-        if (!resourcesToDelete.Any())
-        {
-            return;
-        }
-
-        foreach (var res in resourcesToDelete)
-        {
-            try
-            {
-                await kubernetesService.DeleteAsync<TResource>(res.Metadata.Name, res.Metadata.NamespaceProperty, cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogInformation(ex, "Could not stop {ResourceType} '{ResourceName}'.", resourceType, res.Metadata.Name);
-            }
-        }
     }
 
     /// <summary>

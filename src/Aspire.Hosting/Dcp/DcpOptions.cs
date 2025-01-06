@@ -61,11 +61,6 @@ internal sealed class DcpOptions
     public string? ResourceNameSuffix { get; set; }
 
     /// <summary>
-    /// Whether to delete resources created by this application when the application is shut down.
-    /// </summary>
-    public bool DeleteResourcesOnShutdown { get; set; }
-
-    /// <summary>
     /// Whether to randomize ports used by resources during orchestration.
     /// </summary>
     public bool RandomizePorts { get; set; }
@@ -173,7 +168,6 @@ internal class ConfigureDefaultDcpOptions(
             options.ResourceNameSuffix = dcpPublisherConfiguration[nameof(options.ResourceNameSuffix)];
         }
 
-        options.DeleteResourcesOnShutdown = dcpPublisherConfiguration.GetValue(nameof(options.DeleteResourcesOnShutdown), options.DeleteResourcesOnShutdown);
         options.RandomizePorts = dcpPublisherConfiguration.GetValue(nameof(options.RandomizePorts), options.RandomizePorts);
         options.ServiceStartupWatchTimeout = configuration.GetValue("DOTNET_ASPIRE_SERVICE_STARTUP_WATCH_TIMEOUT", options.ServiceStartupWatchTimeout);
     }
