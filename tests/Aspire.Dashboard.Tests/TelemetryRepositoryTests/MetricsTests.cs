@@ -617,6 +617,379 @@ public class MetricsTests
             v => Assert.Equal("value-3", v));
     }
 
+    [Fact]
+    public void RemoveMetrics_All()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddMetrics(addContext, new RepeatedField<ResourceMetrics>()
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "app1", instanceId: "123"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test1", value: 1, startTime: s_testTime.AddMinutes(1)),
+                            CreateSumMetric(metricName: "test1", value: 2, startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            },
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "app1", instanceId: "456"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test1", value: 3, startTime: s_testTime.AddMinutes(1)),
+                            CreateSumMetric(metricName: "test2", value: 4, startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            },
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "app2"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test1", value: 5, startTime: s_testTime.AddMinutes(1)),
+                            CreateSumMetric(metricName: "test3", value: 6, startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            }
+        });
+
+        // Act
+        repository.ClearMetrics();
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var app1Key = new ApplicationKey("app1", InstanceId: null);
+        var app1Instruments = repository.GetInstrumentsSummaries(app1Key);
+        Assert.Empty(app1Instruments);
+
+        var app2Key = new ApplicationKey("app2", InstanceId: null);
+        var app2Instruments = repository.GetInstrumentsSummaries(app2Key);
+
+        Assert.Empty(app2Instruments);
+    }
+
+    [Fact]
+    public void RemoveMetrics_SelectedResource()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddMetrics(addContext, new RepeatedField<ResourceMetrics>()
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "app1", instanceId: "123"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test1", value: 1, startTime: s_testTime.AddMinutes(1)),
+                            CreateSumMetric(metricName: "test1", value: 2, startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            },
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "app1", instanceId: "456"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test1", value: 3, startTime: s_testTime.AddMinutes(1)),
+                            CreateSumMetric(metricName: "test2", value: 4, startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            },
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "app2"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test1", value: 5, startTime: s_testTime.AddMinutes(1)),
+                            CreateSumMetric(metricName: "test3", value: 6, startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            }
+        });
+
+        // Act
+        repository.ClearMetrics(new ApplicationKey("app1", "456"));
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var app1Key = new ApplicationKey("app1", InstanceId: null);
+        var app1Instruments = repository.GetInstrumentsSummaries(app1Key);
+
+        var app1Instrument = Assert.Single(app1Instruments);
+        Assert.Equal("test1", app1Instrument.Name);
+        Assert.Equal("Test metric description", app1Instrument.Description);
+        Assert.Equal("widget", app1Instrument.Unit);
+        Assert.Equal("test-meter", app1Instrument.Parent.MeterName);
+
+        var app1Test1Instrument = repository.GetInstrument(new GetInstrumentRequest
+        {
+            ApplicationKey = app1Key,
+            InstrumentName = "test1",
+            MeterName = "test-meter",
+            StartTime = s_testTime,
+            EndTime = s_testTime.AddMinutes(20)
+        });
+
+        Assert.NotNull(app1Test1Instrument);
+        Assert.Equal("test1", app1Test1Instrument.Summary.Name);
+
+        var app1Test1Dimensions = Assert.Single(app1Test1Instrument.Dimensions);
+        Assert.Collection(app1Test1Dimensions.Values,
+            v =>
+            {
+                Assert.Equal(1, ((MetricValue<long>)v).Value);
+            },
+            v =>
+            {
+                Assert.Equal(2, ((MetricValue<long>)v).Value);
+            });
+
+        var app1Test2Instrument = repository.GetInstrument(new GetInstrumentRequest
+        {
+            ApplicationKey = app1Key,
+            InstrumentName = "test2",
+            MeterName = "test-meter",
+            StartTime = s_testTime,
+            EndTime = s_testTime.AddMinutes(20)
+        });
+
+        Assert.Null(app1Test2Instrument);
+
+        var app2Key = new ApplicationKey("app2", InstanceId: null);
+        var app2Instruments = repository.GetInstrumentsSummaries(app2Key);
+
+        Assert.Collection(app2Instruments,
+            instrument =>
+            {
+                Assert.Equal("test1", instrument.Name);
+                Assert.Equal("Test metric description", instrument.Description);
+                Assert.Equal("widget", instrument.Unit);
+                Assert.Equal("test-meter", instrument.Parent.MeterName);
+            },
+            instrument =>
+            {
+                Assert.Equal("test3", instrument.Name);
+                Assert.Equal("Test metric description", instrument.Description);
+                Assert.Equal("widget", instrument.Unit);
+                Assert.Equal("test-meter", instrument.Parent.MeterName);
+            });
+
+        var app2Test1Instrument = repository.GetInstrument(new GetInstrumentRequest
+        {
+            ApplicationKey = app2Key,
+            InstrumentName = "test1",
+            MeterName = "test-meter",
+            StartTime = s_testTime,
+            EndTime = s_testTime.AddMinutes(20)
+        });
+
+        Assert.NotNull(app2Test1Instrument);
+        Assert.Equal("test1", app2Test1Instrument.Summary.Name);
+
+        var app2Test1Dimensions = Assert.Single(app2Test1Instrument.Dimensions);
+        Assert.Equal(5, ((MetricValue<long>)app2Test1Dimensions.Values.Single()).Value);
+
+        var app2Test3Instrument = repository.GetInstrument(new GetInstrumentRequest
+        {
+            ApplicationKey = app2Key,
+            InstrumentName = "test3",
+            MeterName = "test-meter",
+            StartTime = s_testTime,
+            EndTime = s_testTime.AddMinutes(20)
+        });
+
+        Assert.NotNull(app2Test3Instrument);
+        Assert.Equal("test3", app2Test3Instrument.Summary.Name);
+
+        var app2Test3Dimensions = Assert.Single(app2Test3Instrument.Dimensions);
+        Assert.Equal(6, ((MetricValue<long>)app2Test3Dimensions.Values.Single()).Value);
+    }
+
+    [Fact]
+    public void RemoveMetrics_MultipleSelectedResources()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddMetrics(addContext, new RepeatedField<ResourceMetrics>()
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "app1", instanceId: "123"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test1", value: 1, startTime: s_testTime.AddMinutes(1), attributes: [KeyValuePair.Create("key-1", "value-1")]),
+                            CreateSumMetric(metricName: "test1", value: 2, startTime: s_testTime.AddMinutes(1), attributes: [KeyValuePair.Create("key-1", "value-2")]),
+                        }
+                    }
+                }
+            },
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "app1", instanceId: "456"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test1", value: 3, startTime: s_testTime.AddMinutes(1)),
+                            CreateSumMetric(metricName: "test2", value: 4, startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            },
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "app2"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test1", value: 5, startTime: s_testTime.AddMinutes(1)),
+                            CreateSumMetric(metricName: "test3", value: 6, startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            }
+        });
+
+        // Act
+        repository.ClearMetrics(new ApplicationKey("app1", null));
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var app1Key = new ApplicationKey("app1", InstanceId: null);
+        var app1Instruments = repository.GetInstrumentsSummaries(app1Key);
+        Assert.Empty(app1Instruments);
+
+        var app1Test1Instrument = repository.GetInstrument(new GetInstrumentRequest
+        {
+            ApplicationKey = app1Key,
+            InstrumentName = "test1",
+            MeterName = "test-meter",
+            StartTime = s_testTime,
+            EndTime = s_testTime.AddMinutes(20)
+        });
+
+        Assert.Null(app1Test1Instrument);
+
+        var app1Test2Instrument = repository.GetInstrument(new GetInstrumentRequest
+        {
+            ApplicationKey = app1Key,
+            InstrumentName = "test2",
+            MeterName = "test-meter",
+            StartTime = s_testTime,
+            EndTime = s_testTime.AddMinutes(20)
+        });
+
+        Assert.Null(app1Test2Instrument);
+
+        var app2Key = new ApplicationKey("app2", InstanceId: null);
+        var app2Instruments = repository.GetInstrumentsSummaries(app2Key);
+        Assert.Collection(app2Instruments,
+            instrument =>
+            {
+                Assert.Equal("test1", instrument.Name);
+                Assert.Equal("Test metric description", instrument.Description);
+                Assert.Equal("widget", instrument.Unit);
+                Assert.Equal("test-meter", instrument.Parent.MeterName);
+            },
+            instrument =>
+            {
+                Assert.Equal("test3", instrument.Name);
+                Assert.Equal("Test metric description", instrument.Description);
+                Assert.Equal("widget", instrument.Unit);
+                Assert.Equal("test-meter", instrument.Parent.MeterName);
+            });
+
+        var app2Test1Instrument = repository.GetInstrument(new GetInstrumentRequest
+        {
+            ApplicationKey = app2Key,
+            InstrumentName = "test1",
+            MeterName = "test-meter",
+            StartTime = s_testTime,
+            EndTime = s_testTime.AddMinutes(20)
+        });
+
+        Assert.NotNull(app2Test1Instrument);
+        Assert.Equal("test1", app2Test1Instrument.Summary.Name);
+
+        var app2Test1Dimensions = Assert.Single(app2Test1Instrument.Dimensions);
+        Assert.Equal(5, ((MetricValue<long>)app2Test1Dimensions.Values.Single()).Value);
+
+        var app2Test3Instrument = repository.GetInstrument(new GetInstrumentRequest
+        {
+            ApplicationKey = app2Key,
+            InstrumentName = "test3",
+            MeterName = "test-meter",
+            StartTime = s_testTime,
+            EndTime = s_testTime.AddMinutes(20)
+        });
+
+        Assert.NotNull(app2Test3Instrument);
+        Assert.Equal("test3", app2Test3Instrument.Summary.Name);
+
+        var app2Test3Dimensions = Assert.Single(app2Test3Instrument.Dimensions);
+        Assert.Equal(6, ((MetricValue<long>)app2Test3Dimensions.Values.Single()).Value);
+    }
+
     private static void AssertDimensionValues(Dictionary<ReadOnlyMemory<KeyValuePair<string, string>>, DimensionScope> dimensions, ReadOnlyMemory<KeyValuePair<string, string>> key, int valueCount)
     {
         var scope = dimensions[key];

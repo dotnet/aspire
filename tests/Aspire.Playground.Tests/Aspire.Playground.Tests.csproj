@@ -17,15 +17,9 @@
     <PlaygroundSourceDir>$(MSBuildThisFileDirectory)..\..\playground\</PlaygroundSourceDir>
     <TestsSharedDir>$(MSBuildThisFileDirectory)..\Shared\</TestsSharedDir>
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
-    <!-- Skip Azure resources that require provisioning when running in CI. -->
-    <SkipProvisionedAzureResource Condition="'$(SkipProvisionedAzureResource)' == '' and ('$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true' or '$(CODESPACES)' == 'true')">true</SkipProvisionedAzureResource>
 
     <!-- on helix this will be available in the source dir -->
     <XunitRunnerJson Condition="'$(RepoRoot)' == ''">xunit.runner.json</XunitRunnerJson>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(SkipProvisionedAzureResource)' == 'true'">
-    <DefineConstants>SKIP_PROVISIONED_AZURE_RESOURCE;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

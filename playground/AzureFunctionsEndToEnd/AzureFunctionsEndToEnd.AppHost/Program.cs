@@ -4,25 +4,18 @@ var storage = builder.AddAzureStorage("storage").RunAsEmulator();
 var queue = storage.AddQueues("queue");
 var blob = storage.AddBlobs("blob");
 var eventHubs = builder.AddAzureEventHubs("eventhubs").RunAsEmulator().WithHub("myhub");
-
-#if !SKIP_PROVISIONED_AZURE_RESOURCE
-var serviceBus = builder.AddAzureServiceBus("messaging").AddQueue("myqueue");
-#endif
+var serviceBus = builder.AddAzureServiceBus("messaging").RunAsEmulator().WithQueue("myqueue");
 
 var funcApp = builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_Functions>("funcapp")
     .WithExternalHttpEndpoints()
-    .WithReference(eventHubs)
-#if !SKIP_PROVISIONED_AZURE_RESOURCE
-    .WithReference(serviceBus)
-#endif
+    .WithReference(eventHubs).WaitFor(eventHubs)
+    .WithReference(serviceBus).WaitFor(serviceBus)
     .WithReference(blob)
     .WithReference(queue);
 
 builder.AddProject<Projects.AzureFunctionsEndToEnd_ApiService>("apiservice")
-    .WithReference(eventHubs)
-#if !SKIP_PROVISIONED_AZURE_RESOURCE
-    .WithReference(serviceBus)
-#endif
+    .WithReference(eventHubs).WaitFor(eventHubs)
+    .WithReference(serviceBus).WaitFor(serviceBus)
     .WithReference(queue)
     .WithReference(blob)
     .WithReference(funcApp);

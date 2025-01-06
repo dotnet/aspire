@@ -428,4 +428,13 @@
   <data name="VolumeMountTypeColumnHeader" xml:space="preserve">
     <value>Mount type</value>
   </data>
+  <data name="ClearAllResources" xml:space="preserve">
+    <value>Remove all</value>
+  </data>
+  <data name="ClearSelectedResource" xml:space="preserve">
+    <value>Remove for {0}</value>
+  </data>
+  <data name="ClearPendingSelectedResource" xml:space="preserve">
+    <value>Remove for resource</value>
+  </data>
 </root>
