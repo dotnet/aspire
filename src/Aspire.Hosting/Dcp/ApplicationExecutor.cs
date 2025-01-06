@@ -1354,8 +1354,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
                 catch (Exception ex)
                 {
-                    resourceLogger.LogCritical("Failed to apply arguments. A dependency may have failed to start.");
-                    _logger.LogDebug(ex, "Failed to apply arguments. A dependency may have failed to start.");
+                    resourceLogger.LogCritical(ex, "Failed to apply arguments. A dependency may have failed to start.");
                     failedToApplyArgs = true;
                 }
             }
@@ -1396,8 +1395,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
             catch (Exception ex)
             {
-                resourceLogger.LogCritical("Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", c.Key);
-                _logger.LogDebug(ex, "Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", c.Key);
+                resourceLogger.LogCritical(ex, "Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", c.Key);
                 failedToApplyConfiguration = true;
             }
         }
@@ -1673,8 +1671,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
             catch (Exception ex)
             {
-                resourceLogger.LogCritical("Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", kvp.Key);
-                _logger.LogDebug(ex, "Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", kvp.Key);
+                resourceLogger.LogCritical(ex, "Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", kvp.Key);
                 failedToApplyConfiguration = true;
             }
         }
@@ -1743,8 +1740,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
                 catch (Exception ex)
                 {
-                    resourceLogger.LogCritical("Failed to apply container arguments '{ConfigKey}'. A dependency may have failed to start.", arg);
-                    _logger.LogDebug(ex, "Failed to apply container arguments '{ConfigKey}'. A dependency may have failed to start.", arg);
+                    resourceLogger.LogCritical(ex, "Failed to apply container arguments '{ConfigKey}'. A dependency may have failed to start.", arg);
                     failedToApplyArgs = true;
                 }
             }
