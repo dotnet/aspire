@@ -44,7 +44,7 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
             // Injected to support Azure Functions listener initialization.
             target[$"{connectionName}"] = ConnectionStringExpression;
             // Injected to support Aspire client integration for Service Bus in Azure Functions projects.
-            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}"] = ConnectionStringExpression;
+            target[$"Aspire__Azure__Messaging__ServiceBus__{connectionName}__ConnectionString"] = ConnectionStringExpression;
         }
         else
         {
