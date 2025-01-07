@@ -84,12 +84,12 @@
       </trans-unit>
       <trans-unit id="ClearPendingSelectedResource">
         <source>Remove for resource</source>
-        <target state="new">Remove for resource</target>
+        <target state="translated">Für Ressource entfernen</target>
         <note />
       </trans-unit>
       <trans-unit id="ClearSelectedResource">
         <source>Remove for {0}</source>
-        <target state="new">Remove for {0}</target>
+        <target state="translated">Für {0} entfernen</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailsColumnHeader">
