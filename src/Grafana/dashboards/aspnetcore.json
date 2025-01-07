@@ -1059,7 +1059,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "  topk(10,\r\n  sum by (http_route, http_request_method, method_route) (\r\n    label_join(floor(increase(http_server_request_duration_seconds_count{job=~\"$job\", instance=~\"$instance\", http_route!=\"\"}[$__range])), \"method_route\", \" \", \"http_request_method\", \"http_route\")\r\n  ))",
+          "expr": "  topk(10,\r\n  sum by (http_route, http_request_method, method_route) (\r\n    label_join(ceil(increase(http_server_request_duration_seconds_count{job=~\"$job\", instance=~\"$instance\", http_route!=\"\"}[$__range])), \"method_route\", \" \", \"http_request_method\", \"http_route\")\r\n  ))",
           "format": "table",
           "instant": true,
           "interval": "",
