@@ -1598,18 +1598,34 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
-    [Fact]
-    public async Task AddAzureServiceBus()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AddAzureServiceBus(bool useObsoleteMethods)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var serviceBus = builder.AddAzureServiceBus("sb");
 
-        serviceBus
-            .AddQueue("queue1")
-            .AddQueue("queue2")
-            .AddTopic("t1")
-            .AddTopic("t2")
-            .AddSubscription("t1", "s3");
+        if (useObsoleteMethods)
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            serviceBus
+                .AddQueue("queue1")
+                .AddQueue("queue2")
+                .AddTopic("t1")
+                .AddTopic("t2")
+                .AddSubscription("t1", "s3");
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+        else
+        {
+            serviceBus
+                .WithQueue("queue1")
+                .WithQueue("queue2")
+                .WithTopic("t1")
+                .WithTopic("t2")
+                .WithTopic("t1", topic => topic.Subscriptions.Add(new("s3")));
+        }
 
         serviceBus.Resource.Outputs["serviceBusEndpoint"] = "mynamespaceEndpoint";
 
@@ -1682,16 +1698,16 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               parent: sb
             }
 
-            resource t2 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
-              name: 't2'
-              parent: sb
-            }
-
             resource s3 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
               name: 's3'
               parent: t1
             }
 
+            resource t2 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
+              name: 't2'
+              parent: sb
+            }
+            
             output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
             """;
         output.WriteLine(manifest.BicepText);
