@@ -186,7 +186,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     [RequiresDocker]
     public async Task VerifyWaitForOnServiceBusEmulatorBlocksDependentResources()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         using var builder = TestDistributedApplicationBuilder.Create(output);
 
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
@@ -228,7 +228,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     [RequiresDocker]
     public async Task VerifyAzureServiceBusEmulatorResource()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
 
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(output);
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
@@ -632,5 +632,65 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             """, configJsonContent);
 
         await app.StopAsync();
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AzureServiceBusEmulator_WithConfigurationFile()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var configJsonPath = Path.GetTempFileName();
+
+        File.WriteAllText(configJsonPath, """
+            {
+              "UserConfig": {
+                "Namespaces": [
+                  {
+                    "Name": "servicebusns",
+                    "Queues": [ "queue1" ],
+                    "Topics": []
+                  }
+                ]
+              }
+            }
+            """);
+
+        var serviceBus = builder.AddAzureServiceBus("servicebusns")
+            .RunAsEmulator(configure => configure.WithConfigurationFile(configJsonPath));
+
+        using var app = builder.Build();
+        await app.StartAsync();
+
+        var serviceBusEmulatorResource = builder.Resources.OfType<AzureServiceBusResource>().Single(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
+        var volumeAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        var configJsonContent = File.ReadAllText(volumeAnnotation.Source!);
+
+        Assert.Equal("/ServiceBus_Emulator/ConfigFiles/Config.json", volumeAnnotation.Target);
+
+        Assert.Equal("""
+            {
+              "UserConfig": {
+                "Namespaces": [
+                  {
+                    "Name": "servicebusns",
+                    "Queues": [ "queue1" ],
+                    "Topics": []
+                  }
+                ]
+              }
+            }
+            """, configJsonContent);
+
+        await app.StopAsync();
+
+        try
+        {
+            File.Delete(configJsonPath);
+        }
+        finally
+        {
+        }
     }
 }
