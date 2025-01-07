@@ -845,7 +845,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum by (url_scheme) (\r\n    increase(http_server_request_duration_seconds_count{job=~\"$job\", instance=~\"$instance\"}[$__range])\r\n  )",
+          "expr": "sum by (url_scheme) (\r\n    ceil(increase(http_server_request_duration_seconds_count{job=~\"$job\", instance=~\"$instance\"}[$__range]))\r\n  )",
           "legendFormat": "{{scheme}}",
           "range": true,
           "refId": "A"
@@ -904,7 +904,6 @@
         },
         "textMode": "value_and_name"
       },
-      "pluginVersion": "",
       "targets": [
         {
           "datasource": {
@@ -912,7 +911,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum by (method_route) (\r\n    label_replace(increase(http_server_request_duration_seconds_count{job=~\"$job\", instance=~\"$instance\"}[$__range]), \"method_route\", \"http/$1\", \"network_protocol_version\", \"(.*)\")\r\n  )",
+          "expr": "sum by (method_route) (\r\n    label_replace(ceil(increase(http_server_request_duration_seconds_count{job=~\"$job\", instance=~\"$instance\"}[$__range])), \"method_route\", \"http/$1\", \"network_protocol_version\", \"(.*)\")\r\n  )",
           "legendFormat": "{{protocol}}",
           "range": true,
           "refId": "A"
@@ -1233,7 +1232,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "  topk(10,\r\n  sum by (http_route, http_request_method, method_route) (\r\n    label_join(floor(increase(http_server_request_duration_seconds_count{job=~\"$job\", instance=~\"$instance\", http_route!=\"\", error_type!=\"\"}[$__rate_interval])), \"method_route\", \" \", \"http_request_method\", \"http_route\")\r\n  ))",
+          "expr": "  topk(10,\r\n  sum by (http_route, http_request_method, method_route) (\r\n    label_join(ceil(increase(http_server_request_duration_seconds_count{job=~\"$job\", instance=~\"$instance\", http_route!=\"\", error_type!=\"\"}[$__range])), \"method_route\", \" \", \"http_request_method\", \"http_route\")\r\n  ))",
           "format": "table",
           "instant": true,
           "interval": "",
