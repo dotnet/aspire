@@ -402,4 +402,63 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
 
         await app.StopAsync();
     }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AzureEventHubsEmulator_WithConfigurationFile()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var configJsonPath = Path.GetTempFileName();
+
+        var source = /*json*/"""
+        {
+          "UserConfig": {
+            "NamespaceConfig": [
+              {
+                "Type": "EventHub",
+                "Name": "emulatorNs1",
+                "Entities": [
+                  {
+                    "Name": "hub1",
+                    "PartitionCount": 2,
+                    "ConsumerGroups": []
+                  }
+                ]
+              }
+            ],
+            "LoggingConfig": {
+              "Type": "Console"
+            }
+          }
+        }
+        """;
+
+        File.WriteAllText(configJsonPath, source);
+
+        var eventHubs = builder.AddAzureEventHubs("eh")
+            .RunAsEmulator(configure => configure.WithConfigurationFile(configJsonPath));
+
+        using var app = builder.Build();
+        await app.StartAsync();
+
+        var eventHubsEmulatorResource = builder.Resources.OfType<AzureEventHubsResource>().Single(x => x is { } eventHubsResource && eventHubsResource.IsEmulator);
+        var volumeAnnotation = eventHubsEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        var configJsonContent = File.ReadAllText(volumeAnnotation.Source!);
+
+        Assert.Equal("/Eventhubs_Emulator/ConfigFiles/Config.json", volumeAnnotation.Target);
+
+        Assert.Equal(source, configJsonContent);
+
+        await app.StopAsync();
+
+        try
+        {
+            File.Delete(configJsonPath);
+        }
+        finally
+        {
+        }
+    }
 }

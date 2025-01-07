@@ -234,15 +234,8 @@ public static class AzureServiceBusExtensions
         }
 
         // Add emulator container
-        var configHostFile = Path.Combine(Directory.CreateTempSubdirectory("AspireServiceBusEmulator").FullName, "Config.json");
 
         var password = PasswordGenerator.Generate(16, true, true, true, true, 0, 0, 0, 0);
-
-        var customMountAnnotation = new ContainerMountAnnotation(
-                configHostFile,
-                AzureServiceBusEmulatorResource.EmulatorConfigJsonPath,
-                ContainerMountType.BindMount,
-                isReadOnly: false);
 
         builder
             .WithEndpoint(name: "emulator", targetPort: 5672)
@@ -251,8 +244,7 @@ public static class AzureServiceBusExtensions
                 Registry = ServiceBusEmulatorContainerImageTags.Registry,
                 Image = ServiceBusEmulatorContainerImageTags.Image,
                 Tag = ServiceBusEmulatorContainerImageTags.Tag
-            })
-            .WithAnnotation(customMountAnnotation);
+            });
 
         var sqlEdgeResource = builder.ApplicationBuilder
                 .AddContainer($"{builder.Resource.Name}-sqledge",
@@ -305,95 +297,94 @@ public static class AzureServiceBusExtensions
 
             foreach (var emulatorResource in serviceBusEmulatorResources)
             {
-                // A custom file mount with read-only access is used to mount the emulator configuration file. If it's not found, the read-write mount we defined on the container is used.
                 var configFileMount = emulatorResource.Annotations.OfType<ContainerMountAnnotation>().LastOrDefault(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath);
 
-                // If the latest mount for EmulatorConfigJsonPath is our custom one then we can generate it.
-                if (configFileMount != customMountAnnotation)
+                // If there is a mount for EmulatorConfigJsonPath we don't need to create the Config.json file.
+                if (configFileMount != null)
                 {
                     continue;
                 }
 
-                using var stream = new FileStream(configFileMount.Source!, FileMode.Create);
-                using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
+                var configHostFile = Path.Combine(Directory.CreateTempSubdirectory("AspireServiceBusEmulator").FullName, "Config.json");
 
-                if (!OperatingSystem.IsWindows())
+                configFileMount = new ContainerMountAnnotation(
+                        configHostFile,
+                        AzureServiceBusEmulatorResource.EmulatorConfigJsonPath,
+                        ContainerMountType.BindMount,
+                        isReadOnly: true);
+
+                builder.WithAnnotation(configFileMount);
+
+                using (var stream = new FileStream(configFileMount.Source!, FileMode.Create))
                 {
-                    File.SetUnixFileMode(configHostFile,
-                        UnixFileMode.UserRead | UnixFileMode.UserWrite
-                        | UnixFileMode.GroupRead | UnixFileMode.GroupWrite
-                        | UnixFileMode.OtherRead | UnixFileMode.OtherWrite);
-                }
+                    using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
 
-                writer.WriteStartObject();                      // {
-                writer.WriteStartObject("UserConfig");          //   "UserConfig": {
-                writer.WriteStartArray("Namespaces");           //     "Namespaces": [
-                writer.WriteStartObject();                      //       {
-                writer.WriteString("Name", emulatorResource.Name);
-                writer.WriteStartArray("Queues");               //         "Queues": [
-
-                foreach (var queue in emulatorResource.Queues)
-                {
-                    writer.WriteStartObject();
-                    queue.WriteJsonObjectProperties(writer);
-                    writer.WriteEndObject();
-                }
-
-                writer.WriteEndArray();                         //         ] (/Queues)
-
-                writer.WriteStartArray("Topics");               //         "Topics": [
-                foreach (var topic in emulatorResource.Topics)
-                {
-                    writer.WriteStartObject();                  //           "{ (Topic)"
-                    topic.WriteJsonObjectProperties(writer);
-
-                    writer.WriteStartArray("Subscriptions");    //             "Subscriptions": [
-                    foreach (var subscription in topic.Subscriptions)
+                    if (!OperatingSystem.IsWindows())
                     {
-                        writer.WriteStartObject();              //               "{ (Subscription)"
-                        subscription.WriteJsonObjectProperties(writer);
-
-                        writer.WriteStartArray("Rules");        //                 "Rules": [
-                        foreach (var rule in subscription.Rules)
-                        {
-                            writer.WriteStartObject();
-                            rule.WriteJsonObjectProperties(writer);
-                            writer.WriteEndObject();
-                        }
-
-                        writer.WriteEndArray();                 //                  ] (/Rules)
-
-                        writer.WriteEndObject();                //               } (/Subscription)
+                        File.SetUnixFileMode(configHostFile,
+                            UnixFileMode.UserRead | UnixFileMode.UserWrite
+                            | UnixFileMode.GroupRead | UnixFileMode.GroupWrite
+                            | UnixFileMode.OtherRead | UnixFileMode.OtherWrite);
                     }
 
-                    writer.WriteEndArray();                     //             ] (/Subscriptions)
+                    writer.WriteStartObject();                      // {
+                    writer.WriteStartObject("UserConfig");          //   "UserConfig": {
+                    writer.WriteStartArray("Namespaces");           //     "Namespaces": [
+                    writer.WriteStartObject();                      //       {
+                    writer.WriteString("Name", emulatorResource.Name);
+                    writer.WriteStartArray("Queues");               //         "Queues": [
 
-                    writer.WriteEndObject();                    //           } (/Topic)
+                    foreach (var queue in emulatorResource.Queues)
+                    {
+                        writer.WriteStartObject();
+                        queue.WriteJsonObjectProperties(writer);
+                        writer.WriteEndObject();
+                    }
+
+                    writer.WriteEndArray();                         //         ] (/Queues)
+
+                    writer.WriteStartArray("Topics");               //         "Topics": [
+                    foreach (var topic in emulatorResource.Topics)
+                    {
+                        writer.WriteStartObject();                  //           "{ (Topic)"
+                        topic.WriteJsonObjectProperties(writer);
+
+                        writer.WriteStartArray("Subscriptions");    //             "Subscriptions": [
+                        foreach (var subscription in topic.Subscriptions)
+                        {
+                            writer.WriteStartObject();              //               "{ (Subscription)"
+                            subscription.WriteJsonObjectProperties(writer);
+
+                            writer.WriteStartArray("Rules");        //                 "Rules": [
+                            foreach (var rule in subscription.Rules)
+                            {
+                                writer.WriteStartObject();
+                                rule.WriteJsonObjectProperties(writer);
+                                writer.WriteEndObject();
+                            }
+
+                            writer.WriteEndArray();                 //                  ] (/Rules)
+
+                            writer.WriteEndObject();                //               } (/Subscription)
+                        }
+
+                        writer.WriteEndArray();                     //             ] (/Subscriptions)
+
+                        writer.WriteEndObject();                    //           } (/Topic)
+                    }
+                    writer.WriteEndArray();                         //         ] (/Topics)
+
+                    writer.WriteEndObject();                        //       } (/Namespace)
+                    writer.WriteEndArray();                         //     ], (/Namespaces)
+                    writer.WriteStartObject("Logging");             //     "Logging": {
+                    writer.WriteString("Type", "File");             //       "Type": "File"
+                    writer.WriteEndObject();                        //     } (/LoggingConfig)
+
+                    writer.WriteEndObject();                        //   } (/UserConfig)
+                    writer.WriteEndObject();                        // } (/Root)
                 }
-                writer.WriteEndArray();                         //         ] (/Topics)
 
-                writer.WriteEndObject();                        //       } (/Namespace)
-                writer.WriteEndArray();                         //     ], (/Namespaces)
-                writer.WriteStartObject("Logging");             //     "Logging": {
-                writer.WriteString("Type", "File");             //       "Type": "File"
-                writer.WriteEndObject();                        //     } (/LoggingConfig)
-
-                writer.WriteEndObject();                        //   } (/UserConfig)
-                writer.WriteEndObject();                        // } (/Root)
-
-            }
-
-            // Apply ConfigJsonAnnotation modifications
-            foreach (var emulatorResource in serviceBusEmulatorResources)
-            {
-                var configFileMount = emulatorResource.Annotations.OfType<ContainerMountAnnotation>().LastOrDefault(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath);
-
-                // At this point there should be a mount for the Config.json file.
-                if (configFileMount == null)
-                {
-                    throw new InvalidOperationException("The configuration file mount is not set.");
-                }
-
+                // Apply ConfigJsonAnnotation modifications
                 var configJsonAnnotations = emulatorResource.Annotations.OfType<ConfigJsonAnnotation>();
 
                 foreach (var annotation in configJsonAnnotations)
@@ -450,7 +441,7 @@ public static class AzureServiceBusExtensions
     /// <param name="path">Path to the file on the AppHost where the emulator configuration is located.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusEmulatorResource> WithConfigurationFile(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, string path)
-        => builder.WithBindMount(path, AzureServiceBusEmulatorResource.EmulatorConfigJsonPath, isReadOnly: false);
+        => builder.WithBindMount(path, AzureServiceBusEmulatorResource.EmulatorConfigJsonPath, isReadOnly: true);
 
     /// <summary>
     /// Alters the JSON configuration document used by the emulator.
