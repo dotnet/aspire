@@ -169,7 +169,12 @@ public static class AspireMongoDBDriverExtensions
         builder.TryAddHealthCheck(
             healthCheckName,
             healthCheck => healthCheck.AddMongoDb(
+#if MONGODB_V2
                 settings.ConnectionString,
+#else
+                sp => sp.GetRequiredService<IMongoClient>(),
+                _ => MongoUrl.Create(settings.ConnectionString).DatabaseName,
+#endif
                 healthCheckName,
                 null,
                 null,
@@ -194,7 +199,7 @@ public static class AspireMongoDBDriverExtensions
         configureClientSettings?.Invoke(clientSettings);
 
         clientSettings.LoggingSettings ??= new LoggingSettings(serviceProvider.GetService<ILoggerFactory>());
-        
+
         var aspireVersion = typeof(MongoDBSettings).Assembly.GetName().Version?.ToString();
         if (clientSettings.LibraryInfo != null)
         {
@@ -204,7 +209,7 @@ public static class AspireMongoDBDriverExtensions
         {
             clientSettings.LibraryInfo = new LibraryInfo("aspire", aspireVersion);
         }
-        
+
         return new MongoClient(clientSettings);
     }
 
