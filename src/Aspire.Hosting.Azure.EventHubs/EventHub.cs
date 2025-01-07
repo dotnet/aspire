@@ -10,13 +10,7 @@ namespace Aspire.Hosting.Azure.EventHubs;
 /// Represents an Event Hub.
 /// </summary>
 /// <remarks>
-/// List of properties from Azure.Provisioning.EventHub that are not exposed here:
-/// - CaptureDescription
-/// - RetentionDescription
-/// - Status
-/// - PartitionIds
-/// 
-/// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure these specific properties.
+/// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
 public class EventHub
 {
@@ -79,13 +73,13 @@ public class EventHub
         else
         {
             // Value is required. We don't assign it by default in case
-            // we need to detect if the value was never set or of the defaults
-            // in the CDK change.
+            // we need to detect if the value was never set or if the defaults
+            // in Azure.Provisioning change.
 
             writer.WriteNumber(nameof(PartitionCount), 1);
         }
 
-#pragma warning disable CA1507 // Use nameof to express symbol names
+#pragma warning disable CA1507 // Use nameof to express symbol names: there is no direct link between the property name and the JSON representation
         writer.WriteStartArray("ConsumerGroups");
 
         // The default consumer group ('$default') is automatically created by the

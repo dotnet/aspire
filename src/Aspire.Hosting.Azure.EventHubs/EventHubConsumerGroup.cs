@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure.EventHubs;
 /// Represents a Consumer Group.
 /// </summary>
 /// <remarks>
-/// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure these specific properties.
+/// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
 public class EventHubConsumerGroup
 {
