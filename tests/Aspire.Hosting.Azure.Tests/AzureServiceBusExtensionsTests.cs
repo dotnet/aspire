@@ -5,7 +5,6 @@ using System.Text.Json.Nodes;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.ServiceBus;
-using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.DependencyInjection;
