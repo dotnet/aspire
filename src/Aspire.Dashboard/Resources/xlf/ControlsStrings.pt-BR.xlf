@@ -79,7 +79,7 @@
       </trans-unit>
       <trans-unit id="ClearAllResources">
         <source>Remove all</source>
-        <target state="new">Remove all</target>
+        <target state="translated">Remover tudo</target>
         <note />
       </trans-unit>
       <trans-unit id="ClearPendingSelectedResource">
