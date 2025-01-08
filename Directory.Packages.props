@@ -8,6 +8,7 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <TestcontainersPackageVersion>4.0.0</TestcontainersPackageVersion>
     <AzureProvisiongVersion>1.0.0</AzureProvisiongVersion>
+    <Npgsql8Version>8.0.6</Npgsql8Version>
   </PropertyGroup>
   <ItemGroup>
     <!-- Azure SDK for .NET dependencies -->
