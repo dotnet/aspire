@@ -96,14 +96,14 @@ public partial class StructuredLogDetails
         }
     }
 
-    private static void MoveAttributes(List<TelemetryPropertyViewModel> source, List<TelemetryPropertyViewModel> desintation, Func<TelemetryPropertyViewModel, bool> predicate)
+    private static void MoveAttributes(List<TelemetryPropertyViewModel> source, List<TelemetryPropertyViewModel> destination, Func<TelemetryPropertyViewModel, bool> predicate)
     {
-        var insertStart = desintation.Count;
+        var insertStart = destination.Count;
         for (var i = source.Count - 1; i >= 0; i--)
         {
             if (predicate(source[i]))
             {
-                desintation.Insert(insertStart, source[i]);
+                destination.Insert(insertStart, source[i]);
                 source.RemoveAt(i);
             }
         }
