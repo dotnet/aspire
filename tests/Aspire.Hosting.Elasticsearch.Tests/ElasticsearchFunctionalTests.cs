@@ -252,7 +252,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
         var resource = builder.AddElasticsearch("resource")
                               .WithHealthCheck("blocking_check");
 
-        var dependentResource = builder.AddNats("nats")
+        var dependentResource = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                                        .WaitFor(resource);
 
         using var app = builder.Build();
