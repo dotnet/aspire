@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.ServiceBus;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.DependencyInjection;
@@ -233,7 +234,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(output);
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
             .RunAsEmulator()
-            .WithQueue("queue1");
+            .WithQueue("queue123");
 
         using var app = builder.Build();
         await app.StartAsync();
@@ -251,10 +252,10 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         var serviceBusClient = host.Services.GetRequiredService<ServiceBusClient>();
 
-        await using var sender = serviceBusClient.CreateSender("queue1");
+        await using var sender = serviceBusClient.CreateSender("queue123");
         await sender.SendMessageAsync(new ServiceBusMessage("Hello, World!"), cts.Token);
 
-        await using var receiver = serviceBusClient.CreateReceiver("queue1");
+        await using var receiver = serviceBusClient.CreateReceiver("queue123");
         var message = await receiver.ReceiveMessageAsync(cancellationToken: cts.Token);
 
         Assert.Equal("Hello, World!", message.Body.ToString());
@@ -648,7 +649,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                 "Namespaces": [
                   {
                     "Name": "servicebusns",
-                    "Queues": [ "queue1" ],
+                    "Queues": [ "queue456" ],
                     "Topics": []
                   }
                 ]
@@ -675,7 +676,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                 "Namespaces": [
                   {
                     "Name": "servicebusns",
-                    "Queues": [ "queue1" ],
+                    "Queues": [ "queue456" ],
                     "Topics": []
                   }
                 ]

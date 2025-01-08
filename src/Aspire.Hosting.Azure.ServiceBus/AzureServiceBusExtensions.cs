@@ -86,7 +86,7 @@ public static class AzureServiceBusExtensions
                         infrastructure.Add(cdkRule);
                     }
                 }
-            }            
+            }
         };
 
         var resource = new AzureServiceBusResource(name, configureInfrastructure);
@@ -233,6 +233,17 @@ public static class AzureServiceBusExtensions
             return builder;
         }
 
+        // Create a default file mount. This could be replaced by a user-provided file mount.
+        var configHostFile = Path.Combine(Directory.CreateTempSubdirectory("AspireServiceBusEmulator").FullName, "Config.json");
+
+        var defaultConfigFileMount = new ContainerMountAnnotation(
+                configHostFile,
+                AzureServiceBusEmulatorResource.EmulatorConfigJsonPath,
+                ContainerMountType.BindMount,
+                isReadOnly: true);
+
+        builder.WithAnnotation(defaultConfigFileMount);
+
         // Add emulator container
 
         var password = PasswordGenerator.Generate(16, true, true, true, true, 0, 0, 0, 0);
@@ -297,23 +308,13 @@ public static class AzureServiceBusExtensions
 
             foreach (var emulatorResource in serviceBusEmulatorResources)
             {
-                var configFileMount = emulatorResource.Annotations.OfType<ContainerMountAnnotation>().LastOrDefault(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath);
+                var configFileMount = emulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath);
 
-                // If there is a mount for EmulatorConfigJsonPath we don't need to create the Config.json file.
-                if (configFileMount != null)
+                // If there is a custom mount for EmulatorConfigJsonPath we don't need to create the Config.json file.
+                if (configFileMount != defaultConfigFileMount)
                 {
                     continue;
                 }
-
-                var configHostFile = Path.Combine(Directory.CreateTempSubdirectory("AspireServiceBusEmulator").FullName, "Config.json");
-
-                configFileMount = new ContainerMountAnnotation(
-                        configHostFile,
-                        AzureServiceBusEmulatorResource.EmulatorConfigJsonPath,
-                        ContainerMountType.BindMount,
-                        isReadOnly: true);
-
-                builder.WithAnnotation(configFileMount);
 
                 using (var stream = new FileStream(configFileMount.Source!, FileMode.Create))
                 {
@@ -441,7 +442,16 @@ public static class AzureServiceBusExtensions
     /// <param name="path">Path to the file on the AppHost where the emulator configuration is located.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusEmulatorResource> WithConfigurationFile(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, string path)
-        => builder.WithBindMount(path, AzureServiceBusEmulatorResource.EmulatorConfigJsonPath, isReadOnly: true);
+    {
+        // Update the existing mount
+        var configFileMount = builder.Resource.Annotations.OfType<ContainerMountAnnotation>().LastOrDefault(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath);
+        if (configFileMount != null)
+        {
+            builder.Resource.Annotations.Remove(configFileMount);
+        }
+
+        return builder.WithBindMount(path, AzureServiceBusEmulatorResource.EmulatorConfigJsonPath, isReadOnly: true);
+    }
 
     /// <summary>
     /// Alters the JSON configuration document used by the emulator.

@@ -151,6 +151,17 @@ public static class AzureEventHubsExtensions
             return builder;
         }
 
+        // Create a default file mount. This could be replaced by a user-provided file mount.
+        var configHostFile = Path.Combine(Directory.CreateTempSubdirectory("AspireEventHubsEmulator").FullName, "Config.json");
+
+        var defaultConfigFileMount = new ContainerMountAnnotation(
+                configHostFile,
+                AzureEventHubsEmulatorResource.EmulatorConfigJsonPath,
+                ContainerMountType.BindMount,
+                isReadOnly: true);
+
+        builder.WithAnnotation(defaultConfigFileMount);
+
         builder
             .WithEndpoint(name: "emulator", targetPort: 5672)
             .WithAnnotation(new ContainerImageAnnotation
@@ -225,23 +236,13 @@ public static class AzureEventHubsExtensions
 
             foreach (var emulatorResource in eventHubsEmulatorResources)
             {
-                var configFileMount = emulatorResource.Annotations.OfType<ContainerMountAnnotation>().LastOrDefault(v => v.Target == AzureEventHubsEmulatorResource.EmulatorConfigJsonPath);
+                var configFileMount = emulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == AzureEventHubsEmulatorResource.EmulatorConfigJsonPath);
 
-                // If there is a mount for EmulatorConfigJsonPath we don't need to create the Config.json file.
-                if (configFileMount != null)
+                // If there is a custom mount for EmulatorConfigJsonPath we don't need to create the Config.json file.
+                if (configFileMount != defaultConfigFileMount)
                 {
                     continue;
                 }
-
-                var configHostFile = Path.Combine(Directory.CreateTempSubdirectory("AspireEventHubsEmulator").FullName, "Config.json");
-
-                configFileMount = new ContainerMountAnnotation(
-                        configHostFile,
-                        AzureEventHubsEmulatorResource.EmulatorConfigJsonPath,
-                        ContainerMountType.BindMount,
-                        isReadOnly: true);
-
-                builder.WithAnnotation(configFileMount);
 
                 using (var stream = new FileStream(configFileMount.Source!, FileMode.Create))
                 {
@@ -362,7 +363,16 @@ public static class AzureEventHubsExtensions
     /// <param name="path">Path to the file on the AppHost where the emulator configuration is located.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureEventHubsEmulatorResource> WithConfigurationFile(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string path)
-        => builder.WithBindMount(path, AzureEventHubsEmulatorResource.EmulatorConfigJsonPath, isReadOnly: true);
+    { 
+        // Update the existing mount
+        var configFileMount = builder.Resource.Annotations.OfType<ContainerMountAnnotation>().LastOrDefault(v => v.Target == AzureEventHubsEmulatorResource.EmulatorConfigJsonPath);
+        if (configFileMount != null)
+        {
+            builder.Resource.Annotations.Remove(configFileMount);
+        }
+
+        return builder.WithBindMount(path, AzureEventHubsEmulatorResource.EmulatorConfigJsonPath, isReadOnly: true);
+    }
 
     /// <summary>
     /// Alters the JSON configuration document used by the emulator.
