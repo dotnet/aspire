@@ -5,17 +5,17 @@ using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 
 namespace Aspire.Dashboard.Model.BrowserStorage;
 
-public abstract class BrowserStorageBase<T> : IBrowserStorage where T : BrowserStorageBase<T>
+public abstract class BrowserStorageBase : IBrowserStorage
 {
     private readonly ProtectedBrowserStorage _protectedBrowserStorage;
 
-    protected BrowserStorageBase(ProtectedBrowserStorage protectedBrowserStorage, ILogger<T> logger)
+    protected BrowserStorageBase(ProtectedBrowserStorage protectedBrowserStorage, ILogger logger)
     {
         _protectedBrowserStorage = protectedBrowserStorage;
         Logger = logger;
     }
 
-    public ILogger<T> Logger { get; }
+    public ILogger Logger { get; }
 
     public async Task<StorageResult<TValue>> GetAsync<TValue>(string key)
     {

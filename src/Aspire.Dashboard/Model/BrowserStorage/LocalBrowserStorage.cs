@@ -7,7 +7,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Model.BrowserStorage;
 
-public class LocalBrowserStorage : BrowserStorageBase<LocalBrowserStorage>, ILocalStorage
+public class LocalBrowserStorage : BrowserStorageBase, ILocalStorage
 {
     private static readonly JsonSerializerOptions s_options = new()
     {

@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 
 namespace Aspire.Dashboard.Model.BrowserStorage;
 
-public class SessionBrowserStorage : BrowserStorageBase<SessionBrowserStorage>, ISessionStorage
+public class SessionBrowserStorage : BrowserStorageBase, ISessionStorage
 {
     public SessionBrowserStorage(ProtectedSessionStorage protectedSessionStorage, ILogger<SessionBrowserStorage> logger) : base(protectedSessionStorage, logger)
     {
