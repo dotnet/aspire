@@ -12,6 +12,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// An immutable snapshot of the state of a resource.
 /// </summary>
+[DebuggerDisplay("ResourceType = {ResourceType,nq}, State = {State?.Text,nq}, HealthStatus = {HealthStatus?.ToString(),nq}, Properties = {Properties.Length}")]
 public sealed record CustomResourceSnapshot
 {
     private readonly ImmutableArray<HealthReportSnapshot> _healthReports = [];
