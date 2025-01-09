@@ -201,8 +201,12 @@ public static class AzureCosmosExtensions
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <returns>A builder for the <see cref="AzureCosmosDBEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureCosmosDBEmulatorResource> WithDataVolume(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, string? name = null)
-        => builder.WithEnvironment("AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE", "true")
-                  .WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/tmp/cosmos/appdata", isReadOnly: false);
+    {
+        var dataPath = builder.Resource.InnerResource.IsPreviewEmulator ? "/data": "/tmp/cosmos/appdata";
+
+        return builder.WithEnvironment("AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE", "true")
+            .WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), dataPath, isReadOnly: false);
+    }
 
     /// <summary>
     /// Configures the gateway port for the Azure Cosmos DB emulator.
@@ -263,6 +267,7 @@ public static class AzureCosmosExtensions
     /// <remarks>
     /// The Data Explorer is only available with <see cref="RunAsPreviewEmulator"/>.
     /// </remarks>
+    [Experimental("ASPIRECOSMOS001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureCosmosDBEmulatorResource> WithDataExplorer(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, int? port = null)
     {
         if (!builder.Resource.InnerResource.IsPreviewEmulator)
