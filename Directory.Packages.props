@@ -8,6 +8,8 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <TestcontainersPackageVersion>4.0.0</TestcontainersPackageVersion>
     <AzureProvisiongVersion>1.0.0</AzureProvisiongVersion>
+    <!-- The Npgsql version used when using Npgsql EF Core on net8. The major versions need to match between Npgsql and EF Core. -->
+    <Npgsql8Version>8.0.6</Npgsql8Version>
   </PropertyGroup>
   <ItemGroup>
     <!-- Azure SDK for .NET dependencies -->
