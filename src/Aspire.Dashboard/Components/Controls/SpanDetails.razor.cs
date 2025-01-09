@@ -67,7 +67,7 @@ public partial class SpanDetails : IDisposable
         ];
         if (!string.IsNullOrEmpty(ViewModel.Span.Scope.Version))
         {
-            _contextAttributes.Add(new TelemetryPropertyViewModel { Name = "Version", Key = KnownSourceFields.VersionField, Value = ViewModel.Span.Scope.ScopeName });
+            _contextAttributes.Add(new TelemetryPropertyViewModel { Name = "Version", Key = KnownSourceFields.VersionField, Value = ViewModel.Span.Scope.Version });
         }
         if (!string.IsNullOrEmpty(ViewModel.Span.ParentSpanId))
         {
