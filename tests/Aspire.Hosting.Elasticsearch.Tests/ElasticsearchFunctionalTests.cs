@@ -269,7 +269,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
-        await rns.WaitForResourceHealthyAsync(dependentResource.Resource.Name, cts.Token);
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
         await pendingStart;
 
