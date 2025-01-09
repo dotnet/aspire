@@ -660,7 +660,6 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             .RunAsEmulator(configure => configure.WithConfigurationFile(configJsonPath));
 
         using var app = builder.Build();
-        await app.StartAsync();
 
         var serviceBusEmulatorResource = builder.Resources.OfType<AzureServiceBusResource>().Single(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
         var volumeAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
@@ -689,7 +688,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         {
             File.Delete(configJsonPath);
         }
-        finally
+        catch
         {
         }
     }

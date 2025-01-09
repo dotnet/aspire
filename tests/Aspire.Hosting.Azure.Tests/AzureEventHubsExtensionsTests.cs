@@ -457,7 +457,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         {
             File.Delete(configJsonPath);
         }
-        finally
+        catch
         {
         }
     }

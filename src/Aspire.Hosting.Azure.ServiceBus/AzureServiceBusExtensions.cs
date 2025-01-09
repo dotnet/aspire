@@ -278,7 +278,7 @@ public static class AzureServiceBusExtensions
         ServiceBusClient? serviceBusClient = null;
         string? queueOrTopicName = null;
 
-        builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>(async (@event, ct) =>
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(async (@event, ct) =>
         {
             var serviceBusEmulatorResources = builder.ApplicationBuilder.Resources.OfType<AzureServiceBusResource>().Where(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
 
@@ -316,17 +316,19 @@ public static class AzureServiceBusExtensions
                     continue;
                 }
 
-                using (var stream = new FileStream(configFileMount.Source!, FileMode.Create))
+                var fileStreamOptions = new FileStreamOptions() { Mode = FileMode.Create, Access = FileAccess.Write };
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    fileStreamOptions.UnixCreateMode =
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite
+                        | UnixFileMode.GroupRead | UnixFileMode.GroupWrite
+                        | UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
+                }
+
+                using (var stream = new FileStream(configFileMount.Source!, fileStreamOptions))
                 {
                     using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
-
-                    if (!OperatingSystem.IsWindows())
-                    {
-                        File.SetUnixFileMode(configHostFile,
-                            UnixFileMode.UserRead | UnixFileMode.UserWrite
-                            | UnixFileMode.GroupRead | UnixFileMode.GroupWrite
-                            | UnixFileMode.OtherRead | UnixFileMode.OtherWrite);
-                    }
 
                     writer.WriteStartObject();                      // {
                     writer.WriteStartObject("UserConfig");          //   "UserConfig": {

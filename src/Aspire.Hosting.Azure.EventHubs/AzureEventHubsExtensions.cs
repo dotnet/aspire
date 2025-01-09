@@ -224,7 +224,7 @@ public static class AzureEventHubsExtensions
             configureContainer(surrogateBuilder);
         }
 
-        builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>((e, ct) =>
         {
             var eventHubsEmulatorResources = builder.ApplicationBuilder.Resources.OfType<AzureEventHubsResource>().Where(x => x is { } eventHubsResource && eventHubsResource.IsEmulator);
 
@@ -244,17 +244,19 @@ public static class AzureEventHubsExtensions
                     continue;
                 }
 
-                using (var stream = new FileStream(configFileMount.Source!, FileMode.Create))
+                var fileStreamOptions = new FileStreamOptions() { Mode = FileMode.Create, Access = FileAccess.Write };
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    fileStreamOptions.UnixCreateMode =
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite
+                        | UnixFileMode.GroupRead | UnixFileMode.GroupWrite
+                        | UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
+                }
+
+                using (var stream = new FileStream(configFileMount.Source!, fileStreamOptions))
                 {
                     using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
-
-                    if (!OperatingSystem.IsWindows())
-                    {
-                        File.SetUnixFileMode(configHostFile,
-                            UnixFileMode.UserRead | UnixFileMode.UserWrite
-                            | UnixFileMode.GroupRead | UnixFileMode.GroupWrite
-                            | UnixFileMode.OtherRead | UnixFileMode.OtherWrite);
-                    }
 
                     writer.WriteStartObject();                      // {
                     writer.WriteStartObject("UserConfig");          //   "UserConfig": {
