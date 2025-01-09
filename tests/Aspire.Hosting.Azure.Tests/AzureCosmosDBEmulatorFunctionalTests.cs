@@ -93,6 +93,9 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
         await app.StartAsync();
 
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceHealthyAsync(db.Resource.Name, cts.Token);
+
         var hb = Host.CreateApplicationBuilder();
         hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default);
         hb.AddAzureCosmosClient(db.Resource.Name);
@@ -169,6 +172,9 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         {
             await app.StartAsync();
 
+            var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+            await rns.WaitForResourceHealthyAsync(db1.Resource.Name, cts.Token);
+
             try
             {
                 var hb = Host.CreateApplicationBuilder();
@@ -213,6 +219,9 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         using (var app = builder2.Build())
         {
             await app.StartAsync();
+
+            var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+            await rns.WaitForResourceHealthyAsync(db2.Resource.Name, cts.Token);
 
             try
             {
