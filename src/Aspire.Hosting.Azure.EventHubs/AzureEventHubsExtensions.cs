@@ -224,7 +224,7 @@ public static class AzureEventHubsExtensions
             configureContainer(surrogateBuilder);
         }
 
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>((e, ct) =>
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, (e, ct) =>
         {
             var eventHubsEmulatorResources = builder.ApplicationBuilder.Resources.OfType<AzureEventHubsResource>().Where(x => x is { } eventHubsResource && eventHubsResource.IsEmulator);
 

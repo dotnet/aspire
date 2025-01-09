@@ -278,7 +278,7 @@ public static class AzureServiceBusExtensions
         ServiceBusClient? serviceBusClient = null;
         string? queueOrTopicName = null;
 
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(async (@event, ct) =>
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (@event, ct) =>
         {
             var serviceBusEmulatorResources = builder.ApplicationBuilder.Resources.OfType<AzureServiceBusResource>().Where(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
 
