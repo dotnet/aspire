@@ -177,6 +177,16 @@
         <target state="translated">Tmavý</target>
         <note />
       </trans-unit>
+      <trans-unit id="SettingsDialogLanguage">
+        <source>Language</source>
+        <target state="translated">Jazyk</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogLanguagePageReloads">
+        <source>The page will reload on language change.</source>
+        <target state="translated">Stránka se znovu načte při změně jazyka.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">
         <source>Light</source>
         <target state="translated">Světlý</target>

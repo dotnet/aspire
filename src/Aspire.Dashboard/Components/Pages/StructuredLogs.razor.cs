@@ -442,6 +442,12 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
+    private Task ClearStructureLogs(ApplicationKey? key)
+    {
+        TelemetryRepository.ClearStructuredLogs(key);
+        return Task.CompletedTask;
+    }
+
     public class StructuredLogsPageViewModel
     {
         public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }

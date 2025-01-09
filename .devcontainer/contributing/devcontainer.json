@@ -41,7 +41,8 @@
 			"extensions": [
 				"ms-dotnettools.csdevkit",
 				"ms-azuretools.vscode-bicep",
-				"ms-azuretools.azure-dev"
+				"ms-azuretools.azure-dev",
+				"GitHub.copilot"
 			],
 			"settings": {
 				"remote.autoForwardPorts": true,

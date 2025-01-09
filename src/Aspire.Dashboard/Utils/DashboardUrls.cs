@@ -140,4 +140,13 @@ internal static class DashboardUrls
 
         return url;
     }
+
+    public static string SetLanguageUrl(string language, string redirectUrl)
+    {
+        var url = "/api/set-language";
+        url = QueryHelpers.AddQueryString(url, "language", language);
+        url = QueryHelpers.AddQueryString(url, "redirectUrl", redirectUrl);
+
+        return url;
+    }
 }

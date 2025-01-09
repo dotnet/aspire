@@ -13,15 +13,15 @@
     };
 }
 
-<FluentButton Id="@MenuButtonId" Title="@Title" Appearance="@ButtonAppearance" @onclick="ToggleMenu" Disabled="@(!Items.Where(i => !i.IsDivider).Any())" AdditionalAttributes="@additionalButtonAttributes">
+<FluentButton Id="@MenuButtonId" Title="@Title" Appearance="@ButtonAppearance" IconStart="@IconStart" @onclick="ToggleMenu" Disabled="@(!Items.Where(i => !i.IsDivider).Any())" AdditionalAttributes="@additionalButtonAttributes" Class="@ButtonClass">
     @if (string.IsNullOrWhiteSpace(Text))
     {
-        <FluentIcon Value="@_icon" />
+        <FluentIcon Value="@_icon" Color="@IconColor" />
     }
     else
     {
         @Text
-        <FluentIcon Value="@_icon" Slot="end" />
+        <FluentIcon Value="@_icon" Color="@IconColor" Slot="end" />
     }
 </FluentButton>
 
@@ -44,7 +44,7 @@
                 @if (item.Icon != null)
                 {
                     <span slot="start">
-                        <FluentIcon Value="@item.Icon" Style="vertical-align: middle;" Width="16px" />
+                        <FluentIcon Value="@item.Icon" Style="vertical-align: text-bottom;" Width="16px" />
                     </span>
                 }
             </FluentMenuItem>

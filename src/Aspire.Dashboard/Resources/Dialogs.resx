@@ -148,6 +148,12 @@
     <value>Version: {0}</value>
     <comment>{0} is the dashboard version string</comment>
   </data>
+  <data name="SettingsDialogLanguage" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="SettingsDialogLanguagePageReloads" xml:space="preserve">
+    <value>The page will reload on language change.</value>
+  </data>
   <data name="FilterDialogParameterInputLabel" xml:space="preserve">
     <value>Parameter</value>
   </data>

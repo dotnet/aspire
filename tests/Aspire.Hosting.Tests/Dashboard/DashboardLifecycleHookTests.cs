@@ -108,7 +108,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
     {
         codespacesOptions ??= Options.Create(new CodespacesOptions());
         devcontainersOptions ??= Options.Create(new DevcontainersOptions());
-
+        var settingsWriter = new DevcontainerSettingsWriter(NullLogger<DevcontainerSettingsWriter>.Instance, codespacesOptions, devcontainersOptions);
         var rewriter = new CodespacesUrlRewriter(codespacesOptions);
 
         return new DashboardLifecycleHook(
@@ -124,7 +124,8 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             new TestHostApplicationLifetime(),
             rewriter,
             codespacesOptions,
-            devcontainersOptions
+            devcontainersOptions,
+            settingsWriter
             );
     }
 
