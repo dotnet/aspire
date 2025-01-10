@@ -19,7 +19,7 @@ namespace Aspire.Hosting.Azure.Tests;
 public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Theory]
-    [InlineData(true)]
+    // [InlineData(true)] // "Using CosmosDB emulator in integration tests leads to flaky tests - https://github.com/dotnet/aspire/issues/5820"
     [InlineData(false)]
     [RequiresDocker]
     public async Task VerifyWaitForOnCosmosDBEmulatorBlocksDependentResources(bool usePreview)
