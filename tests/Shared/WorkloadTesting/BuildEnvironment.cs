@@ -54,16 +54,17 @@ public class BuildEnvironment
     public static BuildEnvironment ForCurrentSdkOnly => s_instance_90.Value;
     public static BuildEnvironment ForCurrentSdkAndPreviousRuntime => s_instance_90_80.Value;
 
-    public static BuildEnvironment ForDefaultFramework { get; } = DefaultTargetFramework switch
-    {
-        TestTargetFramework.Previous => ForPreviousSdkOnly,
+    public static BuildEnvironment ForDefaultFramework =>
+        DefaultTargetFramework switch
+        {
+            TestTargetFramework.Previous => ForPreviousSdkOnly,
 
-        // Use current+previous to allow running tests on helix built with 9.0 sdk
-        // but targeting 8.0 tfm
-        TestTargetFramework.Current => ForCurrentSdkAndPreviousRuntime,
+            // Use current+previous to allow running tests on helix built with 9.0 sdk
+            // but targeting 8.0 tfm
+            TestTargetFramework.Current => ForCurrentSdkAndPreviousRuntime,
 
-        _ => throw new ArgumentOutOfRangeException(nameof(DefaultTargetFramework))
-    };
+            _ => throw new ArgumentOutOfRangeException(nameof(DefaultTargetFramework))
+        };
 
     public BuildEnvironment(bool useSystemDotNet = false, TemplatesCustomHive? templatesCustomHive = default, string sdkDirName = "dotnet-tests")
     {
