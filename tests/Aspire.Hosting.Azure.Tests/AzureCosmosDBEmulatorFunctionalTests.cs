@@ -62,9 +62,9 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         await app.StopAsync();
     }
 
-    [Theory]
+    [Theory(Skip = "Using CosmosDB emulator in integration tests leads to flaky tests - https://github.com/dotnet/aspire/issues/5820")]
     [InlineData(true)]
-    //[InlineData(false)] // Using CosmosDB emulator in integration tests leads to flaky tests - https://github.com/dotnet/aspire/issues/5820
+    [InlineData(false)]
     [RequiresDocker(Reason = "CosmosDB emulator is needed for this test")]
     public async Task VerifyCosmosResource(bool usePreview)
     {
@@ -132,9 +132,9 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         }, cts.Token);
     }
 
-    [Theory]
+    [Theory(Skip = "Using CosmosDB emulator in integration tests leads to flaky tests - https://github.com/dotnet/aspire/issues/5820")]
     [InlineData(true)]
-    //[InlineData(false)] // Using CosmosDB emulator in integration tests leads to flaky tests - https://github.com/dotnet/aspire/issues/5820
+    [InlineData(false)]
     [RequiresDocker]
     public async Task WithDataVolumeShouldPersistStateBetweenUsages(bool usePreview)
     {
