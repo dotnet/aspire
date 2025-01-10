@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Xml;
+using Azure.Provisioning;
 
 namespace Aspire.Hosting.Azure.ServiceBus;
 
@@ -10,17 +11,7 @@ namespace Aspire.Hosting.Azure.ServiceBus;
 /// Represents a Service Bus Subscription.
 /// </summary>
 /// <remarks>
-/// List of properties from Azure.Provisioning.ServiceBus that are not exposed here:
-/// - AutoDeleteOnIdle
-/// - ClientAffineProperties
-/// - DeadLetteringOnFilterEvaluationExceptions
-/// - DuplicateDetectionHistoryTimeWindow
-/// - EnableBatchedOperations
-/// - IsClientAffine
-/// - MaxMessageSizeInKilobytes
-/// - Status
-/// 
-/// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure these specific properties.
+/// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
 public class ServiceBusSubscription
 {
@@ -91,7 +82,7 @@ public class ServiceBusSubscription
     /// <returns>A <see cref="global::Azure.Provisioning.ServiceBus.ServiceBusSubscription"/> instance.</returns>
     internal global::Azure.Provisioning.ServiceBus.ServiceBusSubscription ToProvisioningEntity()
     {
-        var subscription = new global::Azure.Provisioning.ServiceBus.ServiceBusSubscription(AzureResourceInfrastructure.NormalizeBicepIdentifier(Name));
+        var subscription = new global::Azure.Provisioning.ServiceBus.ServiceBusSubscription(Infrastructure.NormalizeBicepIdentifier(Name));
 
         if (Name != null)
         {
