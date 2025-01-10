@@ -4,8 +4,10 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var db = builder.AddAzureCosmosDB("cosmos")
-                .AddDatabase("db")
-                .RunAsEmulator();
+                .WithDatabase("db", database => database.Containers.Add(new("entries", "/Id")))
+                //.WithAccessKeyAuthentication()
+                //.RunAsEmulator()
+                ;
 
 builder.AddProject<Projects.CosmosEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()

@@ -248,7 +248,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             {
                 callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
             });
-        cosmos.AddDatabase("mydatabase");
+        cosmos.WithDatabase("mydatabase");
 
         cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
 
@@ -342,7 +342,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             {
                 callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
             });
-        cosmos.AddDatabase("mydatabase");
+        cosmos.WithDatabase("mydatabase");
 
         cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
 
