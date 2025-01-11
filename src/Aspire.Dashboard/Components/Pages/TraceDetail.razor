@@ -20,7 +20,7 @@
             IsSummaryDetailsViewOpen="@(SelectedSpan is not null)">
             <PageTitleSection>
                 @{
-                    var headerSpan = trace.RootSpan ?? trace.FirstSpan;
+                    var headerSpan = trace.RootOrFirstSpan;
                 }
                 <div class="page-header">
                     <h1>

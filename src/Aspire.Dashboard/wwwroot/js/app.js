@@ -340,6 +340,13 @@ window.setCellTextClickHandler = function (id) {
     });
 };
 
+window.scrollToTop = function (selector) {
+    var element = document.querySelector(selector);
+    if (element) {
+        element.scrollTop = 0;
+    }
+};
+
 // taken from https://learn.microsoft.com/en-us/aspnet/core/blazor/file-downloads?view=aspnetcore-8.0#download-from-a-stream
 window.downloadStreamAsFile = async function (fileName, contentStreamReference) {
     const arrayBuffer = await contentStreamReference.arrayBuffer();
@@ -351,4 +358,4 @@ window.downloadStreamAsFile = async function (fileName, contentStreamReference) 
     anchorElement.click();
     anchorElement.remove();
     URL.revokeObjectURL(url);
-}
+};
