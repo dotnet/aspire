@@ -1781,6 +1781,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     string stringValue => stringValue,
                     IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
                     bool boolValue => boolValue ? "true" : "false",
+                    null => null,
                     _ => buildArgument.Value.ToString()
                 };
 
