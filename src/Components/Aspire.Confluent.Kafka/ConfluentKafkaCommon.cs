@@ -16,6 +16,6 @@ internal static class ConfluentKafkaCommon
 
     private const string EnableAspire8ConfluentKafkaMetrics = "EnableAspire8ConfluentKafkaMetrics";
 
-    internal static readonly bool s_isAspire8ConfluentKafkaMetricsEnabled =
+    internal static bool IsAspire8ConfluentKafkaMetricsEnabled { get; } =
         AppContext.TryGetSwitch(EnableAspire8ConfluentKafkaMetrics, out var value) && value;
 }
