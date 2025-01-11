@@ -15,6 +15,7 @@ using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting;
 
@@ -79,11 +80,18 @@ public static class AzureCosmosExtensions
             cosmosClient = CreateCosmosClient(connectionString);
         });
 
+        // Use custom health check that also seeds the databases and containers
         var healthCheckKey = $"{builder.Resource.Name}_check";
-        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureCosmosDB(sp =>
-        {
-            return cosmosClient ?? throw new InvalidOperationException("CosmosClient is not initialized.");
-        }, name: healthCheckKey);
+        builder.ApplicationBuilder.Services.AddHealthChecks().Add(
+            new HealthCheckRegistration(
+                name: healthCheckKey,
+                new AzureCosmosDBEmulatorHealthCheck(
+                    () => cosmosClient ?? throw new InvalidOperationException("CosmosClient is not initialized."),
+                    builder.Resource.Databases.ToArray
+                ),
+            failureStatus: null,
+            tags: null)
+        );
 
         builder.WithHealthCheck(healthCheckKey);
 
@@ -148,7 +156,7 @@ public static class AzureCosmosExtensions
     /// <param name="builder">Builder for the Cosmos emulator container</param>
     /// <param name="count">Desired partition count.</param>
     /// <returns>Cosmos emulator resource builder.</returns>
-    /// <remarks>Not calling this method will result in the default of 25 partitions. The actual started partitions is always one more than specified.
+    /// <remarks>Not calling this method will result in the default of 10 partitions. The actual started partitions is always one more than specified.
     /// See <a href="https://learn.microsoft.com/en-us/azure/cosmos-db/emulator-windows-arguments#change-the-number-of-default-containers">this documentation</a> about setting the partition count.
     /// </remarks>
     public static IResourceBuilder<AzureCosmosDBEmulatorResource> WithPartitionCount(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, int count)

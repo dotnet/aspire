@@ -5,8 +5,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var db = builder.AddAzureCosmosDB("cosmos")
                 .WithDatabase("db", database => database.Containers.Add(new("entries", "/Id")))
-                //.WithAccessKeyAuthentication()
-                //.RunAsEmulator()
+                .RunAsEmulator(configure => configure.WithPartitionCount(1))
                 ;
 
 builder.AddProject<Projects.CosmosEndToEnd_ApiService>("api")
