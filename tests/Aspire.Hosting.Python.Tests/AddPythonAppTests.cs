@@ -69,7 +69,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
               "type": "container.v1",
               "build": {
                 "context": ".",
-                "dockerfile": "Dockerfile",
+                "dockerfile": "Dockerfile"
               },
               "env": {
                 "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED": "true"
