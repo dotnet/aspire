@@ -6,9 +6,11 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Azure.SignalR.Common;
 using Microsoft.Azure.SignalR.Management;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Polly;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -76,6 +78,16 @@ public class AzureSignalREmulatorFunctionalTest(ITestOutputHelper testOutputHelp
     [RequiresDocker]
     public async Task VerifyAzureSignalREmulatorResource()
     {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new()
+            {
+                MaxRetryAttempts = 10,
+                Delay = TimeSpan.FromSeconds(10),
+                BackoffType = DelayBackoffType.Linear,
+                ShouldHandle = new PredicateBuilder().Handle<AzureSignalRException>()
+            })
+            .Build();
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
         var signalR = builder
             .AddAzureSignalR("signalR")
@@ -84,32 +96,36 @@ public class AzureSignalREmulatorFunctionalTest(ITestOutputHelper testOutputHelp
         using var app = builder.Build();
         await app.StartAsync();
 
-        var connectionString = await signalR.Resource.ConnectionStringExpression.GetValueAsync(default);
-        var serviceManager = new ServiceManagerBuilder()
-            .WithOptions(option => { option.ConnectionString = connectionString; })
-            .BuildServiceManager();
-        Assert.True(await serviceManager.IsServiceHealthy(default));
-
-        // Get negotiate URL to init a signalR connection
-        var serviceHubContext = await serviceManager.CreateHubContextAsync("hub1", default);
-        var negotiationResponse = await serviceHubContext.NegotiateAsync(new() { UserId = "testId" } );
-        var connection = new HubConnectionBuilder().WithUrl(negotiationResponse.Url ?? "", option =>
+        await pipeline.ExecuteAsync(async token =>
         {
-            option.AccessTokenProvider = () => Task.FromResult(negotiationResponse.AccessToken);
-        }).Build();
-        var messageTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-        connection.On<string>("broadcast", message =>
-        {
-            messageTcs.TrySetResult(message);
-        });
-        await connection.StartAsync();
+            var connectionString = await signalR.Resource.ConnectionStringExpression.GetValueAsync(default);
+            var serviceManager = new ServiceManagerBuilder()
+                .WithOptions(option => { option.ConnectionString = connectionString; })
+                .BuildServiceManager();
+            Assert.True(await serviceManager.IsServiceHealthy(default));
 
-        // Broadcast message to all clients
-        var sentMessage = "Hello, World!";
-        await serviceHubContext.Clients.All.SendAsync("broadcast", sentMessage);
+            // Get negotiate URL to init a signalR connection
+            var serviceHubContext = await serviceManager.CreateHubContextAsync("hub1", default);
+            var negotiationResponse = await serviceHubContext.NegotiateAsync(new() { UserId = "testId" }, token);
+            var connection = new HubConnectionBuilder().WithUrl(negotiationResponse.Url ?? "", option =>
+            {
+                option.AccessTokenProvider = () => Task.FromResult(negotiationResponse.AccessToken);
+            }).Build();
+            var messageTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+            connection.On<string>("broadcast", message =>
+            {
+                messageTcs.TrySetResult(message);
+            });
+            await connection.StartAsync(token);
 
-        // Verify that received message is the same as sent message
-        Assert.Equal(sentMessage, await messageTcs.Task);
+            // Broadcast message to all clients
+            var sentMessage = "Hello, World!";
+            await serviceHubContext.Clients.All.SendAsync("broadcast", sentMessage, token);
+
+            // Verify that received message is the same as sent message
+            Assert.Equal(sentMessage, await messageTcs.Task);
+        }, cts.Token);
+        
         await app.StopAsync();
     }
 }
