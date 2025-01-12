@@ -127,7 +127,11 @@ public static class ExecutableResourceBuilderExtensions
 
         configure?.Invoke(cb);
 
-        return builder;
+        // Even through we're adding a ContainerResource
+        // update the manifest publishing callback on the original ExecutableResource
+        // so that the container resource is written to the manifest
+        return builder.WithManifestPublishingCallback(context =>
+            context.WriteContainerAsync(container));
     }
 
     // Allows us to mirror annotations from ExecutableResource to ContainerResource
