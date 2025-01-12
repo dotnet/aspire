@@ -1,0 +1,25 @@
+name: .NET Core
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      docker:
+        image: docker:latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up .NET Core
+      run: |
+        ./eng/scripts/build.sh --restore
+
+    - name: Run tests
+      run: |
+        ./dotnet/dotnet test tests/Aspire.Hosting.Redis.Tests/Aspire.Hosting.Redis.Tests.csproj
