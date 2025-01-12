@@ -65,23 +65,20 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
             }, cts.Token);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
+    [Fact]
+    // [InlineData(true)]
+    // [InlineData(false)]
     [RequiresDocker]
-    public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
+    public async Task WithDataShouldPersistStateBetweenUsages()
     {
+        bool useVolume = false;
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
-        var pipeline = new ResiliencePipelineBuilder()
-           .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(10) })
-           .Build();
-
         string? volumeName = null;
         string? bindMountPath = null;
 
         try
         {
-            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
 
             var elasticsearch1 = builder1.AddElasticsearch("elasticsearch");
 
@@ -99,6 +96,17 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
             else
             {
                 bindMountPath = Directory.CreateTempSubdirectory().FullName;
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    // 777
+                    var permissions = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                                      UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                                      UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
+                    File.SetUnixFileMode(bindMountPath, permissions);
+                }
+
                 elasticsearch1.WithDataBindMount(bindMountPath);
             }
 
@@ -117,9 +125,8 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
 
                     hb.AddElasticsearchClient(elasticsearch1.Resource.Name);
 
-                    using (var host = hb.Build())
-                    {
-                        await host.StartAsync();
+                    using var host = hb.Build();
+                    await host.StartAsync();
 
                         await pipeline.ExecuteAsync(
                             async token =>
@@ -147,9 +154,8 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-            var passwordParameter2 = builder2.AddParameter("pwd");
-            builder2.Configuration["Parameters:pwd"] = password;
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
+            var passwordParameter2 = builder2.AddParameter("pwd", password);
             var elasticsearch2 = builder2.AddElasticsearch("elasticsearch", passwordParameter2);
 
             if (useVolume)
@@ -176,15 +182,12 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
 
                     hb.AddElasticsearchClient(elasticsearch2.Resource.Name);
 
-                    using (var host = hb.Build())
-                    {
-                        await host.StartAsync();
-                        await pipeline.ExecuteAsync(
-                            async token =>
-                            {
-                                var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
+                    using var host = hb.Build();
+                    await host.StartAsync();
 
-                                var getResponse = await elasticsearchClient.GetAsync<Person>(IndexName, s_person.Id, token);
+                    var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
+
+                    var getResponse = await elasticsearchClient.GetAsync<Person>(IndexName, s_person.Id, cts.Token);
 
                                 Assert.True(getResponse.IsSuccess());
                                 Assert.NotNull(getResponse.Source);

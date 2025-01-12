@@ -293,6 +293,8 @@ public static class PostgresBuilderExtensions
 
             pgwebContainerBuilder.WithRelationship(builder.Resource, "PgWeb");
 
+            pgwebContainerBuilder.WithHttpHealthCheck();
+
             builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>(async (e, ct) =>
             {
                 var adminResource = builder.ApplicationBuilder.Resources.OfType<PgWebContainerResource>().Single();
@@ -302,6 +304,17 @@ public static class PostgresBuilderExtensions
                 if (!Directory.Exists(serverFileMount.Source!))
                 {
                     Directory.CreateDirectory(serverFileMount.Source!);
+                }
+
+                // Need to grant read access to the config file on unix like systems.
+                if (!OperatingSystem.IsWindows())
+                {
+                    // 777
+                    var permissions = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                                      UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                                      UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
+                    File.SetUnixFileMode(serverFileMount.Source!, permissions);
                 }
 
                 foreach (var postgresDatabase in postgresInstances)

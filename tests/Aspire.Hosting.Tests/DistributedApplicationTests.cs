@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Dcp;
@@ -734,30 +735,28 @@ public class DistributedApplicationTests
                 e.Port = 1543;
             }, createIfNotExists: true);
 
+        testProgram.ServiceABuilder.WithHttpHealthCheck();
+        testProgram.ServiceABuilder.WithHttpsHealthCheck();
+
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         await using var app = testProgram.Build();
 
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await app.StartAsync();
 
         using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
         var token = cts.Token;
 
-        var urls = string.Empty;
+        await rns.WaitForResourceHealthyAsync(testProgram.ServiceABuilder.Resource.Name, cts.Token);
+
         var httpEndPoint = app.GetEndpoint(testProgram.ServiceABuilder.Resource.Name, endpointName: "http");
-        while (true)
-        {
-            try
-            {
-                using var client = new HttpClient();
-                urls = await client.GetStringAsync($"{httpEndPoint}urls", token);
-                break;
-            }
-            catch
-            {
-                await Task.Delay(100, token);
-            }
-        }
+        using var client = new HttpClient();
+        var urls = await client.GetStringAsync($"{httpEndPoint}urls", token);
+
+        var urlsData = JsonSerializer.Deserialize<string[]>(urls)!;
+        Assert.Equal(2, urlsData.Length);
 
         Assert.Contains(httpEndPoint.ToString().Trim('/'), urls);
 
@@ -765,20 +764,8 @@ public class DistributedApplicationTests
         var httpsEndpoint = app.GetEndpoint(testProgram.ServiceABuilder.Resource.Name, endpointName: "https");
         Assert.DoesNotContain(httpsEndpoint.ToString().Trim('/'), urls);
 
-        while (true)
-        {
-            try
-            {
-                using var client = new HttpClient();
-                var value = await client.GetStringAsync($"{httpsEndpoint}urls", token).DefaultTimeout();
-                Assert.Equal(urls, value);
-                break;
-            }
-            catch (Exception ex) when (ex is not EqualException)
-            {
-                await Task.Delay(100, token);
-            }
-        }
+        var value = await client.GetStringAsync($"{httpsEndpoint}urls", token).DefaultTimeout();
+        Assert.Equal(urls, value);
     }
 
     [Fact]
@@ -822,7 +809,7 @@ public class DistributedApplicationTests
         Assert.Equal("localhost:1234", env.Value);
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
-        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(),$"redis-{ReplicaIdRegex}-{suffix}"))) ;
+        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"redis-{ReplicaIdRegex}-{suffix}")));
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
         var otherRedisEnv = Assert.Single(service.Spec.Env!.Where(e => e.Name == "ConnectionStrings__redisNoPort"));

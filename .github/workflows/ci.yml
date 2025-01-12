@@ -1,25 +1,91 @@
-name: .NET Core
+name: Run Integration Tests
 
 on:
   pull_request:
     branches: [ main ]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-
-    services:
-      docker:
-        image: docker:latest
-
+    timeout-minutes: 60 
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: tests/Aspire.Hosting.Elasticsearch.Tests/Aspire.Hosting.Elasticsearch.Tests.csproj
+            name: Elasticsearch
+            filter: "WithDataShouldPersistStateBetweenUsages"
+          - project: tests/Aspire.Hosting.PostgreSQL.Tests/Aspire.Hosting.PostgreSQL.Tests.csproj
+            name: PostgreSQL
+            filter: "Aspire.Hosting"
+          - project: tests/Aspire.Hosting.Oracle.Tests/Aspire.Hosting.Oracle.Tests.csproj
+            name: Oracle
+            filter: "Aspire.Hosting"
+          - project: tests/Aspire.Hosting.Kafka.Tests/Aspire.Hosting.Kafka.Tests.csproj
+            name: Kafka
+            filter: "Aspire.Hosting"
+          - project: tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj
+            name: Hosting
+            filter: "Aspire.Hosting"
+          - project: tests/Aspire.Hosting.Redis.Tests/Aspire.Hosting.Redis.Tests.csproj
+            name: Redis
+            filter: "Aspire.Hosting"
+          - project: tests/Aspire.Hosting.Azure.Tests/Aspire.Hosting.Azure.Tests.csproj
+            name: Azure
+            filter: "Aspire.Hosting"
+          - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
+            name: Playground
+            filter: "Aspire"
+          # Add more projects as needed
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up .NET Core
-      run: |
-        ./eng/scripts/build.sh --restore
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: |
+            8.x
+            9.x
 
-    - name: Run tests
-      run: |
-        ./dotnet/dotnet test tests/Aspire.Hosting.Redis.Tests/Aspire.Hosting.Redis.Tests.csproj
+      - name: Trust HTTPS development certificate
+        run: dotnet dev-certs https --trust
+
+      - name: Verify Docker is running
+        run: |
+          docker info
+
+      - name: Restore dependencies
+        run: |
+          dotnet restore ${{ matrix.project }}
+
+      - name: Build projects
+        run: |
+          dotnet build ${{ matrix.project }} -c Release /p:CI=false --no-restore
+
+      - name: Run tests
+        id: run_tests
+        run: |
+          dotnet test ${{ matrix.project }} -c Release \
+            --logger "console;verbosity=normal" \
+            --logger "trx" \
+            --logger html \
+            --blame \
+            --blame-hang-timeout 7m \
+            --results-directory testresults \
+            --no-restore \
+            --no-build \
+            --filter ${{ matrix.filter }} \
+            /p:CI=false
+
+      - name: Compress test results
+        if: always()
+        run: |
+          zip -r testresults.zip testresults
+
+      - name: Upload test results artifact
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: testresults-${{ matrix.name }}
+          path: testresults.zip

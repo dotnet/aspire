@@ -10,6 +10,6 @@ var app = builder.Build();
 app.MapGet("/", () => "Hello World!");
 app.MapGet("/pid", () => Environment.ProcessId);
 
-app.MapGet("/urls", (IServiceProvider sp) => sp.GetService<IServer>()?.Features?.Get<IServerAddressesFeature>()?.Addresses);
+app.MapGet("/urls", (IServer server) => server.Features?.Get<IServerAddressesFeature>()?.Addresses ?? []);
 
 app.Run();
