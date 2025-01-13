@@ -40,6 +40,6 @@
     align-items: center;
 }
 
-::deep tr.resource-row :first-child {
+::deep tr.resource-row > :first-child {
     padding-inline-start: 0;
 }
