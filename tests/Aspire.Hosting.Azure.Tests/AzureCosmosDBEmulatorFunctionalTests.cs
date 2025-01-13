@@ -3,6 +3,7 @@
 
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Azure.Cosmos;
 using Microsoft.EntityFrameworkCore;
@@ -82,7 +83,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         var containerName = "container1";
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
-        var db = cosmos.AddDatabase(databaseName)
+        var db = cosmos.WithDatabase(databaseName)
                        .RunAsEmulator();
 
         using var app = builder.Build();
@@ -147,7 +148,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
         var volumeName = VolumeNameGenerator.Generate(cosmos1, nameof(WithDataVolumeShouldPersistStateBetweenUsages));
 
-        var db1 = cosmos1.AddDatabase(databaseName)
+        var db1 = cosmos1.WithDatabase(databaseName)
                        .RunAsEmulator(emulator => emulator.WithDataVolume(volumeName));
 
         // if the volume already exists (because of a crashing previous run), delete it
@@ -198,7 +199,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         using var builder2 = TestDistributedApplicationBuilder.Create(options => { }, testOutputHelper);
 
         var cosmos2 = builder2.AddAzureCosmosDB("cosmos");
-        var db2 = cosmos2.AddDatabase(databaseName)
+        var db2 = cosmos2.WithDatabase(databaseName)
                        .RunAsEmulator(emulator => emulator.WithDataVolume(volumeName));
 
         using (var app = builder2.Build())
@@ -247,6 +248,50 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         }
 
         DockerUtils.AttemptDeleteDockerVolume(volumeName);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AddAzureCosmosDB_RunAsEmulator_CreatesDatabase()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+
+        using var builder = TestDistributedApplicationBuilder.Create(options => { }, testOutputHelper);
+
+        var databaseName = "db1";
+        var containerName = "container1";
+        var partitionKeyPath = "/id";
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                            .WithDatabase(databaseName, db => db.Containers.Add(new(containerName, partitionKeyPath)))
+                            .RunAsEmulator();
+
+        using var app = builder.Build();
+
+        await app.StartAsync(cts.Token);
+
+        await app.WaitForTextAsync("Started").WaitAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceHealthyAsync(cosmos.Resource.Name, cts.Token);
+
+        var hb = Host.CreateApplicationBuilder();
+        hb.Configuration[$"ConnectionStrings:{cosmos.Resource.Name}"] = await cosmos.Resource.ConnectionStringExpression.GetValueAsync(default);
+        hb.AddAzureCosmosClient(cosmos.Resource.Name);
+
+        using var host = hb.Build();
+
+        await host.StartAsync(cts.Token);
+
+        // This needs to be outside the pipeline because when the CosmosClient is disposed,
+        // there is an exception in the pipeline
+        using var cosmosClient = host.Services.GetRequiredService<CosmosClient>();
+
+        var database = cosmosClient.GetDatabase(databaseName);
+        var container = database.GetContainer(containerName);
+
+        Assert.NotNull(database);
+        Assert.NotNull(container);
     }
 }
 
