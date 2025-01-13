@@ -287,11 +287,12 @@ internal static class TelemetryTestHelpers
         };
     }
 
-    public static OtlpSpan CreateSpan(OtlpApplication app, OtlpTrace trace, OtlpScope scope, string spanId, string? parentSpanId, DateTime startDate)
+    public static OtlpSpan CreateOtlpSpan(OtlpApplication app, OtlpTrace trace, OtlpScope scope, string spanId, string? parentSpanId, DateTime startDate,
+        KeyValuePair<string, string>[]? attributes = null, OtlpSpanStatusCode? statusCode = null, string? statusMessage = null)
     {
         return new OtlpSpan(app.GetView([]), trace, scope)
         {
-            Attributes = [],
+            Attributes = attributes ?? [],
             BackLinks = [],
             EndTime = DateTime.MaxValue,
             Events = [],
@@ -302,8 +303,8 @@ internal static class TelemetryTestHelpers
             SpanId = spanId,
             StartTime = startDate,
             State = null,
-            Status = OtlpSpanStatusCode.Unset,
-            StatusMessage = null
+            Status = statusCode ?? OtlpSpanStatusCode.Unset,
+            StatusMessage = statusMessage
         };
     }
 }
