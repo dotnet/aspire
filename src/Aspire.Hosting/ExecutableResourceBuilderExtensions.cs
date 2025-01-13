@@ -128,7 +128,7 @@ public static class ExecutableResourceBuilderExtensions
         // WithImage makes this a container resource (adding the annotation)
         cb.WithImage(builder.Resource.Name);
         cb.WithDockerfile(contextPath: builder.Resource.WorkingDirectory);
-        // Arguments to the executive often contain physical paths that are not valid in the container
+        // Arguments to the executable often contain physical paths that are not valid in the container
         // Clear them out so that the container can be set up with the correct arguments
         cb.WithArgs(c => c.Args.Clear());
 
