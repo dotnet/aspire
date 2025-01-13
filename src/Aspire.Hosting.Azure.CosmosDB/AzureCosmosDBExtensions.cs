@@ -318,7 +318,7 @@ public static class AzureCosmosExtensions
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
-                Value = BicepFunction.Interpolate($"https://{cosmosAccount.Name}.document.azure.com")
+                Value = cosmosAccount.DocumentEndpoint
             });
         }
     }
