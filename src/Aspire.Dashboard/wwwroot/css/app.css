@@ -230,13 +230,11 @@ h1 {
     overflow: auto;
 }
 
-/*fluent-data-grid .empty-content-cell,
-fluent-data-grid .loading-content-cell {
+.fluent-data-grid .empty-content-cell,
+.fluent-data-grid .loading-content-cell {
     padding: calc(var(--design-unit) * 5px);
-    display: flex;
     align-items: center;
 }
-*/
 /*
     Default LoadingContent template has align-items set to start, so the
     text doesn't line up with the spinner properly. It is set via inline style
@@ -423,17 +421,17 @@ fluent-switch.table-switch::part(label) {
     If ShowHover is enabled on a FluentDataGrid, we need to tweak the way anchors and buttons
     are colored when a row is hovered
 */
-.fluent-data-grid-row[row-type=default].hover:hover fluent-anchor[appearance=lightweight]::part(control):not(:hover),
-.fluent-data-grid-row[row-type=default].hover:hover fluent-anchor[appearance=stealth]::part(control):not(:hover),
-.fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=lightweight]::part(control):not(:hover),
-.fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=stealth]::part(control):not(:hover) {
+.fluent-data-grid-row:not([row-type='header'],[row-type='sticky-header']).hover:hover fluent-anchor[appearance=lightweight]::part(control):not(:hover),
+.fluent-data-grid-row:not([row-type='header'],[row-type='sticky-header']).hover:hover fluent-anchor[appearance=stealth]::part(control):not(:hover),
+.fluent-data-grid-row:not([row-type='header'],[row-type='sticky-header']).hover:hover fluent-button[appearance=lightweight]::part(control):not(:hover),
+.fluent-data-grid-row:not([row-type='header'],[row-type='sticky-header']).hover:hover fluent-button[appearance=stealth]::part(control):not(:hover) {
     background-color: var(--datagrid-hover-color);
 }
 
-.fluent-data-grid-row[row-type=default].hover:hover fluent-anchor[appearance=lightweight]::part(control):hover,
-.fluent-data-grid-row[row-type=default].hover:hover fluent-anchor[appearance=stealth]::part(control):hover,
-.fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=lightweight]::part(control):hover,
-.fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=stealth]::part(control):hover {
+.fluent-data-grid-row:not([row-type='header'],[row-type='sticky-header']).hover:hover fluent-anchor[appearance=lightweight]::part(control):hover,
+.fluent-data-grid-row:not([row-type='header'],[row-type='sticky-header']).hover:hover fluent-anchor[appearance=stealth]::part(control):hover,
+.fluent-data-grid-row:not([row-type='header'],[row-type='sticky-header']).hover:hover fluent-button[appearance=lightweight]::part(control):hover,
+.fluent-data-grid-row:not([row-type='header'],[row-type='sticky-header']).hover:hover fluent-button[appearance=stealth]::part(control):hover {
     background-color: var(--fill-color);
 }
 
@@ -483,6 +481,10 @@ fluent-switch.table-switch::part(label) {
 .property-grid-container fluent-accordion-item::part(heading-content) {
     font-weight: 600;
     font-size: var(--type-ramp-plus-1-font-size);
+}
+
+.column-header:not(.select-all):first-of-type {
+    padding-inline-start: 0 !important;
 }
 
 .property-grid-container fluent-accordion .fluent-data-grid-row:last-of-type {
@@ -713,12 +715,12 @@ fluent-switch.table-switch::part(label) {
     margin-left: 5px;
 }
 
-.main-grid .fluent-data-grid-row[row-type='default'] td.expand-col {
+.main-grid .fluent-data-grid-row:not([row-type='sticky-header']) td.expand-col {
     padding-left: 0;
     border-left: 0;
 }
 
-.main-grid .fluent-data-grid-row[row-type='default'] td:first-child:not(.expand-col) {
+.main-grid .fluent-data-grid-row:not([row-type='sticky-header']) td:first-child:not(.expand-col) {
     margin-left: 5px;
 }
 

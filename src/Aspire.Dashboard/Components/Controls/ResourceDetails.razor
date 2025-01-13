@@ -88,7 +88,7 @@
                                     Items="@FilteredVolumes"
                                     ResizableColumns="true"
                                     Style="width:100%"
-                                    GenerateHeader="GenerateHeaderOption.Sticky"
+                                    RowSize="DataGridRowSize.Medium"
                                     GridTemplateColumns="1fr 1fr 0.5fr"
                                     ShowHover="true">
                         <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<VolumeViewModel>.ByAscending(i => i.Source))" Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]">
@@ -127,7 +127,7 @@
                                 Items="@FilteredRelationships"
                                 ItemKey="r => r.ResourceName"
                                 Style="width:100%"
-                                GenerateHeader="GenerateHeaderOption.Sticky"
+                                RowSize="DataGridRowSize.Medium"
                                 GridTemplateColumns="1fr 1fr 0.5fr"
                                 ShowHover="true">
                     <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsResourceHeader)]">
@@ -151,7 +151,7 @@
                                 Items="@FilteredBackRelationships"
                                 ItemKey="r => r.ResourceName"
                                 Style="width:100%"
-                                GenerateHeader="GenerateHeaderOption.Sticky"
+                                RowSize="DataGridRowSize.Medium"
                                 GridTemplateColumns="1fr 1fr 0.5fr"
                                 ShowHover="true">
                     <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsResourceHeader)]">
@@ -180,7 +180,7 @@
                                 ItemKey="r => r.Name"
                                 ResizableColumns="true"
                                 Style="width:100%"
-                                GenerateHeader="GenerateHeaderOption.Sticky"
+                                RowSize="DataGridRowSize.Medium"
                                 GridTemplateColumns="1fr 1fr 1.5fr"
                                 ShowHover="true">
                     <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">

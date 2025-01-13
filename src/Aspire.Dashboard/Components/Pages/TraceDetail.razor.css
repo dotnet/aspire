@@ -18,11 +18,11 @@
     width: 100%;
 }
 
-::deep .trace-view-grid .fluent-data-grid-row[row-type="default"]:hover .span-bar-label-detail {
+::deep .trace-view-grid .fluent-data-grid-row:not([row-type='header']):hover .span-bar-label-detail {
     display: inline !important;
 }
 
-::deep .trace-view-grid .fluent-data-grid-row[row-type="header"] {
+::deep .trace-view-grid .fluent-data-grid-row:not([row-type='header']) {
     background: var(--fill-color);
     border-bottom: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-divider-rest);
 }
@@ -40,7 +40,13 @@
     vertical-align: middle;
 }
 
-::deep .trace-view-grid td[grid-column="2"] fluent-divider {
+::deep .trace-view-grid .column-header {
+    padding: 0 !important;
+    min-height: 32px !important;
+    border-bottom: 0;
+}
+
+::deep .trace-view-grid th[col-index="2"] fluent-divider {
     display: none;
 }
 
@@ -132,11 +138,11 @@
 }
 
 ::deep .selected-row .span-row-name,
-::deep .selected-row fluent-data-grid-row[row-type="default"]:hover .span-row-name,
-::deep .fluent-data-grid-row[row-type="default"]:hover .span-row-name,
+::deep .selected-row .fluent-data-grid-row:not([row-type='header']):hover .span-row-name,
+::deep .fluent-data-grid-row:not([row-type='header']):hover .span-row-name,
 ::deep .selected-row .span-container .span-bar-label,
-::deep .selected-row .fluent-data-grid-row[row-type="default"]:hover .span-container .span-bar-label,
-::deep .fluent-data-grid-row[row-type="default"]:hover .span-container .span-bar-label {
+::deep .selected-row .fluent-data-grid-row:not([row-type='header']):hover .span-container .span-bar-label,
+::deep .fluent-data-grid-row:not([row-type='header']):hover .span-container .span-bar-label {
     color: var(--neutral-foreground-rest);
 }
 

@@ -76,6 +76,7 @@
                                             TGridItem="SpanWaterfallViewModel"
                                             RowClass="@GetRowClass"
                                             GridTemplateColumns="@_manager.GetGridTemplateColumns()"
+                                            RowSize="DataGridRowSize.Small"
                                             ShowHover="true"
                                             ItemKey="@(r => r.Span.SpanId)"
                                             OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, buttonId: null)))">
