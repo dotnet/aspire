@@ -84,7 +84,6 @@
 
                     <FluentDataGrid TGridItem="VolumeViewModel"
                                     ItemKey="@(vm => ((IPropertyGridItem)vm).Key)"
-                                    ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlStringsLoc)"
                                     ResizeType="DataGridResizeType.Discrete"
                                     Items="@FilteredVolumes"
                                     ResizableColumns="true"
