@@ -4,7 +4,9 @@
 using System.Globalization;
 using System.Text;
 using Azure.Messaging.EventHubs.Producer;
+#if !SKIP_UNSTABLE_EMULATORS
 using Azure.Messaging.ServiceBus;
+#endif
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
 using Microsoft.AspNetCore.Http;
@@ -15,7 +17,9 @@ namespace AzureFunctionsEndToEnd.Functions;
 
 public class MyHttpTrigger(
     ILogger<MyHttpTrigger> logger,
+#if !SKIP_UNSTABLE_EMULATORS
     ServiceBusClient serviceBusClient,
+#endif
     EventHubProducerClient eventHubProducerClient,
     QueueServiceClient queueServiceClient,
     BlobServiceClient blobServiceClient)
@@ -25,7 +29,9 @@ public class MyHttpTrigger(
     {
         logger.LogInformation("C# HTTP trigger function processed a request.");
         var stringBuilder = new StringBuilder();
+#if !SKIP_UNSTABLE_EMULATORS
         stringBuilder.AppendLine(CultureInfo.InvariantCulture, $"Aspire-injected ServiceBusClient namespace: {serviceBusClient.FullyQualifiedNamespace}");
+#endif
         stringBuilder.AppendLine(CultureInfo.InvariantCulture, $"Aspire-injected EventHubProducerClient namespace: {eventHubProducerClient.FullyQualifiedNamespace}");
         stringBuilder.AppendLine(CultureInfo.InvariantCulture, $"Aspire-injected QueueServiceClient URI: {queueServiceClient.Uri}");
         stringBuilder.AppendLine(CultureInfo.InvariantCulture, $"Aspire-injected BlobServiceClient URI: {blobServiceClient.Uri}");
