@@ -69,7 +69,7 @@
       "connectionString": "{account.secretOutputs.connectionString}",
       "path": "account.module.bicep",
       "params": {
-        "keyVaultName": ""
+        "principalId": ""
       }
     },
     "storage": {

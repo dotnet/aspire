@@ -1,11 +1,7 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param keyVaultName string
-
-resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-  name: keyVaultName
-}
+param principalId string
 
 resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
   name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
@@ -21,6 +17,7 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
       defaultConsistencyLevel: 'Session'
     }
     databaseAccountOfferType: 'Standard'
+    disableLocalAuth: true
   }
   kind: 'GlobalDocumentDB'
   tags: {
@@ -39,10 +36,4 @@ resource cosmosdb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15
   parent: cosmos
 }
 
-resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-  name: 'connectionString'
-  properties: {
-    value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
-  }
-  parent: keyVault
-}
+output connectionString string = cosmos.properties.documentEndpoint

@@ -6,7 +6,7 @@
       "connectionString": "{cosmos.secretOutputs.connectionString}",
       "path": "cosmos.module.bicep",
       "params": {
-        "keyVaultName": ""
+        "principalId": ""
       }
     },
     "api": {

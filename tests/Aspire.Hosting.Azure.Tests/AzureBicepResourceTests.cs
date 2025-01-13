@@ -434,7 +434,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               parent: mydatabase
             }
 
-            output connectionString string = 'https://${cosmos.name}.document.azure.com'
+            output connectionString string = cosmos.properties.documentEndpoint
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -646,7 +646,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               parent: mydatabase
             }
 
-            output connectionString string = 'https://${cosmos.name}.document.azure.com'
+            output connectionString string = cosmos.properties.documentEndpoint
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
