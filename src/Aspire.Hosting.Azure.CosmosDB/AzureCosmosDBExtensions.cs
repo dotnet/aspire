@@ -175,7 +175,7 @@ public static class AzureCosmosExtensions
     /// <param name="builder">AzureCosmosDB resource builder.</param>
     /// <param name="databaseName">Name of database.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(WithDatabase)} instead to add an Cosmos DB database.")]
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(WithDatabase)} instead to add a Cosmos DB database.")]
     public static IResourceBuilder<AzureCosmosDBResource> AddDatabase(this IResourceBuilder<AzureCosmosDBResource> builder, string databaseName)
     {
         return builder.WithDatabase(databaseName);
