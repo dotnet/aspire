@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.RabbitMQ;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using RabbitMQ.Client;
 
 namespace Aspire.Hosting;
 
@@ -52,12 +53,22 @@ public static class RabbitMQBuilderExtensions
         });
 
         var healthCheckKey = $"{name}_check";
-        builder.Services.AddHealthChecks().AddRabbitMQ((sp, options) =>
+        // cache the connection so it is reused on subsequent calls to the health check
+        IConnection? connection = null;
+        builder.Services.AddHealthChecks().AddRabbitMQ(async (sp) =>
         {
-            // NOTE: This specific callback signature needs to be used to ensure
-            //       that execution of this setup callback is deferred until after
-            //       the container is build & started.
-            options.ConnectionUri = new Uri(connectionString!);
+            // NOTE: Ensure that execution of this setup callback is deferred until after
+            //       the container is built & started.
+            return connection ??= await CreateConnection(connectionString!).ConfigureAwait(false);
+
+            static Task<IConnection> CreateConnection(string connectionString)
+            {
+                var factory = new ConnectionFactory
+                {
+                    Uri = new Uri(connectionString)
+                };
+                return factory.CreateConnectionAsync();
+            }
         }, healthCheckKey);
 
         var rabbitmq = builder.AddResource(rabbitMq)

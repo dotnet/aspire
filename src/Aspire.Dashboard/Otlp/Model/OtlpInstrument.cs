@@ -7,7 +7,6 @@ using System.Runtime.InteropServices;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
-using OpenTelemetry.Proto.Metrics.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
 
@@ -39,32 +38,7 @@ public class OtlpInstrument
     public Dictionary<ReadOnlyMemory<KeyValuePair<string, string>>, DimensionScope> Dimensions { get; } = new(ScopeAttributesComparer.Instance);
     public Dictionary<string, List<string?>> KnownAttributeValues { get; } = new();
 
-    public void AddMetrics(Metric metric, ref KeyValuePair<string, string>[]? tempAttributes)
-    {
-        switch (metric.DataCase)
-        {
-            case Metric.DataOneofCase.Gauge:
-                foreach (var d in metric.Gauge.DataPoints)
-                {
-                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Context);
-                }
-                break;
-            case Metric.DataOneofCase.Sum:
-                foreach (var d in metric.Sum.DataPoints)
-                {
-                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Context);
-                }
-                break;
-            case Metric.DataOneofCase.Histogram:
-                foreach (var d in metric.Histogram.DataPoints)
-                {
-                    FindScope(d.Attributes, ref tempAttributes).AddHistogramValue(d, Context);
-                }
-                break;
-        }
-    }
-
-    private DimensionScope FindScope(RepeatedField<KeyValue> attributes, ref KeyValuePair<string, string>[]? tempAttributes)
+    public DimensionScope FindScope(RepeatedField<KeyValue> attributes, ref KeyValuePair<string, string>[]? tempAttributes)
     {
         // We want to find the dimension scope that matches the attributes, but we don't want to allocate.
         // Copy values to a temporary reusable array.

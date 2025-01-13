@@ -11,6 +11,9 @@
     <ProjectReference Include="..\..\src\Components\Aspire.Oracle.EntityFrameworkCore\Aspire.Oracle.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
 
+    <!-- Needed until Oracle supports net9.0 - https://github.com/dotnet/aspire/issues/7060 -->
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" VersionOverride="$(MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreLTSVersion)" />
+    
     <PackageReference Include="Testcontainers.Oracle" />
   </ItemGroup>
 </Project>
