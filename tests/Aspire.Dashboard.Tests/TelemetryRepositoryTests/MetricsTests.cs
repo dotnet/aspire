@@ -49,7 +49,8 @@ public class MetricsTests
                         Scope = CreateScope(name: "test-meter2"),
                         Metrics =
                         {
-                            CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(1))
+                            CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(1)),
+                            CreateHistogramMetric(metricName: "test2", startTime: s_testTime.AddMinutes(1))
                         }
                     }
                 }
@@ -86,6 +87,13 @@ public class MetricsTests
             instrument =>
             {
                 Assert.Equal("test", instrument.Name);
+                Assert.Equal("Test metric description", instrument.Description);
+                Assert.Equal("widget", instrument.Unit);
+                Assert.Equal("test-meter2", instrument.Parent.MeterName);
+            },
+            instrument =>
+            {
+                Assert.Equal("test2", instrument.Name);
                 Assert.Equal("Test metric description", instrument.Description);
                 Assert.Equal("widget", instrument.Unit);
                 Assert.Equal("test-meter2", instrument.Parent.MeterName);
@@ -988,6 +996,137 @@ public class MetricsTests
 
         var app2Test3Dimensions = Assert.Single(app2Test3Instrument.Dimensions);
         Assert.Equal(6, ((MetricValue<long>)app2Test3Dimensions.Values.Single()).Value);
+    }
+
+    [Fact]
+    public void AddMetrics_InvalidInstrument()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+
+        // Act
+        repository.AddMetrics(addContext, new RepeatedField<ResourceMetrics>()
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "app1", instanceId: "123"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "", value: 1, startTime: s_testTime.AddMinutes(1), attributes: [KeyValuePair.Create("key-1", "value-1")]),
+                            CreateSumMetric(metricName: "test1", value: 2, startTime: s_testTime.AddMinutes(1), attributes: [KeyValuePair.Create("key-1", "value-2")]),
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(1, addContext.FailureCount);
+
+        var app1Key = new ApplicationKey("app1", InstanceId: null);
+        var app1Instruments = repository.GetInstrumentsSummaries(app1Key);
+        Assert.Collection(app1Instruments,
+            instrument =>
+            {
+                Assert.Equal("test1", instrument.Name);
+                Assert.Equal("Test metric description", instrument.Description);
+                Assert.Equal("widget", instrument.Unit);
+                Assert.Equal("test-meter", instrument.Parent.MeterName);
+            });
+    }
+
+    [Fact]
+    public void AddMetrics_InvalidHistogramDataPoints()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+
+        var histogramMetric = new Metric
+        {
+            Name = "test",
+            Description = "Test metric description",
+            Unit = "widget",
+            Histogram = new Histogram
+            {
+                AggregationTemporality = AggregationTemporality.Cumulative,
+                DataPoints =
+                {
+                    new HistogramDataPoint
+                    {
+                        Count = 6,
+                        Sum = 1,
+                        ExplicitBounds = { },
+                        BucketCounts = { 1 },
+                        TimeUnixNano = DateTimeToUnixNanoseconds(s_testTime.AddMinutes(1))
+                    },
+                    new HistogramDataPoint
+                    {
+                        Count = 6,
+                        Sum = 1,
+                        ExplicitBounds = { },
+                        BucketCounts = { 1 },
+                        TimeUnixNano = DateTimeToUnixNanoseconds(s_testTime.AddMinutes(2))
+                    },
+                    new HistogramDataPoint
+                    {
+                        Count = 6,
+                        Sum = 1,
+                        ExplicitBounds = { 1, 2, 3 },
+                        BucketCounts = { 1, 2, 3 },
+                        TimeUnixNano = DateTimeToUnixNanoseconds(s_testTime.AddMinutes(3))
+                    }
+                }
+            }
+        };
+
+        repository.AddMetrics(addContext, new RepeatedField<ResourceMetrics>()
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics = { histogramMetric }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(2, addContext.FailureCount);
+
+        var applications = Assert.Single(repository.GetApplications());
+
+        var instrument = repository.GetInstrument(new GetInstrumentRequest
+        {
+            ApplicationKey = applications.ApplicationKey,
+            MeterName = "test-meter",
+            InstrumentName = "test",
+            StartTime = DateTime.MinValue,
+            EndTime = DateTime.MaxValue
+        });
+
+        Assert.NotNull(instrument);
+        Assert.Equal("test", instrument.Summary.Name);
+        Assert.Equal("Test metric description", instrument.Summary.Description);
+        Assert.Equal("widget", instrument.Summary.Unit);
+        Assert.Equal("test-meter", instrument.Summary.Parent.MeterName);
+
+        var dimension = Assert.Single(instrument.Dimensions);
+        Assert.Single(dimension.Values);
     }
 
     private static void AssertDimensionValues(Dictionary<ReadOnlyMemory<KeyValuePair<string, string>>, DimensionScope> dimensions, ReadOnlyMemory<KeyValuePair<string, string>> key, int valueCount)
