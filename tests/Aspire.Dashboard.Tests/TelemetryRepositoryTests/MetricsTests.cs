@@ -999,6 +999,50 @@ public class MetricsTests
     }
 
     [Fact]
+    public void AddMetrics_InvalidInstrument()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+
+        // Act
+        repository.AddMetrics(addContext, new RepeatedField<ResourceMetrics>()
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "app1", instanceId: "123"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "", value: 1, startTime: s_testTime.AddMinutes(1), attributes: [KeyValuePair.Create("key-1", "value-1")]),
+                            CreateSumMetric(metricName: "test1", value: 2, startTime: s_testTime.AddMinutes(1), attributes: [KeyValuePair.Create("key-1", "value-2")]),
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(1, addContext.FailureCount);
+
+        var app1Key = new ApplicationKey("app1", InstanceId: null);
+        var app1Instruments = repository.GetInstrumentsSummaries(app1Key);
+        Assert.Collection(app1Instruments,
+            instrument =>
+            {
+                Assert.Equal("test1", instrument.Name);
+                Assert.Equal("Test metric description", instrument.Description);
+                Assert.Equal("widget", instrument.Unit);
+                Assert.Equal("test-meter", instrument.Parent.MeterName);
+            });
+    }
+
+    [Fact]
     public void AddMetrics_InvalidHistogramDataPoints()
     {
         // Arrange

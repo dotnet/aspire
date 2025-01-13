@@ -54,6 +54,11 @@ public class OtlpApplication
 
                     try
                     {
+                        if (string.IsNullOrEmpty(metric.Name))
+                        {
+                            throw new InvalidOperationException("Instrument name is required.");
+                        }
+
                         var instrumentKey = new OtlpInstrumentKey(sm.Scope.Name, metric.Name);
                         ref var instrumentRef = ref CollectionsMarshal.GetValueRefOrAddDefault(_instruments, instrumentKey, out _);
                         // Adds to dictionary if not present.
@@ -77,7 +82,7 @@ public class OtlpApplication
                         // If we can't create the instrument then all data points for it are failures.
                         context.FailureCount += GetMetricDataPointCount(metric);
                         Context.Logger.LogInformation(ex, "Error adding metric instrument {MetricName}.", metric.Name);
-                        return;
+                        continue;
                     }
 
                     AddMetrics(instrument, metric, context, ref tempAttributes);
