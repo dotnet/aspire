@@ -277,14 +277,14 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         // This dockerfile doesn't *need* to work but it's a good sanity check.
         var dockerFilePath = Path.Combine(projectDirectory, "Dockerfile");
         File.WriteAllText(dockerFilePath,
-        """
-        FROM python:3.9
-        WORKDIR /app
-        COPY requirements.txt .
-        RUN pip install --no-cache-dir -r requirements.txt
-        COPY . .
-        CMD ["python", "main.py"]
-        """);
+            """
+            FROM python:3.9
+            WORKDIR /app
+            COPY requirements.txt .
+            RUN pip install --no-cache-dir -r requirements.txt
+            COPY . .
+            CMD ["python", "main.py"]
+            """);
 
         var prepareVirtualEnvironmentStartInfo = new ProcessStartInfo()
         {

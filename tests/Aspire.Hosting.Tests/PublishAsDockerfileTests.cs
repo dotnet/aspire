@@ -205,13 +205,10 @@ public class PublishAsDockerfileTests
         return new DisposableTempDirectory(tempDir);
     }
 
-    struct DisposableTempDirectory : IDisposable
+    readonly struct DisposableTempDirectory(DirectoryInfo directory) : IDisposable
     {
-        public DirectoryInfo Directory { get; }
-        public DisposableTempDirectory(DirectoryInfo directory)
-        {
-            Directory = directory;
-        }
+        public DirectoryInfo Directory { get; } = directory;
+
         public void Dispose()
         {
             Directory.Delete(recursive: true);

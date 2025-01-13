@@ -109,9 +109,7 @@ public class SchemaTests
 
                 { "BasicDockerfile", (IDistributedApplicationBuilder builder) =>
                     {
-                        var tempPath = Path.GetTempPath();
-                        var tempContextPath = Path.Combine(tempPath, Path.GetRandomFileName());
-                        Directory.CreateDirectory(tempContextPath);
+                        var tempContextPath = Directory.CreateTempSubdirectory().FullName;
                         var tempDockerfilePath = Path.Combine(tempContextPath, "Dockerfile");
                         File.WriteAllText(tempDockerfilePath, "does not need to be valid dockerfile content here");
 

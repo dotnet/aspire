@@ -93,6 +93,11 @@ public static class ExecutableResourceBuilderExtensions
     }
 
     /// <summary>
+    /// <remarks>
+    /// When the executable resource is converted to a container resource, the arguments to the executable
+    /// are not used. This is because arguments to the executable often contain physical paths that are not valid
+    /// in the container. The container can be set up with the correct arguments using the <paramref name="configure"/> action.
+    /// </remarks>
     /// Adds support for containerizating this <see cref="ExecutableResource"/> during deployment.
     /// The resulting container image is built, and when the optional <paramref name="configure"/> action is provided,
     /// it is used to configure the container resource.
@@ -120,9 +125,11 @@ public static class ExecutableResourceBuilderExtensions
 
         var container = new ExecutableContainerResource(builder.Resource);
         var cb = builder.ApplicationBuilder.AddResource(container);
+        // WithImage makes this a container resource (adding the annotation)
         cb.WithImage(builder.Resource.Name);
         cb.WithDockerfile(contextPath: builder.Resource.WorkingDirectory);
-        // Clear the runtime args
+        // Arguments to the executive often contain physical paths that are not valid in the container
+        // Clear them out so that the container can be set up with the correct arguments
         cb.WithArgs(c => c.Args.Clear());
 
         configure?.Invoke(cb);
