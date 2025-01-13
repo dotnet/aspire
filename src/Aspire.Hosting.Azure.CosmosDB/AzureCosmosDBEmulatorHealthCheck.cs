@@ -34,16 +34,13 @@ internal sealed class AzureCosmosDBEmulatorHealthCheck : IHealthCheck
 
             var databases = _databasesFactory();
 
-            if (databases.Length != 0)
+            foreach (var database in databases)
             {
-                foreach (var database in databases)
-                {
-                    var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync(database.Name, cancellationToken: cancellationToken).ConfigureAwait(false)).Database;
+                var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync(database.Name, cancellationToken: cancellationToken).ConfigureAwait(false)).Database;
 
-                    foreach (var container in database.Containers)
-                    {
-                        await db.CreateContainerIfNotExistsAsync(container.Name, container.PartitionKeyPath, cancellationToken: cancellationToken).ConfigureAwait(false);
-                    }
+                foreach (var container in database.Containers)
+                {
+                    await db.CreateContainerIfNotExistsAsync(container.Name, container.PartitionKeyPath, cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
             }
 

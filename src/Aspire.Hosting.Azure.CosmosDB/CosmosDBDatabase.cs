@@ -20,7 +20,7 @@ public class CosmosDBDatabase
     }
 
     /// <summary>
-    /// The topic name.
+    /// The database name.
     /// </summary>
     public string Name { get; set; }
 

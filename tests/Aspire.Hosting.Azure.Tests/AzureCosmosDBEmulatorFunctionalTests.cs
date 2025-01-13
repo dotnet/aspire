@@ -1,9 +1,21 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Net;
+using System.Text;
+using Microsoft.Azure.Cosmos.Diagnostics;
+using Microsoft.Azure.Cosmos.Linq;
+using Microsoft.Azure.Cosmos.Query.Core.Metrics;
+using Microsoft.Azure.Cosmos.Query.Core.QueryAdvisor;
+using Microsoft.Azure.Cosmos.Resource.CosmosExceptions;
+using Microsoft.Azure.Cosmos.Tracing;
+using Microsoft.Azure.Documents;
+
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Azure.Cosmos;
 using Microsoft.EntityFrameworkCore;
@@ -270,8 +282,6 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
         await app.StartAsync(cts.Token);
 
-        await app.WaitForTextAsync("Started").WaitAsync(cts.Token);
-
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
         await rns.WaitForResourceHealthyAsync(cosmos.Resource.Name, cts.Token);
 
@@ -283,15 +293,21 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
         await host.StartAsync(cts.Token);
 
-        // This needs to be outside the pipeline because when the CosmosClient is disposed,
-        // there is an exception in the pipeline
         using var cosmosClient = host.Services.GetRequiredService<CosmosClient>();
 
         var database = cosmosClient.GetDatabase(databaseName);
-        var container = database.GetContainer(containerName);
+        var result1 = await database.ReadAsync(cancellationToken: cts.Token);
 
-        Assert.NotNull(database);
-        Assert.NotNull(container);
+        var container = database.GetContainer(containerName);
+        var result2 = await container.ReadContainerAsync(cancellationToken: cts.Token);
+
+        Assert.True(IsSuccess(result1.StatusCode));
+        Assert.True(IsSuccess(result2.StatusCode));
+
+        static bool IsSuccess(HttpStatusCode httpStatusCode)
+        {
+            return ((int)httpStatusCode >= 200) && ((int)httpStatusCode <= 299);
+        }
     }
 }
 
