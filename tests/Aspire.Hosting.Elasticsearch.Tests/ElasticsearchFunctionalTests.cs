@@ -8,7 +8,6 @@ using Elastic.Clients.Elasticsearch;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
-using Polly;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -30,9 +29,6 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
     public async Task VerifyElasticsearchResource()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
-        var pipeline = new ResiliencePipelineBuilder()
-           .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(10) })
-           .Build();
 
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
@@ -41,6 +37,9 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
 
         await app.StartAsync();
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceHealthyAsync(elasticsearch.Resource.Name, cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
 
@@ -52,14 +51,9 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await host.StartAsync();
 
-        await pipeline.ExecuteAsync(
-            async token =>
-            {
+        var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
 
-                var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
-
-                await CreateTestData(elasticsearchClient, testOutputHelper, token);
-            }, cts.Token);
+        await CreateTestData(elasticsearchClient, testOutputHelper, cts.Token);
     }
 
     [Theory]
@@ -69,9 +63,6 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
-        var pipeline = new ResiliencePipelineBuilder()
-           .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(10) })
-           .Build();
 
         string? volumeName = null;
         string? bindMountPath = null;
@@ -103,6 +94,9 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 await app.StartAsync();
 
+                var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+                await rns.WaitForResourceHealthyAsync(elasticsearch1.Resource.Name, cts.Token);
+
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
@@ -111,17 +105,11 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
 
                     hb.AddElasticsearchClient(elasticsearch1.Resource.Name);
 
-                    using (var host = hb.Build())
-                    {
-                        await host.StartAsync();
+                    using var host = hb.Build();
+                    await host.StartAsync();
 
-                        await pipeline.ExecuteAsync(
-                            async token =>
-                            {
-                                var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
-                                await CreateTestData(elasticsearchClient, testOutputHelper, token);
-                            }, cts.Token);
-                    }
+                    var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
+                    await CreateTestData(elasticsearchClient, testOutputHelper, cts.Token);
                 }
                 finally
                 {
@@ -148,6 +136,9 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 await app.StartAsync();
 
+                var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+                await rns.WaitForResourceHealthyAsync(elasticsearch2.Resource.Name, cts.Token);
+
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
@@ -156,22 +147,16 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
 
                     hb.AddElasticsearchClient(elasticsearch2.Resource.Name);
 
-                    using (var host = hb.Build())
-                    {
-                        await host.StartAsync();
-                        await pipeline.ExecuteAsync(
-                            async token =>
-                            {
-                                var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
+                    using var host = hb.Build();
+                    await host.StartAsync();
 
-                                var getResponse = await elasticsearchClient.GetAsync<Person>(IndexName, s_person.Id, token);
+                    var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
 
-                                Assert.True(getResponse.IsSuccess());
-                                Assert.NotNull(getResponse.Source);
-                                Assert.Equal(s_person.Id, getResponse.Source?.Id);
-                            }, cts.Token);
+                    var getResponse = await elasticsearchClient.GetAsync<Person>(IndexName, s_person.Id, cts.Token);
 
-                    }
+                    Assert.True(getResponse.IsSuccess());
+                    Assert.NotNull(getResponse.Source);
+                    Assert.Equal(s_person.Id, getResponse.Source?.Id);
                 }
                 finally
                 {
