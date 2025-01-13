@@ -43,7 +43,6 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
         await rns.WaitForResourceHealthyAsync(elasticsearch.Resource.Name, cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
@@ -108,7 +107,6 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
                 await app.StartAsync(cts.Token);
 
                 var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
                 await rns.WaitForResourceHealthyAsync(elasticsearch1.Resource.Name, cts.Token);
 
                 try
@@ -133,7 +131,6 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
                         await app.StopAsync();
 
                         // Wait for the container to be stopped and to release the volume files before continuing
-
                         await pipeline.ExecuteAsync(
                             async token =>
                             {
@@ -169,7 +166,6 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
                 await app.StartAsync();
 
                 var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
                 await rns.WaitForResourceHealthyAsync(elasticsearch2.Resource.Name, cts.Token);
 
                 try
@@ -198,7 +194,6 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
                         await app.StopAsync();
 
                         // Wait for the container to be stopped and to release the volume files before continuing
-
                         await pipeline.ExecuteAsync(
                             async token =>
                             {
