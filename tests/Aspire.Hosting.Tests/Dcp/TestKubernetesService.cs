@@ -148,7 +148,7 @@ internal sealed class TestKubernetesService : IKubernetesService
     {
         cancellation.ThrowIfCancellationRequested();
 
-        lock(CreatedResources)
+        lock (CreatedResources)
         {
             foreach (var c in _watchChannels)
             {

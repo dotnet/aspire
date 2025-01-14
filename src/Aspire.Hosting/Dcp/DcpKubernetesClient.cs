@@ -71,7 +71,7 @@ internal sealed class DcpKubernetesClient : k8s.Kubernetes
         }
         url += q.ToString();
 
-        var httpResponse = await SendRequest<object?>(url, HttpMethod.Get, customHeaders : null, body: null, cancellationToken).ConfigureAwait(false);
+        var httpResponse = await SendRequest<object?>(url, HttpMethod.Get, customHeaders: null, body: null, cancellationToken).ConfigureAwait(false);
         var httpRequest = httpResponse.RequestMessage;
         var result = new HttpOperationResponse<Stream>()
         {
@@ -87,8 +87,7 @@ internal sealed class DcpKubernetesClient : k8s.Kubernetes
     /// </summary>
     public Task<HttpResponseMessage> PatchExecutionDocumentAsync(
         ApiServerExecution apiServerExecution,
-        CancellationToken cancellationToken = default
-    )
+        CancellationToken cancellationToken = default)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(HttpClientTimeout);
@@ -106,7 +105,6 @@ internal sealed class DcpKubernetesClient : k8s.Kubernetes
         httpRequest.Content = new StringContent(content, System.Text.Encoding.UTF8);
         httpRequest.Content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/merge-patch+json");
         return SendRequestRaw(content, httpRequest, cancellationToken);
-
     }
 
     private sealed class QueryBuilder
