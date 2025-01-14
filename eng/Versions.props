@@ -29,8 +29,8 @@
     <MicrosoftDeveloperControlPlanewindowsamd64Version>0.10.1</MicrosoftDeveloperControlPlanewindowsamd64Version>
     <MicrosoftDeveloperControlPlanewindowsarm64Version>0.10.1</MicrosoftDeveloperControlPlanewindowsarm64Version>
     <!-- Other -->
-    <MicrosoftDotNetRemoteExecutorVersion>9.0.0-beta.24623.3</MicrosoftDotNetRemoteExecutorVersion>
-    <MicrosoftDotNetXUnitExtensionsVersion>9.0.0-beta.24623.3</MicrosoftDotNetXUnitExtensionsVersion>
+    <MicrosoftDotNetRemoteExecutorVersion>9.0.0-beta.25058.5</MicrosoftDotNetRemoteExecutorVersion>
+    <MicrosoftDotNetXUnitExtensionsVersion>9.0.0-beta.25058.5</MicrosoftDotNetXUnitExtensionsVersion>
     <MicrosoftDotNetBuildTasksInstallersVersion>9.0.0-beta.24572.2</MicrosoftDotNetBuildTasksInstallersVersion>
     <MicrosoftDotNetBuildTasksWorkloadsVersion>9.0.0-beta.24572.2</MicrosoftDotNetBuildTasksWorkloadsVersion>
     <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.0-preview.5.24272.3</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
