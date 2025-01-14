@@ -1354,8 +1354,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
                 catch (Exception ex)
                 {
-                    resourceLogger.LogCritical("Failed to apply arguments. A dependency may have failed to start.");
-                    _logger.LogDebug(ex, "Failed to apply arguments. A dependency may have failed to start.");
+                    resourceLogger.LogCritical(ex, "Failed to apply argument '{ConfigKey}'. A dependency may have failed to start.", arg);
+                    _logger.LogDebug(ex, "Failed to apply argument '{ConfigKey}' to '{ResourceName}'. A dependency may have failed to start.", arg, er.ModelResource.Name);
                     failedToApplyArgs = true;
                 }
             }
@@ -1396,8 +1396,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
             catch (Exception ex)
             {
-                resourceLogger.LogCritical("Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", c.Key);
-                _logger.LogDebug(ex, "Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", c.Key);
+                resourceLogger.LogCritical(ex, "Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", c.Key);
+                _logger.LogDebug(ex, "Failed to apply configuration value '{ConfigKey}' to '{ResourceName}'. A dependency may have failed to start.", c.Key, er.ModelResource.Name);
                 failedToApplyConfiguration = true;
             }
         }
@@ -1673,8 +1673,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
             catch (Exception ex)
             {
-                resourceLogger.LogCritical("Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", kvp.Key);
-                _logger.LogDebug(ex, "Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", kvp.Key);
+                resourceLogger.LogCritical(ex, "Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", kvp.Key);
+                _logger.LogDebug(ex, "Failed to apply configuration value '{ConfigKey}' to '{ResourceName}'. A dependency may have failed to start.", kvp.Key, modelContainerResource.Name);
                 failedToApplyConfiguration = true;
             }
         }
@@ -1695,18 +1695,27 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             foreach (var arg in args)
             {
-                var value = arg switch
+                try
                 {
-                    string s => s,
-                    IValueProvider valueProvider => await GetValue(key: null, valueProvider, resourceLogger, isContainer: true, cancellationToken).ConfigureAwait(false),
-                    null => null,
-                    _ => throw new InvalidOperationException($"Unexpected value for {arg}")
-                };
+                    var value = arg switch
+                    {
+                        string s => s,
+                        IValueProvider valueProvider => await GetValue(key: null, valueProvider, resourceLogger, isContainer: true, cancellationToken).ConfigureAwait(false),
+                        null => null,
+                        _ => throw new InvalidOperationException($"Unexpected value for {arg}")
+                    };
 
-                if (value is not null)
-                {
-                    dcpContainerResource.Spec.RunArgs.Add(value);
+                    if (value is not null)
+                    {
+                        dcpContainerResource.Spec.RunArgs.Add(value);
+                    }
                 }
+                catch (Exception ex)
+                {
+                    resourceLogger.LogCritical(ex, "Failed to apply container runtime argument '{ConfigKey}'. A dependency may have failed to start.", arg);
+                    _logger.LogDebug(ex, "Failed to apply container runtime argument '{ConfigKey}' to '{ResourceName}'. A dependency may have failed to start.", arg, modelContainerResource.Name);
+                    failedToApplyConfiguration = true;
+                }                
             }
         }
 
@@ -1743,8 +1752,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
                 catch (Exception ex)
                 {
-                    resourceLogger.LogCritical("Failed to apply container arguments '{ConfigKey}'. A dependency may have failed to start.", arg);
-                    _logger.LogDebug(ex, "Failed to apply container arguments '{ConfigKey}'. A dependency may have failed to start.", arg);
+                    resourceLogger.LogCritical(ex, "Failed to apply container argument '{ConfigKey}'. A dependency may have failed to start.", arg);
+                    _logger.LogDebug(ex, "Failed to apply container argument '{ConfigKey}' to '{ResourceName}'. A dependency may have failed to start.", arg, modelContainerResource.Name);
                     failedToApplyArgs = true;
                 }
             }
