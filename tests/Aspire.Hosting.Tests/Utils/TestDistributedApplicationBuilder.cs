@@ -8,7 +8,6 @@ using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Orchestrator;
-using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Dcp;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
