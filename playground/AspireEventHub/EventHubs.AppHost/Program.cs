@@ -7,7 +7,7 @@ var blob = builder.AddAzureStorage("ehstorage")
 
 var eventHub = builder.AddAzureEventHubs("eventhubns")
     .RunAsEmulator()
-    .WithHub("hub");
+    .WithHub("hub", configure => configure.IsDefaultEntity = true);
 
 builder.AddProject<Projects.EventHubsConsumer>("consumer")
     .WithReference(eventHub).WaitFor(eventHub)

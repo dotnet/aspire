@@ -9,6 +9,8 @@ Aspire.Hosting.Azure.AzureEventHubsResource.IsEmulator.get -> bool
 Aspire.Hosting.Azure.EventHubs.EventHub
 Aspire.Hosting.Azure.EventHubs.EventHub.ConsumerGroups.get -> System.Collections.Generic.List<Aspire.Hosting.Azure.EventHubs.EventHubConsumerGroup!>!
 Aspire.Hosting.Azure.EventHubs.EventHub.EventHub(string! name) -> void
+Aspire.Hosting.Azure.EventHubs.EventHub.IsDefaultEntity.get -> bool
+Aspire.Hosting.Azure.EventHubs.EventHub.IsDefaultEntity.set -> void
 Aspire.Hosting.Azure.EventHubs.EventHub.Name.get -> string!
 Aspire.Hosting.Azure.EventHubs.EventHub.Name.set -> void
 Aspire.Hosting.Azure.EventHubs.EventHub.PartitionCount.get -> long?

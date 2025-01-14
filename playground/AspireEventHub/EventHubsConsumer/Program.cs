@@ -10,11 +10,7 @@ bool useConsumer = Environment.GetEnvironmentVariable("USE_EVENTHUBCONSUMERCLIEN
 
 if (useConsumer)
 {
-    builder.AddAzureEventHubConsumerClient("eventhubns",
-        settings =>
-        {
-            settings.EventHubName = "hub";
-        });
+    builder.AddAzureEventHubConsumerClient("eventhubns");
 
     builder.Services.AddHostedService<Consumer>();
     Console.WriteLine("Starting EventHubConsumerClient...");
@@ -24,11 +20,7 @@ else
     // required for checkpointing our position in the event stream
     builder.AddAzureBlobClient("checkpoints");
 
-    builder.AddAzureEventProcessorClient("eventhubns",
-        settings =>
-        {
-            settings.EventHubName = "hub";
-        });
+    builder.AddAzureEventProcessorClient("eventhubns");
     builder.Services.AddHostedService<Processor>();
     Console.WriteLine("Starting EventProcessorClient...");
 }

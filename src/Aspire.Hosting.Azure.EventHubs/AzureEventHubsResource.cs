@@ -47,8 +47,29 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         IsEmulator
-        ? ReferenceExpression.Create($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.Host)}:{EmulatorEndpoint.Property(EndpointProperty.Port)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;")
-        : ReferenceExpression.Create($"{EventHubsEndpoint}");
+        ? ReferenceExpression.Create($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.Host)}:{EmulatorEndpoint.Property(EndpointProperty.Port)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true{BuildEntityPath()}")
+        : ReferenceExpression.Create($"{EventHubsEndpoint}{BuildEntityPath()}");
+
+    private string BuildEntityPath()
+    {
+        if (!Hubs.Any(hub => hub.IsDefaultEntity))
+        {
+            // Of zero or more hubs, none are flagged as default
+            return string.Empty;
+        }
+
+        try
+        {
+            // Of one or more hubs, only one may be flagged as default
+            var defaultEntity = Hubs.Single(hub => hub.IsDefaultEntity);
+
+            return $";EntityPath={defaultEntity.Name}";
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new InvalidOperationException("Only one EventHub can be configured as the default entity.", ex);
+        }
+    }
 
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
     {

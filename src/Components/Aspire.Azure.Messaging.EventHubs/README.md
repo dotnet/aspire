@@ -70,6 +70,8 @@ builder.AddAzureEventHubProducerClient("eventHubsConnectionName",
     });
 ```
 
+NOTE: Earlier versions of Aspire (&lt;9.1) required you to always set the EventHubName here because the Azure Event Hubs Hosting component did not provide a way to specify which Event Hub was to be included in the connection string. Beginning in 9.1, it is now possible to specify which Event Hub is to be used by way of the `configuration` callback in `WithHub(...)` using the `IsDefaultEntity` boolean property. Only one Event Hub can be the default and attempts to flag multiple will elicit an Exception at runtime.
+
 And then the connection information will be retrieved from the `ConnectionStrings` configuration section. Two connection formats are supported:
 
 #### Fully Qualified Namespace

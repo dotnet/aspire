@@ -39,6 +39,12 @@ public class EventHub
     public List<EventHubConsumerGroup> ConsumerGroups { get; } = [];
 
     /// <summary>
+    /// If set, this EventHub will be used as the EntityPath in the resource's connection string.
+    /// <remarks>Only one EventHub can be set as the default entity. If more than one is specified, an Exception will be raised at runtime.</remarks>
+    /// </summary>
+    public bool IsDefaultEntity { get; set; }
+
+    /// <summary>
     /// Converts the current instance to a provisioning entity.
     /// </summary>
     /// <returns>A <see cref="global::Azure.Provisioning.EventHubs.EventHub"/> instance.</returns>

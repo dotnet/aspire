@@ -200,7 +200,9 @@ public static class AzureEventHubsExtensions
             // an event hub namespace without an event hub? :)
             if (builder.Resource.Hubs is { Count: > 0 } && builder.Resource.Hubs[0] is { } hub)
             {
-                var healthCheckConnectionString = $"{connectionString};EntityPath={hub.Name};";
+                var healthCheckConnectionString = connectionString.Contains(";EntityPath=") ?
+                    connectionString : $"{connectionString};EntityPath={hub.Name};";
+
                 client = new EventHubProducerClient(healthCheckConnectionString);
             }
             else
@@ -365,7 +367,7 @@ public static class AzureEventHubsExtensions
     /// <param name="path">Path to the file on the AppHost where the emulator configuration is located.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureEventHubsEmulatorResource> WithConfigurationFile(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string path)
-    { 
+    {
         // Update the existing mount
         var configFileMount = builder.Resource.Annotations.OfType<ContainerMountAnnotation>().LastOrDefault(v => v.Target == AzureEventHubsEmulatorResource.EmulatorConfigJsonPath);
         if (configFileMount != null)

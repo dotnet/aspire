@@ -105,6 +105,9 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
                         $"A {typeof(TClient).Name} could not be configured. Ensure a valid EventHubName was provided in " +
                         $"the '{configurationSectionName}' configuration section, or include an EntityPath in the ConnectionString.");
                 }
+
+                // this is used later to create the checkpoint blob container
+                settings.EventHubName = props.EventHubName;
             }
         }
         // If we have a namespace and no connection string, ensure there's an EventHubName

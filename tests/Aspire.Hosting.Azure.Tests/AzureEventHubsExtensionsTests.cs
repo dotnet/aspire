@@ -64,6 +64,53 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/7093")]
+    public async Task VerifyEntityPathInConnectionStringForIsDefaultEntity()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var eventHub = builder.AddAzureEventHubs("eventhubns")
+            .RunAsEmulator()
+            .WithHub("hub", configure => configure.IsDefaultEntity = true);
+
+        using var app = builder.Build();
+        await app.StartAsync();
+
+        string? connectionString =
+            await eventHub.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+
+        // has entitypath?
+        Assert.Contains(";EntityPath=hub", connectionString);
+
+        // well-formed connectionstring?
+        var props = EventHubsConnectionStringProperties.Parse(connectionString);
+        Assert.NotNull(props);
+        Assert.Equal("hub", props.EventHubName);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/7093")]
+    public async Task VerifyMultipleDefaultEntityThrowsInvalidOperationException()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var eventHub = builder.AddAzureEventHubs("eventhubns")
+            .RunAsEmulator()
+            .WithHub("hub", configure => configure.IsDefaultEntity = true)
+            .WithHub("hub2", configure => configure.IsDefaultEntity = true);
+
+        using var app = builder.Build();
+
+        await app.StartAsync();
+        var hb = Host.CreateApplicationBuilder();
+        using var host = hb.Build();
+        await host.StartAsync();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await eventHub.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+    }
+
+    [Fact]
+    [RequiresDocker]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/6751")]
     public async Task VerifyAzureEventHubsEmulatorResource()
     {
