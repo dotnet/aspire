@@ -5,7 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using Aspire.Hosting.Azure.Cosmos;
 using Aspire.Hosting.Azure.CosmosDB;
 using Aspire.Hosting.Utils;
 using Azure.Identity;
