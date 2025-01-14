@@ -31,11 +31,11 @@ internal static class CommandsConfigurationExtensions
             },
             updateState: context =>
             {
-                if (IsStarting(context.ResourceSnapshot.State?.Text) || IsWaiting(context.ResourceSnapshot.State?.Text))
+                if (IsStarting(context.ResourceSnapshot.State?.Text))
                 {
                     return ResourceCommandState.Disabled;
                 }
-                else if (IsStopped(context.ResourceSnapshot.State?.Text))
+                else if (IsStopped(context.ResourceSnapshot.State?.Text) || IsWaiting(context.ResourceSnapshot.State?.Text))
                 {
                     return ResourceCommandState.Enabled;
                 }
@@ -96,7 +96,7 @@ internal static class CommandsConfigurationExtensions
             },
             updateState: context =>
             {
-                if (IsWaiting(context.ResourceSnapshot.State?.Text) || IsStarting(context.ResourceSnapshot.State?.Text) || IsStopping(context.ResourceSnapshot.State?.Text) || IsStopped(context.ResourceSnapshot.State?.Text) || context.ResourceSnapshot.State is null)
+                if (IsStarting(context.ResourceSnapshot.State?.Text) || IsStopping(context.ResourceSnapshot.State?.Text) || IsStopped(context.ResourceSnapshot.State?.Text) || context.ResourceSnapshot.State is null)
                 {
                     return ResourceCommandState.Disabled;
                 }
