@@ -60,7 +60,7 @@ public class ResourceNotificationService : IDisposable
         _resourceLoggerService = resourceLoggerService ?? throw new ArgumentNullException(nameof(resourceLoggerService));
 
         // The IHostApplicationLifetime parameter is not used anymore, but we keep it for backwards compatibility.
-        // Notfication updates will be cancelled when the service is disposed.
+        // Notification updates will be cancelled when the service is disposed.
     }
 
     private class NullServiceProvider : IServiceProvider
