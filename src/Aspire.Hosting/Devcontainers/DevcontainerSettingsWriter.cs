@@ -12,7 +12,9 @@ namespace Aspire.Hosting.Devcontainers;
 internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> logger, IOptions<CodespacesOptions> codespaceOptions, IOptions<DevcontainersOptions> devcontainerOptions)
 {
     private const string CodespaceSettingsPath = "/home/vscode/.vscode-remote/data/Machine/settings.json";
-    private const string LocalDevcontainerSettingsPath = "/home/vscode/.vscode-server/data/Machine/settings.json";
+    private const string VSCodeServerPath = "/home/vscode/.vscode-server";
+    private const string VSCodeInsidersServerPath = "/home/vscode/.vscode-server-insiders";
+    private const string LocalDevcontainerSettingsPath = "data/Machine/settings.json";
     private const string PortAttributesFieldName = "remote.portsAttributes";
     private const int WriteLockTimeoutMs = 2000;
     private readonly SemaphoreSlim _writeLock = new SemaphoreSlim(1);
@@ -79,7 +81,13 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
             }
             else if (devcontainerOptions.Value.IsDevcontainer)
             {
-                return LocalDevcontainerSettingsPath;
+                // VS Code and VS Code Insiders have different server paths, so we need to find the right one.
+                // Unfortunately, there isn't any environment variable that tells us which one is being used,
+                // so we need to check both paths and use the one that exists (and take VS Code stable as the
+                // higher priority).
+                var serverPath = Directory.Exists(VSCodeServerPath) ? VSCodeServerPath : VSCodeInsidersServerPath;
+
+                return Path.Combine(serverPath, LocalDevcontainerSettingsPath);
             }
             else
             {
