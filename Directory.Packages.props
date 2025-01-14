@@ -119,7 +119,7 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.9.0" />
     <!-- build dependencies -->
     <PackageVersion Include="MicroBuild.Plugins.SwixBuild.Dotnet" Version="1.1.87-gba258badda" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.11.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.12.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.4" />
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Workloads" Version="8.0.0-beta.23564.4" />
     <PackageVersion Include="Microsoft.Signed.Wix" Version="$(MicrosoftSignedWixVersion)" />
