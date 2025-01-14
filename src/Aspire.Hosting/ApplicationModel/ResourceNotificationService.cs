@@ -14,13 +14,13 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A service that allows publishing and subscribing to changes in the state of a resource.
 /// </summary>
-public class ResourceNotificationService
+public class ResourceNotificationService : IDisposable
 {
     // Resource state is keyed by the resource and the unique name of the resource. This could be the name of the resource, or a replica ID.
     private readonly ConcurrentDictionary<(IResource, string), ResourceNotificationState> _resourceNotificationStates = new();
     private readonly ILogger<ResourceNotificationService> _logger;
     private readonly IServiceProvider _serviceProvider;
-    private readonly CancellationToken _applicationStopping;
+    private readonly CancellationTokenSource _disposing = new();
     private readonly ResourceLoggerService _resourceLoggerService;
 
     private Action<ResourceEvent>? OnResourceUpdated { get; set; }
@@ -43,7 +43,6 @@ public class ResourceNotificationService
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _serviceProvider = new NullServiceProvider();
-        _applicationStopping = hostApplicationLifetime?.ApplicationStopping ?? throw new ArgumentNullException(nameof(hostApplicationLifetime));
         _resourceLoggerService = new ResourceLoggerService();
     }
 
@@ -58,8 +57,10 @@ public class ResourceNotificationService
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _serviceProvider = serviceProvider;
-        _applicationStopping = hostApplicationLifetime?.ApplicationStopping ?? throw new ArgumentNullException(nameof(hostApplicationLifetime));
         _resourceLoggerService = resourceLoggerService ?? throw new ArgumentNullException(nameof(resourceLoggerService));
+
+        // The IHostApplicationLifetime parameter is not used anymore, but we keep it for backwards compatibility.
+        // Notfication updates will be cancelled when the service is disposed.
     }
 
     private class NullServiceProvider : IServiceProvider
@@ -105,7 +106,7 @@ public class ResourceNotificationService
                                                      Justification = "targetState(s) parameters are mutually exclusive.")]
     public async Task<string> WaitForResourceAsync(string resourceName, IEnumerable<string> targetStates, CancellationToken cancellationToken = default)
     {
-        using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_applicationStopping, cancellationToken);
+        using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_disposing.Token, cancellationToken);
         var watchToken = watchCts.Token;
         await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
         {
@@ -273,7 +274,7 @@ public class ResourceNotificationService
                                                      Justification = "predicate and targetState(s) parameters are mutually exclusive.")]
     public async Task<ResourceEvent> WaitForResourceAsync(string resourceName, Func<ResourceEvent, bool> predicate, CancellationToken cancellationToken = default)
     {
-        using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_applicationStopping, cancellationToken);
+        using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_disposing.Token, cancellationToken);
         var watchToken = watchCts.Token;
         await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
         {
@@ -501,6 +502,12 @@ public class ResourceNotificationService
 
     private ResourceNotificationState GetResourceNotificationState(IResource resource, string resourceId) =>
         _resourceNotificationStates.GetOrAdd((resource, resourceId), _ => new ResourceNotificationState());
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        _disposing.Cancel();
+    }
 
     /// <summary>
     /// The annotation that allows publishing and subscribing to changes in the state of a resource.
