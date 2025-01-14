@@ -111,19 +111,12 @@ fluent-toolbar::part(end) {
     --hljs-keyword: #dcc6e0;
 }
 
-/*
-    Override the `cursor: pointer` in the default styles from fluentui-blazor since
-    we don't have selection implemented and the pointer doesn't really make sense.
-    The `fluent-data-grid-row[role='row']` part added to the beginning is a bit of
-    a hack to get the specificity higher than the default style to avoid using
-    `!important` just in case there's a reason to to override further later.
-*/
-.fluent-data-grid-row[role='row'].hover:not([row-type='header'],[row-type='sticky-header']):hover {
-    cursor: auto;
+.fluent-data-grid-row.hover:not([row-type='header'],[row-type='sticky-header']):hover td {
+    cursor: auto !important;
 }
 
-.enable-row-click .fluent-data-grid-row[role='row'].hover:not([row-type='header'],[row-type='sticky-header']):hover {
-    cursor: pointer;
+.enable-row-click .fluent-data-grid-row.hover:not([row-type='header'],[row-type='sticky-header'], .empty-content-row):hover td {
+    cursor: pointer !important;
 }
 
 [data-theme="light"] {
@@ -286,7 +279,7 @@ fluent-dialog fluent-anchor[appearance=lightweight]:not(:hover)::part(control) {
 
 /* But changing the stealth button's background in dialogs means the stealth buttons used as headers for grid cells
    now have the wrong background. So change that back */
-fluent-dialog .fluent-data-grid-cell[cell-type=columnheader] fluent-button[appearance=stealth]:not(:hover)::part(control) {
+fluent-dialog td[cell-type=columnheader] fluent-button[appearance=stealth]:not(:hover)::part(control) {
     background: var(--fill-layer);
 }
 
@@ -300,7 +293,7 @@ fluent-dialog .fluent-data-grid-cell[cell-type=columnheader] fluent-button[appea
     align-items: center;
 }*/
 
-.fluent-data-grid-cell .long-inner-content {
+td .long-inner-content {
     width: inherit;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -720,7 +713,7 @@ fluent-switch.table-switch::part(label) {
     border-left: 0;
 }
 
-.main-grid .fluent-data-grid-row:not([row-type='sticky-header']) td:first-child:not(.expand-col) {
+.main-grid .fluent-data-grid-row:not([row-type='sticky-header'], .empty-content-row) td:first-child:not(.expand-col) {
     margin-left: 5px;
 }
 
