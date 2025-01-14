@@ -42,12 +42,16 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     /// </summary>
     public bool IsEmulator => this.IsContainer();
 
+    internal bool IsPreviewEmulator =>
+        this.TryGetContainerImageName(out var imageName) &&
+        imageName == $"{CosmosDBEmulatorContainerImageTags.Registry}/{CosmosDBEmulatorContainerImageTags.Image}:{CosmosDBEmulatorContainerImageTags.TagVNextPreview}";
+
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Cosmos DB resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         IsEmulator
-        ? AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint)
+        ? AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint, IsPreviewEmulator)
         : UseAccessKeyAuthentication ?
             ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
             ReferenceExpression.Create($"{ConnectionString}");

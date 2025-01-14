@@ -69,6 +69,12 @@ public class Entry
 public class TestCosmosContext(DbContextOptions<TestCosmosContext> options) : DbContext(options)
 {
     public DbSet<EntityFrameworkEntry> Entries { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<EntityFrameworkEntry>()
+            .HasPartitionKey(e => e.Id);
+    }
 }
 
 public class EntityFrameworkEntry

@@ -13,4 +13,7 @@ internal static class CosmosDBEmulatorContainerImageTags
 
     /// <remarks>latest</remarks>
     public const string Tag = "latest";
+
+    /// <remarks>vnext-preview</remarks>
+    public const string TagVNextPreview = "vnext-preview";
 }

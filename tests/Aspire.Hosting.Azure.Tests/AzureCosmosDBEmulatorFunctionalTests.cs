@@ -19,9 +19,11 @@ namespace Aspire.Hosting.Azure.Tests;
 
 public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHelper)
 {
-    [Fact]
+    [Theory]
+    // [InlineData(true)] // "Using CosmosDB emulator in integration tests leads to flaky tests - https://github.com/dotnet/aspire/issues/5820"
+    [InlineData(false)]
     [RequiresDocker]
-    public async Task VerifyWaitForOnCosmosDBEmulatorBlocksDependentResources()
+    public async Task VerifyWaitForOnCosmosDBEmulatorBlocksDependentResources(bool usePreview)
     {
         // Cosmos can be pretty slow to spin up, lets give it plenty of time.
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
@@ -34,7 +36,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         });
 
         var resource = builder.AddAzureCosmosDB("resource")
-                              .RunAsEmulator()
+                              .RunAsEmulator(usePreview)
                               .WithHealthCheck("blocking_check");
 
         var dependentResource = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
@@ -61,9 +63,11 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         await app.StopAsync();
     }
 
-    [Fact(Skip = "Using CosmosDB emulator in integration tests leads to flaky tests - https://github.com/dotnet/aspire/issues/5820")]
+    [Theory(Skip = "Using CosmosDB emulator in integration tests leads to flaky tests - https://github.com/dotnet/aspire/issues/5820")]
+    [InlineData(true)]
+    [InlineData(false)]
     [RequiresDocker(Reason = "CosmosDB emulator is needed for this test")]
-    public async Task VerifyCosmosResource()
+    public async Task VerifyCosmosResource(bool usePreview)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         var pipeline = new ResiliencePipelineBuilder()
@@ -84,11 +88,14 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
         var db = cosmos.WithDatabase(databaseName)
-                       .RunAsEmulator();
+                       .RunAsEmulator(usePreview);
 
         using var app = builder.Build();
 
         await app.StartAsync();
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceHealthyAsync(db.Resource.Name, cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
         hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default);
@@ -108,12 +115,16 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         {
             Database database = await cosmosClient.CreateDatabaseIfNotExistsAsync(databaseName, cancellationToken: token);
             Container container = await database.CreateContainerIfNotExistsAsync(containerName, "/id", cancellationToken: token);
-            var query = new QueryDefinition("SELECT VALUE 1");
 
-            var results = await container.GetItemQueryIterator<int>(query).ReadNextAsync(token);
+            var testObject = new { id = "1", data = "assertionValue" };
+            await container.CreateItemAsync(testObject, cancellationToken: token);
+
+            // run query and check the value
+            QueryDefinition query = new("SELECT VALUE c.data FROM c WHERE c.id = '1'");
+            var results = await container.GetItemQueryIterator<string>(query).ReadNextAsync(token);
 
             Assert.True(results.Count == 1);
-            Assert.True(results.First() == 1);
+            Assert.True(results.First() == testObject.data);
 
             await dbContext.Database.EnsureCreatedAsync(token);
             dbContext.AddRange([new Entry(), new Entry()]);
@@ -122,9 +133,11 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         }, cts.Token);
     }
 
-    [Fact(Skip = "Using CosmosDB emulator in integration tests leads to flaky tests - https://github.com/dotnet/aspire/issues/5820")]
+    [Theory(Skip = "Using CosmosDB emulator in integration tests leads to flaky tests - https://github.com/dotnet/aspire/issues/5820")]
+    [InlineData(true)]
+    [InlineData(false)]
     [RequiresDocker]
-    public async Task WithDataVolumeShouldPersistStateBetweenUsages()
+    public async Task WithDataVolumeShouldPersistStateBetweenUsages(bool usePreview)
     {
         // Use a volume to do a snapshot save
 
@@ -149,7 +162,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         var volumeName = VolumeNameGenerator.Generate(cosmos1, nameof(WithDataVolumeShouldPersistStateBetweenUsages));
 
         var db1 = cosmos1.WithDatabase(databaseName)
-                       .RunAsEmulator(emulator => emulator.WithDataVolume(volumeName));
+                       .RunAsEmulator(usePreview, volumeName);
 
         // if the volume already exists (because of a crashing previous run), delete it
         DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
@@ -159,6 +172,9 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         using (var app = builder1.Build())
         {
             await app.StartAsync();
+
+            var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+            await rns.WaitForResourceHealthyAsync(db1.Resource.Name, cts.Token);
 
             try
             {
@@ -186,7 +202,6 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
                         await container.CreateItemAsync(testObject, cancellationToken: token);
                     }, cts.Token);
-
                 }
             }
             finally
@@ -200,11 +215,14 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
         var cosmos2 = builder2.AddAzureCosmosDB("cosmos");
         var db2 = cosmos2.WithDatabase(databaseName)
-                       .RunAsEmulator(emulator => emulator.WithDataVolume(volumeName));
+                       .RunAsEmulator(usePreview, volumeName);
 
         using (var app = builder2.Build())
         {
             await app.StartAsync();
+
+            var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+            await rns.WaitForResourceHealthyAsync(db2.Resource.Name, cts.Token);
 
             try
             {
@@ -229,7 +247,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
                     {
                         var container = cosmosClient.GetContainer(databaseName, containerName);
 
-                        QueryDefinition query = new("SELECT VALUE data FROM c WHERE c.id = '1'");
+                        QueryDefinition query = new("SELECT VALUE c.data FROM c WHERE c.id = '1'");
 
                         // run query and check the value
                         var results = await container.GetItemQueryIterator<string>(query).ReadNextAsync(token);
@@ -302,9 +320,35 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 public class EFCoreCosmosDbContext(DbContextOptions<EFCoreCosmosDbContext> options) : DbContext(options)
 {
     public DbSet<Entry> Entries { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Entry>()
+            .HasPartitionKey(e => e.Id);
+    }
 }
 
 public record Entry
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+}
+
+internal static class CosmosExtensions
+{
+    public static IResourceBuilder<AzureCosmosDBResource> RunAsEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, bool usePreview, string? volumeName = null)
+    {
+        void WithVolume(IResourceBuilder<AzureCosmosDBEmulatorResource> emulator)
+        {
+            if (volumeName is not null)
+            {
+                emulator.WithDataVolume(volumeName);
+            }
+        }
+
+        return usePreview
+#pragma warning disable ASPIRECOSMOS001 // RunAsPreviewEmulator is experimental
+            ? builder.RunAsPreviewEmulator(WithVolume)
+#pragma warning restore ASPIRECOSMOS001 // RunAsPreviewEmulator is experimental
+            : builder.RunAsEmulator(WithVolume);
+    }
 }

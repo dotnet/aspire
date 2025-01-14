@@ -4,6 +4,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting;
 using Docker.DotNet.Models;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Configurations;
@@ -16,7 +17,7 @@ public partial class KafkaContainerFixture : IAsyncLifetime
 {
     private sealed partial class ConfluentLocalKafkaBuilder : ContainerBuilder<ConfluentLocalKafkaBuilder, KafkaContainer, KafkaConfiguration>
     {
-        public const string KafkaImage = Hosting.KafkaContainerImageTags.Image + ":" + Hosting.KafkaContainerImageTags.Tag;
+        public const string KafkaImage = $"{ComponentTestConstants.AspireTestContainerRegistry}/{KafkaContainerImageTags.Image}:{KafkaContainerImageTags.Tag}";
 
         public const ushort KafkaPort = 9092;
 

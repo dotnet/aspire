@@ -107,7 +107,7 @@
     "messaging": {
       "type": "container.v0",
       "connectionString": "amqp://guest:{messaging-password.value}@{messaging.bindings.tcp.host}:{messaging.bindings.tcp.port}",
-      "image": "docker.io/library/rabbitmq:3.13-management",
+      "image": "docker.io/library/rabbitmq:4.0-management",
       "volumes": [
         {
           "name": "testshop.apphost-a23213a1a9-messaging-data",
