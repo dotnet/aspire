@@ -39,7 +39,7 @@ When ```dotnet publish``` is called on the AppHost project containing the code a
 
 ```jsonc
 {
-    "$schema": "<url to stable schema version>",
+    "$schema": "https://json.schemastore.org/aspire-8.0.json",
     "components": {
         "postgres": {
             "type": "postgres.v1"
