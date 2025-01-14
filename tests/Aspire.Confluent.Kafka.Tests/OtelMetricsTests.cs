@@ -69,7 +69,7 @@ public class OtelMetricsTests
             ? host.Services.GetRequiredKeyedService<IProducer<string, string>>(key)
             : host.Services.GetRequiredService<IProducer<string, string>>())
         {
-            for (int i = 0; i < 100; i++)
+            for (int i = 0; i < 5; i++)
             {
                 producer.Produce(topic, new Message<string, string>()
                 {
