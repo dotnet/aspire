@@ -133,6 +133,7 @@ Aspire.Hosting.ApplicationModel.ResourceCommandState
 Aspire.Hosting.ApplicationModel.ResourceCommandState.Disabled = 1 -> Aspire.Hosting.ApplicationModel.ResourceCommandState
 Aspire.Hosting.ApplicationModel.ResourceCommandState.Enabled = 0 -> Aspire.Hosting.ApplicationModel.ResourceCommandState
 Aspire.Hosting.ApplicationModel.ResourceCommandState.Hidden = 2 -> Aspire.Hosting.ApplicationModel.ResourceCommandState
+Aspire.Hosting.ApplicationModel.ResourceNotificationService.Dispose() -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime, System.IServiceProvider! serviceProvider, Aspire.Hosting.ApplicationModel.ResourceLoggerService! resourceLoggerService) -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForDependenciesAsync(Aspire.Hosting.ApplicationModel.IResource! resource, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
