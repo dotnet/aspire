@@ -31,9 +31,6 @@ updates:
       AspNetCoreHealthChecks:
         patterns:
           - "AspNetCore.HealthChecks.*"
-      EntityFrameworkCore:
-        patterns:
-          - "Microsoft.EntityFrameworkCore.*"
       FluentUi:
         patterns:
           - "Microsoft.FluentUI.*"
@@ -43,10 +40,6 @@ updates:
       Orleans:
         patterns:
           - "Microsoft.Orleans*"
-      NetPlatform:
-        patterns:
-          - "Microsoft.AspNetCore.*"
-          - "Microsoft.Extensions.*"
       Npgsql:
         patterns:
           - "Npgsql.*"
