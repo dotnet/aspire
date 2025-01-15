@@ -24,7 +24,7 @@ internal static class DashboardUIHelpers
 
     public static readonly TimeSpan ToastTimeout = TimeSpan.FromMilliseconds(5000);
 
-    public static (ColumnResizeLabels reiszeLabels, ColumnSortLabels sortLabels) CreateGridLabels(IStringLocalizer<ControlsStrings> loc)
+    public static (ColumnResizeLabels resizeLabels, ColumnSortLabels sortLabels) CreateGridLabels(IStringLocalizer<ControlsStrings> loc)
     {
         var resizeLabels = ColumnResizeLabels.Default with
         {
