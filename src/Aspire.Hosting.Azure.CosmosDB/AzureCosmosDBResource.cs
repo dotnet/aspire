@@ -22,10 +22,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
 
     /// <summary>
     /// Gets the "connectionString" reference from the secret outputs of the Azure Cosmos DB resource.
-    ///
-    /// This is used when Entra ID authentication is used. The connection string is an output of the bicep template.
     /// </summary>
-    [Obsolete($"This property is obsolete and will be removed in a future version. Use {nameof(ConnectionStringOutput)} instead.")]
     public BicepSecretOutputReference ConnectionString => new("connectionString", this);
 
     /// <summary>
