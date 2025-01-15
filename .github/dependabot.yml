@@ -22,22 +22,6 @@ updates:
       - dependency-name: "Microsoft.Build.NoTargets"
       # Pinned versions that should not be updated
       - dependency-name: "Microsoft.CodeAnalysis.CSharp"
-      # don't update across major versions of NetPlatform dependencies. We need to do that manually
-      - dependency-name: "MicrosoftAspNetCore"
-        update-types:
-          - version-update:semver-major
-      - dependency-name: "MicrosoftEntityFrameworkCore*"
-        update-types:
-          - version-update:semver-major
-      - dependency-name: "MicrosoftExtensions*"
-        update-types:
-          - version-update:semver-major
-      - dependency-name: "Npgsql*"
-        update-types:
-          - version-update:semver-major
-      - dependency-name: "System*"
-        update-types:
-          - version-update:semver-major
     groups:
       Azure:
         patterns:
@@ -61,9 +45,16 @@ updates:
           - "Microsoft.AspNetCore.*"
           - "Microsoft.EntityFrameworkCore.*"
           - "Microsoft.Extensions.*"
+          - "System.*"
+        update-types:
+          - 'minor'
+          - 'patch'
       Npgsql:
         patterns:
           - "Npgsql.*"
+        update-types:
+          - 'minor'
+          - 'patch'
       MicrosoftDotNet:
         patterns:
           - "Microsoft.DotNet.*"
