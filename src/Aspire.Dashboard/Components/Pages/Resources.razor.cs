@@ -92,9 +92,10 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         await _dataGrid.SafeRefreshDataAsync();
     }
 
-    private Task HandleSearchFilterChangedAsync()
+    private async Task HandleSearchFilterChangedAsync()
     {
-        return ClearSelectedResourceAsync();
+        await ClearSelectedResourceAsync();
+        await _dataGrid.SafeRefreshDataAsync();
     }
 
     private bool? AreAllTypesVisible

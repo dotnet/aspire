@@ -5,6 +5,6 @@ namespace Aspire.Dashboard.Model.BrowserStorage;
 
 public interface IBrowserStorage
 {
-    Task<StorageResult<T>> GetAsync<T>(string key);
-    Task SetAsync<T>(string key, T value);
+    Task<StorageResult<TValue>> GetAsync<TValue>(string key);
+    Task SetAsync<TValue>(string key, TValue value);
 }

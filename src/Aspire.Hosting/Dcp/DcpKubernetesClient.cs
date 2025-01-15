@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net;
+using System.Net.Http.Headers;
+using Aspire.Hosting.Dcp.Model;
 using k8s;
 using k8s.Autorest;
 
@@ -68,7 +71,7 @@ internal sealed class DcpKubernetesClient : k8s.Kubernetes
         }
         url += q.ToString();
 
-        var httpResponse = await SendRequest<object?>(url, HttpMethod.Get, customHeaders : null, body: null, cancellationToken).ConfigureAwait(false);
+        var httpResponse = await SendRequest<object?>(url, HttpMethod.Get, customHeaders: null, body: null, cancellationToken).ConfigureAwait(false);
         var httpRequest = httpResponse.RequestMessage;
         var result = new HttpOperationResponse<Stream>()
         {
@@ -77,6 +80,31 @@ internal sealed class DcpKubernetesClient : k8s.Kubernetes
             Body = await httpResponse.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)
         };
         return result;
+    }
+
+    /// <summary>
+    /// PATCH Execution document (part of the DCP administrative interface) with supplied data. 
+    /// </summary>
+    public Task<HttpResponseMessage> PatchExecutionDocumentAsync(
+        ApiServerExecution apiServerExecution,
+        CancellationToken cancellationToken = default)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(HttpClientTimeout);
+        cancellationToken = cts.Token;
+
+        string url = $"admin/execution";
+        var httpRequest = new HttpRequestMessage
+        {
+            Method = HttpMethod.Patch,
+            RequestUri = new Uri(this.BaseUri, url)
+        };
+        httpRequest.Version = HttpVersion.Version20;
+
+        var content = KubernetesJson.Serialize(apiServerExecution, null);
+        httpRequest.Content = new StringContent(content, System.Text.Encoding.UTF8);
+        httpRequest.Content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/merge-patch+json");
+        return SendRequestRaw(content, httpRequest, cancellationToken);
     }
 
     private sealed class QueryBuilder

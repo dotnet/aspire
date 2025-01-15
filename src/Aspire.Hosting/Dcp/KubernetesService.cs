@@ -25,7 +25,8 @@ internal enum DcpApiOperationType
     Watch = 4,
     GetLogSubresource = 5,
     Get = 6,
-    Patch = 7
+    Patch = 7,
+    ServerStop = 8,
 }
 
 internal interface IKubernetesService
@@ -50,6 +51,7 @@ internal interface IKubernetesService
         bool? follow = true,
         bool? timestamps = false,
         CancellationToken cancellationToken = default) where T : CustomResource;
+    Task StopServerAsync(string resourceCleanup = ResourceCleanup.Full, CancellationToken cancellation = default);
 }
 
 internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOptions<DcpOptions> dcpOptions, Locations locations) : IKubernetesService, IDisposable
@@ -298,6 +300,30 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
                 return response.Body;
             },
             RetryOnConnectivityAndConflictErrors,
+            cancellationToken
+        );
+    }
+
+    public Task StopServerAsync(string resourceCleanup = ResourceCleanup.Full, CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        return ExecuteWithRetry(
+            DcpApiOperationType.ServerStop,
+            "Execution",
+            async (kubernetes) =>
+            {
+                await kubernetes.PatchExecutionDocumentAsync(
+                    new ApiServerExecution
+                    {
+                        ApiServerStatus = ApiServerStatus.Stopping,
+                        ShutdownResourceCleanup = ResourceCleanup.Full
+                    },
+                    cancellationToken
+                    ).ConfigureAwait(false);
+                return (object?)null;
+            },
+            RetryOnConnectivityErrors,
             cancellationToken
         );
     }

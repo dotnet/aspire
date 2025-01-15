@@ -49,7 +49,7 @@ public static class AzureSearchExtensions
             infrastructure.Add(search.CreateRoleAssignment(SearchBuiltInRole.SearchIndexDataContributor, principalTypeParameter, principalIdParameter));
             infrastructure.Add(search.CreateRoleAssignment(SearchBuiltInRole.SearchServiceContributor, principalTypeParameter, principalIdParameter));
 
-            // TODO: The endpoint format should move into the CDK so we can maintain this
+            // TODO: The endpoint format should move into Azure.Provisioning so we can maintain this
             // logic in a single location and have a better chance at supporting more than
             // just public Azure in the future.  https://github.com/Azure/azure-sdk-for-net/issues/42640
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))

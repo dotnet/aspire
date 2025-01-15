@@ -186,7 +186,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
 
         if (!installed)
         {
-            logger.LogCritical("Container runtime '{runtime}' could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.", containerRuntime);
+            logger.LogWarning("Container runtime '{runtime}' could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.", containerRuntime);
 
             logger.LogDebug("The error from the container runtime check was: {error}", error);
         }
@@ -209,7 +209,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
                 messageFormat.Append("Ensure that the container runtime is running.");
             }
 
-            logger.LogCritical(messageFormat.ToString(), containerRuntime);
+            logger.LogWarning(messageFormat.ToString(), containerRuntime);
 
             logger.LogDebug("The error from the container runtime check was: {error}", error);
         }
