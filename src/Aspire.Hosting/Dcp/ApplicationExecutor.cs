@@ -85,12 +85,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
-    // A random suffix added to every DCP object name ensures that those names (and derived object names, for example container names)
-    // are unique machine-wide with a high level of probability.
-    // The length of 8 achieves that while keeping the names relatively short and readable.
-    // The second purpose of the suffix is to play a role of a unique OpenTelemetry service instance ID.
-    private const int RandomNameSuffixLength = 8;
-
     private const string DefaultAspireNetworkName = "default-aspire-network";
 
     private readonly ILogger<ApplicationExecutor> _logger = logger;
@@ -2004,13 +1998,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         return uniqueName;
-    }
-
-    private static string GetRandomNameSuffix()
-    {
-        // RandomNameSuffixLength of lowercase characters
-        var suffix = PasswordGenerator.Generate(RandomNameSuffixLength, true, false, false, false, RandomNameSuffixLength, 0, 0, 0);
-        return suffix;
     }
 
     /// <summary>

@@ -358,7 +358,8 @@ public static class ProjectResourceBuilderExtensions
 
         // Helper to change the transport to http2 if needed
         var isHttp2ConfiguredInKestrelEndpointDefaults = config["Kestrel:EndpointDefaults:Protocols"] == nameof(HttpProtocols.Http2);
-        var adjustTransport = (EndpointAnnotation e, string? bindingLevelProtocols = null) => {
+        var adjustTransport = (EndpointAnnotation e, string? bindingLevelProtocols = null) =>
+        {
             if (bindingLevelProtocols != null)
             {
                 // If the Kestrel endpoint has an explicit protocol, use that and ignore any EndpointDefaults
@@ -621,15 +622,15 @@ public static class ProjectResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds support for containerizing this <see cref="ProjectResource"/> during deployment.
+    /// The resulting container image is built, and when the optional <paramref name="configure"/> action is provided,
+    /// it is used to configure the container resource.
+    /// </summary>
     /// <remarks>
     /// When the executable resource is converted to a container resource, the arguments to the executable
     /// are not used. This is because arguments to the project often contain physical paths that are not valid
     /// in the container. The container can be set up with the correct arguments using the <paramref name="configure"/> action.
     /// </remarks>
-    /// Adds support for containerizating this <see cref="ProjectResource"/> during deployment.
-    /// The resulting container image is built, and when the optional <paramref name="configure"/> action is provided,
-    /// it is used to configure the container resource.
-    /// </summary>
     /// <typeparam name="T">Type of executable resource</typeparam>
     /// <param name="builder">Resource builder</param>
     /// <param name="configure">Optional action to configure the container resource</param>
@@ -644,7 +645,7 @@ public static class ProjectResourceBuilderExtensions
 
         // The implementation here is less than ideal, but we don't have a clean way of building resource types
         // that change their behavior based on the context. In this case, we want to change the behavior of the
-        // resource from an ProjectResource to a ContainerResource. We do this by removing the ProjectResource
+        // resource from a ProjectResource to a ContainerResource. We do this by removing the ProjectResource
         // from the application model and adding a new ContainerResource in its place in publish mode.
 
         // There are still dangling references to the original ProjectResource in the application model, but

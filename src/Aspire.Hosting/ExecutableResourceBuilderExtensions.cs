@@ -93,15 +93,15 @@ public static class ExecutableResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds support for containerizing this <see cref="ExecutableResource"/> during deployment.
+    /// The resulting container image is built, and when the optional <paramref name="configure"/> action is provided,
+    /// it is used to configure the container resource.
+    /// </summary>
     /// <remarks>
     /// When the executable resource is converted to a container resource, the arguments to the executable
     /// are not used. This is because arguments to the executable often contain physical paths that are not valid
     /// in the container. The container can be set up with the correct arguments using the <paramref name="configure"/> action.
     /// </remarks>
-    /// Adds support for containerizating this <see cref="ExecutableResource"/> during deployment.
-    /// The resulting container image is built, and when the optional <paramref name="configure"/> action is provided,
-    /// it is used to configure the container resource.
-    /// </summary>
     /// <typeparam name="T">Type of executable resource</typeparam>
     /// <param name="builder">Resource builder</param>
     /// <param name="configure">Optional action to configure the container resource</param>

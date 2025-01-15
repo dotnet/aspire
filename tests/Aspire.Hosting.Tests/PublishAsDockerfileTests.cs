@@ -153,9 +153,11 @@ public class PublishAsDockerfileTests
         var secret = builder.AddParameter("secret", secret: true);
 
         var frontend = builder.AddNpmApp("frontend", path, "watch")
+            .WithArgs("/usr/foo")
             .PublishAsDockerFile(c =>
             {
                 c.WithBuildSecret("buildSecret", secret);
+                c.WithArgs("/app");
                 c.WithVolume("vol", "/app/node_modules");
             });
 
@@ -180,6 +182,9 @@ public class PublishAsDockerfileTests
                   }
                 }
               },
+              "args": [
+                "/app"
+              ],
               "volumes": [
                 {
                   "name": "vol",
@@ -208,9 +213,11 @@ public class PublishAsDockerfileTests
         var path = tempDir.Directory.FullName;
 
         var project = builder.AddProject("project", path, o => o.ExcludeLaunchProfile = true)
-                             .PublishAsDockerFile(c =>
+                            .WithArgs("/usr/foo")
+                            .PublishAsDockerFile(c =>
                              {
                                  c.WithBuildArg("X", "y");
+                                 c.WithArgs("/app");
                                  c.WithVolume("vol", "/app/shared");
                              });
         // There should be an equivalent container resource with the same name
@@ -231,6 +238,9 @@ public class PublishAsDockerfileTests
                   "X": "y"
                 }
               },
+              "args": [
+                "/app"
+              ],
               "volumes": [
                 {
                   "name": "vol",
