@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Buffers.Binary;
+using System.Security.Cryptography;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
@@ -97,7 +98,7 @@ internal struct DnsMessageHeader
     internal void InitQueryHeader()
     {
         this = default;
-        TransactionId = (ushort)Random.Shared.Next(ushort.MaxValue);
+        TransactionId = (ushort)RandomNumberGenerator.GetInt32(short.MaxValue + 1);
         IsRecursionDesired = true;
         QueryCount = 1;
     }
