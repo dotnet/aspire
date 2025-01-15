@@ -70,7 +70,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var eventHub = builder.AddAzureEventHubs("eventhubns")
             .RunAsEmulator()
-            .WithHub("hub", configure => configure.IsDefaultEntity = true);
+            .WithHub("hub", hub => hub.IsDefaultEntity = true);
 
         using var app = builder.Build();
         await app.StartAsync();
@@ -95,8 +95,8 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var eventHub = builder.AddAzureEventHubs("eventhubns")
             .RunAsEmulator()
-            .WithHub("hub", configure => configure.IsDefaultEntity = true)
-            .WithHub("hub2", configure => configure.IsDefaultEntity = true);
+            .WithHub("hub", hub => hub.IsDefaultEntity = true)
+            .WithHub("hub2", hub => hub.IsDefaultEntity = true);
 
         using var app = builder.Build();
 
