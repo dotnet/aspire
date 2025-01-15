@@ -198,7 +198,7 @@ public static class AzureEventHubsExtensions
             // For the purposes of the health check we only need to know a hub name. If we don't have a hub
             // name we can't configure a valid producer client connection so we should throw. What good is
             // an event hub namespace without an event hub? :)
-            if (builder.Resource.Hubs is { Count: > 0 } && builder.Resource.Hubs[0] is { } hub)
+            if (builder.Resource.Hubs is [var hub])
             {
                 var healthCheckConnectionString = connectionString.Contains(";EntityPath=") ?
                     connectionString : $"{connectionString};EntityPath={hub.Name};";
