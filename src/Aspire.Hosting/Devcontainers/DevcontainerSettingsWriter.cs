@@ -12,7 +12,9 @@ namespace Aspire.Hosting.Devcontainers;
 internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> logger, IOptions<CodespacesOptions> codespaceOptions, IOptions<DevcontainersOptions> devcontainerOptions)
 {
     private const string CodespaceSettingsPath = "/home/vscode/.vscode-remote/data/Machine/settings.json";
-    private const string LocalDevcontainerSettingsPath = "/home/vscode/.vscode-server/data/Machine/settings.json";
+    private const string VSCodeServerPath = "/home/vscode/.vscode-server";
+    private const string VSCodeInsidersServerPath = "/home/vscode/.vscode-server-insiders";
+    private const string LocalDevcontainerSettingsPath = "data/Machine/settings.json";
     private const string PortAttributesFieldName = "remote.portsAttributes";
     private const int WriteLockTimeoutMs = 2000;
     private readonly SemaphoreSlim _writeLock = new SemaphoreSlim(1);
@@ -22,64 +24,75 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
         ArgumentNullException.ThrowIfNullOrEmpty(protocol);
         ArgumentNullException.ThrowIfNullOrEmpty(label);
 
-        var settingsPath = GetSettingsPath();
+        var settingsPaths = GetSettingsPaths();
 
-        var acquired = await _writeLock.WaitAsync(WriteLockTimeoutMs, cancellationToken).ConfigureAwait(false);
-
-        if (!acquired)
+        foreach (var settingsPath in settingsPaths)
         {
-            throw new DistributedApplicationException($"Failed to acquire semaphore for settings file: {settingsPath}");
+            var acquired = await _writeLock.WaitAsync(WriteLockTimeoutMs, cancellationToken).ConfigureAwait(false);
+
+            if (!acquired)
+            {
+                throw new DistributedApplicationException($"Failed to acquire semaphore for settings file: {settingsPath}");
+            }
+
+            await EnsureSettingsFileExists(settingsPath, cancellationToken).ConfigureAwait(false);
+
+            var settingsContent = await File.ReadAllTextAsync(settingsPath, cancellationToken).ConfigureAwait(false);
+            var settings = (JsonObject)JsonObject.Parse(settingsContent)!;
+
+            JsonObject? portsAttributes;
+            if (!settings.TryGetPropertyValue(PortAttributesFieldName, out var portsAttributesNode))
+            {
+                portsAttributes = new JsonObject();
+                settings.Add(PortAttributesFieldName, portsAttributes);
+            }
+            else
+            {
+                portsAttributes = (JsonObject)portsAttributesNode!;
+            }
+
+            var portAsString = port.ToString(CultureInfo.InvariantCulture);
+
+            JsonObject? portAttributes;
+            if (!portsAttributes.TryGetPropertyValue(portAsString, out var portAttributeNode))
+            {
+                portAttributes = new JsonObject();
+                portsAttributes.Add(portAsString, portAttributes);
+            }
+            else
+            {
+                portAttributes = (JsonObject)portAttributeNode!;
+            }
+
+            portAttributes["label"] = label;
+            portAttributes["protocol"] = protocol;
+            portAttributes["onAutoForward"] = "notify";
+
+            settingsContent = settings.ToString();
+            await File.WriteAllTextAsync(settingsPath, settingsContent, cancellationToken).ConfigureAwait(false);
+
+            _writeLock.Release();
         }
 
-        await EnsureSettingsFileExists(settingsPath, cancellationToken).ConfigureAwait(false);
-
-        var settingsContent = await File.ReadAllTextAsync(settingsPath, cancellationToken).ConfigureAwait(false);
-        var settings = (JsonObject)JsonObject.Parse(settingsContent)!;
-
-        JsonObject? portsAttributes;
-        if (!settings.TryGetPropertyValue(PortAttributesFieldName, out var portsAttributesNode))
-        {
-            portsAttributes = new JsonObject();
-            settings.Add(PortAttributesFieldName, portsAttributes);
-        }
-        else
-        {
-            portsAttributes = (JsonObject)portsAttributesNode!;
-        }
-
-        var portAsString = port.ToString(CultureInfo.InvariantCulture);
-
-        JsonObject? portAttributes;
-        if (!portsAttributes.TryGetPropertyValue(portAsString, out var portAttributeNode))
-        {
-            portAttributes = new JsonObject();
-            portsAttributes.Add(portAsString, portAttributes);
-        }
-        else
-        {
-            portAttributes = (JsonObject)portAttributeNode!;
-        }
-
-        portAttributes["label"] = label;
-        portAttributes["protocol"] = protocol;
-        portAttributes["onAutoForward"] = "notify";
-
-        settingsContent = settings.ToString();
-        await File.WriteAllTextAsync(settingsPath, settingsContent, cancellationToken).ConfigureAwait(false);
-
-        _writeLock.Release();
-
-        string GetSettingsPath()
+        IEnumerable<string> GetSettingsPaths()
         {
             // For some reason the machine settings path is different between Codespaces and local Devcontainers
             // so we decide which one to use here based on the options.
             if (codespaceOptions.Value.IsCodespace)
             {
-                return CodespaceSettingsPath;
+                yield return CodespaceSettingsPath;
             }
             else if (devcontainerOptions.Value.IsDevcontainer)
             {
-                return LocalDevcontainerSettingsPath;
+                if (Directory.Exists(VSCodeServerPath))
+                {
+                    yield return Path.Combine(VSCodeServerPath, LocalDevcontainerSettingsPath);
+                }
+
+                if (Directory.Exists(VSCodeInsidersServerPath))
+                {
+                    yield return Path.Combine(VSCodeInsidersServerPath, LocalDevcontainerSettingsPath);
+                }
             }
             else
             {
