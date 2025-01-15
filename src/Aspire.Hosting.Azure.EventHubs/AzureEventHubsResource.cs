@@ -45,17 +45,25 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Event Hubs endpoint.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression =>
-        IsEmulator
-        ? ReferenceExpression.Create($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.Host)}:{EmulatorEndpoint.Property(EndpointProperty.Port)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true{BuildEntityPath()}")
-        : ReferenceExpression.Create($"{EventHubsEndpoint}{BuildEntityPath()}");
+    public ReferenceExpression ConnectionStringExpression => BuildConnectionString();
 
-    private string BuildEntityPath()
+    private ReferenceExpression BuildConnectionString()
     {
+        var builder = new ReferenceExpressionBuilder();
+
+        if (IsEmulator)
+        {
+            builder.Append($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.Host)}:{EmulatorEndpoint.Property(EndpointProperty.Port)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true");
+        }
+        else
+        {
+            builder.Append($"{EventHubsEndpoint}");
+        }
+
         if (!Hubs.Any(hub => hub.IsDefaultEntity))
         {
             // Of zero or more hubs, none are flagged as default
-            return string.Empty;
+            return builder.Build();
         }
 
         try
@@ -63,12 +71,14 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
             // Of one or more hubs, only one may be flagged as default
             var defaultEntity = Hubs.Single(hub => hub.IsDefaultEntity);
 
-            return $";EntityPath={defaultEntity.Name}";
+            builder.Append($";EntityPath={defaultEntity.Name}");
         }
         catch (InvalidOperationException ex)
         {
-            throw new InvalidOperationException("Only one EventHub can be configured as the default entity.", ex);
+            throw new DistributedApplicationException("Only one EventHub can be configured as the default entity.", ex);
         }
+
+        return builder.Build();
     }
 
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)

@@ -78,10 +78,10 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         string? connectionString =
             await eventHub.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
 
-        // has entitypath?
+        // has EntityPath?
         Assert.Contains(";EntityPath=hub", connectionString);
 
-        // well-formed connectionstring?
+        // well-formed connection string?
         var props = EventHubsConnectionStringProperties.Parse(connectionString);
         Assert.NotNull(props);
         Assert.Equal("hub", props.EventHubName);
@@ -90,7 +90,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     [Fact]
     [RequiresDocker]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/7093")]
-    public async Task VerifyMultipleDefaultEntityThrowsInvalidOperationException()
+    public async Task VerifyMultipleDefaultEntityThrowsException()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var eventHub = builder.AddAzureEventHubs("eventhubns")
@@ -105,7 +105,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         using var host = hb.Build();
         await host.StartAsync();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<DistributedApplicationException>(
             async () => await eventHub.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
     }
 

@@ -11,6 +11,7 @@ using Azure.Provisioning;
 using AzureProvisioning = Azure.Provisioning.EventHubs;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json.Nodes;
+using Azure.Messaging.EventHubs;
 
 namespace Aspire.Hosting;
 
@@ -200,8 +201,10 @@ public static class AzureEventHubsExtensions
             // an event hub namespace without an event hub? :)
             if (builder.Resource.Hubs is [var hub])
             {
-                var healthCheckConnectionString = connectionString.Contains(";EntityPath=") ?
-                    connectionString : $"{connectionString};EntityPath={hub.Name};";
+                var props = EventHubsConnectionStringProperties.Parse(connectionString);
+
+                var healthCheckConnectionString = string.IsNullOrEmpty(props.EventHubName) ?
+                    $"{connectionString};EntityPath={hub.Name};" : connectionString;
 
                 client = new EventHubProducerClient(healthCheckConnectionString);
             }
