@@ -24,70 +24,75 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
         ArgumentNullException.ThrowIfNullOrEmpty(protocol);
         ArgumentNullException.ThrowIfNullOrEmpty(label);
 
-        var settingsPath = GetSettingsPath();
+        var settingsPaths = GetSettingsPaths();
 
-        var acquired = await _writeLock.WaitAsync(WriteLockTimeoutMs, cancellationToken).ConfigureAwait(false);
-
-        if (!acquired)
+        foreach (var settingsPath in settingsPaths)
         {
-            throw new DistributedApplicationException($"Failed to acquire semaphore for settings file: {settingsPath}");
+            var acquired = await _writeLock.WaitAsync(WriteLockTimeoutMs, cancellationToken).ConfigureAwait(false);
+
+            if (!acquired)
+            {
+                throw new DistributedApplicationException($"Failed to acquire semaphore for settings file: {settingsPath}");
+            }
+
+            await EnsureSettingsFileExists(settingsPath, cancellationToken).ConfigureAwait(false);
+
+            var settingsContent = await File.ReadAllTextAsync(settingsPath, cancellationToken).ConfigureAwait(false);
+            var settings = (JsonObject)JsonObject.Parse(settingsContent)!;
+
+            JsonObject? portsAttributes;
+            if (!settings.TryGetPropertyValue(PortAttributesFieldName, out var portsAttributesNode))
+            {
+                portsAttributes = new JsonObject();
+                settings.Add(PortAttributesFieldName, portsAttributes);
+            }
+            else
+            {
+                portsAttributes = (JsonObject)portsAttributesNode!;
+            }
+
+            var portAsString = port.ToString(CultureInfo.InvariantCulture);
+
+            JsonObject? portAttributes;
+            if (!portsAttributes.TryGetPropertyValue(portAsString, out var portAttributeNode))
+            {
+                portAttributes = new JsonObject();
+                portsAttributes.Add(portAsString, portAttributes);
+            }
+            else
+            {
+                portAttributes = (JsonObject)portAttributeNode!;
+            }
+
+            portAttributes["label"] = label;
+            portAttributes["protocol"] = protocol;
+            portAttributes["onAutoForward"] = "notify";
+
+            settingsContent = settings.ToString();
+            await File.WriteAllTextAsync(settingsPath, settingsContent, cancellationToken).ConfigureAwait(false);
+
+            _writeLock.Release();
         }
 
-        await EnsureSettingsFileExists(settingsPath, cancellationToken).ConfigureAwait(false);
-
-        var settingsContent = await File.ReadAllTextAsync(settingsPath, cancellationToken).ConfigureAwait(false);
-        var settings = (JsonObject)JsonObject.Parse(settingsContent)!;
-
-        JsonObject? portsAttributes;
-        if (!settings.TryGetPropertyValue(PortAttributesFieldName, out var portsAttributesNode))
-        {
-            portsAttributes = new JsonObject();
-            settings.Add(PortAttributesFieldName, portsAttributes);
-        }
-        else
-        {
-            portsAttributes = (JsonObject)portsAttributesNode!;
-        }
-
-        var portAsString = port.ToString(CultureInfo.InvariantCulture);
-
-        JsonObject? portAttributes;
-        if (!portsAttributes.TryGetPropertyValue(portAsString, out var portAttributeNode))
-        {
-            portAttributes = new JsonObject();
-            portsAttributes.Add(portAsString, portAttributes);
-        }
-        else
-        {
-            portAttributes = (JsonObject)portAttributeNode!;
-        }
-
-        portAttributes["label"] = label;
-        portAttributes["protocol"] = protocol;
-        portAttributes["onAutoForward"] = "notify";
-
-        settingsContent = settings.ToString();
-        await File.WriteAllTextAsync(settingsPath, settingsContent, cancellationToken).ConfigureAwait(false);
-
-        _writeLock.Release();
-
-        string GetSettingsPath()
+        IEnumerable<string> GetSettingsPaths()
         {
             // For some reason the machine settings path is different between Codespaces and local Devcontainers
             // so we decide which one to use here based on the options.
             if (codespaceOptions.Value.IsCodespace)
             {
-                return CodespaceSettingsPath;
+                yield return CodespaceSettingsPath;
             }
             else if (devcontainerOptions.Value.IsDevcontainer)
             {
-                // VS Code and VS Code Insiders have different server paths, so we need to find the right one.
-                // Unfortunately, there isn't any environment variable that tells us which one is being used,
-                // so we need to check both paths and use the one that exists (and take VS Code stable as the
-                // higher priority).
-                var serverPath = Directory.Exists(VSCodeServerPath) ? VSCodeServerPath : VSCodeInsidersServerPath;
+                if (Directory.Exists(VSCodeServerPath))
+                {
+                    yield return Path.Combine(VSCodeServerPath, LocalDevcontainerSettingsPath);
+                }
 
-                return Path.Combine(serverPath, LocalDevcontainerSettingsPath);
+                if (Directory.Exists(VSCodeInsidersServerPath))
+                {
+                    yield return Path.Combine(VSCodeInsidersServerPath, LocalDevcontainerSettingsPath);
+                }
             }
             else
             {
