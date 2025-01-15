@@ -673,7 +673,7 @@ fluent-switch.table-switch::part(label) {
     content: "-"
 }
 
-.main-grid {
+.fluent-data-grid {
     height: auto !important; /* override height in table style attribute */
 }
 
