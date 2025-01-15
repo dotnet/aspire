@@ -23,13 +23,19 @@ updates:
       # Pinned versions that should not be updated
       - dependency-name: "Microsoft.CodeAnalysis.CSharp"
       # don't update across major versions of NetPlatform dependencies. We need to do that manually
-      - dependency-name: Microsoft.AspNetCore.*
+      - dependency-name: "MicrosoftAspNetCore"
         update-types:
           - version-update:semver-major
-      - dependency-name: Microsoft.EntityFrameworkCore.*
+      - dependency-name: "MicrosoftEntityFrameworkCore*"
         update-types:
           - version-update:semver-major
-      - dependency-name: Microsoft.Extensions.*
+      - dependency-name: "MicrosoftExtensions*"
+        update-types:
+          - version-update:semver-major
+      - dependency-name: "Npgsql*"
+        update-types:
+          - version-update:semver-major
+      - dependency-name: "System*"
         update-types:
           - version-update:semver-major
     groups:
