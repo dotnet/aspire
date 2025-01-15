@@ -25,7 +25,15 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     ///
     /// This is used when Entra ID authentication is used. The connection string is an output of the bicep template.
     /// </summary>
+    [Obsolete($"This property is obsolete and will be removed in a future version. Use {nameof(ConnectionStringOutput)} instead.")]
     public BicepSecretOutputReference ConnectionString => new("connectionString", this);
+
+    /// <summary>
+    /// Gets the "connectionString" output reference from the bicep template for the Azure Cosmos DB resource.
+    /// 
+    /// This is used when Entra ID authentication is used. The connection string is an output of the bicep template.
+    /// </summary>
+    public BicepOutputReference ConnectionStringOutput => new("connectionString", this);
 
     /// <summary>
     /// Gets the "connectionString" secret output reference from the bicep template for the Azure Redis resource.
@@ -54,6 +62,6 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
         ? AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint, IsPreviewEmulator)
         : UseAccessKeyAuthentication ?
             ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
-            ReferenceExpression.Create($"{ConnectionString}");
+            ReferenceExpression.Create($"{ConnectionStringOutput}");
 
 }
