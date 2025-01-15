@@ -101,7 +101,7 @@ public class OtlpSpan
 
         if (!string.IsNullOrEmpty(StatusMessage))
         {
-            props.Add(new OtlpDisplayField { DisplayName = "StatusMessage", Key = KnownTraceFields.StatusField, Value = Status.ToString() });
+            props.Add(new OtlpDisplayField { DisplayName = "StatusMessage", Key = KnownTraceFields.StatusMessageField, Value = StatusMessage });
         }
 
         foreach (var kv in Attributes.OrderBy(a => a.Key))

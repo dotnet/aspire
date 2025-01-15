@@ -178,6 +178,13 @@ internal static class ExecutableState
     /// but it does not track the corresponding process or IDE session.
     /// </summary>
     public const string Unknown = "Unknown";
+
+    // The Executable has been scheduled to launch, but we will need to re-evaluate its state in a subsequent
+    // reconciliation loop.
+    public const string Starting = "Starting";
+
+    // Executable is stopping (DCP is trying to stop the process)
+    public const string Stopping = "Stopping";
 }
 
 internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStatus>

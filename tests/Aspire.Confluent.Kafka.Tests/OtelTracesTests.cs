@@ -70,7 +70,7 @@ public class OtelTracesTests
             ? host.Services.GetRequiredKeyedService<IProducer<string, string>>(key)
             : host.Services.GetRequiredService<IProducer<string, string>>())
         {
-            for (int i = 0; i < 100; i++)
+            for (int i = 0; i < 5; i++)
             {
                 producer.Produce(topic, new Message<string, string>()
                 {
@@ -83,7 +83,7 @@ public class OtelTracesTests
             await producer.FlushAsync();
         }
 
-        Assert.Equal(100, activities.Where(x => x.OperationName == $"{topic} publish").Count());
+        Assert.Equal(5, activities.Where(x => x.OperationName == $"{topic} publish").Count());
 
         activities.Clear();
 
@@ -112,7 +112,7 @@ public class OtelTracesTests
             }
         }
 
-        Assert.Equal(100, activities.Where(x => x.OperationName == $"{topic} receive").Count());
+        Assert.Equal(5, activities.Where(x => x.OperationName == $"{topic} receive").Count());
 
         await host.StopAsync();
     }

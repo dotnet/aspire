@@ -190,6 +190,25 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             _logger.LogDebug(ex, "One or more monitoring tasks terminated with an error.");
         }
+
+        try
+        {
+            // The app orchestrator (represented by kubernetesService here) will perform a resource cleanup
+            // (if not done already) when the app host process exits.
+            // This is just a perf optimization, so we do not care that much if this call fails.
+            // There is not much difference for single app run, but for tests that tend to launch multiple instances
+            // of app host from the same process, the gain from programmatic orchestrator shutdown is significant
+            // See https://github.com/dotnet/aspire/issues/6561 for more info.
+            await kubernetesService.StopServerAsync(Model.ResourceCleanup.Full, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Ignore.
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Application orchestrator could not be stopped programmatically.");
+        }
     }
 
     private static ILookup<IResource?, IResourceWithParent> GetParentChildLookup(DistributedApplicationModel model)
@@ -479,8 +498,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     {
         IAsyncEnumerable<IReadOnlyList<(string, bool)>>? enumerable = resource switch
         {
-            Container c when c.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, _dcpInfo?.Version, resource),
-            Executable e when e.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, _dcpInfo?.Version, resource),
+            Container c when c.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, resource),
+            Executable e when e.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, resource),
             _ => null
         };
 
@@ -1354,8 +1373,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
                 catch (Exception ex)
                 {
-                    resourceLogger.LogCritical("Failed to apply arguments. A dependency may have failed to start.");
-                    _logger.LogDebug(ex, "Failed to apply arguments. A dependency may have failed to start.");
+                    resourceLogger.LogCritical(ex, "Failed to apply argument '{ConfigKey}'. A dependency may have failed to start.", arg);
+                    _logger.LogDebug(ex, "Failed to apply argument '{ConfigKey}' to '{ResourceName}'. A dependency may have failed to start.", arg, er.ModelResource.Name);
                     failedToApplyArgs = true;
                 }
             }
@@ -1396,8 +1415,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
             catch (Exception ex)
             {
-                resourceLogger.LogCritical("Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", c.Key);
-                _logger.LogDebug(ex, "Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", c.Key);
+                resourceLogger.LogCritical(ex, "Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", c.Key);
+                _logger.LogDebug(ex, "Failed to apply configuration value '{ConfigKey}' to '{ResourceName}'. A dependency may have failed to start.", c.Key, er.ModelResource.Name);
                 failedToApplyConfiguration = true;
             }
         }
@@ -1673,8 +1692,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
             catch (Exception ex)
             {
-                resourceLogger.LogCritical("Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", kvp.Key);
-                _logger.LogDebug(ex, "Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", kvp.Key);
+                resourceLogger.LogCritical(ex, "Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", kvp.Key);
+                _logger.LogDebug(ex, "Failed to apply configuration value '{ConfigKey}' to '{ResourceName}'. A dependency may have failed to start.", kvp.Key, modelContainerResource.Name);
                 failedToApplyConfiguration = true;
             }
         }
@@ -1695,18 +1714,27 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             foreach (var arg in args)
             {
-                var value = arg switch
+                try
                 {
-                    string s => s,
-                    IValueProvider valueProvider => await GetValue(key: null, valueProvider, resourceLogger, isContainer: true, cancellationToken).ConfigureAwait(false),
-                    null => null,
-                    _ => throw new InvalidOperationException($"Unexpected value for {arg}")
-                };
+                    var value = arg switch
+                    {
+                        string s => s,
+                        IValueProvider valueProvider => await GetValue(key: null, valueProvider, resourceLogger, isContainer: true, cancellationToken).ConfigureAwait(false),
+                        null => null,
+                        _ => throw new InvalidOperationException($"Unexpected value for {arg}")
+                    };
 
-                if (value is not null)
-                {
-                    dcpContainerResource.Spec.RunArgs.Add(value);
+                    if (value is not null)
+                    {
+                        dcpContainerResource.Spec.RunArgs.Add(value);
+                    }
                 }
+                catch (Exception ex)
+                {
+                    resourceLogger.LogCritical(ex, "Failed to apply container runtime argument '{ConfigKey}'. A dependency may have failed to start.", arg);
+                    _logger.LogDebug(ex, "Failed to apply container runtime argument '{ConfigKey}' to '{ResourceName}'. A dependency may have failed to start.", arg, modelContainerResource.Name);
+                    failedToApplyConfiguration = true;
+                }                
             }
         }
 
@@ -1743,8 +1771,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
                 catch (Exception ex)
                 {
-                    resourceLogger.LogCritical("Failed to apply container arguments '{ConfigKey}'. A dependency may have failed to start.", arg);
-                    _logger.LogDebug(ex, "Failed to apply container arguments '{ConfigKey}'. A dependency may have failed to start.", arg);
+                    resourceLogger.LogCritical(ex, "Failed to apply container argument '{ConfigKey}'. A dependency may have failed to start.", arg);
+                    _logger.LogDebug(ex, "Failed to apply container argument '{ConfigKey}' to '{ResourceName}'. A dependency may have failed to start.", arg, modelContainerResource.Name);
                     failedToApplyArgs = true;
                 }
             }
@@ -1781,6 +1809,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     string stringValue => stringValue,
                     IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
                     bool boolValue => boolValue ? "true" : "false",
+                    null => null,
                     _ => buildArgument.Value.ToString()
                 };
 
@@ -1982,49 +2011,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         // RandomNameSuffixLength of lowercase characters
         var suffix = PasswordGenerator.Generate(RandomNameSuffixLength, true, false, false, false, RandomNameSuffixLength, 0, 0, 0);
         return suffix;
-    }
-
-    public async Task DeleteResourcesAsync(CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            AspireEventSource.Instance.DcpModelCleanupStart();
-            await DeleteResourcesAsync<ExecutableReplicaSet>("project", cancellationToken).ConfigureAwait(false);
-            await DeleteResourcesAsync<Executable>("project", cancellationToken).ConfigureAwait(false);
-            await DeleteResourcesAsync<Container>("container", cancellationToken).ConfigureAwait(false);
-            await DeleteResourcesAsync<Service>("service", cancellationToken).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            // Expected
-            _logger.LogDebug("Cancellation received while deleting resources.");
-        }
-        finally
-        {
-            AspireEventSource.Instance.DcpModelCleanupStop();
-            _appResources.Clear();
-        }
-    }
-
-    private async Task DeleteResourcesAsync<TResource>(string resourceType, CancellationToken cancellationToken) where TResource : CustomResource
-    {
-        var resourcesToDelete = _appResources.Select(r => r.DcpResource).OfType<TResource>();
-        if (!resourcesToDelete.Any())
-        {
-            return;
-        }
-
-        foreach (var res in resourcesToDelete)
-        {
-            try
-            {
-                await kubernetesService.DeleteAsync<TResource>(res.Metadata.Name, res.Metadata.NamespaceProperty, cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogInformation(ex, "Could not stop {ResourceType} '{ResourceName}'.", resourceType, res.Metadata.Name);
-            }
-        }
     }
 
     /// <summary>

@@ -79,17 +79,17 @@
       </trans-unit>
       <trans-unit id="ClearAllResources">
         <source>Remove all</source>
-        <target state="new">Remove all</target>
+        <target state="translated">Quitar todo</target>
         <note />
       </trans-unit>
       <trans-unit id="ClearPendingSelectedResource">
         <source>Remove for resource</source>
-        <target state="new">Remove for resource</target>
+        <target state="translated">Quitar para el recurso</target>
         <note />
       </trans-unit>
       <trans-unit id="ClearSelectedResource">
         <source>Remove for {0}</source>
-        <target state="new">Remove for {0}</target>
+        <target state="translated">Quitar para {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailsColumnHeader">

@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Azure.Cosmos;
 
 namespace Aspire.Hosting;
 
@@ -28,12 +29,16 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     /// </summary>
     public bool IsEmulator => this.IsContainer();
 
+    internal bool IsPreviewEmulator =>
+        this.TryGetContainerImageName(out var imageName) &&
+        imageName == $"{CosmosDBEmulatorContainerImageTags.Registry}/{CosmosDBEmulatorContainerImageTags.Image}:{CosmosDBEmulatorContainerImageTags.TagVNextPreview}";
+
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Cosmos DB resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         IsEmulator
-        ? AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint)
+        ? AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint, IsPreviewEmulator)
         : ReferenceExpression.Create($"{ConnectionString}");
 }
 
