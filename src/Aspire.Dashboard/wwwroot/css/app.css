@@ -708,7 +708,7 @@ fluent-switch.table-switch::part(label) {
 }
 
 .main-grid .fluent-data-grid-row:not([row-type='sticky-header'], .empty-content-row) td:first-child:not(.expand-col) {
-    margin-left: 5px;
+    padding-left: calc(((var(--design-unit)* 3) + var(--focus-stroke-width) - var(--stroke-width) + 5)* 1px);
 }
 
 .toolbar-left {
