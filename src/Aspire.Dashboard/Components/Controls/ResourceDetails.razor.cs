@@ -4,7 +4,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Components;
@@ -147,19 +146,7 @@ public partial class ResourceDetails
 
     protected override void OnInitialized()
     {
-        _resizeLabels = ColumnResizeLabels.Default with
-        {
-            ExactLabel = @Loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeLabel)],
-            ResizeMenu = @Loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeButtonText)]
-
-        };
-        _sortLabels = ColumnSortLabels.Default with
-        {
-            SortMenu = Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortButtonText)],
-            SortMenuAscendingLabel = Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortAscendingButtonText)],
-            SortMenuDescendingLabel = Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortDescendingButtonText)]
-
-        };
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlStringsLoc);
     }
 
     private IEnumerable<ResourceDetailRelationship> GetRelationships()

@@ -226,7 +226,10 @@ h1 {
 .fluent-data-grid .empty-content-cell,
 .fluent-data-grid .loading-content-cell {
     padding: calc(var(--design-unit) * 5px);
+    display: flex;
     align-items: center;
+    height: auto !important; /* override height in td style attribute */
+    justify-content: center;
 }
 /*
     Default LoadingContent template has align-items set to start, so the
@@ -676,6 +679,10 @@ fluent-switch.table-switch::part(label) {
 
 .empty-data::before {
     content: "-"
+}
+
+.main-grid {
+    height: auto !important; /* override height in table style attribute */
 }
 
 .main-grid-expand-container {

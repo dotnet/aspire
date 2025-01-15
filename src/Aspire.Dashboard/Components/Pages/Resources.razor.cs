@@ -8,7 +8,6 @@ using System.Text;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -153,19 +152,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        _resizeLabels = ColumnResizeLabels.Default with
-        {
-            ExactLabel = ControlsStringsLoc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeLabel)],
-            ResizeMenu = ControlsStringsLoc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeButtonText)]
-
-        };
-        _sortLabels = ColumnSortLabels.Default with
-        {
-            SortMenu = ControlsStringsLoc[nameof(ControlsStrings.FluentDataGridHeaderCellSortButtonText)],
-            SortMenuAscendingLabel = ControlsStringsLoc[nameof(ControlsStrings.FluentDataGridHeaderCellSortAscendingButtonText)],
-            SortMenuDescendingLabel = ControlsStringsLoc[nameof(ControlsStrings.FluentDataGridHeaderCellSortDescendingButtonText)]
-
-        };
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
         _gridColumns = [
             new GridColumn(Name: NameColumn, DesktopWidth: "1.5fr", MobileWidth: "1.5fr"),

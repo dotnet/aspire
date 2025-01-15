@@ -140,19 +140,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
 
     protected override Task OnInitializedAsync()
     {
-        _resizeLabels = ColumnResizeLabels.Default with
-        {
-            ExactLabel = @Loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeLabel)],
-            ResizeMenu = @Loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeButtonText)]
-
-        };
-        _sortLabels = ColumnSortLabels.Default with
-        {
-            SortMenu = Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortButtonText)],
-            SortMenuAscendingLabel = Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortAscendingButtonText)],
-            SortMenuDescendingLabel = Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortDescendingButtonText)]
-
-        };
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
         _gridColumns = [
             new GridColumn(Name: TimestampColumn, DesktopWidth: "0.8fr", MobileWidth: "0.8fr"),

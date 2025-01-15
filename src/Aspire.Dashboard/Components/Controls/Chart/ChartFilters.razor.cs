@@ -3,7 +3,7 @@
 
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -27,19 +27,7 @@ public partial class ChartFilters
 
     protected override void OnInitialized()
     {
-        _resizeLabels = ColumnResizeLabels.Default with
-        {
-            ExactLabel = @Loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeLabel)],
-            ResizeMenu = @Loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeButtonText)]
-
-        };
-        _sortLabels = ColumnSortLabels.Default with
-        {
-            SortMenu = Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortButtonText)],
-            SortMenuAscendingLabel = Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortAscendingButtonText)],
-            SortMenuDescendingLabel = Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortDescendingButtonText)]
-
-        };
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(Loc);
 
         InstrumentViewModel.DataUpdateSubscriptions.Add(() =>
         {

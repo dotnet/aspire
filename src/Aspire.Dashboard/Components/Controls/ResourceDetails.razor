@@ -84,9 +84,12 @@
 
                     <FluentDataGrid TGridItem="VolumeViewModel"
                                     ItemKey="@(vm => ((IPropertyGridItem)vm).Key)"
-                                    ResizeType="DataGridResizeType.Discrete"
                                     Items="@FilteredVolumes"
+                                    ColumnResizeLabels="@_resizeLabels"
+                                    ColumnSortLabels="@_sortLabels"
+                                    HeaderCellAsButtonWithMenu="true"
                                     ResizableColumns="true"
+                                    ResizeType="DataGridResizeType.Discrete"
                                     Style="width:100%"
                                     RowSize="DataGridRowSize.Medium"
                                     GridTemplateColumns="1fr 1fr 0.5fr"
@@ -123,9 +126,14 @@
                         @FilteredRelationships.Count()
                     </FluentBadge>
                 </div>
-                <FluentDataGrid TGridItem="ResourceDetailRelationship"
+                <FluentDataGrid ColumnResizeLabels="@_resizeLabels"
+                                ColumnSortLabels="@_sortLabels"
+                                HeaderCellAsButtonWithMenu="true"
+                                ResizeType="DataGridResizeType.Discrete"
+                                TGridItem="ResourceDetailRelationship"
                                 Items="@FilteredRelationships"
                                 ItemKey="r => r.ResourceName"
+                                ResizableColumns="true"
                                 Style="width:100%"
                                 RowSize="DataGridRowSize.Medium"
                                 GridTemplateColumns="1fr 1fr 0.5fr"
@@ -147,9 +155,14 @@
                         @FilteredBackRelationships.Count()
                     </FluentBadge>
                 </div>
-                <FluentDataGrid TGridItem="ResourceDetailRelationship"
+                <FluentDataGrid ColumnResizeLabels="@_resizeLabels"
+                                ColumnSortLabels="@_sortLabels"
+                                HeaderCellAsButtonWithMenu="true"
+                                ResizeType="DataGridResizeType.Discrete"
+                                TGridItem="ResourceDetailRelationship"
                                 Items="@FilteredBackRelationships"
                                 ItemKey="r => r.ResourceName"
+                                ResizableColumns="true"
                                 Style="width:100%"
                                 RowSize="DataGridRowSize.Medium"
                                 GridTemplateColumns="1fr 1fr 0.5fr"

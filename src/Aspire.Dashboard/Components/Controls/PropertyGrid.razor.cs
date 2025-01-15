@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-using Aspire.Dashboard.Resources;
+
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -143,19 +144,7 @@ public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem
 
     protected override void OnInitialized()
     {
-        _resizeLabels = ColumnResizeLabels.Default with
-        {
-            ExactLabel = @Loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeLabel)],
-            ResizeMenu = @Loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeButtonText)]
-
-        };
-        _sortLabels = ColumnSortLabels.Default with
-        {
-            SortMenu = Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortButtonText)],
-            SortMenuAscendingLabel = Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortAscendingButtonText)],
-            SortMenuDescendingLabel = Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortDescendingButtonText)]
-
-        };
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(Loc);
     }
 
     // Return null if empty so GridValue knows there is no template.
