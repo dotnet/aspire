@@ -26,7 +26,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
     public async Task VerifyWaitForOnCosmosDBEmulatorBlocksDependentResources(bool usePreview)
     {
         // Cosmos can be pretty slow to spin up, lets give it plenty of time.
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
@@ -69,7 +69,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
     [RequiresDocker(Reason = "CosmosDB emulator is needed for this test")]
     public async Task VerifyCosmosResource(bool usePreview)
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new()
             {
@@ -92,7 +92,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(cts.Token);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
         await rns.WaitForResourceHealthyAsync(db.Resource.Name, cts.Token);
@@ -141,7 +141,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
     {
         // Use a volume to do a snapshot save
 
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new()
             {
@@ -171,7 +171,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
         using (var app = builder1.Build())
         {
-            await app.StartAsync();
+            await app.StartAsync(cts.Token);
 
             var rns = app.Services.GetRequiredService<ResourceNotificationService>();
             await rns.WaitForResourceHealthyAsync(db1.Resource.Name, cts.Token);
@@ -219,7 +219,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
         using (var app = builder2.Build())
         {
-            await app.StartAsync();
+            await app.StartAsync(cts.Token);
 
             var rns = app.Services.GetRequiredService<ResourceNotificationService>();
             await rns.WaitForResourceHealthyAsync(db2.Resource.Name, cts.Token);

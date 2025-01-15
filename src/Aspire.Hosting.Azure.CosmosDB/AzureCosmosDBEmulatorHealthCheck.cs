@@ -13,6 +13,7 @@ internal sealed class AzureCosmosDBEmulatorHealthCheck : IHealthCheck
 {
     private readonly Func<CosmosClient> _clientFactory;
     private readonly Func<CosmosDBDatabase[]> _databasesFactory;
+    private bool _resourcesCreated;
 
     public AzureCosmosDBEmulatorHealthCheck(Func<CosmosClient> clientFactory, Func<CosmosDBDatabase[]> databasesFactory)
     {
@@ -32,16 +33,22 @@ internal sealed class AzureCosmosDBEmulatorHealthCheck : IHealthCheck
 
             await cosmosClient.ReadAccountAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
 
-            var databases = _databasesFactory();
-
-            foreach (var database in databases)
+            // Create the databases and containers if they do not exist. This is only performed once.
+            if (!_resourcesCreated)
             {
-                var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync(database.Name, cancellationToken: cancellationToken).ConfigureAwait(false)).Database;
+                var databases = _databasesFactory();
 
-                foreach (var container in database.Containers)
+                foreach (var database in databases)
                 {
-                    await db.CreateContainerIfNotExistsAsync(container.Name, container.PartitionKeyPath, cancellationToken: cancellationToken).ConfigureAwait(false);
+                    var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync(database.Name, cancellationToken: cancellationToken).ConfigureAwait(false)).Database;
+
+                    foreach (var container in database.Containers)
+                    {
+                        await db.CreateContainerIfNotExistsAsync(container.Name, container.PartitionKeyPath, cancellationToken: cancellationToken).ConfigureAwait(false);
+                    }
                 }
+
+                _resourcesCreated = true;
             }
 
             return HealthCheckResult.Healthy();
