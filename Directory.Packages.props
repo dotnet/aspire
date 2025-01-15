@@ -58,7 +58,7 @@
     <PackageVersion Include="AspNetCore.HealthChecks.AzureServiceBus" Version="8.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.CosmosDb" Version="8.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.Kafka" Version="8.0.1" />
-    <PackageVersion Include="AspNetCore.HealthChecks.MongoDb" Version="8.1.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.MongoDb" Version="9.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.MySql" Version="8.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.2" />
     <PackageVersion Include="AspNetCore.HealthChecks.Oracle" Version="8.0.1" />
