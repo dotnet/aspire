@@ -39,6 +39,8 @@ internal static class ResourceSetupHelpers
 
         var keycodeModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/KeyCode/FluentKeyCode.razor.js", version));
         keycodeModule.Setup<string>("RegisterKeyCode", _ => true);
+
+        context.JSInterop.SetupVoid("scrollToTop", _ => true);
     }
 
     private static string GetFluentFile(string filePath, Version version)

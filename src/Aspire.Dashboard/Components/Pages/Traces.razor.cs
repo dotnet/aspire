@@ -185,6 +185,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     private Task HandleSelectedApplicationChanged()
     {
         _applicationChanged = true;
+
         return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
@@ -325,6 +326,12 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         }
 
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
+    }
+
+    private Task ClearTraces(ApplicationKey? key)
+    {
+        TelemetryRepository.ClearTraces(key);
+        return Task.CompletedTask;
     }
 
     public class TracesPageViewModel

@@ -17,4 +17,6 @@ internal static class DashboardUIHelpers
 
     // Don't attempt to display more than 2 highlighted commands. Many commands will take up too much space.
     public const int MaxHighlightedCommands = 2;
+
+    public static readonly TimeSpan ToastTimeout = TimeSpan.FromMilliseconds(5000);
 }

@@ -11,6 +11,7 @@ namespace Aspire.Hosting.Azure;
 /// <param name="innerResource">The inner resource used to store annotations.</param>
 public class AzureEventHubsEmulatorResource(AzureEventHubsResource innerResource) : ContainerResource(innerResource.Name), IResource
 {
+    // The path to the emulator configuration file in the container.
     internal const string EmulatorConfigJsonPath = "/Eventhubs_Emulator/ConfigFiles/Config.json";
 
     private readonly AzureEventHubsResource _innerResource = innerResource;

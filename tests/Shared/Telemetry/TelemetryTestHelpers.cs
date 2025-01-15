@@ -174,7 +174,7 @@ internal static class TelemetryTestHelpers
         return span;
     }
 
-    public static LogRecord CreateLogRecord(DateTime? time = null, string? message = null, SeverityNumber? severity = null, IEnumerable<KeyValuePair<string, string>>? attributes = null, bool? skipBody = null)
+    public static LogRecord CreateLogRecord(DateTime? time = null, DateTime? observedTime = null, string? message = null, SeverityNumber? severity = null, IEnumerable<KeyValuePair<string, string>>? attributes = null, bool? skipBody = null)
     {
         attributes ??= [new KeyValuePair<string, string>("{OriginalFormat}", "Test {Log}"), new KeyValuePair<string, string>("Log", "Value!")];
 
@@ -184,6 +184,7 @@ internal static class TelemetryTestHelpers
             TraceId = ByteString.CopyFrom(Convert.FromHexString("5465737454726163654964")),
             SpanId = ByteString.CopyFrom(Convert.FromHexString("546573745370616e4964")),
             TimeUnixNano = time != null ? DateTimeToUnixNanoseconds(time.Value) : 1000,
+            ObservedTimeUnixNano = observedTime != null ? DateTimeToUnixNanoseconds(observedTime.Value) : 1000,
             SeverityNumber = severity ?? SeverityNumber.Info
         };
 
@@ -286,11 +287,12 @@ internal static class TelemetryTestHelpers
         };
     }
 
-    public static OtlpSpan CreateSpan(OtlpApplication app, OtlpTrace trace, OtlpScope scope, string spanId, string? parentSpanId, DateTime startDate)
+    public static OtlpSpan CreateOtlpSpan(OtlpApplication app, OtlpTrace trace, OtlpScope scope, string spanId, string? parentSpanId, DateTime startDate,
+        KeyValuePair<string, string>[]? attributes = null, OtlpSpanStatusCode? statusCode = null, string? statusMessage = null)
     {
         return new OtlpSpan(app.GetView([]), trace, scope)
         {
-            Attributes = [],
+            Attributes = attributes ?? [],
             BackLinks = [],
             EndTime = DateTime.MaxValue,
             Events = [],
@@ -301,8 +303,8 @@ internal static class TelemetryTestHelpers
             SpanId = spanId,
             StartTime = startDate,
             State = null,
-            Status = OtlpSpanStatusCode.Unset,
-            StatusMessage = null
+            Status = statusCode ?? OtlpSpanStatusCode.Unset,
+            StatusMessage = statusMessage
         };
     }
 }

@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Cosmos;
@@ -12,7 +14,6 @@ using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
-using System.Globalization;
 
 namespace Aspire.Hosting;
 
@@ -108,18 +109,36 @@ public static class AzureCosmosExtensions
     /// This version of the package defaults to the <inheritdoc cref="CosmosDBEmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="CosmosDBEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="CosmosDBEmulatorContainerImageTags.Image"/> container image.
     /// </remarks>
     public static IResourceBuilder<AzureCosmosDBResource> RunAsEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, Action<IResourceBuilder<AzureCosmosDBEmulatorResource>>? configureContainer = null)
+        => builder.RunAsEmulator(configureContainer, useVNextPreview: false);
+
+    /// <summary>
+    /// Configures an Azure Cosmos DB resource to be emulated using the Azure Cosmos DB Linux-based emulator (preview) with the NoSQL API. This resource requires an <see cref="AzureCosmosDBResource"/> to be added to the application model.
+    /// For more information on the Azure Cosmos DB emulator, see <a href="https://learn.microsoft.com/azure/cosmos-db/emulator-linux"></a>.
+    /// </summary>
+    /// <param name="builder">The Azure Cosmos DB resource builder.</param>
+    /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="CosmosDBEmulatorContainerImageTags.TagVNextPreview"/> tag of the <inheritdoc cref="CosmosDBEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="CosmosDBEmulatorContainerImageTags.Image"/> container image.
+    /// </remarks>
+    [Experimental("ASPIRECOSMOS001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    public static IResourceBuilder<AzureCosmosDBResource> RunAsPreviewEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, Action<IResourceBuilder<AzureCosmosDBEmulatorResource>>? configureContainer = null)
+        => builder.RunAsEmulator(configureContainer, useVNextPreview: true);
+
+    private static IResourceBuilder<AzureCosmosDBResource> RunAsEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, Action<IResourceBuilder<AzureCosmosDBEmulatorResource>>? configureContainer, bool useVNextPreview)
     {
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return builder;
         }
 
-        builder.WithEndpoint(name: "emulator", targetPort: 8081)
+        var scheme = useVNextPreview ? "http" : null;
+        builder.WithEndpoint(name: "emulator", scheme: scheme, targetPort: 8081)
                .WithAnnotation(new ContainerImageAnnotation
                {
                    Registry = CosmosDBEmulatorContainerImageTags.Registry,
                    Image = CosmosDBEmulatorContainerImageTags.Image,
-                   Tag = CosmosDBEmulatorContainerImageTags.Tag
+                   Tag = useVNextPreview ? CosmosDBEmulatorContainerImageTags.TagVNextPreview : CosmosDBEmulatorContainerImageTags.Tag
                });
 
         CosmosClient? cosmosClient = null;
@@ -182,8 +201,12 @@ public static class AzureCosmosExtensions
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <returns>A builder for the <see cref="AzureCosmosDBEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureCosmosDBEmulatorResource> WithDataVolume(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, string? name = null)
-        => builder.WithEnvironment("AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE", "true")
-                  .WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/tmp/cosmos/appdata", isReadOnly: false);
+    {
+        var dataPath = builder.Resource.InnerResource.IsPreviewEmulator ? "/data": "/tmp/cosmos/appdata";
+
+        return builder.WithEnvironment("AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE", "true")
+            .WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), dataPath, isReadOnly: false);
+    }
 
     /// <summary>
     /// Configures the gateway port for the Azure Cosmos DB emulator.
@@ -210,6 +233,11 @@ public static class AzureCosmosExtensions
     /// </remarks>
     public static IResourceBuilder<AzureCosmosDBEmulatorResource> WithPartitionCount(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, int count)
     {
+        if (builder.Resource.InnerResource.IsPreviewEmulator)
+        {
+            throw new NotSupportedException($"'{nameof(WithPartitionCount)}' does not work when using the preview version of the Azure Cosmos DB emulator.");
+        }
+
         if (count < 1 || count > 250)
         {
             throw new ArgumentOutOfRangeException(nameof(count), count, "Count must be between 1 and 250.");
@@ -228,5 +256,30 @@ public static class AzureCosmosExtensions
     {
         builder.Resource.Databases.Add(databaseName);
         return builder;
+    }
+
+    /// <summary>
+    /// Configures the Azure Cosmos DB preview emulator to expose the Data Explorer endpoint.
+    /// </summary>
+    /// <param name="builder">Builder for the Cosmos emulator container</param>
+    /// <param name="port">Optional host port to bind the Data Explorer to.</param>
+    /// <returns>Cosmos emulator resource builder.</returns>
+    /// <remarks>
+    /// The Data Explorer is only available with <see cref="RunAsPreviewEmulator"/>.
+    /// </remarks>
+    [Experimental("ASPIRECOSMOS001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    public static IResourceBuilder<AzureCosmosDBEmulatorResource> WithDataExplorer(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, int? port = null)
+    {
+        if (!builder.Resource.InnerResource.IsPreviewEmulator)
+        {
+            throw new NotSupportedException($"The Data Explorer endpoint is only available when using the preview version of the Azure Cosmos DB emulator. Call '{nameof(RunAsPreviewEmulator)}' instead.");
+        }
+
+        return builder.WithEndpoint(endpointName: "data-explorer", endpoint =>
+        {
+            endpoint.UriScheme = "http";
+            endpoint.TargetPort = 1234;
+            endpoint.Port = port;
+        });
     }
 }

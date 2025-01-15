@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -21,15 +22,17 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     public required ThemeManager ThemeManager { get; init; }
 
     [Inject]
+    public required TelemetryRepository TelemetryRepository { get; init; }
+
+    [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
     protected override void OnInitialized()
     {
-        _languageOptions = [.. GlobalizationHelpers.LocalizedCultures
-            .Select(CultureInfo.GetCultureInfo)
-            .OrderBy(c => c.NativeName)];
+        // Order cultures in the dropdown with invariant culture. This prevents the order of languages changing when the culture changes.
+        _languageOptions = [.. GlobalizationHelpers.LocalizedCultures.OrderBy(c => c.NativeName, StringComparer.InvariantCultureIgnoreCase)];
 
-        _selectedUiCulture = _languageOptions.ToHashSet().TryGetCulture(CultureInfo.CurrentUICulture, matchParent: true, out var matchedCulture)
+        _selectedUiCulture = GlobalizationHelpers.TryGetKnownParentCulture(_languageOptions, CultureInfo.CurrentUICulture, out var matchedCulture)
             ? matchedCulture :
             // Otherwise, Blazor has fallen back to a supported language
             CultureInfo.CurrentUICulture;
@@ -74,6 +77,11 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
         NavigationManager.NavigateTo(
             DashboardUrls.SetLanguageUrl(_selectedUiCulture.Name, uri),
             forceLoad: true);
+    }
+
+    private void ClearAllSignals()
+    {
+        TelemetryRepository.ClearAllSignals();
     }
 
     public void Dispose()

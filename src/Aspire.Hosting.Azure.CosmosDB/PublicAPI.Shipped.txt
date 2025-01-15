@@ -8,7 +8,6 @@ Aspire.Hosting.AzureCosmosDBResource.ConnectionStringExpression.get -> Aspire.Ho
 Aspire.Hosting.AzureCosmosDBResource.IsEmulator.get -> bool
 Aspire.Hosting.AzureCosmosExtensions
 override Aspire.Hosting.Azure.AzureCosmosDBEmulatorResource.Annotations.get -> Aspire.Hosting.ApplicationModel.ResourceAnnotationCollection!
-override Aspire.Hosting.Azure.AzureCosmosDBEmulatorResource.Name.get -> string!
 static Aspire.Hosting.AzureCosmosExtensions.AddAzureCosmosDB(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureCosmosDBResource!>!
 static Aspire.Hosting.AzureCosmosExtensions.AddAzureCosmosDB(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureCosmosDBResource!>!, Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.CosmosDB.CosmosDBAccount!, System.Collections.Generic.IEnumerable<Azure.Provisioning.CosmosDB.CosmosDBSqlDatabase!>!>? configureResource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureCosmosDBResource!>!
 static Aspire.Hosting.AzureCosmosExtensions.AddDatabase(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureCosmosDBResource!>! builder, string! databaseName) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureCosmosDBResource!>!

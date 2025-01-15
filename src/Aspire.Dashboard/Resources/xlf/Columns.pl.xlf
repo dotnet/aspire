@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="PersistentContainerIconTooltip">
         <source>This container is persistent and won't be stopped when the app host is shut down.</source>
-        <target state="new">This container is persistent and won't be stopped when the app host is shut down.</target>
+        <target state="translated">Ten kontener jest trwały i nie zostanie zatrzymany po zamknięciu hosta aplikacji.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNameDisplayContainerIdText">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="RunningAndUnhealthyResourceStateToolTip">
         <source>Resource is running but not in a healthy state. Click for details.</source>
-        <target state="new">Resource is running but not in a healthy state. Click for details.</target>
+        <target state="translated">Zasób jest uruchomiony, ale nie jest w dobrej kondycji. Kliknij, aby uzyskać szczegółowe informacje.</target>
         <note>Tool tip text explaining that the resource is running but not yet ready to receive requests.</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerArgsTitle">
@@ -85,8 +85,8 @@
       <trans-unit id="StateColumnResourceContainerRuntimeUnhealthy">
         <source>Container runtime was found but appears to be unhealthy. Ensure that it is running.
 For more information, see https://aka.ms/dotnet/aspire/container-runtime-unhealthy</source>
-        <target state="new">Container runtime was found but appears to be unhealthy. Ensure that it is running.
-For more information, see https://aka.ms/dotnet/aspire/container-runtime-unhealthy</target>
+        <target state="translated">Znaleziono środowisko uruchomieniowe kontenera, ale wygląda na to, że jest w złej kondycji. Upewnij się, że jest uruchomione.
+Aby uzyskać więcej informacji, zobacz https://aka.ms/dotnet/aspire/container-runtime-unhealthy</target>
         <note>Contains a new line</note>
       </trans-unit>
       <trans-unit id="StateColumnResourceExited">

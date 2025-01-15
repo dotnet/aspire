@@ -464,11 +464,10 @@ public static class ContainerResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> WithBuildArg<T>(this IResourceBuilder<T> builder, string name, object value) where T : ContainerResource
+    public static IResourceBuilder<T> WithBuildArg<T>(this IResourceBuilder<T> builder, string name, object? value) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
-        ArgumentNullException.ThrowIfNull(value);
 
         var annotation = builder.Resource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault();
 

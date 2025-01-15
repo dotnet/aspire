@@ -12,21 +12,30 @@ public class PublishAsDockerfileTests
     [Fact]
     public async Task PublishAsDockerFileConfiguresManifestWithoutBuildArgs()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var frontend = builder.AddNpmApp("frontend", "NodeFrontend", "watch")
+        using var tempDir = CreateDirectoryWithNodeDockerFile();
+
+        var path = tempDir.Directory.FullName;
+
+        var frontend = builder.AddNpmApp("frontend", path, "watch")
             .PublishAsDockerFile();
 
-        Assert.True(frontend.Resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out _));
+        // There should be an equivalent container resource with the same name
+        // as the npm app resource.
+        var containerResource = Assert.Single(builder.Resources.OfType<ContainerResource>());
+        Assert.Equal("frontend", containerResource.Name);
 
-        var manifest = await ManifestUtils.GetManifest(frontend.Resource).DefaultTimeout();
+        var manifest = await ManifestUtils.GetManifest(frontend.Resource, manifestDirectory: path).DefaultTimeout();
 
         var expected =
             $$"""
             {
-              "type": "dockerfile.v0",
-              "path": "NodeFrontend/Dockerfile",
-              "context": "NodeFrontend",
+              "type": "container.v1",
+              "build": {
+                "context": ".",
+                "dockerfile": "Dockerfile"
+              },
               "env": {
                 "NODE_ENV": "{{builder.Environment.EnvironmentName.ToLowerInvariant()}}"
               }
@@ -41,9 +50,13 @@ public class PublishAsDockerfileTests
     [Fact]
     public async Task PublishAsDockerFileConfiguresManifestWithBuildArgs()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var frontend = builder.AddNpmApp("frontend", "NodeFrontend", "watch")
+        using var tempDir = CreateDirectoryWithNodeDockerFile();
+
+        var path = tempDir.Directory.FullName;
+
+        var frontend = builder.AddNpmApp("frontend", path, "watch")
             .PublishAsDockerFile(buildArgs: [
                 new DockerBuildArg("SOME_STRING", "Test"),
                 new DockerBuildArg("SOME_BOOL", true),
@@ -52,22 +65,27 @@ public class PublishAsDockerfileTests
                 new DockerBuildArg("SOME_NONVALUE"),
             ]);
 
-        Assert.True(frontend.Resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out _));
+        // There should be an equivalent container resource with the same name
+        // as the npm app resource.
+        var containerResource = Assert.Single(builder.Resources.OfType<ContainerResource>());
+        Assert.Equal("frontend", containerResource.Name);
 
-        var manifest = await ManifestUtils.GetManifest(frontend.Resource).DefaultTimeout();
+        var manifest = await ManifestUtils.GetManifest(frontend.Resource, manifestDirectory: path).DefaultTimeout();
 
         var expected =
             $$"""
             {
-              "type": "dockerfile.v0",
-              "path": "NodeFrontend/Dockerfile",
-              "context": "NodeFrontend",
-              "buildArgs": {
-                "SOME_STRING": "Test",
-                "SOME_BOOL": "true",
-                "SOME_OTHER_BOOL": "false",
-                "SOME_NUMBER": "7",
-                "SOME_NONVALUE": null
+              "type": "container.v1",
+              "build": {
+                "context": ".",
+                "dockerfile": "Dockerfile",
+                "args": {
+                  "SOME_STRING": "Test",
+                  "SOME_BOOL": "true",
+                  "SOME_OTHER_BOOL": "false",
+                  "SOME_NUMBER": "7",
+                  "SOME_NONVALUE": null
+                }
               },
               "env": {
                 "NODE_ENV": "{{builder.Environment.EnvironmentName.ToLowerInvariant()}}"
@@ -83,25 +101,34 @@ public class PublishAsDockerfileTests
     [Fact]
     public async Task PublishAsDockerFileConfiguresManifestWithBuildArgsThatHaveNoValue()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var frontend = builder.AddNpmApp("frontend", "NodeFrontend", "watch")
+        using var tempDir = CreateDirectoryWithNodeDockerFile();
+
+        var path = tempDir.Directory.FullName;
+
+        var frontend = builder.AddNpmApp("frontend", path, "watch")
             .PublishAsDockerFile(buildArgs: [
                 new DockerBuildArg("SOME_ARG")
             ]);
 
-        Assert.True(frontend.Resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out _));
+        // There should be an equivalent container resource with the same name
+        // as the npm app resource.
+        var containerResource = Assert.Single(builder.Resources.OfType<ContainerResource>());
+        Assert.Equal("frontend", containerResource.Name);
 
-        var manifest = await ManifestUtils.GetManifest(frontend.Resource).DefaultTimeout();
+        var manifest = await ManifestUtils.GetManifest(frontend.Resource, manifestDirectory: path).DefaultTimeout();
 
         var expected =
             $$"""
             {
-              "type": "dockerfile.v0",
-              "path": "NodeFrontend/Dockerfile",
-              "context": "NodeFrontend",
-              "buildArgs": {
-                "SOME_ARG": null
+              "type": "container.v1",
+              "build": {
+                "context": ".",
+                "dockerfile": "Dockerfile",
+                "args": {
+                  "SOME_ARG": null
+                }
               },
               "env": {
                 "NODE_ENV": "{{builder.Environment.EnvironmentName.ToLowerInvariant()}}"
@@ -112,5 +139,79 @@ public class PublishAsDockerfileTests
         var actual = manifest.ToString();
 
         Assert.Equal(expected, actual, ignoreLineEndingDifferences: true, ignoreWhiteSpaceDifferences: true);
+    }
+
+    [Fact]
+    public async Task PublishAsDockerFileConfigureContainer()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        using var tempDir = CreateDirectoryWithNodeDockerFile();
+
+        var path = tempDir.Directory.FullName;
+
+        var secret = builder.AddParameter("secret", secret: true);
+
+        var frontend = builder.AddNpmApp("frontend", path, "watch")
+            .PublishAsDockerFile(c =>
+            {
+                c.WithBuildSecret("buildSecret", secret);
+                c.WithVolume("vol", "/app/node_modules");
+            });
+
+        // There should be an equivalent container resource with the same name
+        // as the npm app resource.
+        var containerResource = Assert.Single(builder.Resources.OfType<ContainerResource>());
+        Assert.Equal("frontend", containerResource.Name);
+
+        var manifest = await ManifestUtils.GetManifest(frontend.Resource, manifestDirectory: path).DefaultTimeout();
+
+        var expected =
+            $$"""
+            {
+              "type": "container.v1",
+              "build": {
+                "context": ".",
+                "dockerfile": "Dockerfile",
+                "secrets": {
+                  "buildSecret": {
+                    "type": "env",
+                    "value": "{secret.value}"
+                  }
+                }
+              },
+              "volumes": [
+                {
+                  "name": "vol",
+                  "target": "/app/node_modules",
+                  "readOnly": false
+                }
+              ],
+              "env": {
+                "NODE_ENV": "{{builder.Environment.EnvironmentName.ToLowerInvariant()}}"
+              }
+            }
+            """;
+
+        var actual = manifest.ToString();
+
+        Assert.Equal(expected, actual, ignoreLineEndingDifferences: true, ignoreWhiteSpaceDifferences: true);
+    }
+
+    private static DisposableTempDirectory CreateDirectoryWithNodeDockerFile()
+    {
+        var tempDir = Directory.CreateTempSubdirectory("aspire-docker-test");
+        File.WriteAllText(Path.Join(tempDir.FullName, "Dockerfile"), "FROM node:14");
+        return new DisposableTempDirectory(tempDir);
+    }
+
+    readonly struct DisposableTempDirectory(DirectoryInfo directory) : IDisposable
+    {
+        public DirectoryInfo Directory { get; } = directory;
+
+        public void Dispose()
+        {
+            Directory.Delete(recursive: true);
+        }
     }
 }
