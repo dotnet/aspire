@@ -14,7 +14,7 @@ public class PublishAsDockerfileTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        using var tempDir = CreateDirectoryWithNodeDockerFile();
+        using var tempDir = CreateDirectoryWithDockerFile();
 
         var path = tempDir.Directory.FullName;
 
@@ -52,7 +52,7 @@ public class PublishAsDockerfileTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        using var tempDir = CreateDirectoryWithNodeDockerFile();
+        using var tempDir = CreateDirectoryWithDockerFile();
 
         var path = tempDir.Directory.FullName;
 
@@ -103,7 +103,7 @@ public class PublishAsDockerfileTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        using var tempDir = CreateDirectoryWithNodeDockerFile();
+        using var tempDir = CreateDirectoryWithDockerFile();
 
         var path = tempDir.Directory.FullName;
 
@@ -146,7 +146,7 @@ public class PublishAsDockerfileTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        using var tempDir = CreateDirectoryWithNodeDockerFile();
+        using var tempDir = CreateDirectoryWithDockerFile();
 
         var path = tempDir.Directory.FullName;
 
@@ -198,10 +198,62 @@ public class PublishAsDockerfileTests
         Assert.Equal(expected, actual, ignoreLineEndingDifferences: true, ignoreWhiteSpaceDifferences: true);
     }
 
-    private static DisposableTempDirectory CreateDirectoryWithNodeDockerFile()
+    [Fact]
+    public async Task PublishProjectAsDockerFile()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        using var tempDir = CreateDirectoryWithDockerFile();
+
+        var path = tempDir.Directory.FullName;
+
+        var project = builder.AddProject("project", path, o => o.ExcludeLaunchProfile = true)
+                             .PublishAsDockerFile(c =>
+                             {
+                                 c.WithBuildArg("X", "y");
+                                 c.WithVolume("vol", "/app/shared");
+                             });
+        // There should be an equivalent container resource with the same name
+        // as the project resource.
+        var containerResource = Assert.Single(builder.Resources.OfType<ContainerResource>());
+        Assert.Equal("project", containerResource.Name);
+
+        var manifest = await ManifestUtils.GetManifest(project.Resource, manifestDirectory: path).DefaultTimeout();
+
+        var expected =
+            $$"""
+            {
+              "type": "container.v1",
+              "build": {
+                "context": ".",
+                "dockerfile": "Dockerfile",
+                "args": {
+                  "X": "y"
+                }
+              },
+              "volumes": [
+                {
+                  "name": "vol",
+                  "target": "/app/shared",
+                  "readOnly": false
+                }
+              ],
+              "env": {
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory"
+              }
+            }
+            """;
+
+        var actual = manifest.ToString();
+        Assert.Equal(expected, actual, ignoreLineEndingDifferences: true, ignoreWhiteSpaceDifferences: true);
+    }
+
+    private static DisposableTempDirectory CreateDirectoryWithDockerFile()
     {
         var tempDir = Directory.CreateTempSubdirectory("aspire-docker-test");
-        File.WriteAllText(Path.Join(tempDir.FullName, "Dockerfile"), "FROM node:14");
+        File.WriteAllText(Path.Join(tempDir.FullName, "Dockerfile"), "this does not matter");
         return new DisposableTempDirectory(tempDir);
     }
 
@@ -213,5 +265,12 @@ public class PublishAsDockerfileTests
         {
             Directory.Delete(recursive: true);
         }
+    }
+
+    private sealed class TestProject : IProjectMetadata
+    {
+        public string ProjectPath => "another-path";
+
+        public LaunchSettings? LaunchSettings { get; set; }
     }
 }
