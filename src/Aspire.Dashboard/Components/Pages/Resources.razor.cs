@@ -257,7 +257,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         // Rearrange resources based on parent information.
         // This must happen after resources are ordered so nested resources are in the right order.
         // Collapsed resources are filtered out of results.
-        var orderedResources = ResourceGridViewModel.OrderNestedResources([.. filteredResources], r => !_expandedResourceNames.Contains(r.Name))
+        var orderedResources = ResourceGridViewModel.OrderNestedResources(filteredResources.ToList(), r => !_expandedResourceNames.Contains(r.Name))
             .Where(r => !r.IsHidden)
             .ToList();
 

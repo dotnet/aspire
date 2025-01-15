@@ -115,7 +115,7 @@ fluent-toolbar::part(end) {
     cursor: auto !important;
 }
 
-.enable-row-click .fluent-data-grid-row.hover:not([row-type='header'],[row-type='sticky-header'], .empty-content-row):hover td {
+.enable-row-click .fluent-data-grid-row.hover:not([row-type='header'],[row-type='sticky-header'], .empty-content-row, .loading-content-row):hover td {
     cursor: pointer !important;
 }
 
@@ -236,10 +236,10 @@ h1 {
     text doesn't line up with the spinner properly. It is set via inline style
     so we need to use !important to override it.
 */
-/*fluent-data-grid .loading-content-cell .stack-horizontal {
+.fluent-data-grid .loading-content-cell .stack-horizontal {
     align-items: center !important;
     column-gap: calc(var(--design-unit) * 2px) !important;
-}*/
+}
 
 .custom-body-content {
     margin-right: 10px;
@@ -291,10 +291,6 @@ fluent-dialog td[cell-type=columnheader] fluent-button[appearance=stealth]:not(:
     padding-left: 0.5rem;
     font-size: 12px;
 }
-
-/*fluent-data-grid-row {
-    align-items: center;
-}*/
 
 td .long-inner-content {
     width: inherit;
@@ -479,10 +475,6 @@ fluent-switch.table-switch::part(label) {
     font-size: var(--type-ramp-plus-1-font-size);
 }
 
-.column-header:not(.select-all):first-of-type {
-    padding-inline-start: 0 !important;
-}
-
 .property-grid-container fluent-accordion .fluent-data-grid-row:last-of-type {
     border-bottom: none;
 }
@@ -492,8 +484,8 @@ fluent-switch.table-switch::part(label) {
     background-color: var(--fill-color);
 }
 
-.property-grid-container fluent-accordion .fluent-data-grid-row:not([row-type=default]) fluent-button[appearance=stealth]::part(control):hover,
-.property-grid-container fluent-accordion .fluent-data-grid-row:not([row-type=default]) fluent-button[appearance=lightweight]::part(control):hover {
+.property-grid-container fluent-accordion .fluent-data-grid-row:is([row-type='header'],[row-type='sticky-header']) fluent-button[appearance=stealth]::part(control):hover,
+.property-grid-container fluent-accordion .fluent-data-grid-row:is([row-type='header'],[row-type='sticky-header']) fluent-button[appearance=lightweight]::part(control):hover {
     background-color: var(--neutral-fill-stealth-hover-on-neutral-fill-layer-rest);
 }
 
@@ -708,11 +700,6 @@ fluent-switch.table-switch::part(label) {
     height: 24px;
     min-width: 18px;
     vertical-align: middle;
-}
-
-/* VNB - Not needed anymore?*/
-.main-grid .fluent-data-grid-row[row-type='sticky-header'] th:first-child {
-    margin-left: 5px;
 }
 
 .main-grid .fluent-data-grid-row:not([row-type='sticky-header']) td.expand-col {
