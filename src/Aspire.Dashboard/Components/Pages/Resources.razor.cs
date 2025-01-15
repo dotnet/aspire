@@ -69,6 +69,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private GridColumnManager _manager = null!;
     private int _maxHighlightedCount;
 
+    private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
+    private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
+
     private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && !resource.IsHiddenState();
 
     private async Task OnAllResourceTypesCheckedChangedAsync(bool? areAllTypesVisible)
@@ -150,6 +153,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
+
         _gridColumns = [
             new GridColumn(Name: NameColumn, DesktopWidth: "1.5fr", MobileWidth: "1.5fr"),
             new GridColumn(Name: StateColumn, DesktopWidth: "1.25fr", MobileWidth: "1.25fr"),

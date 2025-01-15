@@ -124,7 +124,7 @@ public partial class TraceDetailsTests : TestContext
 
         // Assert
         var grid = cut.FindComponent<FluentDataGrid<SpanWaterfallViewModel>>();
-        var rows = grid.FindAll("fluent-data-grid-row", enableAutoRefresh: true);
+        var rows = grid.FindAll(".fluent-data-grid-row", enableAutoRefresh: true);
 
         await AsyncTestHelpers.AssertIsTrueRetryAsync(() => rows.Count == 3, "Expected rows to be rendered.");
 

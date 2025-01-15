@@ -57,12 +57,20 @@ public partial class SpanDetails : IDisposable
     private bool _dataChanged;
     private SpanDetailsViewModel? _viewModel;
 
+    private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
+    private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
+
     private readonly CancellationTokenSource _cts = new();
 
     private bool ApplyFilter(TelemetryPropertyViewModel vm)
     {
         return vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
             vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true;
+    }
+
+    protected override void OnInitialized()
+    {
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(Loc);
     }
 
     protected override void OnParametersSet()

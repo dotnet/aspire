@@ -11,6 +11,7 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
@@ -60,7 +61,7 @@ public partial class TraceDetail : ComponentBase, IDisposable
         _gridColumns = [
             new GridColumn(Name: NameColumn, DesktopWidth: "4fr", MobileWidth: "4fr"),
             new GridColumn(Name: TicksColumn, DesktopWidth: "12fr", MobileWidth: "12fr"),
-            new GridColumn(Name: ActionsColumn, DesktopWidth: "90px", MobileWidth: null)
+            new GridColumn(Name: ActionsColumn, DesktopWidth: "100px", MobileWidth: null)
         ];
 
         foreach (var resolver in OutgoingPeerResolvers)
