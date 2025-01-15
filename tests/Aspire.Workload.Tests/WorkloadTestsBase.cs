@@ -162,7 +162,7 @@ public partial class WorkloadTestsBase
             await Task.Delay(500);
 
             // _testOutput.WriteLine($"Checking for rows again");
-            var rowsLocator = dashboardPage.Locator("//tr[@class='hover resource-row']");
+            var rowsLocator = dashboardPage.Locator("//tr[@class='fluent-data-grid-row hover resource-row']");
             var allRows = await rowsLocator.AllAsync();
             // _testOutput.WriteLine($"found rows#: {allRows.Count}");
             if (allRows.Count == 0)
