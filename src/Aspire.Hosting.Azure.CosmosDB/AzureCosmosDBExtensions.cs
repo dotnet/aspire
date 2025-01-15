@@ -9,7 +9,6 @@ using Aspire.Hosting.Azure.CosmosDB;
 using Aspire.Hosting.Utils;
 using Azure.Identity;
 using Azure.Provisioning;
-using Azure.Provisioning.Authorization;
 using Azure.Provisioning.CosmosDB;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
@@ -363,10 +362,13 @@ public static class AzureCosmosExtensions
         {
             cosmosAccount.DisableLocalAuth = true;
 
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            infrastructure.Add(principalTypeParameter);
+
             var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
             infrastructure.Add(principalIdParameter);
 
-            cosmosAccount.CreateRoleAssignment(CosmosDBBuiltInRole.DocumentDBAccountContributor, RoleManagementPrincipalType.ServicePrincipal, principalIdParameter);
+            cosmosAccount.CreateRoleAssignment(CosmosDBBuiltInRole.DocumentDBAccountContributor, principalTypeParameter, principalIdParameter);
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
