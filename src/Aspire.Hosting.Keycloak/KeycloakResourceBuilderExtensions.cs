@@ -14,7 +14,10 @@ public static class KeycloakResourceBuilderExtensions
 {
     private const string AdminEnvVarName = "KEYCLOAK_ADMIN";
     private const string AdminPasswordEnvVarName = "KEYCLOAK_ADMIN_PASSWORD";
+    private const string HealthCheckEnvVarName = "KC_HEALTH_ENABLED";
     private const int DefaultContainerPort = 8080;
+    private const int HealthCheckContainerPort = 9000;
+    private const string HealthEndpointName = "health";
     private const string RealmImportDirectory = "/opt/keycloak/data/import";
 
     /// <summary>
@@ -59,10 +62,13 @@ public static class KeycloakResourceBuilderExtensions
             .WithImageRegistry(KeycloakContainerImageTags.Registry)
             .WithImageTag(KeycloakContainerImageTags.Tag)
             .WithHttpEndpoint(port: port, targetPort: DefaultContainerPort)
+            .WithHttpEndpoint(targetPort: HealthCheckContainerPort, name: HealthEndpointName)
+            .WithHttpHealthCheck(endpointName: HealthEndpointName, path: "/health/ready")
             .WithEnvironment(context =>
             {
                 context.EnvironmentVariables[AdminEnvVarName] = resource.AdminReference;
                 context.EnvironmentVariables[AdminPasswordEnvVarName] = resource.AdminPasswordParameter;
+                context.EnvironmentVariables[HealthCheckEnvVarName] = "true";
             });
 
         if (builder.ExecutionContext.IsRunMode)
