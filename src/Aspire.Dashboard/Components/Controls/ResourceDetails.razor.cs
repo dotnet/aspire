@@ -38,6 +38,9 @@ public partial class ResourceDetails
     private ResourceViewModel? _resource;
     private readonly HashSet<string> _unmaskedItemNames = new();
 
+    private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
+    private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
+
     internal IQueryable<EnvironmentVariableViewModel> FilteredEnvironmentVariables =>
         Resource.Environment
             .Where(vm => (_showAll || vm.FromSpec) && ((IPropertyGridItem)vm).MatchesFilter(_filter))
@@ -139,6 +142,11 @@ public partial class ResourceDetails
 
             _dataChanged = false;
         }
+    }
+
+    protected override void OnInitialized()
+    {
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlStringsLoc);
     }
 
     private IEnumerable<ResourceDetailRelationship> GetRelationships()

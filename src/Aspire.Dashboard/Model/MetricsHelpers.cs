@@ -5,8 +5,10 @@ using System.Globalization;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Model;
 
@@ -36,7 +38,7 @@ public static class MetricsHelpers
                     Intent = MessageBoxIntent.Info,
                     Icon = new Icons.Filled.Size24.Info(),
                     IconColor = Color.Info,
-                    Message = string.Format(CultureInfo.InvariantCulture, loc[nameof(Dialogs.OpenTraceDialogMessage)], OtlpHelpers.ToShortenedId(traceId)),
+                    MarkupMessage = new MarkupString(string.Format(CultureInfo.InvariantCulture, loc[nameof(Dialogs.OpenTraceDialogMessage)], OtlpHelpers.ToShortenedId(traceId))),
                 },
                 DialogType = DialogType.MessageBox,
                 PrimaryAction = string.Empty,

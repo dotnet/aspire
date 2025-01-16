@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -133,10 +134,18 @@ public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem
     public RenderFragment<TItem> ExtraValueContent { get; set; } = s_emptyChildContent;
 
     [Parameter]
-    public GenerateHeaderOption GenerateHeader { get; set; } = GenerateHeaderOption.Sticky;
+    public GenerateHeaderOption GenerateHeader { get; set; } = GenerateHeaderOption.Default;
 
     [Parameter]
     public string? Class { get; set; }
+
+    private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
+    private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
+
+    protected override void OnInitialized()
+    {
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(Loc);
+    }
 
     // Return null if empty so GridValue knows there is no template.
     private RenderFragment? GetContentAfterValue(TItem context) => ContentAfterValue == s_emptyChildContent
