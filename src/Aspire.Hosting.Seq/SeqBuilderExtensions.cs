@@ -62,8 +62,8 @@ public static class SeqBuilderExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(username.Resource.Value, nameof(username));
         ArgumentException.ThrowIfNullOrWhiteSpace(password.Resource.Value, nameof(username));
         return builder
-            .WithEnvironment(UserEnvVarName, username.Resource.Value)
-            .WithEnvironment(PasswordEnvVarName, password.Resource.Value);
+            .WithEnvironment(UserEnvVarName, username)
+            .WithEnvironment(PasswordEnvVarName, password);
     }
 
     /// <summary>
