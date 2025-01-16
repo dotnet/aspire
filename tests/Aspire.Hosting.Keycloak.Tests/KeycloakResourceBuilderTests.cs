@@ -26,7 +26,7 @@ public class KeycloakResourceBuilderTests
         var containerResource = Assert.Single(appModel.Resources.OfType<KeycloakResource>());
         Assert.Equal(resourceName, containerResource.Name);
 
-        var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
+        var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>().Where(e => e.Name == "http"));
         Assert.Equal(8080, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("http", endpoint.Name);
@@ -34,6 +34,15 @@ public class KeycloakResourceBuilderTests
         Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
         Assert.Equal("http", endpoint.Transport);
         Assert.Equal("http", endpoint.UriScheme);
+
+        var healthEndpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>().Where(e => e.Name == "health"));
+        Assert.Equal(9000, healthEndpoint.TargetPort);
+        Assert.False(healthEndpoint.IsExternal);
+        Assert.Equal("health", healthEndpoint.Name);
+        Assert.Null(healthEndpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, healthEndpoint.Protocol);
+        Assert.Equal("http", healthEndpoint.Transport);
+        Assert.Equal("http", healthEndpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(KeycloakContainerImageTags.Tag, containerAnnotation.Tag);
@@ -135,14 +144,15 @@ public class KeycloakResourceBuilderTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "image": "{{KeycloakContainerImageTags.Registry}}/{{KeycloakContainerImageTags.Image}}:{{KeycloakContainerImageTags.Tag}}",
+              "image": "quay.io/keycloak/keycloak:26.0",
               "args": [
                 "start-dev",
                 "--import-realm"
               ],
               "env": {
                 "KEYCLOAK_ADMIN": "admin",
-                "KEYCLOAK_ADMIN_PASSWORD": "{keycloak-password.value}"
+                "KEYCLOAK_ADMIN_PASSWORD": "{keycloak-password.value}",
+                "KC_HEALTH_ENABLED": "true"
               },
               "bindings": {
                 "http": {
@@ -150,6 +160,12 @@ public class KeycloakResourceBuilderTests
                   "protocol": "tcp",
                   "transport": "http",
                   "targetPort": 8080
+                },
+                "health": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "targetPort": 9000
                 }
               }
             }
