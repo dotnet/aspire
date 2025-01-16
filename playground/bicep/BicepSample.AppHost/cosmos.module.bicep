@@ -1,6 +1,8 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
+param principalType string
+
 param principalId string
 
 resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {

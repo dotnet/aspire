@@ -368,9 +368,10 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedManifest = """
                                {
                                  "type": "azure.bicep.v0",
-                                 "connectionString": "{cosmos.secretOutputs.connectionString}",
+                                 "connectionString": "{cosmos.outputs.connectionString}",
                                  "path": "cosmos.module.bicep",
                                  "params": {
+                                   "principalType": "",
                                    "principalId": ""
                                  }
                                }
@@ -382,6 +383,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
+
+            param principalType string
 
             param principalId string
 
@@ -582,9 +585,10 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedManifest = """
                                {
                                  "type": "azure.bicep.v0",
-                                 "connectionString": "{cosmos.secretOutputs.connectionString}",
+                                 "connectionString": "{cosmos.outputs.connectionString}",
                                  "path": "cosmos.module.bicep",
                                  "params": {
+                                   "principalType": "",
                                    "principalId": ""
                                  }
                                }
@@ -594,6 +598,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
+
+            param principalType string
 
             param principalId string
 
