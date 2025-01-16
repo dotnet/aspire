@@ -144,7 +144,7 @@ public class KeycloakResourceBuilderTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "image": "quay.io/keycloak/keycloak:26.0",
+              "image": "{{KeycloakContainerImageTags.Registry}}/{{KeycloakContainerImageTags.Image}}:{{KeycloakContainerImageTags.Tag}}",
               "args": [
                 "start-dev",
                 "--import-realm"
