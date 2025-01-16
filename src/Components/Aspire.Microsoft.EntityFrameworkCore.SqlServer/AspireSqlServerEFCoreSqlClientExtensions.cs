@@ -22,6 +22,41 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
     private const string DefaultConfigSectionName = "Aspire:Microsoft:EntityFrameworkCore:SqlServer";
     private const DynamicallyAccessedMemberTypes RequiredByEF = DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties;
 
+    /// <inheritdoc cref="AddSqlServerDbContext{TContext}(IHostApplicationBuilder, string, Action{MicrosoftEntityFrameworkCoreSqlServerSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    public static void AddSqlServerDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IHostApplicationBuilder builder,
+        string connectionName) where TContext : DbContext
+            => AddSqlServerDbContextInternal<TContext>(builder, connectionName, configureSettings: null, configureDbContextOptions: null);
+
+    /// <inheritdoc cref="AddSqlServerDbContext{TContext}(IHostApplicationBuilder, string, Action{MicrosoftEntityFrameworkCoreSqlServerSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    public static void AddSqlServerDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<MicrosoftEntityFrameworkCoreSqlServerSettings>? configureSettings) where TContext : DbContext
+            => AddSqlServerDbContextInternal<TContext>(builder, connectionName, configureSettings, configureDbContextOptions: null);
+
+    /// <inheritdoc cref="AddSqlServerDbContext{TContext}(IHostApplicationBuilder, string, Action{MicrosoftEntityFrameworkCoreSqlServerSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    public static void AddSqlServerDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext
+            => AddSqlServerDbContextInternal<TContext>(builder, connectionName, configureSettings: null, (_, options) => configureDbContextOptions?.Invoke(options));
+
+    /// <inheritdoc cref="AddSqlServerDbContext{TContext}(IHostApplicationBuilder, string, Action{MicrosoftEntityFrameworkCoreSqlServerSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    public static void AddSqlServerDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<MicrosoftEntityFrameworkCoreSqlServerSettings>? configureSettings,
+        Action<DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext
+            => AddSqlServerDbContextInternal<TContext>(builder, connectionName, configureSettings, (_, options) => configureDbContextOptions?.Invoke(options));
+
+    /// <inheritdoc cref="AddSqlServerDbContext{TContext}(IHostApplicationBuilder, string, Action{MicrosoftEntityFrameworkCoreSqlServerSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    public static void AddSqlServerDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<IServiceProvider, DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext
+            => AddSqlServerDbContextInternal<TContext>(builder, connectionName, configureSettings: null, configureDbContextOptions);
+
     /// <summary>
     /// Registers the given <see cref="DbContext" /> as a service in the services provided by the <paramref name="builder"/>.
     /// Enables db context pooling, retries, health check, logging and telemetry for the <see cref="DbContext" />.
@@ -37,8 +72,15 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
     public static void AddSqlServerDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
         string connectionName,
-        Action<MicrosoftEntityFrameworkCoreSqlServerSettings>? configureSettings = null,
-        Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
+        Action<MicrosoftEntityFrameworkCoreSqlServerSettings>? configureSettings,
+        Action<IServiceProvider, DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext
+            => AddSqlServerDbContextInternal<TContext>(builder, connectionName, configureSettings, configureDbContextOptions);
+
+    private static void AddSqlServerDbContextInternal<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        IHostApplicationBuilder builder,
+        string connectionName,
+        Action<MicrosoftEntityFrameworkCoreSqlServerSettings>? configureSettings,
+        Action<IServiceProvider, DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -60,7 +102,7 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
 
         ConfigureInstrumentation<TContext>(builder, settings);
 
-        void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
+        void ConfigureDbContext(IServiceProvider serviceProvider, DbContextOptionsBuilder dbContextOptionsBuilder)
         {
             // We don't register logger factory, because there is no need to:
             // https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
@@ -82,7 +124,7 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
                 }
             });
 
-            configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
+            configureDbContextOptions?.Invoke(serviceProvider, dbContextOptionsBuilder);
         }
     }
 
