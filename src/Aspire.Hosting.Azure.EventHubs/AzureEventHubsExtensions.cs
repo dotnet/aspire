@@ -215,13 +215,13 @@ public static class AzureEventHubsExtensions
             if (builder.Resource.Hubs is [var hub])
             {
                 string healthCheckConnectionString;
-                if (Uri.IsWellFormedUriString(connectionString, UriKind.Absolute))
+
+                // NOTE: the emulator doesn't currently support FQNS style connection strings, but I'm leaving this here for the future
+                if (Uri.TryCreate(connectionString, UriKind.Absolute, out var endpoint))
                 {
-                    // Uri format
-                    var endpoint = new Uri(connectionString, UriKind.Absolute);
-                    
-                    healthCheckConnectionString = endpoint.AbsolutePath == "/" ?
-                        $"{connectionString}{hub.Name}" : connectionString;
+                    // Uri format (FQNS)
+                    healthCheckConnectionString = endpoint.Query == string.Empty ?
+                        $"{connectionString}?EntityPath={hub.Name}" : connectionString;
                 }
                 else
                 {
