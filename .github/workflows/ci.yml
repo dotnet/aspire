@@ -31,10 +31,10 @@ jobs:
           # Add more projects as needed
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up .NET Core
-        uses: actions/setup-dotnet@v2
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
             8.x
@@ -44,8 +44,7 @@ jobs:
         run: dotnet dev-certs https --trust
 
       - name: Verify Docker is running
-        run: |
-          docker info
+        run: docker info
 
       - name: Install Azure Functions Core Tools
         run: |
@@ -53,15 +52,13 @@ jobs:
           sudo apt-get install -y azure-functions-core-tools-4
 
       - name: Restore dependencies
-        run: |
-          dotnet restore ${{ matrix.project }}
+        run: dotnet restore ${{ matrix.project }}
 
       - name: Build projects
-        run: |
-          dotnet build ${{ matrix.project }} /p:CI=false --no-restore
+        run: dotnet build ${{ matrix.project }} /p:CI=false --no-restore
 
       - name: Run tests
-        id: run_tests
+        id: run-tests
         run: |
           dotnet test ${{ matrix.project }} \
             --logger "console;verbosity=normal" \
@@ -76,8 +73,7 @@ jobs:
 
       - name: Compress test results
         if: always()
-        run: |
-          zip -r testresults.zip testresults
+        run: zip -r testresults.zip testresults
 
       - name: Upload test results artifact
         if: always()
