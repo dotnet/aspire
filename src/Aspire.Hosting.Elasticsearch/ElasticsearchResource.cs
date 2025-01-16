@@ -22,6 +22,11 @@ public class ElasticsearchResource : ContainerResource, IResourceWithConnectionS
     //For things like cluster updates, master elections, nodes joining/leaving, shard allocation
     internal const string InternalEndpointName = "internal";
 
+    internal static UnixFileMode s_defaultUnixFileMode =
+        UnixFileMode.GroupExecute | UnixFileMode.GroupRead | UnixFileMode.GroupWrite |
+        UnixFileMode.OtherExecute | UnixFileMode.OtherRead | UnixFileMode.OtherWrite |
+        UnixFileMode.UserExecute | UnixFileMode.UserRead | UnixFileMode.UserWrite;
+
     /// <param name="name">The name of the resource.</param>
     /// <param name="password">A parameter that contains the Elasticsearch superuser password.</param>
     public ElasticsearchResource(string name, ParameterResource password) : base(name)

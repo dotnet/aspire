@@ -145,6 +145,9 @@ public static class ElasticsearchBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(source);
 
-        return builder.WithBindMount(source, "/usr/share/elasticsearch/data");
+        return builder.WithBindMount(source,
+                    "/usr/share/elasticsearch/data",
+                    isReadOnly: false,
+                    fileMode: ElasticsearchResource.s_defaultUnixFileMode);
     }
 }
