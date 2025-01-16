@@ -126,8 +126,21 @@ public static class AzureEventHubsExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureEventHubsResource> WithDefaultEntity(this IResourceBuilder<AzureEventHubsResource> builder, [ResourceName] string name)
     {
-        // WithHub is idempotent with respect to enrolling for creation of the hub, but configuration can be applied.
-        return WithHub(builder, name, hub => hub.IsDefaultEntity = true);
+        // Only one event hub can be the default entity
+        if (builder.Resource.Hubs.Any(h => h.IsDefaultEntity))
+        {
+            throw new DistributedApplicationException("Only one EventHub can be configured as the default entity.");
+        }
+
+        // We need to ensure that the hub exists before we can set it as the default entity.
+        if (builder.Resource.Hubs.Any(h => h.Name  == name))
+        {
+            // WithHub is idempotent with respect to enrolling for creation of the hub, but configuration can be applied.
+            return WithHub(builder, name, hub => hub.IsDefaultEntity = true);
+        }        
+
+        throw new DistributedApplicationException(
+            $"The specified EventHub does not exist in the Azure Event Hubs resource. Please ensure there is a call to WithHub(\"{name}\") before this call.");
     }
 
     /// <summary>

@@ -67,25 +67,18 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
             return builder.Build();
         }
 
-        try
-        {
-            // Of one or more hubs, only one may be flagged as default
-            var defaultEntity = Hubs.Single(hub => hub.IsDefaultEntity);
+        // Of one or more hubs, only one may be flagged as default
+        var defaultEntity = Hubs.Single(hub => hub.IsDefaultEntity);
 
-            if (IsEmulator)
-            {
-                // Endpoint=...
-                builder.Append($";EntityPath={defaultEntity.Name}");
-            }
-            else
-            {
-                // Uri (https://.../?EntityPath=hub)
-                builder.Append($"?EntityPath={defaultEntity.Name}");
-            }
-        }
-        catch (InvalidOperationException ex)
+        if (IsEmulator)
         {
-            throw new DistributedApplicationException("Only one EventHub can be configured as the default entity.", ex);
+            // Endpoint=...
+            builder.Append($";EntityPath={defaultEntity.Name}");
+        }
+        else
+        {
+            // Uri (https://.../?EntityPath=hub)
+            builder.Append($"?EntityPath={defaultEntity.Name}");
         }
 
         return builder.Build();
