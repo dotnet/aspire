@@ -57,6 +57,7 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
         }
         else
         {
+            // Uri format, e.g. https://...
             builder.Append($"{EventHubsEndpoint}");
         }
 
@@ -71,7 +72,16 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
             // Of one or more hubs, only one may be flagged as default
             var defaultEntity = Hubs.Single(hub => hub.IsDefaultEntity);
 
-            builder.Append($";EntityPath={defaultEntity.Name}");
+            if (IsEmulator)
+            {
+                // Endpoint=...
+                builder.Append($";EntityPath={defaultEntity.Name}");
+            }
+            else
+            {
+                // Uri (https://.../?EntityPath=hub)
+                builder.Append($"?EntityPath={defaultEntity.Name}");
+            }
         }
         catch (InvalidOperationException ex)
         {

@@ -118,6 +118,19 @@ public static class AzureEventHubsExtensions
     }
 
     /// <summary>
+    /// Specifies that the named EventHub should be used as the EntityPath in the resource's connection string.
+    /// <remarks>Only one EventHub can be set as the default entity. If more than one is configured as default, an Exception will be raised at runtime.</remarks>
+    /// </summary>
+    /// <param name="builder">The Azure Event Hubs resource builder.</param>
+    /// <param name="name">The name of the Event Hub.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureEventHubsResource> WithDefaultEntity(this IResourceBuilder<AzureEventHubsResource> builder, [ResourceName] string name)
+    {
+        // WithHub is idempotent with respect to enrolling for creation of the hub, but configuration can be applied.
+        return WithHub(builder, name, hub => hub.IsDefaultEntity = true);
+    }
+
+    /// <summary>
     /// Configures an Azure Event Hubs resource to be emulated. This resource requires an <see cref="AzureEventHubsResource"/> to be added to the application model.
     /// </summary>
     /// <remarks>
@@ -201,10 +214,24 @@ public static class AzureEventHubsExtensions
             // an event hub namespace without an event hub? :)
             if (builder.Resource.Hubs is [var hub])
             {
-                var props = EventHubsConnectionStringProperties.Parse(connectionString);
+                string healthCheckConnectionString;
+                if (Uri.IsWellFormedUriString(connectionString, UriKind.Absolute))
+                {
+                    // Uri format
+                    var endpoint = new Uri(connectionString, UriKind.Absolute);
+                    
+                    healthCheckConnectionString = endpoint.AbsolutePath == "/" ?
+                        $"{connectionString}{hub.Name}" : connectionString;
+                }
+                else
+                {
+                    // Endpoint=... format
+                    var props = EventHubsConnectionStringProperties.Parse(connectionString);
 
-                var healthCheckConnectionString = string.IsNullOrEmpty(props.EventHubName) ?
-                    $"{connectionString};EntityPath={hub.Name};" : connectionString;
+                    healthCheckConnectionString = string.IsNullOrEmpty(props.EventHubName)
+                        ? $"{connectionString};EntityPath={hub.Name};"
+                        : connectionString;
+                }
 
                 client = new EventHubProducerClient(healthCheckConnectionString);
             }

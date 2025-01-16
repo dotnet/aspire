@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Security.Cryptography;
 using Aspire.Azure.Common;
 using Aspire.Azure.Messaging.EventHubs;
@@ -95,27 +96,52 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
             // We have a connection string -- do we have an EventHubName?
             if (string.IsNullOrWhiteSpace(settings.EventHubName))
             {
-                // look for EntityPath
-                var props = EventHubsConnectionStringProperties.Parse(connectionString);
+                // no EventHubName in callback -- try to extract it from the connection string
+                string? eventHubName = null;
 
-                // if EntityPath is missing, throw
-                if (string.IsNullOrWhiteSpace(props.EventHubName))
+                // look for special EntityPath "hint" in the FQNS style connection string
+                if (Uri.TryCreate(connectionString, UriKind.Absolute, out var fqns))
+                {
+                    var query = System.Web.HttpUtility.ParseQueryString(fqns.Query);
+                    if (query.HasKeys() && query.AllKeys.Contains("EntityPath"))
+                    {
+                        eventHubName = query["EntityPath"];
+
+                        // we control the query string, so this should never happen
+                        Debug.Assert(!string.IsNullOrWhiteSpace(eventHubName));
+                    }
+                }
+                else
+                {
+                    // look for EntityPath in the Endpoint style connection string
+                    var props = EventHubsConnectionStringProperties.Parse(connectionString);
+
+                    // if EntityPath is found, capture it
+                    if (!string.IsNullOrWhiteSpace(props.EventHubName))
+                    {
+                        eventHubName = props.EventHubName;
+                    }
+                }
+
+                if (eventHubName == null)
                 {
                     throw new InvalidOperationException(
                         $"A {typeof(TClient).Name} could not be configured. Ensure a valid EventHubName was provided in " +
-                        $"the '{configurationSectionName}' configuration section, or include an EntityPath in the ConnectionString.");
+                        $"the '{configurationSectionName}' configuration section, or assign one in the settings callback for this client.");
                 }
 
                 // this is used later to create the checkpoint blob container
-                settings.EventHubName = props.EventHubName;
+                settings.EventHubName = eventHubName;
             }
         }
         // If we have a namespace and no connection string, ensure there's an EventHubName
         else if (!string.IsNullOrWhiteSpace(settings.FullyQualifiedNamespace) && string.IsNullOrWhiteSpace(settings.EventHubName))
         {
+            // NOTE: We don't handle the case where the EventHubName is in the connection string as a "hint" as this is an internal Aspire scenario.
+            // In the case where the user is setting the FQNS, they should also be providing the EventHubName.
             throw new InvalidOperationException(
                 $"A {typeof(TClient).Name} could not be configured. Ensure a valid EventHubName was provided in " +
-                $"the '{configurationSectionName}' configuration section.");
+                $"the '{configurationSectionName}' configuration section, or assign one in the settings callback for this client.");
         }
     }
 }
