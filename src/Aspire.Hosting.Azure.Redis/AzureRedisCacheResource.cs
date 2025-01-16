@@ -29,8 +29,11 @@ public class AzureRedisCacheResource(string name, Action<AzureResourceInfrastruc
     /// </summary>
     internal BicepSecretOutputReference? ConnectionStringSecretOutput { get; set; }
 
+    /// <summary>
+    /// Whether the resource uses access key authentication.
+    /// </summary>
     [MemberNotNullWhen(true, nameof(ConnectionStringSecretOutput))]
-    internal bool UseAccessKeyAuthentication => ConnectionStringSecretOutput is not null;
+    public bool UseAccessKeyAuthentication => ConnectionStringSecretOutput is not null;
 
     /// <summary>
     /// Gets the inner Redis resource.
