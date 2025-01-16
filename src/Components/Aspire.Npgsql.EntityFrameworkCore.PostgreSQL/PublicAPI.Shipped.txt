@@ -14,5 +14,4 @@ Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.NpgsqlEntityFrameworkCorePostgreSQL
 Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.NpgsqlEntityFrameworkCorePostgreSQLSettings.DisableTracing.set -> void
 Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.NpgsqlEntityFrameworkCorePostgreSQLSettings.NpgsqlEntityFrameworkCorePostgreSQLSettings() -> void
 Microsoft.Extensions.Hosting.AspireEFPostgreSqlExtensions
-static Microsoft.Extensions.Hosting.AspireEFPostgreSqlExtensions.AddNpgsqlDbContext<TContext>(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.NpgsqlEntityFrameworkCorePostgreSQLSettings!>? configureSettings = null, System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>? configureDbContextOptions = null) -> void
 static Microsoft.Extensions.Hosting.AspireEFPostgreSqlExtensions.EnrichNpgsqlDbContext<TContext>(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, System.Action<Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.NpgsqlEntityFrameworkCorePostgreSQLSettings!>? configureSettings = null) -> void

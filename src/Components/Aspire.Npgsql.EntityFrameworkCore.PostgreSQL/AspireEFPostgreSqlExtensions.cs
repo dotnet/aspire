@@ -23,34 +23,40 @@ public static partial class AspireEFPostgreSqlExtensions
     private const string DefaultConfigSectionName = "Aspire:Npgsql:EntityFrameworkCore:PostgreSQL";
     private const DynamicallyAccessedMemberTypes RequiredByEF = DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties;
 
-    /// <summary>
-    /// Registers the given <see cref="DbContext" /> as a service in the services provided by the <paramref name="builder"/>.
-    /// Enables db context pooling, retries, corresponding health check, logging and telemetry.
-    /// </summary>
-    /// <typeparam name="TContext">The <see cref="DbContext" /> that needs to be registered.</typeparam>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureDbContextOptions">An optional delegate to configure the <see cref="DbContextOptions"/> for the context.</param>
-    /// <remarks>
-    /// <para>
-    /// Reads the configuration from "Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:{typeof(TContext).Name}" config section, or "Aspire:Npgsql:EntityFrameworkCore:PostgreSQL" if former does not exist.
-    /// </para>
-    /// <para>
-    /// The <see cref="DbContext.OnConfiguring" /> method can then be overridden to configure <see cref="DbContext" /> options.
-    /// </para>
-    /// </remarks>
-    /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="NpgsqlEntityFrameworkCorePostgreSQLSettings.ConnectionString"/> is not provided.</exception>
+    /// <inheritdoc cref="AddNpgsqlDbContext{TContext}(IHostApplicationBuilder, string, Action{NpgsqlEntityFrameworkCorePostgreSQLSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    public static void AddNpgsqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IHostApplicationBuilder builder,
+        string connectionName) where TContext : DbContext =>
+            AddNpgsqlDbContextInternal<TContext>(builder, connectionName, configureSettings: null, configureDbContextOptions: null);
+
+    /// <inheritdoc cref="AddNpgsqlDbContext{TContext}(IHostApplicationBuilder, string, Action{NpgsqlEntityFrameworkCorePostgreSQLSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
     public static void AddNpgsqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
         string connectionName,
-        Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null,
-        Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        AddNpgsqlDbContextInternal<TContext>(builder, connectionName, configureSettings, (_, options) => configureDbContextOptions?.Invoke(options));
-    }
+        Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings) where TContext : DbContext =>
+            AddNpgsqlDbContextInternal<TContext>(builder, connectionName, configureSettings, configureDbContextOptions: null);
+
+    /// <inheritdoc cref="AddNpgsqlDbContext{TContext}(IHostApplicationBuilder, string, Action{NpgsqlEntityFrameworkCorePostgreSQLSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    public static void AddNpgsqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext =>
+            AddNpgsqlDbContextInternal<TContext>(builder, connectionName, null, (_, options) => configureDbContextOptions?.Invoke(options));
+
+    /// <inheritdoc cref="AddNpgsqlDbContext{TContext}(IHostApplicationBuilder, string, Action{NpgsqlEntityFrameworkCorePostgreSQLSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    public static void AddNpgsqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings,
+        Action<DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext =>
+            AddNpgsqlDbContextInternal<TContext>(builder, connectionName, configureSettings, (_, options) => configureDbContextOptions?.Invoke(options));
+
+    /// <inheritdoc cref="AddNpgsqlDbContext{TContext}(IHostApplicationBuilder, string, Action{NpgsqlEntityFrameworkCorePostgreSQLSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    public static void AddNpgsqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<IServiceProvider, DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext =>
+            AddNpgsqlDbContextInternal<TContext>(builder, connectionName, null, configureDbContextOptions);
 
     /// <summary>
     /// Registers the given <see cref="DbContext" /> as a service in the services provided by the <paramref name="builder"/>.
@@ -71,19 +77,17 @@ public static partial class AspireEFPostgreSqlExtensions
     /// </remarks>
     /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="NpgsqlEntityFrameworkCorePostgreSQLSettings.ConnectionString"/> is not provided.</exception>
-    [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Supporting additional callback arguments")]
     public static void AddNpgsqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
         string connectionName,
-        Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null,
-        Action<IServiceProvider, DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        AddNpgsqlDbContextInternal<TContext>(builder, connectionName, configureSettings, configureDbContextOptions);
-    }
+        Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings,
+        Action<IServiceProvider, DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext =>
+            AddNpgsqlDbContextInternal<TContext>(builder, connectionName, configureSettings, configureDbContextOptions);
 
     private static void AddNpgsqlDbContextInternal<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(IHostApplicationBuilder builder, string connectionName, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings, Action<IServiceProvider, DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.EnsureDbContextNotRegistered<TContext>();
 
         var settings = builder.GetDbContextSettings<TContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>(
