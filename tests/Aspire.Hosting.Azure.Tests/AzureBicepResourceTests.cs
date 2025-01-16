@@ -361,7 +361,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             });
         cosmos.WithDatabase("mydatabase", db => db.Containers.Add(new("mycontainer", "mypartitionkeypath")));
 
-        cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
+        cosmos.Resource.Outputs["connectionString"] = "mycosmosconnectionstring";
 
         var manifest = await ManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
@@ -578,7 +578,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             });
         cosmos.WithDatabase("mydatabase", db => db.Containers.Add(new("mycontainer", "mypartitionkeypath")));
 
-        cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
+        cosmos.Resource.Outputs["connectionString"] = "mycosmosconnectionstring";
 
         var manifest = await ManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
