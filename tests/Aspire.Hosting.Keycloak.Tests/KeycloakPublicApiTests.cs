@@ -107,26 +107,26 @@ public class KeycloakPublicApiTests
     }
 
     [Fact]
-    public void WithRealmImportShouldThrowWhenImportDirectoryIsNull()
+    public void WithRealmImportShouldThrowWhenImportIsNull()
     {
         var builder = TestDistributedApplicationBuilder.Create();
         var keycloak = builder.AddKeycloak("Keycloak");
-        string importDirectory = null!;
+        string import = null!;
 
-        var action = () => keycloak.WithRealmImport(importDirectory);
+        var action = () => keycloak.WithRealmImport(import);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(importDirectory), exception.ParamName);
+        Assert.Equal(nameof(import), exception.ParamName);
     }
 
     [Fact]
-    public void WithRealmImportShouldThrowWhenImportDirectoryDoesNotExist()
+    public void WithRealmImportShouldThrowWhenImportDoesNotExist()
     {
         var builder = TestDistributedApplicationBuilder.Create();
         var keycloak = builder.AddKeycloak("Keycloak");
 
         var action = () => keycloak.WithRealmImport("does-not-exist");
 
-        Assert.Throws<DirectoryNotFoundException>(action);
+        Assert.Throws<InvalidOperationException>(action);
     }
 }
