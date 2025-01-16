@@ -23,6 +23,41 @@ public static class AspireOracleEFCoreExtensions
     private const string DefaultConfigSectionName = "Aspire:Oracle:EntityFrameworkCore";
     private const DynamicallyAccessedMemberTypes RequiredByEF = DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties;
 
+    /// <inheritdoc cref="AddOracleDatabaseDbContext{TContext}(IHostApplicationBuilder, string, Action{OracleEntityFrameworkCoreSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    public static void AddOracleDatabaseDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IHostApplicationBuilder builder,
+        string connectionName) where TContext : DbContext
+            => AddOracleDatabaseDbContextInternal<TContext>(builder, connectionName, configureSettings: null, configureDbContextOptions: null);
+
+    /// <inheritdoc cref="AddOracleDatabaseDbContext{TContext}(IHostApplicationBuilder, string, Action{OracleEntityFrameworkCoreSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    public static void AddOracleDatabaseDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<OracleEntityFrameworkCoreSettings>? configureSettings) where TContext : DbContext
+            => AddOracleDatabaseDbContextInternal<TContext>(builder, connectionName, configureSettings, configureDbContextOptions: null);
+
+    /// <inheritdoc cref="AddOracleDatabaseDbContext{TContext}(IHostApplicationBuilder, string, Action{OracleEntityFrameworkCoreSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    public static void AddOracleDatabaseDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext
+            => AddOracleDatabaseDbContextInternal<TContext>(builder, connectionName, configureSettings: null, (_, options) => configureDbContextOptions?.Invoke(options));
+
+    /// <inheritdoc cref="AddOracleDatabaseDbContext{TContext}(IHostApplicationBuilder, string, Action{OracleEntityFrameworkCoreSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    public static void AddOracleDatabaseDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<OracleEntityFrameworkCoreSettings>? configureSettings,
+        Action<DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext
+            => AddOracleDatabaseDbContextInternal<TContext>(builder, connectionName, configureSettings, (_, options) => configureDbContextOptions?.Invoke(options));
+
+    /// <inheritdoc cref="AddOracleDatabaseDbContext{TContext}(IHostApplicationBuilder, string, Action{OracleEntityFrameworkCoreSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    public static void AddOracleDatabaseDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<IServiceProvider, DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext
+            => AddOracleDatabaseDbContextInternal<TContext>(builder, connectionName, configureSettings: null, configureDbContextOptions);
+
     /// <summary>
     /// Registers the given <see cref="DbContext" /> as a service in the services provided by the <paramref name="builder"/>.
     /// Enables db context pooling, retries, health check, logging and telemetry for the <see cref="DbContext" />.
@@ -38,8 +73,15 @@ public static class AspireOracleEFCoreExtensions
     public static void AddOracleDatabaseDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
         string connectionName,
-        Action<OracleEntityFrameworkCoreSettings>? configureSettings = null,
-        Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
+        Action<OracleEntityFrameworkCoreSettings>? configureSettings,
+        Action<IServiceProvider, DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext
+            => AddOracleDatabaseDbContextInternal<TContext>(builder, connectionName, configureSettings, configureDbContextOptions);
+
+    private static void AddOracleDatabaseDbContextInternal<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        IHostApplicationBuilder builder,
+        string connectionName,
+        Action<OracleEntityFrameworkCoreSettings>? configureSettings,
+        Action<IServiceProvider, DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -61,7 +103,7 @@ public static class AspireOracleEFCoreExtensions
 
         ConfigureInstrumentation<TContext>(builder, settings);
 
-        void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
+        void ConfigureDbContext(IServiceProvider services, DbContextOptionsBuilder dbContextOptionsBuilder)
         {
             ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
 
@@ -81,7 +123,7 @@ public static class AspireOracleEFCoreExtensions
                 }
             });
 
-            configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
+            configureDbContextOptions?.Invoke(services, dbContextOptionsBuilder);
         }
     }
 
