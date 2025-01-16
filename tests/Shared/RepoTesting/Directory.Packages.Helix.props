@@ -63,6 +63,7 @@
     <PackageVersion Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Milvus.Client" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.MongoDB.Driver" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.MongoDB.Driver.v3" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.MySqlConnector" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.NATS.Net" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Npgsql" Version="$(PackageVersion)" />
