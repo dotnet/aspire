@@ -88,21 +88,12 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source path of the mount. This is the path to the file or directory on the host.</param>
     /// <param name="target">The target path where the file or directory is mounted in the container.</param>
-    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithBindMount<T>(this IResourceBuilder<T> builder, string source, string target) where T : ContainerResource =>
-        builder.WithBindMount(source, target, isReadOnly: false, fileMode: null);
-
-    /// <summary>
-    /// Adds a bind mount to a container resource.
-    /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="source">The source path of the mount. This is the path to the file or directory on the host.</param>
-    /// <param name="target">The target path where the file or directory is mounted in the container.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithBindMount<T>(this IResourceBuilder<T> builder, string source, string target, bool isReadOnly) where T : ContainerResource =>
+#pragma warning disable RS0027 // API with optional parameter(s) should have the most parameters amongst its public overloads
+    public static IResourceBuilder<T> WithBindMount<T>(this IResourceBuilder<T> builder, string source, string target, bool isReadOnly = false) where T : ContainerResource =>
         builder.WithBindMount(source, target, isReadOnly, fileMode: null);
+#pragma warning restore RS0027 // API with optional parameter(s) should have the most parameters amongst its public overloads
 
     /// <summary>
     /// Adds a bind mount to a container resource.
