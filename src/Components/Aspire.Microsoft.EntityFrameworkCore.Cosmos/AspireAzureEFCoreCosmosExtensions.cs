@@ -23,14 +23,14 @@ public static class AspireAzureEFCoreCosmosExtensions
     private const string DefaultConfigSectionName = "Aspire:Microsoft:EntityFrameworkCore:Cosmos";
     private const DynamicallyAccessedMemberTypes RequiredByEF = DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties;
 
-    /// <inheritdoc cref="AddCosmosDbContextInternal{TContext}(IHostApplicationBuilder, string, string, Action{EntityFrameworkCoreCosmosSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    /// <inheritdoc cref="AddCosmosDbContext{TContext}(IHostApplicationBuilder, string, string, Action{EntityFrameworkCoreCosmosSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
     public static void AddCosmosDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
         string connectionName,
         string databaseName) where TContext : DbContext
             => AddCosmosDbContextInternal<TContext>(builder, connectionName, databaseName, configureSettings: null, configureDbContextOptions: null);
 
-    /// <inheritdoc cref="AddCosmosDbContextInternal{TContext}(IHostApplicationBuilder, string, string, Action{EntityFrameworkCoreCosmosSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    /// <inheritdoc cref="AddCosmosDbContext{TContext}(IHostApplicationBuilder, string, string, Action{EntityFrameworkCoreCosmosSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
     public static void AddCosmosDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
         string connectionName,
@@ -38,7 +38,7 @@ public static class AspireAzureEFCoreCosmosExtensions
         Action<EntityFrameworkCoreCosmosSettings>? configureSettings) where TContext : DbContext
             => AddCosmosDbContextInternal<TContext>(builder, connectionName, databaseName, configureSettings, configureDbContextOptions: null);
 
-    /// <inheritdoc cref="AddCosmosDbContextInternal{TContext}(IHostApplicationBuilder, string, string, Action{EntityFrameworkCoreCosmosSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    /// <inheritdoc cref="AddCosmosDbContext{TContext}(IHostApplicationBuilder, string, string, Action{EntityFrameworkCoreCosmosSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
     public static void AddCosmosDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
         string connectionName,
@@ -46,7 +46,7 @@ public static class AspireAzureEFCoreCosmosExtensions
         Action<DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext
             => AddCosmosDbContextInternal<TContext>(builder, connectionName, databaseName, configureSettings: null, (_, options) => configureDbContextOptions?.Invoke(options));
 
-    /// <inheritdoc cref="AddCosmosDbContextInternal{TContext}(IHostApplicationBuilder, string, string, Action{EntityFrameworkCoreCosmosSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    /// <inheritdoc cref="AddCosmosDbContext{TContext}(IHostApplicationBuilder, string, string, Action{EntityFrameworkCoreCosmosSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
     public static void AddCosmosDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
         string connectionName,
@@ -55,7 +55,7 @@ public static class AspireAzureEFCoreCosmosExtensions
         Action<DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext
             => AddCosmosDbContextInternal<TContext>(builder, connectionName, databaseName, configureSettings, (_, options) => configureDbContextOptions?.Invoke(options));
 
-    /// <inheritdoc cref="AddCosmosDbContextInternal{TContext}(IHostApplicationBuilder, string, string, Action{EntityFrameworkCoreCosmosSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    /// <inheritdoc cref="AddCosmosDbContext{TContext}(IHostApplicationBuilder, string, string, Action{EntityFrameworkCoreCosmosSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
     public static void AddCosmosDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
         string connectionName,
