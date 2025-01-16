@@ -13,6 +13,11 @@ public sealed class PgWebContainerResource(string name) : ContainerResource(name
 {
     internal const string PrimaryEndpointName = "http";
 
+    internal static UnixFileMode s_defaultBindMountFileMode =
+        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+        UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
     private EndpointReference? _primaryEndpoint;
 
     /// <summary>

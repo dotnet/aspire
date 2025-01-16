@@ -151,7 +151,7 @@ public static class PostgresBuilderExtensions
                                                  .WithImageRegistry(PostgresContainerImageTags.PgAdminRegistry)
                                                  .WithHttpEndpoint(targetPort: 80, name: "http")
                                                  .WithEnvironment(SetPgAdminEnvironmentVariables)
-                                                 .WithBindMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
+                                                 .WithBindMount(Path.GetTempFileName(), "/pgadmin4/servers.json", isReadOnly: true, fileMode: PgAdminContainerResource.s_defaultBindMountFileMode)
                                                  .WithHttpHealthCheck("/browser")
                                                  .ExcludeFromManifest();
 
@@ -164,11 +164,6 @@ public static class PostgresBuilderExtensions
 
                 using var stream = new FileStream(serverFileMount.Source!, FileMode.Create);
                 using var writer = new Utf8JsonWriter(stream);
-                // Need to grant read access to the config file on unix like systems.
-                if (!OperatingSystem.IsWindows())
-                {
-                    File.SetUnixFileMode(serverFileMount.Source!, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
-                }
 
                 var serverIndex = 1;
 
@@ -284,7 +279,7 @@ public static class PostgresBuilderExtensions
                                                .WithImage(PostgresContainerImageTags.PgWebImage, PostgresContainerImageTags.PgWebTag)
                                                .WithImageRegistry(PostgresContainerImageTags.PgWebRegistry)
                                                .WithHttpEndpoint(targetPort: 8081, name: "http")
-                                               .WithBindMount(dir, "/.pgweb/bookmarks")
+                                               .WithBindMount(dir, "/.pgweb/bookmarks", isReadOnly: false, fileMode: PgWebContainerResource.s_defaultBindMountFileMode)
                                                .WithArgs("--bookmarks-dir=/.pgweb/bookmarks")
                                                .WithArgs("--sessions")
                                                .ExcludeFromManifest();
@@ -300,22 +295,6 @@ public static class PostgresBuilderExtensions
                 var adminResource = builder.ApplicationBuilder.Resources.OfType<PgWebContainerResource>().Single();
                 var serverFileMount = adminResource.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == "/.pgweb/bookmarks");
                 var postgresInstances = builder.ApplicationBuilder.Resources.OfType<PostgresDatabaseResource>();
-
-                if (!Directory.Exists(serverFileMount.Source!))
-                {
-                    Directory.CreateDirectory(serverFileMount.Source!);
-                }
-
-                // Need to grant read access to the config file on unix like systems.
-                if (!OperatingSystem.IsWindows())
-                {
-                    // 777
-                    var permissions = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-                                      UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
-                                      UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
-
-                    File.SetUnixFileMode(serverFileMount.Source!, permissions);
-                }
 
                 foreach (var postgresDatabase in postgresInstances)
                 {

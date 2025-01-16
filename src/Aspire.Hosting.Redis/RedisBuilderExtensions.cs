@@ -305,7 +305,7 @@ public static class RedisBuilderExtensions
                 {
                     resourceLogger.LogError("Could not import Redis databases into RedisInsight. Reason: {reason}", ex.Message);
                 }
-            };
+            }
         }
     }
 
@@ -466,6 +466,6 @@ public static class RedisBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(source);
 
-        return builder.WithBindMount(source, "/data");
+        return builder.WithBindMount(source, "/data", isReadOnly: false, fileMode: RedisInsightResource.s_defaultUnixFileMode);
     }
 }

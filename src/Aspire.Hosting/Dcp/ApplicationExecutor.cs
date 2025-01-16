@@ -1497,6 +1497,23 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 foreach (var mount in containerMounts)
                 {
+                    if (mount.Type == ContainerMountType.BindMount &&
+                        mount.UnixFileMode is not null &&
+                        !OperatingSystem.IsWindows())
+                    {
+                        // REVIEW: Should we know if it's a file or directory?
+                        var source = mount.Source!;
+
+                        if (File.Exists(source) || Directory.Exists(source))
+                        {
+                            File.SetUnixFileMode(source, mount.UnixFileMode.Value);
+                        }
+                        else if (!Directory.Exists(source))
+                        {
+                            Directory.CreateDirectory(source, mount.UnixFileMode.Value);
+                        }
+                    }
+
                     var volumeSpec = new VolumeMount
                     {
                         Source = mount.Source,
@@ -1728,7 +1745,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     resourceLogger.LogCritical(ex, "Failed to apply container runtime argument '{ConfigKey}'. A dependency may have failed to start.", arg);
                     _logger.LogDebug(ex, "Failed to apply container runtime argument '{ConfigKey}' to '{ResourceName}'. A dependency may have failed to start.", arg, modelContainerResource.Name);
                     failedToApplyConfiguration = true;
-                }                
+                }
             }
         }
 

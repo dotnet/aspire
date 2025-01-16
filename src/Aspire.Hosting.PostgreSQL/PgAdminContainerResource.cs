@@ -13,6 +13,9 @@ namespace Aspire.Hosting.Postgres;
 /// <param name="name">The name of the container resource.</param>
 public sealed class PgAdminContainerResource(string name) : ContainerResource(ThrowIfNull(name))
 {
+    internal static UnixFileMode? s_defaultBindMountFileMode =
+        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
+
     private static string ThrowIfNull([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
         => argument ?? throw new ArgumentNullException(paramName);
 }

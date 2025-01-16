@@ -565,21 +565,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-
-                if (!Directory.Exists(bindMountPath))
-                {
-                    Directory.CreateDirectory(bindMountPath);
-                }
-
-                if (!OperatingSystem.IsWindows())
-                {
-                    var permissions = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-                                      UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
-                                      UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
-
-                    File.SetUnixFileMode(bindMountPath, permissions);
-                }
+                bindMountPath = Directory.CreateTempSubdirectory().FullName;
 
                 redisInsightBuilder1.WithDataBindMount(bindMountPath);
             }

@@ -1,5 +1,7 @@
 #nullable enable
 Aspire.Hosting.ApplicationModel.ContainerLifetime.Session = 0 -> Aspire.Hosting.ApplicationModel.ContainerLifetime
+Aspire.Hosting.ApplicationModel.ContainerMountAnnotation.UnixFileMode.get -> System.IO.UnixFileMode?
+Aspire.Hosting.ApplicationModel.ContainerMountAnnotation.UnixFileMode.init -> void
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.get -> Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus?
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Relationships.get -> System.Collections.Immutable.ImmutableArray<Aspire.Hosting.ApplicationModel.RelationshipSnapshot!>
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Relationships.init -> void
@@ -232,6 +234,9 @@ Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.HasAnnotationIncludingAncestorsOfType<T>(this Aspire.Hosting.ApplicationModel.IResource! resource) -> bool
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.HasAnnotationOfType<T>(this Aspire.Hosting.ApplicationModel.IResource! resource) -> bool
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetAnnotationsIncludingAncestorsOfType<T>(this Aspire.Hosting.ApplicationModel.IResource! resource, out System.Collections.Generic.IEnumerable<T>? result) -> bool
+static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBindMount<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! source, string! target) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBindMount<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! source, string! target, bool isReadOnly) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBindMount<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! source, string! target, bool isReadOnly, System.IO.UnixFileMode? fileMode) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBuildArg<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, object? value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithContainerName<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithImageRegistry<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string? registry) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!

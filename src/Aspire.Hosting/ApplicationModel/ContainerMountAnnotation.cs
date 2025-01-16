@@ -51,6 +51,11 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
     public string? Source { get; }
 
     /// <summary>
+    /// Gets or sets the Unix file mode for the mount.
+    /// </summary>
+    public UnixFileMode? UnixFileMode { get; init; }
+
+    /// <summary>
     /// Gets the target of the mount.
     /// </summary>
     public string Target { get; }
