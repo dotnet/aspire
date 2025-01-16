@@ -76,7 +76,7 @@ jobs:
 
       - name: Upload test results artifact
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: testresults-${{ matrix.name }}
           path: testresults.zip
