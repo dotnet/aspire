@@ -14,5 +14,4 @@ Aspire.Microsoft.EntityFrameworkCore.Cosmos.EntityFrameworkCoreCosmosSettings.Re
 Aspire.Microsoft.EntityFrameworkCore.Cosmos.EntityFrameworkCoreCosmosSettings.RequestTimeout.get -> System.TimeSpan?
 Aspire.Microsoft.EntityFrameworkCore.Cosmos.EntityFrameworkCoreCosmosSettings.RequestTimeout.set -> void
 Microsoft.Extensions.Hosting.AspireAzureEFCoreCosmosExtensions
-static Microsoft.Extensions.Hosting.AspireAzureEFCoreCosmosExtensions.AddCosmosDbContext<TContext>(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, string! databaseName, System.Action<Aspire.Microsoft.EntityFrameworkCore.Cosmos.EntityFrameworkCoreCosmosSettings!>? configureSettings = null, System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>? configureDbContextOptions = null) -> void
 static Microsoft.Extensions.Hosting.AspireAzureEFCoreCosmosExtensions.EnrichCosmosDbContext<TContext>(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, System.Action<Aspire.Microsoft.EntityFrameworkCore.Cosmos.EntityFrameworkCoreCosmosSettings!>? configureSettings = null) -> void
