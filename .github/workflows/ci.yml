@@ -47,6 +47,11 @@ jobs:
         run: |
           docker info
 
+      - name: Install Azure Functions Core Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y azure-functions-core-tools-4
+
       - name: Restore dependencies
         run: |
           dotnet restore ${{ matrix.project }}
