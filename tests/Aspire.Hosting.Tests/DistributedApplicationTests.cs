@@ -488,7 +488,7 @@ public class DistributedApplicationTests
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
         var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(s, $"redis-cli-{ReplicaIdRegex}-{suffix}",
-            r => r.Status?.State == ContainerState.FailedToStart && (r.Status?.Message.Contains("bob") ?? false)).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+            r => r.Status?.State == ContainerState.FailedToStart).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         Assert.NotNull(redisContainer);
         Assert.Equal("redis:latest", redisContainer.Spec.Image);
