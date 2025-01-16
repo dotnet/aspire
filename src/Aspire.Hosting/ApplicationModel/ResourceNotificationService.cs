@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -375,14 +376,41 @@ public class ResourceNotificationService : IDisposable
 
             if (_logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace("Resource {Resource}/{ResourceId} update published: " +
-                    "ResourceType = {ResourceType}, CreationTimeStamp = {CreationTimeStamp:s}, State = {{ Text = {StateText}, Style = {StateStyle} }}, " +
-                    "ExitCode = {ExitCode}, EnvironmentVariables = {{ {EnvironmentVariables} }}, Urls = {{ {Urls} }}, " +
-                    "Properties = {{ {Properties} }}",
-                    resource.Name, resourceId,
-                    newState.ResourceType, newState.CreationTimeStamp, newState.State?.Text, newState.State?.Style,
-                    newState.ExitCode, string.Join(", ", newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")), string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
-                    string.Join(", ", newState.Properties.Select(p => $"{p.Name} = {p.Value}")));
+                _logger.LogTrace(
+                    """
+                    Resource {Resource}/{ResourceId} update published:
+                    ResourceType = {ResourceType},
+                    CreationTimeStamp = {CreationTimeStamp:s},
+                    State = {{ Text = {StateText}, Style = {StateStyle} }},
+                    HeathStatus = {HealthStatus},
+                    ExitCode = {ExitCode},
+                    Urls = {{ {Urls} }},
+                    EnvironmentVariables = {{
+                    {EnvironmentVariables}
+                    }},
+                    Properties = {{
+                    {Properties}
+                    }}
+                    """,
+                    resource.Name,
+                    resourceId,
+                    newState.ResourceType,
+                    newState.CreationTimeStamp,
+                    newState.State?.Text,
+                    newState.State?.Style,
+                    newState.HealthStatus,
+                    newState.ExitCode,
+                    string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
+                    string.Join(Environment.NewLine, newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")),
+                    string.Join(Environment.NewLine, newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")));
+
+                static string Stringify(object? o) => o switch
+                {
+                    IEnumerable<int> ints => string.Join(", ", ints.Select(i => i.ToString(CultureInfo.InvariantCulture))),
+                    IEnumerable<string> strings => string.Join(", ", strings.Select(s => s)),
+                    null => "null",
+                    _ => o.ToString()!
+                };
             }
         }
 
