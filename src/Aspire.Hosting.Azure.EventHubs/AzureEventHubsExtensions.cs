@@ -225,26 +225,14 @@ public static class AzureEventHubsExtensions
             // For the purposes of the health check we only need to know a hub name. If we don't have a hub
             // name we can't configure a valid producer client connection so we should throw. What good is
             // an event hub namespace without an event hub? :)
-            if (builder.Resource.Hubs is [var hub])
+            if (builder.Resource.Hubs is { Count: > 0 } && builder.Resource.Hubs[0] is { } hub)
             {
-                string healthCheckConnectionString;
+                // Endpoint=... format
+                var props = EventHubsConnectionStringProperties.Parse(connectionString);
 
-                // NOTE: the emulator doesn't currently support FQNS style connection strings, but I'm leaving this here for the future
-                if (Uri.TryCreate(connectionString, UriKind.Absolute, out var endpoint))
-                {
-                    // Uri format (FQNS)
-                    healthCheckConnectionString = endpoint.Query == string.Empty ?
-                        $"{connectionString}?EntityPath={hub.Name}" : connectionString;
-                }
-                else
-                {
-                    // Endpoint=... format
-                    var props = EventHubsConnectionStringProperties.Parse(connectionString);
-
-                    healthCheckConnectionString = string.IsNullOrEmpty(props.EventHubName)
-                        ? $"{connectionString};EntityPath={hub.Name};"
-                        : connectionString;
-                }
+                var healthCheckConnectionString = string.IsNullOrEmpty(props.EventHubName)
+                    ? $"{connectionString};EntityPath={hub.Name};"
+                    : connectionString;
 
                 client = new EventHubProducerClient(healthCheckConnectionString);
             }

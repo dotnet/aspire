@@ -1,4 +1,7 @@
+//#define AZCLI
+#if AZCLI
 using Azure.Identity;
+#endif
 using EventHubsConsumer;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -11,20 +14,28 @@ bool useConsumer = Environment.GetEnvironmentVariable("USE_EVENTHUBCONSUMERCLIEN
 
 if (useConsumer)
 {
-    builder.AddAzureEventHubConsumerClient("eventhubns",
-        settings => settings.Credential = new AzureCliCredential());
-
+    builder.AddAzureEventHubConsumerClient("eventhubns"
+#if AZCLI
+        , settings => settings.Credential = new AzureCliCredential()
+#endif
+    );
     builder.Services.AddHostedService<Consumer>();
     Console.WriteLine("Starting EventHubConsumerClient...");
 }
 else
 {
     // required for checkpointing our position in the event stream
-    builder.AddAzureBlobClient("checkpoints",
-        settings => settings.Credential = new AzureCliCredential());
+    builder.AddAzureBlobClient("checkpoints"
+#if AZCLI
+        , settings => settings.Credential = new AzureCliCredential()
+#endif
+    );
 
-    builder.AddAzureEventProcessorClient("eventhubns",
-        settings => settings.Credential = new AzureCliCredential());
+    builder.AddAzureEventProcessorClient("eventhubns"
+#if AZCLI
+        , settings => settings.Credential = new AzureCliCredential()
+#endif
+    );
 
     builder.Services.AddHostedService<Processor>();
     Console.WriteLine("Starting EventProcessorClient...");

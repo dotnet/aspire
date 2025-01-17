@@ -1,4 +1,7 @@
+#define AZCLI
+#if AZCLI
 using Azure.Identity;
+#endif
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
 
@@ -6,11 +9,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddAzureEventHubProducerClient("eventhubns", settings =>
-{
-    //settings.EventHubName = "hub";
-    settings.Credential = new AzureCliCredential();
-});
+builder.AddAzureEventHubProducerClient("eventhubns"
+#if AZCLI
+    , settings => settings.Credential = new AzureCliCredential()
+#endif
+);
 
 var app = builder.Build();
 

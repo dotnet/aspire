@@ -1,4 +1,4 @@
-//#define EMULATOR
+#define EMULATOR
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -14,6 +14,7 @@ var eventHub = builder.AddAzureEventHubs("eventhubns")
     .RunAsEmulator()
 #endif
     .WithHub("hub")
+    .WithHub("hub2")
     .WithDefaultEntity("hub");
 
 builder.AddProject<Projects.EventHubsConsumer>("consumer")
