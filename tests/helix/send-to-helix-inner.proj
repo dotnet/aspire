@@ -122,6 +122,18 @@
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/azure-func-cli:$PATH" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(HasDocker)' == 'true'">
+    <HelixPreCommand Include="docker info" />
+    <HelixPreCommand Include="docker ps" />
+    <HelixPreCommand Include="docker container ls --all" />
+    <HelixPreCommand Include="docker volume ls" />
+    <HelixPreCommand Include="docker network ls" />
+
+    <HelixPostCommand Include="docker container ls --all" />
+    <HelixPostCommand Include="docker volume ls" />
+    <HelixPostCommand Include="docker network ls" />
+  </ItemGroup>
+
   <ItemGroup>
     <!-- Disable playwright tests on helix/linux. Issue: https://github.com/dotnet/aspire/issues/4623 -->
     <HelixPreCommand Condition="'$(DisablePlaywrightTests)' == 'true'" Include="$(_EnvVarSetKeyword) DISABLE_PLAYWRIGHT_TESTS=true" />
