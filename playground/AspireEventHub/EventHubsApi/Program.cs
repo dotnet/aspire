@@ -1,4 +1,4 @@
-#define AZCLI
+//#define AZCLI
 #if AZCLI
 using Azure.Identity;
 #endif
