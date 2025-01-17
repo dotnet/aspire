@@ -127,7 +127,7 @@ public static class AzureEventHubsExtensions
     public static IResourceBuilder<AzureEventHubsResource> WithDefaultEntity(this IResourceBuilder<AzureEventHubsResource> builder, [ResourceName] string name)
     {
         // Only one event hub can be the default entity
-        if (builder.Resource.Hubs.Any(h => h.IsDefaultEntity))
+        if (builder.Resource.Hubs.Any(h => h.IsDefaultEntity && h.Name != name))
         {
             throw new DistributedApplicationException("Only one EventHub can be configured as the default entity.");
         }

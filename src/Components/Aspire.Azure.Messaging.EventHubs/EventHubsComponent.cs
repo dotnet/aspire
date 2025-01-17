@@ -59,7 +59,7 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
             // This is likely to be similar to {yournamespace}.servicebus.windows.net or {yournamespace}.servicebus.chinacloudapi.cn
             if (ns.Contains(".servicebus", StringComparison.OrdinalIgnoreCase))
             {
-                ns = ns[..ns.IndexOf(".servicebus")];
+                ns = ns[..ns.IndexOf(".servicebus", StringComparison.OrdinalIgnoreCase)];
             }
             else
             {
@@ -90,55 +90,41 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
                 $"'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'FullyQualifiedNamespace' in the '{configurationSectionName}' configuration section.");
         }
 
-        // If we have a connection string, ensure there's an EntityPath if settings.EventHubName is missing
+        // Emulator: If we have a connection string, ensure there's an EntityPath if settings.EventHubName is missing
         if (!string.IsNullOrWhiteSpace(settings.ConnectionString))
         {
             // We have a connection string -- do we have an EventHubName?
             if (string.IsNullOrWhiteSpace(settings.EventHubName))
-            {
-                // no EventHubName in callback -- try to extract it from the connection string
-                string? eventHubName = null;
+            {                
+                // look for EntityPath in the Endpoint style connection string
+                var props = EventHubsConnectionStringProperties.Parse(connectionString);
 
-                // look for special EntityPath "hint" in the FQNS style connection string
-                if (Uri.TryCreate(connectionString, UriKind.Absolute, out var fqns))
+                // if EntityPath is found, capture it
+                if (!string.IsNullOrWhiteSpace(props.EventHubName))
                 {
-                    var query = System.Web.HttpUtility.ParseQueryString(fqns.Query);
-                    if (query.HasKeys() && query.AllKeys.Contains("EntityPath"))
-                    {
-                        eventHubName = query["EntityPath"];
-
-                        // we control the query string, so this should never happen
-                        Debug.Assert(!string.IsNullOrWhiteSpace(eventHubName));
-                    }
+                    // this is used later to create the checkpoint blob container
+                    settings.EventHubName = props.EventHubName;
                 }
-                else
-                {
-                    // look for EntityPath in the Endpoint style connection string
-                    var props = EventHubsConnectionStringProperties.Parse(connectionString);
-
-                    // if EntityPath is found, capture it
-                    if (!string.IsNullOrWhiteSpace(props.EventHubName))
-                    {
-                        eventHubName = props.EventHubName;
-                    }
-                }
-
-                if (eventHubName == null)
-                {
-                    throw new InvalidOperationException(
-                        $"A {typeof(TClient).Name} could not be configured. Ensure a valid EventHubName was provided in " +
-                        $"the '{configurationSectionName}' configuration section, or assign one in the settings callback for this client.");
-                }
-
-                // this is used later to create the checkpoint blob container
-                settings.EventHubName = eventHubName;
             }
         }
-        // If we have a namespace and no connection string, ensure there's an EventHubName
+        // Live: If we have a namespace and no connection string, ensure there's an EventHubName (also look for hint in FQNS)
         else if (!string.IsNullOrWhiteSpace(settings.FullyQualifiedNamespace) && string.IsNullOrWhiteSpace(settings.EventHubName))
         {
-            // NOTE: We don't handle the case where the EventHubName is in the connection string as a "hint" as this is an internal Aspire scenario.
-            // In the case where the user is setting the FQNS, they should also be providing the EventHubName.
+            if (Uri.TryCreate(settings.FullyQualifiedNamespace, UriKind.Absolute, out var fqns))
+            {
+                var query = System.Web.HttpUtility.ParseQueryString(fqns.Query);
+                if (query.HasKeys() && query.AllKeys.Contains("EntityPath"))
+                {
+                    settings.EventHubName = query["EntityPath"];
+
+                    // we control the query string, so this should never happen
+                    Debug.Assert(!string.IsNullOrWhiteSpace(settings.EventHubName));
+                }
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(settings.EventHubName))
+        {
             throw new InvalidOperationException(
                 $"A {typeof(TClient).Name} could not be configured. Ensure a valid EventHubName was provided in " +
                 $"the '{configurationSectionName}' configuration section, or assign one in the settings callback for this client.");

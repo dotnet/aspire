@@ -53,11 +53,12 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
 
         if (IsEmulator)
         {
+            // ConnectionString: Endpoint=...
             builder.Append($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.Host)}:{EmulatorEndpoint.Property(EndpointProperty.Port)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true");
         }
         else
         {
-            // Uri format, e.g. https://...
+            // FQNS: Uri format, e.g. https://...
             builder.Append($"{EventHubsEndpoint}");
         }
 
@@ -72,12 +73,10 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
 
         if (IsEmulator)
         {
-            // Endpoint=...
             builder.Append($";EntityPath={defaultEntity.Name}");
         }
         else
         {
-            // Uri (https://.../?EntityPath=hub)
             builder.Append($"?EntityPath={defaultEntity.Name}");
         }
 

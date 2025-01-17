@@ -76,6 +76,8 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
         await app.StartAsync();
 
+        // since we're running in Docker, this only tests the ConnectionString with the Emulator
+        // when using the real service, we pass a hint in the FQNS to the client. We can't test that here.
         string? connectionString =
             await eventHub.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
 
@@ -91,25 +93,24 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     [Fact]
     [RequiresDocker]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/7093")]
-    public async Task VerifyMultipleDefaultEntityThrowsException()
+    public Task VerifyMultipleDefaultEntityThrowsException()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var eventHub = builder.AddAzureEventHubs("eventhubns")
             .RunAsEmulator()
             .WithHub("hub")
             .WithHub("hub2")
-            .WithDefaultEntity("hub")
-            .WithDefaultEntity("hub2");
+            .WithDefaultEntity("hub");
+
+        // should throw for a second hub with default entity
+        Assert.Throws<DistributedApplicationException>(() => eventHub.WithDefaultEntity("hub2"));
+
+        // should not throw for same hub again
+        eventHub.WithDefaultEntity("hub");
 
         using var app = builder.Build();
 
-        await app.StartAsync();
-        var hb = Host.CreateApplicationBuilder();
-        using var host = hb.Build();
-        await host.StartAsync();
-
-        await Assert.ThrowsAsync<DistributedApplicationException>(
-            async () => await eventHub.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+        return Task.CompletedTask;
     }
 
     [Fact]

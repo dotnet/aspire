@@ -111,6 +111,7 @@ internal sealed class EventProcessorClientComponent()
         }
 
         var containerClient = blobClient.GetBlobContainerClient(settings.BlobContainerName);
+       
 
         if (shouldTryCreateIfNotExists)
         {
