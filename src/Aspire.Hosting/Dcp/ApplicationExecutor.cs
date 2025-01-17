@@ -2081,7 +2081,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         async Task StartExecutableOrContainerAsync<T>(T resource) where T : CustomResource
         {
             var resourceName = resource.Metadata.Name;
-            _logger.LogDebug("Starting {ResouceType} '{ResourceName}'.", typeof(T).Name, resourceName);
+            _logger.LogDebug("Starting {ResourceType} '{ResourceName}'.", typeof(T).Name, resourceName);
 
             var resourceNotFound = false;
             try
