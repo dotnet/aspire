@@ -17,7 +17,7 @@ public static class KeycloakResourceBuilderExtensions
     private const string HealthCheckEnvVarName = "KC_HEALTH_ENABLED";
     private const int DefaultContainerPort = 8080;
     private const string ManagementInterfaceContainerPort = 9000;
-    private const string HealthEndpointName = "health";
+    private const string ManagementEndpointName = "management";
     private const string RealmImportDirectory = "/opt/keycloak/data/import";
 
     /// <summary>
