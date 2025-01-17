@@ -63,7 +63,7 @@ public static class KeycloakResourceBuilderExtensions
             .WithImageTag(KeycloakContainerImageTags.Tag)
             .WithHttpEndpoint(port: port, targetPort: DefaultContainerPort)
             .WithHttpEndpoint(targetPort: ManagementInterfaceContainerPort, name: ManagementEndpointName)
-            .WithHttpHealthCheck(endpointName: HealthEndpointName, path: "/health/ready")
+            .WithHttpHealthCheck(endpointName: ManagementEndpointName, path: "/health/ready")
             .WithEnvironment(context =>
             {
                 context.EnvironmentVariables[AdminEnvVarName] = resource.AdminReference;
