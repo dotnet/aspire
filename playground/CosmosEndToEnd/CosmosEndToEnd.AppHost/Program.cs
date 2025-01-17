@@ -5,7 +5,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 #pragma warning disable ASPIRECOSMOS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 var db = builder.AddAzureCosmosDB("cosmos")
-                .AddDatabase("db")
+                .WithDatabase("db", database => database.Containers.Add(new("entries", "/Id")))
                 .RunAsPreviewEmulator(e => e.WithDataExplorer());
 #pragma warning restore ASPIRECOSMOS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 

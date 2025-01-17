@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
@@ -25,7 +26,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
     public async Task VerifyWaitForOnCosmosDBEmulatorBlocksDependentResources(bool usePreview)
     {
         // Cosmos can be pretty slow to spin up, lets give it plenty of time.
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
@@ -68,7 +69,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
     [RequiresDocker(Reason = "CosmosDB emulator is needed for this test")]
     public async Task VerifyCosmosResource(bool usePreview)
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new()
             {
@@ -86,12 +87,12 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         var containerName = "container1";
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
-        var db = cosmos.AddDatabase(databaseName)
+        var db = cosmos.WithDatabase(databaseName)
                        .RunAsEmulator(usePreview);
 
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(cts.Token);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
         await rns.WaitForResourceHealthyAsync(db.Resource.Name, cts.Token);
@@ -140,7 +141,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
     {
         // Use a volume to do a snapshot save
 
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new()
             {
@@ -160,7 +161,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
         var volumeName = VolumeNameGenerator.Generate(cosmos1, nameof(WithDataVolumeShouldPersistStateBetweenUsages));
 
-        var db1 = cosmos1.AddDatabase(databaseName)
+        var db1 = cosmos1.WithDatabase(databaseName)
                        .RunAsEmulator(usePreview, volumeName);
 
         // if the volume already exists (because of a crashing previous run), delete it
@@ -170,7 +171,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
         using (var app = builder1.Build())
         {
-            await app.StartAsync();
+            await app.StartAsync(cts.Token);
 
             var rns = app.Services.GetRequiredService<ResourceNotificationService>();
             await rns.WaitForResourceHealthyAsync(db1.Resource.Name, cts.Token);
@@ -213,12 +214,12 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         using var builder2 = TestDistributedApplicationBuilder.Create(options => { }, testOutputHelper);
 
         var cosmos2 = builder2.AddAzureCosmosDB("cosmos");
-        var db2 = cosmos2.AddDatabase(databaseName)
+        var db2 = cosmos2.WithDatabase(databaseName)
                        .RunAsEmulator(usePreview, volumeName);
 
         using (var app = builder2.Build())
         {
-            await app.StartAsync();
+            await app.StartAsync(cts.Token);
 
             var rns = app.Services.GetRequiredService<ResourceNotificationService>();
             await rns.WaitForResourceHealthyAsync(db2.Resource.Name, cts.Token);
@@ -265,6 +266,54 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         }
 
         DockerUtils.AttemptDeleteDockerVolume(volumeName);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AddAzureCosmosDB_RunAsEmulator_CreatesDatabase()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+
+        using var builder = TestDistributedApplicationBuilder.Create(options => { }, testOutputHelper);
+
+        var databaseName = "db1";
+        var containerName = "container1";
+        var partitionKeyPath = "/id";
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                            .WithDatabase(databaseName, db => db.Containers.Add(new(containerName, partitionKeyPath)))
+                            .RunAsEmulator();
+
+        using var app = builder.Build();
+
+        await app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceHealthyAsync(cosmos.Resource.Name, cts.Token);
+
+        var hb = Host.CreateApplicationBuilder();
+        hb.Configuration[$"ConnectionStrings:{cosmos.Resource.Name}"] = await cosmos.Resource.ConnectionStringExpression.GetValueAsync(default);
+        hb.AddAzureCosmosClient(cosmos.Resource.Name);
+
+        using var host = hb.Build();
+
+        await host.StartAsync(cts.Token);
+
+        using var cosmosClient = host.Services.GetRequiredService<CosmosClient>();
+
+        var database = cosmosClient.GetDatabase(databaseName);
+        var result1 = await database.ReadAsync(cancellationToken: cts.Token);
+
+        var container = database.GetContainer(containerName);
+        var result2 = await container.ReadContainerAsync(cancellationToken: cts.Token);
+
+        Assert.True(IsSuccess(result1.StatusCode));
+        Assert.True(IsSuccess(result2.StatusCode));
+
+        static bool IsSuccess(HttpStatusCode httpStatusCode)
+        {
+            return ((int)httpStatusCode >= 200) && ((int)httpStatusCode <= 299);
+        }
     }
 }
 

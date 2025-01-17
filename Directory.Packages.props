@@ -25,7 +25,7 @@
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.23.0" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.21.0" />
     <PackageVersion Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="8.0.0" />
-    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.45.0" />
+    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.46.1" />
     <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.29.0" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.8.0" />
     <!-- Azure Management SDK for .NET dependencies -->
@@ -56,7 +56,7 @@
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Blobs" Version="8.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Queues" Version="8.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.AzureServiceBus" Version="8.0.1" />
-    <PackageVersion Include="AspNetCore.HealthChecks.CosmosDb" Version="8.0.1" />
+    <PackageVersion Include="AspNetCore.HealthChecks.CosmosDb" Version="9.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Kafka" Version="8.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.MongoDb" Version="9.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.MySql" Version="8.0.1" />
