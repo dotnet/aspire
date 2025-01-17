@@ -1,16 +1,18 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.ServiceBus;
-using Aspire.Hosting.Utils;
 using Azure.Messaging.ServiceBus;
 using Azure.Provisioning;
+using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.SecretManager.Tools.Internal;
 using AzureProvisioning = Azure.Provisioning.ServiceBus;
 
 namespace Aspire.Hosting;
@@ -233,8 +235,28 @@ public static class AzureServiceBusExtensions
             return builder;
         }
 
+        var lifetime = ContainerLifetime.Session;
+
+        if (configureContainer != null)
+        {
+            var surrogate = new AzureServiceBusEmulatorResource(builder.Resource);
+            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
+            configureContainer(surrogateBuilder);
+
+            if (surrogate.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
+            {
+                lifetime = lifetimeAnnotation.Lifetime;
+            }
+        }
+
         // Create a default file mount. This could be replaced by a user-provided file mount.
+
         var configHostFile = Path.Combine(Directory.CreateTempSubdirectory("AspireServiceBusEmulator").FullName, "Config.json");
+
+        if (lifetime == ContainerLifetime.Persistent && builder.ApplicationBuilder.ExecutionContext.IsRunMode && builder.ApplicationBuilder.AppHostAssembly is not null)
+        {
+            configHostFile = GetOrSetUserSecret(builder.ApplicationBuilder.AppHostAssembly, "Parameters:ServiceBusEmulatorConfigFile", configHostFile);
+        }
 
         var defaultConfigFileMount = new ContainerMountAnnotation(
                 configHostFile,
@@ -246,7 +268,8 @@ public static class AzureServiceBusExtensions
 
         // Add emulator container
 
-        var password = PasswordGenerator.Generate(16, true, true, true, true, 0, 0, 0, 0);
+        // The password must be at least 8 characters long and contain characters from three of the following four sets: Uppercase letters, Lowercase letters, Base 10 digits, and Symbols
+        var passwordParameter = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder.ApplicationBuilder, $"{builder.Resource.Name}-sqledge-pwd", minLower: 1, minUpper: 1, minNumeric: 1);
 
         builder
             .WithEndpoint(name: "emulator", targetPort: 5672)
@@ -264,7 +287,11 @@ public static class AzureServiceBusExtensions
                 .WithImageRegistry(ServiceBusEmulatorContainerImageTags.AzureSqlEdgeRegistry)
                 .WithEndpoint(targetPort: 1433, name: "tcp")
                 .WithEnvironment("ACCEPT_EULA", "Y")
-                .WithEnvironment("MSSQL_SA_PASSWORD", password);
+                .WithEnvironment(context =>
+                {
+                    context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = passwordParameter;
+                })
+                .WithLifetime(lifetime);
 
         builder.WithAnnotation(new EnvironmentCallbackAnnotation((EnvironmentCallbackContext context) =>
         {
@@ -272,7 +299,7 @@ public static class AzureServiceBusExtensions
 
             context.EnvironmentVariables.Add("ACCEPT_EULA", "Y");
             context.EnvironmentVariables.Add("SQL_SERVER", $"{sqlEndpoint.Resource.Name}:{sqlEndpoint.TargetPort}");
-            context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", password);
+            context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", passwordParameter);
         }));
 
         ServiceBusClient? serviceBusClient = null;
@@ -411,13 +438,6 @@ public static class AzureServiceBusExtensions
 
         var healthCheckKey = $"{builder.Resource.Name}_check";
 
-        if (configureContainer != null)
-        {
-            var surrogate = new AzureServiceBusEmulatorResource(builder.Resource);
-            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
-            configureContainer(surrogateBuilder);
-        }
-
         // To use the existing ServiceBus health check we would need to know if there is any queue or topic defined.
         // We can register a health check for a queue and then no-op if there are no queues. Same for topics.
         // If no queues or no topics are defined then the health check will be successful.
@@ -483,5 +503,27 @@ public static class AzureServiceBusExtensions
         {
             endpoint.Port = port;
         });
+    }
+
+    private static string GetOrSetUserSecret(Assembly assembly, string name, string value)
+    {
+        if (assembly.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId is { } userSecretsId)
+        {
+            // Save the value to the secret store
+            try
+            {
+                var secretsStore = new SecretsStore(userSecretsId);
+                if(secretsStore.ContainsKey(name))
+                {
+                    return secretsStore[name]!;
+                }
+                secretsStore.Set(name, value);
+                secretsStore.Save();
+                return value;
+            }
+            catch (Exception) { }
+        }
+
+        return value;
     }
 }
