@@ -62,7 +62,7 @@ public static class KeycloakResourceBuilderExtensions
             .WithImageRegistry(KeycloakContainerImageTags.Registry)
             .WithImageTag(KeycloakContainerImageTags.Tag)
             .WithHttpEndpoint(port: port, targetPort: DefaultContainerPort)
-            .WithHttpEndpoint(targetPort: HealthCheckContainerPort, name: HealthEndpointName)
+            .WithHttpEndpoint(targetPort: ManagementInterfaceContainerPort, name: ManagementEndpointName)
             .WithHttpHealthCheck(endpointName: HealthEndpointName, path: "/health/ready")
             .WithEnvironment(context =>
             {
