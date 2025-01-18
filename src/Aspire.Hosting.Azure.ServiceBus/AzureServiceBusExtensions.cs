@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
@@ -9,10 +8,8 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.ServiceBus;
 using Azure.Messaging.ServiceBus;
 using Azure.Provisioning;
-using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.SecretManager.Tools.Internal;
 using AzureProvisioning = Azure.Provisioning.ServiceBus;
 
 namespace Aspire.Hosting;
@@ -237,6 +234,9 @@ public static class AzureServiceBusExtensions
 
         var lifetime = ContainerLifetime.Session;
 
+        // Create a default file mount. This could be replaced by a user-provided file mount.
+        var configHostFile = Path.Combine(Directory.CreateTempSubdirectory("AspireServiceBusEmulator").FullName, "Config.json");
+
         if (configureContainer != null)
         {
             var surrogate = new AzureServiceBusEmulatorResource(builder.Resource);
@@ -249,13 +249,11 @@ public static class AzureServiceBusExtensions
             }
         }
 
-        // Create a default file mount. This could be replaced by a user-provided file mount.
-
-        var configHostFile = Path.Combine(Directory.CreateTempSubdirectory("AspireServiceBusEmulator").FullName, "Config.json");
-
-        if (lifetime == ContainerLifetime.Persistent && builder.ApplicationBuilder.ExecutionContext.IsRunMode && builder.ApplicationBuilder.AppHostAssembly is not null)
+        // If the container is persistent, reuse the same configHostFile value across restarts.
+        if (lifetime == ContainerLifetime.Persistent)
         {
-            configHostFile = GetOrSetUserSecret(builder.ApplicationBuilder.AppHostAssembly, "Parameters:ServiceBusEmulatorConfigFile", configHostFile);
+            var configParameter = ParameterResourceBuilderExtensions.AddPersistentParameter(builder.ApplicationBuilder, $"{builder.Resource.Name}-configJson", configHostFile);
+            configHostFile = configParameter.Value;
         }
 
         var defaultConfigFileMount = new ContainerMountAnnotation(
@@ -503,27 +501,5 @@ public static class AzureServiceBusExtensions
         {
             endpoint.Port = port;
         });
-    }
-
-    private static string GetOrSetUserSecret(Assembly assembly, string name, string value)
-    {
-        if (assembly.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId is { } userSecretsId)
-        {
-            // Save the value to the secret store
-            try
-            {
-                var secretsStore = new SecretsStore(userSecretsId);
-                if(secretsStore.ContainsKey(name))
-                {
-                    return secretsStore[name]!;
-                }
-                secretsStore.Set(name, value);
-                secretsStore.Save();
-                return value;
-            }
-            catch (Exception) { }
-        }
-
-        return value;
     }
 }

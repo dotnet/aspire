@@ -52,6 +52,36 @@ public static class ParameterResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Creates a new <see cref="ParameterResource"/> that has a generated value using the <paramref name="value"/>.
+    /// </summary>
+    /// <remarks>
+    /// The value will be saved to the app host project's user secrets store when <see cref="DistributedApplicationExecutionContext.IsRunMode"/> is <c>true</c>
+    /// and the lifetime of the resource is <see cref="ContainerLifetime.Persistent"/>.
+    /// </remarks>
+    /// <param name="builder">Distributed application builder</param>
+    /// <param name="name">Name of the parameter</param>
+    /// <param name="value"></param>
+    /// <returns>The created <see cref="ParameterResource"/>.</returns>
+    public static ParameterResource AddPersistentParameter(this IDistributedApplicationBuilder builder, string name, string value)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(value);
+
+        var parameterResource = new ParameterResource(name, defaultValue => GetParameterValue(builder.Configuration, name, defaultValue), true)
+        {
+            Default = new ConstantParameterDefault(() => value)
+        };
+
+        if (builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null)
+        {
+            parameterResource.Default = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, name, parameterResource.Default);
+        }
+
+        return parameterResource;
+    }
+
+    /// <summary>
     /// Adds a parameter resource to the application with a value coming from a callback function.
     /// </summary>
     /// <param name="builder">Distributed application builder</param>
