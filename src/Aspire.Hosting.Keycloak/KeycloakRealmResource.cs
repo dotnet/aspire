@@ -8,27 +8,51 @@ namespace Aspire.Hosting.Keycloak;
 /// <summary>
 /// Represents a Keycloak Realm resource.
 /// </summary>
-/// <param name="name">The name of the realm resource.</param>
-/// <param name="realmName">The name of the realm.</param>
-/// <param name="parent">The Keycloak server resource associated with this database.</param>
-public sealed class KeycloakRealmResource(string name, string realmName, KeycloakResource parent) : Resource(name), IResourceWithParent<KeycloakResource>, IResourceWithConnectionString
+public sealed class KeycloakRealmResource : Resource, IResourceWithParent<KeycloakResource>, IResourceWithConnectionString
 {
     private EndpointReference? _parentEndpoint;
-    private EndpointReference ParentEndpoint => _parentEndpoint ??= new(Parent, "http");
+    private EndpointReferenceExpression? _parentUrl;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="KeycloakRealmResource"/> class.
+    /// </summary>
+    /// <param name="name">The name of the realm resource.</param>
+    /// <param name="realmName">The name of the realm.</param>
+    /// <param name="parent">The Keycloak server resource associated with this database.</param>
+    public KeycloakRealmResource(string name, string realmName, KeycloakResource parent) : base(name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(realmName);
+        ArgumentNullException.ThrowIfNull(parent);
+
+        RealmName = realmName;
+        RealmPath = $"realms/{realmName}";
+        Parent = parent;
+    }
+
+    private EndpointReferenceExpression ParentUrl => _parentUrl ??= ParentEndpoint.Property(EndpointProperty.Url);
+
+    /// <summary>
+    /// Gets the parent endpoint reference.
+    /// </summary>
+    public EndpointReference ParentEndpoint => _parentEndpoint ??= new(Parent, "http");
 
     /// <inheritdoc/>
-    public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"{ParentEndpoint.Property(EndpointProperty.Url)}/realms/{RealmName}/");
+    public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"{ParentUrl}/{RealmPath}/");
+
+    /// <summary>
+    /// Gets the base address of the realm.
+    /// </summary>
+    public string RealmPath { get; }
 
     /// <summary>
     /// Gets the issuer expression for the Keycloak realm.
     /// </summary>
-    public ReferenceExpression IssuerExpression => ReferenceExpression.Create(
-        $"{ParentEndpoint.Property(EndpointProperty.Url)}/realms/{RealmName}");
+    public ReferenceExpression IssuerUrlExpression => ReferenceExpression.Create($"{ParentUrl}/{RealmPath}");
 
     /// <summary>
     /// Gets or sets the metadata address for the Keycloak realm.
     /// </summary>
-    public string MetadataAddress { get; set; } = ".well-known/openid-configuration";
+    public string MetadataAddress => ".well-known/openid-configuration";
 
     /// <summary>
     /// Gets the metadata address expression for the Keycloak realm.
@@ -38,7 +62,7 @@ public sealed class KeycloakRealmResource(string name, string realmName, Keycloa
     /// <summary>
     /// Gets or sets the 'authorization_endpoint' for the Keycloak realm.
     /// </summary>
-    public string AuthorizationEndpoint { get; set; } = "protocol/openid-connect/auth";
+    public string AuthorizationEndpoint => "protocol/openid-connect/auth";
 
     /// <summary>
     /// Gets the 'authorization_endpoint' expression for the Keycloak realm.
@@ -48,7 +72,7 @@ public sealed class KeycloakRealmResource(string name, string realmName, Keycloa
     /// <summary>
     /// Gets or sets the 'token_endpoint' for the Keycloak realm.
     /// </summary>
-    public string TokenEndpoint { get; set; } = "protocol/openid-connect/token";
+    public string TokenEndpoint => "protocol/openid-connect/token";
 
     /// <summary>
     /// Gets the 'token_endpoint' expression for the Keycloak realm.
@@ -58,7 +82,7 @@ public sealed class KeycloakRealmResource(string name, string realmName, Keycloa
     /// <summary>
     /// Gets or sets the 'introspection_endpoint' for the Keycloak realm.
     /// </summary>
-    public string IntrospectionEndpoint { get; set; } = "protocol/openid-connect/token/introspect";
+    public string IntrospectionEndpoint => "protocol/openid-connect/token/introspect";
 
     /// <summary>
     /// Gets the 'introspection_endpoint' expression for the Keycloak realm.
@@ -68,7 +92,7 @@ public sealed class KeycloakRealmResource(string name, string realmName, Keycloa
     /// <summary>
     /// Gets or sets 'user_info_endpoint' for the Keycloak realm.
     /// </summary>
-    public string UserInfoEndpoint { get; set; } = "protocol/openid-connect/userinfo";
+    public string UserInfoEndpoint => "protocol/openid-connect/userinfo";
 
     /// <summary>
     /// Gets 'user_info_endpoint' expression for the Keycloak realm.
@@ -78,7 +102,7 @@ public sealed class KeycloakRealmResource(string name, string realmName, Keycloa
     /// <summary>
     /// Gets or sets the 'end_session_endpoint' for the Keycloak realm.
     /// </summary>
-    public string EndSessionEndpoint { get; set; } = "protocol/openid-connect/logout";
+    public string EndSessionEndpoint => "protocol/openid-connect/logout";
 
     /// <summary>
     /// Gets the 'end_session_endpoint' expression for the Keycloak realm.
@@ -88,7 +112,7 @@ public sealed class KeycloakRealmResource(string name, string realmName, Keycloa
     /// <summary>
     /// Gets or sets the 'registration_endpoint' for the Keycloak realm.
     /// </summary>
-    public string RegistrationEndpoint { get; set; } = "clients-registrations/openid-connect";
+    public string RegistrationEndpoint => "clients-registrations/openid-connect";
 
     /// <summary>
     /// Gets the 'registration_endpoint' expression for the Keycloak realm.
@@ -96,10 +120,10 @@ public sealed class KeycloakRealmResource(string name, string realmName, Keycloa
     public ReferenceExpression RegistrationEndpointExpression => ReferenceExpression.Create($"{ConnectionStringExpression}{RegistrationEndpoint}");
 
     /// <inheritdoc/>
-    public KeycloakResource Parent { get; } = parent;
+    public KeycloakResource Parent { get; }
 
     /// <summary>
     /// Gets the name of the realm.
     /// </summary>
-    public string RealmName { get; } = realmName;
+    public string RealmName { get; }
 }

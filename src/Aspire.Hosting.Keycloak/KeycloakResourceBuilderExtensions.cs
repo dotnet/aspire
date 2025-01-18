@@ -181,16 +181,23 @@ public static class KeycloakResourceBuilderExtensions
     /// <param name="builder">The Keycloak server resource builder.</param>
     /// <param name="name">The name of the realm.</param>
     /// <param name="realmName">The name of the realm. If not provided, the resource name will be used.</param>
+    /// <param name="import">The directory containing the realm import files or a single import file.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{KeycloakRealmResource}"/>.</returns>
     public static IResourceBuilder<KeycloakRealmResource> AddRealm(
         this IResourceBuilder<KeycloakResource> builder,
         string name,
-        string? realmName = null)
+        string? realmName = null,
+        string? import = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         // Use the resource name as the realm name if it's not provided
         realmName ??= name;
+
+        if (import is not null)
+        {
+            builder.WithRealmImport(import);
+        }
 
         var keycloakRealm = new KeycloakRealmResource(name, realmName, builder.Resource);
 
