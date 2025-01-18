@@ -7,6 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MongoDB;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Driver;
 
 namespace Aspire.Hosting;
 
@@ -71,7 +72,12 @@ public static class MongoDBBuilderExtensions
         });
 
         var healthCheckKey = $"{name}_check";
-        builder.Services.AddHealthChecks().AddMongoDb(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+        // cache the client so it is reused on subsequent calls to the health check
+        IMongoClient? client = null;
+        builder.Services.AddHealthChecks()
+            .AddMongoDb(
+                sp => client ??= new MongoClient(connectionString ?? throw new InvalidOperationException("Connection string is unavailable")),
+                name: healthCheckKey);
 
         return builder
             .AddResource(mongoDBContainer)
@@ -117,7 +123,14 @@ public static class MongoDBBuilderExtensions
         });
 
         var healthCheckKey = $"{name}_check";
-        builder.ApplicationBuilder.Services.AddHealthChecks().AddMongoDb(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+        // cache the database client so it is reused on subsequent calls to the health check
+        IMongoDatabase? database = null;
+        builder.ApplicationBuilder.Services.AddHealthChecks()
+            .AddMongoDb(
+                sp => database ??=
+                    new MongoClient(connectionString ?? throw new InvalidOperationException("Connection string is unavailable"))
+                        .GetDatabase(databaseName),
+                name: healthCheckKey);
 
         return builder.ApplicationBuilder
             .AddResource(mongoDBDatabase);

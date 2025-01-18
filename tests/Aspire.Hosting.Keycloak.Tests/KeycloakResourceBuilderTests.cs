@@ -154,8 +154,8 @@ public class KeycloakResourceBuilderTests
                 "--import-realm"
               ],
               "env": {
-                "KEYCLOAK_ADMIN": "admin",
-                "KEYCLOAK_ADMIN_PASSWORD": "{keycloak-password.value}",
+                "KC_BOOTSTRAP_ADMIN_USERNAME": "admin",
+                "KC_BOOTSTRAP_ADMIN_PASSWORD": "{keycloak-password.value}",
                 "KC_HEALTH_ENABLED": "true"
               },
               "bindings": {

@@ -9,7 +9,7 @@ using Azure.Provisioning.Storage;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var cosmosdb = builder.AddAzureCosmosDB("cosmos").AddDatabase("cosmosdb");
+var cosmosdb = builder.AddAzureCosmosDB("cosmos").WithDatabase("cosmosdb");
 
 var sku = builder.AddParameter("storagesku");
 var locationOverride = builder.AddParameter("locationOverride");

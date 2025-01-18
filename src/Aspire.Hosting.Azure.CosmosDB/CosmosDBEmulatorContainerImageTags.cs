@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Hosting.Azure.Cosmos;
+namespace Aspire.Hosting.Azure.CosmosDB;
 
 internal static class CosmosDBEmulatorContainerImageTags
 {
@@ -13,4 +13,7 @@ internal static class CosmosDBEmulatorContainerImageTags
 
     /// <remarks>latest</remarks>
     public const string Tag = "latest";
+
+    /// <remarks>vnext-preview</remarks>
+    public const string TagVNextPreview = "vnext-preview";
 }

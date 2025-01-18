@@ -12,9 +12,10 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class KeycloakResourceBuilderExtensions
 {
-    private const string AdminEnvVarName = "KEYCLOAK_ADMIN";
-    private const string AdminPasswordEnvVarName = "KEYCLOAK_ADMIN_PASSWORD";
+    private const string AdminEnvVarName = "KC_BOOTSTRAP_ADMIN_USERNAME";
+    private const string AdminPasswordEnvVarName = "KC_BOOTSTRAP_ADMIN_PASSWORD";
     private const string HealthCheckEnvVarName = "KC_HEALTH_ENABLED"; // As per https://www.keycloak.org/observability/health
+
     private const int DefaultContainerPort = 8080;
     private const int ManagementInterfaceContainerPort = 9000; // As per https://www.keycloak.org/server/management-interface
     private const string ManagementEndpointName = "management";
