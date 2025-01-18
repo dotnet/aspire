@@ -112,12 +112,20 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
         {
             if (Uri.TryCreate(settings.FullyQualifiedNamespace, UriKind.Absolute, out var fqns))
             {
-                var query = System.Web.HttpUtility.ParseQueryString(fqns.Query);
-                if (query.HasKeys() && query.AllKeys.Contains("EntityPath"))
-                {
-                    settings.EventHubName = query["EntityPath"];
+                var query = fqns.Query.AsSpan().TrimStart('?');
 
-                    // we control the query string, so this should never happen
+                var key = "EntityPath=";
+                int startIndex = query.IndexOf(key);
+
+                if (startIndex != -1)
+                {
+                    var valueSpan = query.Slice(startIndex + key.Length);
+                    int endIndex = valueSpan.IndexOf('&');
+                    var entityPath = endIndex == -1 ? valueSpan :
+                        valueSpan.Slice(0, endIndex);
+
+                    settings.EventHubName = entityPath.ToString();
+
                     Debug.Assert(!string.IsNullOrWhiteSpace(settings.EventHubName));
                 }
             }
