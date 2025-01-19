@@ -46,7 +46,7 @@
 			],
 			"settings": {
 				"remote.autoForwardPorts": true,
-				"remote.autoForwardPortsSource": "output",
+				"remote.autoForwardPortsSource": "hybrid",
 				"dotnet.defaultSolution": "Aspire.sln"
 			}
 		}

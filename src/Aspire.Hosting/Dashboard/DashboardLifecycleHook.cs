@@ -254,7 +254,8 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                 await settingsWriter.SetPortAttributesAsync(
                     firstDashboardUrl.Port,
                     firstDashboardUrl.Scheme,
-                    "aspire-dashboard",
+                    $"aspire-dashboard-{firstDashboardUrl.Scheme}",
+                    openBrowser: true,
                     context.CancellationToken).ConfigureAwait(false);
             }
 

@@ -19,12 +19,14 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
     private const int WriteLockTimeoutMs = 2000;
     private readonly SemaphoreSlim _writeLock = new SemaphoreSlim(1);
 
-    public async Task SetPortAttributesAsync(int port, string protocol, string label, CancellationToken cancellationToken = default)
+    public async Task SetPortAttributesAsync(int port, string protocol, string label, bool openBrowser = false, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNullOrEmpty(protocol);
         ArgumentNullException.ThrowIfNullOrEmpty(label);
 
         var settingsPaths = GetSettingsPaths();
+
+        var portAsString = port.ToString(CultureInfo.InvariantCulture);
 
         foreach (var settingsPath in settingsPaths)
         {
@@ -43,7 +45,7 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
             JsonObject? portsAttributes;
             if (!settings.TryGetPropertyValue(PortAttributesFieldName, out var portsAttributesNode))
             {
-                portsAttributes = new JsonObject();
+                portsAttributes = [];
                 settings.Add(PortAttributesFieldName, portsAttributes);
             }
             else
@@ -51,12 +53,23 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
                 portsAttributes = (JsonObject)portsAttributesNode!;
             }
 
-            var portAsString = port.ToString(CultureInfo.InvariantCulture);
+            var portsByLabel = (from def in portsAttributes
+                                let obj = def.Value as JsonObject
+                                let l = obj["label"]?.ToString()
+                                where l != null
+                                select new { Label = l, Port = def.Key })
+                                .ToLookup(p => p.Label, p => p.Port);
+
+            // Remove any existing ports with the same label
+            foreach (var oldPort in portsByLabel[label])
+            {
+                portsAttributes.Remove(oldPort);
+            }
 
             JsonObject? portAttributes;
             if (!portsAttributes.TryGetPropertyValue(portAsString, out var portAttributeNode))
             {
-                portAttributes = new JsonObject();
+                portAttributes = [];
                 portsAttributes.Add(portAsString, portAttributes);
             }
             else
@@ -66,7 +79,7 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
 
             portAttributes["label"] = label;
             portAttributes["protocol"] = protocol;
-            portAttributes["onAutoForward"] = "notify";
+            portAttributes["onAutoForward"] = openBrowser ? "openBrowser" : "silent";
 
             settingsContent = settings.ToString();
             await File.WriteAllTextAsync(settingsPath, settingsContent, cancellationToken).ConfigureAwait(false);

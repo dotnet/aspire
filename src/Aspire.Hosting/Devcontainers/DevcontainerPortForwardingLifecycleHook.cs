@@ -66,6 +66,7 @@ internal sealed class DevcontainerPortForwardingLifecycleHook : IDistributedAppl
                     endpoint.AllocatedEndpoint!.Port,
                     endpoint.UriScheme,
                     $"{resource.Name}-{endpoint.Name}",
+                    openBrowser: false,
                     cancellationToken).ConfigureAwait(false);
 
                 _hostingLogger.LogInformation("Port forwarding: {Url}", endpoint.AllocatedEndpoint!.UriString);
