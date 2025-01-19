@@ -146,12 +146,12 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             // technically this is too early
             if (StringUtils.TryGetUriFromDelimitedString(dashboardOptions.Value.DashboardUrl, ";", out var firstDashboardUrl))
             {
-                settingsWriter.SetPortAttributesAsync(
+                settingsWriter.AddPortForward(
                                 firstDashboardUrl.ToString(),
                                 firstDashboardUrl.Port,
                                 firstDashboardUrl.Scheme,
                                 $"aspire-dashboard-{firstDashboardUrl.Scheme}",
-                                openBrowser: true).ConfigureAwait(false);
+                                openBrowser: true);
             }
         }
 

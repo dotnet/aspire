@@ -49,12 +49,11 @@ internal sealed class DevcontainerPortForwardingLifecycleHook : IDistributedAppl
                     continue;
                 }
 
-                await _settingsWriter.SetPortAttributesAsync(
+                _settingsWriter.AddPortForward(
                     endpoint.AllocatedEndpoint!.UriString,
                     endpoint.AllocatedEndpoint!.Port,
                     endpoint.UriScheme,
-                    $"{resource.Name}-{endpoint.Name}",
-                    openBrowser: false).ConfigureAwait(false);
+                    $"{resource.Name}-{endpoint.Name}");
             }
         }
 

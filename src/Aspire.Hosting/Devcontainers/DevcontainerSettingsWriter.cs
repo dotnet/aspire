@@ -19,30 +19,29 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
     private const int WriteLockTimeoutMs = 2000;
     private readonly SemaphoreSlim _writeLock = new SemaphoreSlim(1);
 
-    private readonly List<(string Url, int Port, string Protocol, string Label, bool OpenBrowser)> _pendingPorts = [];
+    private readonly List<(string Url, string Port, string Protocol, string Label, bool OpenBrowser)> _pendingPorts = [];
 
-    public Task SetPortAttributesAsync(string url, int port, string protocol, string label, bool openBrowser = false)
+    public void AddPortForward(string url, int port, string protocol, string label, bool openBrowser = false)
     {
+        ArgumentNullException.ThrowIfNullOrEmpty(url);
         ArgumentNullException.ThrowIfNullOrEmpty(protocol);
         ArgumentNullException.ThrowIfNullOrEmpty(label);
 
-        _pendingPorts.Add((url, port, protocol, label, openBrowser));
-
-        return Task.CompletedTask;
+        _pendingPorts.Add((url, port.ToString(CultureInfo.InvariantCulture), protocol, label, openBrowser));
     }
 
     public async Task FlushAsync(CancellationToken cancellationToken = default)
     {
         await WriteSettingsAsync(cancellationToken).ConfigureAwait(false);
 
+        // Don't block the caller on this task, we just want to log the port forwards after a delay.
         _ = Task.Run(async () =>
         {
-            // Wait for an event to be raised about the file we wrote, we want to make sure that
-            // it is fully written to disk before we return so that we can tell VS code to 
-            // forward the ports. VS code needs to read it from disk to know what to do.
+            // HACK: VS code needs to read an updated settings file before it will pick up the port forwards
+            // we're logging here. This is a hack to give it time to do that.
             await Task.Delay(5000, cancellationToken).ConfigureAwait(false);
 
-            // This is how VS code finds out about the port forwards in hybrid mode (output + proccess);
+            // This is how VS code finds out about the port forwards in hybrid mode (output + proccess).
             foreach (var (url, _, _, label, _) in _pendingPorts)
             {
                 logger.LogInformation("Port forwarding ({label}): {Url}", label, url);
@@ -68,29 +67,40 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
 
             var settingsContent = await File.ReadAllTextAsync(settingsPath, cancellationToken).ConfigureAwait(false);
             var settings = (JsonObject)JsonObject.Parse(settingsContent)!;
+            
+            JsonObject? portsAttributes;
+            if (!settings.TryGetPropertyValue(PortAttributesFieldName, out var portsAttributesNode))
+            {
+                portsAttributes = [];
+                settings.Add(PortAttributesFieldName, portsAttributes);
+            }
+            else
+            {
+                portsAttributes = (JsonObject)portsAttributesNode!;
+            }
+
+            // Data is keyed by port number, but we want to key it by label
+            // e.g
+            // {
+            //     "remote.portsAttributes": {
+            //         "8080": {
+            //             "label": "MyApp",
+            //             "protocol": "http",
+            //             "onAutoForward": "openBrowser"
+            //         }
+            //     }
+            // }
+            
+            var portsByLabel = (from props in portsAttributes
+                                let attrs = props.Value as JsonObject
+                                let forwardedPort = props.Key
+                                let l = attrs["label"]?.ToString()
+                                where l != null
+                                select new { Label = l, Port = forwardedPort })
+                                .ToLookup(p => p.Label, p => p.Port);
 
             foreach (var (url, port, protocol, label, openBrowser) in _pendingPorts)
             {
-                var portAsString = port.ToString(CultureInfo.InvariantCulture);
-
-                JsonObject? portsAttributes;
-                if (!settings.TryGetPropertyValue(PortAttributesFieldName, out var portsAttributesNode))
-                {
-                    portsAttributes = [];
-                    settings.Add(PortAttributesFieldName, portsAttributes);
-                }
-                else
-                {
-                    portsAttributes = (JsonObject)portsAttributesNode!;
-                }
-
-                var portsByLabel = (from def in portsAttributes
-                                    let obj = def.Value as JsonObject
-                                    let l = obj["label"]?.ToString()
-                                    where l != null
-                                    select new { Label = l, Port = def.Key })
-                                    .ToLookup(p => p.Label, p => p.Port);
-
                 // Remove any existing ports with the same label
                 foreach (var oldPort in portsByLabel[label])
                 {
@@ -98,10 +108,10 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
                 }
 
                 JsonObject? portAttributes;
-                if (!portsAttributes.TryGetPropertyValue(portAsString, out var portAttributeNode))
+                if (!portsAttributes.TryGetPropertyValue(port, out var portAttributeNode))
                 {
                     portAttributes = [];
-                    portsAttributes.Add(portAsString, portAttributes);
+                    portsAttributes.Add(port, portAttributes);
                 }
                 else
                 {
