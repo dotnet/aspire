@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <PackageTags>aspire integration hosting MariaDB</PackageTags>
+    <Description>MariaDB support for .NET Aspire.</Description>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>47</MinCodeCoverage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AspNetCore.HealthChecks.MySql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Required for PhpMyAdminConfigWriterHook -->
+    <InternalsVisibleTo Include="Aspire.Hosting.MariaDB.Tests" />
+  </ItemGroup>
+
+</Project>

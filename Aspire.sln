@@ -645,6 +645,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.MongoDB.Driver.v3", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.MongoDB.Driver.v3.Tests", "tests\Aspire.MongoDB.Driver.v3.Tests\Aspire.MongoDB.Driver.v3.Tests.csproj", "{223AF8EB-3A4E-E778-4EBD-6E4876C308B6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.MariaDB", "src\Aspire.Hosting.MariaDB\Aspire.Hosting.MariaDB.csproj", "{B7C93192-03DF-4C80-A8BE-72F6EA6E7054}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.MariaDB.Tests", "tests\Aspire.Hosting.MariaDB.Tests\Aspire.Hosting.MariaDB.Tests.csproj", "{DF4FF2B8-355F-4E0B-93D1-71241CA54965}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1691,6 +1695,14 @@ Global
 		{223AF8EB-3A4E-E778-4EBD-6E4876C308B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{223AF8EB-3A4E-E778-4EBD-6E4876C308B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{223AF8EB-3A4E-E778-4EBD-6E4876C308B6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B7C93192-03DF-4C80-A8BE-72F6EA6E7054}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7C93192-03DF-4C80-A8BE-72F6EA6E7054}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7C93192-03DF-4C80-A8BE-72F6EA6E7054}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7C93192-03DF-4C80-A8BE-72F6EA6E7054}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF4FF2B8-355F-4E0B-93D1-71241CA54965}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF4FF2B8-355F-4E0B-93D1-71241CA54965}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF4FF2B8-355F-4E0B-93D1-71241CA54965}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF4FF2B8-355F-4E0B-93D1-71241CA54965}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -2001,6 +2013,8 @@ Global
 		{A7EC9111-F3CC-46E8-B95E-3768481D67B4} = {D2938171-1DBB-4E8D-AF16-97F75F1AE6DE}
 		{FD53B608-138D-8FB1-AA57-9B8CD42CF13E} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
 		{223AF8EB-3A4E-E778-4EBD-6E4876C308B6} = {C424395C-1235-41A4-BF55-07880A04368C}
+		{B7C93192-03DF-4C80-A8BE-72F6EA6E7054} = {B80354C7-BE58-43F6-8928-9F3A74AB7F47}
+		{DF4FF2B8-355F-4E0B-93D1-71241CA54965} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
