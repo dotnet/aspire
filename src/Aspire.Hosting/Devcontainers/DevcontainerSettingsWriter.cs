@@ -67,7 +67,7 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
 
             var settingsContent = await File.ReadAllTextAsync(settingsPath, cancellationToken).ConfigureAwait(false);
             var settings = (JsonObject)JsonObject.Parse(settingsContent)!;
-            
+
             JsonObject? portsAttributes;
             if (!settings.TryGetPropertyValue(PortAttributesFieldName, out var portsAttributesNode))
             {
@@ -90,7 +90,7 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
             //         }
             //     }
             // }
-            
+
             var portsByLabel = (from props in portsAttributes
                                 let attrs = props.Value as JsonObject
                                 let forwardedPort = props.Key
