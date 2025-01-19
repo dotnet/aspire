@@ -257,6 +257,8 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                     $"aspire-dashboard-{firstDashboardUrl.Scheme}",
                     openBrowser: true,
                     context.CancellationToken).ConfigureAwait(false);
+
+                distributedApplicationLogger.LogInformation("Port forwarding: {Url}", firstDashboardUrl);
             }
 
             distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl.TrimEnd('/'));
