@@ -131,7 +131,7 @@ public static class KeycloakResourceBuilderExtensions
     /// Adds a realm import to a Keycloak container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="importDirectory">The directory containing the realm import files.</param>
+    /// <param name="import">The directory containing the realm import files or a single import file.</param>
     /// <param name="isReadOnly">A flag that indicates if the realm import directory is read-only.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
@@ -146,20 +146,26 @@ public static class KeycloakResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<KeycloakResource> WithRealmImport(
         this IResourceBuilder<KeycloakResource> builder,
-        string importDirectory,
+        string import,
         bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(importDirectory);
+        ArgumentNullException.ThrowIfNull(import);
 
-        var importDirectoryFullPath = Path.GetFullPath(importDirectory, builder.ApplicationBuilder.AppHostDirectory);
-        if (!Directory.Exists(importDirectoryFullPath))
+        var importFullPath = Path.GetFullPath(import, builder.ApplicationBuilder.AppHostDirectory);
+
+        if (Directory.Exists(importFullPath))
         {
-            throw new DirectoryNotFoundException($"The realm import directory '{importDirectoryFullPath}' does not exist.");
+            return builder.WithBindMount(importFullPath, RealmImportDirectory, isReadOnly);
         }
 
-        builder.WithBindMount(importDirectoryFullPath, RealmImportDirectory, isReadOnly);
+        if (File.Exists(importFullPath))
+        {
+            var fileName = Path.GetFileName(import);
 
-        return builder;
+            return builder.WithBindMount(importFullPath, $"{RealmImportDirectory}/{fileName}", isReadOnly);
+        }
+
+        throw new InvalidOperationException($"The realm import file or directory '{importFullPath}' does not exist.");
     }
 }
