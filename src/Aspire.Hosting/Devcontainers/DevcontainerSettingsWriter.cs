@@ -19,14 +19,41 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
     private const int WriteLockTimeoutMs = 2000;
     private readonly SemaphoreSlim _writeLock = new SemaphoreSlim(1);
 
-    public async Task SetPortAttributesAsync(int port, string protocol, string label, bool openBrowser = false, CancellationToken cancellationToken = default)
+    private readonly List<(string Url, int Port, string Protocol, string Label, bool OpenBrowser)> _pendingPorts = [];
+
+    public Task SetPortAttributesAsync(string url, int port, string protocol, string label, bool openBrowser = false)
     {
         ArgumentNullException.ThrowIfNullOrEmpty(protocol);
         ArgumentNullException.ThrowIfNullOrEmpty(label);
 
-        var settingsPaths = GetSettingsPaths();
+        _pendingPorts.Add((url, port, protocol, label, openBrowser));
 
-        var portAsString = port.ToString(CultureInfo.InvariantCulture);
+        return Task.CompletedTask;
+    }
+
+    public async Task FlushAsync(CancellationToken cancellationToken = default)
+    {
+        await WriteSettingsAsync(cancellationToken).ConfigureAwait(false);
+
+        _ = Task.Run(async () =>
+        {
+            // Wait for an event to be raised about the file we wrote, we want to make sure that
+            // it is fully written to disk before we return so that we can tell VS code to 
+            // forward the ports. VS code needs to read it from disk to know what to do.
+            await Task.Delay(5000, cancellationToken).ConfigureAwait(false);
+
+            // This is how VS code finds out about the port forwards in hybrid mode (output + proccess);
+            foreach (var (url, _, _, label, _) in _pendingPorts)
+            {
+                logger.LogInformation("Port forwarding ({label}): {Url}", label, url);
+            }
+
+        }, cancellationToken);
+    }
+
+    private async Task WriteSettingsAsync(CancellationToken cancellationToken = default)
+    {
+        var settingsPaths = GetSettingsPaths();
 
         foreach (var settingsPath in settingsPaths)
         {
@@ -42,44 +69,49 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
             var settingsContent = await File.ReadAllTextAsync(settingsPath, cancellationToken).ConfigureAwait(false);
             var settings = (JsonObject)JsonObject.Parse(settingsContent)!;
 
-            JsonObject? portsAttributes;
-            if (!settings.TryGetPropertyValue(PortAttributesFieldName, out var portsAttributesNode))
+            foreach (var (url, port, protocol, label, openBrowser) in _pendingPorts)
             {
-                portsAttributes = [];
-                settings.Add(PortAttributesFieldName, portsAttributes);
-            }
-            else
-            {
-                portsAttributes = (JsonObject)portsAttributesNode!;
-            }
+                var portAsString = port.ToString(CultureInfo.InvariantCulture);
 
-            var portsByLabel = (from def in portsAttributes
-                                let obj = def.Value as JsonObject
-                                let l = obj["label"]?.ToString()
-                                where l != null
-                                select new { Label = l, Port = def.Key })
-                                .ToLookup(p => p.Label, p => p.Port);
+                JsonObject? portsAttributes;
+                if (!settings.TryGetPropertyValue(PortAttributesFieldName, out var portsAttributesNode))
+                {
+                    portsAttributes = [];
+                    settings.Add(PortAttributesFieldName, portsAttributes);
+                }
+                else
+                {
+                    portsAttributes = (JsonObject)portsAttributesNode!;
+                }
 
-            // Remove any existing ports with the same label
-            foreach (var oldPort in portsByLabel[label])
-            {
-                portsAttributes.Remove(oldPort);
-            }
+                var portsByLabel = (from def in portsAttributes
+                                    let obj = def.Value as JsonObject
+                                    let l = obj["label"]?.ToString()
+                                    where l != null
+                                    select new { Label = l, Port = def.Key })
+                                    .ToLookup(p => p.Label, p => p.Port);
 
-            JsonObject? portAttributes;
-            if (!portsAttributes.TryGetPropertyValue(portAsString, out var portAttributeNode))
-            {
-                portAttributes = [];
-                portsAttributes.Add(portAsString, portAttributes);
-            }
-            else
-            {
-                portAttributes = (JsonObject)portAttributeNode!;
-            }
+                // Remove any existing ports with the same label
+                foreach (var oldPort in portsByLabel[label])
+                {
+                    portsAttributes.Remove(oldPort);
+                }
 
-            portAttributes["label"] = label;
-            portAttributes["protocol"] = protocol;
-            portAttributes["onAutoForward"] = openBrowser ? "openBrowser" : "silent";
+                JsonObject? portAttributes;
+                if (!portsAttributes.TryGetPropertyValue(portAsString, out var portAttributeNode))
+                {
+                    portAttributes = [];
+                    portsAttributes.Add(portAsString, portAttributes);
+                }
+                else
+                {
+                    portAttributes = (JsonObject)portAttributeNode!;
+                }
+
+                portAttributes["label"] = label;
+                portAttributes["protocol"] = protocol;
+                portAttributes["onAutoForward"] = openBrowser ? "openBrowser" : "silent";
+            }
 
             settingsContent = settings.ToString();
             await File.WriteAllTextAsync(settingsPath, settingsContent, cancellationToken).ConfigureAwait(false);

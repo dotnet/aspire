@@ -140,6 +140,21 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             dashboardResource.Annotations.Remove(endpointAnnotation);
         }
 
+        if (codespacesOptions.Value.IsCodespace || devcontainersOptions.Value.IsDevcontainer)
+        {
+            // We need to print out the url so that dotnet watch can launch the dashboard
+            // technically this is too early
+            if (StringUtils.TryGetUriFromDelimitedString(dashboardOptions.Value.DashboardUrl, ";", out var firstDashboardUrl))
+            {
+                settingsWriter.SetPortAttributesAsync(
+                                firstDashboardUrl.ToString(),
+                                firstDashboardUrl.Port,
+                                firstDashboardUrl.Scheme,
+                                $"aspire-dashboard-{firstDashboardUrl.Scheme}",
+                                openBrowser: true).ConfigureAwait(false);
+            }
+        }
+
         var snapshot = new CustomResourceSnapshot()
         {
             Properties = [],
@@ -240,26 +255,12 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             // via the ILogger.
             context.EnvironmentVariables["LOGGING__CONSOLE__FORMATTERNAME"] = "json";
 
-            // We need to print out the url so that dotnet watch can launch the dashboard
-            // technically this is too early, but it's late ne
             if (!StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
             {
                 return;
             }
 
             var dashboardUrl = codespaceUrlRewriter.RewriteUrl(firstDashboardUrl.ToString());
-
-            if (codespacesOptions.Value.IsCodespace || devcontainersOptions.Value.IsDevcontainer)
-            {
-                await settingsWriter.SetPortAttributesAsync(
-                    firstDashboardUrl.Port,
-                    firstDashboardUrl.Scheme,
-                    $"aspire-dashboard-{firstDashboardUrl.Scheme}",
-                    openBrowser: true,
-                    context.CancellationToken).ConfigureAwait(false);
-
-                distributedApplicationLogger.LogInformation("Port forwarding: {Url}", firstDashboardUrl);
-            }
 
             distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl.TrimEnd('/'));
 
