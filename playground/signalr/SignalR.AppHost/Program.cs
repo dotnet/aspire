@@ -22,6 +22,7 @@ var serverlessSignalr = builder
             Flag = SignalRFeatureFlag.ServiceMode,
             Value = "Serverless"
         });
+        // Add required role assignment to invoke REST API for serverless mode
         var principalTypeParameter = infra.GetProvisionableResources().OfType<ProvisioningParameter>().First(o => o.BicepIdentifier == AzureBicepResource.KnownParameters.PrincipalType);
         var principalIdTypeParameter = infra.GetProvisionableResources().OfType<ProvisioningParameter>().First(o => o.BicepIdentifier == AzureBicepResource.KnownParameters.PrincipalId);
         infra.Add(resource.CreateRoleAssignment(SignalRBuiltInRole.SignalRRestApiOwner, principalTypeParameter, principalIdTypeParameter));

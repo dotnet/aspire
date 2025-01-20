@@ -28,7 +28,7 @@
     <PackageVersion Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="8.0.0" />
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.46.1" />
     <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.29.0" />
-    <PackageVersion Include="Microsoft.Azure.SignalR.Management" Version="1.28.0" />
+    <PackageVersion Include="Microsoft.Azure.SignalR.Management" Version="1.29.0" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.8.0" />
     <!-- Azure Management SDK for .NET dependencies -->
     <PackageVersion Include="Azure.Provisioning" Version="$(AzureProvisiongVersion)" />
