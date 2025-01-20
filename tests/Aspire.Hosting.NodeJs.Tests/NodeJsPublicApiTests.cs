@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Tests.Utils;
 using Xunit;
 
 namespace Aspire.Hosting.NodeJs.Tests;
@@ -100,18 +101,24 @@ public class NodeJsPublicApiTests
     }
 
     [Fact]
-    public void AddNpmAppShouldSetArgsWhenProvided()
+    public async Task AddNpmAppShouldSetArgsWhenProvided()
     {
         var builder = DistributedApplication.CreateBuilder();
         var name = "npmapp";
         var workingDirectory = ".\\app";
         var scriptName = "start";
-        string[] args = ["--port 8080"];
+        string[] args = ["--port", "8080"];
 
-        var npmApp =
-            builder.AddNpmApp(name: name, workingDirectory: workingDirectory, scriptName: scriptName, args: args);
+        var npmApp = builder
+            .AddNpmApp(name: name, workingDirectory: workingDirectory, scriptName: scriptName, args: args);
 
-        Assert.Equal("run start --port 8080", npmApp.Resource.Command);
+        var npmArgs = await ArgumentEvaluator.GetArgumentListAsync(npmApp.Resource);
+
+        Assert.Collection(npmArgs,
+            arg => Assert.Equal("run", arg),
+            arg => Assert.Equal("start", arg),
+            arg => Assert.Equal("--port", arg),
+            arg => Assert.Equal("8080", arg));
     }
 
     [Fact]
