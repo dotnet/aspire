@@ -17,7 +17,7 @@ public static class PythonAppResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="projectDirectory">The path to the directory containing the python app files.</param>
+    /// <param name="appDirectory">The path to the directory containing the python app files.</param>
     /// <param name="scriptPath">The path to the script relative to the project directory to run.</param>
     /// <param name="scriptArgs">The arguments for the script.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
@@ -52,17 +52,17 @@ public static class PythonAppResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddPythonApp("python-project", "PythonProject", "main.py");
-    /// 
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     /// </remarks>
     public static IResourceBuilder<PythonAppResource> AddPythonApp(
-        this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath, params string[] scriptArgs)
+        this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath, params string[] scriptArgs)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.AddPythonApp(name, projectDirectory, scriptPath, ".venv", scriptArgs);
+        return builder.AddPythonApp(name, appDirectory, scriptPath, ".venv", scriptArgs);
     }
 
     /// <summary>
@@ -70,7 +70,7 @@ public static class PythonAppResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="projectDirectory">The path to the directory containing the python project files.</param>
+    /// <param name="appDirectory">The path to the directory containing the python app files.</param>
     /// <param name="scriptPath">The path to the script relative to the project directory to run.</param>
     /// <param name="virtualEnvironmentPath">Path to the virtual environment.</param>
     /// <param name="scriptArgs">The arguments for the script.</param>
@@ -101,34 +101,34 @@ public static class PythonAppResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddPythonApp("python-project", "PythonProject", "main.py");
-    /// 
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     /// </remarks>
     public static IResourceBuilder<PythonAppResource> AddPythonApp(
-        this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath,
+        this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath,
         string virtualEnvironmentPath, params string[] scriptArgs)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(projectDirectory);
+        ArgumentNullException.ThrowIfNull(appDirectory);
         ArgumentNullException.ThrowIfNull(scriptPath);
         ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
         ArgumentNullException.ThrowIfNull(scriptArgs);
 
-        projectDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectDirectory));
+        appDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, appDirectory));
         var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
             ? virtualEnvironmentPath
-            : Path.Join(projectDirectory, virtualEnvironmentPath));
+            : Path.Join(appDirectory, virtualEnvironmentPath));
 
         var instrumentationExecutable = virtualEnvironment.GetExecutable("opentelemetry-instrument");
         var pythonExecutable = virtualEnvironment.GetRequiredExecutable("python");
         var projectExecutable = instrumentationExecutable ?? pythonExecutable;
 
-        var projectResource = new PythonAppResource(name, projectExecutable, projectDirectory);
+        var resource = new PythonAppResource(name, projectExecutable, appDirectory);
 
-        var resourceBuilder = builder.AddResource(projectResource).WithArgs(context =>
+        var resourceBuilder = builder.AddResource(resource).WithArgs(context =>
         {
             // If the project is to be automatically instrumented, add the instrumentation executable arguments first.
             if (!string.IsNullOrEmpty(instrumentationExecutable))
@@ -139,7 +139,7 @@ public static class PythonAppResourceBuilderExtensions
                 context.Args.Add(pythonExecutable!);
             }
 
-            AddProjectArguments(scriptPath, scriptArgs, context);
+            AddArguments(scriptPath, scriptArgs, context);
         });
 
         if (!string.IsNullOrEmpty(instrumentationExecutable))
@@ -156,7 +156,7 @@ public static class PythonAppResourceBuilderExtensions
         return resourceBuilder;
     }
 
-    private static void AddProjectArguments(string scriptPath, string[] scriptArgs, CommandLineArgsCallbackContext context)
+    private static void AddArguments(string scriptPath, string[] scriptArgs, CommandLineArgsCallbackContext context)
     {
         context.Args.Add(scriptPath);
 
