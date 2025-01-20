@@ -8,7 +8,6 @@ using System.Threading.Channels;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
-using Aspire.Hosting.Devcontainers;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Tests.Utils;
 using Microsoft.AspNetCore.InternalTesting;
@@ -171,8 +170,10 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
 
         var envVars = new Dictionary<string, object>();
 
+        var dashboardResource = new ExecutableResource("aspire-dashboard", "dashboard.exe", ".");
+
         // Act
-        await hook.ConfigureEnvironmentVariables(new EnvironmentCallbackContext(new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run), environmentVariables: envVars));
+        await hook.ConfigureEnvironmentVariables(new EnvironmentCallbackContext(new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run), environmentVariables: envVars, resource: dashboardResource));
 
         // Assert
         Assert.Equal("true", envVars.Single(e => e.Key == "ASPIRE_DASHBOARD_PURPLE_MONKEY_DISHWASHER").Value);
@@ -184,14 +185,11 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         IConfiguration configuration,
         ILoggerFactory? loggerFactory = null,
         IOptions<CodespacesOptions>? codespacesOptions = null,
-        IOptions<DevcontainersOptions>? devcontainersOptions = null,
         IOptions<DashboardOptions>? dashboardOptions = null
         )
     {
         codespacesOptions ??= Options.Create(new CodespacesOptions());
-        devcontainersOptions ??= Options.Create(new DevcontainersOptions());
         dashboardOptions ??= Options.Create(new DashboardOptions { DashboardPath = "test.dll" });
-        var settingsWriter = new DevcontainerSettingsWriter(NullLogger<DevcontainerSettingsWriter>.Instance, codespacesOptions, devcontainersOptions);
         var rewriter = new CodespacesUrlRewriter(codespacesOptions);
 
         return new DashboardLifecycleHook(
@@ -205,10 +203,8 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             loggerFactory ?? NullLoggerFactory.Instance,
             new DcpNameGenerator(configuration, Options.Create(new DcpOptions())),
             new TestHostApplicationLifetime(),
-            rewriter,
-            codespacesOptions,
-            devcontainersOptions,
-            settingsWriter
+            new Hosting.Eventing.DistributedApplicationEventing(),
+            rewriter
             );
     }
 
