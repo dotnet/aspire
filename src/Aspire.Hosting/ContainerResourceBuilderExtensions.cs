@@ -353,16 +353,6 @@ public static class ContainerResourceBuilderExtensions
 
         var fullyQualifiedDockerfilePath = Path.GetFullPath(dockerfilePath, fullyQualifiedContextPath);
 
-        if (!Directory.Exists(fullyQualifiedContextPath))
-        {
-            throw new DirectoryNotFoundException($"Context path not found at '{fullyQualifiedContextPath}'.");
-        }
-
-        if (!File.Exists(fullyQualifiedDockerfilePath))
-        {
-            throw new FileNotFoundException($"Dockerfile not found at '{fullyQualifiedDockerfilePath}'.");
-        }
-
         var imageName = builder.GenerateImageName();
         var annotation = new DockerfileBuildAnnotation(fullyQualifiedContextPath, fullyQualifiedDockerfilePath, stage);
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
