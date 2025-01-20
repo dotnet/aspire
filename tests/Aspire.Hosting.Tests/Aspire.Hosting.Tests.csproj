@@ -15,11 +15,16 @@
     <ProjectReference Include="..\..\src\Aspire.Hosting.NodeJs\Aspire.Hosting.NodeJs.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Testing\Aspire.Hosting.Testing.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\TestingAppHost1\TestingAppHost1.AppHost\TestingAppHost1.AppHost.csproj" />
     <ProjectReference Include="..\testproject\TestProject.AppHost\TestProject.AppHost.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\testproject\TestProject.BlazorApp.Client\TestProject.BlazorApp.Client.csproj" />
+    <ProjectReference Include="..\testproject\TestProject.BlazorApp\TestProject.BlazorApp.csproj" />
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="Moq" />
+    <PackageReference Include="TestableIO.System.IO.Abstractions.TestingHelpers" />
 
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
     <Compile Include="$(TestsSharedDir)ConsoleLogging\*.cs" LinkBase="shared" />

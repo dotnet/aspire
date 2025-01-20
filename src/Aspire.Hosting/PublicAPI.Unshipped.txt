@@ -172,6 +172,7 @@ Aspire.Hosting.ApplicationModel.WaitAnnotation.WaitType.get -> Aspire.Hosting.Ap
 Aspire.Hosting.ApplicationModel.WaitType
 Aspire.Hosting.ApplicationModel.WaitType.WaitForCompletion = 1 -> Aspire.Hosting.ApplicationModel.WaitType
 Aspire.Hosting.ApplicationModel.WaitType.WaitUntilHealthy = 0 -> Aspire.Hosting.ApplicationModel.WaitType
+Aspire.Hosting.BlazorResourceBuilderExtensions
 Aspire.Hosting.DistributedApplicationBuilder.AppHostPath.get -> string!
 Aspire.Hosting.DistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
 Aspire.Hosting.Eventing.DistributedApplicationEventing
@@ -201,8 +202,18 @@ Aspire.Hosting.Eventing.IDistributedApplicationEventing.Subscribe<T>(System.Func
 Aspire.Hosting.Eventing.IDistributedApplicationEventing.Unsubscribe(Aspire.Hosting.Eventing.DistributedApplicationEventSubscription! subscription) -> void
 Aspire.Hosting.Eventing.IDistributedApplicationResourceEvent
 Aspire.Hosting.Eventing.IDistributedApplicationResourceEvent.Resource.get -> Aspire.Hosting.ApplicationModel.IResource!
+Aspire.Hosting.IClientSideBlazorBuilder<TProject>
+Aspire.Hosting.IClientSideBlazorBuilder<TProject>.GetProjectMetadata() -> Aspire.Hosting.IProjectMetadata!
+Aspire.Hosting.IClientSideBlazorBuilder<TProject>.WithReference(Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.IResourceWithServiceDiscovery!>! source) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
 Aspire.Hosting.IDistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
+Aspire.Hosting.IJsonFileAccessor
+Aspire.Hosting.IJsonFileAccessor.ReadFileAsJson() -> System.Text.Json.Nodes.JsonObject!
+Aspire.Hosting.IJsonFileAccessor.SaveJson(System.Text.Json.Nodes.JsonObject! updatedContent) -> void
 Aspire.Hosting.IProjectMetadata.LaunchSettings.get -> Aspire.Hosting.LaunchSettings?
+Aspire.Hosting.IServiceDiscoveryInfoSerializer
+Aspire.Hosting.IServiceDiscoveryInfoSerializer.SerializeServiceDiscoveryInfo(Aspire.Hosting.ApplicationModel.IResourceWithEndpoints! resource) -> void
+Aspire.Hosting.IWebAssemblyProjectBuilder<TProject>
+Aspire.Hosting.IWebAssemblyProjectBuilder<TProject>.WithReference(Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.IResourceWithServiceDiscovery!>! source) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
 Aspire.Hosting.LaunchProfile
 Aspire.Hosting.LaunchProfile.ApplicationUrl.get -> string?
 Aspire.Hosting.LaunchProfile.ApplicationUrl.set -> void
@@ -224,6 +235,10 @@ Aspire.Hosting.LaunchSettings.LaunchSettings() -> void
 Aspire.Hosting.LaunchSettings.Profiles.get -> System.Collections.Generic.Dictionary<string!, Aspire.Hosting.LaunchProfile!>!
 Aspire.Hosting.LaunchSettings.Profiles.set -> void
 Aspire.Hosting.Utils.VolumeNameGenerator
+Aspire.Hosting.WebAssemblyProjectBuilderOptions
+Aspire.Hosting.WebAssemblyProjectBuilderOptions.ServiceDiscoveryInfoSerializer.get -> Aspire.Hosting.IServiceDiscoveryInfoSerializer!
+Aspire.Hosting.WebAssemblyProjectBuilderOptions.ServiceDiscoveryInfoSerializer.set -> void
+Aspire.Hosting.WebAssemblyProjectBuilderOptions.WebAssemblyProjectBuilderOptions() -> void
 static Aspire.Hosting.ApplicationModel.CommandResults.Success() -> Aspire.Hosting.ApplicationModel.ExecuteCommandResult!
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.GetEnvironmentVariableValuesAsync(this Aspire.Hosting.ApplicationModel.IResourceWithEnvironment! resource, Aspire.Hosting.DistributedApplicationOperation applicationOperation = Aspire.Hosting.DistributedApplicationOperation.Run) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.Dictionary<string!, string!>!>
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, string? targetState = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -231,6 +246,8 @@ Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.HasAnnotationIncludingAncestorsOfType<T>(this Aspire.Hosting.ApplicationModel.IResource! resource) -> bool
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.HasAnnotationOfType<T>(this Aspire.Hosting.ApplicationModel.IResource! resource) -> bool
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetAnnotationsIncludingAncestorsOfType<T>(this Aspire.Hosting.ApplicationModel.IResource! resource, out System.Collections.Generic.IEnumerable<T>? result) -> bool
+static Aspire.Hosting.BlazorResourceBuilderExtensions.AddWebAssemblyClient<TClientProject>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IResource!>! blazorServerProjectBuilder, string! webAssemblyProjectName) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
+static Aspire.Hosting.BlazorResourceBuilderExtensions.AddWebAssemblyClient<TClientProject>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IResource!>! blazorServerProjectBuilder, string! webAssemblyProjectName, System.Action<Aspire.Hosting.WebAssemblyProjectBuilderOptions!, Aspire.Hosting.IProjectMetadata!, Microsoft.Extensions.Hosting.IHostEnvironment!>! configure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithContainerName<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithImageRegistry<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string? registry) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithLifetime<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, Aspire.Hosting.ApplicationModel.ContainerLifetime lifetime) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!

@@ -54,6 +54,8 @@
     <PackageVersion Include="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" Version="$(MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="$(MicrosoftAspNetCoreTestHostPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="$(MicrosoftExtensionsCachingStackExchangeRedisPackageVersion)" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.12" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="$(MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="$(MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Features" Version="$(MicrosoftExtensionsFeaturesPackageVersion)" />
@@ -93,6 +95,7 @@
     <PackageVersion Include="Microsoft.Extensions.Primitives" Version="$(MicrosoftExtensionsPrimitivesPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsHttpResiliencePackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(MicrosoftExtensionsTimeProviderTestingVersion)" />
+    <PackageVersion Include="Moq" Version="4.20.70" />
     <!-- NuGet dependencies -->
     <PackageVersion Include="NuGet.ProjectModel" Version="6.11.1" />
     <!-- external dependencies -->
@@ -127,7 +130,10 @@
     <PackageVersion Include="Qdrant.Client" Version="1.12.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="[6.8.1,7.0.0)" />
     <PackageVersion Include="StackExchange.Redis" Version="2.8.22" />
+    <PackageVersion Include="System.IO.Abstractions" Version="20.0.15" />
     <PackageVersion Include="System.IO.Hashing" Version="8.0.0" />
+    <PackageVersion Include="TestableIO.System.IO.Abstractions.TestingHelpers" Version="21.0.2" />
+    <PackageVersion Include="TestableIO.System.IO.Abstractions.Wrappers" Version="21.0.2" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.2.0" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.6" />
