@@ -52,11 +52,20 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
             //       dynamically add health checks at runtime. If this changes then we
             //       would need to revisit this and scan for transitive health checks
             //       on a periodic basis (you wouldn't want to do it on every pass.
-            var resourceReadyEvent = new ResourceReadyEvent(resource, services);
-            await eventing.PublishAsync(
-                resourceReadyEvent,
-                EventDispatchBehavior.NonBlockingSequential,
-                cancellationToken).ConfigureAwait(false);
+            _ = Task.Run(async () =>
+            {
+                var resourceReadyEvent = new ResourceReadyEvent(resource, services);
+
+                await eventing.PublishAsync(resourceReadyEvent, cancellationToken).ConfigureAwait(false);
+
+                await resourceNotificationService.PublishUpdateAsync(resource, s => s with
+                {
+                    ResourceCompletedEventFired = true
+                })
+                .ConfigureAwait(false);
+            },
+            cancellationToken);
+
             return;
         }
 
@@ -76,11 +85,20 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                 if (!resourceReadyEventFired && report.Status == HealthStatus.Healthy)
                 {
                     resourceReadyEventFired = true;
-                    var resourceReadyEvent = new ResourceReadyEvent(resource, services);
-                    await eventing.PublishAsync(
-                        resourceReadyEvent,
-                        EventDispatchBehavior.NonBlockingSequential,
-                        cancellationToken).ConfigureAwait(false);
+
+                    _ = Task.Run(async () =>
+                    {
+                        var resourceReadyEvent = new ResourceReadyEvent(resource, services);
+
+                        await eventing.PublishAsync(resourceReadyEvent, cancellationToken).ConfigureAwait(false);
+
+                        await resourceNotificationService.PublishUpdateAsync(resource, s => s with
+                        {
+                            ResourceCompletedEventFired = true
+                        })
+                        .ConfigureAwait(false);
+                    },
+                    cancellationToken);
                 }
 
                 var latestEvent = _latestEvents.GetValueOrDefault(resource.Name);

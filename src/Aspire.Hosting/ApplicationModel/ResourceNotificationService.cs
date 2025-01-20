@@ -161,6 +161,10 @@ public class ResourceNotificationService : IDisposable
             await WaitForResourceHealthyAsync(dependency.Name, cancellationToken).ConfigureAwait(false);
         }
 
+        // Now wait for the resource ready event to be executed.
+        resourceLogger.LogInformation("Waiting for resource ready to execute for '{Name}'.", dependency.Name);
+        await WaitForResourceAsync(dependency.Name, re => re.Snapshot.ResourceCompletedEventFired, cancellationToken: cancellationToken).ConfigureAwait(false);
+
         resourceLogger.LogInformation("Finished waiting for resource '{Name}'.", dependency.Name);
 
         static bool IsContinuableState(CustomResourceSnapshot snapshot) =>
