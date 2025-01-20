@@ -99,7 +99,7 @@ internal static class CommandsConfigurationExtensions
             updateState: context =>
             {
                 var state = context.ResourceSnapshot.State?.Text;
-                if (IsStarting(state) || IsStopping(state) || IsStopped(state) || IsRuntimeUnhealthy(state) || context.ResourceSnapshot.State is null)
+                if (IsStarting(state) || IsStopping(state) || IsStopped(state) || IsWaiting(state) || IsRuntimeUnhealthy(state) || context.ResourceSnapshot.State is null)
                 {
                     return ResourceCommandState.Disabled;
                 }
