@@ -27,11 +27,7 @@ var serverlessSignalr = builder
         var principalIdTypeParameter = infra.GetProvisionableResources().OfType<ProvisioningParameter>().First(o => o.BicepIdentifier == AzureBicepResource.KnownParameters.PrincipalId);
         infra.Add(resource.CreateRoleAssignment(SignalRBuiltInRole.SignalRRestApiOwner, principalTypeParameter, principalIdTypeParameter));
     })
-    .RunAsEmulator()
-    .WithEndpoint("emulator", e =>
-    {
-        e.Port = 64323;
-    });
+    .RunAsEmulator();
 
 builder.AddProject<Projects.SignalRServerlessWeb>("webserverless")
     .WithExternalHttpEndpoints()
