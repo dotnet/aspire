@@ -100,6 +100,21 @@ public class NodeJsPublicApiTests
     }
 
     [Fact]
+    public void AddNpmAppShouldSetArgsWhenProvided()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var name = "npmapp";
+        var workingDirectory = ".\\app";
+        var scriptName = "start";
+        string[] args = ["--port 8080"];
+
+        var npmApp =
+            builder.AddNpmApp(name: name, workingDirectory: workingDirectory, scriptName: scriptName, args: args);
+
+        Assert.Equal("run start --port 8080", npmApp.Resource.Command);
+    }
+
+    [Fact]
     public void CtorNodeAppResourceShouldThrowWhenNameIsNull()
     {
         string name = null!;
