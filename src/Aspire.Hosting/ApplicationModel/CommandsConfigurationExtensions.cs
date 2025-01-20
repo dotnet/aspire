@@ -69,7 +69,7 @@ internal static class CommandsConfigurationExtensions
                 {
                     return ResourceCommandState.Disabled;
                 }
-                else if (!IsStopped(state) && !IsStarting(state) && !IsWaiting(state) && context.ResourceSnapshot.State is not null)
+                else if (!IsStopped(state) && !IsStarting(state) && !IsWaiting(state) && !IsRuntimeUnhealthy(state) && context.ResourceSnapshot.State is not null)
                 {
                     return ResourceCommandState.Enabled;
                 }
