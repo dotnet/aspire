@@ -230,6 +230,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/6099")]
     public async Task VerifyWithRedisInsightImportDatabases()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
