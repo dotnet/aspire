@@ -56,7 +56,7 @@ public static class NodeAppHostingExtension
         ArgumentNullException.ThrowIfNull(scriptName);
 
         string[] allArgs = args is { Length: > 0 }
-            ? ["run", scriptName, "--", .. args]
+            ? ["run", scriptName, .. args]
             : ["run", scriptName];
 
         workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
