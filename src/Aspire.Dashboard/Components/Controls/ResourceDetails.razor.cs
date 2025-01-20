@@ -8,6 +8,7 @@ using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
 
@@ -25,6 +26,9 @@ public partial class ResourceDetails
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
+    [Inject]
+    public required IJSRuntime JS { get; init; }
+
     private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceProperties(ordered: false).Any(static vm => vm.KnownProperty is null);
 
     // NOTE Excludes endpoints as they don't expose sensitive items (and enumerating endpoints is non-trivial)
@@ -33,6 +37,9 @@ public partial class ResourceDetails
     private bool _showAll;
     private ResourceViewModel? _resource;
     private readonly HashSet<string> _unmaskedItemNames = new();
+
+    private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
+    private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
 
     internal IQueryable<EnvironmentVariableViewModel> FilteredEnvironmentVariables =>
         Resource.Environment
@@ -78,6 +85,7 @@ public partial class ResourceDetails
 
     private string _filter = "";
     private bool? _isMaskAllChecked;
+    private bool _dataChanged;
 
     private bool IsMaskAllChecked
     {
@@ -99,6 +107,7 @@ public partial class ResourceDetails
             }
 
             _resource = Resource;
+            _dataChanged = true;
 
             // Collapse details sections when they have no data.
             _isEndpointsExpanded = GetEndpoints().Any();
@@ -120,6 +129,24 @@ public partial class ResourceDetails
                 }
             }
         }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_dataChanged)
+        {
+            if (!firstRender)
+            {
+                await JS.InvokeVoidAsync("scrollToTop", ".property-grid-container");
+            }
+
+            _dataChanged = false;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlStringsLoc);
     }
 
     private IEnumerable<ResourceDetailRelationship> GetRelationships()

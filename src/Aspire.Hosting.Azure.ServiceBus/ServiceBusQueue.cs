@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Xml;
+using Azure.Provisioning;
 
 namespace Aspire.Hosting.Azure.ServiceBus;
 
@@ -10,16 +11,7 @@ namespace Aspire.Hosting.Azure.ServiceBus;
 /// Represents a Service Bus Queue.
 /// </summary>
 /// <remarks>
-/// List of properties from Azure.Provisioning.ServiceBus that are not exposed here:
-/// - AutoDeleteOnIdle
-/// - EnableBatchedOperations
-/// - EnableExpress
-/// - EnablePartitioning
-/// - MaxMessageSizeInKilobytes
-/// - MaxSizeInMegabytes
-/// - Status
-///
-/// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure these specific properties.
+/// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
 public class ServiceBusQueue
 {
@@ -96,7 +88,7 @@ public class ServiceBusQueue
     /// <returns>A <see cref="global::Azure.Provisioning.ServiceBus.ServiceBusQueue"/> instance.</returns>
     internal global::Azure.Provisioning.ServiceBus.ServiceBusQueue ToProvisioningEntity()
     {
-        var queue = new global::Azure.Provisioning.ServiceBus.ServiceBusQueue(AzureResourceInfrastructure.NormalizeBicepIdentifier(Name));
+        var queue = new global::Azure.Provisioning.ServiceBus.ServiceBusQueue(Infrastructure.NormalizeBicepIdentifier(Name));
 
         queue.Name = Name;
 

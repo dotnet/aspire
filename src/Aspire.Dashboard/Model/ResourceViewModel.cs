@@ -200,12 +200,12 @@ public sealed class CommandViewModel
     {
         try
         {
-            icon = Icons.GetInstance(new IconInfo
+            icon = (new IconInfo
             {
                 Name = key.IconName,
                 Variant = key.IconVariant,
                 Size = size
-            });
+            }).GetInstance();
             return true;
         }
         catch

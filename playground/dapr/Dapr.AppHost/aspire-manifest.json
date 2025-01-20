@@ -1,6 +1,29 @@
 {
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
+    "rabbitMQ": {
+      "type": "container.v0",
+      "connectionString": "amqp://guest:{rabbitMQ-password.value}@{rabbitMQ.bindings.tcp.host}:{rabbitMQ.bindings.tcp.port}",
+      "image": "docker.io/library/rabbitmq:4.0-management",
+      "env": {
+        "RABBITMQ_DEFAULT_USER": "guest",
+        "RABBITMQ_DEFAULT_PASS": "{rabbitMQ-password.value}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 5672
+        },
+        "management": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 15672
+        }
+      }
+    },
     "statestore": {
       "type": "dapr.component.v0",
       "daprComponent": {
@@ -78,6 +101,41 @@
         "components": [
           "pubsub"
         ]
+      }
+    },
+    "servicec": {
+      "type": "project.v0",
+      "path": "../ServiceC/DaprServiceC.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory"
+      }
+    },
+    "servicec-dapr": {
+      "type": "dapr.v0",
+      "dapr": {
+        "application": "servicec",
+        "appId": "servicec",
+        "components": [
+          "statestore"
+        ]
+      }
+    },
+    "rabbitMQ-password": {
+      "type": "parameter.v0",
+      "value": "{rabbitMQ-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "special": false
+            }
+          }
+        }
       }
     }
   }

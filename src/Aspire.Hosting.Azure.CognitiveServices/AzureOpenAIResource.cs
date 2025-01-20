@@ -8,7 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents an Azure OpenAI resource.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="configureInfrastructure">Configures the underlying Azure resource using the CDK.</param>
+/// <param name="configureInfrastructure">Configures the underlying Azure resource using Azure.Provisioning.</param>
 public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
     AzureProvisioningResource(name, configureInfrastructure),
     IResourceWithConnectionString

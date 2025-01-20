@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.EventHubs;
 
 namespace Aspire.Hosting.Azure;
 
@@ -27,7 +28,7 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
 
     private const string ConnectionKeyPrefix = "Aspire__Azure__Messaging__EventHubs";
 
-    internal List<string> Hubs { get; } = [];
+    internal List<EventHub> Hubs { get; } = [];
 
     /// <summary>
     /// Gets the "eventHubsEndpoint" output reference from the bicep template for the Azure Event Hubs resource.
