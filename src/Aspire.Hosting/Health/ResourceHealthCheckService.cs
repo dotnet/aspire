@@ -55,11 +55,14 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                 // Execute the publish and store the task so that waiters can await it and observe the result.
                 var task = eventing.PublishAsync(resourceReadyEvent, cancellationToken);
 
+                // Suppress exceptions, we just want to make sure that the event is completed.
+                await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+
                 await resourceNotificationService.PublishUpdateAsync(resource, s => s with
                 {
-                    ResourceReadyEventTask = task
+                    ResourceReadyEvent = new(task)
                 })
-                    .ConfigureAwait(false);
+                .ConfigureAwait(false);
             },
             cancellationToken);
         }
