@@ -107,15 +107,21 @@ public class ResourceNotificationService : IDisposable
                                                      Justification = "targetState(s) parameters are mutually exclusive.")]
     public async Task<string> WaitForResourceAsync(string resourceName, IEnumerable<string> targetStates, CancellationToken cancellationToken = default)
     {
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("Waiting for resource '{Name}' to enter one of the target state: {TargetStates}", resourceName, string.Join(", ", targetStates));
+        }
+
         using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_disposing.Token, cancellationToken);
         var watchToken = watchCts.Token;
         await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
         {
             if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName)
-                && resourceEvent.Snapshot.State?.Text is { Length: > 0 } statusText
-                && targetStates.Contains(statusText, StringComparers.ResourceState))
+                && resourceEvent.Snapshot.State?.Text is { Length: > 0 } stateText
+                && targetStates.Contains(stateText, StringComparers.ResourceState))
             {
-                return statusText;
+                _logger.LogDebug("Finished waiting for resource '{Name}'. Resource state is '{State}'.", resourceName, stateText);
+                return stateText;
             }
         }
 
@@ -128,7 +134,7 @@ public class ResourceNotificationService : IDisposable
         resourceLogger.LogInformation("Waiting for resource '{Name}' to enter the '{State}' state.", dependency.Name, KnownResourceStates.Running);
 
         await PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
-        var resourceEvent = await WaitForResourceAsync(dependency.Name, re => IsContinuableState(re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
+        var resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => IsContinuableState(re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
         var snapshot = resourceEvent.Snapshot;
 
         if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
@@ -163,7 +169,7 @@ public class ResourceNotificationService : IDisposable
 
         // Now wait for the resource ready event to be executed.
         resourceLogger.LogInformation("Waiting for resource ready to execute for '{Name}'.", dependency.Name);
-        resourceEvent = await WaitForResourceAsync(dependency.Name, re => re.Snapshot.ResourceReadyEvent is not null, cancellationToken: cancellationToken).ConfigureAwait(false);
+        resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => re.Snapshot.ResourceReadyEvent is not null, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         // Observe the result of the resource ready event task
         await resourceEvent.Snapshot.ResourceReadyEvent!.EventTask.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -187,9 +193,13 @@ public class ResourceNotificationService : IDisposable
     /// This method returns a task that will complete with the resource is healthy. A resource
     /// without <see cref="HealthCheckAnnotation"/> annotations will be considered healthy.
     /// </remarks>
-    public Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, CancellationToken cancellationToken = default)
+    public async Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, CancellationToken cancellationToken = default)
     {
-        return WaitForResourceAsync(resourceName, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: cancellationToken);
+        _logger.LogDebug("Waiting for resource '{Name}' to enter the '{State}' state.", resourceName, HealthStatus.Healthy);
+        var resourceEvent = await WaitForResourceCoreAsync(resourceName, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: cancellationToken).ConfigureAwait(false);
+        _logger.LogDebug("Finished waiting for resource '{Name}'.", resourceName);
+
+        return resourceEvent;
     }
 
     private async Task WaitUntilCompletionAsync(IResource resource, IResource dependency, int exitCode, CancellationToken cancellationToken)
@@ -203,7 +213,7 @@ public class ResourceNotificationService : IDisposable
         resourceLogger.LogInformation("Waiting for resource '{Name}' to complete.", dependency.Name);
 
         await PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
-        var resourceEvent = await WaitForResourceAsync(dependency.Name, re => IsKnownTerminalState(re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
+        var resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => IsKnownTerminalState(re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
         var snapshot = resourceEvent.Snapshot;
 
         if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
@@ -281,6 +291,15 @@ public class ResourceNotificationService : IDisposable
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "predicate and targetState(s) parameters are mutually exclusive.")]
     public async Task<ResourceEvent> WaitForResourceAsync(string resourceName, Func<ResourceEvent, bool> predicate, CancellationToken cancellationToken = default)
+    {
+        _logger.LogDebug("Waiting for resource '{Name}' to match predicate.", resourceName);
+        var resourceEvent = await WaitForResourceCoreAsync(resourceName, predicate, cancellationToken).ConfigureAwait(false);
+        _logger.LogDebug("Finished waiting for resource '{Name}'.", resourceName);
+
+        return resourceEvent;
+    }
+
+    private async Task<ResourceEvent> WaitForResourceCoreAsync(string resourceName, Func<ResourceEvent, bool> predicate, CancellationToken cancellationToken = default)
     {
         using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_disposing.Token, cancellationToken);
         var watchToken = watchCts.Token;

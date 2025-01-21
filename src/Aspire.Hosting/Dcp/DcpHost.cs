@@ -7,23 +7,22 @@ using System.IO.Pipelines;
 using System.Net.Sockets;
 using System.Text;
 using Aspire.Dashboard.Utils;
+using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
+internal sealed class DcpHost : IAsyncDisposable
 {
     private const int LoggingSocketConnectionBacklog = 3;
-    private readonly ApplicationExecutor _appExecutor;
+
     private readonly DistributedApplicationModel _applicationModel;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
     private readonly DcpOptions _dcpOptions;
-    private readonly DistributedApplicationExecutionContext _executionContext;
     private readonly IDcpDependencyCheckService _dependencyCheckService;
     private readonly Locations _locations;
     private readonly CancellationTokenSource _shutdownCts = new();
@@ -39,40 +38,28 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         "DOTNET_ENVIRONMENT"
     };
 
-    public DcpHostService(
+    public DcpHost(
         ILoggerFactory loggerFactory,
         IOptions<DcpOptions> dcpOptions,
-        DistributedApplicationExecutionContext executionContext,
-        ApplicationExecutor appExecutor,
         IDcpDependencyCheckService dependencyCheckService,
         Locations locations,
         DistributedApplicationModel applicationModel)
     {
         _loggerFactory = loggerFactory;
-        _logger = loggerFactory.CreateLogger<DcpHostService>();
+        _logger = loggerFactory.CreateLogger<DcpHost>();
         _dcpOptions = dcpOptions.Value;
-        _executionContext = executionContext;
-        _appExecutor = appExecutor;
         _dependencyCheckService = dependencyCheckService;
         _locations = locations;
         _applicationModel = applicationModel;
     }
 
-    private bool IsSupported => !_executionContext.IsPublishMode;
-
-    public async Task StartAsync(CancellationToken cancellationToken = default)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
-        if (!IsSupported)
-        {
-            return;
-        }
-
         // Ensure DCP is installed and has all required dependencies
         var dcpInfo = await _dependencyCheckService.GetDcpInfoAsync(cancellationToken).ConfigureAwait(false);
 
         EnsureDcpContainerRuntime(dcpInfo);
         EnsureDcpHostRunning();
-        await _appExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private void EnsureDcpContainerRuntime(DcpInfo? dcpInfo)
@@ -101,10 +88,9 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         }
     }
 
-    public async Task StopAsync(CancellationToken cancellationToken = default)
+    public async Task StopAsync()
     {
         _shutdownCts.Cancel();
-        await _appExecutor.StopAsync(cancellationToken).ConfigureAwait(false);
 
         await TaskHelpers.WaitIgnoreCancelAsync(_logProcessorTask, _logger, "Error in logging socket processor.").ConfigureAwait(false);
     }
@@ -181,7 +167,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
             arguments += $" --container-runtime \"{_dcpOptions.ContainerRuntime}\"";
         }
 
-        ProcessSpec dcpProcessSpec = new ProcessSpec(dcpExePath)
+        var dcpProcessSpec = new ProcessSpec(dcpExePath)
         {
             WorkingDirectory = Directory.GetCurrentDirectory(),
             Arguments = arguments,
@@ -220,7 +206,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
     private static Socket CreateLoggingSocket(string socketPath)
     {
-        string? directoryName = Path.GetDirectoryName(socketPath);
+        var directoryName = Path.GetDirectoryName(socketPath);
         if (!string.IsNullOrEmpty(directoryName))
         {
             if (OperatingSystem.IsWindows())
@@ -233,7 +219,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
             }
         }
 
-        Socket socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         socket.Bind(new UnixDomainSocketEndPoint(socketPath));
 
         return socket;
@@ -246,7 +232,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         {
             try
             {
-                Socket acceptedSocket = await socket.AcceptAsync(_shutdownCts.Token).ConfigureAwait(false);
+                var acceptedSocket = await socket.AcceptAsync(_shutdownCts.Token).ConfigureAwait(false);
                 outputLoggers.Add(Task.Run(() => LogSocketOutputAsync(acceptedSocket, _shutdownCts.Token)));
             }
             catch
@@ -359,27 +345,5 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         {
             reader.Complete();
         }
-    }
-
-    public Task StartedAsync(CancellationToken _)
-    {
-        AspireEventSource.Instance.DcpHostStartupStop();
-        return Task.CompletedTask;
-    }
-
-    public Task StartingAsync(CancellationToken cancellationToken)
-    {
-        AspireEventSource.Instance.DcpHostStartupStart();
-        return Task.CompletedTask;
-    }
-
-    public Task StoppedAsync(CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
-    }
-
-    public Task StoppingAsync(CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
     }
 }
