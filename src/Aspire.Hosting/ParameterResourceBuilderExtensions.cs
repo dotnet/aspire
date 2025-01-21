@@ -165,6 +165,7 @@ public static class ParameterResourceBuilderExtensions
             ResourceType = "Parameter",
             // hide parameters by default
             State = KnownResourceStates.Hidden,
+            IsTerminalState = true,
             Properties = [
                 new("parameter.secret", secret.ToString()),
                 new(CustomResourceKnownProperties.Source, configurationKey) { IsSensitive = secret }
@@ -180,6 +181,7 @@ public static class ParameterResourceBuilderExtensions
             state = state with
             {
                 State = new ResourceStateSnapshot("Configuration missing", KnownResourceStateStyles.Error),
+                IsTerminalState = true,
                 Properties = [.. state.Properties, new("Value", ex.Message)]
             };
 

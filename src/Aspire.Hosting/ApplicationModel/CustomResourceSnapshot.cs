@@ -56,6 +56,25 @@ public sealed record CustomResourceSnapshot
         }
     }
 
+    bool? _isTerminal;
+
+    /// <summary>
+    /// Whether the state is terminal or not.
+    /// </summary>
+    public bool IsTerminalState
+    {
+        get => _isTerminal ??= KnownResourceStates.TerminalStates.Contains(State?.Text);
+        init => _isTerminal = value;
+    }
+
+    bool? _isFailed;
+
+    public bool IsFailedState
+    {
+        get => _isFailed ??= State?.Text == KnownResourceStates.FailedToStart || State?.Text == known;
+        init => _isFailed = value;
+    }
+
     /// <summary>
     /// The exit code of the resource.
     /// </summary>

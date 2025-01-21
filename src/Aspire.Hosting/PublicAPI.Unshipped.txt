@@ -1,6 +1,8 @@
 #nullable enable
 Aspire.Hosting.ApplicationModel.ContainerLifetime.Session = 0 -> Aspire.Hosting.ApplicationModel.ContainerLifetime
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.get -> Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus?
+Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.IsTerminalState.get -> bool
+Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.IsTerminalState.init -> void
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Relationships.get -> System.Collections.Immutable.ImmutableArray<Aspire.Hosting.ApplicationModel.RelationshipSnapshot!>
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Relationships.init -> void
 Aspire.Hosting.ApplicationModel.DefaultLaunchProfileAnnotation

@@ -226,8 +226,7 @@ public class ResourceNotificationService : IDisposable
         resourceLogger.LogInformation("Finished waiting for resource '{Name}'.", dependency.Name);
 
         static bool IsKnownTerminalState(CustomResourceSnapshot snapshot) =>
-            KnownResourceStates.TerminalStates.Contains(snapshot.State?.Text) ||
-            snapshot.ExitCode is not null;
+            snapshot.IsTerminalState || snapshot.ExitCode is not null;
     }
 
     /// <summary>

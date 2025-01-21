@@ -160,7 +160,8 @@ internal sealed class AzureProvisioner(
             {
                 await UpdateStateAsync(resource, s => s with
                 {
-                    State = new("Failed to Provision", KnownResourceStateStyles.Error)
+                    State = new("Failed to Provision", KnownResourceStateStyles.Error),
+                    IsTerminalState = true
                 })
                 .ConfigureAwait(false);
             }
