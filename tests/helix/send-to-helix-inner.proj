@@ -145,8 +145,6 @@
     <HelixPreCommand Include="$(_EnvVarSetKeyword) MSBUILDDEBUGPATH=$(_HelixCorrelationPayloadEnvVar)/msbuild-debug" />
 
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="dotnet dev-certs https --trust" />
-
-    <HelixPostCommand Include="$(_CleanupProcessesCommand)" />
   </ItemGroup>
 
   <PropertyGroup Condition="'$(NeedsWorkload)' == 'true'">
