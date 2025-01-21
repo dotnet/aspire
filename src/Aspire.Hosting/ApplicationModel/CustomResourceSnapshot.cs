@@ -64,7 +64,7 @@ public sealed record CustomResourceSnapshot
     /// <summary>
     /// A flag indicating whether the resource ready event has completed.
     /// </summary>
-    internal bool ResourceCompletedEventFired { get; init; }
+    internal Task? ResourceReadyEventTask { get; init; }
 
     /// <summary>
     /// Gets the health status of the resource.

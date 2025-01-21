@@ -45,6 +45,25 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
         var resource = initialEvent.Resource;
         var resourceReadyEventFired = false;
 
+        void FireResourceReadyEvent()
+        {
+            // We don't want to block the monitoring loop while we fire the event.
+            _ = Task.Run(async () =>
+            {
+                var resourceReadyEvent = new ResourceReadyEvent(resource, services);
+
+                // Execute the publish and store the task so that waiters can await it and observe the result.
+                var task = eventing.PublishAsync(resourceReadyEvent, cancellationToken);
+
+                await resourceNotificationService.PublishUpdateAsync(resource, s => s with
+                {
+                    ResourceReadyEventTask = task
+                })
+                    .ConfigureAwait(false);
+            },
+            cancellationToken);
+        }
+
         if (!resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out var annotations))
         {
             // NOTE: If there are no health check annotations then there
@@ -52,19 +71,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
             //       dynamically add health checks at runtime. If this changes then we
             //       would need to revisit this and scan for transitive health checks
             //       on a periodic basis (you wouldn't want to do it on every pass.
-            _ = Task.Run(async () =>
-            {
-                var resourceReadyEvent = new ResourceReadyEvent(resource, services);
-
-                await eventing.PublishAsync(resourceReadyEvent, cancellationToken).ConfigureAwait(false);
-
-                await resourceNotificationService.PublishUpdateAsync(resource, s => s with
-                {
-                    ResourceCompletedEventFired = true
-                })
-                .ConfigureAwait(false);
-            },
-            cancellationToken);
+            FireResourceReadyEvent();
 
             return;
         }
@@ -86,19 +93,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                 {
                     resourceReadyEventFired = true;
 
-                    _ = Task.Run(async () =>
-                    {
-                        var resourceReadyEvent = new ResourceReadyEvent(resource, services);
-
-                        await eventing.PublishAsync(resourceReadyEvent, cancellationToken).ConfigureAwait(false);
-
-                        await resourceNotificationService.PublishUpdateAsync(resource, s => s with
-                        {
-                            ResourceCompletedEventFired = true
-                        })
-                        .ConfigureAwait(false);
-                    },
-                    cancellationToken);
+                    FireResourceReadyEvent();
                 }
 
                 var latestEvent = _latestEvents.GetValueOrDefault(resource.Name);
