@@ -12,9 +12,9 @@ using Azure.Provisioning;
 using Azure.Provisioning.CosmosDB;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
+using HealthChecks.CosmosDb;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting;
 
@@ -97,18 +97,32 @@ public static class AzureCosmosExtensions
             cosmosClient = CreateCosmosClient(connectionString);
         });
 
+        builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(builder.Resource, async (@event, ct) =>
+        {
+            if (cosmosClient is null)
+            {
+                throw new InvalidOperationException("CosmosClient is not initialized.");
+            }
+
+            await cosmosClient.ReadAccountAsync().WaitAsync(ct).ConfigureAwait(false);
+
+            foreach (var database in builder.Resource.Databases)
+            {
+                var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync(database.Name, cancellationToken: ct).ConfigureAwait(false)).Database;
+
+                foreach (var container in database.Containers)
+                {
+                    await db.CreateContainerIfNotExistsAsync(container.Name, container.PartitionKeyPath, cancellationToken: ct).ConfigureAwait(false);
+                }
+            }
+        });
+
         // Use custom health check that also seeds the databases and containers
         var healthCheckKey = $"{builder.Resource.Name}_check";
-        builder.ApplicationBuilder.Services.AddHealthChecks().Add(
-            new HealthCheckRegistration(
-                name: healthCheckKey,
-                new AzureCosmosDBEmulatorHealthCheck(
-                    () => cosmosClient ?? throw new InvalidOperationException("CosmosClient is not initialized."),
-                    builder.Resource.Databases.ToArray
-                ),
-            failureStatus: null,
-            tags: null)
-        );
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureCosmosDB(
+            sp => cosmosClient ?? throw new InvalidOperationException("CosmosClient is not initialized."),
+            name: healthCheckKey
+            );
 
         builder.WithHealthCheck(healthCheckKey);
 
