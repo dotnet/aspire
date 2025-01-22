@@ -212,7 +212,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
             var val = de.Value?.ToString();
             if (key is not null && val is not null && !s_doNotInheritEnvironmentVars.Contains(key))
             {
-                dcpProcessSpec.EnvironmentVariables.Add(key, val);
+                dcpProcessSpec.EnvironmentVariables[key] = val;
             }
         }
         return dcpProcessSpec;
