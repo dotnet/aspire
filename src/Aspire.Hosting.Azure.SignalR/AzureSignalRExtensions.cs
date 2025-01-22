@@ -6,8 +6,6 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.SignalR;
 using Azure.Provisioning;
 using Azure.Provisioning.SignalR;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting;
 
@@ -16,6 +14,8 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureSignalRExtensions
 {
+    private const string EmulatorEndpointName = "emulator";
+
     /// <summary>
     /// Adds an Azure SignalR resource to the application model.
     /// </summary>
@@ -96,41 +96,24 @@ public static class AzureSignalRExtensions
 
         string? hostname = null;
         builder
-            .WithEndpoint(name: "emulator", targetPort: 8888, scheme: "http")
+            .WithEndpoint(name: EmulatorEndpointName, targetPort: 8888, scheme: "http")
             .WithAnnotation(new ContainerImageAnnotation
             {
                 Registry = SignalREmulatorContainerImageTags.Registry,
                 Image = SignalREmulatorContainerImageTags.Image,
                 Tag = SignalREmulatorContainerImageTags.Tag
             });
-
         builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
         {
             hostname = builder.Resource.EmulatorEndpoint.Url;
             return Task.CompletedTask;
         });
-        var healthCheckKey = $"{builder.Resource.Name}_check";
-        var healthCheckRegistration = new HealthCheckRegistration(
-            healthCheckKey,
-            sp =>
-            {
-                if (hostname == null)
-                {
-                    throw new InvalidOperationException("Hostname is unavailable");
-                }
-                var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
-                return new AzureSignalRHealthCheck(new Uri(hostname), clientFactory);
-            },
-            failureStatus: default,
-            tags: default
-        );
-        builder.ApplicationBuilder.Services.AddHttpClient().AddHealthChecks().Add(healthCheckRegistration);
         if (configureContainer != null)
         {
             var surrogate = new AzureSignalREmulatorResource(builder.Resource);
             var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
             configureContainer(surrogateBuilder);
         }
-        return builder.WithHealthCheck(healthCheckKey);
+        return builder.WithHttpHealthCheck(endpointName: EmulatorEndpointName, path: "/api/health");
     }
 }
