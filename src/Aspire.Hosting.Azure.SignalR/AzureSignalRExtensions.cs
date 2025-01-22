@@ -22,7 +22,16 @@ public static class AzureSignalRExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, [ResourceName] string name)
+    public static IResourceBuilder<AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, [ResourceName] string name) => AddAzureSignalR(builder, name, AzureSignalRServiceMode.Default);
+
+    /// <summary>
+    /// Adds an Azure SignalR resource to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="serviceMode">The service mode of the resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, [ResourceName] string name, AzureSignalRServiceMode serviceMode)
     {
         builder.AddAzureProvisioning();
 
@@ -41,7 +50,7 @@ public static class AzureSignalRExtensions
                     new SignalRFeature()
                     {
                         Flag = SignalRFeatureFlag.ServiceMode,
-                        Value = "Default"
+                        Value = serviceMode.ToString()
                     }
                 ],
                 CorsAllowedOrigins = ["*"],
@@ -57,6 +66,11 @@ public static class AzureSignalRExtensions
             infrastructure.Add(principalIdParameter);
 
             infrastructure.Add(service.CreateRoleAssignment(SignalRBuiltInRole.SignalRAppServer, principalTypeParameter, principalIdParameter));
+
+            if (serviceMode == AzureSignalRServiceMode.Serverless)
+            {
+                infrastructure.Add(service.CreateRoleAssignment(SignalRBuiltInRole.SignalRRestApiOwner, principalTypeParameter, principalIdParameter));
+            }
         };
 
         var resource = new AzureSignalRResource(name, configureInfrastructure);
