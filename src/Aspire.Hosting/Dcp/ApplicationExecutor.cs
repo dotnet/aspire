@@ -81,7 +81,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           IDistributedApplicationEventing eventing,
                                           IServiceProvider serviceProvider,
                                           DcpNameGenerator nameGenerator
-                                          )
+                                          ) : IAsyncDisposable
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
@@ -159,32 +159,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        _shutdownCancellation.Cancel();
-        var tasks = new List<Task>();
-        if (_resourceWatchTask is { } resourceTask)
-        {
-            tasks.Add(resourceTask);
-        }
-
-        foreach (var (_, (cancellation, logTask)) in _logStreams)
-        {
-            cancellation.Cancel();
-            tasks.Add(logTask);
-        }
-
-        try
-        {
-            await Task.WhenAll(tasks).WaitAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            // Ignore.
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "One or more monitoring tasks terminated with an error.");
-        }
-
         try
         {
             // The app orchestrator (represented by kubernetesService here) will perform a resource cleanup
@@ -2133,6 +2107,36 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
 
             await kubernetesService.CreateAsync(resource, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _shutdownCancellation.Cancel();
+
+        var tasks = new List<Task>();
+        if (_resourceWatchTask is { } resourceTask)
+        {
+            tasks.Add(resourceTask);
+        }
+
+        foreach (var (_, (cancellation, logTask)) in _logStreams)
+        {
+            cancellation.Cancel();
+            tasks.Add(logTask);
+        }
+
+        try
+        {
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Ignore.
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "One or more monitoring tasks terminated with an error.");
         }
     }
 }
