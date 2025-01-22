@@ -62,6 +62,11 @@ public sealed record CustomResourceSnapshot
     public int? ExitCode { get; init; }
 
     /// <summary>
+    /// A snapshot of the event that indicates the resource is ready.
+    /// </summary>
+    internal EventSnapshot? ResourceReadyEvent { get; init; }
+
+    /// <summary>
     /// Gets the health status of the resource.
     /// </summary>
     /// <remarks>
@@ -129,6 +134,12 @@ public sealed record CustomResourceSnapshot
                 ?? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy;
     }
 }
+
+/// <summary>
+/// A snapshot of an event.
+/// </summary>
+/// <param name="EventTask">The task the represents the result of executing the event.</param>
+internal record EventSnapshot(Task EventTask);
 
 /// <summary>
 /// A snapshot of the resource state
