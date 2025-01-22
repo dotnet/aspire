@@ -692,4 +692,28 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         {
         }
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddAzureServiceBusWithEmulator_SetsSqlLifetime(bool isPersistent)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var lifetime = isPersistent ? ContainerLifetime.Persistent : ContainerLifetime.Session;
+
+        var serviceBus = builder.AddAzureServiceBus("sb").RunAsEmulator(configureContainer: builder =>
+        {
+            builder.WithLifetime(lifetime);
+        });
+
+        var sql = builder.Resources.FirstOrDefault(x => x.Name == "sb-sqledge");
+
+        Assert.NotNull(sql);
+
+        serviceBus.Resource.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var sbLifetimeAnnotation);
+        sql.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var sqlLifetimeAnnotation);
+
+        Assert.Equal(lifetime, sbLifetimeAnnotation?.Lifetime);
+        Assert.Equal(lifetime, sqlLifetimeAnnotation?.Lifetime);
+    }
 }

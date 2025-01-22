@@ -232,38 +232,6 @@ public static class AzureServiceBusExtensions
             return builder;
         }
 
-        var lifetime = ContainerLifetime.Session;
-
-        // Create a default file mount. This could be replaced by a user-provided file mount.
-        var configHostFile = Path.Combine(Directory.CreateTempSubdirectory("AspireServiceBusEmulator").FullName, "Config.json");
-
-        if (configureContainer != null)
-        {
-            var surrogate = new AzureServiceBusEmulatorResource(builder.Resource);
-            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
-            configureContainer(surrogateBuilder);
-
-            if (surrogate.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
-            {
-                lifetime = lifetimeAnnotation.Lifetime;
-            }
-        }
-
-        // If the container is persistent, reuse the same configHostFile value across restarts.
-        if (lifetime == ContainerLifetime.Persistent)
-        {
-            var configParameter = ParameterResourceBuilderExtensions.AddPersistentParameter(builder.ApplicationBuilder, $"{builder.Resource.Name}-configJson", configHostFile);
-            configHostFile = configParameter.Value;
-        }
-
-        var defaultConfigFileMount = new ContainerMountAnnotation(
-                configHostFile,
-                AzureServiceBusEmulatorResource.EmulatorConfigJsonPath,
-                ContainerMountType.BindMount,
-                isReadOnly: true);
-
-        builder.WithAnnotation(defaultConfigFileMount);
-
         // Add emulator container
 
         // The password must be at least 8 characters long and contain characters from three of the following four sets: Uppercase letters, Lowercase letters, Base 10 digits, and Symbols
@@ -288,8 +256,7 @@ public static class AzureServiceBusExtensions
                 .WithEnvironment(context =>
                 {
                     context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = passwordParameter;
-                })
-                .WithLifetime(lifetime);
+                });
 
         builder.WithAnnotation(new EnvironmentCallbackAnnotation((EnvironmentCallbackContext context) =>
         {
@@ -302,6 +269,45 @@ public static class AzureServiceBusExtensions
 
         ServiceBusClient? serviceBusClient = null;
         string? queueOrTopicName = null;
+
+        var lifetime = ContainerLifetime.Session;
+
+        // Create a default file mount. This could be replaced by a user-provided file mount.
+        var configHostFile = Path.Combine(Directory.CreateTempSubdirectory("AspireServiceBusEmulator").FullName, "Config.json");
+
+        if (configureContainer != null)
+        {
+            var surrogate = new AzureServiceBusEmulatorResource(builder.Resource);
+            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
+            configureContainer(surrogateBuilder);
+
+            if (surrogate.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
+            {
+                lifetime = lifetimeAnnotation.Lifetime;
+            }
+        }
+
+        // If the container is persistent, reuse the same configHostFile value across restarts.
+        if (lifetime == ContainerLifetime.Persistent)
+        {
+            var configParameter = ParameterResourceBuilderExtensions.AddPersistentParameter(builder.ApplicationBuilder, $"{builder.Resource.Name}-configJson", configHostFile);
+            configHostFile = configParameter.Value;
+        }
+
+        sqlEdgeResource = sqlEdgeResource.WithLifetime(lifetime);
+
+        var defaultConfigFileMount = new ContainerMountAnnotation(
+                configHostFile,
+                AzureServiceBusEmulatorResource.EmulatorConfigJsonPath,
+                ContainerMountType.BindMount,
+                isReadOnly: true);
+
+        var hasCustomConfigJson = builder.Resource.Annotations.OfType<ContainerMountAnnotation>().Any(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath);
+
+        if (!hasCustomConfigJson)
+        {
+            builder.WithAnnotation(defaultConfigFileMount);
+        }
 
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (@event, ct) =>
         {
