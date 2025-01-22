@@ -35,4 +35,9 @@
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Azure.Storage\AzureStorageEmulatorConnectionString.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
+    <PackageReference Include="Microsoft.Azure.SignalR.Management" />
+  </ItemGroup>
+
 </Project>
