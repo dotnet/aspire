@@ -94,7 +94,6 @@ public static class AzureSignalRExtensions
             return builder;
         }
 
-        string? hostname = null;
         builder
             .WithEndpoint(name: EmulatorEndpointName, targetPort: 8888, scheme: "http")
             .WithAnnotation(new ContainerImageAnnotation
@@ -103,11 +102,6 @@ public static class AzureSignalRExtensions
                 Image = SignalREmulatorContainerImageTags.Image,
                 Tag = SignalREmulatorContainerImageTags.Tag
             });
-        builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
-        {
-            hostname = builder.Resource.EmulatorEndpoint.Url;
-            return Task.CompletedTask;
-        });
         if (configureContainer != null)
         {
             var surrogate = new AzureSignalREmulatorResource(builder.Resource);
