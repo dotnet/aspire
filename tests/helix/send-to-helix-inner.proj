@@ -61,8 +61,8 @@
     <_CleanupProcessesCommand Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; get-ciminstance win32_process | where-object ExecutablePath -Match 'dotnet-tests|dcp.exe|dcpctrl.exe' | foreach-object { echo $_.ProcessId $_.ExecutablePath %3B stop-process -id $_.ProcessId -force -ErrorAction SilentlyContinue }"</_CleanupProcessesCommand>
     <_CleanupProcessesCommand Condition="'$(OS)' != 'Windows_NT'">pgrep -lf "dotnet-tests|dcp.exe|dcpctrl.exe" | awk '{print %3B system("kill -9 "$1)}'</_CleanupProcessesCommand>
 
-    <_WaitForDcpCommand Condition="'$(OS)' != 'Windows_NT'">echo "Waiting for dcp process to exit..."; timeout=60; while pgrep -lf "dcp.exe" &gt; /dev/null &amp;&amp; [ $timeout -gt 0 ]; do sleep 1; timeout=$((timeout - 1)); done; if pgrep -lf "dcp.exe" &gt; /dev/null; then echo "dcp process did not exit within the timeout period."; exit 1; fi</_WaitForDcpCommand>
-    <_WaitForDcpCommand Condition="'$(OS)' == 'Windows_NT'">powershell -Command "Write-Output 'Waiting for dcp process to exit...'; $timeout = 60; while ($timeout -gt 0 -and (Get-Process -Name 'dcp' -ErrorAction SilentlyContinue)) { Start-Sleep -Seconds 1; $timeout--; }; if (Get-Process -Name 'dcp' -ErrorAction SilentlyContinue) { Write-Output 'dcp process did not exit within the timeout period.'; exit 1; }"</_WaitForDcpCommand>
+    <_WaitForDcpCommand Condition="'$(OS)' != 'Windows_NT'">echo "Waiting for dcp process to exit..."; timeout=120; while pgrep -lf "dcp.exe" &gt; /dev/null &amp;&amp; [ $timeout -gt 0 ]; do sleep 1; timeout=$((timeout - 1)); done; if pgrep -lf "dcp.exe" &gt; /dev/null; then echo "dcp process did not exit within the timeout period."; exit 1; fi</_WaitForDcpCommand>
+    <_WaitForDcpCommand Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; { Write-Output 'Waiting for dcp process to exit...'; $timeout = 60; while ($timeout -gt 0 -and (Get-Process -Name 'dcp' -ErrorAction SilentlyContinue)) { Start-Sleep -Seconds 1; $timeout-- }; if (Get-Process -Name 'dcp' -ErrorAction SilentlyContinue) { Write-Output 'dcp process did not exit within the timeout period.' } }"</_WaitForDcpCommand>
   </PropertyGroup>
 
   <ItemGroup>
@@ -148,6 +148,8 @@
     <HelixPreCommand Include="$(_EnvVarSetKeyword) MSBUILDDEBUGPATH=$(_HelixCorrelationPayloadEnvVar)/msbuild-debug" />
 
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="dotnet dev-certs https --trust" />
+    <!-- Make sure the command works... -->
+    <HelixPreCommand Include="$(_WaitForDcpCommand)" />
 
     <HelixPostCommand Include="$(_WaitForDcpCommand)" />
   </ItemGroup>
