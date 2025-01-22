@@ -12,7 +12,6 @@ using Azure.Provisioning;
 using Azure.Provisioning.CosmosDB;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
-using HealthChecks.CosmosDb;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
 
