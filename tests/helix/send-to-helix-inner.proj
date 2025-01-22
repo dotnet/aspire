@@ -62,7 +62,7 @@
     <_CleanupProcessesCommand Condition="'$(OS)' != 'Windows_NT'">pgrep -lf "dotnet-tests|dcp.exe|dcpctrl.exe" | awk '{print %3B system("kill -9 "$1)}'</_CleanupProcessesCommand>
 
     <_WaitForDcpCommand Condition="'$(OS)' != 'Windows_NT'">echo "Waiting for dcp process to exit..."; timeout=120; while pgrep -lf "dcp.exe" &gt; /dev/null &amp;&amp; [ $timeout -gt 0 ]; do sleep 1; timeout=$((timeout - 1)); done; if pgrep -lf "dcp.exe" &gt; /dev/null; then echo "dcp process did not exit within the timeout period."; exit 1; fi</_WaitForDcpCommand>
-    <_WaitForDcpCommand Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; { Write-Output 'Waiting for dcp process to exit...'; $timeout = 60; while ($timeout -gt 0 -and (Get-Process -Name 'dcp' -ErrorAction SilentlyContinue)) { Start-Sleep -Seconds 1; $timeout-- }; if (Get-Process -Name 'dcp' -ErrorAction SilentlyContinue) { Write-Output 'dcp process did not exit within the timeout period.' } }"</_WaitForDcpCommand>
+    <_WaitForDcpCommand Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy ByPass -NoProfile -Command "&amp; { Write-Output 'Waiting for dcp process to exit...'&#59; $timeout = 60&#59; while ($timeout -gt 0 -and (Get-Process -Name 'dcp' -ErrorAction SilentlyContinue)) { Start-Sleep -Seconds 1&#59; $timeout--&#59; }&#59; if (Get-Process -Name 'dcp' -ErrorAction SilentlyContinue) { Write-Output 'dcp process did not exit within the timeout period.'&#59; exit 1&#59; } }"</_WaitForDcpCommand>
   </PropertyGroup>
 
   <ItemGroup>
