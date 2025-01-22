@@ -390,6 +390,7 @@ public class ResourceNotificationService : IDisposable
                     CreationTimeStamp = {CreationTimeStamp:s},
                     State = {{ Text = {StateText}, Style = {StateStyle} }},
                     HeathStatus = {HealthStatus},
+                    ResourceReady = {ResourceReady},
                     ExitCode = {ExitCode},
                     Urls = {{ {Urls} }},
                     EnvironmentVariables = {{
@@ -406,6 +407,7 @@ public class ResourceNotificationService : IDisposable
                     newState.State?.Text,
                     newState.State?.Style,
                     newState.HealthStatus,
+                    newState.ResourceReadyEvent is not null,
                     newState.ExitCode,
                     string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
                     string.Join(Environment.NewLine, newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")),
