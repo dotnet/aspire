@@ -735,7 +735,7 @@ fluent-switch.table-switch::part(label) {
     padding: 0 calc((10 + (var(--design-unit) * 2 * var(--density))) * 1px);
 }
 
-.resources-popup {
+.resources-filter-popup {
     max-height: 400px;
-    overflow-y: scroll;
+    overflow-y: auto;
 }

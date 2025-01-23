@@ -9,22 +9,14 @@ public partial class SelectResourceOptions<TValue>
 {
     private async Task OnAllValuesCheckedChangedInternalAsync(bool? newAreAllVisible)
     {
-        SetCheckState(newAreAllVisible, AllValues);
+        SetCheckState(newAreAllVisible, Values);
         await OnAllResourceTypesCheckedChangedAsync();
     }
 
-    private async Task OnValueVisibilityChangedInternalAsync(TValue value, bool isVisible)
+    private Task OnValueVisibilityChangedInternalAsync(TValue value, bool isVisible)
     {
-        if (isVisible)
-        {
-            AllValues[value] = true;
-        }
-        else
-        {
-            AllValues[value] = false;
-        }
-
-        await OnValueVisibilityChangedAsync(value, isVisible);
+        Values[value] = isVisible;
+        return OnValueVisibilityChangedAsync(value, isVisible);
     }
 
     private static void SetCheckState(bool? newAreAllVisible, ConcurrentDictionary<TValue, bool> values)
@@ -62,10 +54,16 @@ public partial class SelectResourceOptions<TValue>
             }
         }
 
-        return areAllChecked
-            ? true
-            : areAllUnchecked
-                ? false
-                : null;
+        if (areAllChecked)
+        {
+            return true;
+        }
+
+        if (areAllUnchecked)
+        {
+            return false;
+        }
+
+        return null;
     }
 }

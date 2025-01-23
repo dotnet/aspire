@@ -43,9 +43,9 @@
             {
                 <div>
                     <ResourceFilters
-                        AllResourceStates="@_resourceStatesToVisibility"
-                        AllResourceTypes="@_resourceTypesToVisibility"
-                        AllResourceHealthStates="@_resourceHealthStatusesToVisibility"
+                        ResourceStates="@_resourceStatesToVisibility"
+                        ResourceTypes="@_resourceTypesToVisibility"
+                        ResourceHealthStates="@_resourceHealthStatusesToVisibility"
                         OnAllFilterVisibilityCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
                         OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync" />
                 </div>
@@ -57,12 +57,12 @@
                            @bind-Open="_isFilterPopupVisible"
                            AutoFocus="true"
                            FixedPlacement="true"
-                           Class="resources-popup">
+                           Class="resources-filter-popup">
                 <Body>
                 <ResourceFilters
-                        AllResourceStates="@_resourceStatesToVisibility"
-                        AllResourceTypes="@_resourceTypesToVisibility"
-                        AllResourceHealthStates="@_resourceHealthStatusesToVisibility"
+                        ResourceStates="@_resourceStatesToVisibility"
+                        ResourceTypes="@_resourceTypesToVisibility"
+                        ResourceHealthStates="@_resourceHealthStatusesToVisibility"
                         OnAllFilterVisibilityCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
                         OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync" />
                 </Body>
