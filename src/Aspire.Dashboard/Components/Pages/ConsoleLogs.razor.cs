@@ -73,10 +73,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     [Parameter]
     public string? ResourceName { get; set; }
 
-    [Parameter]
-    [SupplyParameterFromQuery(Name = "hideTimestamp")]
-    public bool? HideTimestamp { get; set; }
-
     private readonly CancellationTokenSource _resourceSubscriptionCts = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private ImmutableList<SelectViewModel<ResourceTypeDetails>>? _resources;
@@ -103,7 +99,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         _resourceSubscriptionToken = _resourceSubscriptionCts.Token;
         _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
         _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelNone)] };
-        PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)], HideTimestamp = false };
+        PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
 
         var loadingTcs = new TaskCompletionSource();
 
@@ -266,7 +262,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         {
             _logsMenuItems.Add(new()
             {
-                OnClick = () => ToggleTimestamp(hideTimestamp: false),
+                OnClick = () => ToggleTimestampAsync(hideTimestamp: false),
                 Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampShow)],
                 Icon = new Icons.Regular.Size16.CalendarClock()
             });
@@ -275,7 +271,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         {
             _logsMenuItems.Add(new()
             {
-                OnClick = () => ToggleTimestamp(hideTimestamp: true),
+                OnClick = () => ToggleTimestampAsync(hideTimestamp: true),
                 Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampHide)],
                 Icon = new Icons.Regular.Size16.DismissSquareMultiple()
             });
@@ -308,7 +304,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         }
     }
 
-    private async Task ToggleTimestamp(bool hideTimestamp)
+    private async Task ToggleTimestampAsync(bool hideTimestamp)
     {
         PageViewModel.HideTimestamp = hideTimestamp;
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
@@ -536,14 +532,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         public required string Status { get; set; }
         public required SelectViewModel<ResourceTypeDetails> SelectedOption { get; set; }
         public required ResourceViewModel? SelectedResource { get; set; }
-        public required bool HideTimestamp { get; set; }
     }
 
-    public class ConsoleLogsPageState
-    {
-        public string? SelectedResource { get; set; }
-        public bool HideTimestamp { get; set; }
-    }
+    public record ConsoleLogsPageState(string? SelectedResource);
 
     public Task UpdateViewModelFromQueryAsync(ConsoleLogsViewModel viewModel)
     {
@@ -562,11 +553,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
         }
 
-        if (HideTimestamp is { } hideTimestamp)
-        {
-            viewModel.HideTimestamp = hideTimestamp;
-        }
-
         return Task.CompletedTask;
     }
 
@@ -577,10 +563,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     public ConsoleLogsPageState ConvertViewModelToSerializable()
     {
-        return new ConsoleLogsPageState
-        {
-            SelectedResource = PageViewModel.SelectedResource?.Name,
-            HideTimestamp = PageViewModel.HideTimestamp
-        };
+        return new ConsoleLogsPageState(PageViewModel.SelectedResource?.Name);
     }
 }
