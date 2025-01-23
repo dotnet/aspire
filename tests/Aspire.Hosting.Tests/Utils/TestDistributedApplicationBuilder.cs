@@ -108,7 +108,7 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
     public TestDistributedApplicationBuilder WithTestAndResourceLogging(ITestOutputHelper testOutputHelper)
     {
         Services.AddXunitLogging(testOutputHelper);
-        Services.AddHostedService<ResourceLoggerForwarderService>();
+        Services.Insert(0, ServiceDescriptor.Singleton<IHostedService, ResourceLoggerForwarderService>());
         Services.AddLogging(builder =>
         {
             builder.AddFilter("Aspire.Hosting", LogLevel.Trace);

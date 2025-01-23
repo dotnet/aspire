@@ -20,7 +20,7 @@
             IsSummaryDetailsViewOpen="@(SelectedSpan is not null)">
             <PageTitleSection>
                 @{
-                    var headerSpan = trace.RootSpan ?? trace.FirstSpan;
+                    var headerSpan = trace.RootOrFirstSpan;
                 }
                 <div class="page-header">
                     <h1>
@@ -76,10 +76,11 @@
                                             TGridItem="SpanWaterfallViewModel"
                                             RowClass="@GetRowClass"
                                             GridTemplateColumns="@_manager.GetGridTemplateColumns()"
+                                            RowSize="DataGridRowSize.Small"
                                             ShowHover="true"
                                             ItemKey="@(r => r.Span.SpanId)"
                                             OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, buttonId: null)))">
-                                <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" UseCustomHeaderTemplate="false" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailNameHeader)]" Tooltip="true" TooltipText="@(c => c.GetTooltip(_applications))" Class="expand-col">
+                                <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailNameHeader)]" Tooltip="true" TooltipText="@(c => c.GetTooltip(_applications))" Class="expand-col">
                                     @{
                                         var isServerOrConsumer = context.Span.Kind == OtlpSpanKind.Server || context.Span.Kind == OtlpSpanKind.Consumer;
                                         // Indent the span name based on the depth of the span.
@@ -157,7 +158,7 @@
                                         </span>
                                     </span>
                                 </AspireTemplateColumn>
-                                <AspireTemplateColumn ColumnId="@TicksColumn" ColumnManager="@_manager" UseCustomHeaderTemplate="false">
+                                <AspireTemplateColumn ColumnId="@TicksColumn" ColumnManager="@_manager">
                                     <HeaderCellItemTemplate>
                                         <div class="ticks">
                                             @* First column starts at 0. We don't want to display the smallest unit (0μs) because that looks odd. Use the unit from the next column *@
@@ -198,7 +199,7 @@
                                         </div>
                                     </ChildContent>
                                 </AspireTemplateColumn>
-                                <AspireTemplateColumn ColumnId="@ActionsColumn" ColumnManager="@_manager" UseCustomHeaderTemplate="false" Title="@ControlStringsLoc[nameof(ControlsStrings.ActionsColumnHeader)]" Class="no-ellipsis">
+                                <AspireTemplateColumn ColumnId="@ActionsColumn" ColumnManager="@_manager" Title="@ControlStringsLoc[nameof(ControlsStrings.ActionsColumnHeader)]" Class="no-ellipsis">
                                     @{
                                         var id = context.Span.SpanId;
                                     }

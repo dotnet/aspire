@@ -30,6 +30,10 @@
                             @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync"
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
+
+            <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
+                                HandleClearSignal="ClearStructureLogs" />
+
             <FluentSearch @bind-Value="_filter"
                           @bind-Value:after="HandleAfterFilterBindAsync"
                           Immediate="true"
@@ -112,7 +116,9 @@
                         <div class="logs-grid-container continuous-scroll-overflow">
                             <GridColumnManager @ref="_manager" Columns="@_gridColumns">
                                 <FluentDataGrid @ref="_dataGrid"
-                                                ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
+                                                ColumnResizeLabels="@_resizeLabels"
+                                                ColumnSortLabels="@_sortLabels"
+                                                HeaderCellAsButtonWithMenu="true"
                                                 ResizeType="DataGridResizeType.Discrete"
                                                 Virtualize="true"
                                                 RowClass="@GetRowClass"

@@ -129,13 +129,12 @@
     <HelixPreCommand Include="$(_ShutdownDockerContainersCommand)" />
     <HelixPreCommand Include="docker volume ls" />
     <HelixPreCommand Include="$(_DeleteDockerVolumesCommand)" />
+    <HelixPreCommand Include="docker network ls" />
     <HelixPreCommand Include="docker network prune -f" />
 
     <HelixPostCommand Include="docker container ls --all" />
-    <HelixPostCommand Include="$(_ShutdownDockerContainersCommand)" />
     <HelixPostCommand Include="docker volume ls" />
-    <HelixPostCommand Include="$(_DeleteDockerVolumesCommand)" />
-    <HelixPostCommand Include="docker network prune -f" />
+    <HelixPostCommand Include="docker network ls" />
   </ItemGroup>
 
   <ItemGroup>

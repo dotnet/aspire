@@ -8,8 +8,9 @@ using Aspire.Hosting.Azure.EventHubs;
 using Aspire.Hosting.Utils;
 using Azure.Messaging.EventHubs.Producer;
 using Azure.Provisioning;
-using Azure.Provisioning.EventHubs;
+using AzureProvisioning = Azure.Provisioning.EventHubs;
 using Microsoft.Extensions.DependencyInjection;
+using System.Text.Json.Nodes;
 
 namespace Aspire.Hosting;
 
@@ -23,7 +24,7 @@ public static class AzureEventHubsExtensions
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <returns></returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureEventHubsResource> AddAzureEventHubs(
         this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
@@ -37,9 +38,9 @@ public static class AzureEventHubsExtensions
             };
             infrastructure.Add(skuParameter);
 
-            var eventHubsNamespace = new EventHubsNamespace(infrastructure.AspireResource.GetBicepIdentifier())
+            var eventHubsNamespace = new AzureProvisioning.EventHubsNamespace(infrastructure.AspireResource.GetBicepIdentifier())
             {
-                Sku = new EventHubsSku()
+                Sku = new AzureProvisioning.EventHubsSku()
                 {
                     Name = skuParameter
                 },
@@ -52,7 +53,7 @@ public static class AzureEventHubsExtensions
             var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
             infrastructure.Add(principalIdParameter);
 
-            infrastructure.Add(eventHubsNamespace.CreateRoleAssignment(EventHubsBuiltInRole.AzureEventHubsDataOwner, principalTypeParameter, principalIdParameter));
+            infrastructure.Add(eventHubsNamespace.CreateRoleAssignment(AzureProvisioning.EventHubsBuiltInRole.AzureEventHubsDataOwner, principalTypeParameter, principalIdParameter));
 
             infrastructure.Add(new ProvisioningOutput("eventHubsEndpoint", typeof(string)) { Value = eventHubsNamespace.ServiceBusEndpoint });
 
@@ -60,12 +61,16 @@ public static class AzureEventHubsExtensions
 
             foreach (var hub in azureResource.Hubs)
             {
-                var hubResource = new EventHub(Infrastructure.NormalizeBicepIdentifier(hub))
+                var cdkHub = hub.ToProvisioningEntity();
+                cdkHub.Parent = eventHubsNamespace;
+                infrastructure.Add(cdkHub);
+
+                foreach (var consumerGroup in hub.ConsumerGroups)
                 {
-                    Parent = eventHubsNamespace,
-                    Name = hub
-                };
-                infrastructure.Add(hubResource);
+                    var cdkConsumerGroup = consumerGroup.ToProvisioningEntity();
+                    cdkConsumerGroup.Parent = cdkHub;
+                    infrastructure.Add(cdkConsumerGroup);
+                }
             }
         };
 
@@ -77,23 +82,52 @@ public static class AzureEventHubsExtensions
     /// <summary>
     /// Adds an Azure Event Hubs hub resource to the application model. This resource requires an <see cref="AzureEventHubsResource"/> to be added to the application model.
     /// </summary>
+    /// <param name="builder">The Azure Event Hubs resource builder.</param>
+    /// <param name="name">The name of the Event Hub.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(WithHub)} instead to add an Azure Event Hub.")]
+    public static IResourceBuilder<AzureEventHubsResource> AddEventHub(this IResourceBuilder<AzureEventHubsResource> builder, [ResourceName] string name)
+    {
+        return builder.WithHub(name);
+    }
+
+    /// <summary>
+    /// Adds an Azure Event Hubs hub resource to the application model. This resource requires an <see cref="AzureEventHubsResource"/> to be added to the application model.
+    /// </summary>
     /// <remarks>
     /// This version of the package defaults to the <inheritdoc cref="EventHubsEmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="EventHubsEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="EventHubsEmulatorContainerImageTags.Image"/> container image.
     /// </remarks>
     /// <param name="builder">The Azure Event Hubs resource builder.</param>
     /// <param name="name">The name of the Event Hub.</param>
-    public static IResourceBuilder<AzureEventHubsResource> AddEventHub(this IResourceBuilder<AzureEventHubsResource> builder, [ResourceName] string name)
+    /// <param name="configure">An optional method that can be used for customizing the <see cref="EventHub"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureEventHubsResource> WithHub(this IResourceBuilder<AzureEventHubsResource> builder, [ResourceName] string name, Action<EventHub>? configure = null)
     {
-        builder.Resource.Hubs.Add(name);
+        var hub = builder.Resource.Hubs.FirstOrDefault(x => x.Name == name);
+
+        if (hub == null)
+        {
+            hub = new EventHub(name);
+            builder.Resource.Hubs.Add(hub);
+        }
+
+        configure?.Invoke(hub);
+
         return builder;
     }
 
     /// <summary>
     /// Configures an Azure Event Hubs resource to be emulated. This resource requires an <see cref="AzureEventHubsResource"/> to be added to the application model.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="EventHubsEmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="EventHubsEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="EventHubsEmulatorContainerImageTags.Image"/> container image.
+    /// </remarks>
     /// <param name="builder">The Azure Event Hubs resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="EventHubsEmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="EventHubsEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="EventHubsEmulatorContainerImageTags.Image"/> container image.
+    /// </remarks>
     /// <example>
     /// The following example creates an Azure Event Hubs resource that runs locally is an emulator and referencing that
     /// resource in a .NET project.
@@ -117,15 +151,16 @@ public static class AzureEventHubsExtensions
             return builder;
         }
 
-        // Add emulator container
-        var configHostFile = Path.GetTempFileName();
-        if (!OperatingSystem.IsWindows())
-        {
-            File.SetUnixFileMode(configHostFile,
-                UnixFileMode.UserRead | UnixFileMode.UserWrite
-                | UnixFileMode.GroupRead | UnixFileMode.GroupWrite
-                | UnixFileMode.OtherRead | UnixFileMode.OtherWrite);
-        }
+        // Create a default file mount. This could be replaced by a user-provided file mount.
+        var configHostFile = Path.Combine(Directory.CreateTempSubdirectory("AspireEventHubsEmulator").FullName, "Config.json");
+
+        var defaultConfigFileMount = new ContainerMountAnnotation(
+                configHostFile,
+                AzureEventHubsEmulatorResource.EmulatorConfigJsonPath,
+                ContainerMountType.BindMount,
+                isReadOnly: true);
+
+        builder.WithAnnotation(defaultConfigFileMount);
 
         builder
             .WithEndpoint(name: "emulator", targetPort: 5672)
@@ -134,12 +169,7 @@ public static class AzureEventHubsExtensions
                 Registry = EventHubsEmulatorContainerImageTags.Registry,
                 Image = EventHubsEmulatorContainerImageTags.Image,
                 Tag = EventHubsEmulatorContainerImageTags.Tag
-            })
-            .WithAnnotation(new ContainerMountAnnotation(
-                configHostFile,
-                AzureEventHubsEmulatorResource.EmulatorConfigJsonPath,
-                ContainerMountType.BindMount,
-                isReadOnly: false));
+            });
 
         // Create a separate storage emulator for the Event Hub one
         var storageResource = builder.ApplicationBuilder
@@ -168,9 +198,9 @@ public static class AzureEventHubsExtensions
             // For the purposes of the health check we only need to know a hub name. If we don't have a hub
             // name we can't configure a valid producer client connection so we should throw. What good is
             // an event hub namespace without an event hub? :)
-            if (builder.Resource.Hubs is { Count: > 0 } && builder.Resource.Hubs[0] is string hub)
+            if (builder.Resource.Hubs is { Count: > 0 } && builder.Resource.Hubs[0] is { } hub)
             {
-                var healthCheckConnectionString = $"{connectionString};EntityPath={hub};";
+                var healthCheckConnectionString = $"{connectionString};EntityPath={hub.Name};";
                 client = new EventHubProducerClient(healthCheckConnectionString);
             }
             else
@@ -194,7 +224,7 @@ public static class AzureEventHubsExtensions
             configureContainer(surrogateBuilder);
         }
 
-        builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, (e, ct) =>
         {
             var eventHubsEmulatorResources = builder.ApplicationBuilder.Resources.OfType<AzureEventHubsResource>().Where(x => x is { } eventHubsResource && eventHubsResource.IsEmulator);
 
@@ -208,45 +238,77 @@ public static class AzureEventHubsExtensions
             {
                 var configFileMount = emulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == AzureEventHubsEmulatorResource.EmulatorConfigJsonPath);
 
-                using var stream = new FileStream(configFileMount.Source!, FileMode.Create);
-                using var writer = new Utf8JsonWriter(stream);
-
-                writer.WriteStartObject();                      // {
-                writer.WriteStartObject("UserConfig");          //   "UserConfig": {
-                writer.WriteStartArray("NamespaceConfig");      //     "NamespaceConfig": [
-                writer.WriteStartObject();                      //       {
-                writer.WriteString("Type", "EventHub");         //         "Type": "EventHub",
-
-                // This name is currently required by the emulator
-                writer.WriteString("Name", "emulatorNs1");      //         "Name": "emulatorNs1"
-                writer.WriteStartArray("Entities");             //         "Entities": [
-
-                foreach (var hub in emulatorResource.Hubs)
+                // If there is a custom mount for EmulatorConfigJsonPath we don't need to create the Config.json file.
+                if (configFileMount != defaultConfigFileMount)
                 {
-                    // The default consumer group ('$default') is automatically created
-
-                    writer.WriteStartObject();                  //           {
-                    writer.WriteString("Name", hub);            //             "Name": "hub",
-                    writer.WriteString("PartitionCount", "2");  //             "PartitionCount": "2",
-                    writer.WriteStartArray("ConsumerGroups");   //             "ConsumerGroups": [
-                    writer.WriteEndArray();                     //             ]
-                    writer.WriteEndObject();                    //           }
+                    continue;
                 }
 
-                writer.WriteEndArray();                         //         ] (/Entities)
-                writer.WriteEndObject();                        //       }
-                writer.WriteEndArray();                         //     ], (/NamespaceConfig)
-                writer.WriteStartObject("LoggingConfig");       //     "LoggingConfig": {
-                writer.WriteString("Type", "File");             //       "Type": "File"
-                writer.WriteEndObject();                        //     } (/LoggingConfig)
+                var fileStreamOptions = new FileStreamOptions() { Mode = FileMode.Create, Access = FileAccess.Write };
 
-                writer.WriteEndObject();                        //   } (/UserConfig)
-                writer.WriteEndObject();                        // } (/Root)
+                if (!OperatingSystem.IsWindows())
+                {
+                    fileStreamOptions.UnixCreateMode =
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite
+                        | UnixFileMode.GroupRead | UnixFileMode.GroupWrite
+                        | UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
+                }
 
+                using (var stream = new FileStream(configFileMount.Source!, fileStreamOptions))
+                {
+                    using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
+
+                    writer.WriteStartObject();                      // {
+                    writer.WriteStartObject("UserConfig");          //   "UserConfig": {
+                    writer.WriteStartArray("NamespaceConfig");      //     "NamespaceConfig": [
+                    writer.WriteStartObject();                      //       {
+                    writer.WriteString("Type", "EventHub");
+
+                    // This name is currently required by the emulator
+                    writer.WriteString("Name", "emulatorNs1");
+                    writer.WriteStartArray("Entities");             //         "Entities": [
+
+                    foreach (var hub in emulatorResource.Hubs)
+                    {
+                        writer.WriteStartObject();
+                        hub.WriteJsonObjectProperties(writer);
+                        writer.WriteEndObject();                    //           }
+                    }
+
+                    writer.WriteEndArray();                         //         ] (/Entities)
+                    writer.WriteEndObject();                        //       }
+                    writer.WriteEndArray();                         //     ], (/NamespaceConfig)
+                    writer.WriteStartObject("LoggingConfig");       //     "LoggingConfig": {
+                    writer.WriteString("Type", "File");             //       "Type": "File"
+                    writer.WriteEndObject();                        //     } (/LoggingConfig)
+
+                    writer.WriteEndObject();                        //   } (/UserConfig)
+                    writer.WriteEndObject();                        // } (/Root)
+
+                }
+
+                // Apply ConfigJsonAnnotation modifications
+                var configJsonAnnotations = emulatorResource.Annotations.OfType<ConfigJsonAnnotation>();
+
+                foreach (var annotation in configJsonAnnotations)
+                {
+                    using var readStream = new FileStream(configFileMount.Source!, FileMode.Open, FileAccess.Read);
+                    var jsonObject = JsonNode.Parse(readStream);
+                    readStream.Close();
+
+                    using var writeStream = new FileStream(configFileMount.Source!, FileMode.Open, FileAccess.Write);
+                    using var writer = new Utf8JsonWriter(writeStream, new JsonWriterOptions { Indented = true });
+
+                    if (jsonObject == null)
+                    {
+                        throw new InvalidOperationException("The configuration file mount could not be parsed.");
+                    }
+                    annotation.Configure(jsonObject);
+                    jsonObject.WriteTo(writer);
+                }
             }
 
             return Task.CompletedTask;
-
         });
 
         return builder;
@@ -271,16 +333,62 @@ public static class AzureEventHubsExtensions
         => builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/data", isReadOnly: false);
 
     /// <summary>
-    /// Configures the gateway port for the Azure Event Hubs emulator.
+    /// Configures the host port for the Azure Event Hubs emulator is exposed on instead of using randomly assigned port.
     /// </summary>
     /// <param name="builder">Builder for the Azure Event Hubs emulator container</param>
-    /// <param name="port">Host port to bind to the emulator gateway port.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used, a random port will be assigned.</param>
     /// <returns>Azure Event Hubs emulator resource builder.</returns>
+    [Obsolete("Use WithHostPort instead.")]
     public static IResourceBuilder<AzureEventHubsEmulatorResource> WithGatewayPort(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, int? port)
+    {
+        return WithHostPort(builder, port);
+    }
+
+    /// <summary>
+    /// Configures the host port for the Azure Event Hubs emulator is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">Builder for the Azure Event Hubs emulator container</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used, a random port will be assigned.</param>
+    /// <returns>Azure Event Hubs emulator resource builder.</returns>
+    public static IResourceBuilder<AzureEventHubsEmulatorResource> WithHostPort(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, int? port)
     {
         return builder.WithEndpoint("emulator", endpoint =>
         {
             endpoint.Port = port;
         });
+    }
+
+    /// <summary>
+    /// Adds a bind mount for the configuration file of an Azure Service Bus emulator resource.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="AzureEventHubsEmulatorResource"/>.</param>
+    /// <param name="path">Path to the file on the AppHost where the emulator configuration is located.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureEventHubsEmulatorResource> WithConfigurationFile(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string path)
+    { 
+        // Update the existing mount
+        var configFileMount = builder.Resource.Annotations.OfType<ContainerMountAnnotation>().LastOrDefault(v => v.Target == AzureEventHubsEmulatorResource.EmulatorConfigJsonPath);
+        if (configFileMount != null)
+        {
+            builder.Resource.Annotations.Remove(configFileMount);
+        }
+
+        return builder.WithBindMount(path, AzureEventHubsEmulatorResource.EmulatorConfigJsonPath, isReadOnly: true);
+    }
+
+    /// <summary>
+    /// Alters the JSON configuration document used by the emulator.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="AzureEventHubsEmulatorResource"/>.</param>
+    /// <param name="configJson">A callback to update the JSON object representation of the configuration.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureEventHubsEmulatorResource> ConfigureEmulator(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, Action<JsonNode> configJson)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configJson);
+
+        builder.WithAnnotation(new ConfigJsonAnnotation(configJson));
+
+        return builder;
     }
 }
