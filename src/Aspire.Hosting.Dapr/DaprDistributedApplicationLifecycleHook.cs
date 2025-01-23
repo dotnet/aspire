@@ -15,6 +15,7 @@ using static Aspire.Hosting.Dapr.CommandLineArgs;
 
 namespace Aspire.Hosting.Dapr;
 
+[Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", error: false)]
 internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedApplicationLifecycleHook, IDisposable
 {
     private readonly IConfiguration _configuration;
