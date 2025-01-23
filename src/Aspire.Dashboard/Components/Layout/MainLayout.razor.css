@@ -233,3 +233,11 @@
         margin-left: 0;
     }
 }
+
+::deep .desktop-nav-menu > .fluent-appbar-item {
+    /* FluentAppBarItems have a default width. However, we have a wide range of widths
+       in content depending on the language (ie, from traces to seguimientos) so should allow
+       the app bar to fit its content. This means that the width of the app bar will be different for some
+       languages. */
+    width: unset;
+}
