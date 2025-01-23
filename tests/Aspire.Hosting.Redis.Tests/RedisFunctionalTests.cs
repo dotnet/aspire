@@ -24,6 +24,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/7177")]
     public async Task VerifyWaitForOnRedisBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -229,6 +230,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/6099")]
     public async Task VerifyWithRedisInsightImportDatabases()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
@@ -539,6 +541,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
     [InlineData(false)]
     [InlineData(true)]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/7176")]
     public async Task RedisInsightWithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));

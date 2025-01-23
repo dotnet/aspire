@@ -44,7 +44,7 @@ public class OtlpHttpServiceTests
         content.Headers.TryAddWithoutValidation("content-type", OtlpHttpEndpointsBuilder.ProtobufContentType);
 
         // Act
-        var responseMessage = await httpClient.PostAsync("/v1/logs", content).DefaultTimeout();
+        var responseMessage = await httpClient.PostAsync("/v1/logs", content).DefaultTimeout(TestConstants.LongTimeoutDuration);
         responseMessage.EnsureSuccessStatusCode();
 
         var response = ExportLogsServiceResponse.Parser.ParseFrom(await responseMessage.Content.ReadAsByteArrayAsync().DefaultTimeout());

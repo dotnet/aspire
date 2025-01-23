@@ -43,7 +43,38 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
     private async Task MonitorResourceHealthAsync(ResourceEvent initialEvent, CancellationToken cancellationToken)
     {
         var resource = initialEvent.Resource;
-        var resourceReadyEventFired = false;
+
+        void FireResourceReadyEvent()
+        {
+            logger.LogDebug("Resource '{Resource}' is ready.", resource.Name);
+
+            // We don't want to block the monitoring loop while we fire the event.
+            _ = Task.Run(async () =>
+            {
+                var resourceReadyEvent = new ResourceReadyEvent(resource, services);
+
+                logger.LogDebug("Publishing ResourceReadyEvent for '{Resource}'.", resource.Name);
+
+                // Execute the publish and store the task so that waiters can await it and observe the result.
+                var task = eventing.PublishAsync(resourceReadyEvent, cancellationToken);
+
+                logger.LogDebug("Waiting for ResourceReadyEvent for '{Resource}'.", resource.Name);
+
+                // Suppress exceptions, we just want to make sure that the event is completed.
+                await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+
+                logger.LogDebug("ResourceReadyEvent for '{Resource}' completed.", resource.Name);
+
+                logger.LogDebug("Publishing the result of ResourceReadyEvent for '{Resource}'.", resource.Name);
+
+                await resourceNotificationService.PublishUpdateAsync(resource, s => s with
+                {
+                    ResourceReadyEvent = new(task)
+                })
+                .ConfigureAwait(false);
+            },
+            cancellationToken);
+        }
 
         if (!resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out var annotations))
         {
@@ -52,17 +83,16 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
             //       dynamically add health checks at runtime. If this changes then we
             //       would need to revisit this and scan for transitive health checks
             //       on a periodic basis (you wouldn't want to do it on every pass.
-            var resourceReadyEvent = new ResourceReadyEvent(resource, services);
-            await eventing.PublishAsync(
-                resourceReadyEvent,
-                EventDispatchBehavior.NonBlockingSequential,
-                cancellationToken).ConfigureAwait(false);
+            logger.LogDebug("Resource '{Resource}' has no health checks to monitor.", resource.Name);
+            FireResourceReadyEvent();
+
             return;
         }
 
         var registrationKeysToCheck = annotations.DistinctBy(a => a.Key).Select(a => a.Key).ToFrozenSet();
 
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5), timeProvider);
+        var resourceReadyEventFired = false;
 
         do
         {
@@ -76,11 +106,8 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                 if (!resourceReadyEventFired && report.Status == HealthStatus.Healthy)
                 {
                     resourceReadyEventFired = true;
-                    var resourceReadyEvent = new ResourceReadyEvent(resource, services);
-                    await eventing.PublishAsync(
-                        resourceReadyEvent,
-                        EventDispatchBehavior.NonBlockingSequential,
-                        cancellationToken).ConfigureAwait(false);
+
+                    FireResourceReadyEvent();
                 }
 
                 var latestEvent = _latestEvents.GetValueOrDefault(resource.Name);
@@ -144,6 +171,8 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
         async Task SlowDownMonitoringAsync(ResourceEvent lastEvent, CancellationToken cancellationToken)
         {
+            logger.LogDebug("Resource '{Resource}' is {HealthStatus}. Slowing down monitoring.", lastEvent.Resource.Name, lastEvent.Snapshot.HealthStatus);
+
             var releaseAfter = timeProvider.GetUtcNow().AddSeconds(30);
 
             // If we've waited for 30 seconds, or we received an updated event, or the health status is no longer

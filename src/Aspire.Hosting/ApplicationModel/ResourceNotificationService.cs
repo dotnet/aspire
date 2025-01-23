@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -14,13 +15,13 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A service that allows publishing and subscribing to changes in the state of a resource.
 /// </summary>
-public class ResourceNotificationService
+public class ResourceNotificationService : IDisposable
 {
     // Resource state is keyed by the resource and the unique name of the resource. This could be the name of the resource, or a replica ID.
     private readonly ConcurrentDictionary<(IResource, string), ResourceNotificationState> _resourceNotificationStates = new();
     private readonly ILogger<ResourceNotificationService> _logger;
     private readonly IServiceProvider _serviceProvider;
-    private readonly CancellationToken _applicationStopping;
+    private readonly CancellationTokenSource _disposing = new();
     private readonly ResourceLoggerService _resourceLoggerService;
 
     private Action<ResourceEvent>? OnResourceUpdated { get; set; }
@@ -43,7 +44,6 @@ public class ResourceNotificationService
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _serviceProvider = new NullServiceProvider();
-        _applicationStopping = hostApplicationLifetime?.ApplicationStopping ?? throw new ArgumentNullException(nameof(hostApplicationLifetime));
         _resourceLoggerService = new ResourceLoggerService();
     }
 
@@ -58,8 +58,10 @@ public class ResourceNotificationService
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _serviceProvider = serviceProvider;
-        _applicationStopping = hostApplicationLifetime?.ApplicationStopping ?? throw new ArgumentNullException(nameof(hostApplicationLifetime));
         _resourceLoggerService = resourceLoggerService ?? throw new ArgumentNullException(nameof(resourceLoggerService));
+
+        // The IHostApplicationLifetime parameter is not used anymore, but we keep it for backwards compatibility.
+        // Notification updates will be cancelled when the service is disposed.
     }
 
     private class NullServiceProvider : IServiceProvider
@@ -105,7 +107,7 @@ public class ResourceNotificationService
                                                      Justification = "targetState(s) parameters are mutually exclusive.")]
     public async Task<string> WaitForResourceAsync(string resourceName, IEnumerable<string> targetStates, CancellationToken cancellationToken = default)
     {
-        using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_applicationStopping, cancellationToken);
+        using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_disposing.Token, cancellationToken);
         var watchToken = watchCts.Token;
         await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
         {
@@ -158,6 +160,13 @@ public class ResourceNotificationService
             resourceLogger.LogInformation("Waiting for resource '{Name}' to become healthy.", dependency.Name);
             await WaitForResourceHealthyAsync(dependency.Name, cancellationToken).ConfigureAwait(false);
         }
+
+        // Now wait for the resource ready event to be executed.
+        resourceLogger.LogInformation("Waiting for resource ready to execute for '{Name}'.", dependency.Name);
+        resourceEvent = await WaitForResourceAsync(dependency.Name, re => re.Snapshot.ResourceReadyEvent is not null, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        // Observe the result of the resource ready event task
+        await resourceEvent.Snapshot.ResourceReadyEvent!.EventTask.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         resourceLogger.LogInformation("Finished waiting for resource '{Name}'.", dependency.Name);
 
@@ -273,7 +282,7 @@ public class ResourceNotificationService
                                                      Justification = "predicate and targetState(s) parameters are mutually exclusive.")]
     public async Task<ResourceEvent> WaitForResourceAsync(string resourceName, Func<ResourceEvent, bool> predicate, CancellationToken cancellationToken = default)
     {
-        using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_applicationStopping, cancellationToken);
+        using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_disposing.Token, cancellationToken);
         var watchToken = watchCts.Token;
         await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
         {
@@ -374,14 +383,43 @@ public class ResourceNotificationService
 
             if (_logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace("Resource {Resource}/{ResourceId} update published: " +
-                    "ResourceType = {ResourceType}, CreationTimeStamp = {CreationTimeStamp:s}, State = {{ Text = {StateText}, Style = {StateStyle} }}, " +
-                    "ExitCode = {ExitCode}, EnvironmentVariables = {{ {EnvironmentVariables} }}, Urls = {{ {Urls} }}, " +
-                    "Properties = {{ {Properties} }}",
-                    resource.Name, resourceId,
-                    newState.ResourceType, newState.CreationTimeStamp, newState.State?.Text, newState.State?.Style,
-                    newState.ExitCode, string.Join(", ", newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")), string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
-                    string.Join(", ", newState.Properties.Select(p => $"{p.Name} = {p.Value}")));
+                _logger.LogTrace(
+                    """
+                    Resource {Resource}/{ResourceId} update published:
+                    ResourceType = {ResourceType},
+                    CreationTimeStamp = {CreationTimeStamp:s},
+                    State = {{ Text = {StateText}, Style = {StateStyle} }},
+                    HeathStatus = {HealthStatus},
+                    ResourceReady = {ResourceReady},
+                    ExitCode = {ExitCode},
+                    Urls = {{ {Urls} }},
+                    EnvironmentVariables = {{
+                    {EnvironmentVariables}
+                    }},
+                    Properties = {{
+                    {Properties}
+                    }}
+                    """,
+                    resource.Name,
+                    resourceId,
+                    newState.ResourceType,
+                    newState.CreationTimeStamp,
+                    newState.State?.Text,
+                    newState.State?.Style,
+                    newState.HealthStatus,
+                    newState.ResourceReadyEvent is not null,
+                    newState.ExitCode,
+                    string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
+                    string.Join(Environment.NewLine, newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")),
+                    string.Join(Environment.NewLine, newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")));
+
+                static string Stringify(object? o) => o switch
+                {
+                    IEnumerable<int> ints => string.Join(", ", ints.Select(i => i.ToString(CultureInfo.InvariantCulture))),
+                    IEnumerable<string> strings => string.Join(", ", strings.Select(s => s)),
+                    null => "null",
+                    _ => o.ToString()!
+                };
             }
         }
 
@@ -501,6 +539,12 @@ public class ResourceNotificationService
 
     private ResourceNotificationState GetResourceNotificationState(IResource resource, string resourceId) =>
         _resourceNotificationStates.GetOrAdd((resource, resourceId), _ => new ResourceNotificationState());
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        _disposing.Cancel();
+    }
 
     /// <summary>
     /// The annotation that allows publishing and subscribing to changes in the state of a resource.

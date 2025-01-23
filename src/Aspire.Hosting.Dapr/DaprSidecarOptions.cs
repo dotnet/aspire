@@ -8,6 +8,7 @@ namespace Aspire.Hosting.Dapr;
 /// <summary>
 /// Options for configuring a Dapr sidecar.
 /// </summary>
+[Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", error: false)]
 public sealed record DaprSidecarOptions
 {
     /// <summary>

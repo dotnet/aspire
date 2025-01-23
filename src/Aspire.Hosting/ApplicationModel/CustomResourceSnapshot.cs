@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using System.Diagnostics;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dcp.Model;
 using HealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
@@ -11,6 +12,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// An immutable snapshot of the state of a resource.
 /// </summary>
+[DebuggerDisplay("ResourceType = {ResourceType,nq}, State = {State?.Text,nq}, HealthStatus = {HealthStatus?.ToString(),nq}, Properties = {Properties.Length}")]
 public sealed record CustomResourceSnapshot
 {
     private readonly ImmutableArray<HealthReportSnapshot> _healthReports = [];
@@ -58,6 +60,11 @@ public sealed record CustomResourceSnapshot
     /// The exit code of the resource.
     /// </summary>
     public int? ExitCode { get; init; }
+
+    /// <summary>
+    /// A snapshot of the event that indicates the resource is ready.
+    /// </summary>
+    internal EventSnapshot? ResourceReadyEvent { get; init; }
 
     /// <summary>
     /// Gets the health status of the resource.
@@ -129,10 +136,17 @@ public sealed record CustomResourceSnapshot
 }
 
 /// <summary>
+/// A snapshot of an event.
+/// </summary>
+/// <param name="EventTask">The task the represents the result of executing the event.</param>
+internal record EventSnapshot(Task EventTask);
+
+/// <summary>
 /// A snapshot of the resource state
 /// </summary>
 /// <param name="Text">The text for the state update. See <see cref="KnownResourceStates"/> for expected values.</param>
 /// <param name="Style">The style for the state update. Use <seealso cref="KnownResourceStateStyles"/> for the supported styles.</param>
+[DebuggerDisplay("{Text}")]
 public sealed record ResourceStateSnapshot(string Text, string? Style)
 {
     /// <summary>
@@ -149,6 +163,7 @@ public sealed record ResourceStateSnapshot(string Text, string? Style)
 /// <param name="Name">The name of the environment variable.</param>
 /// <param name="Value">The value of the environment variable.</param>
 /// <param name="IsFromSpec">Determines if this environment variable was defined in the resource explicitly or computed (for e.g. inherited from the process hierarchy).</param>
+[DebuggerDisplay("{Value}", Name = "{Name}")]
 public sealed record EnvironmentVariableSnapshot(string Name, string? Value, bool IsFromSpec);
 
 /// <summary>
@@ -157,6 +172,7 @@ public sealed record EnvironmentVariableSnapshot(string Name, string? Value, boo
 /// <param name="Name">Name of the url.</param>
 /// <param name="Url">The full uri.</param>
 /// <param name="IsInternal">Determines if this url is internal.</param>
+[DebuggerDisplay("{Url}", Name = "{Name}")]
 public sealed record UrlSnapshot(string Name, string Url, bool IsInternal);
 
 /// <summary>
@@ -166,6 +182,7 @@ public sealed record UrlSnapshot(string Name, string Url, bool IsInternal);
 /// <param name="Target">The target of the mount.</param>
 /// <param name="MountType">Gets the mount type, such as <see cref="VolumeMountType.Bind"/> or <see cref="VolumeMountType.Volume"/></param>
 /// <param name="IsReadOnly">Whether the volume mount is read-only or not.</param>
+[DebuggerDisplay("{Source}", Name = "{Target}")]
 public sealed record VolumeSnapshot(string? Source, string Target, string MountType, bool IsReadOnly);
 
 /// <summary>
@@ -180,6 +197,7 @@ public sealed record RelationshipSnapshot(string ResourceName, string Type);
 /// </summary>
 /// <param name="Name">The name of the property.</param>
 /// <param name="Value">The value of the property.</param>
+[DebuggerDisplay("{Value}", Name = "{Name}")]
 public sealed record ResourcePropertySnapshot(string Name, object? Value)
 {
     /// <summary>
@@ -219,6 +237,7 @@ public sealed record ResourcePropertySnapshot(string Name, object? Value)
 /// <param name="IconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
 /// <param name="IconVariant">The icon variant.</param>
 /// <param name="IsHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
+[DebuggerDisplay(null, Name = "{Name}")]
 public sealed record ResourceCommandSnapshot(string Name, ResourceCommandState State, string DisplayName, string? DisplayDescription, object? Parameter, string? ConfirmationMessage, string? IconName, IconVariant? IconVariant, bool IsHighlighted);
 
 /// <summary>
@@ -228,6 +247,7 @@ public sealed record ResourceCommandSnapshot(string Name, ResourceCommandState S
 /// <param name="Status">The state of the resource, according to the report, or <see langword="null"/> if a health report has not yet been received for this health check.</param>
 /// <param name="Description">An optional description of the report, for display.</param>
 /// <param name="ExceptionText">An optional string containing exception details.</param>
+[DebuggerDisplay("{Status}", Name = "{Name}")]
 public sealed record HealthReportSnapshot(string Name, HealthStatus? Status, string? Description, string? ExceptionText);
 
 /// <summary>

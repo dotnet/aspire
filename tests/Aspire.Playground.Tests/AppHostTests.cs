@@ -262,29 +262,6 @@ public class AppHostTests
         return candidates;
     }
 
-    private static async Task TestEventHubsAppHost(DistributedApplication app, string appHostPath, ITestOutputHelper testOutput)
-    {
-        using var client = CreateHttpClientWithResilience(app, "api");
-
-        var path = "/test";
-        testOutput.WriteLine($"*** TestEventHubsAppHost calling {path} endpoint");
-
-        var response = await client.GetAsync(path);
-        Assert.True(HttpStatusCode.OK == response.StatusCode, $"Endpoint '{client.BaseAddress}{path.TrimStart('/')}' for resource 'consumer' in app '{Path.GetFileNameWithoutExtension(appHostPath)}' returned status code {response.StatusCode}");
-
-        var consumerMessage = "Hello, from /test sent via producerClient";
-        try
-        {
-            await app.WaitForTextAsync(log => log.Contains(consumerMessage), resourceName: "consumer")
-                    .WaitAsync(TimeSpan.FromMinutes(2))
-                    .ConfigureAwait(false);
-        }
-        catch (TimeoutException te)
-        {
-            throw new XunitException($"Timed out waiting for the consumer message to be logged: '{consumerMessage}'", te);
-        }
-    }
-
     public static TheoryData<TestEndpoints> TestEndpoints()
     {
         TheoryData<TestEndpoints> theoryData = new();
@@ -302,13 +279,6 @@ public class AppHostTests
         }
 
         return theoryData;
-    }
-
-    private static IEnumerable<string> GetPlaygroundAppHostAssemblyPaths()
-    {
-        // All the AppHost projects are referenced by this project so we can find them by looking for all their assemblies in the base directory
-        return Directory.GetFiles(AppContext.BaseDirectory, "*.AppHost.dll")
-            .Where(fileName => !fileName.EndsWith("Aspire.Hosting.AppHost.dll", StringComparison.OrdinalIgnoreCase));
     }
 }
 

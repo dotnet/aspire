@@ -109,7 +109,11 @@ public class SchemaTests
 
                 { "BasicDockerfile", (IDistributedApplicationBuilder builder) =>
                     {
-                        builder.AddExecutable("foo", "bar", "baz", "one", "two", "three").PublishAsDockerFile();
+                        var tempContextPath = Directory.CreateTempSubdirectory().FullName;
+                        var tempDockerfilePath = Path.Combine(tempContextPath, "Dockerfile");
+                        File.WriteAllText(tempDockerfilePath, "does not need to be valid dockerfile content here");
+
+                        builder.AddExecutable(name:"foo", command: "bar", workingDirectory: tempContextPath, "one", "two", "three").PublishAsDockerFile();
                     }
                 },
 

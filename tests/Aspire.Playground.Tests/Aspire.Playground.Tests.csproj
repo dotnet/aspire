@@ -17,17 +17,17 @@
     <PlaygroundSourceDir>$(MSBuildThisFileDirectory)..\..\playground\</PlaygroundSourceDir>
     <TestsSharedDir>$(MSBuildThisFileDirectory)..\Shared\</TestsSharedDir>
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
-    <!-- Skip Azure resources that require provisioning when running in CI. -->
-    <SkipProvisionedAzureResource Condition="'$(SkipProvisionedAzureResource)' == '' and ('$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true' or '$(CODESPACES)' == 'true')">true</SkipProvisionedAzureResource>
+    <!-- Skip emulators that don't start consistently when running in CI. -->
+    <SkipUnstableEmulators Condition="'$(SkipUnstableEmulators)' == '' and ('$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true' or '$(CODESPACES)' == 'true')">true</SkipUnstableEmulators>
 
     <!-- on helix this will be available in the source dir -->
     <XunitRunnerJson Condition="'$(RepoRoot)' == ''">xunit.runner.json</XunitRunnerJson>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(SkipProvisionedAzureResource)' == 'true'">
-    <DefineConstants>SKIP_PROVISIONED_AZURE_RESOURCE;$(DefineConstants)</DefineConstants>
+  <PropertyGroup Condition="'$(SkipUnstableEmulators)' == 'true'">
+    <DefineConstants>SKIP_UNSTABLE_EMULATORS;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
-
+  
   <ItemGroup>
     <!-- on helix, the file will be in the source directory, so it will get
          picked up by msbuild by default -->
