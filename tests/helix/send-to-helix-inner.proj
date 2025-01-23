@@ -149,8 +149,6 @@
     <HelixPreCommand Include="$(_EnvVarSetKeyword) MSBUILDDEBUGPATH=$(_HelixCorrelationPayloadEnvVar)/msbuild-debug" />
 
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="dotnet dev-certs https --trust" />
-    <!-- Make sure the command works... -->
-    <HelixPreCommand Include="$(_WaitForDcpCommand)" />
 
     <!-- Set the DCP_DIAGNOSTICS_LOG_LEVEL env -->
     <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_DIAGNOSTICS_LOG_LEVEL=debug" />
