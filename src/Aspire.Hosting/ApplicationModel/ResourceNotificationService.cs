@@ -111,6 +111,8 @@ public class ResourceNotificationService : IDisposable
         var watchToken = watchCts.Token;
         await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
         {
+            DumpResourceSnapshot("WaitForResourceAsync", resourceEvent.Resource, resourceEvent.ResourceId, resourceEvent.Snapshot);
+            
             if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName)
                 && resourceEvent.Snapshot.State?.Text is { Length: > 0 } statusText
                 && targetStates.Contains(statusText, StringComparers.ResourceState))
@@ -386,49 +388,56 @@ public class ResourceNotificationService : IDisposable
                 }
             }
 
-            if (_logger.IsEnabled(LogLevel.Trace))
-            {
-                _logger.LogTrace(
-                    """
-                    Resource {Resource}/{ResourceId} update published:
-                    ResourceType = {ResourceType},
-                    CreationTimeStamp = {CreationTimeStamp:s},
-                    State = {{ Text = {StateText}, Style = {StateStyle} }},
-                    HeathStatus = {HealthStatus},
-                    ResourceReady = {ResourceReady},
-                    ExitCode = {ExitCode},
-                    Urls = {{ {Urls} }},
-                    EnvironmentVariables = {{
-                    {EnvironmentVariables}
-                    }},
-                    Properties = {{
-                    {Properties}
-                    }}
-                    """,
-                    resource.Name,
-                    resourceId,
-                    newState.ResourceType,
-                    newState.CreationTimeStamp,
-                    newState.State?.Text,
-                    newState.State?.Style,
-                    newState.HealthStatus,
-                    newState.ResourceReadyEvent is not null,
-                    newState.ExitCode,
-                    string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
-                    string.Join(Environment.NewLine, newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")),
-                    string.Join(Environment.NewLine, newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")));
-
-                static string Stringify(object? o) => o switch
-                {
-                    IEnumerable<int> ints => string.Join(", ", ints.Select(i => i.ToString(CultureInfo.InvariantCulture))),
-                    IEnumerable<string> strings => string.Join(", ", strings.Select(s => s)),
-                    null => "null",
-                    _ => o.ToString()!
-                };
-            }
+            DumpResourceSnapshot($"PublishUpdateAsync({notificationState.GetHashCode()})", resource, resourceId, newState);
         }
 
         return Task.CompletedTask;
+    }
+
+    private void DumpResourceSnapshot(string prefix, IResource resource, string resourceId, CustomResourceSnapshot newState)
+    {
+        if (_logger.IsEnabled(LogLevel.Trace))
+        {
+            _logger.LogTrace(
+                """
+                {prefix}
+                Resource {Resource}/{ResourceId} update published:
+                ResourceType = {ResourceType},
+                CreationTimeStamp = {CreationTimeStamp:s},
+                State = {{ Text = {StateText}, Style = {StateStyle} }},
+                HeathStatus = {HealthStatus},
+                ResourceReady = {ResourceReady},
+                ExitCode = {ExitCode},
+                Urls = {{ {Urls} }},
+                EnvironmentVariables = {{
+                {EnvironmentVariables}
+                }},
+                Properties = {{
+                {Properties}
+                }}
+                """,
+                prefix,
+                resource.Name,
+                resourceId,
+                newState.ResourceType,
+                newState.CreationTimeStamp,
+                newState.State?.Text,
+                newState.State?.Style,
+                newState.HealthStatus,
+                newState.ResourceReadyEvent is not null,
+                newState.ExitCode,
+                string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
+                string.Join(Environment.NewLine, newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")),
+                string.Join(Environment.NewLine, newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")));
+
+            static string Stringify(object? o) => o switch
+            {
+                IEnumerable<int> ints => string.Join(", ", ints.Select(i => i.ToString(CultureInfo.InvariantCulture))),
+                IEnumerable<string> strings => string.Join(", ", strings.Select(s => s)),
+                null => "null",
+                _ => o.ToString()!
+            };
+        }
     }
 
     /// <summary>
