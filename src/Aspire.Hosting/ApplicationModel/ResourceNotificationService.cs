@@ -111,8 +111,6 @@ public class ResourceNotificationService : IDisposable
         var watchToken = watchCts.Token;
         await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
         {
-            DumpResourceSnapshot("WaitForResourceAsync", resourceEvent.Resource, resourceEvent.ResourceId, resourceEvent.Snapshot);
-            
             if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName)
                 && resourceEvent.Snapshot.State?.Text is { Length: > 0 } statusText
                 && targetStates.Contains(statusText, StringComparers.ResourceState))
@@ -293,6 +291,8 @@ public class ResourceNotificationService : IDisposable
         var watchToken = watchCts.Token;
         await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
         {
+            DumpResourceSnapshot("WaitForResourceAsync(predicate)", resourceEvent.Resource, resourceEvent.ResourceId, resourceEvent.Snapshot);
+
             if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName)
                 && resourceEvent.Snapshot.State?.Text is { Length: > 0 } statusText
                 && predicate(resourceEvent))
