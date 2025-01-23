@@ -1297,6 +1297,10 @@ internal sealed class DcpExecutor : IDcpExecutor
 
         dcpContainerResource.Spec.Env = [];
 
+        var proxiedPorts = new List<EndpointAnnotation>();
+
+        var isPersistentContainer = modelContainerResource.GetContainerLifetimeType() == ContainerLifetime.Persistent;
+
         if (cr.ServicesProduced.Count > 0)
         {
             dcpContainerResource.Spec.Ports = new();
@@ -1324,7 +1328,23 @@ internal sealed class DcpExecutor : IDcpExecutor
                 }
 
                 dcpContainerResource.Spec.Ports.Add(portSpec);
+
+                if (isPersistentContainer)
+                {
+                    if (ea.IsProxied)
+                    {
+                        proxiedPorts.Add(ea);
+                    }
+                }
             }
+        }
+
+        if (proxiedPorts.Count > 0)
+        {
+            _logger.LogWarning(
+                "'{ResourceName}' is configured with a persistent lifetime, but has proxied endpoints. The target port(s) ({TargetPorts}) will be exposed via a proxy while your App Host project is running, but may not otherwise be accessible between App Host runs. It is recommended to configure fixed unproxied endpoint ports for persistent containers. For more information on networking in .NET Aspire see: https://aka.ms/dotnet/aspire/networking",
+                modelContainerResource.Name,
+                string.Join(", ", proxiedPorts.Select(p => p.TargetPort)));
         }
 
         if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
@@ -1399,7 +1419,7 @@ internal sealed class DcpExecutor : IDcpExecutor
                     resourceLogger.LogCritical(ex, "Failed to apply container runtime argument '{ConfigKey}'. A dependency may have failed to start.", arg);
                     _logger.LogDebug(ex, "Failed to apply container runtime argument '{ConfigKey}' to '{ResourceName}'. A dependency may have failed to start.", arg, modelContainerResource.Name);
                     failedToApplyConfiguration = true;
-                }                
+                }
             }
         }
 
