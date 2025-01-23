@@ -37,6 +37,16 @@
         <target state="translated">值</target>
         <note />
       </trans-unit>
+      <trans-unit id="FieldRequired">
+        <source>A value is required.</source>
+        <target state="new">A value is required.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FieldTooLong">
+        <source>A maximum length of {1} is allowed.</source>
+        <target state="new">A maximum length of {1} is allowed.</target>
+        <note>{0} is the field name, whereas {1} is the length. We don't want to show the field name.</note>
+      </trans-unit>
       <trans-unit id="FilterDialogApplyFilterButtonText">
         <source>Apply filter</source>
         <target state="translated">套用篩選</target>

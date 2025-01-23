@@ -254,4 +254,12 @@
   <data name="OpenInTextVisualizer" xml:space="preserve">
     <value>Open in text visualizer</value>
   </data>
+  <data name="FieldRequired" xml:space="preserve">
+    <value>A value is required.</value>
+    <comment>{0} is the literal, untranslated field name which we do not want to show, so it is missing.</comment>
+  </data>
+  <data name="FieldTooLong" xml:space="preserve">
+    <value>A maximum length of {1} characters is allowed.</value>
+    <comment>{0} is the field name, whereas {1} is the length. We don't want to show the field name, so it is missing.</comment>
+  </data>
 </root>

@@ -123,6 +123,24 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to A value is required..
+        /// </summary>
+        public static string FieldRequired {
+            get {
+                return ResourceManager.GetString("FieldRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to A maximum length of {1} characters is allowed..
+        /// </summary>
+        public static string FieldTooLong {
+            get {
+                return ResourceManager.GetString("FieldTooLong", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Apply filter.
         /// </summary>
         public static string FilterDialogApplyFilterButtonText {
