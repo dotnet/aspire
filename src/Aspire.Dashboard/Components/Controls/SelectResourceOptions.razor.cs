@@ -10,7 +10,7 @@ public partial class SelectResourceOptions<TValue>
     private async Task OnAllValuesCheckedChangedInternalAsync(bool? newAreAllVisible)
     {
         SetCheckState(newAreAllVisible, Values);
-        await OnAllResourceTypesCheckedChangedAsync();
+        await OnAllValuesCheckedChangedAsync();
     }
 
     private Task OnValueVisibilityChangedInternalAsync(TValue value, bool isVisible)

@@ -62,6 +62,11 @@
         <target state="translated">콘솔 로그 보기</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceFilterOptionEmpty">
+        <source>No state</source>
+        <target state="new">No state</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesActionsColumnHeader">
         <source>Actions</source>
         <target state="translated">작업</target>
@@ -162,9 +167,14 @@
         <target state="translated">환경</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesResourceHasNoState">
-        <source>No state</source>
-        <target state="new">No state</target>
+      <trans-unit id="ResourcesFiltered">
+        <source>Has filters</source>
+        <target state="new">Has filters</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesNotFiltered">
+        <source>No filters</source>
+        <target state="new">No filters</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesResourceStatesHeader">
@@ -220,16 +230,6 @@
       <trans-unit id="ResourcesTypeColumnHeader">
         <source>Type</source>
         <target state="translated">형식</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesTypeFilterAllVisible">
-        <source>Type filter: All types visible</source>
-        <target state="translated">형식 필터: 모든 형식 표시</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesTypeFiltered">
-        <source>Type filter: Filtered</source>
-        <target state="translated">형식 필터: 필터링됨</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForHealthDataMessage">

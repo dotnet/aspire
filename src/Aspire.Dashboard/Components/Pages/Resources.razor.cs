@@ -11,7 +11,6 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -87,21 +86,22 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     private readonly ConcurrentDictionary<string, bool> _resourceHealthStatusesToVisibility = new(StringComparer.Ordinal);
 
-    internal static string GetStateOrDefaultText(string? state, IStringLocalizer<Dashboard.Resources.Resources> loc)
-    {
-        return !string.IsNullOrEmpty(state) ? state : loc[nameof(Dashboard.Resources.Resources.ResourcesResourceHasNoState)];
-    }
-
     private bool Filter(ResourceViewModel resource)
     {
-        return _resourceTypesToVisibility.TryGetValue(resource.ResourceType, out var typeVisible) && typeVisible
-               && _resourceStatesToVisibility.TryGetValue(GetStateOrDefaultText(resource.State, Loc), out var stateVisible) && stateVisible
-                && _resourceHealthStatusesToVisibility.TryGetValue(GetStateOrDefaultText(resource.HealthStatus?.Humanize(), Loc), out var healthStateVisible) && healthStateVisible
+        return IsKeyValueTrue(resource.ResourceType, _resourceTypesToVisibility)
+               && IsKeyValueTrue(resource.State, _resourceStatesToVisibility)
+               && IsKeyValueTrue(resource.HealthStatus?.Humanize(), _resourceHealthStatusesToVisibility)
                && (_filter.Length == 0 || resource.MatchesFilter(_filter))
                && !resource.IsHiddenState();
+
+        static bool IsKeyValueTrue(string? key, IDictionary<string, bool> dictionary) => key is not null && dictionary.TryGetValue(key, out var value) && value;
     }
 
-    private async Task OnAllFilterVisibilityCheckedChangedAsync() => await _dataGrid.SafeRefreshDataAsync();
+    private async Task OnAllFilterVisibilityCheckedChangedAsync()
+    {
+        await ClearSelectedResourceAsync();
+        await _dataGrid.SafeRefreshDataAsync();
+    }
 
     private async Task OnResourceFilterVisibilityChangedAsync(string resourceType, bool isVisible)
     {
@@ -115,7 +115,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         await _dataGrid.SafeRefreshDataAsync();
     }
 
-    private bool AreAllVisibleInAnyFilter => AreAllTypesVisible || AreAllStatesVisible || AreAllHealthStatesVisible;
+    private bool NoFiltersSet => AreAllTypesVisible && AreAllStatesVisible && AreAllHealthStatesVisible;
     private bool AreAllTypesVisible => _resourceTypesToVisibility.Values.All(value => value);
     private bool AreAllStatesVisible => _resourceStatesToVisibility.Values.All(value => value);
     private bool AreAllHealthStatesVisible => _resourceHealthStatusesToVisibility.Values.All(value => value);
@@ -172,8 +172,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             {
                 var added = _resourceByName.TryAdd(resource.Name, resource);
                 _resourceTypesToVisibility.TryAdd(resource.ResourceType, preselectedVisibleResourceTypes is null || preselectedVisibleResourceTypes.Contains(resource.ResourceType));
-                _resourceStatesToVisibility.TryAdd(GetStateOrDefaultText(resource.State, Loc), preselectedVisibleResourceStates is null || preselectedVisibleResourceStates.Contains(resource.State ?? string.Empty));
-                 _resourceHealthStatusesToVisibility.TryAdd(GetStateOrDefaultText(resource.HealthStatus?.Humanize(), Loc), preselectedVisibleResourceHealthStates is null || preselectedVisibleResourceHealthStates.Contains(resource.HealthStatus?.Humanize() ?? string.Empty));
+                _resourceStatesToVisibility.TryAdd(resource.State ?? string.Empty, preselectedVisibleResourceStates is null || preselectedVisibleResourceStates.Contains(resource.State ?? string.Empty));
+                _resourceHealthStatusesToVisibility.TryAdd(resource.HealthStatus?.Humanize() ?? string.Empty, preselectedVisibleResourceHealthStates is null || preselectedVisibleResourceHealthStates.Contains(resource.HealthStatus?.Humanize() ?? string.Empty));
 
                 Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
             }

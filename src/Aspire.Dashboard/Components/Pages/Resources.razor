@@ -33,11 +33,11 @@
             @if (ViewportInformation.IsDesktop)
             {
                 <FluentButton id="resourceFilterButton" slot="end"
-                              Appearance="@(AreAllVisibleInAnyFilter ? Appearance.Stealth : Appearance.Accent)"
+                              Appearance="@(NoFiltersSet ? Appearance.Stealth : Appearance.Accent)"
                               IconEnd="@(new Icons.Regular.Size20.Filter())"
                               @onclick="() => _isFilterPopupVisible = !_isFilterPopupVisible"
-                              Title="@(AreAllVisibleInAnyFilter ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])"
-                              aria-label="@(AreAllVisibleInAnyFilter ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])"></FluentButton>
+                              Title="@(NoFiltersSet ? Loc[nameof(Dashboard.Resources.Resources.ResourcesNotFiltered)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesFiltered)])"
+                              aria-label="@(NoFiltersSet ? Loc[nameof(Dashboard.Resources.Resources.ResourcesNotFiltered)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesFiltered)])" />
             }
             else
             {
