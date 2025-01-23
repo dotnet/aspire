@@ -89,10 +89,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private readonly List<MenuButtonItem> _resourceMenuItems = new();
 
     // State
+    private bool _hideTimestamp;
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
 
     public string BasePath => DashboardUrls.ConsoleLogBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ConsoleLogsPageState;
+    private const string HideTimestampStorageKey = BrowserStorageKeys.ConsoleLogTimestampState;
 
     protected override async Task OnInitializedAsync()
     {
@@ -100,6 +102,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
         _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelNone)] };
         PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
+
+        var timestampStorageResult = await SessionStorage.GetAsync<ConsoleLogTimestampState>(HideTimestampStorageKey);
+        if (timestampStorageResult.Value?.HideTimestamp is { } hideTimestamp)
+        {
+            _hideTimestamp = hideTimestamp;
+        }
 
         var loadingTcs = new TaskCompletionSource();
 
@@ -258,7 +266,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             Icon = new Icons.Regular.Size16.ArrowDownload()
         });
 
-        if (PageViewModel.HideTimestamp)
+        if (_hideTimestamp)
         {
             _logsMenuItems.Add(new()
             {
@@ -306,8 +314,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     private async Task ToggleTimestampAsync(bool hideTimestamp)
     {
-        PageViewModel.HideTimestamp = hideTimestamp;
-        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
+        await SessionStorage.SetAsync(HideTimestampStorageKey, new ConsoleLogTimestampState(HideTimestamp: hideTimestamp));
+        _hideTimestamp = hideTimestamp;
+        StateHasChanged();
     }
 
     private async Task ExecuteResourceCommandAsync(CommandViewModel command)
@@ -536,6 +545,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     public record ConsoleLogsPageState(string? SelectedResource);
 
+    public record ConsoleLogTimestampState(bool HideTimestamp);
+
     public Task UpdateViewModelFromQueryAsync(ConsoleLogsViewModel viewModel)
     {
         if (_resources is not null && ResourceName is not null)
@@ -558,7 +569,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     public string GetUrlFromSerializableViewModel(ConsoleLogsPageState serializable)
     {
-        return DashboardUrls.ConsoleLogsUrl(serializable.SelectedResource, serializable.HideTimestamp);
+        return DashboardUrls.ConsoleLogsUrl(serializable.SelectedResource);
     }
 
     public ConsoleLogsPageState ConvertViewModelToSerializable()
