@@ -272,8 +272,7 @@ public static class AzureServiceBusExtensions
 
         var lifetime = ContainerLifetime.Session;
 
-        // Create a default file mount. This could be replaced by a user-provided file mount.
-        var configHostFile = Path.Combine(Directory.CreateTempSubdirectory("AspireServiceBusEmulator").FullName, "Config.json");
+        string configHostFile;
 
         if (configureContainer != null)
         {
@@ -292,6 +291,11 @@ public static class AzureServiceBusExtensions
         {
             var configParameter = ParameterResourceBuilderExtensions.AddPersistentParameter(builder.ApplicationBuilder, $"{builder.Resource.Name}-configJson", configHostFile);
             configHostFile = configParameter.Value;
+        }
+        else
+        {
+            // Otherwise, create a default file mount. This could be replaced by a user-provided file mount.
+            Path.Combine(Directory.CreateTempSubdirectory("AspireServiceBusEmulator").FullName, "Config.json");
         }
 
         sqlEdgeResource = sqlEdgeResource.WithLifetime(lifetime);
