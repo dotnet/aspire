@@ -211,7 +211,7 @@
   <data name="HelpDialogKeyboardShortcutsTitle" xml:space="preserve">
     <value>Keyboard Shortcuts</value>
   </data>
-  <data name="ExemplarsDialogCloseButtonText" xml:space="preserve">
+  <data name="DialogCloseButtonText" xml:space="preserve">
     <value>Close</value>
   </data>
   <data name="ExemplarsDialogTitle" xml:space="preserve">

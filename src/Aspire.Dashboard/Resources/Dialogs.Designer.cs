@@ -62,9 +62,9 @@ namespace Aspire.Dashboard.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Close.
         /// </summary>
-        public static string ExemplarsDialogCloseButtonText {
+        public static string DialogCloseButtonText {
             get {
-                return ResourceManager.GetString("ExemplarsDialogCloseButtonText", resourceCulture);
+                return ResourceManager.GetString("DialogCloseButtonText", resourceCulture);
             }
         }
         
