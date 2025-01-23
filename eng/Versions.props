@@ -46,7 +46,7 @@
   <PropertyGroup Label="Current">
     <!-- EF -->
     <MicrosoftEntityFrameworkCoreCosmosVersion>9.0.0</MicrosoftEntityFrameworkCoreCosmosVersion>
-    <MicrosoftEntityFrameworkCoreDesignVersion>9.0.0</MicrosoftEntityFrameworkCoreDesignVersion>
+    <MicrosoftEntityFrameworkCoreDesignVersion>9.0.1</MicrosoftEntityFrameworkCoreDesignVersion>
     <MicrosoftEntityFrameworkCoreSqlServerVersion>9.0.0</MicrosoftEntityFrameworkCoreSqlServerVersion>
     <MicrosoftEntityFrameworkCoreToolsVersion>9.0.0</MicrosoftEntityFrameworkCoreToolsVersion>
     <!-- ASP.NET Core -->
@@ -62,23 +62,23 @@
     <!-- Runtime -->
     <MicrosoftExtensionsHostingAbstractionsVersion>9.0.0</MicrosoftExtensionsHostingAbstractionsVersion>
     <MicrosoftExtensionsHostingVersion>9.0.0</MicrosoftExtensionsHostingVersion>
-    <MicrosoftExtensionsConfigurationAbstractionsVersion>9.0.0</MicrosoftExtensionsConfigurationAbstractionsVersion>
+    <MicrosoftExtensionsConfigurationAbstractionsVersion>9.0.1</MicrosoftExtensionsConfigurationAbstractionsVersion>
     <MicrosoftExtensionsConfigurationBinderVersion>9.0.0</MicrosoftExtensionsConfigurationBinderVersion>
-    <MicrosoftExtensionsDependencyInjectionAbstractionsVersion>9.0.0</MicrosoftExtensionsDependencyInjectionAbstractionsVersion>
-    <MicrosoftExtensionsLoggingAbstractionsVersion>9.0.0</MicrosoftExtensionsLoggingAbstractionsVersion>
-    <MicrosoftExtensionsOptionsVersion>9.0.0</MicrosoftExtensionsOptionsVersion>
-    <MicrosoftExtensionsPrimitivesVersion>9.0.0</MicrosoftExtensionsPrimitivesVersion>
+    <MicrosoftExtensionsDependencyInjectionAbstractionsVersion>9.0.1</MicrosoftExtensionsDependencyInjectionAbstractionsVersion>
+    <MicrosoftExtensionsLoggingAbstractionsVersion>9.0.1</MicrosoftExtensionsLoggingAbstractionsVersion>
+    <MicrosoftExtensionsOptionsVersion>9.0.1</MicrosoftExtensionsOptionsVersion>
+    <MicrosoftExtensionsPrimitivesVersion>9.0.1</MicrosoftExtensionsPrimitivesVersion>
     <MicrosoftExtensionsHttpVersion>9.0.0</MicrosoftExtensionsHttpVersion>
-    <SystemFormatsAsn1Version>9.0.0</SystemFormatsAsn1Version>
-    <SystemTextJsonVersion>9.0.0</SystemTextJsonVersion>
+    <SystemFormatsAsn1Version>9.0.1</SystemFormatsAsn1Version>
+    <SystemTextJsonVersion>9.0.1</SystemTextJsonVersion>
   </PropertyGroup>
   <!-- .NET 8.0 Package Versions -->
   <PropertyGroup Label="LTS">
     <!-- EF -->
-    <MicrosoftEntityFrameworkCoreCosmosLTSVersion>8.0.11</MicrosoftEntityFrameworkCoreCosmosLTSVersion>
-    <MicrosoftEntityFrameworkCoreDesignLTSVersion>8.0.11</MicrosoftEntityFrameworkCoreDesignLTSVersion>
-    <MicrosoftEntityFrameworkCoreSqlServerLTSVersion>8.0.11</MicrosoftEntityFrameworkCoreSqlServerLTSVersion>
-    <MicrosoftEntityFrameworkCoreToolsLTSVersion>8.0.11</MicrosoftEntityFrameworkCoreToolsLTSVersion>
+    <MicrosoftEntityFrameworkCoreCosmosLTSVersion>9.0.1</MicrosoftEntityFrameworkCoreCosmosLTSVersion>
+    <MicrosoftEntityFrameworkCoreDesignLTSVersion>9.0.1</MicrosoftEntityFrameworkCoreDesignLTSVersion>
+    <MicrosoftEntityFrameworkCoreSqlServerLTSVersion>9.0.1</MicrosoftEntityFrameworkCoreSqlServerLTSVersion>
+    <MicrosoftEntityFrameworkCoreToolsLTSVersion>9.0.1</MicrosoftEntityFrameworkCoreToolsLTSVersion>
     <!-- ASP.NET Core -->
     <MicrosoftAspNetCoreAuthenticationCertificateLTSVersion>8.0.11</MicrosoftAspNetCoreAuthenticationCertificateLTSVersion>
     <MicrosoftAspNetCoreAuthenticationJwtBearerLTSVersion>8.0.11</MicrosoftAspNetCoreAuthenticationJwtBearerLTSVersion>
@@ -92,14 +92,14 @@
     <!-- Runtime -->
     <MicrosoftExtensionsHostingAbstractionsLTSVersion>8.0.1</MicrosoftExtensionsHostingAbstractionsLTSVersion>
     <MicrosoftExtensionsHostingLTSVersion>8.0.1</MicrosoftExtensionsHostingLTSVersion>
-    <MicrosoftExtensionsConfigurationAbstractionsLTSVersion>8.0.0</MicrosoftExtensionsConfigurationAbstractionsLTSVersion>
+    <MicrosoftExtensionsConfigurationAbstractionsLTSVersion>9.0.1</MicrosoftExtensionsConfigurationAbstractionsLTSVersion>
     <MicrosoftExtensionsConfigurationBinderLTSVersion>8.0.2</MicrosoftExtensionsConfigurationBinderLTSVersion>
-    <MicrosoftExtensionsDependencyInjectionAbstractionsLTSVersion>8.0.2</MicrosoftExtensionsDependencyInjectionAbstractionsLTSVersion>
-    <MicrosoftExtensionsLoggingAbstractionsLTSVersion>8.0.2</MicrosoftExtensionsLoggingAbstractionsLTSVersion>
-    <MicrosoftExtensionsOptionsLTSVersion>8.0.2</MicrosoftExtensionsOptionsLTSVersion>
-    <MicrosoftExtensionsPrimitivesLTSVersion>8.0.0</MicrosoftExtensionsPrimitivesLTSVersion>
+    <MicrosoftExtensionsDependencyInjectionAbstractionsLTSVersion>9.0.1</MicrosoftExtensionsDependencyInjectionAbstractionsLTSVersion>
+    <MicrosoftExtensionsLoggingAbstractionsLTSVersion>9.0.1</MicrosoftExtensionsLoggingAbstractionsLTSVersion>
+    <MicrosoftExtensionsOptionsLTSVersion>9.0.1</MicrosoftExtensionsOptionsLTSVersion>
+    <MicrosoftExtensionsPrimitivesLTSVersion>9.0.1</MicrosoftExtensionsPrimitivesLTSVersion>
     <MicrosoftExtensionsHttpLTSVersion>8.0.1</MicrosoftExtensionsHttpLTSVersion>
-    <SystemFormatsAsn1LTSVersion>8.0.1</SystemFormatsAsn1LTSVersion>
-    <SystemTextJsonLTSVersion>8.0.5</SystemTextJsonLTSVersion>
+    <SystemFormatsAsn1LTSVersion>9.0.1</SystemFormatsAsn1LTSVersion>
+    <SystemTextJsonLTSVersion>9.0.1</SystemTextJsonLTSVersion>
   </PropertyGroup>
 </Project>
