@@ -25,6 +25,11 @@
   ],
   "sources": [
     {
+      "source": "./9.1",
+      "target": "./",
+      "condition": "AspireVersionActual == 9.1"
+    },
+    {
       "source": "./9.0",
       "target": "./",
       "condition": "AspireVersionActual == 9.0"
@@ -60,24 +65,29 @@
       "datatype": "choice",
       "isEnabled": "Framework == net8.0",
       "choices": [
-          {
-             "choice": "9.0",
-             "displayName": "9.0",
-             "description": "Chooses .NET Aspire 9.0"
-          },
-          {
-            "choice": "8.2",
-            "displayName": "8.2",
-            "description": "Chooses .NET Aspire 8.2"
-         }
+        {
+          "choice": "9.1",
+          "displayName": "9.1",
+          "description": "Chooses .NET Aspire 9.1"
+        },
+        {
+          "choice": "9.0",
+          "displayName": "9.0",
+          "description": "Chooses .NET Aspire 9.0"
+        },
+        {
+          "choice": "8.2",
+          "displayName": "8.2",
+          "description": "Chooses .NET Aspire 8.2"
+        }
       ],
-      "defaultValue": "9.0"
+      "defaultValue": "9.1"
     },
     "AspireVersionDefault": {
       "type": "generated",
       "generator": "constant",
       "parameters": {
-        "value": "9.0"
+        "value": "9.1"
       }
     },
     "AspireVersionActual": {

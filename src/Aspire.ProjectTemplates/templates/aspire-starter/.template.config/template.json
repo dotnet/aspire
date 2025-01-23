@@ -37,6 +37,25 @@
   ],
   "sources": [
     {
+      "source": "./9.1",
+      "target": "./",
+      "condition": "AspireVersionActual == 9.1",
+      "modifiers": [
+        {
+          "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
+          "exclude": [
+            "*.sln"
+          ]
+        },
+        {
+          "condition": "(TestFramework == None)",
+          "exclude": [
+            "Aspire-StarterApplication.1.Tests/**/*.*"
+          ]
+        }
+      ]
+    },
+    {
       "source": "./9.0",
       "target": "./",
       "condition": "AspireVersionActual == 9.0",
