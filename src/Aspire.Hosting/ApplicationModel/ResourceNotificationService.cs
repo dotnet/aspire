@@ -165,8 +165,13 @@ public class ResourceNotificationService : IDisposable
         resourceLogger.LogInformation("Waiting for resource ready to execute for '{Name}'.", dependency.Name);
         resourceEvent = await WaitForResourceAsync(dependency.Name, re => re.Snapshot.ResourceReadyEvent is not null, cancellationToken: cancellationToken).ConfigureAwait(false);
 
+        resourceLogger.LogInformation("Resource '{Name}' has IsCompleted: {IsCompleted}.", dependency.Name, resourceEvent.Snapshot.ResourceReadyEvent?.EventTask.IsCompleted);
+
         // Observe the result of the resource ready event task
-        await resourceEvent.Snapshot.ResourceReadyEvent!.EventTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+        var eventTask = resourceEvent.Snapshot.ResourceReadyEvent!.EventTask;
+        resourceLogger.LogInformation("Resource '{Name} has executed the resource ready event with status {Status}.", dependency.Name, eventTask.Status);
+
+        await eventTask.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         resourceLogger.LogInformation("Finished waiting for resource '{Name}'.", dependency.Name);
 
