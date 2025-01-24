@@ -319,12 +319,15 @@ public class ResourceNotificationService : IDisposable
         var maxVersion = 0L;
 
         // Return the last snapshot for each resource.
+        // We do this after subscribing to the event to avoid missing any updates.
         foreach (var state in _resourceNotificationStates)
         {
             var (resource, resourceId) = state.Key;
 
             if (state.Value.LastSnapshot is { } ss)
             {
+                // Keep track of the highest version we have seen so far.
+                // This is used to skip events that are older than the max version.
                 maxVersion = Math.Max(maxVersion, ss.Version);
 
                 yield return new ResourceEvent(resource, resourceId, state.Value.LastSnapshot);
@@ -335,6 +338,7 @@ public class ResourceNotificationService : IDisposable
         {
             await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
+                // Skip events that are older than the max version we have seen so far. This avoids duplicates.
                 if (item.Snapshot.Version <= maxVersion)
                 {
                     continue;
