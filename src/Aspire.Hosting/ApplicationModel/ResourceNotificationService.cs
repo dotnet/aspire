@@ -23,7 +23,7 @@ public class ResourceNotificationService : IDisposable
     private readonly IServiceProvider _serviceProvider;
     private readonly CancellationTokenSource _disposing = new();
     private readonly ResourceLoggerService _resourceLoggerService;
-    private static int s_id;
+    private static long s_maxVersion;
 
     private Action<ResourceEvent>? OnResourceUpdated { get; set; }
 
@@ -316,7 +316,7 @@ public class ResourceNotificationService : IDisposable
             OnResourceUpdated += WriteToChannel;
         }
 
-        long id = 0;
+        var maxVersion = 0L;
 
         // Return the last snapshot for each resource.
         foreach (var state in _resourceNotificationStates)
@@ -325,7 +325,7 @@ public class ResourceNotificationService : IDisposable
 
             if (state.Value.LastSnapshot is { } ss)
             {
-                id = Math.Max(id, ss.Id);
+                maxVersion = Math.Max(maxVersion, ss.Version);
 
                 yield return new ResourceEvent(resource, resourceId, state.Value.LastSnapshot);
             }
@@ -335,7 +335,7 @@ public class ResourceNotificationService : IDisposable
         {
             await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
-                if (item.Snapshot.Id <= id)
+                if (item.Snapshot.Version <= maxVersion)
                 {
                     continue;
                 }
@@ -371,7 +371,7 @@ public class ResourceNotificationService : IDisposable
             var newState = stateFactory(previousState);
 
             // Increment the snapshot id
-            newState = newState with { Id = Interlocked.Increment(ref s_id) };
+            newState = newState with { Version = Interlocked.Increment(ref s_maxVersion) };
 
             newState = UpdateCommands(resource, newState);
 
@@ -398,7 +398,7 @@ public class ResourceNotificationService : IDisposable
             {
                 _logger.LogTrace(
                     """
-                    Snapshot: {SnapshotId}
+                    Version: {Version}
                     Resource {Resource}/{ResourceId} update published:
                     ResourceType = {ResourceType},
                     CreationTimeStamp = {CreationTimeStamp:s},
@@ -414,7 +414,7 @@ public class ResourceNotificationService : IDisposable
                     {Properties}
                     }}
                     """,
-                    newState.Id,
+                    newState.Version,
                     resource.Name,
                     resourceId,
                     newState.ResourceType,

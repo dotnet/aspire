@@ -18,7 +18,10 @@ public sealed record CustomResourceSnapshot
     private readonly ImmutableArray<HealthReportSnapshot> _healthReports = [];
     private readonly ResourceStateSnapshot? _state;
 
-    internal long Id { get; set; }
+    /// <summary>
+    /// Monotonically increasing version number for the snapshot.
+    /// </summary>
+    internal long Version { get; set; }
 
     /// <summary>
     /// The type of the resource.
