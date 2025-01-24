@@ -340,6 +340,8 @@ public class ResourceNotificationService : IDisposable
                 // Skip events that are older than the max version we have seen so far. This avoids duplicates.
                 if (versionsSeen.TryGetValue((item.Resource, item.ResourceId), out var maxVersionSeen) && item.Snapshot.Version <= maxVersionSeen)
                 {
+                    // We can remove the version from the seen list since we have seen it already.
+                    // We only care about events we have returned to the caller
                     versionsSeen.Remove((item.Resource, item.ResourceId));
                     continue;
                 }
