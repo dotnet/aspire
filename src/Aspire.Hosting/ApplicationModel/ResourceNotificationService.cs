@@ -23,7 +23,6 @@ public class ResourceNotificationService : IDisposable
     private readonly IServiceProvider _serviceProvider;
     private readonly CancellationTokenSource _disposing = new();
     private readonly ResourceLoggerService _resourceLoggerService;
-    private static long s_maxVersion;
 
     private Action<ResourceEvent>? OnResourceUpdated { get; set; }
 
@@ -316,21 +315,21 @@ public class ResourceNotificationService : IDisposable
             OnResourceUpdated += WriteToChannel;
         }
 
-        var maxVersion = 0L;
-
         // Return the last snapshot for each resource.
         // We do this after subscribing to the event to avoid missing any updates.
+
+        // Keep track of the versions we have seen so far to avoid duplicates.
+        var versionsSeen = new Dictionary<(IResource, string), long>();
+
         foreach (var state in _resourceNotificationStates)
         {
             var (resource, resourceId) = state.Key;
 
-            if (state.Value.LastSnapshot is { } ss)
+            if (state.Value.LastSnapshot is { } snapshot)
             {
-                // Keep track of the highest version we have seen so far.
-                // This is used to skip events that are older than the max version.
-                maxVersion = Math.Max(maxVersion, ss.Version);
+                versionsSeen[state.Key] = snapshot.Version;
 
-                yield return new ResourceEvent(resource, resourceId, state.Value.LastSnapshot);
+                yield return new ResourceEvent(resource, resourceId, snapshot);
             }
         }
 
@@ -339,8 +338,9 @@ public class ResourceNotificationService : IDisposable
             await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
                 // Skip events that are older than the max version we have seen so far. This avoids duplicates.
-                if (item.Snapshot.Version <= maxVersion)
+                if (versionsSeen.TryGetValue((item.Resource, item.ResourceId), out var maxVersionSeen) && item.Snapshot.Version <= maxVersionSeen)
                 {
+                    versionsSeen.Remove((item.Resource, item.ResourceId));
                     continue;
                 }
 
@@ -374,8 +374,8 @@ public class ResourceNotificationService : IDisposable
 
             var newState = stateFactory(previousState);
 
-            // Increment the snapshot id
-            newState = newState with { Version = Interlocked.Increment(ref s_maxVersion) };
+            // Increment the snapshot version, this is a per resource version.
+            newState = newState with { Version = notificationState.LastVersion++ };
 
             newState = UpdateCommands(resource, newState);
 
@@ -570,6 +570,7 @@ public class ResourceNotificationService : IDisposable
     /// </summary>
     private sealed class ResourceNotificationState
     {
+        public long LastVersion { get; set; } = 1;
         public CustomResourceSnapshot? LastSnapshot { get; set; }
     }
 }
