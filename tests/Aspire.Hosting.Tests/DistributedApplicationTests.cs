@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
 using Aspire.Components.Common.Tests;
@@ -147,7 +148,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
+
     public async Task AllocatedPortsAssignedAfterHookRuns()
     {
         using var testProgram = CreateTestProgram();
@@ -180,7 +181,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task TestServicesWithMultipleReplicas()
     {
         var replicaCount = 3;
@@ -237,7 +237,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerAppWorks()
     {
         using var testProgram = CreateTestProgram();
@@ -267,7 +266,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyContainerStopStartWorks()
     {
         using var testProgram = CreateTestProgram(randomizePorts: false);
@@ -319,7 +317,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyExecutableStopStartWorks()
     {
         using var testProgram = CreateTestProgram(randomizePorts: false);
@@ -353,7 +350,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task SpecifyingEnvPortInEndpointFlowsToEnv()
     {
         using var testProgram = CreateTestProgram(randomizePorts: false);
@@ -409,7 +405,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task StartAsync_DashboardAuthConfig_PassedToDashboardProcess()
     {
         var browserToken = "ThisIsATestToken";
@@ -449,7 +444,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task StartAsync_UnsecuredAllowAnonymous_PassedToDashboardProcess()
     {
         var args = new string[] {
@@ -485,7 +479,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithEntrypointWorks()
     {
         using var testProgram = CreateTestProgram();
@@ -513,7 +506,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithBindMountWorksWithAbsolutePaths()
     {
         using var testProgram = CreateTestProgram();
@@ -543,7 +535,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithBindMountWorksWithRelativePaths()
     {
         using var testProgram = CreateTestProgram();
@@ -573,7 +564,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithVolumeWorksWithName()
     {
         using var testProgram = CreateTestProgram();
@@ -602,7 +592,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task KubernetesHasResourceNameForContainersAndExes()
     {
         using var testProgram = CreateTestProgram(includeIntegrationServices: true);
@@ -659,7 +648,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ReplicasAndProxylessEndpointThrows()
     {
         using var testProgram = CreateTestProgram();
@@ -677,7 +665,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessEndpointWithoutPortThrows()
     {
         using var testProgram = CreateTestProgram();
@@ -696,7 +683,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessEndpointWorks()
     {
         using var testProgram = CreateTestProgram();
@@ -731,7 +717,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4599", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessAndProxiedEndpointBothWorkOnSameResource()
     {
         using var testProgram = CreateTestProgram();
@@ -751,28 +736,26 @@ public class DistributedApplicationTests
 
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
+        testProgram.ServiceABuilder.WithHttpHealthCheck();
+        testProgram.ServiceABuilder.WithHttpsHealthCheck();
+
         await using var app = testProgram.Build();
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
         var token = cts.Token;
 
-        var urls = string.Empty;
+        await rns.WaitForResourceHealthyAsync(testProgram.ServiceABuilder.Resource.Name, cts.Token);
+
         var httpEndPoint = app.GetEndpoint(testProgram.ServiceABuilder.Resource.Name, endpointName: "http");
-        while (true)
-        {
-            try
-            {
-                using var client = new HttpClient();
-                urls = await client.GetStringAsync($"{httpEndPoint}urls", token);
-                break;
-            }
-            catch
-            {
-                await Task.Delay(100, token);
-            }
-        }
+        using var client = new HttpClient();
+        var urls = await client.GetStringAsync($"{httpEndPoint}urls", token);
+
+        var urlsData = JsonSerializer.Deserialize<string[]>(urls)!;
+        Assert.Equal(2, urlsData.Length);
 
         Assert.Contains(httpEndPoint.ToString().Trim('/'), urls);
 
@@ -780,25 +763,12 @@ public class DistributedApplicationTests
         var httpsEndpoint = app.GetEndpoint(testProgram.ServiceABuilder.Resource.Name, endpointName: "https");
         Assert.DoesNotContain(httpsEndpoint.ToString().Trim('/'), urls);
 
-        while (true)
-        {
-            try
-            {
-                using var client = new HttpClient();
-                var value = await client.GetStringAsync($"{httpsEndpoint}urls", token).DefaultTimeout();
-                Assert.Equal(urls, value);
-                break;
-            }
-            catch (Exception ex) when (ex is not EqualException)
-            {
-                await Task.Delay(100, token);
-            }
-        }
+        var value = await client.GetStringAsync($"{httpsEndpoint}urls", token).DefaultTimeout();
+        Assert.Equal(urls, value);
     }
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessContainerCanBeReferenced()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -837,7 +807,7 @@ public class DistributedApplicationTests
         Assert.Equal("localhost:1234", env.Value);
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
-        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(),$"redis-{ReplicaIdRegex}-{suffix}"))) ;
+        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"redis-{ReplicaIdRegex}-{suffix}")));
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
         var otherRedisEnv = Assert.Single(service.Spec.Env!.Where(e => e.Name == "ConnectionStrings__redisNoPort"));
@@ -851,7 +821,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessContainerWithoutPortThrows()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
