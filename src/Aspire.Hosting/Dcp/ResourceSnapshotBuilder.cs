@@ -211,7 +211,7 @@ internal class ResourceSnapshotBuilder
                     }
                 }
 
-                if (ep.EndpointAnnotation.IsProxied)
+                if (ep.EndpointAnnotation.IsProxied.GetValueOrDefault(appModelResource.ShouldProxyEndpointsByDefault()))
                 {
                     var endpointString = $"{ep.Scheme}://{endpoint.Spec.Address}:{endpoint.Spec.Port}";
                     urls.Add(new(Name: $"{ep.EndpointName} target port", Url: endpointString, IsInternal: true));

@@ -16,10 +16,7 @@ namespace Aspire.Hosting.ApplicationModel;
 public sealed class EndpointAnnotation : IResourceAnnotation
 {
     private string? _transport;
-    private int? _port;
-    private bool _portSetToNull;
-    private int? _targetPort;
-    private bool _targetPortSetToNull;
+
     /// <summary>
     /// Initializes a new instance of <see cref="EndpointAnnotation"/>.
     /// </summary>
@@ -30,8 +27,8 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <param name="port">Desired port for the service.</param>
     /// <param name="targetPort">This is the port the resource is listening on. If the endpoint is used for the container, it is the container port.</param>
     /// <param name="isExternal">Indicates that this endpoint should be exposed externally at publish time.</param>
-    /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
-    public EndpointAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, [EndpointName] string? name = null, int? port = null, int? targetPort = null, bool? isExternal = null, bool isProxied = true)
+    /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to null.</param>
+    public EndpointAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, [EndpointName] string? name = null, int? port = null, int? targetPort = null, bool? isExternal = null, bool? isProxied = null)
     {
         // If the URI scheme is null, we'll adopt either udp:// or tcp:// based on the
         // protocol. If the name is null, we'll use the URI scheme as the default. This
@@ -47,8 +44,8 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         UriScheme = uriScheme;
         _transport = transport;
         Name = name;
-        _port = port;
-        _targetPort = targetPort;
+        Port = port;
+        TargetPort = targetPort;
         IsExternal = isExternal ?? false;
         IsProxied = isProxied;
     }
@@ -66,27 +63,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <summary>
     /// Desired port for the service
     /// </summary>
-    public int? Port
-    {
-        // For proxy-less Endpoints the client port and target port should be the same.
-        // Note that this is just a "sensible default"--the consumer of the EndpointAnnotation is free
-        // to change Port and TargetPort after the annotation is created, but if the final values are inconsistent,
-        // the associated resource may fail to run.
-        // It also depends on what the EndpointAnnotation is applied to.
-        // In the Container case the TargetPort is the port that the process listens on inside the container,
-        //  and the Port is the host interface port, so it is fine for them to be different.
-        get => _port ?? (IsProxied || _portSetToNull ? null : _targetPort);
-        set
-        {
-            _port = value;
-            _portSetToNull = value == null;
-        }
-    }
-
-    /// <summary>
-    /// Indicates the the port is set with an explicit value.
-    /// </summary>
-    internal bool IsPortSet => _port != null;
+    public int? Port { get; set; }
 
     /// <summary>
     /// This is the port the resource is listening on. If the endpoint is used for the container, it is the container port.
@@ -94,16 +71,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <remarks>
     /// Defaults to <see cref="Port"/>.
     /// </remarks>
-    public int? TargetPort
-    {
-        // See comment on the Port setter, as this is the reciprocal logic
-        get => _targetPort ?? (IsProxied || _targetPortSetToNull ? null : _port);
-        set
-        {
-            _targetPort = value;
-            _targetPortSetToNull = value == null;
-        }
-    }
+    public int? TargetPort { get; set; }
 
     /// <summary>
     /// If a service is URI-addressable, this property will contain the URI scheme to use for constructing service URI.
@@ -131,10 +99,10 @@ public sealed class EndpointAnnotation : IResourceAnnotation
 
     /// <summary>
     /// Indicates that this endpoint should be managed by DCP. This means it can be replicated and use a different port internally than the one publicly exposed.
-    /// Setting to false means the endpoint will be handled and exposed by the resource.
+    /// Setting to true means the endpoint will be proxied by DCP. False means the endpoint will be handled and exposed by the resource. Null will apply per-resource defaults.
     /// </summary>
-    /// <remarks>Defaults to <c>true</c>.</remarks>
-    public bool IsProxied { get; set; } = true;
+    /// <remarks>Defaults to <c>null</c>.</remarks>
+    public bool? IsProxied { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the endpoint is from a launch profile.
