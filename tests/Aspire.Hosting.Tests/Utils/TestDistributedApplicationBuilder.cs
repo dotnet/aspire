@@ -6,8 +6,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Dashboard;
-using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Dcp;
 using Microsoft.Extensions.Configuration;
@@ -78,7 +78,7 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
             o.OtlpGrpcEndpointUrl ??= "http://localhost:4317";
         });
 
-        _innerBuilder.Services.AddSingleton<ApplicationExecutorProxy>(sp => new ApplicationExecutorProxy(sp.GetRequiredService<ApplicationExecutor>()));
+        _innerBuilder.Services.AddSingleton<ApplicationOrchestratorProxy>(sp => new ApplicationOrchestratorProxy(sp.GetRequiredService<ApplicationOrchestrator>()));
 
         _innerBuilder.Services.AddHttpClient();
         _innerBuilder.Services.ConfigureHttpClientDefaults(http => http.AddStandardResilienceHandler());

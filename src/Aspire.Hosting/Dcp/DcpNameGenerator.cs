@@ -78,6 +78,34 @@ internal sealed class DcpNameGenerator
         return (GetObjectNameForResource(project, _options.Value, nameSuffix), nameSuffix);
     }
 
+    public string GetServiceName(IResource resource, EndpointAnnotation endpoint, bool hasMultipleEndpoints, HashSet<string> allServiceNames)
+    {
+        var candidateServiceName = !hasMultipleEndpoints
+            ? GetObjectNameForResource(resource, _options.Value)
+            : GetObjectNameForResource(resource, _options.Value, endpoint.Name);
+
+        return GenerateUniqueServiceName(allServiceNames, candidateServiceName);
+    }
+
+    private static string GenerateUniqueServiceName(HashSet<string> serviceNames, string candidateName)
+    {
+        int suffix = 1;
+        string uniqueName = candidateName;
+
+        while (!serviceNames.Add(uniqueName))
+        {
+            uniqueName = $"{candidateName}-{suffix}";
+            suffix++;
+            if (suffix == 100)
+            {
+                // Should never happen, but we do not want to ever get into a infinite loop situation either.
+                throw new ArgumentException($"Could not generate a unique name for service '{candidateName}'");
+            }
+        }
+
+        return uniqueName;
+    }
+
     private static string GetRandomNameSuffix()
     {
         // RandomNameSuffixLength of lowercase characters
@@ -85,7 +113,7 @@ internal sealed class DcpNameGenerator
         return suffix;
     }
 
-    private static string GetObjectNameForResource(IResource resource, DcpOptions options, string suffix = "")
+    public static string GetObjectNameForResource(IResource resource, DcpOptions options, string suffix = "")
     {
         if (resource.TryGetLastAnnotation<ContainerNameAnnotation>(out var containerNameAnnotation))
         {

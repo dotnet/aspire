@@ -21,6 +21,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Aspire.Hosting.Devcontainers;
+using Aspire.Hosting.Orchestrator;
 
 namespace Aspire.Hosting;
 
@@ -277,10 +278,15 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>());
             }
 
+            // Orchestrator
+            _innerBuilder.Services.AddSingleton<ApplicationOrchestrator>();
+            _innerBuilder.Services.AddHostedService<OrchestratorHostService>();
+
             // DCP stuff
-            _innerBuilder.Services.AddSingleton<ApplicationExecutor>();
+            _innerBuilder.Services.AddSingleton<IDcpExecutor, DcpExecutor>();
+            _innerBuilder.Services.AddSingleton<DcpExecutorEvents>();
+            _innerBuilder.Services.AddSingleton<DcpHost>();
             _innerBuilder.Services.AddSingleton<IDcpDependencyCheckService, DcpDependencyCheck>();
-            _innerBuilder.Services.AddHostedService<DcpHostService>();
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DcpOptions>, ConfigureDefaultDcpOptions>());
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DcpOptions>, ValidateDcpOptions>());
             _innerBuilder.Services.AddSingleton<DcpNameGenerator>();
