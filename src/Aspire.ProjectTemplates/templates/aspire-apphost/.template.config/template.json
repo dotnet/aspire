@@ -58,7 +58,32 @@
       "replaces": "net8.0",
       "defaultValue": "net9.0"
     },
-    "AspireVersion": {
+    "AspireVersionCli": {
+      "type": "parameter",
+      "description": "The version of .NET Aspire to use.",
+      "displayName": ".NET Aspire version",
+      "datatype": "choice",
+      "isEnabled": "(hostIdentifier == \"dotnetcli\")",
+      "choices": [
+        {
+          "choice": "9.1",
+          "displayName": "9.1",
+          "description": "Chooses .NET Aspire 9.1"
+        },
+        {
+          "choice": "9.0",
+          "displayName": "9.0",
+          "description": "Chooses .NET Aspire 9.0"
+        },
+        {
+          "choice": "8.2",
+          "displayName": "8.2",
+          "description": "Chooses .NET Aspire 8.2 (only valid when '--framework net8.0' is specified)"
+        }
+      ],
+      "defaultValue": "9.1"
+    },
+    "AspireVersionNet8": {
       "type": "parameter",
       "description": "The version of .NET Aspire to use.",
       "displayName": ".NET Aspire version",
@@ -83,6 +108,26 @@
       ],
       "defaultValue": "9.1"
     },
+    "AspireVersionNet9": {
+      "type": "parameter",
+      "description": "The version of .NET Aspire to use.",
+      "displayName": ".NET Aspire version",
+      "datatype": "choice",
+      "isEnabled": "Framework == net9.0",
+      "choices": [
+        {
+          "choice": "9.1",
+          "displayName": "9.1",
+          "description": "Chooses .NET Aspire 9.1"
+        },
+        {
+          "choice": "9.0",
+          "displayName": "9.0",
+          "description": "Chooses .NET Aspire 9.0"
+        }
+      ],
+      "defaultValue": "9.1"
+    },
     "AspireVersionDefault": {
       "type": "generated",
       "generator": "constant",
@@ -92,12 +137,28 @@
     },
     "AspireVersionActual": {
       "type": "generated",
-      "generator": "coalesce",
+      "generator": "switch",
+      "replaces": "aspireVersion",
       "parameters": {
-        "sourceVariableName": "AspireVersion",
-        "fallbackVariableName": "AspireVersionDefault"
-      },
-      "replaces": "aspireVersion"
+        "cases": [
+          {
+            "condition": "hostIdentifier == \"dotnetcli\"",
+            "value": "AspireVersionCli"
+          },
+          {
+            "condition": "Framework == net8.0",
+            "value": "AspireVersionNet8"
+          },
+          {
+            "condition": "Framework == net9.0",
+            "value": "AspireVersionNet9"
+          },
+          {
+            "condition": "true",
+            "value": "AspireVersionDefault"
+          }
+        ]
+      }
     },
     "hostIdentifier": {
       "type": "bind",

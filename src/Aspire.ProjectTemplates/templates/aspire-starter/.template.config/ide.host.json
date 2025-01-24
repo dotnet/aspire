@@ -11,11 +11,21 @@
   ],
   "symbolInfo": [
     {
-      "id": "AspireVersion",
+      "id": "AspireVersionCli",
+      "isVisible": false
+    },
+    {
+      "id": "AspireVersionNet8",
       "isVisible": true,
       "persistenceScope": "shared",
       "persistenceScopeName": "aspireTemplates"
     },
+    {
+      "id": "AspireVersionNet9",
+      "isVisible": true,
+      "persistenceScope": "shared",
+      "persistenceScopeName": "aspireTemplates"
+    }
     {
       "id": "UseRedisCache",
       "isVisible": true,
