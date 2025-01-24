@@ -305,17 +305,6 @@ public class ResourceNotificationService : IDisposable
     /// <returns></returns>
     public async IAsyncEnumerable<ResourceEvent> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        // Return the last snapshot for each resource.
-        foreach (var state in _resourceNotificationStates)
-        {
-            var (resource, resourceId) = state.Key;
-
-            if (state.Value.LastSnapshot is not null)
-            {
-                yield return new ResourceEvent(resource, resourceId, state.Value.LastSnapshot);
-            }
-        }
-
         var channel = Channel.CreateUnbounded<ResourceEvent>();
 
         void WriteToChannel(ResourceEvent resourceEvent) =>
@@ -326,10 +315,30 @@ public class ResourceNotificationService : IDisposable
             OnResourceUpdated += WriteToChannel;
         }
 
+        long id = 0;
+
+        // Return the last snapshot for each resource.
+        foreach (var state in _resourceNotificationStates)
+        {
+            var (resource, resourceId) = state.Key;
+
+            if (state.Value.LastSnapshot is { } ss)
+            {
+                id = Math.Max(id, ss.Id);
+
+                yield return new ResourceEvent(resource, resourceId, state.Value.LastSnapshot);
+            }
+        }
+
         try
         {
             await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
+                if (item.Snapshot.Id <= id)
+                {
+                    continue;
+                }
+
                 yield return item;
             }
         }
@@ -360,6 +369,9 @@ public class ResourceNotificationService : IDisposable
 
             var newState = stateFactory(previousState);
 
+            // Increment the snapshot id
+            newState = newState with { Id = previousState.Id + 1 };
+
             newState = UpdateCommands(resource, newState);
 
             notificationState.LastSnapshot = newState;
@@ -385,6 +397,7 @@ public class ResourceNotificationService : IDisposable
             {
                 _logger.LogTrace(
                     """
+                    Snapshot: {SnapshotId}
                     Resource {Resource}/{ResourceId} update published:
                     ResourceType = {ResourceType},
                     CreationTimeStamp = {CreationTimeStamp:s},
@@ -400,6 +413,7 @@ public class ResourceNotificationService : IDisposable
                     {Properties}
                     }}
                     """,
+                    newState.Id,
                     resource.Name,
                     resourceId,
                     newState.ResourceType,
