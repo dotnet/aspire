@@ -155,6 +155,7 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         hostBuilderOptions.ApplicationName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
         applicationOptions.AssemblyName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
         applicationOptions.DisableDashboard = true;
+        applicationOptions.EnableResourceLogging = true;
         var cfg = hostBuilderOptions.Configuration ??= new();
         var additionalConfig = new Dictionary<string, string?>
         {
@@ -232,7 +233,6 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     private void OnBuildingCore(DistributedApplicationBuilder applicationBuilder)
     {
         var services = applicationBuilder.Services;
-        services.AddHostedService<ResourceLoggerForwarderService>();
         services.AddHttpClient();
 
         InterceptHostCreation(applicationBuilder);
