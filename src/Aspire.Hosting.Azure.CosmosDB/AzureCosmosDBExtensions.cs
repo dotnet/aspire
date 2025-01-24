@@ -381,7 +381,7 @@ public static class AzureCosmosExtensions
             var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
             infrastructure.Add(principalIdParameter);
 
-            cosmosAccount.CreateRoleAssignment(CosmosDBBuiltInRole.DocumentDBAccountContributor, principalTypeParameter, principalIdParameter);
+            infrastructure.Add(cosmosAccount.CreateRoleAssignment(CosmosDBBuiltInRole.DocumentDBAccountContributor, principalTypeParameter, principalIdParameter));
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
