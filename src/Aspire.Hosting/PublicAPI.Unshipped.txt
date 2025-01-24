@@ -13,6 +13,7 @@ Aspire.Hosting.ApplicationModel.DockerfileBuildAnnotation.ContextPath.get -> str
 Aspire.Hosting.ApplicationModel.DockerfileBuildAnnotation.DockerfileBuildAnnotation(string! contextPath, string! dockerfilePath, string? stage) -> void
 Aspire.Hosting.ApplicationModel.DockerfileBuildAnnotation.DockerfilePath.get -> string!
 Aspire.Hosting.ApplicationModel.DockerfileBuildAnnotation.Stage.get -> string?
+Aspire.Hosting.ApplicationModel.EndpointAnnotation.IsPortSet.get -> bool
 Aspire.Hosting.ApplicationModel.EndpointNameAttribute
 Aspire.Hosting.ApplicationModel.EndpointNameAttribute.EndpointNameAttribute() -> void
 Aspire.Hosting.ApplicationModel.ExcludeLaunchProfileAnnotation

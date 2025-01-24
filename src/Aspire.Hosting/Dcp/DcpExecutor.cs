@@ -739,7 +739,7 @@ internal sealed class DcpExecutor : IDcpExecutor
                     throw new InvalidDataException($"Service {svc.Metadata.Name} should have valid address at this point");
                 }
 
-                if (!sp.EndpointAnnotation.IsProxied && svc.AllocatedPort is null)
+                if (!sp.EndpointAnnotation.IsProxied && svc.AllocatedPort == null)
                 {
                     throw new InvalidOperationException($"Service '{svc.Metadata.Name}' needs to specify a port for endpoint '{sp.EndpointAnnotation.Name}' since it isn't using a proxy.");
                 }
@@ -764,6 +764,8 @@ internal sealed class DcpExecutor : IDcpExecutor
         // services produced by different resources).
         var serviceNames = new HashSet<string>();
 
+        List<(IResource, EndpointAnnotation)> endpointsWithHostUnset = [];
+
         foreach (var sp in serviceProducers)
         {
             var endpoints = sp.Endpoints;
@@ -772,6 +774,17 @@ internal sealed class DcpExecutor : IDcpExecutor
             {
                 var serviceName = _nameGenerator.GetServiceName(sp.ModelResource, endpoint, endpoints.Length > 1, serviceNames);
                 var svc = Service.Create(serviceName);
+
+                if (!sp.ModelResource.SupportsProxy())
+                {
+                    // If the resource can't be proxied, we need to enforce that on the annotation
+                    endpoint.IsProxied = false;
+                }
+
+                if (sp.ModelResource.IsContainer() && !endpoint.IsProxied && !endpoint.IsPortSet && endpoint.TargetPort is int)
+                {
+                    endpointsWithHostUnset.Add((sp.ModelResource, endpoint));
+                }
 
                 var port = _options.Value.RandomizePorts && endpoint.IsProxied ? null : endpoint.Port;
                 svc.Spec.Port = port;
@@ -788,6 +801,15 @@ internal sealed class DcpExecutor : IDcpExecutor
                 svc.Annotate(CustomResource.EndpointNameAnnotation, endpoint.Name);
 
                 _appResources.Add(new ServiceAppResource(sp.ModelResource, svc, endpoint));
+            }
+        }
+
+        if (endpointsWithHostUnset.Any())
+        {
+            _logger.LogWarning("You have unproxied container endpoints without an explicit host port set. By default these endpoints will attempt to bind a host port that matches the container target port. This can lead to port conflicts if multiple containers are using the same target port(s). For containers running with a persistent lifetime or container endpoints with IsProxied disabled, we recommend specifying explicit host ports. For more information on container networking in .NET Aspire see: https://aka.ms/dotnet/aspire/container-networking");
+            foreach (var (resource, endpoint) in endpointsWithHostUnset)
+            {
+                _logger.LogInformation("'{EndpointName}' endpoint for '{ResourceName}' doesn't have a host port set. Attempting to bind host port '{TargetPort}'.", endpoint.Name, resource.Name, endpoint.TargetPort);
             }
         }
     }
@@ -1297,10 +1319,6 @@ internal sealed class DcpExecutor : IDcpExecutor
 
         dcpContainerResource.Spec.Env = [];
 
-        var proxiedPorts = new List<EndpointAnnotation>();
-
-        var isPersistentContainer = modelContainerResource.GetContainerLifetimeType() == ContainerLifetime.Persistent;
-
         if (cr.ServicesProduced.Count > 0)
         {
             dcpContainerResource.Spec.Ports = new();
@@ -1328,23 +1346,7 @@ internal sealed class DcpExecutor : IDcpExecutor
                 }
 
                 dcpContainerResource.Spec.Ports.Add(portSpec);
-
-                if (isPersistentContainer)
-                {
-                    if (ea.IsProxied)
-                    {
-                        proxiedPorts.Add(ea);
-                    }
-                }
             }
-        }
-
-        if (proxiedPorts.Count > 0)
-        {
-            _logger.LogWarning(
-                "'{ResourceName}' is configured with a persistent lifetime, but has proxied endpoints. The target port(s) ({TargetPorts}) will be exposed via a proxy while your App Host project is running, but may not otherwise be accessible between App Host runs. It is recommended to configure fixed unproxied endpoint ports for persistent containers. For more information on networking in .NET Aspire see: https://aka.ms/dotnet/aspire/networking",
-                modelContainerResource.Name,
-                string.Join(", ", proxiedPorts.Select(p => p.TargetPort)));
         }
 
         if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
