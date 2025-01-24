@@ -191,7 +191,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
             logger.LogDebug("The error from the container runtime check was: {Error}", error);
             if (throwIfUnhealthy)
             {
-                throw new InvalidOperationException($"Container runtime '{containerRuntime}' could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.");
+                throw new DistributedApplicationException($"Container runtime '{containerRuntime}' could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.");
             }
         }
         else if (!running)
@@ -213,13 +213,12 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
                 messageFormat.Append("Ensure that the container runtime is running.");
             }
 
-            var errorMessage = messageFormat.ToString();
-            logger.LogWarning(errorMessage, containerRuntime);
+            logger.LogWarning(messageFormat.ToString(), containerRuntime);
 
             logger.LogDebug("The error from the container runtime check was: {Error}", error);
             if (throwIfUnhealthy)
             {
-                throw new InvalidOperationException(errorMessage.Replace("{Runtime}", containerRuntime));
+                throw new DistributedApplicationException(messageFormat.Replace("{Runtime}", containerRuntime).ToString());
             }
         }
     }
