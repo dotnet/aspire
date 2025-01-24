@@ -137,7 +137,7 @@
     <HelixPreCommand Include="docker network prune -f" />
 
     <HelixPostCommand Include="docker container ls --all" />
-    <HelixPreCommand Include="docker container ls --all --format json" />
+    <HelixPostCommand Include="docker container ls --all --format json" />
     <HelixPostCommand Include="docker volume ls" />
     <HelixPostCommand Include="docker network ls" />
   </ItemGroup>
