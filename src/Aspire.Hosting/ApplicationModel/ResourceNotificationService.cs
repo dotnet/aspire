@@ -23,6 +23,7 @@ public class ResourceNotificationService : IDisposable
     private readonly IServiceProvider _serviceProvider;
     private readonly CancellationTokenSource _disposing = new();
     private readonly ResourceLoggerService _resourceLoggerService;
+    private static int s_id;
 
     private Action<ResourceEvent>? OnResourceUpdated { get; set; }
 
@@ -370,7 +371,7 @@ public class ResourceNotificationService : IDisposable
             var newState = stateFactory(previousState);
 
             // Increment the snapshot id
-            newState = newState with { Id = previousState.Id + 1 };
+            newState = newState with { Id = Interlocked.Increment(ref s_id) };
 
             newState = UpdateCommands(resource, newState);
 
