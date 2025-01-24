@@ -3,10 +3,13 @@
 
 using System.Diagnostics;
 using System.Threading.Channels;
+using Aspire.Hosting.Health;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Time.Testing;
 using Xunit;
 using Xunit.Abstractions;
@@ -18,7 +21,11 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task ResourcesWithoutHealthCheck_HealthyWhenRunning()
     {
+        var testSink = new TestSink();
+
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.Services.AddLogging(logging => logging.AddProvider(new TestLoggerProvider(testSink)));
+
         var resource = builder.AddResource(new ParentResource("resource"));
 
         await using var app = await builder.BuildAsync().DefaultTimeout();
@@ -43,14 +50,21 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(HealthStatus.Healthy, healthyEvent.Snapshot.HealthStatus);
 
         await app.StopAsync().DefaultTimeout();
+
+        Assert.Contains(testSink.Writes, w => w.Message == "Resource 'resource' has no health checks to monitor.");
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/6385")]
     public async Task ResourcesWithHealthCheck_NotHealthyUntilCheckSucceeds()
     {
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
-        builder.Services.AddHealthChecks().AddCheck("healthcheck_a",  () => HealthCheckResult.Healthy());
+        builder.Services.AddHealthChecks().AddAsyncCheck("healthcheck_a", async () =>
+        {
+            await tcs.Task;
+            return HealthCheckResult.Healthy();
+        });
 
         var resource = builder.AddResource(new ParentResource("resource"))
             .WithHealthCheck("healthcheck_a");
@@ -74,9 +88,82 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         });
 
         var runningEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout();
-
+        // Resource is unhealthy because it has health reports that haven't run yet.
         Assert.Equal(HealthStatus.Unhealthy, runningEvent.Snapshot.HealthStatus);
+
+        // Allow health check to report success.
+        tcs.SetResult();
+
         await rns.WaitForResourceHealthyAsync("resource").DefaultTimeout();
+
+        await app.StopAsync().DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task ResourcesWithHealthCheck_StopsAndRestartsMonitoringWithResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        builder.Services.AddHealthChecks().AddCheck("healthcheck_a", () =>
+        {
+            return HealthCheckResult.Healthy();
+        });
+
+        var resource = builder.AddResource(new ParentResource("resource"))
+            .WithHealthCheck("healthcheck_a");
+
+        var channel = Channel.CreateUnbounded<ResourceReadyEvent>();
+        builder.Eventing.Subscribe<ResourceReadyEvent>(resource.Resource, (@event, ct) =>
+        {
+            channel.Writer.TryWrite(@event);
+            return Task.CompletedTask;
+        });
+
+        await using var app = await builder.BuildAsync().DefaultTimeout();
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        var healthService = app.Services.GetRequiredService<ResourceHealthCheckService>();
+
+        await app.StartAsync().DefaultTimeout();
+
+        await rns.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
+        });
+
+        await rns.WaitForResourceHealthyAsync("resource").DefaultTimeout();
+
+        // Verify resource ready event called.
+        var e1 = await channel.Reader.ReadAsync().DefaultTimeout();
+        Assert.Equal(resource.Resource, e1.Resource);
+
+        var monitor1 = healthService.GetResourceMonitorState("resource")!;
+        var monitorStoppedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        monitor1.CancellationToken.Register(monitorStoppedTcs.SetResult);
+
+        await rns.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Exited, null)
+        });
+
+        // Wait for the health monitor to be stopped.
+        await monitorStoppedTcs.Task.DefaultTimeout();
+
+        await rns.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Running, null),
+            HealthReports = [new HealthReportSnapshot("healthcheck_a", Status: null, Description: null, ExceptionText: null)]
+        });
+
+        await rns.WaitForResourceHealthyAsync("resource").DefaultTimeout();
+
+        var monitor2 = healthService.GetResourceMonitorState("resource")!;
+        Assert.NotEqual(monitor1, monitor2);
+        Assert.False(monitor2.CancellationToken.IsCancellationRequested);
+
+        // Verify resource ready event called after restart.
+        var e2 = await channel.Reader.ReadAsync().DefaultTimeout();
+        Assert.Equal(resource.Resource, e2.Resource);
 
         await app.StopAsync().DefaultTimeout();
     }
