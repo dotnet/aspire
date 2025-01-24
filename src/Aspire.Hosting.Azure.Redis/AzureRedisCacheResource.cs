@@ -30,7 +30,7 @@ public class AzureRedisCacheResource(string name, Action<AzureResourceInfrastruc
     internal BicepSecretOutputReference? ConnectionStringSecretOutput { get; set; }
 
     /// <summary>
-    /// Whether the resource uses access key authentication.
+    /// Gets a value indicating whether the resource uses access key authentication.
     /// </summary>
     [MemberNotNullWhen(true, nameof(ConnectionStringSecretOutput))]
     public bool UseAccessKeyAuthentication => ConnectionStringSecretOutput is not null;
