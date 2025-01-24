@@ -806,11 +806,13 @@ internal sealed class DcpExecutor : IDcpExecutor
 
         if (endpointsWithHostUnset.Any())
         {
-            _logger.LogWarning("You have unproxied container endpoints without an explicit host port set. By default these endpoints will attempt to bind a host port that matches the container target port. This can lead to port conflicts if multiple containers are using the same target port(s). For containers running with a persistent lifetime or container endpoints with IsProxied disabled, we recommend specifying explicit host ports. For more information on container networking in .NET Aspire see: https://aka.ms/dotnet/aspire/container-networking");
+            var logMessage = "You have unproxied container endpoints without an explicit host port set. By default these endpoints will attempt to bind a host port that matches the container target port. This can lead to port conflicts if multiple containers are using the same target port(s). For containers running with a persistent lifetime or container endpoints with IsProxied disabled, we recommend specifying explicit host ports. For more information on container networking in .NET Aspire see: https://aka.ms/dotnet/aspire/container-networking";
             foreach (var (resource, endpoint) in endpointsWithHostUnset)
             {
-                _logger.LogInformation("'{EndpointName}' endpoint for '{ResourceName}' doesn't have a host port set. Attempting to bind host port '{TargetPort}'.", endpoint.Name, resource.Name, endpoint.TargetPort);
+                logMessage += $"{Environment.NewLine}'{endpoint.Name}' endpoint for '{resource.Name}' doesn't have a host port set, attempting to bind host port '{endpoint.TargetPort}'";
             }
+
+            _logger.LogWarning(logMessage);
         }
     }
 

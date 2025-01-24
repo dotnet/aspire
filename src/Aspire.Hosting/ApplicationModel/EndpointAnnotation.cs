@@ -86,7 +86,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <summary>
     /// Indicates the the port is set with an explicit value.
     /// </summary>
-    public bool IsPortSet => _port != null;
+    internal bool IsPortSet => _port != null;
 
     /// <summary>
     /// This is the port the resource is listening on. If the endpoint is used for the container, it is the container port.
