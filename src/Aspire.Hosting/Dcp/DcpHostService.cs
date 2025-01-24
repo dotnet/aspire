@@ -192,16 +192,6 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
         _logger.LogInformation("Starting DCP with arguments: {Arguments}", dcpProcessSpec.Arguments);
 
-        foreach (DictionaryEntry de in Environment.GetEnvironmentVariables())
-        {
-            var key = de.Key?.ToString();
-            var val = de.Value?.ToString();
-            if (key is not null && val is not null && !s_doNotInheritEnvironmentVars.Contains(key))
-            {
-                dcpProcessSpec.EnvironmentVariables.Add(key, val);
-            }
-        }
-
         if (!string.IsNullOrEmpty(_dcpOptions.ExtensionsPath))
         {
             dcpProcessSpec.EnvironmentVariables.Add("DCP_EXTENSIONS_PATH", _dcpOptions.ExtensionsPath);
@@ -215,6 +205,16 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         // Set an environment variable to contain session info that should be deleted when DCP is done
         // Currently this contains the Unix socket for logging and the kubeconfig
         dcpProcessSpec.EnvironmentVariables.Add("DCP_SESSION_FOLDER", locations.DcpSessionDir);
+
+        foreach (DictionaryEntry de in Environment.GetEnvironmentVariables())
+        {
+            var key = de.Key?.ToString();
+            var val = de.Value?.ToString();
+            if (key is not null && val is not null && !s_doNotInheritEnvironmentVars.Contains(key))
+            {
+                dcpProcessSpec.EnvironmentVariables[key] = val;
+            }
+        }
         return dcpProcessSpec;
     }
 
