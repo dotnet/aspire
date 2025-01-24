@@ -19,6 +19,11 @@ public sealed record CustomResourceSnapshot
     private readonly ResourceStateSnapshot? _state;
 
     /// <summary>
+    /// Monotonically increasing version number for the snapshot.
+    /// </summary>
+    internal long Version { get; init; }
+
+    /// <summary>
     /// The type of the resource.
     /// </summary>
     public required string ResourceType { get; init; }

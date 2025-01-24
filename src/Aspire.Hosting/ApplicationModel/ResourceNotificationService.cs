@@ -324,17 +324,6 @@ public class ResourceNotificationService : IDisposable
     /// <returns></returns>
     public async IAsyncEnumerable<ResourceEvent> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        // Return the last snapshot for each resource.
-        foreach (var state in _resourceNotificationStates)
-        {
-            var (resource, resourceId) = state.Key;
-
-            if (state.Value.LastSnapshot is not null)
-            {
-                yield return new ResourceEvent(resource, resourceId, state.Value.LastSnapshot);
-            }
-        }
-
         var channel = Channel.CreateUnbounded<ResourceEvent>();
 
         void WriteToChannel(ResourceEvent resourceEvent) =>
@@ -345,10 +334,37 @@ public class ResourceNotificationService : IDisposable
             OnResourceUpdated += WriteToChannel;
         }
 
+        // Return the last snapshot for each resource.
+        // We do this after subscribing to the event to avoid missing any updates.
+
+        // Keep track of the versions we have seen so far to avoid duplicates.
+        var versionsSeen = new Dictionary<(IResource, string), long>();
+
+        foreach (var state in _resourceNotificationStates)
+        {
+            var (resource, resourceId) = state.Key;
+
+            if (state.Value.LastSnapshot is { } snapshot)
+            {
+                versionsSeen[state.Key] = snapshot.Version;
+
+                yield return new ResourceEvent(resource, resourceId, snapshot);
+            }
+        }
+
         try
         {
             await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
+                // Skip events that are older than the max version we have seen so far. This avoids duplicates.
+                if (versionsSeen.TryGetValue((item.Resource, item.ResourceId), out var maxVersionSeen) && item.Snapshot.Version <= maxVersionSeen)
+                {
+                    // We can remove the version from the seen list since we have seen it already.
+                    // We only care about events we have returned to the caller
+                    versionsSeen.Remove((item.Resource, item.ResourceId));
+                    continue;
+                }
+
                 yield return item;
             }
         }
@@ -379,6 +395,9 @@ public class ResourceNotificationService : IDisposable
 
             var newState = stateFactory(previousState);
 
+            // Increment the snapshot version, this is a per resource version.
+            newState = newState with { Version = notificationState.GetNextVersion() };
+
             newState = UpdateCommands(resource, newState);
 
             notificationState.LastSnapshot = newState;
@@ -404,6 +423,7 @@ public class ResourceNotificationService : IDisposable
             {
                 _logger.LogTrace(
                     """
+                    Version: {Version}
                     Resource {Resource}/{ResourceId} update published:
                     ResourceType = {ResourceType},
                     CreationTimeStamp = {CreationTimeStamp:s},
@@ -419,6 +439,7 @@ public class ResourceNotificationService : IDisposable
                     {Properties}
                     }}
                     """,
+                    newState.Version,
                     resource.Name,
                     resourceId,
                     newState.ResourceType,
@@ -570,6 +591,8 @@ public class ResourceNotificationService : IDisposable
     /// </summary>
     private sealed class ResourceNotificationState
     {
+        private long _lastVersion = 1;
+        public long GetNextVersion() => _lastVersion++;
         public CustomResourceSnapshot? LastSnapshot { get; set; }
     }
 }
