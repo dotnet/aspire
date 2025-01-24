@@ -52,7 +52,7 @@ public static class ParameterResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Creates a new <see cref="ParameterResource"/> that has a generated value using the <paramref name="value"/>.
+    /// Creates a new <see cref="ParameterResource"/> that has a generated value using the <paramref name="valueGetter"/>.
     /// </summary>
     /// <remarks>
     /// The value will be saved to the app host project's user secrets store when <see cref="DistributedApplicationExecutionContext.IsRunMode"/> is <c>true</c>
@@ -60,17 +60,17 @@ public static class ParameterResourceBuilderExtensions
     /// </remarks>
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">Name of the parameter</param>
-    /// <param name="value"></param>
+    /// <param name="valueGetter">A callback returning the default value</param>
     /// <returns>The created <see cref="ParameterResource"/>.</returns>
-    public static ParameterResource AddPersistentParameter(this IDistributedApplicationBuilder builder, string name, string value)
+    public static ParameterResource AddPersistentParameter(this IDistributedApplicationBuilder builder, string name, Func<string> valueGetter)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(value);
+        ArgumentNullException.ThrowIfNull(valueGetter);
 
         var parameterResource = new ParameterResource(name, defaultValue => GetParameterValue(builder.Configuration, name, defaultValue), true)
         {
-            Default = new ConstantParameterDefault(() => value)
+            Default = new ConstantParameterDefault(valueGetter)
         };
 
         if (builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null)
