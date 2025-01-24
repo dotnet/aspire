@@ -29,17 +29,17 @@
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
       <Sha>4bce32212388f844b598caf48f3b4d61bd5fe5f9</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Http.Resilience" Version="9.0.0">
+    <Dependency Name="Microsoft.Extensions.Http.Resilience" Version="9.1.0">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
-      <Sha>0968e75afa659e14f00e19085475a529c29c7b59</Sha>
+      <Sha>3e265f88e29670081e21c29919bb0250f1f50d54</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.TimeProvider.Testing" Version="9.0.0">
+    <Dependency Name="Microsoft.Extensions.TimeProvider.Testing" Version="9.1.0">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
-      <Sha>0968e75afa659e14f00e19085475a529c29c7b59</Sha>
+      <Sha>3e265f88e29670081e21c29919bb0250f1f50d54</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Diagnostics.Testing" Version="9.0.0">
+    <Dependency Name="Microsoft.Extensions.Diagnostics.Testing" Version="9.1.0">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
-      <Sha>0968e75afa659e14f00e19085475a529c29c7b59</Sha>
+      <Sha>3e265f88e29670081e21c29919bb0250f1f50d54</Sha>
     </Dependency>
     <Dependency Name="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
@@ -77,65 +77,65 @@
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
       <Sha>9cb3b725e3ad2b57ddc9fb2dd48d2d170563a8f5</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.NET.Runtime.WorkloadTesting.Internal" Version="9.0.0-preview.5.24272.3">
-      <Uri>https://github.com/dotnet/runtime</Uri>
-      <Sha>b83186a969946f61c71ad0da034936fac9947752</Sha>
+    <Dependency Name="Microsoft.NET.Runtime.WorkloadTesting.Internal" Version="9.0.1-servicing.24603.14">
+      <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
+      <Sha>69ae1ac0682f4b69b1d733fbf3bdee2825a2aab2</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.AspNetCore.OpenApi" Version="8.0.11">
+    <Dependency Name="Microsoft.AspNetCore.OpenApi" Version="8.0.12">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>47576478939fdd59b4400ad135f47938af486ab3</Sha>
+      <Sha>31d685b2d9a86ca1243014d175a3da813f78e428</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" Version="8.0.11">
+    <Dependency Name="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" Version="8.0.12">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>47576478939fdd59b4400ad135f47938af486ab3</Sha>
+      <Sha>31d685b2d9a86ca1243014d175a3da813f78e428</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.11">
+    <Dependency Name="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.12">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>47576478939fdd59b4400ad135f47938af486ab3</Sha>
+      <Sha>31d685b2d9a86ca1243014d175a3da813f78e428</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="8.0.11">
+    <Dependency Name="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="8.0.12">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>47576478939fdd59b4400ad135f47938af486ab3</Sha>
+      <Sha>31d685b2d9a86ca1243014d175a3da813f78e428</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Diagnostics.HealthChecks" Version="8.0.11">
+    <Dependency Name="Microsoft.Extensions.Diagnostics.HealthChecks" Version="8.0.12">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>47576478939fdd59b4400ad135f47938af486ab3</Sha>
+      <Sha>31d685b2d9a86ca1243014d175a3da813f78e428</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Features" Version="8.0.11">
+    <Dependency Name="Microsoft.Extensions.Features" Version="8.0.12">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>47576478939fdd59b4400ad135f47938af486ab3</Sha>
+      <Sha>31d685b2d9a86ca1243014d175a3da813f78e428</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.AspNetCore.Authentication.Certificate" Version="8.0.11">
+    <Dependency Name="Microsoft.AspNetCore.Authentication.Certificate" Version="8.0.12">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>47576478939fdd59b4400ad135f47938af486ab3</Sha>
+      <Sha>31d685b2d9a86ca1243014d175a3da813f78e428</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11">
+    <Dependency Name="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.12">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>47576478939fdd59b4400ad135f47938af486ab3</Sha>
+      <Sha>31d685b2d9a86ca1243014d175a3da813f78e428</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.11">
+    <Dependency Name="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.12">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>47576478939fdd59b4400ad135f47938af486ab3</Sha>
+      <Sha>31d685b2d9a86ca1243014d175a3da813f78e428</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.AspNetCore.TestHost" Version="8.0.11">
+    <Dependency Name="Microsoft.AspNetCore.TestHost" Version="8.0.12">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
-      <Sha>47576478939fdd59b4400ad135f47938af486ab3</Sha>
+      <Sha>31d685b2d9a86ca1243014d175a3da813f78e428</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.EntityFrameworkCore.Cosmos" Version="8.0.11">
+    <Dependency Name="Microsoft.EntityFrameworkCore.Cosmos" Version="8.0.12">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-efcore</Uri>
-      <Sha>5d020e763f00511c102f94fdf5bf525512d7daaf</Sha>
+      <Sha>10196376f4843cbbf180ec6ab2ce7d34ceec2fab</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.11">
+    <Dependency Name="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.12">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-efcore</Uri>
-      <Sha>5d020e763f00511c102f94fdf5bf525512d7daaf</Sha>
+      <Sha>10196376f4843cbbf180ec6ab2ce7d34ceec2fab</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.EntityFrameworkCore.Tools" Version="8.0.11">
+    <Dependency Name="Microsoft.EntityFrameworkCore.Tools" Version="8.0.12">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-efcore</Uri>
-      <Sha>5d020e763f00511c102f94fdf5bf525512d7daaf</Sha>
+      <Sha>10196376f4843cbbf180ec6ab2ce7d34ceec2fab</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
+    <Dependency Name="Microsoft.EntityFrameworkCore.Design" Version="8.0.12">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-efcore</Uri>
-      <Sha>5d020e763f00511c102f94fdf5bf525512d7daaf</Sha>
+      <Sha>10196376f4843cbbf180ec6ab2ce7d34ceec2fab</Sha>
     </Dependency>
     <!-- Intermediate is necessary for source build. -->
     <Dependency Name="Microsoft.SourceBuild.Intermediate.source-build-reference-packages" Version="9.0.0-alpha.1.24453.2">
