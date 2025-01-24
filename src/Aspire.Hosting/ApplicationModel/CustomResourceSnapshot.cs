@@ -21,7 +21,7 @@ public sealed record CustomResourceSnapshot
     /// <summary>
     /// Monotonically increasing version number for the snapshot.
     /// </summary>
-    internal long Version { get; set; }
+    internal long Version { get; init; }
 
     /// <summary>
     /// The type of the resource.

@@ -375,7 +375,7 @@ public class ResourceNotificationService : IDisposable
             var newState = stateFactory(previousState);
 
             // Increment the snapshot version, this is a per resource version.
-            newState = newState with { Version = notificationState.LastVersion++ };
+            newState = newState with { Version = notificationState.GetNextVersion() };
 
             newState = UpdateCommands(resource, newState);
 
@@ -570,7 +570,8 @@ public class ResourceNotificationService : IDisposable
     /// </summary>
     private sealed class ResourceNotificationState
     {
-        public long LastVersion { get; set; } = 1;
+        private long _lastVersion = 1;
+        public long GetNextVersion() => _lastVersion++;
         public CustomResourceSnapshot? LastSnapshot { get; set; }
     }
 }
