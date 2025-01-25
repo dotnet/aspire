@@ -159,7 +159,7 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         var cfg = hostBuilderOptions.Configuration ??= new();
         var additionalConfig = new Dictionary<string, string?>
         {
-            ["DcpPublisher:ContainerRuntimeInitializationTimeout"] = "00:00:10",
+            ["DcpPublisher:ContainerRuntimeInitializationTimeout"] = "00:00:30",
             ["DcpPublisher:RandomizePorts"] = "true",
             ["DcpPublisher:DeleteResourcesOnShutdown"] = "true",
             ["DcpPublisher:ResourceNameSuffix"] = $"{Random.Shared.Next():x}",
