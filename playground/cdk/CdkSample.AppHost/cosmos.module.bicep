@@ -38,4 +38,14 @@ resource cosmosdb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15
   parent: cosmos
 }
 
+resource cosmos_DocumentDBAccountContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(cosmos.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5bd9cd88-fe45-4216-938b-f97437e15450'))
+  properties: {
+    principalId: principalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5bd9cd88-fe45-4216-938b-f97437e15450')
+    principalType: principalType
+  }
+  scope: cosmos
+}
+
 output connectionString string = cosmos.properties.documentEndpoint
