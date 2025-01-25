@@ -437,6 +437,9 @@ public class ResourceNotificationService : IDisposable
                     }},
                     Properties = {{
                     {Properties}
+                    }},
+                    HealthReports = {{
+                    {HealthReports}
                     }}
                     """,
                     newState.Version,
@@ -451,7 +454,8 @@ public class ResourceNotificationService : IDisposable
                     newState.ExitCode,
                     string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
                     string.Join(Environment.NewLine, newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")),
-                    string.Join(Environment.NewLine, newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")));
+                    string.Join(Environment.NewLine, newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")),
+                    string.Join(Environment.NewLine, newState.HealthReports.Select(p => $"{p.Name} = {p.Status}")));
 
                 static string Stringify(object? o) => o switch
                 {

@@ -67,6 +67,7 @@ internal sealed class ApplicationOrchestrator
                 {
                     State = KnownResourceStates.Starting,
                     ResourceType = context.ResourceType,
+                    HealthReports = GetInitialHealthReports(context.Resource)
                 })
                 .ConfigureAwait(false);
                 break;
@@ -75,7 +76,8 @@ internal sealed class ApplicationOrchestrator
                 {
                     State = KnownResourceStates.Starting,
                     Properties = s.Properties.SetResourceProperty(KnownProperties.Container.Image, context.Resource.TryGetContainerImageName(out var imageName) ? imageName : ""),
-                    ResourceType = KnownResourceTypes.Container
+                    ResourceType = KnownResourceTypes.Container,
+                    HealthReports = GetInitialHealthReports(context.Resource)
                 })
                 .ConfigureAwait(false);
 
@@ -197,17 +199,17 @@ internal sealed class ApplicationOrchestrator
                 };
             }).ConfigureAwait(false);
         }
+    }
 
-        static ImmutableArray<HealthReportSnapshot> GetInitialHealthReports(IResource resource)
+    private static ImmutableArray<HealthReportSnapshot> GetInitialHealthReports(IResource resource)
+    {
+        if (!resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out var annotations))
         {
-            if (!resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out var annotations))
-            {
-                return [];
-            }
-
-            var reports = annotations.Select(annotation => new HealthReportSnapshot(annotation.Key, null, null, null));
-            return [.. reports];
+            return [];
         }
+
+        var reports = annotations.Select(annotation => new HealthReportSnapshot(annotation.Key, null, null, null));
+        return [.. reports];
     }
 
     private async Task PublishConnectionStringAvailableEvent(IResource resource, CancellationToken cancellationToken)

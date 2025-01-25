@@ -14,29 +14,74 @@ namespace Aspire.Hosting.Health;
 internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> logger, ResourceNotificationService resourceNotificationService, HealthCheckService healthCheckService, IServiceProvider services, IDistributedApplicationEventing eventing, TimeProvider timeProvider) : BackgroundService
 {
     private readonly Dictionary<string, ResourceEvent> _latestEvents = new();
+    private readonly Dictionary<string, ResourceMonitorState> _resourcesStartedMonitoring = new();
+
+    internal class ResourceMonitorState(CancellationToken serviceStoppingToken)
+    {
+        private readonly CancellationTokenSource _cts = CancellationTokenSource.CreateLinkedTokenSource(serviceStoppingToken);
+
+        public CancellationToken CancellationToken => _cts.Token;
+
+        public void StopResourceMonitor()
+        {
+            _cts.Cancel();
+        }
+    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var resourcesStartedMonitoring = new HashSet<string>();
-
         try
         {
             var resourceEvents = resourceNotificationService.WatchAsync(stoppingToken);
 
+            // Watch for resource notifications and start and stop health monitoring based on the state of the resource.
             await foreach (var resourceEvent in resourceEvents.ConfigureAwait(false))
             {
-                _latestEvents[resourceEvent.Resource.Name] = resourceEvent;
+                var resourceName = resourceEvent.Resource.Name;
 
-                if (!resourcesStartedMonitoring.Contains(resourceEvent.Resource.Name) && resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running)
+                _latestEvents[resourceName] = resourceEvent;
+
+                if (resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running)
                 {
-                    _ = Task.Run(() => MonitorResourceHealthAsync(resourceEvent, stoppingToken), stoppingToken);
-                    resourcesStartedMonitoring.Add(resourceEvent.Resource.Name);
+                    lock (_resourcesStartedMonitoring)
+                    {
+                        if (!_resourcesStartedMonitoring.TryGetValue(resourceName, out var state))
+                        {
+                            // This is the first time we've seen this resource in a running state, so we need to start monitoring it.
+                            _resourcesStartedMonitoring[resourceName] = state = new ResourceMonitorState(stoppingToken);
+                            _ = Task.Run(() => MonitorResourceHealthAsync(resourceEvent, state.CancellationToken), state.CancellationToken);
+                        }
+                    }
+                }
+                else if (KnownResourceStates.TerminalStates.Contains(resourceEvent.Snapshot.State?.Text))
+                {
+                    lock (_resourcesStartedMonitoring)
+                    {
+                        if (_resourcesStartedMonitoring.TryGetValue(resourceName, out var state))
+                        {
+                            logger.LogDebug("Health monitoring for resource '{Resource}' stopping.", resourceName);
+
+                            // The resource is in a terminal state, so we can stop monitoring it.
+                            state.StopResourceMonitor();
+                            _resourcesStartedMonitoring.Remove(resourceName);
+                        }
+                    }
                 }
             }
         }
         catch (OperationCanceledException)
         {
             // This was expected as the token was canceled
+        }
+    }
+
+    // Internal for testing.
+    internal ResourceMonitorState? GetResourceMonitorState(string resourceName)
+    {
+        lock (_resourcesStartedMonitoring)
+        {
+            _resourcesStartedMonitoring.TryGetValue(resourceName, out var state);
+            return state;
         }
     }
 
