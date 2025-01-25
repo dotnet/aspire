@@ -154,8 +154,10 @@
     <!-- Set the DCP_DIAGNOSTICS_LOG_LEVEL env -->
     <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_DIAGNOSTICS_LOG_LEVEL=debug" />
     <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_DIAGNOSTICS_LOG_FOLDER=$(_HelixLogsPath)" />
+    <!-- 
     <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_SESSION_FOLDER=$(_HelixLogsPath)" />
-    <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_PRESERVE_EXECUTABLE_LOGS=1" />
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_PRESERVE_EXECUTABLE_LOGS=1" /> 
+    -->
 
     <HelixPostCommand Include="$(_WaitForDcpCommand)" />
   </ItemGroup>
