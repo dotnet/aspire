@@ -25,7 +25,6 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
         public void StopResourceMonitor()
         {
             _cts.Cancel();
-            _cts.Dispose();
         }
     }
 
