@@ -251,6 +251,8 @@ public class DistributedApplicationTests
 
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
         var s = app.Services.GetRequiredService<IKubernetesService>();
         var list = await s.ListAsync<Container>().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 

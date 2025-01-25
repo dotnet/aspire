@@ -22,6 +22,7 @@ internal sealed class ApplicationOrchestrator
     private readonly IDistributedApplicationEventing _eventing;
     private readonly IServiceProvider _serviceProvider;
     private readonly CancellationTokenSource _shutdownCancellation = new();
+    private readonly TaskCompletionSource _endpointsAllocated = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public ApplicationOrchestrator(DistributedApplicationModel model,
                                    IDcpExecutor dcpExecutor,
@@ -55,6 +56,8 @@ internal sealed class ApplicationOrchestrator
         {
             await lifecycleHook.AfterEndpointsAllocatedAsync(_model, context.CancellationToken).ConfigureAwait(false);
         }
+
+        _endpointsAllocated.TrySetResult();
     }
 
     private async Task OnResourceStarting(OnResourceStartingContext context)
@@ -124,17 +127,25 @@ internal sealed class ApplicationOrchestrator
         }
     }
 
-    public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
+    public Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
-        await _dcpExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false);
-
-        var afterResourcesCreatedEvent = new AfterResourcesCreatedEvent(_serviceProvider, _model);
-        await _eventing.PublishAsync(afterResourcesCreatedEvent, cancellationToken).ConfigureAwait(false);
-
-        foreach (var lifecycleHook in _lifecycleHooks)
+        _ = Task.Run(async () =>
         {
-            await lifecycleHook.AfterResourcesCreatedAsync(_model, cancellationToken).ConfigureAwait(false);
-        }
+            await _dcpExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false);
+
+            var afterResourcesCreatedEvent = new AfterResourcesCreatedEvent(_serviceProvider, _model);
+            await _eventing.PublishAsync(afterResourcesCreatedEvent, cancellationToken).ConfigureAwait(false);
+
+            foreach (var lifecycleHook in _lifecycleHooks)
+            {
+                await lifecycleHook.AfterResourcesCreatedAsync(_model, cancellationToken).ConfigureAwait(false);
+            }
+        },
+        cancellationToken);
+
+        // Don't return until endpoints are allocated.
+        // There's lots of test code that depends on this.
+        return _endpointsAllocated.Task;
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
