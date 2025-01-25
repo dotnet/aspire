@@ -33,7 +33,6 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
     /// <summary>
     /// Gets a value indicating whether the resource uses password authentication.
     /// </summary>
-
     [MemberNotNullWhen(true, nameof(ConnectionStringSecretOutput))]
     public bool UsePasswordAuthentication => ConnectionStringSecretOutput is not null;
 
