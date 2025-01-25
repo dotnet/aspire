@@ -16,6 +16,8 @@ internal sealed class ApplicationOrchestrator
 {
     private readonly IDcpExecutor _dcpExecutor;
     private readonly DistributedApplicationModel _model;
+
+    private readonly HashSet<IResource> _resourcesWithConnectionString = new();
     private readonly ILookup<IResource?, IResourceWithParent> _parentChildLookup;
     private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks;
     private readonly ResourceNotificationService _notificationService;
@@ -86,7 +88,14 @@ internal sealed class ApplicationOrchestrator
                 break;
         }
 
-        await PublishConnectionStringAvailableEvent(context.Resource, context.CancellationToken).ConfigureAwait(false);
+        if (!_resourcesWithConnectionString.Contains(context.Resource))
+        {
+            if (context.Resource.TryGetEndpoints(out var endpoints) && endpoints.All(e => e.AllocatedEndpoint is not null))
+            {
+                _resourcesWithConnectionString.Add(context.Resource);
+                await PublishConnectionStringAvailableEvent(context.Resource, context.CancellationToken).ConfigureAwait(false);
+            }
+        }
 
         var beforeResourceStartedEvent = new BeforeResourceStartedEvent(context.Resource, _serviceProvider);
         await _eventing.PublishAsync(beforeResourceStartedEvent, context.CancellationToken).ConfigureAwait(false);
@@ -99,6 +108,15 @@ internal sealed class ApplicationOrchestrator
 
     private async Task OnResourceChanged(OnResourceChangedContext context)
     {
+        if (!_resourcesWithConnectionString.Contains(context.Resource))
+        {
+            if (context.Resource.TryGetEndpoints(out var endpoints) && endpoints.All(e => e.AllocatedEndpoint is not null))
+            {
+                _resourcesWithConnectionString.Add(context.Resource);
+                await PublishConnectionStringAvailableEvent(context.Resource, context.CancellationToken).ConfigureAwait(false);
+            }
+        }
+
         await _notificationService.PublishUpdateAsync(context.Resource, context.DcpResourceName, context.UpdateSnapshot).ConfigureAwait(false);
 
         if (context.ResourceType == KnownResourceTypes.Container)

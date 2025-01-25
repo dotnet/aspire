@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Data;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.Sockets;
 using System.Text.Json;
@@ -89,6 +90,7 @@ internal sealed class DcpExecutor : IDcpExecutor
     private readonly ConcurrentDictionary<string, (CancellationTokenSource Cancellation, Task Task)> _logStreams = new();
     private DcpInfo? _dcpInfo;
     private Task? _resourceWatchTask;
+    private int _endpointsAllocated;
 
     private readonly record struct LogInformationEntry(string ResourceName, bool? LogsAvailable, bool? HasSubscribers);
     private readonly Channel<LogInformationEntry> _logInformationChannel = Channel.CreateUnbounded<LogInformationEntry>(
@@ -539,10 +541,68 @@ internal sealed class DcpExecutor : IDcpExecutor
             return;
         }
 
+        var containerHost = DefaultContainerHostName;
+
+        var allocatedAdditionalEndpoints = false;
+
         foreach (var ((resourceKind, resourceName), _) in _resourceState.ResourceAssociatedServicesMap.Where(e => e.Value.Contains(service.Metadata.Name)))
         {
+            if (service.Status?.EffectivePort is int allocatedPort && allocatedPort != 0)
+            {
+                if (TryGetAppModelResource(resourceKind, resourceName, out var appResource))
+                {
+                    if (appResource.ModelResource.TryGetEndpoints(out var endpoints))
+                    {
+                        var endpoint = endpoints.FirstOrDefault(endpoint => endpoint.Name == service.EndpointName && endpoint.AllocatedEndpoint is null);
+                        if (endpoint is EndpointAnnotation)
+                        {
+                            endpoint.AllocatedEndpoint = new AllocatedEndpoint(
+                                endpoint,
+                                "localhost",
+                                allocatedPort,
+                                containerHostAddress: appResource.ModelResource.IsContainer() ? containerHost : null,
+                                targetPortExpression: $$$"""{{- portForServing "{{{service.Metadata.Name}}}" -}}""");
+                            allocatedAdditionalEndpoints = true;
+                        }
+                    }
+                }
+            }
+
             await TryRefreshResource(resourceKind, resourceName).ConfigureAwait(false);
         }
+
+        if (allocatedAdditionalEndpoints && _resourceState.ServicesMap.Values.All(s => s.AllocatedPort is not null) && Interlocked.CompareExchange(ref _endpointsAllocated, 1, 0) == 0)
+        {
+            // All services have now been allocated, so all endpoints should be allocated as well
+            await _executorEvents.PublishAsync(new OnEndpointsAllocatedContext(_shutdownCancellation.Token)).ConfigureAwait(false);
+        }
+    }
+
+    private bool TryGetAppModelResource(string resourceKind, string resourceName, [MaybeNullWhen(false)] out AppResource appResource)
+    {
+        appResource = null;
+
+        CustomResource? cr = resourceKind switch
+        {
+            "Container" => _resourceState.ContainersMap.TryGetValue(resourceName, out var container) ? container : null,
+            "Executable" => _resourceState.ExecutablesMap.TryGetValue(resourceName, out var executable) ? executable : null,
+            _ => null
+        };
+
+        if (cr is null)
+        {
+            return false;
+        }
+
+        var appModelResourceName = cr.AppModelResourceName;
+        if (appModelResourceName is not null &&
+            _resourceState.ApplicationModel.TryGetValue(appModelResourceName, out var appModelResource))
+        {
+            appResource = new AppResource(appModelResource, cr);
+            return true;
+        }
+
+        return false;
     }
 
     private async ValueTask TryRefreshResource(string resourceKind, string resourceName)
@@ -713,9 +773,8 @@ internal sealed class DcpExecutor : IDcpExecutor
     private async Task CreateContainersAndExecutablesAsync(CancellationToken cancellationToken)
     {
         var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable || r.DcpResource is ExecutableReplicaSet);
-        AddAllocatedEndpointInfo(toCreate);
-
-        await _executorEvents.PublishAsync(new OnEndpointsAllocatedContext(cancellationToken)).ConfigureAwait(false);
+        // Confirm that endpoints are valid before creating executables and containers
+        AllocateEndpoints(toCreate);
 
         var containersTask = CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container), cancellationToken);
         var executablesTask = CreateExecutablesAsync(toCreate.Where(ar => ar.DcpResource is Executable || ar.DcpResource is ExecutableReplicaSet), cancellationToken);
@@ -723,9 +782,10 @@ internal sealed class DcpExecutor : IDcpExecutor
         await Task.WhenAll(containersTask, executablesTask).ConfigureAwait(false);
     }
 
-    private void AddAllocatedEndpointInfo(IEnumerable<AppResource> resources)
+    private void AllocateEndpoints(IEnumerable<AppResource> resources)
     {
         var containerHost = DefaultContainerHostName;
+        var allocatedAllEndpoints = true;
 
         foreach (var appResource in resources)
         {
@@ -747,21 +807,25 @@ internal sealed class DcpExecutor : IDcpExecutor
                     throw new InvalidOperationException($"Service '{svc.Metadata.Name}' needs to specify a port for endpoint '{sp.EndpointAnnotation.Name}' since it isn't using a proxy.");
                 }
 
-                var allocatedPort = svc.AllocatedPort ?? sp.EndpointAnnotation.TargetPort ?? 0;
-
-                if (allocatedPort == 0)
+                if (svc.AllocatedPort is null)
                 {
-                    // We should have a port by now, otherwise the user hasn't specified any port and we can't proceed.
-                    throw new InvalidOperationException($"Service '{svc.Metadata.Name}' needs to specify a target port for endpoint '{sp.EndpointAnnotation.Name}'.");
+                    allocatedAllEndpoints = false;
+                    continue;
                 }
 
                 sp.EndpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(
                     sp.EndpointAnnotation,
                     "localhost",
-                    allocatedPort,
-                    containerHostAddress: appResource.ModelResource.IsContainer() ? containerHost : null,
+                    (int)svc.AllocatedPort,
+                    containerHostAddress: sp.ModelResource.IsContainer() ? containerHost : null,
                     targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""");
             }
+        }
+
+        if (allocatedAllEndpoints && Interlocked.CompareExchange(ref _endpointsAllocated, 1, 0) == 0)
+        {
+            // We were able to pre-allocate all endpoints, so we can signal that all endpoints are allocated.
+            _executorEvents.PublishAsync(new OnEndpointsAllocatedContext(_shutdownCancellation.Token)).Wait();
         }
     }
 
