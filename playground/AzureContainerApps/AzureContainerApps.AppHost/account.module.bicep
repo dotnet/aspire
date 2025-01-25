@@ -38,4 +38,19 @@ resource db 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
   parent: account
 }
 
+resource account_roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-08-15' existing = {
+  name: '00000000-0000-0000-0000-000000000002'
+  parent: account
+}
+
+resource account_roleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-08-15' = {
+  name: guid(principalId, account_roleDefinition.id, account.id)
+  properties: {
+    principalId: principalId
+    roleDefinitionId: account_roleDefinition.id
+    scope: account.id
+  }
+  parent: account
+}
+
 output connectionString string = account.properties.documentEndpoint
