@@ -275,6 +275,7 @@ static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Exited -> st
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.FailedToStart -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Finished -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Running -> string!
+static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.RuntimeUnhealthy -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Starting -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Stopping -> string!
 Aspire.Hosting.ProjectResourceOptions
