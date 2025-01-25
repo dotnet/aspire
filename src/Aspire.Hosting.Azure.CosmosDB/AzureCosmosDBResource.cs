@@ -39,8 +39,11 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     /// </summary>
     internal BicepSecretOutputReference? ConnectionStringSecretOutput { get; set; }
 
+    /// <summary>
+    /// Gets a value indicating whether the resource uses access key authentication.
+    /// </summary>
     [MemberNotNullWhen(true, nameof(ConnectionStringSecretOutput))]
-    internal bool UseAccessKeyAuthentication => ConnectionStringSecretOutput is not null;
+    public bool UseAccessKeyAuthentication => ConnectionStringSecretOutput is not null;
 
     /// <summary>
     /// Gets a value indicating whether the Azure Cosmos DB resource is running in the local emulator.
