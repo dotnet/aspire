@@ -22,7 +22,7 @@ public class ConsumerConfigurationTests
         var key = useKeyed ? "messaging" : null;
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:messaging", CommonHelpers.TestingEndpoint),
-            new KeyValuePair<string, string?>(ProducerConformanceTests.CreateConfigKey("Aspire:Confluent:Kafka:Consumer", key, "Config:GroupId"), "unused")
+            new KeyValuePair<string, string?>(ConsumerConformanceTests.CreateConfigKey("Aspire:Confluent:Kafka:Consumer", key, "Config:GroupId"), "unused")
         ]);
 
         if (useKeyed)
@@ -54,7 +54,7 @@ public class ConsumerConfigurationTests
         var key = useKeyed ? "messaging" : null;
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:messaging", "unused"),
-            new KeyValuePair<string, string?>(ProducerConformanceTests.CreateConfigKey("Aspire:Confluent:Kafka:Consumer", key, "Config:GroupId"), "unused")
+            new KeyValuePair<string, string?>(ConsumerConformanceTests.CreateConfigKey("Aspire:Confluent:Kafka:Consumer", key, "Config:GroupId"), "unused")
         ]);
 
         static void SetConnectionString(KafkaConsumerSettings settings) => settings.ConnectionString = CommonHelpers.TestingEndpoint;
@@ -86,9 +86,9 @@ public class ConsumerConfigurationTests
 
         var key = useKeyed ? "messaging" : null;
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>(ProducerConformanceTests.CreateConfigKey("Aspire:Confluent:Kafka:Consumer", key, "ConnectionString"), "unused"),
+            new KeyValuePair<string, string?>(ConsumerConformanceTests.CreateConfigKey("Aspire:Confluent:Kafka:Consumer", key, "ConnectionString"), "unused"),
             new KeyValuePair<string, string?>("ConnectionStrings:messaging", CommonHelpers.TestingEndpoint),
-            new KeyValuePair<string, string?>(ProducerConformanceTests.CreateConfigKey("Aspire:Confluent:Kafka:Consumer", key, "Config:GroupId"), "unused")
+            new KeyValuePair<string, string?>(ConsumerConformanceTests.CreateConfigKey("Aspire:Confluent:Kafka:Consumer", key, "Config:GroupId"), "unused")
         ]);
 
         if (useKeyed)
@@ -131,7 +131,7 @@ public class ConsumerConfigurationTests
         var key = useKeyed ? "messaging" : null;
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:messaging", CommonHelpers.TestingEndpoint),
-            new KeyValuePair<string, string?>(ProducerConformanceTests.CreateConfigKey("Aspire:Confluent:Kafka:Consumer", key, "Config:GroupId"), "unused")
+            new KeyValuePair<string, string?>(ConsumerConformanceTests.CreateConfigKey("Aspire:Confluent:Kafka:Consumer", key, "Config:GroupId"), "unused")
         ]);
 
         bool configureBuilderIsCalled = false, configureSettingsIsCalled = false;

@@ -88,6 +88,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No telemetry found for this resource..
+        /// </summary>
+        public static string ResourceActionTelemetryTooltip {
+            get {
+                return ResourceManager.GetString("ResourceActionTelemetryTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Traces.
         /// </summary>
         public static string ResourceActionTracesText {
@@ -205,6 +214,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Container lifetime.
+        /// </summary>
+        public static string ResourcesDetailsContainerLifetimeProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsContainerLifetimeProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Container ports.
         /// </summary>
         public static string ResourcesDetailsContainerPortsProperty {
@@ -268,7 +286,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Health State.
+        ///   Looks up a localized string similar to Health state.
         /// </summary>
         public static string ResourcesDetailsHealthStateProperty {
             get {
@@ -435,6 +453,24 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourcesTypeFiltered {
             get {
                 return ResourceManager.GetString("ResourcesTypeFiltered", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Waiting for health data....
+        /// </summary>
+        public static string WaitingForHealthDataMessage {
+            get {
+                return ResourceManager.GetString("WaitingForHealthDataMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Waiting....
+        /// </summary>
+        public static string WaitingHealthDataStatusMessage {
+            get {
+                return ResourceManager.GetString("WaitingHealthDataStatusMessage", resourceCulture);
             }
         }
     }

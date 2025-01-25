@@ -21,6 +21,7 @@ public class ApplicationNameTests : TestContext
         Services.AddSingleton<IConfiguration>(new ConfigurationManager());
         Services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
         Services.AddSingleton<IDashboardClient, DashboardClient>();
+        Services.AddSingleton<IDashboardClientStatus, DashboardClientStatus>();
         Services.AddSingleton<BrowserTimeProvider>();
         Services.AddSingleton<IKnownPropertyLookup>(new MockKnownPropertyLookup());
 

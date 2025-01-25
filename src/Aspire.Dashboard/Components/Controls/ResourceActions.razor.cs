@@ -7,6 +7,7 @@ using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components;
 
@@ -83,6 +84,7 @@ public partial class ResourceActions : ComponentBase
         var hasTelemetryApplication = TelemetryRepository.GetApplicationByCompositeName(Resource.Name) != null;
         if (hasTelemetryApplication)
         {
+            var telemetryTooltip = !hasTelemetryApplication ? Loc[nameof(Resources.Resources.ResourceActionTelemetryTooltip)] : string.Empty;
             _menuItems.Add(new MenuButtonItem { IsDivider = true });
             _menuItems.Add(new MenuButtonItem
             {
@@ -92,7 +94,8 @@ public partial class ResourceActions : ComponentBase
                 {
                     NavigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(resource: GetResourceName(Resource)));
                     return Task.CompletedTask;
-                }
+                },
+                Tooltip = telemetryTooltip
             });
             _menuItems.Add(new MenuButtonItem
             {
@@ -102,7 +105,8 @@ public partial class ResourceActions : ComponentBase
                 {
                     NavigationManager.NavigateTo(DashboardUrls.TracesUrl(resource: GetResourceName(Resource)));
                     return Task.CompletedTask;
-                }
+                },
+                Tooltip = telemetryTooltip
             });
             _menuItems.Add(new MenuButtonItem
             {
@@ -112,10 +116,12 @@ public partial class ResourceActions : ComponentBase
                 {
                     NavigationManager.NavigateTo(DashboardUrls.MetricsUrl(resource: GetResourceName(Resource)));
                     return Task.CompletedTask;
-                }
+                },
+                Tooltip = telemetryTooltip
             });
         }
 
+        // If display is desktop then we display highlighted commands next to the ... button.
         if (ViewportInformation.IsDesktop)
         {
             _highlightedCommands.AddRange(Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden).Take(MaxHighlightedCount));

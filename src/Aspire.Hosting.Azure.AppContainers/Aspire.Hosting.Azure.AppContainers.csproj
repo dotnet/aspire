@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting azure</PackageTags>
+    <PackageTags>aspire integration hosting azure</PackageTags>
     <Description>Azure container apps resource types for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)Azure_256x.png</PackageIconFullPath>
   </PropertyGroup>
@@ -15,10 +15,6 @@
   <ItemGroup>
     <PackageReference Include="Azure.Provisioning.AppContainers" />
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\Aspire.Hosting.Azure\Utils\BicepIdentifierHelpers.cs" />
   </ItemGroup>
 
 </Project>

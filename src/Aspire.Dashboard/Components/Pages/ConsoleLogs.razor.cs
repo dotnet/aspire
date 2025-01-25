@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.ConsoleLogs;
@@ -17,6 +18,8 @@ using Aspire.Hosting.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
+using Microsoft.JSInterop;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -53,19 +56,26 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public required ILogger<ConsoleLogs> Logger { get; init; }
 
     [Inject]
-    public required DimensionManager DimensionManager { get; init; }
-
-    [Inject]
     public required IStringLocalizer<Dashboard.Resources.ConsoleLogs> Loc { get; init; }
 
     [Inject]
     public required IStringLocalizer<ControlsStrings> ControlsStringsLoc { get; init; }
+
+    [Inject]
+    public required IJSRuntime JS { get; init; }
+
+    [Inject]
+    public required DashboardCommandExecutor DashboardCommandExecutor { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 
     [Parameter]
     public string? ResourceName { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "hideTimestamp")]
+    public bool? HideTimestamp { get; set; }
 
     private readonly CancellationTokenSource _resourceSubscriptionCts = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
@@ -78,6 +88,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     // UI
     private SelectViewModel<ResourceTypeDetails> _noSelection = null!;
     private AspirePageContentLayout? _contentLayout;
+    private readonly List<CommandViewModel> _highlightedCommands = new();
+    private readonly List<MenuButtonItem> _logsMenuItems = new();
+    private readonly List<MenuButtonItem> _resourceMenuItems = new();
 
     // State
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
@@ -90,7 +103,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         _resourceSubscriptionToken = _resourceSubscriptionCts.Token;
         _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
         _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelNone)] };
-        PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
+        PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)], HideTimestamp = false };
 
         var loadingTcs = new TaskCompletionSource();
 
@@ -158,12 +171,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                         // so if there is no selected resource when we
                         // receive an added resource, and that added resource name == ResourceName,
                         // we should mark it as selected
-                        if (ResourceName is not null && PageViewModel.SelectedResource is null && changeType == ResourceViewModelChangeType.Upsert && string.Equals(ResourceName, resource.Name))
+                        if (ResourceName is not null && PageViewModel.SelectedResource is null && changeType == ResourceViewModelChangeType.Upsert && string.Equals(ResourceName, resource.Name, StringComparisons.ResourceName))
                         {
                             SetSelectedResourceOption(resource);
                         }
                     }
 
+                    UpdateMenuButtons();
                     await InvokeAsync(StateHasChanged);
                 }
             });
@@ -188,6 +202,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         {
             return;
         }
+
+        UpdateMenuButtons();
 
         var selectedResourceName = PageViewModel.SelectedResource?.Name;
         if (!string.Equals(selectedResourceName, _consoleLogsSubscription?.Name, StringComparisons.ResourceName))
@@ -232,6 +248,79 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         }
     }
 
+    private void UpdateMenuButtons()
+    {
+        _highlightedCommands.Clear();
+        _logsMenuItems.Clear();
+        _resourceMenuItems.Clear();
+
+        _logsMenuItems.Add(new()
+        {
+            IsDisabled = PageViewModel.SelectedResource is null,
+            OnClick = DownloadLogsAsync,
+            Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.DownloadLogs)],
+            Icon = new Icons.Regular.Size16.ArrowDownload()
+        });
+
+        if (PageViewModel.HideTimestamp)
+        {
+            _logsMenuItems.Add(new()
+            {
+                OnClick = () => ToggleTimestamp(hideTimestamp: false),
+                Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampShow)],
+                Icon = new Icons.Regular.Size16.CalendarClock()
+            });
+        }
+        else
+        {
+            _logsMenuItems.Add(new()
+            {
+                OnClick = () => ToggleTimestamp(hideTimestamp: true),
+                Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampHide)],
+                Icon = new Icons.Regular.Size16.DismissSquareMultiple()
+            });
+        }
+
+        if (PageViewModel.SelectedResource != null)
+        {
+            if (ViewportInformation.IsDesktop)
+            {
+                _highlightedCommands.AddRange(PageViewModel.SelectedResource.Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden).Take(DashboardUIHelpers.MaxHighlightedCommands));
+            }
+
+            var menuCommands = PageViewModel.SelectedResource.Commands.Where(c => !_highlightedCommands.Contains(c) && c.State != CommandViewModelState.Hidden).ToList();
+            if (menuCommands.Count > 0)
+            {
+                foreach (var command in menuCommands)
+                {
+                    var icon = (!string.IsNullOrEmpty(command.IconName) && CommandViewModel.ResolveIconName(command.IconName, command.IconVariant) is { } i) ? i : null;
+
+                    _resourceMenuItems.Add(new MenuButtonItem
+                    {
+                        Text = command.DisplayName,
+                        Tooltip = command.DisplayDescription,
+                        Icon = icon,
+                        OnClick = () => ExecuteResourceCommandAsync(command),
+                        IsDisabled = command.State == CommandViewModelState.Disabled
+                    });
+                }
+            }
+        }
+    }
+
+    private async Task ToggleTimestamp(bool hideTimestamp)
+    {
+        PageViewModel.HideTimestamp = hideTimestamp;
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
+    }
+
+    private async Task ExecuteResourceCommandAsync(CommandViewModel command)
+    {
+        await DashboardCommandExecutor.ExecuteAsync(PageViewModel.SelectedResource!, command, GetResourceName);
+    }
+
+    private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceByName);
+
     internal static ImmutableList<SelectViewModel<ResourceTypeDetails>> GetConsoleLogResourceSelectViewModels(
         ConcurrentDictionary<string, ResourceViewModel> resourcesByName,
         SelectViewModel<ResourceTypeDetails> noSelectionViewModel,
@@ -241,7 +330,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         foreach (var grouping in resourcesByName
             .Where(r => !r.Value.IsHiddenState())
-            .OrderBy(c => c.Value.Name, StringComparers.ResourceName)
+            .OrderBy(c => c.Value, ResourceViewModelNameComparer.Instance)
             .GroupBy(r => r.Value.DisplayName, StringComparers.ResourceName))
         {
             string applicationName;
@@ -261,7 +350,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 applicationName = grouping.First().Value.DisplayName;
             }
 
-            foreach (var resource in grouping.Select(g => g.Value).OrderBy(r => r.Name, StringComparers.ResourceName))
+            foreach (var resource in grouping.Select(g => g.Value).OrderBy(r => r, ResourceViewModelNameComparer.Instance))
             {
                 builder.Add(ToOption(resource, grouping.Count() > 1, applicationName));
             }
@@ -362,7 +451,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private async Task HandleSelectedOptionChangedAsync()
     {
         PageViewModel.SelectedResource = PageViewModel.SelectedOption?.Id?.InstanceId is null ? null : _resourceByName[PageViewModel.SelectedOption.Id.InstanceId];
-        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: false);
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
     }
 
     private async Task OnResourceChanged(ResourceViewModelChangeType changeType, ResourceViewModel resource)
@@ -372,7 +461,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             _resourceByName[resource.Name] = resource;
             UpdateResourcesList();
 
-            if (string.Equals(PageViewModel.SelectedResource?.Name, resource.Name, StringComparison.Ordinal))
+            if (string.Equals(PageViewModel.SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
             {
                 PageViewModel.SelectedResource = resource;
             }
@@ -382,7 +471,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             var removed = _resourceByName.TryRemove(resource.Name, out _);
             Debug.Assert(removed, "Cannot remove unknown resource.");
 
-            if (string.Equals(PageViewModel.SelectedResource?.Name, resource.Name, StringComparison.Ordinal))
+            if (string.Equals(PageViewModel.SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
             {
                 // The selected resource was deleted
                 PageViewModel.SelectedOption = _noSelection;
@@ -404,6 +493,35 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         }
     }
 
+    private async Task DownloadLogsAsync()
+    {
+        // Write all log entry content to a stream as UTF8 chars. Strip control sequences from log lines.
+        var stream = new MemoryStream();
+        using (var writer = new StreamWriter(stream, leaveOpen: true))
+        {
+            foreach (var entry in _logEntries.GetEntries())
+            {
+                // It's ok to use sync stream methods here because we're writing to a MemoryStream.
+                if (entry.RawContent is not null)
+                {
+                    writer.WriteLine(AnsiParser.StripControlSequences(entry.RawContent));
+                }
+                else
+                {
+                    writer.WriteLine();
+                }
+            }
+            writer.Flush();
+        }
+        stream.Seek(0, SeekOrigin.Begin);
+
+        using var streamReference = new DotNetStreamReference(stream);
+        var safeDisplayName = string.Join("_", PageViewModel.SelectedResource!.DisplayName.Split(Path.GetInvalidFileNameChars()));
+        var fileName = $"{safeDisplayName}-{DateTime.Now.ToString("yyyyMMddhhmmss", CultureInfo.InvariantCulture)}.txt";
+
+        await JS.InvokeVoidAsync("downloadStreamAsFile", fileName, streamReference);
+    }
+
     public async ValueTask DisposeAsync()
     {
         _resourceSubscriptionCts.Cancel();
@@ -418,11 +536,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         public required string Status { get; set; }
         public required SelectViewModel<ResourceTypeDetails> SelectedOption { get; set; }
         public required ResourceViewModel? SelectedResource { get; set; }
+        public required bool HideTimestamp { get; set; }
     }
 
     public class ConsoleLogsPageState
     {
         public string? SelectedResource { get; set; }
+        public bool HideTimestamp { get; set; }
     }
 
     public Task UpdateViewModelFromQueryAsync(ConsoleLogsViewModel viewModel)
@@ -441,19 +561,26 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             viewModel.SelectedResource = null;
             viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
         }
+
+        if (HideTimestamp is { } hideTimestamp)
+        {
+            viewModel.HideTimestamp = hideTimestamp;
+        }
+
         return Task.CompletedTask;
     }
 
     public string GetUrlFromSerializableViewModel(ConsoleLogsPageState serializable)
     {
-        return DashboardUrls.ConsoleLogsUrl(serializable.SelectedResource);
+        return DashboardUrls.ConsoleLogsUrl(serializable.SelectedResource, serializable.HideTimestamp);
     }
 
     public ConsoleLogsPageState ConvertViewModelToSerializable()
     {
         return new ConsoleLogsPageState
         {
-            SelectedResource = PageViewModel.SelectedResource?.Name
+            SelectedResource = PageViewModel.SelectedResource?.Name,
+            HideTimestamp = PageViewModel.HideTimestamp
         };
     }
 }

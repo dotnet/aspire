@@ -14,7 +14,7 @@ public class PlaywrightFixture : IAsyncLifetime
     public async Task InitializeAsync()
     {
         // Default timeout of 5000 ms could time out on slow CI servers.
-        Assertions.SetDefaultExpectTimeout(15_000);
+        Assertions.SetDefaultExpectTimeout(30_000);
 
         PlaywrightProvider.DetectAndSetInstalledPlaywrightDependenciesPath();
         Browser = await PlaywrightProvider.CreateBrowserAsync();

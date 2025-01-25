@@ -130,6 +130,37 @@ public class AzureFunctionsTests
         await host.StopAsync();
     }
 
+    [Fact]
+    [RequiresDocker]
+    public async Task AddAzureFunctionsProject_WorksWithMultipleProjects()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.AddAzureFunctionsProject<TestProject>("funcapp");
+        builder.AddAzureFunctionsProject<TestProject>("funcapp2");
+
+        using var host = builder.Build();
+        await host.StartAsync();
+
+        // Assert that the default storage resource is not present
+        var model = host.Services.GetRequiredService<DistributedApplicationModel>();
+        Assert.Single(model.Resources.OfType<AzureStorageResource>(),
+            r => r.Name.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName));
+
+        await host.StopAsync();
+    }
+
+    [Fact]
+    public void AddAzureFunctionsProject_UsesCorrectNameUnderPublish()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureFunctionsProject<TestProject>("funcapp");
+
+        var resource = Assert.Single(builder.Resources.OfType<AzureStorageResource>());
+
+        Assert.NotEqual(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName, resource.Name);
+        Assert.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName, resource.Name);
+    }
+
     private sealed class TestProject : IProjectMetadata
     {
         public string ProjectPath => "some-path";

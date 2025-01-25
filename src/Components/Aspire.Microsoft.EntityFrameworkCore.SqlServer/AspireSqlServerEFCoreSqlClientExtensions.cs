@@ -113,8 +113,15 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
 #pragma warning disable EF1001 // Internal EF Core API usage.
             if (!settings.DisableRetry || settings.CommandTimeout.HasValue)
             {
+                builder.CheckDbContextRegistered<TContext>();
+
+#if NET9_0_OR_GREATER
+                builder.Services.ConfigureDbContext<TContext>(optionsBuilder => optionsBuilder.ConfigureSqlEngine(options =>
+                {
+#else
                 builder.PatchServiceDescriptor<TContext>(optionsBuilder => optionsBuilder.UseSqlServer(options =>
                 {
+#endif
                     var extension = optionsBuilder.Options.FindExtension<SqlServerOptionsExtension>();
 
                     if (!settings.DisableRetry)
@@ -159,8 +166,8 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
                     }
                 }));
             }
-#pragma warning restore EF1001 // Internal EF Core API usage.
         }
+#pragma warning restore EF1001 // Internal EF Core API usage.
     }
 
     private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, MicrosoftEntityFrameworkCoreSqlServerSettings settings) where TContext : DbContext

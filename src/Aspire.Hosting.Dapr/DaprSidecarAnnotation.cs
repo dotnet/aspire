@@ -8,6 +8,7 @@ namespace Aspire.Hosting.Dapr;
 /// <summary>
 /// Indicates that a Dapr sidecar should be started for the associated resource.
 /// </summary>
+[Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", error: false)]
 public sealed record DaprSidecarAnnotation(IDaprSidecarResource Sidecar) : IResourceAnnotation
 {
 }

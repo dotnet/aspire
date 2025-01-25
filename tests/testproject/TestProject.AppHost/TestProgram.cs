@@ -5,7 +5,6 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Testing;
 using Aspire.TestProject;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -48,6 +47,7 @@ public class TestProgram : IDisposable
             DisableDashboard = disableDashboard,
             AssemblyName = assemblyName,
             AllowUnsecuredTransport = allowUnsecuredTransport,
+            EnableResourceLogging = true
         });
 
         builder.Configuration["DcpPublisher:DeleteResourcesOnShutdown"] = "true";
@@ -83,19 +83,8 @@ public class TestProgram : IDisposable
                     .AddDatabase(postgresDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(postgres);
             }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
-            {
-                var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(cosmos);
-            }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
-            {
-                var eventHub = AppBuilder.AddAzureEventHubs("eventhubns").RunAsEmulator().AddEventHub("hub");
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(eventHub);
-            }
         }
 
-        AppBuilder.Services.AddHostedService<ResourceLoggerForwarderService>();
         AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();
         AppBuilder.Services.AddHttpClient();
     }

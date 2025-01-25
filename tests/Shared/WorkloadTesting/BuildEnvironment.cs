@@ -21,9 +21,15 @@ public class BuildEnvironment
     public DirectoryInfo?                   RepoRoot                      { get; init; }
     public TemplatesCustomHive?             TemplatesCustomHive           { get; init; }
 
+    public static readonly string TempDir = IsRunningOnCI
+        ? Path.GetTempPath()
+        : Environment.GetEnvironmentVariable("DEV_TEMP") is { } devTemp && Path.Exists(devTemp)
+            ? devTemp
+            : Path.GetTempPath();
+
     public static readonly TestTargetFramework DefaultTargetFramework = ComputeDefaultTargetFramework();
     public static readonly string           TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");
-    public static readonly string           TestRootPath = Path.Combine(Path.GetTempPath(), "testroot");
+    public static readonly string           TestRootPath = Path.Combine(TempDir, "templates-testroot");
 
     public static bool IsRunningOnHelix => Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is not null;
     public static bool IsRunningOnCIBuildMachine => Environment.GetEnvironmentVariable("BUILD_BUILDID") is not null;
@@ -31,33 +37,34 @@ public class BuildEnvironment
 
     private static readonly Lazy<BuildEnvironment> s_instance_80 = new(() =>
         new BuildEnvironment(
-            templatesCustomHive: TemplatesCustomHive.With9_0_Net8,
+            templatesCustomHive: TemplatesCustomHive.TemplatesHive,
             sdkDirName: "dotnet-8"));
 
     private static readonly Lazy<BuildEnvironment> s_instance_90 = new(() =>
         new BuildEnvironment(
-            templatesCustomHive: TemplatesCustomHive.With9_0_Net9,
+            templatesCustomHive: TemplatesCustomHive.TemplatesHive,
             sdkDirName: "dotnet-9"));
 
     private static readonly Lazy<BuildEnvironment> s_instance_90_80 = new(() =>
         new BuildEnvironment(
-            templatesCustomHive: TemplatesCustomHive.With9_0_Net9_And_Net8,
+            templatesCustomHive: TemplatesCustomHive.TemplatesHive,
             sdkDirName: "dotnet-tests"));
 
     public static BuildEnvironment ForPreviousSdkOnly => s_instance_80.Value;
     public static BuildEnvironment ForCurrentSdkOnly => s_instance_90.Value;
     public static BuildEnvironment ForCurrentSdkAndPreviousRuntime => s_instance_90_80.Value;
 
-    public static BuildEnvironment ForDefaultFramework { get; } = DefaultTargetFramework switch
-    {
-        TestTargetFramework.Previous => ForPreviousSdkOnly,
+    public static BuildEnvironment ForDefaultFramework =>
+        DefaultTargetFramework switch
+        {
+            TestTargetFramework.Previous => ForPreviousSdkOnly,
 
-        // Use current+previous to allow running tests on helix built with 9.0 sdk
-        // but targeting 8.0 tfm
-        TestTargetFramework.Current => ForCurrentSdkAndPreviousRuntime,
+            // Use current+previous to allow running tests on helix built with 9.0 sdk
+            // but targeting 8.0 tfm
+            TestTargetFramework.Current => ForCurrentSdkAndPreviousRuntime,
 
-        _ => throw new ArgumentOutOfRangeException(nameof(DefaultTargetFramework))
-    };
+            _ => throw new ArgumentOutOfRangeException(nameof(DefaultTargetFramework))
+        };
 
     public BuildEnvironment(bool useSystemDotNet = false, TemplatesCustomHive? templatesCustomHive = default, string sdkDirName = "dotnet-tests")
     {
@@ -268,8 +275,9 @@ public class BuildEnvironment
 
 public enum TestTargetFramework
 {
-    Previous,
-    Current
+    // Current is default
+    Current,
+    Previous
 }
 
 public static class TestTargetFrameworkExtensions

@@ -11,11 +11,7 @@
   <PropertyGroup>
     <MinCodeCoverage>96</MinCodeCoverage>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
-  </ItemGroup>
-
+  
   <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.Azure.Storage.Blobs" />
   </ItemGroup>

@@ -7,6 +7,7 @@ using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components;
 
@@ -16,9 +17,6 @@ public partial class TraceActions : ComponentBase
     private static readonly Icon s_structuredLogsIcon = new Icons.Regular.Size16.SlideTextSparkle();
 
     private AspireMenuButton? _menuButton;
-
-    [Inject]
-    public required IStringLocalizer<Resources.StructuredLogs> Loc { get; set; }
 
     [Inject]
     public required IStringLocalizer<Resources.ControlsStrings> ControlsLoc { get; set; }

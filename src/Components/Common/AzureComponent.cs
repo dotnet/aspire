@@ -41,7 +41,7 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
 
     protected abstract IHealthCheck CreateHealthCheck(TClient client, TSettings settings);
 
-    internal void AddClient(
+    internal TSettings AddClient(
         IHostApplicationBuilder builder,
         string configurationSectionName,
         Action<TSettings>? configureSettings,
@@ -144,6 +144,8 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
             builder.Services.AddOpenTelemetry()
                 .WithTracing(traceBuilder => traceBuilder.AddSource(ActivitySourceNames));
         }
+
+        return settings;
     }
 }
 

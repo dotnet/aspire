@@ -27,6 +27,10 @@ public static class OtlpConfigurationExtensions
     /// <param name="environment">The host environment to check if the application is running in development mode.</param>
     public static void AddOtlpEnvironment(IResource resource, IConfiguration configuration, IHostEnvironment environment)
     {
+        ArgumentNullException.ThrowIfNull(resource);
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(environment);
+
         // Configure OpenTelemetry in projects using environment variables.
         // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/configuration/sdk-environment-variables.md
 
@@ -61,15 +65,7 @@ public static class OtlpConfigurationExtensions
             // Set the service name and instance id to the resource name and UID. Values are injected by DCP.
             var dcpDependencyCheckService = context.ExecutionContext.ServiceProvider.GetRequiredService<IDcpDependencyCheckService>();
             var dcpInfo = await dcpDependencyCheckService.GetDcpInfoAsync(context.CancellationToken).ConfigureAwait(false);
-            if (dcpInfo?.Version?.CompareTo(DcpVersion.MinimumVersionAspire_8_1) >= 0)
-            {
-                context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- index .Annotations \"" + CustomResource.OtelServiceInstanceIdAnnotation + "\" -}}";
-            }
-            else
-            {
-                // Versions prior to Aspire 8.1 do not OTEL service instance ID annotation for replicated Executables.
-                context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- .Name -}}";
-            }
+            context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- index .Annotations \"" + CustomResource.OtelServiceInstanceIdAnnotation + "\" -}}";
             context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- index .Annotations \"" + CustomResource.OtelServiceNameAnnotation + "\" -}}";
 
             if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
@@ -112,6 +108,8 @@ public static class OtlpConfigurationExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithOtlpExporter<T>(this IResourceBuilder<T> builder) where T : IResourceWithEnvironment
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         AddOtlpEnvironment(builder.Resource, builder.ApplicationBuilder.Configuration, builder.ApplicationBuilder.Environment);
         return builder;
     }

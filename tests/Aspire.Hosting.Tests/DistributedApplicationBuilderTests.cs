@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Devcontainers;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
@@ -41,7 +43,11 @@ public class DistributedApplicationBuilderTests
         Assert.Empty(appModel.Resources);
 
         var lifecycles = app.Services.GetServices<IDistributedApplicationLifecycleHook>();
-        Assert.Single(lifecycles); // This may change as the builder changes.
+        Assert.Collection(
+            lifecycles,
+            s => Assert.IsType<DashboardLifecycleHook>(s),
+            s => Assert.IsType<DevcontainerPortForwardingLifecycleHook>(s)
+        );
 
         var options = app.Services.GetRequiredService<IOptions<PublishingOptions>>();
         Assert.Null(options.Value.Publisher);
@@ -93,6 +99,28 @@ public class DistributedApplicationBuilderTests
 
         var config = app.Services.GetRequiredService<IConfiguration>();
         Assert.Equal(appHostDirectory, config["AppHost:Directory"]);
+    }
+
+    [Fact]
+    public void ResourceServiceConfig_Secured()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        using var app = appBuilder.Build();
+
+        var config = app.Services.GetRequiredService<IConfiguration>();
+        Assert.Equal(nameof(ResourceServiceAuthMode.ApiKey), config["AppHost:ResourceService:AuthMode"]);
+        Assert.False(string.IsNullOrEmpty(config["AppHost:ResourceService:ApiKey"]));
+    }
+
+    [Fact]
+    public void ResourceServiceConfig_Unsecured()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder(args: [$"{KnownConfigNames.DashboardUnsecuredAllowAnonymous}=true"]);
+        using var app = appBuilder.Build();
+
+        var config = app.Services.GetRequiredService<IConfiguration>();
+        Assert.Equal(nameof(ResourceServiceAuthMode.Unsecured), config["AppHost:ResourceService:AuthMode"]);
+        Assert.True(string.IsNullOrEmpty(config["AppHost:ResourceService:ApiKey"]));
     }
 
     [Fact]

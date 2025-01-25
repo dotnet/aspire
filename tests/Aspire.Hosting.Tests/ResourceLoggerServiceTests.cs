@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Tests.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
@@ -22,14 +23,14 @@ public class ResourceLoggerServiceTests
         var logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator1, 2);
 
         // Wait for subscriber to be added
-        await subsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+        await subsLoop.DefaultTimeout();
 
         // Log
         logger.LogInformation("Hello, world!");
         logger.LogError("Hello, error!");
 
         // Wait for logs to be read
-        var allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+        var allLogs = await logsLoop.DefaultTimeout();
 
         Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, world!", allLogs[0].Content);
         Assert.False(allLogs[0].IsErrorMessage);
@@ -41,15 +42,15 @@ public class ResourceLoggerServiceTests
         subsLoop = WatchForSubscribers(service);
         var logsEnumerator2 = service.WatchAsync(testResource).GetAsyncEnumerator();
         logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator2, 2);
-        await subsLoop.WaitAsync(TimeSpan.FromSeconds(150));
-        allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+        await subsLoop.DefaultTimeout();
+        allLogs = await logsLoop.DefaultTimeout();
 
         Assert.Equal(2, allLogs.Count);
         Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, world!", allLogs[0].Content);
         Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, error!", allLogs[1].Content);
 
-        await logsEnumerator1.DisposeAsync();
-        await logsEnumerator2.DisposeAsync();
+        await logsEnumerator1.DisposeAsync().DefaultTimeout();
+        await logsEnumerator2.DisposeAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -63,7 +64,7 @@ public class ResourceLoggerServiceTests
         var logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(service, 2, testResource);
 
         // Wait for subscriber to be added
-        await subsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+        await subsLoop.DefaultTimeout();
 
         logger.LogInformation("Hello, world!");
         logger.LogError("Hello, error!");
@@ -73,7 +74,7 @@ public class ResourceLoggerServiceTests
         logger.LogInformation("The third log");
 
         // Wait for logs to be read
-        var allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+        var allLogs = await logsLoop.DefaultTimeout();
 
         Assert.Collection(allLogs,
             l => Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, world!", l.Content),
@@ -84,7 +85,7 @@ public class ResourceLoggerServiceTests
 
         // New sub should replay logs again.
         logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(service, 100, testResource);
-        allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+        allLogs = await logsLoop.DefaultTimeout();
 
         Assert.Collection(allLogs,
             l => Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, world!", l.Content),
@@ -103,14 +104,14 @@ public class ResourceLoggerServiceTests
         var logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator1, 2);
 
         // Wait for subscriber to be added
-        await subsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+        await subsLoop.DefaultTimeout();
 
         // Log
         logger.LogInformation("Hello, world!");
         logger.LogError("Hello, error!");
 
         // Wait for logs to be read
-        var allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+        var allLogs = await logsLoop.DefaultTimeout();
 
         Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, world!", allLogs[0].Content);
         Assert.False(allLogs[0].IsErrorMessage);
@@ -122,8 +123,8 @@ public class ResourceLoggerServiceTests
         subsLoop = WatchForSubscribers(service);
         var logsEnumerator2 = service.WatchAsync(testResource).GetAsyncEnumerator();
         logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator2, 2);
-        await subsLoop.WaitAsync(TimeSpan.FromSeconds(15));
-        allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+        await subsLoop.DefaultTimeout();
+        allLogs = await logsLoop.DefaultTimeout();
 
         Assert.Equal(2, allLogs.Count);
         Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, world!", allLogs[0].Content);
@@ -135,9 +136,9 @@ public class ResourceLoggerServiceTests
         subsLoop = WatchForSubscribers(service);
         var logsEnumerator3 = service.WatchAsync(testResource).GetAsyncEnumerator();
         logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator3, 1);
-        await subsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+        await subsLoop.DefaultTimeout();
         logger.LogInformation("The third log");
-        allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+        allLogs = await logsLoop.DefaultTimeout();
 
         // The backlog should be cleared so only new logs are received
         Assert.Single(allLogs);
@@ -159,10 +160,10 @@ public class ResourceLoggerServiceTests
         var logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator1, 1);
 
         // Wait for subscriber to be added
-        await subsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+        await subsLoop.DefaultTimeout();
 
         // Read before watching log
-        var allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+        var allLogs = await logsLoop.DefaultTimeout();
 
         Assert.Equal("2000-12-29T20:59:59.0000000Z Before watching!", allLogs[0].Content);
         Assert.False(allLogs[0].IsErrorMessage);
@@ -171,7 +172,7 @@ public class ResourceLoggerServiceTests
         logger.LogInformation("While watching!");
 
         logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator1, 1);
-        allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+        allLogs = await logsLoop.DefaultTimeout();
 
         Assert.Equal("2000-12-29T20:59:59.0000000Z While watching!", allLogs[0].Content);
         Assert.False(allLogs[0].IsErrorMessage);
@@ -180,15 +181,15 @@ public class ResourceLoggerServiceTests
         subsLoop = WatchForSubscribers(service);
         var logsEnumerator2 = service.WatchAsync(testResource).GetAsyncEnumerator();
         logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator2, 2);
-        await subsLoop.WaitAsync(TimeSpan.FromSeconds(15));
-        allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+        await subsLoop.DefaultTimeout();
+        allLogs = await logsLoop.DefaultTimeout();
 
         Assert.Equal(2, allLogs.Count);
         Assert.Equal("2000-12-29T20:59:59.0000000Z Before watching!", allLogs[0].Content);
         Assert.Equal("2000-12-29T20:59:59.0000000Z While watching!", allLogs[1].Content);
 
-        await logsEnumerator1.DisposeAsync();
-        await logsEnumerator2.DisposeAsync();
+        await logsEnumerator1.DisposeAsync().DefaultTimeout();
+        await logsEnumerator2.DisposeAsync().DefaultTimeout();
 
         logger.LogInformation("After watching!");
 
@@ -198,9 +199,9 @@ public class ResourceLoggerServiceTests
         subsLoop = WatchForSubscribers(service);
         var logsEnumerator3 = service.WatchAsync(testResource).GetAsyncEnumerator();
         logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator3, 4);
-        await subsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+        await subsLoop.DefaultTimeout();
         logger.LogInformation("While watching again!");
-        allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+        allLogs = await logsLoop.DefaultTimeout();
 
         Assert.Equal(4, allLogs.Count);
         Assert.Equal("2000-12-29T20:59:59.0000000Z Before watching!", allLogs[0].Content);
@@ -224,7 +225,7 @@ public class ResourceLoggerServiceTests
         var logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator, 4);
 
         // Wait for subscriber to be added
-        await subsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+        await subsLoop.DefaultTimeout();
 
         // Log
         logger.LogInformation("Hello, world!");
@@ -234,7 +235,7 @@ public class ResourceLoggerServiceTests
         Assert.True(service.Loggers.ContainsKey("instance1"));
 
         // Wait for logs to be read
-        var allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+        var allLogs = await logsLoop.DefaultTimeout();
 
         var sortedLogs = allLogs.OrderBy(l => l.LineNumber).ToList();
 
@@ -245,9 +246,9 @@ public class ResourceLoggerServiceTests
 
         service.Complete(testResource);
 
-        Assert.False(await logsEnumerator.MoveNextAsync());
+        Assert.False(await logsEnumerator.MoveNextAsync().DefaultTimeout());
 
-        await logsEnumerator.DisposeAsync();
+        await logsEnumerator.DisposeAsync().DefaultTimeout();
     }
 
     private sealed class TestResource(string name) : Resource(name)

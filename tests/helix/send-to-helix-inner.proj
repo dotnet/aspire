@@ -60,6 +60,10 @@
 
     <_CleanupProcessesCommand Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; get-ciminstance win32_process | where-object ExecutablePath -Match 'dotnet-tests|dcp.exe|dcpctrl.exe' | foreach-object { echo $_.ProcessId $_.ExecutablePath %3B stop-process -id $_.ProcessId -force -ErrorAction SilentlyContinue }"</_CleanupProcessesCommand>
     <_CleanupProcessesCommand Condition="'$(OS)' != 'Windows_NT'">pgrep -lf "dotnet-tests|dcp.exe|dcpctrl.exe" | awk '{print %3B system("kill -9 "$1)}'</_CleanupProcessesCommand>
+
+    <_WaitForDcpCommand Condition="'$(OS)' != 'Windows_NT'">echo "Waiting for dcp process to exit..."; start_time=$(date +%s); echo "Start time: $start_time"; timeout=120; while pgrep -lf "dcp.exe" &gt; /dev/null &amp;&amp; [ $timeout -gt 0 ]; do sleep 1; timeout=$((timeout - 1)); done; end_time=$(date +%s); echo "End time: $end_time"; if pgrep -lf "dcp.exe" &gt; /dev/null; then echo "dcp process did not exit within the timeout period."; exit 1; fi</_WaitForDcpCommand>
+    <!-- Figure out the powershell... -->
+    <_WaitForDcpCommand Condition="'$(OS)' == 'Windows_NT'"></_WaitForDcpCommand>
   </PropertyGroup>
 
   <ItemGroup>
@@ -94,6 +98,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(NeedsWorkload)' == 'true'">
+    <!-- set path to dotnet-tests early, so any dotnet commands can run -->
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\$(_DefaultSdkDirNameForTests)%3B%PATH%" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/$(_DefaultSdkDirNameForTests):$PATH" />
 
@@ -123,28 +128,46 @@
 
   <ItemGroup Condition="'$(HasDocker)' == 'true'">
     <HelixPreCommand Include="docker info" />
-    <HelixPreCommand Include="docker ps" />
     <HelixPreCommand Include="docker container ls --all" />
+    <HelixPreCommand Include="docker container ls --all --format json" />
     <HelixPreCommand Include="$(_ShutdownDockerContainersCommand)" />
     <HelixPreCommand Include="docker volume ls" />
     <HelixPreCommand Include="$(_DeleteDockerVolumesCommand)" />
+    <HelixPreCommand Include="docker network ls" />
     <HelixPreCommand Include="docker network prune -f" />
 
     <HelixPostCommand Include="docker container ls --all" />
-    <HelixPostCommand Include="$(_ShutdownDockerContainersCommand)" />
+    <HelixPostCommand Include="docker container ls --all --format json" />
     <HelixPostCommand Include="docker volume ls" />
-    <HelixPostCommand Include="$(_DeleteDockerVolumesCommand)" />
-    <HelixPostCommand Include="docker network prune -f" />
+    <HelixPostCommand Include="docker network ls" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- Disable playwright tests on helix/linux. Issue: https://github.com/dotnet/aspire/issues/4623 -->
     <HelixPreCommand Condition="'$(DisablePlaywrightTests)' == 'true'" Include="$(_EnvVarSetKeyword) DISABLE_PLAYWRIGHT_TESTS=true" />
 
+    <!-- Issue: https://github.com/dotnet/aspire/pull/6181 -->
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) MSBUILDDEBUGPATH=$(_HelixCorrelationPayloadEnvVar)/msbuild-debug" />
+
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="dotnet dev-certs https --trust" />
 
-    <HelixPostCommand Include="$(_CleanupProcessesCommand)" />
+    <!-- Set the DCP_DIAGNOSTICS_LOG_LEVEL env -->
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_DIAGNOSTICS_LOG_LEVEL=debug" />
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_DIAGNOSTICS_LOG_FOLDER=$(_HelixLogsPath)" />
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_SESSION_FOLDER=$(_HelixLogsPath)" />
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_PRESERVE_EXECUTABLE_LOGS=1" />
+
+    <HelixPostCommand Include="$(_WaitForDcpCommand)" />
   </ItemGroup>
+
+  <PropertyGroup Condition="'$(NeedsWorkload)' == 'true'">
+    <!-- Set this here so if dotnet-cli is overriding the path, then dotnet-tests overrides that and gets precedence -->
+    <HelixPerWorkItemPreCommand Condition="'$(OS)' == 'Windows_NT'">set PATH=%HELIX_CORRELATION_PAYLOAD%\$(_DefaultSdkDirNameForTests)%3B%PATH%</HelixPerWorkItemPreCommand>
+    <HelixPerWorkItemPreCommand Condition="'$(OS)' != 'Windows_NT'">export PATH=$HELIX_CORRELATION_PAYLOAD/$(_DefaultSdkDirNameForTests):$PATH</HelixPerWorkItemPreCommand>
+
+    <HelixPerWorkItemPreCommand Condition="'$(OS)' == 'Windows_NT'">$(HelixPerWorkItemPreCommand) &amp; set DOTNET_ROOT=%HELIX_CORRELATION_PAYLOAD%\$(_DefaultSdkDirNameForTests)</HelixPerWorkItemPreCommand>
+    <HelixPerWorkItemPreCommand Condition="'$(OS)' != 'Windows_NT'">$(HelixPerWorkItemPreCommand) &amp;&amp; export DOTNET_ROOT=$HELIX_CORRELATION_PAYLOAD/$(_DefaultSdkDirNameForTests)</HelixPerWorkItemPreCommand>
+  </PropertyGroup>
 
   <Target Name="PrepareDependencies" DependsOnTargets="$(PrepareDependenciesDependsOn)" />
 

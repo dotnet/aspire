@@ -185,6 +185,9 @@
   <data name="ResourcesDetailsContainerPortsProperty" xml:space="preserve">
     <value>Container ports</value>
   </data>
+  <data name="ResourcesDetailsContainerLifetimeProperty" xml:space="preserve">
+    <value>Container lifetime</value>
+  </data>
   <data name="ResourcesDetailsDisplayNameProperty" xml:space="preserve">
     <value>Display name</value>
   </data>
@@ -230,7 +233,7 @@
     <value>View console logs</value>
   </data>
   <data name="ResourcesDetailsHealthStateProperty" xml:space="preserve">
-    <value>Health State</value>
+    <value>Health state</value>
   </data>
   <data name="ResourcesDetailsStopTimeProperty" xml:space="preserve">
     <value>Stop time</value>
@@ -247,5 +250,16 @@
   </data>
   <data name="ResourceActionMetricsText" xml:space="preserve">
     <value>Metrics</value>
+  </data>
+  <data name="WaitingForHealthDataMessage" xml:space="preserve">
+    <value>Waiting for health data...</value>
+    <comment>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</comment>
+  </data>
+  <data name="WaitingHealthDataStatusMessage" xml:space="preserve">
+    <value>Waiting...</value>
+    <comment>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</comment>
+  </data>
+  <data name="ResourceActionTelemetryTooltip" xml:space="preserve">
+    <value>No telemetry found for this resource.</value>
   </data>
 </root>

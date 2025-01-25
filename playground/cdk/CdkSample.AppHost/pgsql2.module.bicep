@@ -8,7 +8,7 @@ param principalType string
 param principalName string
 
 resource pgsql2 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
-  name: take('pgsql${uniqueString(resourceGroup().id)}', 24)
+  name: take('pgsql2-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
     authConfig: {

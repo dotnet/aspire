@@ -8,14 +8,14 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a command annotation for a resource.
 /// </summary>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Type = {Type}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}")]
 public sealed class ResourceCommandAnnotation : IResourceAnnotation
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ResourceCommandAnnotation"/> class.
     /// </summary>
     public ResourceCommandAnnotation(
-        string type,
+        string name,
         string displayName,
         Func<UpdateCommandStateContext, ResourceCommandState> updateState,
         Func<ExecuteCommandContext, Task<ExecuteCommandResult>> executeCommand,
@@ -26,12 +26,12 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
         IconVariant? iconVariant,
         bool isHighlighted)
     {
-        ArgumentNullException.ThrowIfNull(type);
+        ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(displayName);
         ArgumentNullException.ThrowIfNull(updateState);
         ArgumentNullException.ThrowIfNull(executeCommand);
 
-        Type = type;
+        Name = name;
         DisplayName = displayName;
         UpdateState = updateState;
         ExecuteCommand = executeCommand;
@@ -44,9 +44,9 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
     }
 
     /// <summary>
-    /// The type of command. The type uniquely identifies the command.
+    /// The name of command. The name uniquely identifies the command.
     /// </summary>
-    public string Type { get; }
+    public string Name { get; }
 
     /// <summary>
     /// The display name visible in UI.
@@ -128,7 +128,7 @@ public static class CommandResults
 /// <summary>
 /// The result of executing a command. Returned from <see cref="ResourceCommandAnnotation.ExecuteCommand"/>.
 /// </summary>
-public class ExecuteCommandResult
+public sealed class ExecuteCommandResult
 {
     /// <summary>
     /// A flag that indicates whether the command was successful.
@@ -144,7 +144,7 @@ public class ExecuteCommandResult
 /// <summary>
 /// Context for <see cref="ResourceCommandAnnotation.UpdateState"/>.
 /// </summary>
-public class UpdateCommandStateContext
+public sealed class UpdateCommandStateContext
 {
     /// <summary>
     /// The resource snapshot.
@@ -160,7 +160,7 @@ public class UpdateCommandStateContext
 /// <summary>
 /// Context for <see cref="ResourceCommandAnnotation.ExecuteCommand"/>.
 /// </summary>
-public class ExecuteCommandContext
+public sealed class ExecuteCommandContext
 {
     /// <summary>
     /// The service provider.

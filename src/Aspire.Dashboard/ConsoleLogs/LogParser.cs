@@ -31,27 +31,33 @@ internal sealed class LogParser
             timestamp = timestampParseResult.Value.Timestamp.UtcDateTime;
         }
 
-        // 2. HTML Encode the raw text for security purposes
-        content = WebUtility.HtmlEncode(content);
+        Func<string, string> callback = (s) =>
+        {
+            // This callback is run on text that isn't transformed into a clickable URL.
 
-        // 3. Parse the content to look for ANSI Control Sequences and color them if possible
-        var conversionResult = AnsiParser.ConvertToHtml(content, _residualState);
-        content = conversionResult.ConvertedText;
-        _residualState = conversionResult.ResidualState;
+            // 3a. HTML Encode the raw text for security purposes
+            var updatedText = WebUtility.HtmlEncode(s);
 
-        // 4. Parse the content to look for URLs and make them links if possible
-        if (UrlParser.TryParse(content, out var modifiedText))
+            // 3b. Parse the content to look for ANSI Control Sequences and color them if possible
+            var conversionResult = AnsiParser.ConvertToHtml(updatedText, _residualState);
+            updatedText = conversionResult.ConvertedText;
+            _residualState = conversionResult.ResidualState;
+
+            return updatedText ?? string.Empty;
+        };
+
+        // 3. Parse the content to look for URLs and make them links if possible
+        if (UrlParser.TryParse(content, callback, out var modifiedText))
         {
             content = modifiedText;
         }
+        else
+        {
+            content = callback(content);
+        }
 
         // 5. Create the LogEntry
-        var logEntry = new LogEntry
-        {
-            Timestamp = timestamp,
-            Content = content,
-            Type = isErrorOutput ? LogEntryType.Error : LogEntryType.Default
-        };
+        var logEntry = LogEntry.Create(timestamp, content, rawText, isErrorOutput);
 
         return logEntry;
     }

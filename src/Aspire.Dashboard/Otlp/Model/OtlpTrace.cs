@@ -17,6 +17,7 @@ public class OtlpTrace
     public OtlpSpan FirstSpan => Spans[0]; // There should always be at least one span in a trace.
     public DateTime TimeStamp => FirstSpan.StartTime;
     public OtlpSpan? RootSpan => _rootSpan;
+    public OtlpSpan RootOrFirstSpan => RootSpan ?? FirstSpan;
     public TimeSpan Duration
     {
         get
@@ -34,7 +35,7 @@ public class OtlpTrace
         }
     }
 
-    public List<OtlpSpan> Spans { get; } = new List<OtlpSpan>();
+    public OtlpSpanCollection Spans { get; } = new OtlpSpanCollection();
 
     public int CalculateDepth(OtlpSpan span)
     {
@@ -52,6 +53,11 @@ public class OtlpTrace
 
     public void AddSpan(OtlpSpan span)
     {
+        if (Spans.Contains(span.SpanId))
+        {
+            throw new InvalidOperationException($"Duplicate span id '{span.SpanId}' detected.");
+        }
+
         var added = false;
         for (var i = Spans.Count - 1; i >= 0; i--)
         {
@@ -65,12 +71,12 @@ public class OtlpTrace
         if (!added)
         {
             Spans.Insert(0, span);
+        }
 
-            // If there isn't a root span then the first span is used as the trace name.
-            if (_rootSpan == null && !string.IsNullOrEmpty(span.ParentSpanId))
-            {
-                FullName = BuildFullName(span);
-            }
+        if (HasCircularReference(span))
+        {
+            Spans.Remove(span);
+            throw new InvalidOperationException($"Circular loop detected for span '{span.SpanId}' with parent '{span.ParentSpanId}'.");
         }
 
         if (string.IsNullOrEmpty(span.ParentSpanId))
@@ -87,6 +93,11 @@ public class OtlpTrace
                 }
             }
         }
+        else if (_rootSpan == null && span == Spans[0])
+        {
+            // If there isn't a root span then the first span is used as the trace name.
+            FullName = BuildFullName(span);
+        }
 
         AssertSpanOrder();
 
@@ -94,6 +105,31 @@ public class OtlpTrace
         {
             return $"{existingSpan.Source.Application.ApplicationName}: {existingSpan.Name}";
         }
+    }
+
+    private static bool HasCircularReference(OtlpSpan span)
+    {
+        // Can't have a circular reference if the span has no parent.
+        if (string.IsNullOrEmpty(span.ParentSpanId))
+        {
+            return false;
+        }
+
+        // Walk up span ancestors to check there is no loop.
+        var stack = new OtlpSpanCollection { span };
+        var currentSpan = span;
+        while (currentSpan.GetParentSpan() is { } parentSpan)
+        {
+            if (stack.Contains(parentSpan))
+            {
+                return true;
+            }
+
+            stack.Add(parentSpan);
+            currentSpan = parentSpan;
+        }
+
+        return false;
     }
 
     [Conditional("DEBUG")]

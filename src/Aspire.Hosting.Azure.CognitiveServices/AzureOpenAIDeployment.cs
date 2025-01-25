@@ -13,7 +13,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="skuCapacity">The capacity of the SKU.</param>
 public class AzureOpenAIDeployment(string name, string modelName, string modelVersion, string? skuName = null, int? skuCapacity = null)
 {
-    /// <value>"Standard"</value>>
+    /// <value>"Standard"</value>
     private const string DefaultSkuName = "Standard";
 
     /// <value>8</value>

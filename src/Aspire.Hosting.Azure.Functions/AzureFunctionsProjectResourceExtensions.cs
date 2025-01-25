@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning.Storage;
+using Azure.Provisioning;
 
 namespace Aspire.Hosting;
 
@@ -14,7 +15,16 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureFunctionsProjectResourceExtensions
 {
-    internal const string DefaultAzureFunctionsHostStorageName = "defaultazfuncstorage";
+    /// <remarks>
+    /// The prefix used for configuring the name default Azure Storage account that is used
+    /// for Azure Functions bookkeeping. Locally, the name is generated using a combination of this
+    /// prefix, a hash of the AppHost project path. During publish mode, the name generated
+    /// is a combination of this prefix, a hash of the AppHost project name, and the name of the
+    /// resource group associated with the deployment. We want to keep the total number of characters
+    /// in the name under 24 characters to avoid truncation by Azure and allow
+    /// for unique enough identifiers.
+    /// </remarks>
+    internal const string DefaultAzureFunctionsHostStorageName = "funcstorage";
 
     /// <summary>
     /// Adds an Azure Functions project to the distributed application.
@@ -29,27 +39,33 @@ public static class AzureFunctionsProjectResourceExtensions
 
         // Add the default storage resource if it doesn't already exist.
         var storageResourceName = builder.CreateDefaultStorageName();
-        AzureStorageResource storage;
+        var storage = builder.Resources
+            .OfType<AzureStorageResource>()
+            .FirstOrDefault(r => r.Name == storageResourceName);
 
         // Azure Functions blob triggers require StorageAccountContributor access to the host storage
         // account when deployed. We assign this role to the host storage resource when running in publish mode.
-        if (builder.ExecutionContext.IsPublishMode)
+        if (storage is null)
         {
-            var configureConstruct = (ResourceModuleConstruct construct) =>
+            if (builder.ExecutionContext.IsPublishMode)
             {
-#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-                var storageAccount = construct.GetResources().OfType<StorageAccount>().FirstOrDefault(r => r.ResourceName == storageResourceName)
-                    ?? throw new InvalidOperationException($"Could not find storage account with '{storageResourceName}' name.");
-                construct.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageAccountContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
-#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-            };
-            storage = builder.AddAzureStorage(storageResourceName)
-                .ConfigureConstruct(configureConstruct)
-                .RunAsEmulator().Resource;
-        }
-        else
-        {
-            storage = builder.AddAzureStorage(storageResourceName).RunAsEmulator().Resource;
+                var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
+                {
+                    var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+                    var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+
+                    var storageAccount = infrastructure.GetProvisionableResources().OfType<StorageAccount>().FirstOrDefault(r => r.BicepIdentifier == storageResourceName)
+                        ?? throw new InvalidOperationException($"Could not find storage account with '{storageResourceName}' name.");
+                    infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageAccountContributor, principalTypeParameter, principalIdParameter));
+                };
+                storage = builder.AddAzureStorage(storageResourceName)
+                    .ConfigureInfrastructure(configureInfrastructure)
+                    .RunAsEmulator().Resource;
+            }
+            else
+            {
+                storage = builder.AddAzureStorage(storageResourceName).RunAsEmulator().Resource;
+            }
         }
 
         builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
@@ -84,6 +100,8 @@ public static class AzureFunctionsProjectResourceExtensions
                 context.EnvironmentVariables["OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY"] = "in_memory";
                 context.EnvironmentVariables["ASPNETCORE_FORWARDEDHEADERS_ENABLED"] = "true";
                 context.EnvironmentVariables["FUNCTIONS_WORKER_RUNTIME"] = "dotnet-isolated";
+                // Required to enable OpenTelemetry in the Azure Functions host.
+                context.EnvironmentVariables["AzureFunctionsJobHost__telemetryMode"] = "OpenTelemetry";
                 // Set ASPNETCORE_URLS to use the non-privileged port 8080 when running in publish mode.
                 // We can't use the newer ASPNETCORE_HTTP_PORTS environment variables here since the Azure
                 // Functions host is still initialized using the classic WebHostBuilder.
