@@ -38,14 +38,19 @@ resource db3 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
   parent: cosmos
 }
 
-resource cosmos_DocumentDBAccountContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(cosmos.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5bd9cd88-fe45-4216-938b-f97437e15450'))
+resource cosmos_roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-08-15' existing = {
+  name: '00000000-0000-0000-0000-000000000002'
+  parent: cosmos
+}
+
+resource cosmos_roleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-08-15' = {
+  name: guid(principalId, cosmos_roleDefinition.id, cosmos.id)
   properties: {
     principalId: principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5bd9cd88-fe45-4216-938b-f97437e15450')
-    principalType: principalType
+    roleDefinitionId: cosmos_roleDefinition.id
+    scope: cosmos.id
   }
-  scope: cosmos
+  parent: cosmos
 }
 
 output connectionString string = cosmos.properties.documentEndpoint
