@@ -125,6 +125,15 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             timeoutSecs: 160);
 #endif
 
+        // Assert that CosmosDB triggers work correctly
+        await apiServiceClient.GetAsync("/publish/cosmosdb");
+        await WaitForAllTextAsync(app,
+            [
+                "Executed 'Functions.MyCosmosDbTrigger'"
+            ],
+            resourceName: "funcapp",
+            timeoutSecs: 160);
+
         // TODO: The following line is commented out because the test fails due to an erroneous log in the Functions App
         // resource that happens after the Functions host has been built. The error log shows up after the Functions
         // worker extension has been built and before the host has launched.
