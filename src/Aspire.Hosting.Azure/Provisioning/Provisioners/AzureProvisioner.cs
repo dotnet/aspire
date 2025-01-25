@@ -291,13 +291,13 @@ internal sealed class AzureProvisioner(
 
             resourceLogger.LogWarning("No provisioner found for {resourceType} skipping.", resource.GetType().Name);
         }
-        else if (!provisioner.ShouldProvision(configuration, resource.AzureResource))
+        else if (!resource.AzureResource.IsExisting() && !provisioner.ShouldProvision(configuration, resource.AzureResource))
         {
             resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
 
             resourceLogger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.AzureResource.Name);
         }
-        else if (await provisioner.ConfigureResourceAsync(configuration, resource.AzureResource, cancellationToken).ConfigureAwait(false))
+        else if (!resource.AzureResource.IsExisting() && await provisioner.ConfigureResourceAsync(configuration, resource.AzureResource, cancellationToken).ConfigureAwait(false))
         {
             resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
             resourceLogger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.AzureResource.Name);

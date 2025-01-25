@@ -12,6 +12,7 @@ Aspire.Hosting.ApplicationModel.DockerfileBuildAnnotation.DockerfilePath.get -> 
 Aspire.Hosting.ApplicationModel.DockerfileBuildAnnotation.Stage.get -> string?
 Aspire.Hosting.ApplicationModel.EndpointNameAttribute
 Aspire.Hosting.ApplicationModel.EndpointNameAttribute.EndpointNameAttribute() -> void
+Aspire.Hosting.ApplicationModel.ExistingResourceExtensions
 Aspire.Hosting.ApplicationModel.HealthReportSnapshot
 Aspire.Hosting.ApplicationModel.HealthReportSnapshot.Description.get -> string?
 Aspire.Hosting.ApplicationModel.HealthReportSnapshot.Description.init -> void
@@ -201,6 +202,10 @@ Aspire.Hosting.Eventing.IDistributedApplicationEventing.Subscribe<T>(System.Func
 Aspire.Hosting.Eventing.IDistributedApplicationEventing.Unsubscribe(Aspire.Hosting.Eventing.DistributedApplicationEventSubscription! subscription) -> void
 Aspire.Hosting.Eventing.IDistributedApplicationResourceEvent
 Aspire.Hosting.Eventing.IDistributedApplicationResourceEvent.Resource.get -> Aspire.Hosting.ApplicationModel.IResource!
+Aspire.Hosting.ExistingResourceAnnotation
+Aspire.Hosting.ExistingResourceAnnotation.ExistingResourceAnnotation(string! name, bool isPublishMode = false) -> void
+Aspire.Hosting.ExistingResourceAnnotation.IsPublishMode.get -> bool
+Aspire.Hosting.ExistingResourceAnnotation.Name.get -> string!
 Aspire.Hosting.IDistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
 Aspire.Hosting.IProjectMetadata.LaunchSettings.get -> Aspire.Hosting.LaunchSettings?
 Aspire.Hosting.LaunchProfile
@@ -225,6 +230,10 @@ Aspire.Hosting.LaunchSettings.Profiles.get -> System.Collections.Generic.Diction
 Aspire.Hosting.LaunchSettings.Profiles.set -> void
 Aspire.Hosting.Utils.VolumeNameGenerator
 static Aspire.Hosting.ApplicationModel.CommandResults.Success() -> Aspire.Hosting.ApplicationModel.ExecuteCommandResult!
+static Aspire.Hosting.ApplicationModel.ExistingResourceExtensions.IsExisting(this Aspire.Hosting.ApplicationModel.IResource! resource) -> bool
+static Aspire.Hosting.ApplicationModel.ExistingResourceExtensions.PublishAsExisting<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ApplicationModel.ExistingResourceExtensions.RunAsExisting<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ApplicationModel.ExistingResourceExtensions.TryGetExistingResource(this Aspire.Hosting.ApplicationModel.IResource! resource, out Aspire.Hosting.ExistingResourceAnnotation? existingResource) -> bool
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.GetEnvironmentVariableValuesAsync(this Aspire.Hosting.ApplicationModel.IResourceWithEnvironment! resource, Aspire.Hosting.DistributedApplicationOperation applicationOperation = Aspire.Hosting.DistributedApplicationOperation.Run) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.Dictionary<string!, string!>!>
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, string? targetState = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Collections.Generic.IEnumerable<string!>! targetStates, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!

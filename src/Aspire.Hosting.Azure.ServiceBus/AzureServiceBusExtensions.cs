@@ -30,7 +30,7 @@ public static class AzureServiceBusExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
+        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
             var skuParameter = new ProvisioningParameter("sku", typeof(string))
             {
@@ -38,15 +38,25 @@ public static class AzureServiceBusExtensions
             };
             infrastructure.Add(skuParameter);
 
-            var serviceBusNamespace = new AzureProvisioning.ServiceBusNamespace(infrastructure.AspireResource.GetBicepIdentifier())
+            AzureProvisioning.ServiceBusNamespace? serviceBusNamespace;
+            if (infrastructure.AspireResource.TryGetExistingResource(out var existingAnnotation) &&
+                builder.ExecutionContext.IsPublishMode == existingAnnotation.IsPublishMode)
             {
-                Sku = new AzureProvisioning.ServiceBusSku()
+                serviceBusNamespace = AzureProvisioning.ServiceBusNamespace.FromExisting(infrastructure.AspireResource.GetBicepIdentifier());
+                serviceBusNamespace.Name = existingAnnotation.Name;
+            }
+            else
+            {
+                serviceBusNamespace = new AzureProvisioning.ServiceBusNamespace(infrastructure.AspireResource.GetBicepIdentifier())
                 {
-                    Name = skuParameter
-                },
-                DisableLocalAuth = true,
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-            };
+                    Sku = new AzureProvisioning.ServiceBusSku()
+                    {
+                        Name = skuParameter
+                    },
+                    DisableLocalAuth = true,
+                    Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                };
+            }
             infrastructure.Add(serviceBusNamespace);
 
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
@@ -86,7 +96,7 @@ public static class AzureServiceBusExtensions
                         infrastructure.Add(cdkRule);
                     }
                 }
-            }            
+            }
         };
 
         var resource = new AzureServiceBusResource(name, configureInfrastructure);
