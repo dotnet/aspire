@@ -17,4 +17,9 @@ public interface IResource
     /// Gets the annotations associated with the resource.
     /// </summary>
     ResourceAnnotationCollection Annotations { get; }
+
+    /// <summary>
+    /// Gets the type of the resource.
+    /// </summary>
+    Type ResourceKind => GetType();
 }

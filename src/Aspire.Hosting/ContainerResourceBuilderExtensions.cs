@@ -108,8 +108,7 @@ public static class ContainerResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(entrypoint);
 
-        builder.Resource.Entrypoint = entrypoint;
-        return builder;
+        return builder.WithAnnotation(new ContainerEntryPointAnnotation { Entrypoint = entrypoint }, ResourceAnnotationMutationBehavior.Replace);
     }
 
     /// <summary>
@@ -383,8 +382,8 @@ public static class ContainerResourceBuilderExtensions
         var imageName = builder.GenerateImageName();
         var annotation = new DockerfileBuildAnnotation(fullyQualifiedContextPath, fullyQualifiedDockerfilePath, stage);
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
-                      .WithImageRegistry(registry: null)
                       .WithImage(imageName)
+                      .WithImageRegistry(registry: null)
                       .WithImageTag("latest");
     }
 

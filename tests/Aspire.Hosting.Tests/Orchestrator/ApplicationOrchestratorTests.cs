@@ -38,11 +38,11 @@ public class ApplicationOrchestratorTests
         {
             await foreach (var item in resourceNotificationService.WatchAsync())
             {
-                if (item.Resource == parentResource.Resource)
+                if (item.Resource.Equals(parentResource.Resource))
                 {
                     parentResourceId = item.ResourceId;
                 }
-                else if (item.Resource == childResource.Resource)
+                else if (item.Resource.Equals(childResource.Resource))
                 {
                     childParentResourceId = item.Snapshot.Properties.SingleOrDefault(p => p.Name == KnownProperties.Resource.ParentName)?.Value?.ToString();
                 }

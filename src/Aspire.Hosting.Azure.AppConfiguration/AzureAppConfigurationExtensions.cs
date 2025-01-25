@@ -44,7 +44,6 @@ public static class AzureAppConfigurationExtensions
         };
 
         var resource = new AzureAppConfigurationResource(name, configureInfrastructure);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 }

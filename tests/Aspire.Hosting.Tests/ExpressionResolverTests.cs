@@ -44,9 +44,10 @@ public class ExpressionResolverTests
                  e.AllocatedEndpoint = new(e, "localhost", 12346, containerHostAddress: "ContainerHostName", targetPortExpression: "10001");
              });
 
-        if (targetIsContainer)
+        if (!targetIsContainer)
         {
-            target = target.WithImage("someimage");
+            // Change the resource type to a non-container resource
+            target.WithAnnotation(new ResourceTypeAnnotation(typeof(Resource)));
         }
 
         // First test ExpressionResolver directly
@@ -57,9 +58,9 @@ public class ExpressionResolverTests
         // Then test it indirectly with a resource reference, which exercises a more complete code path
         var source = builder.AddResource(new ContainerResource("testSource"))
             .WithReference(target);
-        if (sourceIsContainer)
+        if (!sourceIsContainer)
         {
-            source = source.WithImage("someimage");
+            source.WithAnnotation(new ResourceTypeAnnotation(typeof(Resource)));
         }
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(source.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName").DefaultTimeout();
@@ -89,9 +90,10 @@ public class ExpressionResolverTests
                 env.EnvironmentVariables["envname"] = new HostUrl(hostUrlVal);
             });
 
-        if (container)
+        if (!container)
         {
-            test = test.WithImage("someimage");
+            // Change the resource type to a non-container resource
+            test.WithAnnotation(new ResourceTypeAnnotation(typeof(Resource)));
         }
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName").DefaultTimeout();
@@ -108,9 +110,9 @@ public class ExpressionResolverTests
         var test = builder.AddResource(new ContainerResource("testSource"))
             .WithOtlpExporter();
 
-        if (container)
+        if (!container)
         {
-            test = test.WithImage("someimage");
+            test.WithAnnotation(new ResourceTypeAnnotation(typeof(Resource)));
         }
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(test.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance, "ContainerHostName").DefaultTimeout();

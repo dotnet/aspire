@@ -69,7 +69,7 @@ public class DcpExecutorTests
         var channel = Channel.CreateUnbounded<string>();
         events.Subscribe<OnResourceChangedContext>(async (context) =>
         {
-            if (context.Resource == resource)
+            if (context.Resource.Equals(resource))
             {
                 await channel.Writer.WriteAsync(context.DcpResourceName);
             }

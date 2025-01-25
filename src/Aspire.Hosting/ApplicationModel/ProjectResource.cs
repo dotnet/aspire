@@ -6,9 +6,22 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A resource that represents a specified .NET project.
 /// </summary>
-/// <param name="name">The name of the resource.</param>
-public class ProjectResource(string name) : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithServiceDiscovery, IResourceWithWaitSupport
+public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWithArgs, IResourceWithServiceDiscovery, IResourceWithWaitSupport
 {
+    /// <param name="name">The name of the resource.</param>
+    public ProjectResource(string name) : base(name)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="ProjectResource"/>.
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="resourceAnnotations"></param>
+    public ProjectResource(string name, ResourceAnnotationCollection resourceAnnotations) : base(name, resourceAnnotations)
+    {
+    }
+
     // Keep track of the config host for each Kestrel endpoint annotation
     internal Dictionary<EndpointAnnotation, string> KestrelEndpointAnnotationHosts { get; } = new();
 

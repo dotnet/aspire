@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
@@ -17,9 +16,8 @@ public class AddParameterTests
     public void ParametersAreHiddenByDefault()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:pass"] = "pass1";
 
-        appBuilder.AddParameter("pass", secret: true);
+        appBuilder.AddParameter("pass", "pass1", secret: true);
 
         using var app = appBuilder.Build();
 
@@ -52,7 +50,7 @@ public class AddParameterTests
     }
 
     [Fact]
-    public void MissingParametersAreConfigurationMissing()
+    public async Task MissingParametersAreConfigurationMissing()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
@@ -61,6 +59,8 @@ public class AddParameterTests
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var loggerService = app.Services.GetRequiredService<ResourceLoggerService>();
 
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
         var annotation = parameterResource.Annotations.OfType<ResourceSnapshotAnnotation>().SingleOrDefault();
@@ -89,8 +89,17 @@ public class AddParameterTests
                 Assert.Contains("configuration key 'Parameters:pass' is missing", prop.Value?.ToString());
             });
 
-        // verify that the logging hook is registered
-        Assert.Contains(app.Services.GetServices<IDistributedApplicationLifecycleHook>(), hook => hook.GetType().Name == "WriteParameterLogsHook");
+        await appBuilder.Eventing.PublishAsync(new BeforeStartEvent(app.Services, appModel));
+
+        // Wait for the log to be written
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource();
+
+        await foreach (var line in loggerService.WatchAsync(parameterResource).WithCancellation(cts.Token))
+        {
+            Assert.Contains(line, e => e.Content.Contains("configuration key 'Parameters:pass' is missing"));
+            break;
+        }
+
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
@@ -19,13 +20,7 @@ public static class ContainerResourceExtensions
     {
         ArgumentNullException.ThrowIfNull(model);
 
-        foreach (var resource in model.Resources)
-        {
-            if (resource.Annotations.OfType<ContainerImageAnnotation>().Any())
-            {
-                yield return resource;
-            }
-        }
+        return model.Resources.Where(r => r.IsContainer()).Select(r => r as ContainerResource ?? new ContainerResource(r.Name, r.Annotations));
     }
 
     /// <summary>
@@ -37,6 +32,26 @@ public static class ContainerResourceExtensions
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        return resource.Annotations.OfType<ContainerImageAnnotation>().Any();
+        return resource.ResourceKind.IsAssignableTo(typeof(ContainerResource));
+    }
+
+    /// <summary>
+    /// Attempts to get the <see cref="ContainerResource"/> from the specified resource.
+    /// </summary>
+    /// <param name="resource"></param>
+    /// <param name="containerResource"></param>
+    /// <returns></returns>
+    public static bool TryGetContainer(this IResource resource, [NotNullWhen(true)] out ContainerResource? containerResource)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        if (resource.IsContainer())
+        {
+            containerResource = resource as ContainerResource ?? new ContainerResource(resource.Name, resource.Annotations);
+            return true;
+        }
+
+        containerResource = null;
+        return false;
     }
 }

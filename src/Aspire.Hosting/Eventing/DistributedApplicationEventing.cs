@@ -107,7 +107,7 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
     {
         var resourceFilteredCallback = async (T @event, CancellationToken cancellationToken) =>
         {
-            if (@event.Resource == resource)
+            if (@event.Resource.Equals(resource))
             {
                 await callback(@event, cancellationToken).ConfigureAwait(false);
             }

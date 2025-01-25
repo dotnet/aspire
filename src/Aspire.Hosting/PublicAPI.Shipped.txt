@@ -46,7 +46,6 @@ Aspire.Hosting.ApplicationModel.ContainerMountType
 Aspire.Hosting.ApplicationModel.ContainerMountType.BindMount = 0 -> Aspire.Hosting.ApplicationModel.ContainerMountType
 Aspire.Hosting.ApplicationModel.ContainerMountType.Volume = 1 -> Aspire.Hosting.ApplicationModel.ContainerMountType
 Aspire.Hosting.ApplicationModel.ContainerResource
-Aspire.Hosting.ApplicationModel.ContainerResource.ContainerResource(string! name, string? entrypoint = null) -> void
 Aspire.Hosting.ApplicationModel.ContainerResource.Entrypoint.get -> string?
 Aspire.Hosting.ApplicationModel.ContainerResource.Entrypoint.set -> void
 Aspire.Hosting.ApplicationModel.ContainerRuntimeArgsCallbackAnnotation

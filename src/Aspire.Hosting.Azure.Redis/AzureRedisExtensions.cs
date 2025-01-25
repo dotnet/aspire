@@ -120,8 +120,7 @@ public static class AzureRedisExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureRedisCacheResource(name, ConfigureRedisInfrastructure);
-        return builder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>
@@ -157,9 +156,8 @@ public static class AzureRedisExtensions
         var azureResource = builder.Resource;
         builder.ApplicationBuilder.Resources.Remove(azureResource);
 
-        var redisContainer = builder.ApplicationBuilder.AddRedis(azureResource.Name);
-
-        azureResource.SetInnerResource(redisContainer.Resource);
+        var redisContainer = builder.ApplicationBuilder.AddResource(new RedisResource(builder.Resource.Name, builder.Resource.Annotations))
+                            .ApplyRedis();
 
         configureContainer?.Invoke(redisContainer);
 

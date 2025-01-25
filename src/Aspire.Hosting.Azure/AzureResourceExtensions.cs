@@ -20,7 +20,12 @@ public static class AzureResourceExtensions
     public static IResourceBuilder<T> PublishAsConnectionString<T>(this IResourceBuilder<T> builder)
         where T : IAzureResource, IResourceWithConnectionString
     {
-        ParameterResourceBuilderExtensions.ConfigureConnectionStringManifestPublisher((IResourceBuilder<IResourceWithConnectionString>)builder);
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            // Convert the resource to a connection string parameter
+            _ = new ConnectionStringParameterResource(builder.Resource.Name, builder.Resource.Annotations);
+        }
+
         return builder;
     }
 

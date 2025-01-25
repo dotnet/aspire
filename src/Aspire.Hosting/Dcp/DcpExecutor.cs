@@ -430,7 +430,7 @@ internal sealed class DcpExecutor : IDcpExecutor
         return resource switch
         {
             Container => KnownResourceTypes.Container,
-            Executable => appModelResource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable,
+            Executable => appModelResource.IsProject() ? KnownResourceTypes.Project : KnownResourceTypes.Executable,
             _ => throw new InvalidOperationException($"Unknown resource type {resource.GetType().Name}")
         };
     }
@@ -951,7 +951,7 @@ internal sealed class DcpExecutor : IDcpExecutor
             async Task CreateResourceExecutablesAsyncCore(IResource resource, IEnumerable<AppResource> executables, CancellationToken cancellationToken)
             {
                 var resourceLogger = _loggerService.GetLogger(resource);
-                var resourceType = resource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable;
+                var resourceType = resource.IsProject() ? KnownResourceTypes.Project : KnownResourceTypes.Executable;
 
                 try
                 {
@@ -1443,9 +1443,9 @@ internal sealed class DcpExecutor : IDcpExecutor
             }
         }
 
-        if (modelContainerResource is ContainerResource containerResource)
+        if (modelContainerResource.TryGetLastAnnotation<ContainerEntryPointAnnotation>(out var containerEntrypoint))
         {
-            dcpContainerResource.Spec.Command = containerResource.Entrypoint;
+            dcpContainerResource.Spec.Command = containerEntrypoint.Entrypoint;
         }
 
         if (failedToApplyArgs || failedToApplyConfiguration)
@@ -1548,7 +1548,7 @@ internal sealed class DcpExecutor : IDcpExecutor
         }
         catch { } // For error messages only, OK to fall back to (unknown)
 
-        var servicesProduced = _appResources.OfType<ServiceAppResource>().Where(r => r.ModelResource == modelResource);
+        var servicesProduced = _appResources.OfType<ServiceAppResource>().Where(r => r.ModelResource.Equals(modelResource));
         foreach (var sp in servicesProduced)
         {
             var ea = sp.EndpointAnnotation;

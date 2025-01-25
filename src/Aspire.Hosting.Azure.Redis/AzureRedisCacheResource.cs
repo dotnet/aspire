@@ -9,10 +9,8 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Represents an Azure Cache for Redis resource.
 /// </summary>
-/// <param name="name">The name of the resource.</param>
-/// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
-public class AzureRedisCacheResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
-    AzureProvisioningResource(name, configureInfrastructure),
+public class AzureRedisCacheResource :
+    AzureProvisioningResource,
     IResourceWithConnectionString
 {
     /// <summary>
@@ -35,33 +33,26 @@ public class AzureRedisCacheResource(string name, Action<AzureResourceInfrastruc
     [MemberNotNullWhen(true, nameof(ConnectionStringSecretOutput))]
     public bool UseAccessKeyAuthentication => ConnectionStringSecretOutput is not null;
 
-    /// <summary>
-    /// Gets the inner Redis resource.
-    /// 
-    /// This is set when RunAsContainer is called on the AzureRedisCacheResource resource to create a local Redis container.
-    /// </summary>
-    internal RedisResource? InnerResource { get; private set; }
-
+    // Keep for backwards compatibility
     /// <inheritdoc />
-    public override ResourceAnnotationCollection Annotations => InnerResource?.Annotations ?? base.Annotations;
+    public override ResourceAnnotationCollection Annotations => base.Annotations;
 
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Cache for Redis resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        InnerResource?.ConnectionStringExpression ??
-            (UseAccessKeyAuthentication ?
+        Annotations.OfType<ConnectionStringAnnotation>().Last().ConnectionStringExpression;
+
+    private ReferenceExpression GetConnectionString() =>
+            UseAccessKeyAuthentication ?
                 ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
-                ReferenceExpression.Create($"{ConnectionStringOutput}"));
+                ReferenceExpression.Create($"{ConnectionStringOutput}");
 
-    internal void SetInnerResource(RedisResource innerResource)
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
+    public AzureRedisCacheResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) : base(name, configureInfrastructure)
     {
-        // Copy the annotations to the inner resource before making it the inner resource
-        foreach (var annotation in Annotations)
-        {
-            innerResource.Annotations.Add(annotation);
-        }
-
-        InnerResource = innerResource;
+        // We're using the ConnectionStringAnnotation to allow be overridden by the RedisCacheResource
+        Annotations.Add(new ConnectionStringAnnotation(GetConnectionString));
     }
 }

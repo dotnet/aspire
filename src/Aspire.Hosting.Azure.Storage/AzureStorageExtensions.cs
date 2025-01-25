@@ -95,15 +95,18 @@ public static class AzureStorageExtensions
             return builder;
         }
 
-        builder.WithEndpoint(name: "blob", targetPort: 10000)
-               .WithEndpoint(name: "queue", targetPort: 10001)
-               .WithEndpoint(name: "table", targetPort: 10002)
-               .WithAnnotation(new ContainerImageAnnotation
-               {
-                   Registry = StorageEmulatorContainerImageTags.Registry,
-                   Image = StorageEmulatorContainerImageTags.Image,
-                   Tag = StorageEmulatorContainerImageTags.Tag
-               });
+        var emulator = new AzureStorageEmulatorResource(builder.Resource);
+        var emulatorBuilder = builder.ApplicationBuilder.CreateResourceBuilder(emulator);
+
+        // The default arguments list is coming from https://github.com/Azure/Azurite/blob/c3f93445fbd8fd54d380eb265a5665166c460d2b/Dockerfile#L47C6-L47C106
+        // They need to be repeated in order to be able to add --skipApiVersionCheck
+        emulatorBuilder.WithImage(StorageEmulatorContainerImageTags.Image)
+                       .WithImageTag(StorageEmulatorContainerImageTags.Tag)
+                       .WithImageRegistry(StorageEmulatorContainerImageTags.Registry)
+                       .WithArgs("azurite", "-l", "/data", "--blobHost", "0.0.0.0", "--queueHost", "0.0.0.0", "--tableHost", "0.0.0.0", SkipApiVersionCheckArgument)
+                       .WithEndpoint(name: "blob", targetPort: 10000)
+                       .WithEndpoint(name: "queue", targetPort: 10001)
+                       .WithEndpoint(name: "table", targetPort: 10002);
 
         BlobServiceClient? blobServiceClient = null;
 
@@ -128,15 +131,7 @@ public static class AzureStorageExtensions
 
         builder.WithHealthCheck(healthCheckKey);
 
-        // The default arguments list is coming from https://github.com/Azure/Azurite/blob/c3f93445fbd8fd54d380eb265a5665166c460d2b/Dockerfile#L47C6-L47C106
-        // They need to be repeated in order to be able to add --skipApiVersionCheck
-
-        var surrogate = new AzureStorageEmulatorResource(builder.Resource);
-        var surrogateBuilder = builder.ApplicationBuilder
-            .CreateResourceBuilder(surrogate)
-            .WithArgs("azurite", "-l", "/data", "--blobHost", "0.0.0.0", "--queueHost", "0.0.0.0", "--tableHost", "0.0.0.0", SkipApiVersionCheckArgument);
-
-        configureContainer?.Invoke(surrogateBuilder);
+        configureContainer?.Invoke(emulatorBuilder);
 
         return builder;
 
