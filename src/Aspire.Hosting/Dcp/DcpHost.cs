@@ -55,15 +55,15 @@ internal sealed class DcpHost : IAsyncDisposable
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        // Ensure DCP is installed and has all required dependencies
-        var dcpInfo = await _dependencyCheckService.GetDcpInfoAsync(cancellationToken).ConfigureAwait(false);
-
-        EnsureDcpContainerRuntime(dcpInfo);
+        await EnsureDcpContainerRuntimeAsync(cancellationToken).ConfigureAwait(false);
         EnsureDcpHostRunning();
     }
 
-    private void EnsureDcpContainerRuntime(DcpInfo? dcpInfo)
+    private async Task EnsureDcpContainerRuntimeAsync(CancellationToken cancellationToken)
     {
+        // Ensure DCP is installed and has all required dependencies
+        var dcpInfo = await _dependencyCheckService.GetDcpInfoAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+
         if (dcpInfo is null)
         {
             return;
@@ -80,7 +80,38 @@ internal sealed class DcpHost : IAsyncDisposable
 
         try
         {
-            DcpDependencyCheck.CheckDcpInfoAndLogErrors(_logger, _dcpOptions, dcpInfo);
+            bool requireContainerRuntimeInitialization = _dcpOptions.ContainerRuntimeInitializationTimeout > TimeSpan.Zero;
+            if (requireContainerRuntimeInitialization)
+            {
+                using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                timeoutCancellation.CancelAfter(_dcpOptions.ContainerRuntimeInitializationTimeout);
+
+                static bool IsContainerRuntimeHealthy(DcpInfo dcpInfo)
+                {
+                    var installed = dcpInfo.Containers?.Installed ?? false;
+                    var running = dcpInfo.Containers?.Running ?? false;
+                    return installed && running;
+                }
+
+                try
+                {
+                    while (dcpInfo is not null && !IsContainerRuntimeHealthy(dcpInfo))
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(2), timeoutCancellation.Token).ConfigureAwait(false);
+                        dcpInfo = await _dependencyCheckService.GetDcpInfoAsync(force: true, cancellationToken: timeoutCancellation.Token).ConfigureAwait(false);
+                    }
+                }
+                catch (OperationCanceledException) when (timeoutCancellation.IsCancellationRequested)
+                {
+                    // Swallow the cancellation exception and let it bubble up as a more helpful error
+                    // about the container runtime in CheckDcpInfoAndLogErrors.
+                }
+            }
+
+            if (dcpInfo is not null)
+            {
+                DcpDependencyCheck.CheckDcpInfoAndLogErrors(_logger, _dcpOptions, dcpInfo, throwIfUnhealthy: requireContainerRuntimeInitialization);
+            }
         }
         finally
         {
