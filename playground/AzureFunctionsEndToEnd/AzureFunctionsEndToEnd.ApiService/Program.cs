@@ -7,6 +7,8 @@ using Azure.Messaging.ServiceBus;
 #endif
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
+using Microsoft.Azure.Cosmos;
+using Newtonsoft.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +20,7 @@ builder.AddAzureEventHubProducerClient("eventhubs", static settings => settings.
 #if !SKIP_UNSTABLE_EMULATORS
 builder.AddAzureServiceBusClient("messaging");
 #endif
+builder.AddAzureCosmosClient("cosmosdb");
 
 var app = builder.Build();
 
@@ -72,6 +75,26 @@ app.MapGet("/", async (HttpClient client) =>
     return Results.Stream(stream, "application/json");
 });
 
+app.MapGet("/publish/cosmosdb", async (CosmosClient cosmosClient) =>
+{
+    var db = cosmosClient.GetDatabase("mydatabase");
+    var container = db.GetContainer("mycontainer");
+
+    var entry = new Entry { Id = Guid.NewGuid().ToString(), Text = RandomString(20) };
+    await container.CreateItemAsync(entry);
+
+    return Results.Ok("Document created in Azure Cosmos DB.");
+});
+
 app.MapDefaultEndpoints();
 
 app.Run();
+
+public class Entry
+{
+    [JsonProperty("id")]
+    public required string Id { get; set; }
+
+    [JsonProperty("text")]
+    public string Text { get; set; } = string.Empty;
+}

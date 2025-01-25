@@ -161,6 +161,7 @@
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues" Version="5.5.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.22.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.EventHubs" Version="6.3.6" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.CosmosDb" Version="4.11.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.OpenTelemetry" Version="1.1.0-preview6" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.0" />
     <PackageVersion Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
