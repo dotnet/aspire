@@ -2,14 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.ApplicationModel;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Extension methods for interacting with resources that are not managed by Aspire's provisioning or
 /// container management layer.
 /// </summary>
-public static class ExistingResourceExtensions
+public static class ExistingAzureResourceExtensions
 {
     /// <summary>
     /// Determines if the resource is an existing resource.
@@ -20,7 +21,7 @@ public static class ExistingResourceExtensions
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        return resource.Annotations.OfType<ExistingResourceAnnotation>().Any();
+        return resource.Annotations.OfType<ExistingAzureResourceAnnotation>().Any();
     }
 
     /// <summary>
@@ -35,7 +36,7 @@ public static class ExistingResourceExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.Resource.Annotations.Add(new ExistingResourceAnnotation(name));
+        builder.Resource.Annotations.Add(new ExistingAzureResourceAnnotation(name));
         return builder;
     }
 
@@ -51,21 +52,21 @@ public static class ExistingResourceExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.Resource.Annotations.Add(new ExistingResourceAnnotation(name, true));
+        builder.Resource.Annotations.Add(new ExistingAzureResourceAnnotation(name, true));
         return builder;
     }
 
     /// <summary>
-    /// Gets the <see cref="ExistingResourceAnnotation" /> if the resource is an existing resource.
+    /// Gets the <see cref="ExistingAzureResourceAnnotation" /> if the resource is an existing resource.
     /// </summary>
     /// <param name="resource">The resource to check.</param>
     /// <param name="existingResource">The existing resource annotation if the resource is an existing resource.</param>
     /// <returns>True if the resource is an existing resource, otherwise false.</returns>
-    public static bool TryGetExistingResource(this IResource resource, [NotNullWhen(true)] out ExistingResourceAnnotation? existingResource)
+    public static bool TryGetExistingResource(this IResource resource, [NotNullWhen(true)] out ExistingAzureResourceAnnotation? existingResource)
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        existingResource = resource.Annotations.OfType<ExistingResourceAnnotation>().FirstOrDefault();
+        existingResource = resource.Annotations.OfType<ExistingAzureResourceAnnotation>().FirstOrDefault();
         return existingResource is not null;
     }
 }

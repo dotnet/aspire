@@ -25,12 +25,21 @@ Aspire.Hosting.Azure.AzureProvisioningResource.ProvisioningBuildOptions.get -> A
 Aspire.Hosting.Azure.AzureProvisioningResource.ProvisioningBuildOptions.set -> void
 Aspire.Hosting.Azure.AzureResourceInfrastructure
 Aspire.Hosting.Azure.AzureResourceInfrastructure.AspireResource.get -> Aspire.Hosting.Azure.AzureProvisioningResource!
+Aspire.Hosting.Azure.ExistingAzureResourceAnnotation
+Aspire.Hosting.Azure.ExistingAzureResourceAnnotation.ExistingAzureResourceAnnotation(string! name, bool isPublishMode = false) -> void
+Aspire.Hosting.Azure.ExistingAzureResourceAnnotation.IsPublishMode.get -> bool
+Aspire.Hosting.Azure.ExistingAzureResourceAnnotation.Name.get -> string!
+Aspire.Hosting.Azure.ExistingAzureResourceExtensions
 Aspire.Hosting.Azure.IResourceWithAzureFunctionsConfig
 Aspire.Hosting.Azure.IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string!, object!>! target, string! connectionName) -> void
 Aspire.Hosting.AzureProvisioningResourceExtensions
 override Aspire.Hosting.Azure.AspireV8ResourceNamePropertyResolver.ResolveName(Azure.Provisioning.ProvisioningBuildOptions! options, Azure.Provisioning.Primitives.ProvisionableResource! resource, Azure.Provisioning.Primitives.ResourceNameRequirements requirements) -> Azure.Provisioning.BicepValue<string!>?
 override Aspire.Hosting.Azure.AzureProvisioningResource.GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true) -> Aspire.Hosting.Azure.BicepTemplateFile
 override Aspire.Hosting.Azure.AzureProvisioningResource.GetBicepTemplateString() -> string!
+static Aspire.Hosting.Azure.ExistingAzureResourceExtensions.IsExisting(this Aspire.Hosting.ApplicationModel.IResource! resource) -> bool
+static Aspire.Hosting.Azure.ExistingAzureResourceExtensions.PublishAsExisting<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.Azure.ExistingAzureResourceExtensions.RunAsExisting<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.Azure.ExistingAzureResourceExtensions.TryGetExistingResource(this Aspire.Hosting.ApplicationModel.IResource! resource, out Aspire.Hosting.Azure.ExistingAzureResourceAnnotation? existingResource) -> bool
 static Aspire.Hosting.AzureBicepResourceExtensions.WithParameter<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, Aspire.Hosting.ApplicationModel.EndpointReference! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.AzureBicepResourceExtensions.WithParameter<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, Aspire.Hosting.ApplicationModel.ReferenceExpression! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.AzureProvisioningResourceExtensions.AddAzureInfrastructure(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureInfrastructure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureProvisioningResource!>!

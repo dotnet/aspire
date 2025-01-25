@@ -3,13 +3,13 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents a resource that is not managed by Aspire's provisioning or
 /// container management layer.
 /// </summary>
-public class ExistingResourceAnnotation(string name, bool isPublishMode = false) : IResourceAnnotation
+public class ExistingAzureResourceAnnotation(string name, bool isPublishMode = false) : IResourceAnnotation
 {
     /// <summary>
     /// The name of the existing resource.
