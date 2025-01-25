@@ -4,10 +4,10 @@ using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
 #if !SKIP_UNSTABLE_EMULATORS
 using Azure.Messaging.ServiceBus;
+using Microsoft.Azure.Cosmos;
 #endif
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
-using Microsoft.Azure.Cosmos;
 using Newtonsoft.Json;
 
 var builder = WebApplication.CreateBuilder(args);

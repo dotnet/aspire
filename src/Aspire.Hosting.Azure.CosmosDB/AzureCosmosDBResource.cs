@@ -68,7 +68,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
         if (IsEmulator || UseAccessKeyAuthentication)
         {
             // Injected to support Azure Functions listener initialization.
-            target[$"{connectionName}"] = ConnectionStringExpression;
+            target[connectionName] = ConnectionStringExpression;
             // Injected to support Aspire client integration for CosmosDB in Azure Functions projects.
             target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__ConnectionString"] = ConnectionStringExpression;
         }
