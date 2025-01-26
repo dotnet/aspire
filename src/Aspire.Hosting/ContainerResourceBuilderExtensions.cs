@@ -170,7 +170,7 @@ public static class ContainerResourceBuilderExtensions
 
         if (tag is { } && parsedReference.Tag is { })
         {
-            throw new ArgumentOutOfRangeException(nameof(tag), "Ambiguous tags - a tag was provided on both the 'tag' and 'image' parameters");
+            throw new InvalidOperationException("Ambiguous tags - a tag was provided on both the 'tag' and 'image' parameters");
         }
 
         if (tag is { } && parsedReference.Digest is { })

@@ -129,7 +129,7 @@ public class ContainerResourceBuilderTests
         using var builder = TestDistributedApplicationBuilder.Create();
         var container = builder.AddResource(new TestContainerResource("testcontainer"));
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => container.WithImage("image:tag", "anothertag"));
+        Assert.Throws<InvalidOperationException>(() => container.WithImage("image:tag", "anothertag"));
     }
 
     [Fact]
