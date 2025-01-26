@@ -141,6 +141,42 @@ public class ContainerResourceBuilderTests
         Assert.Throws<ArgumentOutOfRangeException>(() => container.WithImage("image@sha246:abcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcd", "tag"));
     }
 
+    [Fact]
+    public void WithImageWithoutRegistryShouldKeepExistingRegistryButOverwriteTagWithLatest()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder
+            .AddContainer("container", "image", "original-tag")
+            .WithImageRegistry("foobar.io")
+            .WithImage("different-image");
+
+        var annotation = redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
+        AssertImageComponents(redis, "foobar.io", "different-image", "latest", null);
+    }
+
+    [Fact]
+    public void WithImageWithoutTagShouldReplaceExistingTagWithLatest()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder
+            .AddContainer("container", "redis-stack", "original-tag")
+            .WithImage("redis-stack");
+
+        AssertImageComponents(redis, null, "redis-stack", "latest", null);
+    }
+
+    [Fact]
+    public void WithImageOverwritesSha256WithLatestTag()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder
+            .AddContainer("redis", "image")
+            .WithImageSHA256("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+            .WithImage("redis-stack");
+
+        AssertImageComponents(redis, null, "redis-stack", "latest", null);
+    }
+
     private static void AssertImageComponents<T>(IResourceBuilder<T> builder, string? expectedRegistry, string expectedImage, string? expectedTag, string? expectedSha256)
         where T: IResource
     {
