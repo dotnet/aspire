@@ -11,7 +11,6 @@ namespace Aspire.Hosting.Containers.Tests;
 
 public class ContainerResourceTests
 {
-
     [Fact]
     public void AddContainerAddsAnnotationMetadata()
     {
