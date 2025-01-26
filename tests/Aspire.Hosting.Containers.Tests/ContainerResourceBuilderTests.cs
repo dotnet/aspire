@@ -142,6 +142,30 @@ public class ContainerResourceBuilderTests
     }
 
     [Fact]
+    public void WithImageOverridesExistingImageAndTag()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder
+            .AddContainer("container", "image", "original-tag")
+            .WithImage("yet-another-image:new-tag");
+
+        var annotation = redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
+        AssertImageComponents(redis, null, "yet-another-image", "new-tag", null);
+    }
+
+    [Fact]
+    public void WithImageOverridesExistingImageAndSha()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder
+            .AddContainer("container", "image", "original-tag")
+            .WithImage("yet-another-image@sha256:421c76d77563afa1914846b010bd164f395bd34c2102e5e99e0cb9cf173c1d87");
+
+        var annotation = redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
+        AssertImageComponents(redis, null, "yet-another-image", null, "421c76d77563afa1914846b010bd164f395bd34c2102e5e99e0cb9cf173c1d87");
+    }
+
+    [Fact]
     public void WithImageWithoutRegistryShouldKeepExistingRegistryButOverwriteTagWithLatest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
