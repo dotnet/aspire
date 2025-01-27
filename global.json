@@ -1,11 +1,11 @@
 {
   "sdk": {
-    "version": "9.0.100",
+    "version": "9.0.102",
     "rollForward": "major",
     "allowPrerelease": true
   },
   "tools": {
-    "dotnet": "9.0.100",
+    "dotnet": "9.0.102",
     "runtimes": {
       "dotnet/x64": [
         "$(DotNetRuntimePreviousVersionForTesting)"

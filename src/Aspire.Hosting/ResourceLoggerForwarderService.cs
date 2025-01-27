@@ -7,7 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.Testing;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// A background service that watches resource logs and forwards them to the host's <see cref="ILogger"/> infrastructure.

@@ -467,6 +467,28 @@ public static class ResourceBuilderExtensions
     /// <param name="callback">Callback that modifies the endpoint.</param>
     /// <param name="createIfNotExists">Create endpoint if it does not exist.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="WithEndpoint{T}(IResourceBuilder{T}, string, Action{EndpointAnnotation}, bool)"/> method allows
+    /// developers to mutate any aspect of an endpoint annotation. Note that changing one value does not automatically change
+    /// other values to compatable/consistent values. For example setting the <see cref="EndpointAnnotation.Protocol"/> property
+    /// of the endpoint annotation in the callback will not automatically change the <see cref="EndpointAnnotation.UriScheme"/>.
+    /// All values should be set in the callback if the defaults are not acceptable.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Configure an endpoint to use UDP.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.Create(args);
+    /// var container = builder.AddContainer("mycontainer", "myimage")
+    ///                        .WithEndpoint("myendpoint", e => {
+    ///                          e.Port = 9998;
+    ///                          e.TargetPort = 9999;
+    ///                          e.Protocol = ProtocolType.Udp;
+    ///                          e.UriScheme = "udp";
+    ///                        });
+    /// </code>
+    /// </example>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
     public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, [EndpointName] string endpointName, Action<EndpointAnnotation> callback, bool createIfNotExists = true) where T : IResourceWithEndpoints
     {

@@ -15,7 +15,7 @@ public class ResourceCommandAnnotationTests
     [InlineData(CommandsConfigurationExtensions.StartCommandName, "Exited", ResourceCommandState.Enabled)]
     [InlineData(CommandsConfigurationExtensions.StartCommandName, "Finished", ResourceCommandState.Enabled)]
     [InlineData(CommandsConfigurationExtensions.StartCommandName, "FailedToStart", ResourceCommandState.Enabled)]
-    [InlineData(CommandsConfigurationExtensions.StartCommandName, "Waiting", ResourceCommandState.Disabled)]
+    [InlineData(CommandsConfigurationExtensions.StartCommandName, "Waiting", ResourceCommandState.Enabled)]
     [InlineData(CommandsConfigurationExtensions.StartCommandName, "RuntimeUnhealthy", ResourceCommandState.Disabled)]
     [InlineData(CommandsConfigurationExtensions.StopCommandName, "Starting", ResourceCommandState.Hidden)]
     [InlineData(CommandsConfigurationExtensions.StopCommandName, "Stopping", ResourceCommandState.Disabled)]

@@ -5,11 +5,8 @@ using System.Globalization;
 using System.IO.Pipelines;
 using System.Text;
 using System.Threading.Channels;
-using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
-using Aspire.Hosting.Eventing;
-using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Tests.Utils;
 using k8s.Models;
 using Microsoft.AspNetCore.InternalTesting;
@@ -21,7 +18,7 @@ using Xunit;
 
 namespace Aspire.Hosting.Tests.Dcp;
 
-public class ApplicationExecutorTests
+public class DcpExecutorTests
 {
     [Fact]
     public async Task ContainersArePassedOtelServiceName()
@@ -35,7 +32,7 @@ public class ApplicationExecutorTests
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
 
         // Act
         await appExecutor.RunApplicationAsync();
@@ -61,42 +58,48 @@ public class ApplicationExecutorTests
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix" };
 
-        var beforeStartedEvents = new List<BeforeResourceStartedEvent>();
-        var eventing = new DistributedApplicationEventing();
-        eventing.Subscribe<BeforeResourceStartedEvent>((@event, ct) =>
+        var startingEvents = new List<OnResourceStartingContext>();
+        var events = new DcpExecutorEvents();
+        events.Subscribe<OnResourceStartingContext>((context) =>
         {
-            beforeStartedEvents.Add(@event);
+            startingEvents.Add(context);
             return Task.CompletedTask;
+        });
+
+        var channel = Channel.CreateUnbounded<string>();
+        events.Subscribe<OnResourceChangedContext>(async (context) =>
+        {
+            if (context.Resource == resource)
+            {
+                await channel.Writer.WriteAsync(context.DcpResourceName);
+            }
         });
 
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
 
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService, dcpOptions: dcpOptions, eventing: eventing, resourceNotificationService: resourceNotificationService);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions, events: events);
         await appExecutor.RunApplicationAsync();
 
         var executables = kubernetesService.CreatedResources.OfType<Executable>().ToList();
         Assert.Equal(2, executables.Count);
 
-        var e = Assert.Single(beforeStartedEvents);
+        var e = Assert.Single(startingEvents);
         Assert.Equal(resource, e.Resource);
 
         var resourceIds = new HashSet<string>();
         var watchResourceTask = Task.Run(async () =>
         {
-            await foreach (var item in resourceNotificationService.WatchAsync())
+            await foreach (var item in channel.Reader.ReadAllAsync())
             {
-                if (item.Resource == resource)
+                resourceIds.Add(item);
+                if (resourceIds.Count == 2)
                 {
-                    resourceIds.Add(item.ResourceId);
-                    if (resourceIds.Count == 2)
-                    {
-                        break;
-                    }
+                    break;
                 }
             }
         });
+        await watchResourceTask.DefaultTimeout();
 
-        await watchResourceTask.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(2, resourceIds.Count);
     }
 
@@ -111,7 +114,7 @@ public class ApplicationExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
         await appExecutor.RunApplicationAsync();
 
         var dcpExe = Assert.Single(kubernetesService.CreatedResources.OfType<Executable>());
@@ -143,7 +146,7 @@ public class ApplicationExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
         await appExecutor.RunApplicationAsync();
 
         var dcpExe = Assert.Single(kubernetesService.CreatedResources.OfType<Executable>());
@@ -175,7 +178,7 @@ public class ApplicationExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
         await appExecutor.RunApplicationAsync();
 
         var dcpExe = Assert.Single(kubernetesService.CreatedResources.OfType<Executable>());
@@ -208,7 +211,7 @@ public class ApplicationExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
         await appExecutor.RunApplicationAsync();
 
         var dcpExe = Assert.Single(kubernetesService.CreatedResources.OfType<Executable>());
@@ -245,7 +248,7 @@ public class ApplicationExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => appExecutor.RunApplicationAsync());
         Assert.Contains("cannot be proxied when both TargetPort and Port are specified with the same value", exception.Message);
     }
@@ -265,7 +268,7 @@ public class ApplicationExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
         await appExecutor.RunApplicationAsync();
 
         var dcpExe = Assert.Single(kubernetesService.CreatedResources.OfType<Executable>());
@@ -299,7 +302,7 @@ public class ApplicationExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
         await appExecutor.RunApplicationAsync();
 
         var dcpExe = Assert.Single(kubernetesService.CreatedResources.OfType<Executable>());
@@ -333,7 +336,7 @@ public class ApplicationExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
         await appExecutor.RunApplicationAsync();
 
         var dcpExe = Assert.Single(kubernetesService.CreatedResources.OfType<Executable>());
@@ -397,7 +400,7 @@ public class ApplicationExecutorTests
             var kubernetesService = new TestKubernetesService();
             using var app = builder.Build();
             var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-            var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+            var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => appExecutor.RunApplicationAsync());
             Assert.Contains(tc.ErrorMessageFragment, exception.Message);
         }
@@ -420,7 +423,7 @@ public class ApplicationExecutorTests
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix" };
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService, dcpOptions: dcpOptions);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions);
         await appExecutor.RunApplicationAsync();
 
         var executables = kubernetesService.CreatedResources.OfType<Executable>().ToList();
@@ -457,7 +460,7 @@ public class ApplicationExecutorTests
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var dcpOptions = new DcpOptions { DashboardPath = "./dashboard" };
         var resourceLoggerService = new ResourceLoggerService();
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService, dcpOptions: dcpOptions, resourceLoggerService: resourceLoggerService);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions, resourceLoggerService: resourceLoggerService);
         await appExecutor.RunApplicationAsync();
 
         var exeResource = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
@@ -555,7 +558,7 @@ public class ApplicationExecutorTests
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var dcpOptions = new DcpOptions { DashboardPath = "./dashboard" };
         var resourceLoggerService = new ResourceLoggerService();
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService, dcpOptions: dcpOptions, resourceLoggerService: resourceLoggerService);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions, resourceLoggerService: resourceLoggerService);
         await appExecutor.RunApplicationAsync();
 
         var exeResource = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
@@ -659,7 +662,7 @@ public class ApplicationExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
         await appExecutor.RunApplicationAsync();
 
         var exes = kubernetesService.CreatedResources.OfType<Executable>().ToList();
@@ -704,7 +707,7 @@ public class ApplicationExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
         await appExecutor.RunApplicationAsync();
 
         var exes = kubernetesService.CreatedResources.OfType<Executable>().ToList();
@@ -741,7 +744,7 @@ public class ApplicationExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
         await appExecutor.RunApplicationAsync();
 
         var dcpCtr = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
@@ -776,7 +779,7 @@ public class ApplicationExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
         await appExecutor.RunApplicationAsync();
 
         var dcpCtr = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
@@ -836,7 +839,7 @@ public class ApplicationExecutorTests
             var kubernetesService = new TestKubernetesService();
             using var app = builder.Build();
             var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-            var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+            var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => appExecutor.RunApplicationAsync());
             Assert.Contains(tc.ErrorMessageFragment, exception.Message);
         }
@@ -857,7 +860,7 @@ public class ApplicationExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
         await appExecutor.RunApplicationAsync();
 
         var dcpCtr = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
@@ -893,7 +896,7 @@ public class ApplicationExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
         await appExecutor.RunApplicationAsync();
 
         var dcpCtr = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
@@ -930,7 +933,7 @@ public class ApplicationExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
         await appExecutor.RunApplicationAsync();
 
         var dcpCtr = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
@@ -960,13 +963,24 @@ public class ApplicationExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+        var dcpEvents = new DcpExecutorEvents();
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        dcpEvents.Subscribe<OnResourceFailedToStartContext>(c =>
+        {
+            tcs.SetResult();
+            return Task.CompletedTask;
+        });
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, events: dcpEvents);
         await appExecutor.RunApplicationAsync();
 
         var dcpCtr = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
 
         var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () => await appExecutor.StartResourceAsync(dcpCtr.Metadata.Name, CancellationToken.None));
         Assert.Equal($"Failed to delete '{dcpCtr.Metadata.Name}' successfully before restart.", ex.Message);
+
+        // Verify failed to start event.
+        await tcs.Task.DefaultTimeout();
     }
 
     [Fact]
@@ -980,56 +994,12 @@ public class ApplicationExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
         await appExecutor.RunApplicationAsync();
 
         HasKnownCommandAnnotations(exe.Resource);
         HasKnownCommandAnnotations(container.Resource);
         HasKnownCommandAnnotations(project.Resource);
-    }
-
-    [Fact]
-    public async Task ParentPropertySetOnChildResource()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
-        var parentResource = builder.AddContainer("database", "image");
-        var childResource = builder.AddResource(new CustomChildResource("child", parentResource.Resource));
-
-        var kubernetesService = new TestKubernetesService();
-        using var app = builder.Build();
-        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
-
-        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService, resourceNotificationService: resourceNotificationService);
-        await appExecutor.RunApplicationAsync();
-
-        string? parentResourceId = null;
-        string? childParentResourceId = null;
-        var watchResourceTask = Task.Run(async () =>
-        {
-            await foreach (var item in resourceNotificationService.WatchAsync())
-            {
-                if (item.Resource == parentResource.Resource)
-                {
-                    parentResourceId = item.ResourceId;
-                }
-                else if (item.Resource == childResource.Resource)
-                {
-                    childParentResourceId = item.Snapshot.Properties.SingleOrDefault(p => p.Name == KnownProperties.Resource.ParentName)?.Value?.ToString();
-                }
-
-                if (parentResourceId != null && childParentResourceId != null)
-                {
-                    return;
-                }
-            }
-        });
-
-        await watchResourceTask.DefaultTimeout();
-
-        Assert.Equal(parentResourceId, childParentResourceId);
     }
 
     private static void HasKnownCommandAnnotations(IResource resource)
@@ -1041,15 +1011,13 @@ public class ApplicationExecutorTests
             a => Assert.Equal(CommandsConfigurationExtensions.RestartCommandName, a.Name));
     }
 
-    private static ApplicationExecutor CreateAppExecutor(
+    private static DcpExecutor CreateAppExecutor(
         DistributedApplicationModel distributedAppModel,
-        IServiceProvider serviceProvider,
         IConfiguration? configuration = null,
         IKubernetesService? kubernetesService = null,
         DcpOptions? dcpOptions = null,
         ResourceLoggerService? resourceLoggerService = null,
-        DistributedApplicationEventing? eventing = null,
-        ResourceNotificationService? resourceNotificationService = null)
+        DcpExecutorEvents? events = null)
     {
         if (configuration == null)
         {
@@ -1064,17 +1032,14 @@ public class ApplicationExecutorTests
             configuration = builder.Build();
         }
 
-        eventing ??= new DistributedApplicationEventing();
         resourceLoggerService ??= new ResourceLoggerService();
-        resourceNotificationService ??= ResourceNotificationServiceTestHelpers.Create(resourceLoggerService: resourceLoggerService);
         dcpOptions ??= new DcpOptions { DashboardPath = "./dashboard" };
 
-        return new ApplicationExecutor(
-            NullLogger<ApplicationExecutor>.Instance,
+        return new DcpExecutor(
+            NullLogger<DcpExecutor>.Instance,
             NullLogger<DistributedApplication>.Instance,
             distributedAppModel,
             kubernetesService ?? new TestKubernetesService(),
-            Array.Empty<IDistributedApplicationLifecycleHook>(),
             configuration,
             new DistributedApplicationOptions(),
             Options.Create(dcpOptions),
@@ -1082,13 +1047,10 @@ public class ApplicationExecutorTests
             {
                 ServiceProvider = TestServiceProvider.Instance
             }),
-            resourceNotificationService,
             resourceLoggerService,
             new TestDcpDependencyCheckService(),
-            eventing,
-            serviceProvider,
-            new DcpNameGenerator(configuration, Options.Create(dcpOptions))
-        );
+            new DcpNameGenerator(configuration, Options.Create(dcpOptions)),
+            events ?? new DcpExecutorEvents());
     }
 
     private sealed class TestProject : IProjectMetadata
