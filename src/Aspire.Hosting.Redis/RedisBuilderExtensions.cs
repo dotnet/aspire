@@ -95,7 +95,7 @@ public static class RedisBuilderExtensions
                                       .WithHttpEndpoint(targetPort: 8081, name: "http")
                                       .ExcludeFromManifest();
 
-            builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(resource, (e, ct) =>
+            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
             {
                 var redisInstances = builder.ApplicationBuilder.Resources.OfType<RedisResource>();
 
@@ -109,10 +109,13 @@ public static class RedisBuilderExtensions
 
                 foreach (var redisInstance in redisInstances)
                 {
-                    // Redis Commander assumes Redis is being accessed over a default Aspire container network and hardcodes the resource address
-                    // This will need to be refactored once updated service discovery APIs are available
-                    var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.Name}:{redisInstance.PrimaryEndpoint.TargetPort}:0";
-                    hostsVariableBuilder.Append(hostString);
+                    if (redisInstance.PrimaryEndpoint.IsAllocated)
+                    {
+                        // Redis Commander assumes Redis is being accessed over a default Aspire container network and hardcodes the resource address
+                        // This will need to be refactored once updated service discovery APIs are available
+                        var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.Name}:{redisInstance.PrimaryEndpoint.TargetPort}:0";
+                        hostsVariableBuilder.Append(hostString);
+                    }
                 }
 
                 resourceBuilder.WithEnvironment("REDIS_HOSTS", hostsVariableBuilder.ToString());

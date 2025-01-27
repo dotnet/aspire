@@ -84,8 +84,8 @@ internal sealed class Service : CustomResource<ServiceSpec, ServiceStatus>
         return s;
     }
 
-    public int? AllocatedPort => Status?.EffectivePort ?? Spec.Port;
-    public string? AllocatedAddress => Status?.EffectiveAddress ?? Spec.Address;
+    public int? AllocatedPort => Spec.Port ?? Status?.EffectivePort;
+    public string? AllocatedAddress => Spec.Address ?? Status?.EffectiveAddress;
     public bool HasCompleteAddress => AllocatedPort > 0 && !string.IsNullOrEmpty(AllocatedAddress);
 
     public string? EndpointName => Metadata.Annotations?.TryGetValue(EndpointNameAnnotation, out var value) is true ? value : null;

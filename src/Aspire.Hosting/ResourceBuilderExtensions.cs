@@ -351,7 +351,6 @@ public static class ResourceBuilderExtensions
         connectionName ??= resource.Name;
 
         builder.WithRelationship(resource, KnownRelationshipTypes.Reference);
-        (builder as IResourceBuilder<IResourceWithWaitSupport>)?.WaitFor(source);
 
         return builder.WithEnvironment(context =>
         {
@@ -857,7 +856,7 @@ public static class ResourceBuilderExtensions
         statusCode = statusCode ?? 200;
 
         var endpoint = builder.Resource.GetEndpoint(endpointName);
-        Uri? uri = null;
+
         builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((@event, ct) =>
         {
             if (!endpoint.Exists)
@@ -870,6 +869,12 @@ public static class ResourceBuilderExtensions
                 throw new DistributedApplicationException($"The endpoint '{endpointName}' on resource '{builder.Resource.Name}' was not using the '{desiredScheme}' scheme.");
             }
 
+            return Task.CompletedTask;
+        });
+
+        Uri? uri = null;
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, (@event, ct) =>
+        {
             var baseUri = new Uri(endpoint.Url, UriKind.Absolute);
             uri = new Uri(baseUri, path);
             return Task.CompletedTask;

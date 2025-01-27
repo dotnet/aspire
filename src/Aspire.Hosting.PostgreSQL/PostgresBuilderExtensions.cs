@@ -155,7 +155,7 @@ public static class PostgresBuilderExtensions
                                                  .WithHttpHealthCheck("/browser")
                                                  .ExcludeFromManifest();
 
-            builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(pgAdminContainer, (e, ct) =>
+            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
             {
                 var serverFileMount = pgAdminContainer.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == "/pgadmin4/servers.json");
                 var postgresInstances = builder.ApplicationBuilder.Resources.OfType<PostgresServerResource>();
@@ -177,20 +177,23 @@ public static class PostgresBuilderExtensions
 
                 foreach (var postgresInstance in postgresInstances)
                 {
-                    var endpoint = postgresInstance.PrimaryEndpoint;
+                    if (postgresInstance.PrimaryEndpoint.IsAllocated)
+                    {
+                        var endpoint = postgresInstance.PrimaryEndpoint;
 
-                    writer.WriteStartObject($"{serverIndex}");
-                    writer.WriteString("Name", postgresInstance.Name);
-                    writer.WriteString("Group", "Servers");
-                    // PgAdmin assumes Postgres is being accessed over a default Aspire container network and hardcodes the resource address
-                    // This will need to be refactored once updated service discovery APIs are available
-                    writer.WriteString("Host", endpoint.Resource.Name);
-                    writer.WriteNumber("Port", (int)endpoint.TargetPort!);
-                    writer.WriteString("Username", postgresInstance.UserNameParameter?.Value ?? "postgres");
-                    writer.WriteString("SSLMode", "prefer");
-                    writer.WriteString("MaintenanceDB", "postgres");
-                    writer.WriteString("PasswordExecCommand", $"echo '{postgresInstance.PasswordParameter.Value}'"); // HACK: Generating a pass file and playing around with chmod is too painful.
-                    writer.WriteEndObject();
+                        writer.WriteStartObject($"{serverIndex}");
+                        writer.WriteString("Name", postgresInstance.Name);
+                        writer.WriteString("Group", "Servers");
+                        // PgAdmin assumes Postgres is being accessed over a default Aspire container network and hardcodes the resource address
+                        // This will need to be refactored once updated service discovery APIs are available
+                        writer.WriteString("Host", endpoint.Resource.Name);
+                        writer.WriteNumber("Port", (int)endpoint.TargetPort!);
+                        writer.WriteString("Username", postgresInstance.UserNameParameter?.Value ?? "postgres");
+                        writer.WriteString("SSLMode", "prefer");
+                        writer.WriteString("MaintenanceDB", "postgres");
+                        writer.WriteString("PasswordExecCommand", $"echo '{postgresInstance.PasswordParameter.Value}'"); // HACK: Generating a pass file and playing around with chmod is too painful.
+                        writer.WriteEndObject();
+                    }
 
                     serverIndex++;
                 }
@@ -290,7 +293,7 @@ public static class PostgresBuilderExtensions
 
             pgwebContainerBuilder.WithRelationship(builder.Resource, "PgWeb");
 
-            builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(pgwebContainer, async (e, ct) =>
+            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>(async (e, ct) =>
             {
                 var adminResource = builder.ApplicationBuilder.Resources.OfType<PgWebContainerResource>().Single();
                 var serverFileMount = adminResource.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == "/.pgweb/bookmarks");

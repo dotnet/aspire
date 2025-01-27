@@ -15,7 +15,6 @@ namespace Aspire.Hosting.ApplicationModel;
 /// method. This event provides access to the <see cref="IServiceProvider"/> interface to resolve dependencies including
 /// <see cref="DistributedApplicationModel"/> service which is passed in as an argument
 /// in <see cref="Aspire.Hosting.Lifecycle.IDistributedApplicationLifecycleHook.AfterEndpointsAllocatedAsync(Aspire.Hosting.ApplicationModel.DistributedApplicationModel, CancellationToken)"/>.
-/// Endpoint allocation can be asynchronous and this event is published after all endpoints have been allocated, which may happen after resources have been created.
 /// </remarks>
 /// <example>
 /// Subscribe to the <see cref="AfterEndpointsAllocatedEvent"/> event and resolve the distributed application model.

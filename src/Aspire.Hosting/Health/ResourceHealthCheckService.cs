@@ -76,31 +76,20 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
             cancellationToken);
         }
 
-        IEnumerable<EndpointAnnotation>? endpoints;
-        resource.TryGetAnnotationsIncludingAncestorsOfType(out endpoints);
-        var allEndpointsAllocated = endpoints?.All(e => e.AllocatedEndpoint is not null) ?? true;
-
-        if (!resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out var annotations) && allEndpointsAllocated)
+        if (!resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out var annotations))
         {
-            //
-            // NOTE: If the are no health check annotations and all resource endpoints
-            //       are allocated there is currently nothing to monitor. At this point
-            //       in time we don't dynamically add health checks at runtime. If this
-            //       changes then we would need to revisit this and scan for transitive
-            //       health checks on a periodic basis (you wouldn't want to do it on
-            //        every pass).
+            // NOTE: If there are no health check annotations then there
+            //       is currently nothing to monitor. At this point in time we don't
+            //       dynamically add health checks at runtime. If this changes then we
+            //       would need to revisit this and scan for transitive health checks
+            //       on a periodic basis (you wouldn't want to do it on every pass.
             logger.LogDebug("Resource '{Resource}' has no health checks to monitor.", resource.Name);
             FireResourceReadyEvent();
 
             return;
         }
 
-        var registrationKeysToCheck = annotations?.DistinctBy(a => a.Key).Select(a => a.Key).ToFrozenSet() ?? FrozenSet<string>.Empty;
-
-        if (!registrationKeysToCheck.Any())
-        {
-            logger.LogDebug("Resource '{Resource}' has no health checks to monitor, but not all endpoints are allocated.", resource.Name);
-        }
+        var registrationKeysToCheck = annotations.DistinctBy(a => a.Key).Select(a => a.Key).ToFrozenSet();
 
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5), timeProvider);
         var resourceReadyEventFired = false;
@@ -114,13 +103,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                     cancellationToken
                     ).ConfigureAwait(false);
 
-                if (!allEndpointsAllocated)
-                {
-                    // We can't consider the resource ready until all endpoints are allocated.
-                    allEndpointsAllocated = endpoints?.All(e => e.AllocatedEndpoint is not null) ?? true;
-                }
-
-                if (!resourceReadyEventFired && report.Status == HealthStatus.Healthy && allEndpointsAllocated)
+                if (!resourceReadyEventFired && report.Status == HealthStatus.Healthy)
                 {
                     resourceReadyEventFired = true;
 
