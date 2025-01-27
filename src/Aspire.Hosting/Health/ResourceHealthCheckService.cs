@@ -15,51 +15,6 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 {
     private readonly Dictionary<string, ResourceMonitorState> _resourceMonitoringStates = new();
 
-    internal class ResourceMonitorState(ResourceEvent initialEvent, CancellationToken serviceStoppingToken)
-    {
-        private readonly CancellationTokenSource _cts = CancellationTokenSource.CreateLinkedTokenSource(serviceStoppingToken);
-        private TaskCompletionSource? _delayInterruptTcs;
-        private CancellationTokenSource? _delayCts;
-
-        public CancellationToken CancellationToken => _cts.Token;
-
-        public ResourceEvent LatestEvent { get; private set; } = initialEvent;
-
-        public void StopResourceMonitor()
-        {
-            _cts.Cancel();
-        }
-
-        public void SetLatestEvent(ResourceEvent resourceEvent)
-        {
-            LatestEvent = resourceEvent;
-            _delayInterruptTcs?.TrySetResult();
-        }
-
-        internal async Task<bool> DelayAsync(TimeSpan delay, CancellationToken cancellationToken)
-        {
-            if (_delayCts == null || !_delayCts.TryReset())
-            {
-                _delayCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            }
-            _delayInterruptTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            var completedTask = await Task.WhenAny(Task.Delay(delay, _delayCts.Token), _delayInterruptTcs.Task).ConfigureAwait(false);
-
-            if (completedTask != _delayInterruptTcs.Task)
-            {
-                // Task.Delay won. Check CTS to see if it won because of cancellation.
-                _delayCts.Token.ThrowIfCancellationRequested();
-                return false;
-            }
-            else
-            {
-                _delayCts.Cancel();
-                return true;
-            }
-        }
-    }
-
     // Internal for testing.
     internal TimeSpan HealthyHealthCheckInterval { get; set; } = TimeSpan.FromSeconds(30);
     internal TimeSpan NonHealthyHealthCheckStepInterval { get; set; } = TimeSpan.FromSeconds(1);
@@ -156,6 +111,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
         var lastDelayInterrupted = false;
         var resourceReadyEventFired = false;
         var nonHealthyReportCount = 0;
+        ResourceEvent? currentEvent = null;
 
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -165,9 +121,11 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                 // This prevents health checks from being called too frequently.
                 if (lastDelayInterrupted && TimeSpan.FromSeconds(1) - timeProvider.GetElapsedTime(lastHealthCheckTimestamp) is { Ticks: > 0 } delay)
                 {
-                    await state.DelayAsync(delay, cancellationToken).ConfigureAwait(false);
+                    await state.DelayAsync(currentEvent: null, delay, cancellationToken).ConfigureAwait(false);
                     continue;
                 }
+
+                currentEvent = state.LatestEvent;
 
                 var report = await healthCheckService.CheckHealthAsync(
                     r => registrationKeysToCheck.Contains(r.Name),
@@ -224,7 +182,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
             logger.LogTrace("Resource '{Resource}' health check monitoring loop starting delay of {DelayInterval}.", resource.Name, delayInterval);
 
-            lastDelayInterrupted = await state.DelayAsync(delayInterval, cancellationToken).ConfigureAwait(false);
+            lastDelayInterrupted = await state.DelayAsync(currentEvent, delayInterval, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -310,5 +268,73 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
         }
 
         return builder.ToImmutable();
+    }
+
+    internal class ResourceMonitorState(ResourceEvent initialEvent, CancellationToken serviceStoppingToken)
+    {
+        private readonly CancellationTokenSource _cts = CancellationTokenSource.CreateLinkedTokenSource(serviceStoppingToken);
+        private readonly object _lock = new object();
+
+        private TaskCompletionSource? _delayInterruptTcs;
+
+        public CancellationToken CancellationToken => _cts.Token;
+
+        public ResourceEvent LatestEvent { get; private set; } = initialEvent;
+
+        public void StopResourceMonitor()
+        {
+            _cts.Cancel();
+        }
+
+        public void SetLatestEvent(ResourceEvent resourceEvent)
+        {
+            lock (_lock)
+            {
+                var shouldInterrupt = ShouldInterrupt(resourceEvent, LatestEvent);
+                LatestEvent = resourceEvent;
+
+                if (shouldInterrupt)
+                {
+                    _delayInterruptTcs?.TrySetResult();
+                }
+            }
+        }
+
+        internal async Task<bool> DelayAsync(ResourceEvent? currentEvent, TimeSpan delay, CancellationToken cancellationToken)
+        {
+            lock (_lock)
+            {
+                // The event might have changed before delay was called. Interrupt immediately if required.
+                if (currentEvent != null && ShouldInterrupt(currentEvent, LatestEvent))
+                {
+                    return true;
+                }
+                _delayInterruptTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+
+            try
+            {
+                await _delayInterruptTcs.Task.WaitAsync(delay, cancellationToken).ConfigureAwait(false);
+                return true;
+            }
+            catch (TimeoutException)
+            {
+                return false;
+            }
+        }
+
+        private static bool ShouldInterrupt(ResourceEvent currentEvent, ResourceEvent previousEvent)
+        {
+            if (currentEvent.Snapshot.Version <= previousEvent.Snapshot.Version)
+            {
+                return false;
+            }
+            if (currentEvent.Snapshot.State?.Text == previousEvent.Snapshot.State?.Text)
+            {
+                return false;
+            }
+
+            return true;
+        }
     }
 }
