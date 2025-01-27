@@ -21,8 +21,8 @@ public sealed class SpanWaterfallViewModelTests
 
         var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
         var scope = new OtlpScope(TelemetryTestHelpers.CreateScope(), context);
-        trace.AddSpan(TelemetryTestHelpers.CreateSpan(app1, trace, scope, spanId: "1", parentSpanId: null, startDate: new DateTime(2001, 1, 1, 1, 1, 2, DateTimeKind.Utc)));
-        trace.AddSpan(TelemetryTestHelpers.CreateSpan(app2, trace, scope, spanId: "1-1", parentSpanId: "1", startDate: new DateTime(2001, 1, 1, 1, 1, 3, DateTimeKind.Utc)));
+        trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "1", parentSpanId: null, startDate: new DateTime(2001, 1, 1, 1, 1, 2, DateTimeKind.Utc)));
+        trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app2, trace, scope, spanId: "1-1", parentSpanId: "1", startDate: new DateTime(2001, 1, 1, 1, 1, 3, DateTimeKind.Utc)));
 
         // Act
         var vm = SpanWaterfallViewModel.Create(trace, new SpanWaterfallViewModel.TraceDetailState([], []));

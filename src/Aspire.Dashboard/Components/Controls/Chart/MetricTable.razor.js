@@ -34,13 +34,13 @@ function getRowText(dataGridContainerId, index) {
         return null;
     }
     const dataGrid = container.children[0];
-    const row = dataGrid.getElementsByTagName("fluent-data-grid-row")[index + 1];
+    const row = dataGrid.getElementsByClassName("fluent-data-grid-row")[index + 1];
 
     if (!row) {
         return null;
     }
 
-    const cells = row.getElementsByTagName("fluent-data-grid-cell");
+    const cells = row.getElementsByTagName("td");
     let texts = [];
     for (let i = 0; i < cells.length; i++) {
         texts.push(cells[i].textContent);

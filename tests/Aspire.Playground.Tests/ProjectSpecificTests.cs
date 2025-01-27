@@ -114,7 +114,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             resourceName: "funcapp",
             timeoutSecs: 160);
 
-#if !SKIP_PROVISIONED_AZURE_RESOURCE
+#if !SKIP_UNSTABLE_EMULATORS // https://github.com/dotnet/aspire/issues/7066
         // Assert that ServiceBus triggers work correctly
         await apiServiceClient.GetAsync("/publish/asb");
         await WaitForAllTextAsync(app,

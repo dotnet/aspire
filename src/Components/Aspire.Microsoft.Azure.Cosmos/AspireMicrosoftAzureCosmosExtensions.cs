@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Azure.Cosmos;
+using Aspire.Hosting.Azure.CosmosDB;
 using Aspire.Microsoft.Azure.Cosmos;
 using Azure.Identity;
 using Microsoft.Azure.Cosmos;

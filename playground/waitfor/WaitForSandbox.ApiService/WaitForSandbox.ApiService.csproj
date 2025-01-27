@@ -8,6 +8,9 @@
 
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <!-- Npgsql EF needs to match the same major version as the underlying Npgsql assemblies. -->
+    <PackageReference Include="Npgsql.DependencyInjection" VersionOverride="$(Npgsql8Version)" />
+    <PackageReference Include="Npgsql.OpenTelemetry" VersionOverride="$(Npgsql8Version)" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
     <ProjectReference Include="..\WaitForSandbox.Common\WaitForSandbox.Common.csproj" />
   </ItemGroup>

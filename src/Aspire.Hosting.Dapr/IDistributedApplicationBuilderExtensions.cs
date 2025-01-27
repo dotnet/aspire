@@ -21,6 +21,7 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="builder">The distributed application builder instance.</param>
     /// <param name="configure">Callback to configure dapr options.</param>
     /// <returns>The distributed application builder instance.</returns>
+    [Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", error: false)]
     public static IDistributedApplicationBuilder AddDapr(this IDistributedApplicationBuilder builder, Action<DaprOptions>? configure = null)
     {
         if (configure is not null)
@@ -40,6 +41,7 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="type">The type of the component. This can be a generic "state" or "pubsub" string, to have Aspire choose an appropriate type when running or deploying.</param>
     /// <param name="options">Options for configuring the component, if any.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", error: false)]
     public static IResourceBuilder<IDaprComponentResource> AddDaprComponent(this IDistributedApplicationBuilder builder, [ResourceName] string name, string type, DaprComponentOptions? options = null)
     {
         var resource = new DaprComponentResource(name, type) { Options = options };
@@ -61,6 +63,7 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="name">The name of the component.</param>
     /// <param name="options">Options for configuring the component, if any.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", error: false)]
     public static IResourceBuilder<IDaprComponentResource> AddDaprPubSub(this IDistributedApplicationBuilder builder, [ResourceName] string name, DaprComponentOptions? options = null)
     {
         return builder.AddDaprComponent(name, DaprConstants.BuildingBlocks.PubSub, options);
@@ -73,11 +76,13 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="name">The name of the component.</param>
     /// <param name="options">Options for configuring the component, if any.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", error: false)]
     public static IResourceBuilder<IDaprComponentResource> AddDaprStateStore(this IDistributedApplicationBuilder builder, [ResourceName] string name, DaprComponentOptions? options = null)
     {
         return builder.AddDaprComponent(name, DaprConstants.BuildingBlocks.StateStore, options);
     }
 
+    [Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", error: false)]
     private static void WriteDaprComponentResourceToManifest(ManifestPublishingContext context, DaprComponentResource resource)
     {
         context.Writer.WriteString("type", "dapr.component.v0");

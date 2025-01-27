@@ -5,6 +5,7 @@
 Aspire.Hosting.Azure.AzureRedisCacheResource
 Aspire.Hosting.Azure.AzureRedisCacheResource.AzureRedisCacheResource(string! name, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureInfrastructure) -> void
 Aspire.Hosting.Azure.AzureRedisCacheResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
+Aspire.Hosting.Azure.AzureRedisCacheResource.UseAccessKeyAuthentication.get -> bool
 Aspire.Hosting.Azure.AzureRedisResource.AzureRedisResource(Aspire.Hosting.ApplicationModel.RedisResource! innerResource, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureInfrastructure) -> void
 override Aspire.Hosting.Azure.AzureRedisCacheResource.Annotations.get -> Aspire.Hosting.ApplicationModel.ResourceAnnotationCollection!
 static Aspire.Hosting.AzureRedisExtensions.AddAzureRedis(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureRedisCacheResource!>!

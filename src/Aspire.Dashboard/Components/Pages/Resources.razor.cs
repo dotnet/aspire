@@ -69,6 +69,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private GridColumnManager _manager = null!;
     private int _maxHighlightedCount;
 
+    private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
+    private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
+
     private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && !resource.IsHiddenState();
 
     private async Task OnAllResourceTypesCheckedChangedAsync(bool? areAllTypesVisible)
@@ -92,9 +95,10 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         await _dataGrid.SafeRefreshDataAsync();
     }
 
-    private Task HandleSearchFilterChangedAsync()
+    private async Task HandleSearchFilterChangedAsync()
     {
-        return ClearSelectedResourceAsync();
+        await ClearSelectedResourceAsync();
+        await _dataGrid.SafeRefreshDataAsync();
     }
 
     private bool? AreAllTypesVisible
@@ -149,6 +153,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
+
         _gridColumns = [
             new GridColumn(Name: NameColumn, DesktopWidth: "1.5fr", MobileWidth: "1.5fr"),
             new GridColumn(Name: StateColumn, DesktopWidth: "1.25fr", MobileWidth: "1.25fr"),
@@ -208,6 +214,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             {
                 await foreach (var changes in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token).ConfigureAwait(false))
                 {
+                    var selectedResourceHasChanged = false;
+
                     foreach (var (changeType, resource) in changes)
                     {
                         if (changeType == ResourceViewModelChangeType.Upsert)
@@ -216,6 +224,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                             if (string.Equals(SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
                             {
                                 SelectedResource = resource;
+                                selectedResourceHasChanged = true;
                             }
 
                             if (_allResourceTypes.TryAdd(resource.ResourceType, true))
@@ -233,7 +242,16 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                     }
 
                     UpdateMaxHighlightedCount();
-                    await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
+                    await InvokeAsync(async () =>
+                    {
+                        await _dataGrid.SafeRefreshDataAsync();
+                        if (selectedResourceHasChanged)
+                        {
+                            // Notify page that the selected resource parameter has changed.
+                            // This is required so the resource open in the details view is refreshed.
+                            StateHasChanged();
+                        }
+                    });
                 }
             });
         }

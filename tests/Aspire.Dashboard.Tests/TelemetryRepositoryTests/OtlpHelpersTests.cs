@@ -58,6 +58,19 @@ public class OtlpHelpersTests
     }
 
     [Fact]
+    public void GetString_NullValue()
+    {
+        // Arrange
+        AnyValue? anyValue = null;
+
+        // Act
+        var s = anyValue.GetString();
+
+        // Assert
+        Assert.Equal("", s);
+    }
+
+    [Fact]
     public void GetString_ArrayValue()
     {
         // Arrange

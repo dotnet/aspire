@@ -11,6 +11,7 @@ Aspire.Hosting.Azure.AzurePostgresFlexibleServerResource
 Aspire.Hosting.Azure.AzurePostgresFlexibleServerResource.AzurePostgresFlexibleServerResource(string! name, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureInfrastructure) -> void
 Aspire.Hosting.Azure.AzurePostgresFlexibleServerResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
 Aspire.Hosting.Azure.AzurePostgresFlexibleServerResource.Databases.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+Aspire.Hosting.Azure.AzurePostgresFlexibleServerResource.UsePasswordAuthentication.get -> bool
 Aspire.Hosting.Azure.AzurePostgresResource.AzurePostgresResource(Aspire.Hosting.ApplicationModel.PostgresServerResource! innerResource, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureInfrastructure) -> void
 override Aspire.Hosting.Azure.AzurePostgresFlexibleServerDatabaseResource.Annotations.get -> Aspire.Hosting.ApplicationModel.ResourceAnnotationCollection!
 override Aspire.Hosting.Azure.AzurePostgresFlexibleServerResource.Annotations.get -> Aspire.Hosting.ApplicationModel.ResourceAnnotationCollection!
