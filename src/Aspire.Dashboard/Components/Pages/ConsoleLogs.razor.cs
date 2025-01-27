@@ -47,6 +47,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public required IDashboardClient DashboardClient { get; init; }
 
     [Inject]
+    public required ILocalStorage LocalStorage { get; init; }
+
+    [Inject]
     public required ISessionStorage SessionStorage { get; init; }
 
     [Inject]
@@ -94,7 +97,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     public string BasePath => DashboardUrls.ConsoleLogBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ConsoleLogsPageState;
-    private const string HideTimestampStorageKey = BrowserStorageKeys.ConsoleLogTimestampState;
 
     protected override async Task OnInitializedAsync()
     {
@@ -103,7 +105,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelNone)] };
         PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
 
-        var timestampStorageResult = await SessionStorage.GetAsync<ConsoleLogTimestampState>(HideTimestampStorageKey);
+        var timestampStorageResult = await LocalStorage.GetUnprotectedAsync<ConsoleLogConsoleSettings>(BrowserStorageKeys.ConsoleLogConsoleSettings);
         if (timestampStorageResult.Value?.HideTimestamp is { } hideTimestamp)
         {
             _hideTimestamp = hideTimestamp;
@@ -314,8 +316,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     private async Task ToggleTimestampAsync(bool hideTimestamp)
     {
-        await SessionStorage.SetAsync(HideTimestampStorageKey, new ConsoleLogTimestampState(HideTimestamp: hideTimestamp));
+        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ConsoleLogConsoleSettings, new ConsoleLogConsoleSettings(HideTimestamp: hideTimestamp));
         _hideTimestamp = hideTimestamp;
+
         StateHasChanged();
     }
 
@@ -545,7 +548,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     public record ConsoleLogsPageState(string? SelectedResource);
 
-    public record ConsoleLogTimestampState(bool HideTimestamp);
+    public record ConsoleLogConsoleSettings(bool HideTimestamp);
 
     public Task UpdateViewModelFromQueryAsync(ConsoleLogsViewModel viewModel)
     {
