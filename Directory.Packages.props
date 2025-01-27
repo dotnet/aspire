@@ -126,7 +126,7 @@
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Workloads" Version="8.0.0-beta.23564.4" />
     <PackageVersion Include="Microsoft.Signed.Wix" Version="$(MicrosoftSignedWixVersion)" />
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Installers" Version="8.0.0-beta.23564.4" />
-    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.24528.1" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.25072.1" />
     <!-- unit test dependencies -->
     <PackageVersion Include="bUnit" Version="1.33.3" />
     <PackageVersion Include="JsonSchema.Net" Version="7.3.1" />
