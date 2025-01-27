@@ -6,13 +6,15 @@
     <div>
         <h5>@Loc[nameof(Resources.Resources.ResourcesResourceTypesHeader)]</h5>
         <SelectResourceOptions
+            Id="resource-types"
             Values="ResourceTypes"
             OnAllValuesCheckedChangedAsync="OnAllFilterVisibilityCheckedChangedAsync"
-            OnValueVisibilityChangedAsync="OnResourceFilterVisibilityChangedAsync"/>
+            OnValueVisibilityChangedAsync="OnResourceFilterVisibilityChangedAsync" />
     </div>
     <div>
         <h5>@Loc[nameof(Resources.Resources.ResourcesResourceStatesHeader)]</h5>
         <SelectResourceOptions
+            Id="resource-states"
             Values="ResourceStates"
             OnAllValuesCheckedChangedAsync="OnAllFilterVisibilityCheckedChangedAsync"
             OnValueVisibilityChangedAsync="OnResourceFilterVisibilityChangedAsync"/>
@@ -20,6 +22,7 @@
     <div>
         <h5>@Loc[nameof(Resources.Resources.ResourcesDetailsHealthStateProperty)]</h5>
         <SelectResourceOptions
+            Id="resource-health-states"
             Values="ResourceHealthStates"
             OnAllValuesCheckedChangedAsync="OnAllFilterVisibilityCheckedChangedAsync"
             OnValueVisibilityChangedAsync="OnResourceFilterVisibilityChangedAsync"/>
