@@ -87,8 +87,11 @@ Aspire.Hosting.ApplicationModel.DockerBuildArg.Value.init -> void
 Aspire.Hosting.ApplicationModel.EndpointAnnotation
 Aspire.Hosting.ApplicationModel.EndpointAnnotation.AllocatedEndpoint.get -> Aspire.Hosting.ApplicationModel.AllocatedEndpoint?
 Aspire.Hosting.ApplicationModel.EndpointAnnotation.AllocatedEndpoint.set -> void
+Aspire.Hosting.ApplicationModel.EndpointAnnotation.EndpointAnnotation(System.Net.Sockets.ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? targetPort = null, bool? isExternal = null, bool isProxied = true) -> void
 Aspire.Hosting.ApplicationModel.EndpointAnnotation.IsExternal.get -> bool
 Aspire.Hosting.ApplicationModel.EndpointAnnotation.IsExternal.set -> void
+Aspire.Hosting.ApplicationModel.EndpointAnnotation.IsProxied.get -> bool
+Aspire.Hosting.ApplicationModel.EndpointAnnotation.IsProxied.set -> void
 Aspire.Hosting.ApplicationModel.EndpointAnnotation.Name.get -> string!
 Aspire.Hosting.ApplicationModel.EndpointAnnotation.Name.set -> void
 Aspire.Hosting.ApplicationModel.EndpointAnnotation.Port.get -> int?
@@ -471,6 +474,7 @@ static Aspire.Hosting.ResourceBuilderExtensions.WithArgs<T>(this Aspire.Hosting.
 static Aspire.Hosting.ResourceBuilderExtensions.WithArgs<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, System.Action<Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext!>! callback) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithArgs<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, System.Func<Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext!, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithConnectionStringRedirection<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, Aspire.Hosting.ApplicationModel.IResourceWithConnectionString! resource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithEndpoint<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, int? port = null, int? targetPort = null, string? scheme = null, string? name = null, string? env = null, bool isProxied = true, bool? isExternal = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithEndpoint<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! endpointName, System.Action<Aspire.Hosting.ApplicationModel.EndpointAnnotation!>! callback, bool createIfNotExists = true) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithEnvironment<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! envVarName, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IResourceWithConnectionString!>! resource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithEnvironment<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! name, Aspire.Hosting.ApplicationModel.EndpointReference! endpointReference) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
@@ -482,6 +486,8 @@ static Aspire.Hosting.ResourceBuilderExtensions.WithEnvironment<T>(this Aspire.H
 static Aspire.Hosting.ResourceBuilderExtensions.WithEnvironment<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, System.Action<Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext!>! callback) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithEnvironment<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, System.Func<Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext!, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithExternalHttpEndpoints<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithHttpEndpoint<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, int? port = null, int? targetPort = null, string? name = null, string? env = null, bool isProxied = true) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithHttpsEndpoint<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, int? port = null, int? targetPort = null, string? name = null, string? env = null, bool isProxied = true) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithManifestPublishingCallback<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, System.Action<Aspire.Hosting.Publishing.ManifestPublishingContext!>! callback) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithManifestPublishingCallback<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, System.Func<Aspire.Hosting.Publishing.ManifestPublishingContext!, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithReference<TDestination>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>! builder, Aspire.Hosting.ApplicationModel.EndpointReference! endpointReference) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>!

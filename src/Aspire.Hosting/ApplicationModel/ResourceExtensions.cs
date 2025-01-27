@@ -336,11 +336,11 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Determines whether endpoints for a service should be proxied by default. Returns true for non-container resources container resources with a lifetime other than <see cref="ContainerLifetime.Persistent"/>.
+    /// Determines whether a resource supports proxied endpoints/services. Returns true for non-container resources container resources with a lifetime other than <see cref="ContainerLifetime.Persistent"/>.
     /// </summary>
-    /// <param name="resource">The resource to determine default endpoint proxy behavior for.</param>
-    /// <returns>True if resource endpoints should be proxied by default, false otherwise.</returns>
-    internal static bool ShouldProxyEndpointsByDefault(this IResource resource)
+    /// <param name="resource">The resource to get proxy support for.</param>
+    /// <returns>True if the resource supports proxied endpoints/services, false otherwise.</returns>
+    internal static bool SupportsProxy(this IResource resource)
     {
         return !resource.IsContainer() || resource.GetContainerLifetimeType() != ContainerLifetime.Persistent;
     }

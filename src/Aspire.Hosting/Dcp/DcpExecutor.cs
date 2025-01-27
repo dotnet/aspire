@@ -733,32 +733,21 @@ internal sealed class DcpExecutor : IDcpExecutor
             {
                 var svc = (Service)sp.DcpResource;
 
-                var shouldProxyByDefault = sp.ModelResource.ShouldProxyEndpointsByDefault();
-
-                if (!svc.HasCompleteAddress && sp.EndpointAnnotation.IsProxied.GetValueOrDefault(shouldProxyByDefault))
+                if (!svc.HasCompleteAddress && sp.EndpointAnnotation.IsProxied)
                 {
-                    // This should never happen; if it does, we have a bug without a workaround for the user.
+                    // This should never happen; if it does, we have a bug without a workaround for th the user.
                     throw new InvalidDataException($"Service {svc.Metadata.Name} should have valid address at this point");
                 }
 
-                if (!sp.EndpointAnnotation.IsProxied.GetValueOrDefault(shouldProxyByDefault) && !sp.ModelResource.IsContainer() && svc.AllocatedPort == null)
+                if (!sp.EndpointAnnotation.IsProxied && svc.AllocatedPort == null)
                 {
-                    // Executables should have an allocated port at this point.
                     throw new InvalidOperationException($"Service '{svc.Metadata.Name}' needs to specify a port for endpoint '{sp.EndpointAnnotation.Name}' since it isn't using a proxy.");
-                }
-
-                var allocatedPort = svc.AllocatedPort ?? sp.EndpointAnnotation.TargetPort ?? 0;
-
-                if (allocatedPort == 0)
-                {
-                    // We should have a port by now, otherwise the user hasn't specified any port and we can't proceed.
-                    throw new InvalidOperationException($"Service '{svc.Metadata.Name}' needs to specify a target port for endpoint '{sp.EndpointAnnotation.Name}'.");
                 }
 
                 sp.EndpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(
                     sp.EndpointAnnotation,
                     "localhost",
-                    allocatedPort,
+                    (int)svc.AllocatedPort!,
                     containerHostAddress: appResource.ModelResource.IsContainer() ? containerHost : null,
                     targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""");
             }
@@ -781,15 +770,23 @@ internal sealed class DcpExecutor : IDcpExecutor
         {
             var endpoints = sp.Endpoints;
 
-            var shouldProxyByDefault = sp.ModelResource.ShouldProxyEndpointsByDefault();
-
             foreach (var endpoint in endpoints)
             {
                 var serviceName = _nameGenerator.GetServiceName(sp.ModelResource, endpoint, endpoints.Length > 1, serviceNames);
                 var svc = Service.Create(serviceName);
 
-                var port = _options.Value.RandomizePorts && endpoint.IsProxied.GetValueOrDefault(shouldProxyByDefault) ? null : endpoint.Port ?? (!sp.ModelResource.IsContainer() ? endpoint.TargetPort : null);
+                if (!sp.ModelResource.SupportsProxy())
+                {
+                    // If the resource can't be proxied, we need to enforce that on the annotation
+                    endpoint.IsProxied = false;
+                }
 
+                if (sp.ModelResource.IsContainer() && !endpoint.IsProxied && !endpoint.IsPortSet && endpoint.TargetPort is int)
+                {
+                    endpointsWithHostUnset.Add((sp.ModelResource, endpoint));
+                }
+
+                var port = _options.Value.RandomizePorts && endpoint.IsProxied ? null : endpoint.Port;
                 svc.Spec.Port = port;
                 svc.Spec.Protocol = PortProtocol.FromProtocolType(endpoint.Protocol);
                 svc.Spec.Address = endpoint.TargetHost switch
@@ -797,7 +794,7 @@ internal sealed class DcpExecutor : IDcpExecutor
                     "*" or "+" => "0.0.0.0",
                     _ => endpoint.TargetHost
                 };
-                svc.Spec.AddressAllocationMode = endpoint.IsProxied.GetValueOrDefault(shouldProxyByDefault) ? AddressAllocationModes.Localhost : AddressAllocationModes.Proxyless;
+                svc.Spec.AddressAllocationMode = endpoint.IsProxied ? AddressAllocationModes.Localhost : AddressAllocationModes.Proxyless;
 
                 // So we can associate the service with the resource that produced it and the endpoint it represents.
                 svc.Annotate(CustomResource.ResourceNameAnnotation, sp.ModelResource.Name);
@@ -805,6 +802,17 @@ internal sealed class DcpExecutor : IDcpExecutor
 
                 _appResources.Add(new ServiceAppResource(sp.ModelResource, svc, endpoint));
             }
+        }
+
+        if (endpointsWithHostUnset.Any())
+        {
+            var logMessage = "You have unproxied container endpoints without an explicit host port set. By default these endpoints will attempt to bind a host port that matches the container target port. This can lead to port conflicts if multiple containers are using the same target port(s). For containers running with a persistent lifetime or container endpoints with IsProxied disabled, we recommend specifying explicit host ports. For more information on container networking in .NET Aspire see: https://aka.ms/dotnet/aspire/container-networking";
+            foreach (var (resource, endpoint) in endpointsWithHostUnset)
+            {
+                logMessage += $"{Environment.NewLine}'{endpoint.Name}' endpoint for '{resource.Name}' doesn't have a host port set, attempting to bind host port '{endpoint.TargetPort}'";
+            }
+
+            _logger.LogWarning(logMessage);
         }
     }
 
@@ -1326,7 +1334,7 @@ internal sealed class DcpExecutor : IDcpExecutor
                     ContainerPort = ea.TargetPort,
                 };
 
-                if (!ea.IsProxied.GetValueOrDefault(modelContainerResource.ShouldProxyEndpointsByDefault()) && ea.Port is int)
+                if (!ea.IsProxied && ea.Port is int)
                 {
                     portSpec.HostPort = ea.Port;
                 }
@@ -1569,8 +1577,6 @@ internal sealed class DcpExecutor : IDcpExecutor
         {
             var ea = sp.EndpointAnnotation;
 
-            var shouldProxyByDefault = modelResource.ShouldProxyEndpointsByDefault();
-
             if (modelResource.IsContainer())
             {
                 if (ea.TargetPort is null)
@@ -1578,7 +1584,7 @@ internal sealed class DcpExecutor : IDcpExecutor
                     throw new InvalidOperationException($"The endpoint '{ea.Name}' for container resource '{modelResourceName}' must specify the {nameof(EndpointAnnotation.TargetPort)} value");
                 }
             }
-            else if (!ea.IsProxied.GetValueOrDefault(shouldProxyByDefault))
+            else if (!ea.IsProxied)
             {
                 if (HasMultipleReplicas(appResource.DcpResource))
                 {
@@ -1592,7 +1598,7 @@ internal sealed class DcpExecutor : IDcpExecutor
             }
             else
             {
-                Debug.Assert(ea.IsProxied.GetValueOrDefault(shouldProxyByDefault));
+                Debug.Assert(ea.IsProxied);
 
                 if (ea.TargetPort is int && ea.Port is int && ea.TargetPort == ea.Port)
                 {
