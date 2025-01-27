@@ -1775,8 +1775,8 @@ internal sealed class DcpExecutor : IDcpExecutor
                 }, cancellationToken).ConfigureAwait(false);
             }
 
-            // Raise event after resource has been deleted. This is required the event sets the status to "Starting" and resources being
-            // deleted will temporarily override the status to a terminal state.
+            // Raise event after resource has been deleted. This is required because the event sets the status to "Starting" and resources being
+            // deleted will temporarily override the status to a terminal state, such as "Exited".
             await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, matchingResource.ModelResource, matchingResource.DcpResource.Metadata.Name)).ConfigureAwait(false);
 
             await _kubernetesService.CreateAsync(resource, cancellationToken).ConfigureAwait(false);
