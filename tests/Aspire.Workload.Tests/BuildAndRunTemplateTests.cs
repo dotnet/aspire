@@ -158,6 +158,32 @@ public partial class BuildAndRunTemplateTests : WorkloadTestsBase
         }
     }
 
+    [Theory]
+    [InlineData("9.*-*")]
+    [InlineData("[9.0.0]")]
+    public async Task CreateAndModifyAspireAppHostTemplate(string version)
+    {
+        string id = GetNewProjectId(prefix: $"aspire_apphost_{version.Replace("*", "wildcard").Replace("[", "").Replace("]", "")}");
+        await using var project = await AspireProject.CreateNewTemplateProjectAsync(id, "aspire-apphost", _testOutput, buildEnvironment: BuildEnvironment.ForDefaultFramework);
+
+        ModifyProjectFile(project, version);
+
+        await project.BuildAsync();
+        await project.StartAppHostAsync();
+
+        static void ModifyProjectFile(AspireProject project, string version)
+        {
+            var projectName = Directory.GetFiles(project.AppHostProjectDirectory, "*.csproj").FirstOrDefault();
+            Assert.False(string.IsNullOrEmpty(projectName));
+
+            var projectContents = File.ReadAllText(projectName);
+
+            var modifiedContents = AppHostVersionRegex().Replace(projectContents, $@"<PackageReference Include=""Aspire.Hosting.AppHost"" Version=""{version}"" />");
+
+            File.WriteAllText(projectName, modifiedContents);
+        }
+    }
+
     [GeneratedRegex(@"<PackageReference\s+Include=""Aspire\.Hosting\.AppHost""\s+Version=""([^""]+)""\s+/>")]
     private static partial Regex AppHostVersionRegex();
 }
