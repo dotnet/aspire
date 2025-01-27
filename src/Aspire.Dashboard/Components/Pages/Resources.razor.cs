@@ -89,12 +89,12 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private bool Filter(ResourceViewModel resource)
     {
         return IsKeyValueTrue(resource.ResourceType, _resourceTypesToVisibility)
-               && IsKeyValueTrue(resource.State, _resourceStatesToVisibility)
-               && IsKeyValueTrue(resource.HealthStatus?.Humanize(), _resourceHealthStatusesToVisibility)
+               && IsKeyValueTrue(resource.State ?? string.Empty, _resourceStatesToVisibility)
+               && IsKeyValueTrue(resource.HealthStatus?.Humanize() ?? string.Empty, _resourceHealthStatusesToVisibility)
                && (_filter.Length == 0 || resource.MatchesFilter(_filter))
                && !resource.IsHiddenState();
 
-        static bool IsKeyValueTrue(string? key, IDictionary<string, bool> dictionary) => key is not null && dictionary.TryGetValue(key, out var value) && value;
+        static bool IsKeyValueTrue(string key, IDictionary<string, bool> dictionary) => dictionary.TryGetValue(key, out var value) && value;
     }
 
     private async Task OnAllFilterVisibilityCheckedChangedAsync()
@@ -222,11 +222,17 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         }
     }
 
+    internal IEnumerable<ResourceViewModel> GetFilteredResources()
+    {
+        return _resourceByName
+            .Values
+            .Where(Filter);
+    }
+
     private ValueTask<GridItemsProviderResult<ResourceGridViewModel>> GetData(GridItemsProviderRequest<ResourceGridViewModel> request)
     {
         // Get filtered and ordered resources.
-        var filteredResources = _resourceByName.Values
-            .Where(Filter)
+        var filteredResources = GetFilteredResources()
             .Select(r => new ResourceGridViewModel { Resource = r })
             .AsQueryable();
         filteredResources = request.ApplySorting(filteredResources);
