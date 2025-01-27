@@ -26,8 +26,7 @@ Aspire.Hosting.Azure.AzureProvisioningResource.ProvisioningBuildOptions.set -> v
 Aspire.Hosting.Azure.AzureResourceInfrastructure
 Aspire.Hosting.Azure.AzureResourceInfrastructure.AspireResource.get -> Aspire.Hosting.Azure.AzureProvisioningResource!
 Aspire.Hosting.Azure.ExistingAzureResourceAnnotation
-Aspire.Hosting.Azure.ExistingAzureResourceAnnotation.ExistingAzureResourceAnnotation(string! name, bool isPublishMode = false) -> void
-Aspire.Hosting.Azure.ExistingAzureResourceAnnotation.IsPublishMode.get -> bool
+Aspire.Hosting.Azure.ExistingAzureResourceAnnotation.ExistingAzureResourceAnnotation(string! name) -> void
 Aspire.Hosting.Azure.ExistingAzureResourceAnnotation.Name.get -> string!
 Aspire.Hosting.Azure.ExistingAzureResourceExtensions
 Aspire.Hosting.Azure.IResourceWithAzureFunctionsConfig

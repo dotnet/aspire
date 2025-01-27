@@ -36,7 +36,11 @@ public static class ExistingAzureResourceExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.Resource.Annotations.Add(new ExistingAzureResourceAnnotation(name));
+        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            builder.Resource.Annotations.Add(new ExistingAzureResourceAnnotation(name));
+        }
+
         return builder;
     }
 
@@ -52,7 +56,11 @@ public static class ExistingAzureResourceExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.Resource.Annotations.Add(new ExistingAzureResourceAnnotation(name, true));
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            builder.Resource.Annotations.Add(new ExistingAzureResourceAnnotation(name));
+        }
+
         return builder;
     }
 

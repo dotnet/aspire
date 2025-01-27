@@ -9,15 +9,10 @@ namespace Aspire.Hosting.Azure;
 /// Represents a resource that is not managed by Aspire's provisioning or
 /// container management layer.
 /// </summary>
-public class ExistingAzureResourceAnnotation(string name, bool isPublishMode = false) : IResourceAnnotation
+public class ExistingAzureResourceAnnotation(string name) : IResourceAnnotation
 {
     /// <summary>
     /// The name of the existing resource.
     /// </summary>
     public string Name { get; } = name;
-
-    /// <summary>
-    /// True if the existing resource is reference in publish mode.
-    /// </summary>
-    public bool IsPublishMode { get; } = isPublishMode;
 }

@@ -30,7 +30,7 @@ public static class AzureServiceBusExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
+        var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
             var skuParameter = new ProvisioningParameter("sku", typeof(string))
             {
@@ -39,8 +39,7 @@ public static class AzureServiceBusExtensions
             infrastructure.Add(skuParameter);
 
             AzureProvisioning.ServiceBusNamespace? serviceBusNamespace;
-            if (infrastructure.AspireResource.TryGetExistingResource(out var existingAnnotation) &&
-                builder.ExecutionContext.IsPublishMode == existingAnnotation.IsPublishMode)
+            if (infrastructure.AspireResource.TryGetExistingResource(out var existingAnnotation))
             {
                 serviceBusNamespace = AzureProvisioning.ServiceBusNamespace.FromExisting(infrastructure.AspireResource.GetBicepIdentifier());
                 serviceBusNamespace.Name = existingAnnotation.Name;
