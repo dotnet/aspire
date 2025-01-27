@@ -51,7 +51,6 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
     public async Task ContainerBuildLogsAreStreamedToAppHost()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Services.AddHostedService<ResourceLoggerForwarderService>();
         builder.Services.AddLogging(logging =>
         {
             logging.AddFakeLogging();

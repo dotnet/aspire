@@ -15,8 +15,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
-using Aspire.Hosting.Eventing;
-using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Json.Patch;
 using k8s;
@@ -66,43 +64,28 @@ internal sealed class ServiceAppResource : AppResource
     }
 }
 
-internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
-                                          ILogger<DistributedApplication> distributedApplicationLogger,
-                                          DistributedApplicationModel model,
-                                          IKubernetesService kubernetesService,
-                                          IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks,
-                                          IConfiguration configuration,
-                                          DistributedApplicationOptions distributedApplicationOptions,
-                                          IOptions<DcpOptions> options,
-                                          DistributedApplicationExecutionContext executionContext,
-                                          ResourceNotificationService notificationService,
-                                          ResourceLoggerService loggerService,
-                                          IDcpDependencyCheckService dcpDependencyCheckService,
-                                          IDistributedApplicationEventing eventing,
-                                          IServiceProvider serviceProvider,
-                                          DcpNameGenerator nameGenerator
-                                          )
+internal sealed class DcpExecutor : IDcpExecutor
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
-
     private const string DefaultAspireNetworkName = "default-aspire-network";
 
-    private readonly ILogger<ApplicationExecutor> _logger = logger;
-    private readonly DistributedApplicationModel _model = model;
-    private readonly Dictionary<string, IResource> _applicationModel = model.Resources.ToDictionary(r => r.Name);
-    private readonly ILookup<IResource?, IResourceWithParent> _parentChildLookup = GetParentChildLookup(model);
-    private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks = lifecycleHooks.ToArray();
-    private readonly DistributedApplicationOptions _distributedApplicationOptions = distributedApplicationOptions;
-    private readonly IOptions<DcpOptions> _options = options;
-    private readonly DistributedApplicationExecutionContext _executionContext = executionContext;
+    private readonly ILogger<DistributedApplication> _distributedApplicationLogger;
+    private readonly IKubernetesService _kubernetesService;
+    private readonly IConfiguration _configuration;
+    private readonly ResourceLoggerService _loggerService;
+    private readonly IDcpDependencyCheckService _dcpDependencyCheckService;
+    private readonly DcpNameGenerator _nameGenerator;
+    private readonly ILogger<DcpExecutor> _logger;
+    private readonly DistributedApplicationModel _model;
+    private readonly DistributedApplicationOptions _distributedApplicationOptions;
+    private readonly IOptions<DcpOptions> _options;
+    private readonly DistributedApplicationExecutionContext _executionContext;
     private readonly List<AppResource> _appResources = [];
     private readonly CancellationTokenSource _shutdownCancellation = new();
+    private readonly DcpExecutorEvents _executorEvents;
 
-    private readonly ConcurrentDictionary<string, Container> _containersMap = [];
-    private readonly ConcurrentDictionary<string, Executable> _executablesMap = [];
-    private readonly ConcurrentDictionary<string, Service> _servicesMap = [];
-    private readonly ConcurrentDictionary<string, Endpoint> _endpointsMap = [];
-    private readonly ConcurrentDictionary<(string, string), List<string>> _resourceAssociatedServicesMap = [];
+    private readonly DcpResourceState _resourceState;
+    private readonly ResourceSnapshotBuilder _snapshotBuilder;
     private readonly ConcurrentDictionary<string, (CancellationTokenSource Cancellation, Task Task)> _logStreams = new();
     private DcpInfo? _dcpInfo;
     private Task? _resourceWatchTask;
@@ -111,13 +94,42 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private readonly Channel<LogInformationEntry> _logInformationChannel = Channel.CreateUnbounded<LogInformationEntry>(
         new UnboundedChannelOptions { SingleReader = true });
 
-    private string DefaultContainerHostName => configuration["AppHost:ContainerHostname"] ?? _dcpInfo?.Containers?.ContainerHostName ?? "host.docker.internal";
+    public DcpExecutor(ILogger<DcpExecutor> logger,
+                       ILogger<DistributedApplication> distributedApplicationLogger,
+                       DistributedApplicationModel model,
+                       IKubernetesService kubernetesService,
+                       IConfiguration configuration,
+                       DistributedApplicationOptions distributedApplicationOptions,
+                       IOptions<DcpOptions> options,
+                       DistributedApplicationExecutionContext executionContext,
+                       ResourceLoggerService loggerService,
+                       IDcpDependencyCheckService dcpDependencyCheckService,
+                       DcpNameGenerator nameGenerator,
+                       DcpExecutorEvents executorEvents)
+    {
+        _distributedApplicationLogger = distributedApplicationLogger;
+        _kubernetesService = kubernetesService;
+        _configuration = configuration;
+        _loggerService = loggerService;
+        _dcpDependencyCheckService = dcpDependencyCheckService;
+        _nameGenerator = nameGenerator;
+        _executorEvents = executorEvents;
+        _logger = logger;
+        _model = model;
+        _distributedApplicationOptions = distributedApplicationOptions;
+        _options = options;
+        _executionContext = executionContext;
+        _resourceState = new(model.Resources.ToDictionary(r => r.Name));
+        _snapshotBuilder = new(_resourceState);
+    }
+
+    private string DefaultContainerHostName => _configuration["AppHost:ContainerHostname"] ?? _dcpInfo?.Containers?.ContainerHostName ?? "host.docker.internal";
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
         AspireEventSource.Instance.DcpModelCreationStart();
 
-        _dcpInfo = await dcpDependencyCheckService.GetDcpInfoAsync(cancellationToken).ConfigureAwait(false);
+        _dcpInfo = await _dcpDependencyCheckService.GetDcpInfoAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 
         Debug.Assert(_dcpInfo is not null, "DCP info should not be null at this point");
 
@@ -127,7 +139,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             PrepareContainers();
             PrepareExecutables();
 
-            await PublishResourcesWithInitialStateAsync().ConfigureAwait(false);
+            await _executorEvents.PublishAsync(new OnResourcesPreparedContext(cancellationToken)).ConfigureAwait(false);
 
             // Watch for changes to the resource state.
             WatchResourceChanges();
@@ -137,14 +149,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             await CreateContainerNetworksAsync(cancellationToken).ConfigureAwait(false);
 
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
-
-            var afterResourcesCreatedEvent = new AfterResourcesCreatedEvent(serviceProvider, _model);
-            await eventing.PublishAsync(afterResourcesCreatedEvent, cancellationToken).ConfigureAwait(false);
-
-            foreach (var lifecycleHook in _lifecycleHooks)
-            {
-                await lifecycleHook.AfterResourcesCreatedAsync(_model, cancellationToken).ConfigureAwait(false);
-            }
         }
         catch
         {
@@ -193,7 +197,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             // There is not much difference for single app run, but for tests that tend to launch multiple instances
             // of app host from the same process, the gain from programmatic orchestrator shutdown is significant
             // See https://github.com/dotnet/aspire/issues/6561 for more info.
-            await kubernetesService.StopServerAsync(Model.ResourceCleanup.Full, cancellationToken).ConfigureAwait(false);
+            await _kubernetesService.StopServerAsync(Model.ResourceCleanup.Full, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -202,63 +206,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Application orchestrator could not be stopped programmatically.");
-        }
-    }
-
-    private static ILookup<IResource?, IResourceWithParent> GetParentChildLookup(DistributedApplicationModel model)
-    {
-        static IResource? SelectParentContainerResource(IResource resource) => resource switch
-        {
-            IResourceWithParent rp => SelectParentContainerResource(rp.Parent),
-            IResource r when r.IsContainer() => r,
-            _ => null
-        };
-
-        // parent -> children lookup
-        return model.Resources.OfType<IResourceWithParent>()
-                              .Select(x => (Child: x, Root: SelectParentContainerResource(x.Parent)))
-                              .Where(x => x.Root is not null)
-                              .ToLookup(x => x.Root, x => x.Child);
-    }
-
-    // Sets the state of the resource's children
-    async Task SetChildResourceAsync(IResource resource, string parentName, string? state, DateTime? startTimeStamp, DateTime? stopTimeStamp)
-    {
-        foreach (var child in _parentChildLookup[resource])
-        {
-            await notificationService.PublishUpdateAsync(child, s => s with
-            {
-                State = state,
-                StartTimeStamp = startTimeStamp,
-                StopTimeStamp = stopTimeStamp,
-                Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, parentName)
-            }).ConfigureAwait(false);
-        }
-    }
-
-    private async Task PublishResourcesWithInitialStateAsync()
-    {
-        // Publish the initial state of the resources that have a snapshot annotation.
-        foreach (var resource in _model.Resources)
-        {
-            await notificationService.PublishUpdateAsync(resource, s =>
-            {
-                return s with
-                {
-                    HealthReports = GetInitialHealthReports(resource)
-                };
-            }).ConfigureAwait(false);
-        }
-
-        static ImmutableArray<HealthReportSnapshot> GetInitialHealthReports(IResource resource)
-        {
-            if (!resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out var annotations))
-            {
-                return [];
-            }
-
-            var reports = annotations.Select(annotation => new HealthReportSnapshot(annotation.Key, null, null, null));
-            return [.. reports];
         }
     }
 
@@ -272,8 +219,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             using (outputSemaphore)
             {
                 await Task.WhenAll(
-                    Task.Run(() => WatchKubernetesResourceAsync<Executable>((t, r) => ProcessResourceChange(t, r, _executablesMap, "Executable", ToSnapshot))),
-                    Task.Run(() => WatchKubernetesResourceAsync<Container>((t, r) => ProcessResourceChange(t, r, _containersMap, "Container", ToSnapshot))),
+                    Task.Run(() => WatchKubernetesResourceAsync<Executable>((t, r) => ProcessResourceChange(t, r, _resourceState.ExecutablesMap, "Executable", (e, s) => _snapshotBuilder.ToSnapshot(e, s)))),
+                    Task.Run(() => WatchKubernetesResourceAsync<Container>((t, r) => ProcessResourceChange(t, r, _resourceState.ContainersMap, "Container", (c, s) => _snapshotBuilder.ToSnapshot(c, s)))),
                     Task.Run(() => WatchKubernetesResourceAsync<Service>(ProcessServiceChange)),
                     Task.Run(() => WatchKubernetesResourceAsync<Endpoint>(ProcessEndpointChange))).ConfigureAwait(false);
             }
@@ -281,7 +228,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         var watchSubscribersTask = Task.Run(async () =>
         {
-            await foreach (var subscribers in loggerService.WatchAnySubscribersAsync(cancellationToken).ConfigureAwait(false))
+            await foreach (var subscribers in _loggerService.WatchAnySubscribersAsync(cancellationToken).ConfigureAwait(false))
             {
                 _logInformationChannel.Writer.TryWrite(new(subscribers.Name, LogsAvailable: null, subscribers.AnySubscribers));
             }
@@ -314,11 +261,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     if (hasSubscribers)
                     {
-                        if (_containersMap.TryGetValue(entry.ResourceName, out var container))
+                        if (_resourceState.ContainersMap.TryGetValue(entry.ResourceName, out var container))
                         {
                             StartLogStream(container);
                         }
-                        else if (_executablesMap.TryGetValue(entry.ResourceName, out var executable))
+                        else if (_resourceState.ExecutablesMap.TryGetValue(entry.ResourceName, out var executable))
                         {
                             StartLogStream(executable);
                         }
@@ -366,7 +313,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 _logger.LogDebug("Watching over DCP {ResourceType} resources.", typeof(T).Name);
                 await pipeline.ExecuteAsync(async (pipelineCancellationToken) =>
                 {
-                    await foreach (var (eventType, resource) in kubernetesService.WatchAsync<T>(cancellationToken: pipelineCancellationToken).ConfigureAwait<(global::k8s.WatchEventType, T)>(false))
+                    await foreach (var (eventType, resource) in _kubernetesService.WatchAsync<T>(cancellationToken: pipelineCancellationToken).ConfigureAwait<(global::k8s.WatchEventType, T)>(false))
                     {
                         await outputSemaphore.WaitAsync(pipelineCancellationToken).ConfigureAwait(false);
 
@@ -414,7 +361,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             var resourceName = resource.AppModelResourceName;
 
             if (resourceName is not null &&
-                _applicationModel.TryGetValue(resourceName, out var appModelResource))
+                _resourceState.ApplicationModel.TryGetValue(resourceName, out var appModelResource))
             {
                 if (changeType == ResourceSnapshotChangeType.Delete)
                 {
@@ -437,25 +384,15 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                         _logger.LogTrace("Updating application model resource {ResourceName} with {ResourceKind} resource {ResourceName}", appModelResource.Name, resourceKind, resource.Metadata.Name);
                     }
 
-                    // Notifications are associated with the application model resource, so we need to update with that context
-                    await notificationService.PublishUpdateAsync(appModelResource, resource.Metadata.Name, s => snapshotFactory(resource, s)).ConfigureAwait(false);
+                    var resourceType = GetResourceType(resource, appModelResource);
+                    var status = GetResourceStatus(resource);
+                    await _executorEvents.PublishAsync(new OnResourceChangedContext(_shutdownCancellation.Token, resourceType, appModelResource, resource.Metadata.Name, status, s => snapshotFactory(resource, s))).ConfigureAwait(false);
 
                     if (resource is Container { LogsAvailable: true } ||
                         resource is Executable { LogsAvailable: true })
                     {
                         _logInformationChannel.Writer.TryWrite(new(resource.Metadata.Name, LogsAvailable: true, HasSubscribers: null));
                     }
-                }
-
-                // Update all child resources of containers
-                if (resource is Container c && c.Status is { } status)
-                {
-                    await SetChildResourceAsync(
-                        appModelResource,
-                        resource.Metadata.Name,
-                        status.State,
-                        status.StartupTimestamp?.ToUniversalTime(),
-                        status.FinishTimestamp?.ToUniversalTime()).ConfigureAwait(false);
                 }
             }
             else
@@ -474,26 +411,49 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             // So whenever we get the service we can figure out if the service can generate endpoint for the resource
             if (watchEventType == WatchEventType.Deleted)
             {
-                _resourceAssociatedServicesMap.Remove((resourceKind, resource.Metadata.Name), out _);
+                _resourceState.ResourceAssociatedServicesMap.Remove((resourceKind, resource.Metadata.Name), out _);
             }
             else if (resource.Metadata.Annotations?.TryGetValue(CustomResource.ServiceProducerAnnotation, out var servicesProducedAnnotationJson) == true)
             {
                 var serviceProducerAnnotations = JsonSerializer.Deserialize<ServiceProducerAnnotation[]>(servicesProducedAnnotationJson);
                 if (serviceProducerAnnotations is not null)
                 {
-                    _resourceAssociatedServicesMap[(resourceKind, resource.Metadata.Name)]
+                    _resourceState.ResourceAssociatedServicesMap[(resourceKind, resource.Metadata.Name)]
                         = serviceProducerAnnotations.Select(e => e.ServiceName).ToList();
                 }
             }
         }
     }
 
+    private static string GetResourceType<T>(T resource, IResource appModelResource) where T : CustomResource
+    {
+        return resource switch
+        {
+            Container => KnownResourceTypes.Container,
+            Executable => appModelResource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable,
+            _ => throw new InvalidOperationException($"Unknown resource type {resource.GetType().Name}")
+        };
+    }
+
+    private static ResourceStatus GetResourceStatus(CustomResource resource)
+    {
+        if (resource is Container container)
+        {
+            return new(container.Status?.State, container.Status?.StartupTimestamp?.ToUniversalTime(), container.Status?.FinishTimestamp?.ToUniversalTime());
+        }
+        if (resource is Executable executable)
+        {
+            return new(executable.Status?.State, executable.Status?.StartupTimestamp?.ToUniversalTime(), executable.Status?.FinishTimestamp?.ToUniversalTime());
+        }
+        return new(null, null, null);
+    }
+
     private void StartLogStream<T>(T resource) where T : CustomResource
     {
         IAsyncEnumerable<IReadOnlyList<(string, bool)>>? enumerable = resource switch
         {
-            Container c when c.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, resource),
-            Executable e when e.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, resource),
+            Container c when c.LogsAvailable => new ResourceLogSource<T>(_logger, _kubernetesService, resource),
+            Executable e when e.LogsAvailable => new ResourceLogSource<T>(_logger, _kubernetesService, resource),
             _ => null
         };
 
@@ -519,7 +479,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     }
 
                     // Pump the logs from the enumerable into the logger
-                    var logger = loggerService.GetInternalLogger(resource.Metadata.Name);
+                    var logger = _loggerService.GetInternalLogger(resource.Metadata.Name);
 
                     await foreach (var batch in enumerable.WithCancellation(cancellation.Token).ConfigureAwait(false))
                     {
@@ -556,7 +516,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task ProcessEndpointChange(WatchEventType watchEventType, Endpoint endpoint)
     {
-        if (!ProcessResourceChange(_endpointsMap, watchEventType, endpoint))
+        if (!ProcessResourceChange(_resourceState.EndpointsMap, watchEventType, endpoint))
         {
             return;
         }
@@ -574,12 +534,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task ProcessServiceChange(WatchEventType watchEventType, Service service)
     {
-        if (!ProcessResourceChange(_servicesMap, watchEventType, service))
+        if (!ProcessResourceChange(_resourceState.ServicesMap, watchEventType, service))
         {
             return;
         }
 
-        foreach (var ((resourceKind, resourceName), _) in _resourceAssociatedServicesMap.Where(e => e.Value.Contains(service.Metadata.Name)))
+        foreach (var ((resourceKind, resourceName), _) in _resourceState.ResourceAssociatedServicesMap.Where(e => e.Value.Contains(service.Metadata.Name)))
         {
             await TryRefreshResource(resourceKind, resourceName).ConfigureAwait(false);
         }
@@ -589,8 +549,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     {
         CustomResource? cr = resourceKind switch
         {
-            "Container" => _containersMap.TryGetValue(resourceName, out var container) ? container : null,
-            "Executable" => _executablesMap.TryGetValue(resourceName, out var executable) ? executable : null,
+            "Container" => _resourceState.ContainersMap.TryGetValue(resourceName, out var container) ? container : null,
+            "Executable" => _resourceState.ExecutablesMap.TryGetValue(resourceName, out var executable) ? executable : null,
             _ => null
         };
 
@@ -599,261 +559,23 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             var appModelResourceName = cr.AppModelResourceName;
 
             if (appModelResourceName is not null &&
-                _applicationModel.TryGetValue(appModelResourceName, out var appModelResource))
+                _resourceState.ApplicationModel.TryGetValue(appModelResourceName, out var appModelResource))
             {
-                await notificationService.PublishUpdateAsync(appModelResource, cr.Metadata.Name, s =>
+                var status = GetResourceStatus(cr);
+                await _executorEvents.PublishAsync(new OnResourceChangedContext(_shutdownCancellation.Token, resourceKind, appModelResource, resourceName, status, s =>
                 {
                     if (cr is Container container)
                     {
-                        return ToSnapshot(container, s);
+                        return _snapshotBuilder.ToSnapshot(container, s);
                     }
                     else if (cr is Executable exe)
                     {
-                        return ToSnapshot(exe, s);
+                        return _snapshotBuilder.ToSnapshot(exe, s);
                     }
                     return s;
-                })
-                .ConfigureAwait(false);
+                })).ConfigureAwait(false);
             }
         }
-    }
-
-    private CustomResourceSnapshot ToSnapshot(Container container, CustomResourceSnapshot previous)
-    {
-        var containerId = container.Status?.ContainerId;
-        var urls = GetUrls(container);
-        var volumes = GetVolumes(container);
-
-        var environment = GetEnvironmentVariables(container.Status?.EffectiveEnv ?? container.Spec.Env, container.Spec.Env);
-        var state = container.AppModelInitialState == KnownResourceStates.Hidden ? KnownResourceStates.Hidden : container.Status?.State;
-
-        var relationships = ImmutableArray<RelationshipSnapshot>.Empty;
-        if (container.AppModelResourceName is not null &&
-            _applicationModel.TryGetValue(container.AppModelResourceName, out var appModelResource))
-        {
-            relationships = ResourceSnapshotBuilder.BuildRelationships(appModelResource);
-        }
-
-        return previous with
-        {
-            ResourceType = KnownResourceTypes.Container,
-            State = state,
-            // Map a container exit code of -1 (unknown) to null
-            ExitCode = container.Status?.ExitCode is null or Conventions.UnknownExitCode ? null : container.Status.ExitCode,
-            Properties = [
-                new(KnownProperties.Container.Image, container.Spec.Image),
-                new(KnownProperties.Container.Id, containerId),
-                new(KnownProperties.Container.Command, container.Spec.Command),
-                new(KnownProperties.Container.Args, container.Status?.EffectiveArgs ?? []) { IsSensitive = true },
-                new(KnownProperties.Container.Ports, GetPorts()),
-                new(KnownProperties.Container.Lifetime, GetContainerLifetime()),
-            ],
-            EnvironmentVariables = environment,
-            CreationTimeStamp = container.Metadata.CreationTimestamp?.ToUniversalTime(),
-            StartTimeStamp = container.Status?.StartupTimestamp?.ToUniversalTime(),
-            StopTimeStamp = container.Status?.FinishTimestamp?.ToUniversalTime(),
-            Urls = urls,
-            Volumes = volumes,
-            Relationships = relationships
-        };
-
-        ImmutableArray<int> GetPorts()
-        {
-            if (container.Spec.Ports is null)
-            {
-                return [];
-            }
-
-            var ports = ImmutableArray.CreateBuilder<int>();
-            foreach (var port in container.Spec.Ports)
-            {
-                if (port.ContainerPort != null)
-                {
-                    ports.Add(port.ContainerPort.Value);
-                }
-            }
-            return ports.ToImmutable();
-        }
-
-        ContainerLifetime GetContainerLifetime()
-        {
-            return (container.Spec.Persistent ?? false) ? ContainerLifetime.Persistent : ContainerLifetime.Session;
-        }
-    }
-
-    private CustomResourceSnapshot ToSnapshot(Executable executable, CustomResourceSnapshot previous)
-    {
-        string? projectPath = null;
-        IResource? appModelResource = null;
-
-        if (executable.AppModelResourceName is not null &&
-            _applicationModel.TryGetValue(executable.AppModelResourceName, out appModelResource))
-        {
-            projectPath = appModelResource is ProjectResource p ? p.GetProjectMetadata().ProjectPath : null;
-        }
-
-        var state = executable.AppModelInitialState is "Hidden" ? "Hidden" : executable.Status?.State;
-
-        var urls = GetUrls(executable);
-
-        var environment = GetEnvironmentVariables(executable.Status?.EffectiveEnv, executable.Spec.Env);
-
-        var relationships = ImmutableArray<RelationshipSnapshot>.Empty;
-        if (appModelResource != null)
-        {
-            relationships = ResourceSnapshotBuilder.BuildRelationships(appModelResource);
-        }
-
-        if (projectPath is not null)
-        {
-            return previous with
-            {
-                ResourceType = KnownResourceTypes.Project,
-                State = state,
-                ExitCode = executable.Status?.ExitCode,
-                Properties = [
-                    new(KnownProperties.Executable.Path, executable.Spec.ExecutablePath),
-                    new(KnownProperties.Executable.WorkDir, executable.Spec.WorkingDirectory),
-                    new(KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []) { IsSensitive = true },
-                    new(KnownProperties.Executable.Pid, executable.Status?.ProcessId),
-                    new(KnownProperties.Project.Path, projectPath)
-                ],
-                EnvironmentVariables = environment,
-                CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToUniversalTime(),
-                StartTimeStamp = executable.Status?.StartupTimestamp?.ToUniversalTime(),
-                StopTimeStamp = executable.Status?.FinishTimestamp?.ToUniversalTime(),
-                Urls = urls,
-                Relationships = relationships
-            };
-        }
-
-        return previous with
-        {
-            ResourceType = KnownResourceTypes.Executable,
-            State = state,
-            ExitCode = executable.Status?.ExitCode,
-            Properties = [
-                new(KnownProperties.Executable.Path, executable.Spec.ExecutablePath),
-                new(KnownProperties.Executable.WorkDir, executable.Spec.WorkingDirectory),
-                new(KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []) { IsSensitive = true },
-                new(KnownProperties.Executable.Pid, executable.Status?.ProcessId)
-            ],
-            EnvironmentVariables = environment,
-            CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToUniversalTime(),
-            StartTimeStamp = executable.Status?.StartupTimestamp?.ToUniversalTime(),
-            StopTimeStamp = executable.Status?.FinishTimestamp?.ToUniversalTime(),
-            Urls = urls,
-            Relationships = relationships
-        };
-    }
-
-    private ImmutableArray<UrlSnapshot> GetUrls(CustomResource resource)
-    {
-        var name = resource.Metadata.Name;
-
-        var urls = ImmutableArray.CreateBuilder<UrlSnapshot>();
-
-        foreach (var (_, endpoint) in _endpointsMap)
-        {
-            if (endpoint.Metadata.OwnerReferences?.Any(or => or.Kind == resource.Kind && or.Name == name) != true)
-            {
-                continue;
-            }
-
-            if (endpoint.Spec.ServiceName is not null &&
-                _servicesMap.TryGetValue(endpoint.Spec.ServiceName, out var service) &&
-                service.AppModelResourceName is string resourceName &&
-                _applicationModel.TryGetValue(resourceName, out var appModelResource) &&
-                appModelResource is IResourceWithEndpoints resourceWithEndpoints &&
-                service.EndpointName is string endpointName)
-            {
-                var ep = resourceWithEndpoints.GetEndpoint(endpointName);
-
-                if (ep.EndpointAnnotation.FromLaunchProfile &&
-                    appModelResource is ProjectResource p &&
-                    p.GetEffectiveLaunchProfile()?.LaunchProfile is LaunchProfile profile &&
-                    profile.LaunchUrl is string launchUrl)
-                {
-                    // Concat the launch url from the launch profile to the urls with IsFromLaunchProfile set to true
-
-                    string CombineUrls(string url, string launchUrl)
-                    {
-                        if (!launchUrl.Contains("://"))
-                        {
-                            // This is relative URL
-                            url += $"/{launchUrl}";
-                        }
-                        else
-                        {
-                            // For absolute URL we need to update the port value if possible
-                            if (profile.ApplicationUrl is string applicationUrl
-                                && launchUrl.StartsWith(applicationUrl))
-                            {
-                                url = launchUrl.Replace(applicationUrl, url);
-                            }
-                        }
-
-                        return url;
-                    }
-
-                    if (ep.IsAllocated)
-                    {
-                        var url = CombineUrls(ep.Url, launchUrl);
-
-                        urls.Add(new(Name: ep.EndpointName, Url: url, IsInternal: false));
-                    }
-                }
-                else
-                {
-                    if (ep.IsAllocated)
-                    {
-                        urls.Add(new(Name: ep.EndpointName, Url: ep.Url, IsInternal: false));
-                    }
-                }
-
-                if (ep.EndpointAnnotation.IsProxied)
-                {
-                    var endpointString = $"{ep.Scheme}://{endpoint.Spec.Address}:{endpoint.Spec.Port}";
-                    urls.Add(new(Name: $"{ep.EndpointName} target port", Url: endpointString, IsInternal: true));
-                }
-            }
-        }
-
-        return urls.ToImmutable();
-    }
-
-    private static ImmutableArray<VolumeSnapshot> GetVolumes(CustomResource resource)
-    {
-        if (resource is Container container)
-        {
-            return container.Spec.VolumeMounts?.Select(v => new VolumeSnapshot(v.Source, v.Target ?? "", v.Type, v.IsReadOnly)).ToImmutableArray() ?? [];
-        }
-
-        return [];
-    }
-
-    private static ImmutableArray<EnvironmentVariableSnapshot> GetEnvironmentVariables(List<EnvVar>? effectiveSource, List<EnvVar>? specSource)
-    {
-        if (effectiveSource is null or { Count: 0 })
-        {
-            return [];
-        }
-
-        var environment = ImmutableArray.CreateBuilder<EnvironmentVariableSnapshot>(effectiveSource.Count);
-
-        foreach (var env in effectiveSource)
-        {
-            if (env.Name is not null)
-            {
-                var isFromSpec = specSource?.Any(e => string.Equals(e.Name, env.Name, StringComparison.Ordinal)) is true or null;
-
-                environment.Add(new(env.Name, env.Value ?? "", isFromSpec));
-            }
-        }
-
-        environment.Sort((v1, v2) => string.Compare(v1.Name, v2.Name, StringComparison.Ordinal));
-
-        return environment.ToImmutable();
     }
 
     private static bool ProcessResourceChange<T>(ConcurrentDictionary<string, T> map, WatchEventType watchEventType, T resource)
@@ -926,13 +648,21 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             await execution.ExecuteAsync(async (attemptCancellationToken) =>
             {
-                IAsyncEnumerable<(WatchEventType, Service)> serviceChangeEnumerator = kubernetesService.WatchAsync<Service>(cancellationToken: attemptCancellationToken);
+                var serviceChangeEnumerator = _kubernetesService.WatchAsync<Service>(cancellationToken: attemptCancellationToken);
                 await foreach (var (evt, updated) in serviceChangeEnumerator.ConfigureAwait(false))
                 {
-                    if (evt == WatchEventType.Bookmark) { continue; } // Bookmarks do not contain any data.
+                    if (evt == WatchEventType.Bookmark)
+                    {
+                        // Bookmarks do not contain any data.
+                        continue;
+                    }
 
                     var srvResource = needAddressAllocated.FirstOrDefault(sr => sr.Service.Metadata.Name == updated.Metadata.Name);
-                    if (srvResource == null) { continue; } // This service most likely already has full address information, so it is not on needAddressAllocated list.
+                    if (srvResource == null)
+                    {
+                        // This service most likely already has full address information, so it is not on needAddressAllocated list.
+                        continue;
+                    }
 
                     if (updated.HasCompleteAddress)
                     {
@@ -950,14 +680,14 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             // If there are still services that need address allocated, try a final direct query in case the watch missed some updates.
             foreach (var sar in needAddressAllocated)
             {
-                var dcpSvc = await kubernetesService.GetAsync<Service>(sar.Service.Metadata.Name, cancellationToken: cancellationToken).ConfigureAwait(false);
+                var dcpSvc = await _kubernetesService.GetAsync<Service>(sar.Service.Metadata.Name, cancellationToken: cancellationToken).ConfigureAwait(false);
                 if (dcpSvc.HasCompleteAddress)
                 {
                     sar.Service.ApplyAddressInfoFrom(dcpSvc);
                 }
                 else
                 {
-                    distributedApplicationLogger.LogWarning("Unable to allocate a network port for service '{ServiceName}'; service may be unreachable and its clients may not work properly.", sar.Service.Metadata.Name);
+                    _distributedApplicationLogger.LogWarning("Unable to allocate a network port for service '{ServiceName}'; service may be unreachable and its clients may not work properly.", sar.Service.Metadata.Name);
                 }
             }
 
@@ -975,7 +705,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             if (containerNetwork.DcpResource is ContainerNetwork cn)
             {
-                await kubernetesService.CreateAsync(cn, cancellationToken).ConfigureAwait(false);
+                await _kubernetesService.CreateAsync(cn, cancellationToken).ConfigureAwait(false);
             }
         }
     }
@@ -985,13 +715,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable || r.DcpResource is ExecutableReplicaSet);
         AddAllocatedEndpointInfo(toCreate);
 
-        var afterEndpointsAllocatedEvent = new AfterEndpointsAllocatedEvent(serviceProvider, _model);
-        await eventing.PublishAsync(afterEndpointsAllocatedEvent, cancellationToken).ConfigureAwait(false);
-
-        foreach (var lifecycleHook in _lifecycleHooks)
-        {
-            await lifecycleHook.AfterEndpointsAllocatedAsync(_model, cancellationToken).ConfigureAwait(false);
-        }
+        await _executorEvents.PublishAsync(new OnEndpointsAllocatedContext(cancellationToken)).ConfigureAwait(false);
 
         var containersTask = CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container), cancellationToken);
         var executablesTask = CreateExecutablesAsync(toCreate.Where(ar => ar.DcpResource is Executable || ar.DcpResource is ExecutableReplicaSet), cancellationToken);
@@ -1033,25 +757,21 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private void PrepareServices()
     {
         var serviceProducers = _model.Resources
-            .Select(r => (ModelResource: r, Endpoints: r.Annotations.OfType<EndpointAnnotation>()))
+            .Select(r => (ModelResource: r, Endpoints: r.Annotations.OfType<EndpointAnnotation>().ToArray()))
             .Where(sp => sp.Endpoints.Any());
 
         // We need to ensure that Services have unique names (otherwise we cannot really distinguish between
         // services produced by different resources).
-        HashSet<string> serviceNames = [];
+        var serviceNames = new HashSet<string>();
 
         foreach (var sp in serviceProducers)
         {
-            var endpoints = sp.Endpoints.ToArray();
+            var endpoints = sp.Endpoints;
 
             foreach (var endpoint in endpoints)
             {
-                var candidateServiceName = endpoints.Length == 1
-                    ? GetObjectNameForResource(sp.ModelResource)
-                    : GetObjectNameForResource(sp.ModelResource, endpoint.Name);
-
-                var uniqueServiceName = GenerateUniqueServiceName(serviceNames, candidateServiceName);
-                var svc = Service.Create(uniqueServiceName);
+                var serviceName = _nameGenerator.GetServiceName(sp.ModelResource, endpoint, endpoints.Length > 1, serviceNames);
+                var svc = Service.Create(serviceName);
 
                 var port = _options.Value.RandomizePorts && endpoint.IsProxied ? null : endpoint.Port;
                 svc.Spec.Port = port;
@@ -1136,7 +856,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 var projectLaunchConfiguration = new ProjectLaunchConfiguration();
                 projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
 
-                if (!string.IsNullOrEmpty(configuration[DebugSessionPortVar]))
+                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]))
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.IDE;
 
@@ -1149,23 +869,23 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 else
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.Process;
-                    if (configuration.GetBool("DOTNET_WATCH") is not true)
+                    if (_configuration.GetBool("DOTNET_WATCH") is not true)
                     {
                         exeSpec.Spec.Args = [
                             "run",
-                        "--no-build",
-                        "--project",
-                        projectMetadata.ProjectPath,
-                    ];
+                            "--no-build",
+                            "--project",
+                            projectMetadata.ProjectPath,
+                        ];
                     }
                     else
                     {
                         exeSpec.Spec.Args = [
                             "watch",
-                        "--non-interactive",
-                        "--no-hot-reload",
-                        "--project",
-                        projectMetadata.ProjectPath
+                            "--non-interactive",
+                            "--no-hot-reload",
+                            "--project",
+                            projectMetadata.ProjectPath
                         ];
                     }
 
@@ -1209,7 +929,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         // Add the default lifecycle commands (start/stop/restart)
         resource.AddLifeCycleCommands();
 
-        nameGenerator.EnsureDcpInstancesPopulated(resource);
+        _nameGenerator.EnsureDcpInstancesPopulated(resource);
     }
 
     private static void SetInitialResourceState(IResource resource, IAnnotationHolder annotationHolder)
@@ -1230,22 +950,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             async Task CreateResourceExecutablesAsyncCore(IResource resource, IEnumerable<AppResource> executables, CancellationToken cancellationToken)
             {
-                var resourceLogger = loggerService.GetLogger(resource);
+                var resourceLogger = _loggerService.GetLogger(resource);
+                var resourceType = resource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable;
 
                 try
                 {
-                    await notificationService.PublishUpdateAsync(resource, s => s with
-                    {
-                        ResourceType = resource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable,
-                        Properties = [],
-                        State = "Starting"
-                    })
-                    .ConfigureAwait(false);
-
-                    await PublishConnectionStringAvailableEvent(resource, cancellationToken).ConfigureAwait(false);
-
-                    var beforeResourceStartedEvent = new BeforeResourceStartedEvent(resource, serviceProvider);
-                    await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
+                    await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
 
                     foreach (var er in executables)
                     {
@@ -1258,7 +968,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                             // For this exception we don't want the noise of the stack trace, we've already
                             // provided more detail where we detected the issue (e.g. envvar name). To get
                             // more diagnostic information reduce logging level for DCP log category to Debug.
-                            await notificationService.PublishUpdateAsync(er.ModelResource, er.DcpResource.Metadata.Name, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+                            await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, er.ModelResource, er.DcpResource.Metadata.Name)).ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {
@@ -1266,7 +976,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                             // to start that it doesn't tear down the entire app host AND that we route the error to the
                             // appropriate replica.
                             resourceLogger.LogError(ex, "Failed to create resource {ResourceName}", er.ModelResource.Name);
-                            await notificationService.PublishUpdateAsync(er.ModelResource, er.DcpResource.Metadata.Name, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+                            await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, er.ModelResource, er.DcpResource.Metadata.Name)).ConfigureAwait(false);
                         }
                     }
                 }
@@ -1274,10 +984,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     // The purpose of this catch block is to ensure that if an error processing the overall
                     // configuration of the executable resource files. This is different to the exception handling
-                    // block above because at this tage of processing we don't necessarily have any replicas
+                    // block above because at this stage of processing we don't necessarily have any replicas
                     // yet. For example if a dependency fails to start.
                     resourceLogger.LogError(ex, "Failed to create resource {ResourceName}", resource.Name);
-                    await notificationService.PublishUpdateAsync(resource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+                    await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
                 }
             }
 
@@ -1295,27 +1005,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private async Task PublishConnectionStringAvailableEvent(IResource resource, CancellationToken cancellationToken)
-    {
-        // If the resource itself has a connection string then publish that the connection string is available.
-        if (resource is IResourceWithConnectionString)
-        {
-            var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(resource, serviceProvider);
-            await eventing.PublishAsync(connectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
-        }
-
-        // Sometimes the container/executable itself does not have a connection string, and in those cases
-        // we need to dispatch the event for the children.
-        if (_parentChildLookup[resource] is { } children)
-        {
-            foreach (var child in children.OfType<IResourceWithConnectionString>())
-            {
-                var childConnectionStringAvailableEvent = new ConnectionStringAvailableEvent(child, serviceProvider);
-                await eventing.PublishAsync(childConnectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
-            }
-        }
-    }
-
     private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
     {
         ExecutableSpec spec;
@@ -1325,17 +1014,17 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             case Executable exe:
                 spec = exe.Spec;
-                createResource = async () => await kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
+                createResource = async () => await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
                 break;
             case ExecutableReplicaSet ers:
                 spec = ers.Spec.Template.Spec;
-                createResource = async () => await kubernetesService.CreateAsync(ers, cancellationToken).ConfigureAwait(false);
+                createResource = async () => await _kubernetesService.CreateAsync(ers, cancellationToken).ConfigureAwait(false);
                 break;
             default:
                 throw new InvalidOperationException($"Expected an Executable-like resource, but got {er.DcpResource.Kind} instead");
         }
 
-        bool failedToApplyArgs = false;
+        var failedToApplyArgs = false;
         spec.Args ??= [];
 
         if (er.ModelResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var exeArgsCallbacks))
@@ -1388,7 +1077,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
         }
 
-        bool failedToApplyConfiguration = false;
+        var failedToApplyConfiguration = false;
         spec.Env = [];
         foreach (var c in config)
         {
@@ -1553,19 +1242,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             async Task CreateContainerAsyncCore(AppResource cr, CancellationToken cancellationToken)
             {
-                var logger = loggerService.GetLogger(cr.ModelResource);
-
-                await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with
-                {
-                    State = "Starting",
-                    Properties = [
-                        new(KnownProperties.Container.Image, cr.ModelResource.TryGetContainerImageName(out var imageName) ? imageName : ""),
-                    ],
-                    ResourceType = KnownResourceTypes.Container
-                })
-                .ConfigureAwait(false);
-
-                await SetChildResourceAsync(cr.ModelResource, cr.DcpResource.Metadata.Name, state: "Starting", startTimeStamp: null, stopTimeStamp: null).ConfigureAwait(false);
+                var logger = _loggerService.GetLogger(cr.ModelResource);
 
                 try
                 {
@@ -1576,15 +1253,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     // For this exception we don't want the noise of the stack trace, we've already
                     // provided more detail where we detected the issue (e.g. envvar name). To get
                     // more diagnostic information reduce logging level for DCP log category to Debug.
-                    await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+                    await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResource.Metadata.Name)).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Failed to create container resource {ResourceName}", cr.ModelResource.Name);
-
-                    await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
-
-                    await SetChildResourceAsync(cr.ModelResource, cr.DcpResource.Metadata.Name, state: "FailedToStart", startTimeStamp: null, stopTimeStamp: null).ConfigureAwait(false);
+                    await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResource.Metadata.Name)).ConfigureAwait(false);
                 }
             }
 
@@ -1594,7 +1268,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             if (containerResources.Any())
             {
                 // The network will be created with a unique postfix to avoid conflicts with other Aspire AppHost networks
-                tasks.Add(kubernetesService.CreateAsync(ContainerNetwork.Create(DefaultAspireNetworkName), cancellationToken));
+                tasks.Add(_kubernetesService.CreateAsync(ContainerNetwork.Create(DefaultAspireNetworkName), cancellationToken));
             }
 
             foreach (var cr in containerResources)
@@ -1612,10 +1286,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateContainerAsync(AppResource cr, ILogger resourceLogger, CancellationToken cancellationToken)
     {
-        await PublishConnectionStringAvailableEvent(cr.ModelResource, cancellationToken).ConfigureAwait(false);
-
-        var beforeResourceStartedEvent = new BeforeResourceStartedEvent(cr.ModelResource, serviceProvider);
-        await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
+        await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResource.Metadata.Name)).ConfigureAwait(false);
 
         var dcpContainerResource = (Container)cr.DcpResource;
         var modelContainerResource = cr.ModelResource;
@@ -1666,7 +1337,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
         }
 
-        bool failedToApplyConfiguration = false;
+        var failedToApplyConfiguration = false;
         foreach (var kvp in config)
         {
             try
@@ -1787,7 +1458,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             DcpDependencyCheck.CheckDcpInfoAndLogErrors(resourceLogger, _options.Value, _dcpInfo);
         }
 
-        await kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
+        await _kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task ApplyBuildArgumentsAsync(Container dcpContainerResource, IResource modelContainerResource, CancellationToken cancellationToken)
@@ -1870,10 +1541,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private void AddServicesProducedInfo(IResource modelResource, IAnnotationHolder dcpResource, AppResource appResource)
     {
-        string modelResourceName = "(unknown)";
+        var modelResourceName = "(unknown)";
         try
         {
-            modelResourceName = GetObjectNameForResource(modelResource);
+            modelResourceName = DcpNameGenerator.GetObjectNameForResource(modelResource, _options.Value);
         }
         catch { } // For error messages only, OK to fall back to (unknown)
 
@@ -1951,7 +1622,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             // CONSIDER batched creation
             foreach (var res in resourcesToCreate)
             {
-                await kubernetesService.CreateAsync(res, cancellationToken).ConfigureAwait(false);
+                await _kubernetesService.CreateAsync(res, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException ex)
@@ -1962,49 +1633,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private string GetObjectNameForResource(IResource resource, string suffix = "")
-    {
-        if (resource.TryGetLastAnnotation<ContainerNameAnnotation>(out var containerNameAnnotation))
-        {
-            // If an explicit container name is provided, use it without any postfix
-            return containerNameAnnotation.Name;
-        }
-
-        static string maybeWithSuffix(string s, string localSuffix, string? globalSuffix)
-            => (string.IsNullOrWhiteSpace(localSuffix), string.IsNullOrWhiteSpace(globalSuffix)) switch
-            {
-                (true, true) => s,
-                (false, true) => $"{s}-{localSuffix}",
-                (true, false) => $"{s}-{globalSuffix}",
-                (false, false) => $"{s}-{localSuffix}-{globalSuffix}"
-            };
-        return maybeWithSuffix(resource.Name, suffix, _options.Value.ResourceNameSuffix);
-    }
-
-    private static string GenerateUniqueServiceName(HashSet<string> serviceNames, string candidateName)
-    {
-        int suffix = 1;
-        string uniqueName = candidateName;
-
-        while (!serviceNames.Add(uniqueName))
-        {
-            uniqueName = $"{candidateName}-{suffix}";
-            suffix++;
-            if (suffix == 100)
-            {
-                // Should never happen, but we do not want to ever get into a infinite loop situation either.
-                throw new ArgumentException($"Could not generate a unique name for service '{candidateName}'");
-            }
-        }
-
-        return uniqueName;
-    }
-
     /// <summary>
     /// Create a patch update using the specified resource.
     /// A copy is taken of the resource to avoid permanently changing it.
     /// </summary>
-    internal static V1Patch CreatePatch<T>(T obj, Action<T> change) where T : CustomResource
+    private static V1Patch CreatePatch<T>(T obj, Action<T> change) where T : CustomResource
     {
         // This method isn't very efficient.
         // If mass or frequent patches are required then we may want to create patches manually.
@@ -2019,7 +1652,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         return new V1Patch(jsonPatch, V1Patch.PatchType.JsonPatch);
     }
 
-    internal async Task StopResourceAsync(string resourceName, CancellationToken cancellationToken)
+    public async Task StopResourceAsync(string resourceName, CancellationToken cancellationToken)
     {
         var matchingResource = GetMatchingResource(resourceName);
 
@@ -2028,15 +1661,15 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             case Container c:
                 patch = CreatePatch(c, obj => obj.Spec.Stop = true);
-                await kubernetesService.PatchAsync(c, patch, cancellationToken).ConfigureAwait(false);
+                await _kubernetesService.PatchAsync(c, patch, cancellationToken).ConfigureAwait(false);
                 break;
             case Executable e:
                 patch = CreatePatch(e, obj => obj.Spec.Stop = true);
-                await kubernetesService.PatchAsync(e, patch, cancellationToken).ConfigureAwait(false);
+                await _kubernetesService.PatchAsync(e, patch, cancellationToken).ConfigureAwait(false);
                 break;
             case ExecutableReplicaSet rs:
                 patch = CreatePatch(rs, obj => obj.Spec.Replicas = 0);
-                await kubernetesService.PatchAsync(rs, patch, cancellationToken).ConfigureAwait(false);
+                await _kubernetesService.PatchAsync(rs, patch, cancellationToken).ConfigureAwait(false);
                 break;
             default:
                 throw new InvalidOperationException($"Unexpected resource type: {matchingResource.DcpResource.GetType().FullName}");
@@ -2056,26 +1689,38 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         return matchingResource;
     }
 
-    internal async Task StartResourceAsync(string resourceName, CancellationToken cancellationToken)
+    public async Task StartResourceAsync(string resourceName, CancellationToken cancellationToken)
     {
         var matchingResource = GetMatchingResource(resourceName);
+        var resourceType = GetResourceType(matchingResource.DcpResource, matchingResource.ModelResource);
 
-        switch (matchingResource.DcpResource)
+        try
         {
-            case Container c:
-                await StartExecutableOrContainerAsync(c).ConfigureAwait(false);
-                break;
-            case Executable e:
-                await StartExecutableOrContainerAsync(e).ConfigureAwait(false);
-                break;
-            case ExecutableReplicaSet rs:
-                var replicas = matchingResource.ModelResource.GetReplicaCount();
-                var patch = CreatePatch(rs, obj => obj.Spec.Replicas = replicas);
+            await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, matchingResource.ModelResource, matchingResource.DcpResource.Metadata.Name)).ConfigureAwait(false);
 
-                await kubernetesService.PatchAsync(rs, patch, cancellationToken).ConfigureAwait(false);
-                break;
-            default:
-                throw new InvalidOperationException($"Unexpected resource type: {matchingResource.DcpResource.GetType().FullName}");
+            switch (matchingResource.DcpResource)
+            {
+                case Container c:
+                    await StartExecutableOrContainerAsync(c).ConfigureAwait(false);
+                    break;
+                case Executable e:
+                    await StartExecutableOrContainerAsync(e).ConfigureAwait(false);
+                    break;
+                case ExecutableReplicaSet rs:
+                    var replicas = matchingResource.ModelResource.GetReplicaCount();
+                    var patch = CreatePatch(rs, obj => obj.Spec.Replicas = replicas);
+
+                    await _kubernetesService.PatchAsync(rs, patch, cancellationToken).ConfigureAwait(false);
+                    break;
+                default:
+                    throw new InvalidOperationException($"Unexpected resource type: {matchingResource.DcpResource.GetType().FullName}");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to start resource {ResourceName}", matchingResource.ModelResource.Name);
+            await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, matchingResource.ModelResource, matchingResource.DcpResource.Metadata.Name)).ConfigureAwait(false);
+            throw;
         }
 
         async Task StartExecutableOrContainerAsync<T>(T resource) where T : CustomResource
@@ -2086,7 +1731,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             var resourceNotFound = false;
             try
             {
-                await kubernetesService.DeleteAsync<T>(resourceName, cancellationToken: cancellationToken).ConfigureAwait(false);
+                await _kubernetesService.DeleteAsync<T>(resourceName, cancellationToken: cancellationToken).ConfigureAwait(false);
             }
             catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -2122,7 +1767,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     try
                     {
-                        await kubernetesService.GetAsync<T>(resource.Metadata.Name, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
+                        await _kubernetesService.GetAsync<T>(resource.Metadata.Name, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
                         throw new DistributedApplicationException($"Failed to delete '{resource.Metadata.Name}' successfully before restart.");
                     }
                     catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -2132,7 +1777,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }, cancellationToken).ConfigureAwait(false);
             }
 
-            await kubernetesService.CreateAsync(resource, cancellationToken).ConfigureAwait(false);
+            await _kubernetesService.CreateAsync(resource, cancellationToken).ConfigureAwait(false);
         }
     }
 }

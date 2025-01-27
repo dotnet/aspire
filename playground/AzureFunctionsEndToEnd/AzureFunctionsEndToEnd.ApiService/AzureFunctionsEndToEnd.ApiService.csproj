@@ -15,6 +15,7 @@
     <AspireProjectOrPackageReference Include="Aspire.Azure.Storage.Queues" />
     <AspireProjectOrPackageReference Include="Aspire.Azure.Messaging.EventHubs" />
     <AspireProjectOrPackageReference Include="Aspire.Azure.Messaging.ServiceBus" />
+    <AspireProjectOrPackageReference Include="Aspire.Microsoft.Azure.Cosmos" />
   </ItemGroup>
 
 </Project>

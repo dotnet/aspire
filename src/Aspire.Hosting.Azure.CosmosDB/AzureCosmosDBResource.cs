@@ -14,7 +14,8 @@ namespace Aspire.Hosting;
 public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
     AzureProvisioningResource(name, configureInfrastructure),
     IResourceWithConnectionString,
-    IResourceWithEndpoints
+    IResourceWithEndpoints,
+    IResourceWithAzureFunctionsConfig
 {
     internal List<CosmosDBDatabase> Databases { get; } = [];
 
@@ -27,7 +28,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
 
     /// <summary>
     /// Gets the "connectionString" output reference from the bicep template for the Azure Cosmos DB resource.
-    /// 
+    ///
     /// This is used when Entra ID authentication is used. The connection string is an output of the bicep template.
     /// </summary>
     public BicepOutputReference ConnectionStringOutput => new("connectionString", this);
@@ -39,8 +40,11 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     /// </summary>
     internal BicepSecretOutputReference? ConnectionStringSecretOutput { get; set; }
 
+    /// <summary>
+    /// Gets a value indicating whether the resource uses access key authentication.
+    /// </summary>
     [MemberNotNullWhen(true, nameof(ConnectionStringSecretOutput))]
-    internal bool UseAccessKeyAuthentication => ConnectionStringSecretOutput is not null;
+    public bool UseAccessKeyAuthentication => ConnectionStringSecretOutput is not null;
 
     /// <summary>
     /// Gets a value indicating whether the Azure Cosmos DB resource is running in the local emulator.
@@ -61,4 +65,22 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
             ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
             ReferenceExpression.Create($"{ConnectionStringOutput}");
 
+    /// <inheritdoc />
+    public void ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
+    {
+        if (IsEmulator || UseAccessKeyAuthentication)
+        {
+            // Injected to support Azure Functions listener initialization.
+            target[connectionName] = ConnectionStringExpression;
+            // Injected to support Aspire client integration for CosmosDB in Azure Functions projects.
+            target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__ConnectionString"] = ConnectionStringExpression;
+        }
+        else
+        {
+            // Injected to support Azure Functions listener initialization.
+            target[$"{connectionName}__accountEndpoint"] = ConnectionStringExpression;
+            // Injected to support Aspire client integration for CosmosDB in Azure Functions projects.
+            target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__AccountEndpoint"] = ConnectionStringExpression;
+        }
+    }
 }

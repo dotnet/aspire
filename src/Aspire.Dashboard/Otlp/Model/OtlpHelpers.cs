@@ -89,11 +89,19 @@ public static class OtlpHelpers
 
     public static string ToHexString(this ByteString bytes)
     {
+        ArgumentNullException.ThrowIfNull(bytes);
+
         return ToHexString(bytes.Memory);
     }
 
-    public static string GetString(this AnyValue value) =>
-        value.ValueCase switch
+    public static string GetString(this AnyValue? value)
+    {
+        if (value == null)
+        {
+            return string.Empty;
+        }
+
+        return value.ValueCase switch
         {
             AnyValue.ValueOneofCase.StringValue => value.StringValue,
             AnyValue.ValueOneofCase.IntValue => value.IntValue.ToString(CultureInfo.InvariantCulture),
@@ -105,6 +113,7 @@ public static class OtlpHelpers
             AnyValue.ValueOneofCase.None => string.Empty,
             _ => value.ToString(),
         };
+    }
 
     private static JsonNode? ConvertAnyValue(AnyValue value)
     {
