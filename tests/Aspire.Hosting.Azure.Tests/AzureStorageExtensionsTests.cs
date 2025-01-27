@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Xunit;
 
@@ -134,20 +135,12 @@ public class AzureStorageExtensionsTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void AddAzureStorage_WithApiVersionCheck_ShouldSetSkipApiVersionCheck(bool enableApiVersionCheck)
+    public async Task AddAzureStorage_WithApiVersionCheck_ShouldSetSkipApiVersionCheck(bool enableApiVersionCheck)
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         using var builder = TestDistributedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(x => x.WithApiVersionCheck(enableApiVersionCheck));
 
-        Assert.True(storage.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
-
-        var args = new List<object>();
-        foreach (var argsAnnotation in argsCallbacks)
-        {
-            Assert.NotNull(argsAnnotation.Callback);
-            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
-        }
+        var args = await ArgumentEvaluator.GetArgumentListAsync(storage.Resource);
 
         Assert.All(["azurite", "-l", "/data", "--blobHost", "0.0.0.0", "--queueHost", "0.0.0.0", "--tableHost", "0.0.0.0"], x => args.Contains(x));
 
@@ -162,20 +155,12 @@ public class AzureStorageExtensionsTests
     }
 
     [Fact]
-    public void AddAzureStorage_RunAsEmulator_SetSkipApiVersionCheck()
+    public async Task AddAzureStorage_RunAsEmulator_SetSkipApiVersionCheck()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         using var builder = TestDistributedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("storage").RunAsEmulator();
 
-        Assert.True(storage.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
-
-        var args = new List<object>();
-        foreach (var argsAnnotation in argsCallbacks)
-        {
-            Assert.NotNull(argsAnnotation.Callback);
-            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
-        }
+        var args = await ArgumentEvaluator.GetArgumentListAsync(storage.Resource);
 
         Assert.Contains("--skipApiVersionCheck", args);
     }
