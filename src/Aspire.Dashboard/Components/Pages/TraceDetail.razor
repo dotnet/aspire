@@ -11,7 +11,7 @@
 
 <PageTitle>
     <ApplicationName
-        AdditionalText="@(_trace?.RootSpan?.Name)"
+        AdditionalText="@GetPageTitle()"
         ResourceName="@nameof(Dashboard.Resources.TraceDetail.TraceDetailPageTitle)"
         Loc="@Loc"/>
 </PageTitle>
@@ -24,12 +24,9 @@
             MobileToolbarButtonText="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailMobileToolbarButtonText)]"
             IsSummaryDetailsViewOpen="@(SelectedSpan is not null)">
             <PageTitleSection>
-                @{
-                    var headerSpan = trace.RootOrFirstSpan;
-                }
                 <div class="page-header">
                     <h1>
-                        <span>@GetResourceName(headerSpan.Source): @headerSpan.Name</span>
+                        <span>@GetPageTitle()</span>
                         <span class="trace-id">@OtlpHelpers.ToShortenedId(trace.TraceId)</span>
                     </h1>
                 </div>

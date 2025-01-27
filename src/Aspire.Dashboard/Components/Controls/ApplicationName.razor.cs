@@ -13,13 +13,13 @@ public sealed partial class ApplicationName : ComponentBase, IDisposable
     private CancellationTokenSource? _disposalCts;
 
     [Parameter]
-    public string? AdditionalText { get; init; }
+    public string? AdditionalText { get; set; }
 
     [Parameter]
-    public string? ResourceName { get; init; }
+    public string? ResourceName { get; set; }
 
     [Parameter]
-    public IStringLocalizer? Loc { get; init; }
+    public IStringLocalizer? Loc { get; set; }
 
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
@@ -49,7 +49,7 @@ public sealed partial class ApplicationName : ComponentBase, IDisposable
             applicationName = DashboardClient.ApplicationName;
         }
 
-        _pageTitle = AdditionalText is null
+        _pageTitle = string.IsNullOrEmpty(AdditionalText)
             ? applicationName
             : $"{applicationName} ({AdditionalText})";
     }

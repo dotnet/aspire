@@ -11,8 +11,22 @@
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
 <PageTitle>
+    @{
+        string? additionalText;
+        if (PageViewModel.SelectedApplication.Id is { ReplicaSetName: { } replicaSetName })
+        {
+            additionalText = PageViewModel.SelectedInstrument is { } selectedInstrument
+                ? $"{replicaSetName} - {selectedInstrument.Name}"
+                : replicaSetName;
+        }
+        else
+        {
+            additionalText = null;
+        }
+    }
+
     <ApplicationName
-        AdditionalText="@PageViewModel.SelectedApplication.Id?.ReplicaSetName"
+        AdditionalText="@additionalText"
         ResourceName="@nameof(Dashboard.Resources.Metrics.MetricsPageTitle)"
         Loc="@Loc"/>
 </PageTitle>
