@@ -234,10 +234,9 @@
     }
 }
 
-::deep .desktop-nav-menu > .fluent-appbar-item {
+::deep .desktop-nav-menu > .fluent-appbar-item > .fluentui-counterbadge-container > a > .stack-vertical {
     /* FluentAppBarItems have a default width. However, we have a wide range of widths
-       in content depending on the language (ie, from traces to seguimientos) so should allow
-       the app bar to fit its content. This means that the width of the app bar will be different for some
-       languages. */
-    width: unset;
+       in content depending on the language (ie, from traces to seguimientos) so remove the default
+       horizontal padding to allow for more text  */
+    padding: calc(var(--design-unit) * 1px) 0;
 }
