@@ -173,11 +173,13 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        AutoResetEvent? are = null;
+        var channel = Channel.CreateUnbounded<long>();
+        ILogger? logger = null;
 
-        builder.Services.AddHealthChecks().AddCheck("resource_check", () =>
+        builder.Services.AddHealthChecks().AddAsyncCheck("resource_check", async (cancellationToken) =>
         {
-            are?.Set();
+            logger?.LogInformation("Running resource_check");
+            await channel.Writer.WriteAsync(Stopwatch.GetTimestamp(), cancellationToken).DefaultTimeout();
 
             return HealthCheckResult.Healthy();
         });
@@ -186,6 +188,10 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
                               .WithHealthCheck("resource_check");
 
         using var app = builder.Build();
+        var resourceHealthCheckService = app.Services.GetRequiredService<ResourceHealthCheckService>();
+        resourceHealthCheckService.HealthyHealthCheckInterval = TimeSpan.FromSeconds(2);
+        logger = app.Services.GetRequiredService<ILogger<ResourceHealthCheckServiceTests>>();
+
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
         var abortTokenSource = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
@@ -198,17 +204,12 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         }).DefaultTimeout();
         await rns.WaitForResourceHealthyAsync(resource.Resource.Name, abortTokenSource.Token).DefaultTimeout();
 
-        are = new AutoResetEvent(false);
+        var startTimestamp = await channel.Reader.ReadAsync();
+        var stopTimestamp = await channel.Reader.ReadAsync();
+        var interval = Stopwatch.GetElapsedTime(startTimestamp, stopTimestamp);
 
-        // Allow one event to through since it could be half way through.
-        are.WaitOne();
-
-        var stopwatch = Stopwatch.StartNew();
-        are.WaitOne();
-        stopwatch.Stop();
-
-        // Delay is 30 seconds but we allow for a (ridiculous) 10 second margin of error.
-        Assert.True(stopwatch.ElapsedMilliseconds > 20000);
+        // Give a 1 sec margin of error.
+        Assert.True(interval.TotalMilliseconds > 1000, $"Interval milliseconds: {interval.TotalMilliseconds}");
 
         await app.StopAsync(abortTokenSource.Token).DefaultTimeout();
     }
@@ -360,13 +361,13 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         // the running state. There isn't a great way to do this using a completition source
         // so I'm just going to spin for up to ten seconds to be sure that no local perf
         // issues lead to a false pass here.
-        var giveUpAfter = DateTime.Now.AddSeconds(10);
+        var giveUpAfter = DateTime.UtcNow.AddSeconds(5);
         while (!pendingStart.IsCanceled)
         {
             Assert.Equal(0, hitCount);
             await Task.Delay(100);
 
-            if (DateTime.Now > giveUpAfter)
+            if (DateTime.UtcNow > giveUpAfter)
             {
                 break;
             }
