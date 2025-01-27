@@ -277,6 +277,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
         private TaskCompletionSource? _delayInterruptTcs;
 
+        // Used to cancel and exit the monitoring loop for a resource.
         public CancellationToken CancellationToken => _cts.Token;
 
         public ResourceEvent LatestEvent { get; private set; } = initialEvent;
@@ -288,6 +289,8 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
         public void SetLatestEvent(ResourceEvent resourceEvent)
         {
+            // Set the latest event to the monitor. The monitor delay may be interrupted if necessary.
+            // A lock protects against a race between starting a delay and setting the latest event.
             lock (_lock)
             {
                 var shouldInterrupt = ShouldInterrupt(resourceEvent, LatestEvent);
@@ -315,16 +318,21 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
             try
             {
                 await _delayInterruptTcs.Task.WaitAsync(delay, cancellationToken).ConfigureAwait(false);
+
+                // Delay was interrupted.
                 return true;
             }
             catch (TimeoutException)
             {
+                // Delay interval has elapsed.
                 return false;
             }
         }
 
         private static bool ShouldInterrupt(ResourceEvent currentEvent, ResourceEvent previousEvent)
         {
+            // Interrupt if a newer snapshot is available and the state has changed.
+            // This is to ensure that health checks are immediately re-evaluated when the state changes.
             if (currentEvent.Snapshot.Version <= previousEvent.Snapshot.Version)
             {
                 return false;
