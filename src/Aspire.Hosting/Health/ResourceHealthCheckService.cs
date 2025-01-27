@@ -125,8 +125,6 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                     continue;
                 }
 
-                currentEvent = state.LatestEvent;
-
                 var report = await healthCheckService.CheckHealthAsync(
                     r => registrationKeysToCheck.Contains(r.Name),
                     cancellationToken
@@ -146,7 +144,9 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                     nonHealthyReportCount++;
                 }
 
-                if (ContainsAnyHealthReportChange(report, state.LatestEvent.Snapshot.HealthReports))
+                currentEvent = state.LatestEvent;
+
+                if (ContainsAnyHealthReportChange(report, currentEvent.Snapshot.HealthReports))
                 {
                     await resourceNotificationService.PublishUpdateAsync(resource, s =>
                     {
