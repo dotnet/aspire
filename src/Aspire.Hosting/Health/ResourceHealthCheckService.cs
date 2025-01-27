@@ -61,7 +61,8 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
     }
 
     // Internal for testing.
-    internal static readonly TimeSpan s_healthyHealthCheckInterval = TimeSpan.FromSeconds(30);
+    internal TimeSpan HealthyHealthCheckInterval { get; set; } = TimeSpan.FromSeconds(30);
+    internal TimeSpan NonHealthyHealthCheckStepInterval { get; set; } = TimeSpan.FromSeconds(1);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -218,8 +219,8 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
             // Long delay if the resource is healthy.
             // Non-heathy delay increases with each consecutive non-healthy report.
             var delayInterval = nonHealthyReportCount == 0
-                ? s_healthyHealthCheckInterval
-                : TimeSpan.FromSeconds(Math.Min(5, nonHealthyReportCount));
+                ? HealthyHealthCheckInterval
+                : NonHealthyHealthCheckStepInterval * Math.Min(5, nonHealthyReportCount);
 
             logger.LogTrace("Resource '{Resource}' health check monitoring loop starting delay of {DelayInterval}.", resource.Name, delayInterval);
 

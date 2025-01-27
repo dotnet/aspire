@@ -185,6 +185,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
         var logger = app.Services.GetRequiredService<ILogger<ResourceHealthCheckServiceTests>>();
+        var rhcs = app.Services.GetRequiredService<ResourceHealthCheckService>();
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
         var abortTokenSource = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
@@ -200,9 +201,54 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         await AsyncTestHelpers.AssertIsTrueRetryAsync(
             () =>
             {
-                return testSink.Writes.Any(w => w.Message?.Contains($"Resource 'resource' health check monitoring loop starting delay of {ResourceHealthCheckService.s_healthyHealthCheckInterval}.") ?? false);
+                return testSink.Writes.Any(w => w.Message?.Contains($"Resource 'resource' health check monitoring loop starting delay of {rhcs.HealthyHealthCheckInterval}.") ?? false);
             },
             "Wait for healthy delay.", logger);
+
+        await app.StopAsync(abortTokenSource.Token).DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task HealthCheckIntervalIncreasesAfterNonHealthyState()
+    {
+        var testSink = new TestSink();
+
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.Services.AddLogging(logging => logging.AddProvider(new TestLoggerProvider(testSink)));
+
+        builder.Services.AddHealthChecks().AddCheck("resource_check", () =>
+        {
+            return HealthCheckResult.Unhealthy();
+        });
+
+        var resource = builder.AddResource(new ParentResource("resource"))
+                              .WithHealthCheck("resource_check");
+
+        using var app = builder.Build();
+        var logger = app.Services.GetRequiredService<ILogger<ResourceHealthCheckServiceTests>>();
+        var rhcs = app.Services.GetRequiredService<ResourceHealthCheckService>();
+        rhcs.NonHealthyHealthCheckStepInterval = TimeSpan.FromMilliseconds(10);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        var abortTokenSource = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+
+        await app.StartAsync(abortTokenSource.Token).DefaultTimeout();
+
+        await rns.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = KnownResourceStates.Running
+        }).DefaultTimeout();
+
+        for (var i = 1; i <= 5; i++)
+        {
+            await AsyncTestHelpers.AssertIsTrueRetryAsync(
+                () =>
+                {
+                    return testSink.Writes.Any(w => w.Message?.Contains($"Resource 'resource' health check monitoring loop starting delay of {(rhcs.NonHealthyHealthCheckStepInterval * i)}.") ?? false);
+                },
+                "Wait for nonhealthy delay.", logger);
+        }
 
         await app.StopAsync(abortTokenSource.Token).DefaultTimeout();
     }
@@ -408,6 +454,9 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
         var pendingStart = app.StartAsync().DefaultTimeout();
+        var rhcs = app.Services.GetRequiredService<ResourceHealthCheckService>();
+        rhcs.HealthyHealthCheckInterval = TimeSpan.FromSeconds(1);
+
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
         // Get the custom resource to a running state.
