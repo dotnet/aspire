@@ -764,8 +764,6 @@ internal sealed class DcpExecutor : IDcpExecutor
         // services produced by different resources).
         var serviceNames = new HashSet<string>();
 
-        List<(IResource, EndpointAnnotation)> endpointsWithHostUnset = [];
-
         foreach (var sp in serviceProducers)
         {
             var endpoints = sp.Endpoints;
@@ -777,13 +775,16 @@ internal sealed class DcpExecutor : IDcpExecutor
 
                 if (!sp.ModelResource.SupportsProxy())
                 {
-                    // If the resource can't be proxied, we need to enforce that on the annotation
+                    // If the resource shouldn't be proxied, we need to enforce that on the annotation
                     endpoint.IsProxied = false;
                 }
 
                 if (sp.ModelResource.IsContainer() && !endpoint.IsProxied && !endpoint.IsPortSet && endpoint.TargetPort is int)
                 {
-                    endpointsWithHostUnset.Add((sp.ModelResource, endpoint));
+                    // For unproxied container endpoints, we default the host port to be the same as the target port.
+                    // We need to do this here because the endpoint may not return the correct host port if a ProxySupportAnnotation
+                    // was used to disable proxying.
+                    endpoint.Port = endpoint.TargetPort;
                 }
 
                 var port = _options.Value.RandomizePorts && endpoint.IsProxied ? null : endpoint.Port;
@@ -802,17 +803,6 @@ internal sealed class DcpExecutor : IDcpExecutor
 
                 _appResources.Add(new ServiceAppResource(sp.ModelResource, svc, endpoint));
             }
-        }
-
-        if (endpointsWithHostUnset.Any())
-        {
-            var logMessage = "You have unproxied container endpoints without an explicit host port set. By default these endpoints will attempt to bind a host port that matches the container target port. This can lead to port conflicts if multiple containers are using the same target port(s). For containers running with a persistent lifetime or container endpoints with IsProxied disabled, we recommend specifying explicit host ports. For more information on container networking in .NET Aspire see: https://aka.ms/dotnet/aspire/container-networking";
-            foreach (var (resource, endpoint) in endpointsWithHostUnset)
-            {
-                logMessage += $"{Environment.NewLine}'{endpoint.Name}' endpoint for '{resource.Name}' doesn't have a host port set, attempting to bind host port '{endpoint.TargetPort}'";
-            }
-
-            _logger.LogWarning(logMessage);
         }
     }
 
