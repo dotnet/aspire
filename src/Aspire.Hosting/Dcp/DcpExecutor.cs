@@ -779,14 +779,6 @@ internal sealed class DcpExecutor : IDcpExecutor
                     endpoint.IsProxied = false;
                 }
 
-                if (sp.ModelResource.IsContainer() && !endpoint.IsProxied && !endpoint.IsPortSet && endpoint.TargetPort is int)
-                {
-                    // For unproxied container endpoints, we default the host port to be the same as the target port.
-                    // We need to do this here because the endpoint may not return the correct host port if a ProxySupportAnnotation
-                    // was used to disable proxying.
-                    endpoint.Port = endpoint.TargetPort;
-                }
-
                 var port = _options.Value.RandomizePorts && endpoint.IsProxied ? null : endpoint.Port;
                 svc.Spec.Port = port;
                 svc.Spec.Protocol = PortProtocol.FromProtocolType(endpoint.Protocol);
