@@ -77,8 +77,13 @@ public partial class SpanDetails : IDisposable
     {
         if (!ReferenceEquals(ViewModel, _viewModel))
         {
+            // Only set data changed flag if the item being view changes.
+            if (!string.Equals(ViewModel.Span.SpanId, _viewModel?.Span.SpanId, StringComparisons.OtlpSpanId))
+            {
+                _dataChanged = true;
+            }
+
             _viewModel = ViewModel;
-            _dataChanged = true;
 
             _contextAttributes =
             [

@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
@@ -9,7 +8,7 @@ using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureResourceExtensionsTests
+public class AzureStorageExtensionsTests
 {
     [Theory]
     [InlineData(null)]
@@ -134,79 +133,35 @@ public class AzureResourceExtensionsTests
     }
 
     [Theory]
-    [InlineData(null)]
-    [InlineData(8081)]
-    [InlineData(9007)]
-    public void AddAzureCosmosDBWithEmulatorGetsExpectedPort(int? port = null)
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AddAzureStorage_WithApiVersionCheck_ShouldSetSkipApiVersionCheck(bool enableApiVersionCheck)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator(x => x.WithApiVersionCheck(enableApiVersionCheck));
 
-        var cosmos = builder.AddAzureCosmosDB("cosmos");
+        var args = await ArgumentEvaluator.GetArgumentListAsync(storage.Resource);
 
-        cosmos.RunAsEmulator(container =>
+        Assert.All(["azurite", "-l", "/data", "--blobHost", "0.0.0.0", "--queueHost", "0.0.0.0", "--tableHost", "0.0.0.0"], x => args.Contains(x));
+
+        if (enableApiVersionCheck)
         {
-            container.WithGatewayPort(port);
-        });
-
-        var endpointAnnotation = cosmos.Resource.Annotations.OfType<EndpointAnnotation>().FirstOrDefault();
-        Assert.NotNull(endpointAnnotation);
-
-        var actualPort = endpointAnnotation.Port;
-        Assert.Equal(port, actualPort);
-    }
-
-    [Theory]
-    [InlineData("2.3.97-preview")]
-    [InlineData("1.0.7")]
-    public void AddAzureCosmosDBWithEmulatorGetsExpectedImageTag(string imageTag)
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var cosmos = builder.AddAzureCosmosDB("cosmos");
-
-        cosmos.RunAsEmulator(container =>
+            Assert.Contains("--skipApiVersionCheck", args);
+        }
+        else
         {
-            container.WithImageTag(imageTag);
-        });
-
-        var containerImageAnnotation = cosmos.Resource.Annotations.OfType<ContainerImageAnnotation>().FirstOrDefault();
-        Assert.NotNull(containerImageAnnotation);
-
-        var actualTag = containerImageAnnotation.Tag;
-        Assert.Equal(imageTag ?? "latest", actualTag);
-    }
-
-    [Theory]
-    [InlineData(30)]
-    [InlineData(12)]
-    public async Task AddAzureCosmosDBWithPartitionCountCanOverrideNumberOfPartitions(int partitionCount)
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var cosmos = builder.AddAzureCosmosDB("cosmos");
-
-        cosmos.RunAsEmulator(r => r.WithPartitionCount(partitionCount));
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(cosmos.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
-
-        Assert.Equal(partitionCount.ToString(CultureInfo.InvariantCulture), config["AZURE_COSMOS_EMULATOR_PARTITION_COUNT"]);
+            Assert.DoesNotContain("--skipApiVersionCheck", args);
+        }
     }
 
     [Fact]
-    public void AddAzureCosmosDBWithDataExplorer()
+    public async Task AddAzureStorage_RunAsEmulator_SetSkipApiVersionCheck()
     {
-#pragma warning disable ASPIRECOSMOS001 // RunAsPreviewEmulator is experimental
         using var builder = TestDistributedApplicationBuilder.Create();
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator();
 
-        var cosmos = builder.AddAzureCosmosDB("cosmos");
-        cosmos.RunAsPreviewEmulator(e => e.WithDataExplorer());
+        var args = await ArgumentEvaluator.GetArgumentListAsync(storage.Resource);
 
-        var endpoint = cosmos.GetEndpoint("data-explorer");
-        Assert.NotNull(endpoint);
-        Assert.Equal(1234, endpoint.TargetPort);
-
-        // WithDataExplorer doesn't work against the non-preview emulator
-        var cosmos2 = builder.AddAzureCosmosDB("cosmos2");
-        Assert.Throws<NotSupportedException>(() => cosmos2.RunAsEmulator(e => e.WithDataExplorer()));
-#pragma warning restore ASPIRECOSMOS001 // RunAsPreviewEmulator is experimental
+        Assert.Contains("--skipApiVersionCheck", args);
     }
 }

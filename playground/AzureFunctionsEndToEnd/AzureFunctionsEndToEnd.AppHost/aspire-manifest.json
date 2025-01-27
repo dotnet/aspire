@@ -35,6 +35,15 @@
         "principalId": ""
       }
     },
+    "cosmosdb": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{cosmosdb.outputs.connectionString}",
+      "path": "cosmosdb.module.bicep",
+      "params": {
+        "principalType": "",
+        "principalId": ""
+      }
+    },
     "funcstorage67c6c": {
       "type": "azure.bicep.v0",
       "path": "funcstorage67c6c.module.bicep",
@@ -66,6 +75,8 @@
         "Aspire__Azure__Messaging__EventHubs__EventHubBufferedProducerClient__eventhubs__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
         "messaging__fullyQualifiedNamespace": "{messaging.outputs.serviceBusEndpoint}",
         "Aspire__Azure__Messaging__ServiceBus__messaging__FullyQualifiedNamespace": "{messaging.outputs.serviceBusEndpoint}",
+        "cosmosdb__accountEndpoint": "{cosmosdb.outputs.connectionString}",
+        "Aspire__Microsoft__Azure__Cosmos__cosmosdb__AccountEndpoint": "{cosmosdb.outputs.connectionString}",
         "blob__blobServiceUri": "{storage.outputs.blobEndpoint}",
         "blob__queueServiceUri": "{storage.outputs.queueEndpoint}",
         "Aspire__Azure__Storage__Blobs__blob__ServiceUri": "{storage.outputs.blobEndpoint}",
@@ -100,6 +111,7 @@
         "HTTP_PORTS": "{apiservice.bindings.http.targetPort}",
         "ConnectionStrings__eventhubs": "{eventhubs.connectionString}",
         "ConnectionStrings__messaging": "{messaging.connectionString}",
+        "ConnectionStrings__cosmosdb": "{cosmosdb.connectionString}",
         "ConnectionStrings__queue": "{queue.connectionString}",
         "ConnectionStrings__blob": "{blob.connectionString}",
         "services__funcapp__http__0": "{funcapp.bindings.http.url}",

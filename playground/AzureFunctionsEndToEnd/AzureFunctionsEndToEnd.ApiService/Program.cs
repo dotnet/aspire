@@ -4,9 +4,11 @@ using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
 #if !SKIP_UNSTABLE_EMULATORS
 using Azure.Messaging.ServiceBus;
+using Microsoft.Azure.Cosmos;
 #endif
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
+using Newtonsoft.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +19,7 @@ builder.AddAzureBlobClient("blob");
 builder.AddAzureEventHubProducerClient("eventhubs", static settings => settings.EventHubName = "myhub");
 #if !SKIP_UNSTABLE_EMULATORS
 builder.AddAzureServiceBusClient("messaging");
+builder.AddAzureCosmosClient("cosmosdb");
 #endif
 
 var app = builder.Build();
@@ -64,6 +67,17 @@ app.MapGet("/publish/asb", async (ServiceBusClient client, CancellationToken can
     await sender.SendMessageAsync(message, cancellationToken);
     return Results.Ok("Message sent to Azure Service Bus.");
 });
+
+app.MapGet("/publish/cosmosdb", async (CosmosClient cosmosClient) =>
+{
+    var db = cosmosClient.GetDatabase("mydatabase");
+    var container = db.GetContainer("mycontainer");
+
+    var entry = new Entry { Id = Guid.NewGuid().ToString(), Text = RandomString(20) };
+    await container.CreateItemAsync(entry);
+
+    return Results.Ok("Document created in Azure Cosmos DB.");
+});
 #endif
 
 app.MapGet("/", async (HttpClient client) =>
@@ -75,3 +89,12 @@ app.MapGet("/", async (HttpClient client) =>
 app.MapDefaultEndpoints();
 
 app.Run();
+
+public class Entry
+{
+    [JsonProperty("id")]
+    public required string Id { get; set; }
+
+    [JsonProperty("text")]
+    public string Text { get; set; } = string.Empty;
+}
