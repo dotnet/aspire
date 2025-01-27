@@ -52,6 +52,7 @@
     <PackageVersion Include="Azure.ResourceManager.KeyVault" Version="1.3.0" />
     <PackageVersion Include="Azure.ResourceManager.Resources" Version="1.9.0" />
     <!-- AspNetCore.HealthChecks dependencies (3rd party packages) -->
+    <PackageVersion Include="AspNetCore.HealthChecks.ApplicationStatus" Version="9.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.Data.Tables" Version="9.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.KeyVault.Secrets" Version="9.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.Messaging.EventHubs" Version="9.0.0" />
