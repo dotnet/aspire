@@ -8,7 +8,7 @@
       "isVisible": false
     },
     {
-      "id": "AspireVersionNet8",
+      "id": "AspireVersion",
       "isVisible": true,
       "persistenceScope": "shared",
       "persistenceScopeName": "aspireTemplates"

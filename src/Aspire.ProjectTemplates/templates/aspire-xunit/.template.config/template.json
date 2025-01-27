@@ -60,7 +60,6 @@
       "description": "The version of .NET Aspire to use.",
       "displayName": ".NET Aspire version",
       "datatype": "choice",
-      "isEnabled": "(hostIdentifier == \"dotnetcli\")",
       "choices": [
         {
           "choice": "9.1",
@@ -80,12 +79,12 @@
       ],
       "defaultValue": "9.1"
     },
-    "AspireVersionNet8": {
+    "AspireVersion": {
       "type": "parameter",
       "description": "The version of .NET Aspire to use.",
       "displayName": ".NET Aspire version",
       "datatype": "choice",
-      "isEnabled": "Framework == net8.0",
+      "isEnabled": "(Framework == net8.0 || hostIdentifier == dotnetcli || hostIdentifier == \"dotnetcli-preview\")",
       "choices": [
         {
           "choice": "9.1",
@@ -125,13 +124,6 @@
       ],
       "defaultValue": "9.1"
     },
-    "AspireVersionDefault": {
-      "type": "generated",
-      "generator": "constant",
-      "parameters": {
-        "value": "9.1"
-      }
-    },
     "AspireVersionActual": {
       "type": "generated",
       "generator": "switch",
@@ -139,20 +131,28 @@
       "parameters": {
         "cases": [
           {
-            "condition": "hostIdentifier == \"dotnetcli\"",
-            "value": "AspireVersionCli"
+            "condition": "(AspireVersion == 8.2 && Framework == net8.0)",
+            "value": "8.2"
           },
           {
-            "condition": "Framework == net8.0",
-            "value": "AspireVersionNet8"
+            "condition": "(AspireVersionCli == 8.2 && Framework == net8.0)",
+            "value": "8.2"
           },
           {
-            "condition": "Framework == net9.0",
-            "value": "AspireVersionNet9"
+            "condition": "AspireVersionCli == 9.0",
+            "value": "9.0"
           },
           {
-            "condition": "true",
-            "value": "AspireVersionDefault"
+            "condition": "AspireVersion == 9.0",
+            "value": "9.0"
+          },
+          {
+            "condition": "AspireVersionNet9 == 9.0",
+            "value": "9.0"
+          },
+          {
+            "condition": "",
+            "value": "9.1"
           }
         ]
       }
