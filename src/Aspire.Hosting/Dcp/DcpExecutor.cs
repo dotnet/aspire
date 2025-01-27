@@ -739,7 +739,7 @@ internal sealed class DcpExecutor : IDcpExecutor
                     throw new InvalidDataException($"Service {svc.Metadata.Name} should have valid address at this point");
                 }
 
-                if (!sp.EndpointAnnotation.IsProxied && svc.AllocatedPort == null)
+                if (!sp.EndpointAnnotation.IsProxied && svc.AllocatedPort is null)
                 {
                     throw new InvalidOperationException($"Service '{svc.Metadata.Name}' needs to specify a port for endpoint '{sp.EndpointAnnotation.Name}' since it isn't using a proxy.");
                 }
