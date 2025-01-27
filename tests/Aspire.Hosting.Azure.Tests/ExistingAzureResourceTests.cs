@@ -13,8 +13,9 @@ public class ExistingAzureResourceTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
+        var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .RunAsExisting("existing-resource-name")
+            .RunAsExisting(existingResourceName)
             .WithQueue("queue");
 
         var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
@@ -25,6 +26,7 @@ public class ExistingAzureResourceTests
               "connectionString": "{messaging.outputs.serviceBusEndpoint}",
               "path": "messaging.module.bicep",
               "params": {
+                "messagingExistingResourceName": "{existingResourceName.value}",
                 "principalType": "",
                 "principalId": ""
               }
@@ -38,12 +40,14 @@ public class ExistingAzureResourceTests
 
             param sku string = 'Standard'
 
+            param messagingExistingResourceName string
+
             param principalType string
 
             param principalId string
 
             resource messaging 'Microsoft.ServiceBus/namespaces@2024-01-01' existing = {
-              name: 'existing-resource-name'
+              name: messagingExistingResourceName
             }
 
             resource messaging_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -71,8 +75,9 @@ public class ExistingAzureResourceTests
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
+        var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .RunAsExisting("existing-resource-name")
+            .RunAsExisting(existingResourceName)
             .WithQueue("queue");
 
         var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
@@ -139,8 +144,9 @@ public class ExistingAzureResourceTests
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
+        var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .PublishAsExisting("existing-resource-name")
+            .PublishAsExisting(existingResourceName)
             .WithQueue("queue");
 
         var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
@@ -151,6 +157,7 @@ public class ExistingAzureResourceTests
               "connectionString": "{messaging.outputs.serviceBusEndpoint}",
               "path": "messaging.module.bicep",
               "params": {
+                "messagingExistingResourceName": "{existingResourceName.value}",
                 "principalType": "",
                 "principalId": ""
               }
@@ -164,12 +171,14 @@ public class ExistingAzureResourceTests
 
             param sku string = 'Standard'
 
+            param messagingExistingResourceName string
+
             param principalType string
 
             param principalId string
 
             resource messaging 'Microsoft.ServiceBus/namespaces@2024-01-01' existing = {
-              name: 'existing-resource-name'
+              name: messagingExistingResourceName
             }
 
             resource messaging_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {

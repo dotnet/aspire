@@ -31,8 +31,8 @@ public static class ExistingAzureResourceExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the existing resource.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
-    public static IResourceBuilder<T> RunAsExisting<T>(this IResourceBuilder<T> builder, string name)
-        where T : IResource
+    public static IResourceBuilder<T> RunAsExisting<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> name)
+        where T : IAzureResource
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -51,8 +51,8 @@ public static class ExistingAzureResourceExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the existing resource.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
-    public static IResourceBuilder<T> PublishAsExisting<T>(this IResourceBuilder<T> builder, string name)
-        where T : IResource
+    public static IResourceBuilder<T> PublishAsExisting<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> name)
+        where T : IAzureResource
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -68,13 +68,13 @@ public static class ExistingAzureResourceExtensions
     /// Gets the <see cref="ExistingAzureResourceAnnotation" /> if the resource is an existing resource.
     /// </summary>
     /// <param name="resource">The resource to check.</param>
-    /// <param name="existingResource">The existing resource annotation if the resource is an existing resource.</param>
+    /// <param name="existingAzureResourceAnnotation">The existing resource annotation if the resource is an existing resource.</param>
     /// <returns>True if the resource is an existing resource, otherwise false.</returns>
-    public static bool TryGetExistingResource(this IResource resource, [NotNullWhen(true)] out ExistingAzureResourceAnnotation? existingResource)
+    public static bool TryGetExistingAzureResourceAnnotation(this IResource resource, [NotNullWhen(true)] out ExistingAzureResourceAnnotation? existingAzureResourceAnnotation)
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        existingResource = resource.Annotations.OfType<ExistingAzureResourceAnnotation>().FirstOrDefault();
-        return existingResource is not null;
+        existingAzureResourceAnnotation = resource.Annotations.OfType<ExistingAzureResourceAnnotation>().FirstOrDefault();
+        return existingAzureResourceAnnotation is not null;
     }
 }

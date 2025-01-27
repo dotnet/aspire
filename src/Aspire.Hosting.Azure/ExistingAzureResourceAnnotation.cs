@@ -9,10 +9,10 @@ namespace Aspire.Hosting.Azure;
 /// Represents a resource that is not managed by Aspire's provisioning or
 /// container management layer.
 /// </summary>
-public class ExistingAzureResourceAnnotation(string name) : IResourceAnnotation
+public class ExistingAzureResourceAnnotation(IResourceBuilder<ParameterResource> nameParameter) : IResourceAnnotation
 {
     /// <summary>
-    /// The name of the existing resource.
+    /// Gets the name of the existing resource.
     /// </summary>
-    public string Name { get; } = name;
+    public IResourceBuilder<ParameterResource> NameParameter { get; } = nameParameter;
 }

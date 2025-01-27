@@ -39,10 +39,11 @@ public static class AzureServiceBusExtensions
             infrastructure.Add(skuParameter);
 
             AzureProvisioning.ServiceBusNamespace? serviceBusNamespace;
-            if (infrastructure.AspireResource.TryGetExistingResource(out var existingAnnotation))
+            if (infrastructure.AspireResource.TryGetExistingAzureResourceAnnotation(out var existingAnnotation))
             {
+                var existingResourceName = existingAnnotation.NameParameter.AsProvisioningParameter(infrastructure, $"{infrastructure.AspireResource.GetBicepIdentifier()}ExistingResourceName");
                 serviceBusNamespace = AzureProvisioning.ServiceBusNamespace.FromExisting(infrastructure.AspireResource.GetBicepIdentifier());
-                serviceBusNamespace.Name = existingAnnotation.Name;
+                serviceBusNamespace.Name = existingResourceName;
             }
             else
             {
