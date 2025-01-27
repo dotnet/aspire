@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using System.Threading.Channels;
 using Aspire.Hosting.Health;
 using Aspire.Hosting.Utils;
@@ -171,16 +170,13 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task HealthCheckIntervalSlowsAfterSteadyHealthyState()
     {
+        var testSink = new TestSink();
+
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.Services.AddLogging(logging => logging.AddProvider(new TestLoggerProvider(testSink)));
 
-        var channel = Channel.CreateUnbounded<long>();
-        ILogger? logger = null;
-
-        builder.Services.AddHealthChecks().AddAsyncCheck("resource_check", async (cancellationToken) =>
+        builder.Services.AddHealthChecks().AddCheck("resource_check", () =>
         {
-            logger?.LogInformation("Running resource_check");
-            await channel.Writer.WriteAsync(Stopwatch.GetTimestamp(), cancellationToken).DefaultTimeout();
-
             return HealthCheckResult.Healthy();
         });
 
@@ -188,10 +184,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
                               .WithHealthCheck("resource_check");
 
         using var app = builder.Build();
-        var resourceHealthCheckService = app.Services.GetRequiredService<ResourceHealthCheckService>();
-        resourceHealthCheckService.HealthyHealthCheckInterval = TimeSpan.FromSeconds(2);
-        logger = app.Services.GetRequiredService<ILogger<ResourceHealthCheckServiceTests>>();
-
+        var logger = app.Services.GetRequiredService<ILogger<ResourceHealthCheckServiceTests>>();
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
         var abortTokenSource = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
@@ -204,12 +197,12 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         }).DefaultTimeout();
         await rns.WaitForResourceHealthyAsync(resource.Resource.Name, abortTokenSource.Token).DefaultTimeout();
 
-        var startTimestamp = await channel.Reader.ReadAsync();
-        var stopTimestamp = await channel.Reader.ReadAsync();
-        var interval = Stopwatch.GetElapsedTime(startTimestamp, stopTimestamp);
-
-        // Give a 1 sec margin of error.
-        Assert.True(interval.TotalMilliseconds > 1000, $"Interval milliseconds: {interval.TotalMilliseconds}");
+        await AsyncTestHelpers.AssertIsTrueRetryAsync(
+            () =>
+            {
+                return testSink.Writes.Any(w => w.Message?.Contains($"Resource 'resource' health check monitoring loop starting delay of {ResourceHealthCheckService.s_healthyHealthCheckInterval}.") ?? false);
+            },
+            "Wait for healthy delay.", logger);
 
         await app.StopAsync(abortTokenSource.Token).DefaultTimeout();
     }

@@ -36,7 +36,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
             _delayInterruptTcs?.TrySetResult();
         }
 
-        internal async Task DelayAsync(TimeSpan delay, CancellationToken cancellationToken)
+        internal async Task<bool> DelayAsync(TimeSpan delay, CancellationToken cancellationToken)
         {
             if (_delayCts == null || !_delayCts.TryReset())
             {
@@ -50,16 +50,18 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
             {
                 // Task.Delay won. Check CTS to see if it won because of cancellation.
                 _delayCts.Token.ThrowIfCancellationRequested();
+                return false;
             }
             else
             {
                 _delayCts.Cancel();
+                return true;
             }
         }
     }
 
     // Internal for testing.
-    internal TimeSpan HealthyHealthCheckInterval { get; set; } = TimeSpan.FromSeconds(30);
+    internal static readonly TimeSpan s_healthyHealthCheckInterval = TimeSpan.FromSeconds(30);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -149,8 +151,8 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
         var registrationKeysToCheck = annotations.DistinctBy(a => a.Key).Select(a => a.Key).ToFrozenSet();
         logger.LogDebug("Resource '{Resource}' health checks to monitor: {HeathCheckKeys}", resource.Name, string.Join(", ", registrationKeysToCheck));
 
-        DateTimeOffset? lastHealthCheck = null;
-
+        var lastHealthCheckTimestamp = 0L;
+        var lastDelayInterrupted = false;
         var resourceReadyEventFired = false;
         var nonHealthyReportCount = 0;
 
@@ -158,6 +160,14 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
         {
             try
             {
+                // If the delay was interrupted after less than a second then delay again.
+                // This prevents health checks from being called too frequently.
+                if (lastDelayInterrupted && TimeSpan.FromSeconds(1) - timeProvider.GetElapsedTime(lastHealthCheckTimestamp) is { Ticks: > 0 } delay)
+                {
+                    await state.DelayAsync(delay, cancellationToken).ConfigureAwait(false);
+                    continue;
+                }
+
                 var report = await healthCheckService.CheckHealthAsync(
                     r => registrationKeysToCheck.Contains(r.Name),
                     cancellationToken
@@ -202,18 +212,18 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                     resource.Name
                     );
             }
-            finally
-            {
-                lastHealthCheck = timeProvider.GetUtcNow();
-            }
+
+            lastHealthCheckTimestamp = timeProvider.GetTimestamp();
 
             // Long delay if the resource is healthy.
             // Non-heathy delay increases with each consecutive non-healthy report.
             var delayInterval = nonHealthyReportCount == 0
-                ? HealthyHealthCheckInterval
+                ? s_healthyHealthCheckInterval
                 : TimeSpan.FromSeconds(Math.Min(5, nonHealthyReportCount));
 
-            await state.DelayAsync(delayInterval, cancellationToken).ConfigureAwait(false);
+            logger.LogTrace("Resource '{Resource}' health check monitoring loop starting delay of {DelayInterval}.", resource.Name, delayInterval);
+
+            lastDelayInterrupted = await state.DelayAsync(delayInterval, cancellationToken).ConfigureAwait(false);
         }
     }
 
