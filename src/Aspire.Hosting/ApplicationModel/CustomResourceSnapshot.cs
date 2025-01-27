@@ -321,9 +321,14 @@ public static class KnownResourceStates
     public static readonly string Running = nameof(Running);
 
     /// <summary>
-    /// The finished state. Useful for showing the resource has failed to start successfully.
+    /// The failed to start state. Useful for showing the resource has failed to start successfully.
     /// </summary>
     public static readonly string FailedToStart = nameof(FailedToStart);
+
+    /// <summary>
+    /// The runtime unhealthy state. Indicates that a resource could not be started because the runtime is not in a healthy state.
+    /// </summary>
+    public static readonly string RuntimeUnhealthy = nameof(RuntimeUnhealthy);
 
     /// <summary>
     /// The stopping state. Useful for showing the resource is stopping.

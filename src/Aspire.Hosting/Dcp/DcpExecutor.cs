@@ -129,7 +129,7 @@ internal sealed class DcpExecutor : IDcpExecutor
     {
         AspireEventSource.Instance.DcpModelCreationStart();
 
-        _dcpInfo = await _dcpDependencyCheckService.GetDcpInfoAsync(cancellationToken).ConfigureAwait(false);
+        _dcpInfo = await _dcpDependencyCheckService.GetDcpInfoAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 
         Debug.Assert(_dcpInfo is not null, "DCP info should not be null at this point");
 
