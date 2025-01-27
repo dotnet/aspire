@@ -14,7 +14,6 @@ using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting;
 
@@ -97,18 +96,32 @@ public static class AzureCosmosExtensions
             cosmosClient = CreateCosmosClient(connectionString);
         });
 
+        builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(builder.Resource, async (@event, ct) =>
+        {
+            if (cosmosClient is null)
+            {
+                throw new InvalidOperationException("CosmosClient is not initialized.");
+            }
+
+            await cosmosClient.ReadAccountAsync().WaitAsync(ct).ConfigureAwait(false);
+
+            foreach (var database in builder.Resource.Databases)
+            {
+                var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync(database.Name, cancellationToken: ct).ConfigureAwait(false)).Database;
+
+                foreach (var container in database.Containers)
+                {
+                    await db.CreateContainerIfNotExistsAsync(container.Name, container.PartitionKeyPath, cancellationToken: ct).ConfigureAwait(false);
+                }
+            }
+        });
+
         // Use custom health check that also seeds the databases and containers
         var healthCheckKey = $"{builder.Resource.Name}_check";
-        builder.ApplicationBuilder.Services.AddHealthChecks().Add(
-            new HealthCheckRegistration(
-                name: healthCheckKey,
-                new AzureCosmosDBEmulatorHealthCheck(
-                    () => cosmosClient ?? throw new InvalidOperationException("CosmosClient is not initialized."),
-                    builder.Resource.Databases.ToArray
-                ),
-            failureStatus: null,
-            tags: null)
-        );
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureCosmosDB(
+            sp => cosmosClient ?? throw new InvalidOperationException("CosmosClient is not initialized."),
+            name: healthCheckKey
+            );
 
         builder.WithHealthCheck(healthCheckKey);
 
@@ -151,7 +164,7 @@ public static class AzureCosmosExtensions
     /// <returns>A builder for the <see cref="AzureCosmosDBEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureCosmosDBEmulatorResource> WithDataVolume(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, string? name = null)
     {
-        var dataPath = builder.Resource.InnerResource.IsPreviewEmulator ? "/data": "/tmp/cosmos/appdata";
+        var dataPath = builder.Resource.InnerResource.IsPreviewEmulator ? "/data" : "/tmp/cosmos/appdata";
 
         return builder.WithEnvironment("AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE", "true")
             .WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), dataPath, isReadOnly: false);
@@ -368,12 +381,94 @@ public static class AzureCosmosExtensions
             var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
             infrastructure.Add(principalIdParameter);
 
-            cosmosAccount.CreateRoleAssignment(CosmosDBBuiltInRole.DocumentDBAccountContributor, principalTypeParameter, principalIdParameter);
+            var roleDefinition = CosmosDBSqlRoleDefinition_Derived.FromExisting(cosmosAccount.BicepIdentifier + "_roleDefinition");
+            roleDefinition.Parent = cosmosAccount;
+            roleDefinition.NameOverride = "00000000-0000-0000-0000-000000000002"; // data plane contributor role
+            infrastructure.Add(roleDefinition);
+
+            infrastructure.Add(new CosmosDBSqlRoleAssignment_Derived(cosmosAccount.BicepIdentifier + "_roleAssignment")
+            {
+                NameOverride = BicepFunction.CreateGuid(principalIdParameter, roleDefinition.Id, cosmosAccount.Id),
+                Parent = cosmosAccount,
+                Scope = cosmosAccount.Id,
+                RoleDefinitionId = roleDefinition.Id,
+                PrincipalId = principalIdParameter
+            });
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
                 Value = cosmosAccount.DocumentEndpoint
             });
         }
+    }
+}
+
+// The following classes are working around https://github.com/Azure/azure-sdk-for-net/issues/47979 and can be removed once the issue is fixed.
+
+internal class CosmosDBSqlRoleDefinition_Derived : CosmosDBSqlRoleDefinition
+{
+    private BicepValue<string>? _nameOverride;
+
+    public CosmosDBSqlRoleDefinition_Derived(string name) : base(name)
+    {
+    }
+
+    public static CosmosDBSqlRoleDefinition_Derived FromExisting(string bicepIdentifier)
+    {
+        return new CosmosDBSqlRoleDefinition_Derived(bicepIdentifier)
+        {
+            IsExistingResource = true
+        };
+    }
+
+    public BicepValue<string> NameOverride
+    {
+        get
+        {
+            Initialize();
+            return _nameOverride!;
+        }
+        set
+        {
+            Initialize();
+            _nameOverride!.Assign(value);
+        }
+    }
+
+    protected override void DefineProvisionableProperties()
+    {
+        base.DefineProvisionableProperties();
+
+        _nameOverride = DefineProperty<string>("Name", new string[1] { "name" });
+    }
+}
+
+internal class CosmosDBSqlRoleAssignment_Derived : CosmosDBSqlRoleAssignment
+{
+    private BicepValue<string>? _nameOverride;
+
+    public CosmosDBSqlRoleAssignment_Derived(string name) : base(name)
+    {
+    }
+
+    public BicepValue<string> NameOverride
+    {
+        get
+        {
+            Initialize();
+            return _nameOverride!;
+        }
+        set
+        {
+            Initialize();
+            _nameOverride!.Assign(value);
+        }
+    }
+
+    protected override void DefineProvisionableProperties()
+    {
+        base.DefineProvisionableProperties();
+
+        _nameOverride = DefineProperty<string>("Name", new string[1] { "name" });
     }
 }

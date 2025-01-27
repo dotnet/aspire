@@ -64,7 +64,7 @@ public static class OtlpConfigurationExtensions
 
             // Set the service name and instance id to the resource name and UID. Values are injected by DCP.
             var dcpDependencyCheckService = context.ExecutionContext.ServiceProvider.GetRequiredService<IDcpDependencyCheckService>();
-            var dcpInfo = await dcpDependencyCheckService.GetDcpInfoAsync(context.CancellationToken).ConfigureAwait(false);
+            var dcpInfo = await dcpDependencyCheckService.GetDcpInfoAsync(cancellationToken: context.CancellationToken).ConfigureAwait(false);
             context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- index .Annotations \"" + CustomResource.OtelServiceInstanceIdAnnotation + "\" -}}";
             context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- index .Annotations \"" + CustomResource.OtelServiceNameAnnotation + "\" -}}";
 

@@ -214,6 +214,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             {
                 await foreach (var changes in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token).ConfigureAwait(false))
                 {
+                    var selectedResourceHasChanged = false;
+
                     foreach (var (changeType, resource) in changes)
                     {
                         if (changeType == ResourceViewModelChangeType.Upsert)
@@ -222,6 +224,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                             if (string.Equals(SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
                             {
                                 SelectedResource = resource;
+                                selectedResourceHasChanged = true;
                             }
 
                             if (_allResourceTypes.TryAdd(resource.ResourceType, true))
@@ -239,7 +242,16 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                     }
 
                     UpdateMaxHighlightedCount();
-                    await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
+                    await InvokeAsync(async () =>
+                    {
+                        await _dataGrid.SafeRefreshDataAsync();
+                        if (selectedResourceHasChanged)
+                        {
+                            // Notify page that the selected resource parameter has changed.
+                            // This is required so the resource open in the details view is refreshed.
+                            StateHasChanged();
+                        }
+                    });
                 }
             });
         }

@@ -44,8 +44,13 @@ public partial class StructuredLogDetails
     {
         if (!ReferenceEquals(ViewModel, _viewModel))
         {
+            // Only set data changed flag if the item being view changes.
+            if (ViewModel.LogEntry.InternalId != _viewModel?.LogEntry.InternalId)
+            {
+                _dataChanged = true;
+            }
+
             _viewModel = ViewModel;
-            _dataChanged = true;
 
             // Move some attributes to separate lists, e.g. exception attributes to their own list.
             // Remaining attributes are displayed along side the message.

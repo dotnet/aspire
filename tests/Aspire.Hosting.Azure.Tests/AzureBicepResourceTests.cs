@@ -437,6 +437,21 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               parent: mydatabase
             }
 
+            resource cosmos_roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-08-15' existing = {
+              name: '00000000-0000-0000-0000-000000000002'
+              parent: cosmos
+            }
+
+            resource cosmos_roleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-08-15' = {
+              name: guid(principalId, cosmos_roleDefinition.id, cosmos.id)
+              properties: {
+                principalId: principalId
+                roleDefinitionId: cosmos_roleDefinition.id
+                scope: cosmos.id
+              }
+              parent: cosmos
+            }
+
             output connectionString string = cosmos.properties.documentEndpoint
             """;
         output.WriteLine(manifest.BicepText);
@@ -650,6 +665,21 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 }
               }
               parent: mydatabase
+            }
+
+            resource cosmos_roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-08-15' existing = {
+              name: '00000000-0000-0000-0000-000000000002'
+              parent: cosmos
+            }
+
+            resource cosmos_roleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-08-15' = {
+              name: guid(principalId, cosmos_roleDefinition.id, cosmos.id)
+              properties: {
+                principalId: principalId
+                roleDefinitionId: cosmos_roleDefinition.id
+                scope: cosmos.id
+              }
+              parent: cosmos
             }
 
             output connectionString string = cosmos.properties.documentEndpoint
@@ -1260,78 +1290,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             output vaultUri string = mykv.properties.vaultUri
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
-    }
-
-    [Fact]
-    public async Task AddAzureSignalR()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var signalr = builder.AddAzureSignalR("signalr");
-
-        var manifest = await ManifestUtils.GetManifestWithBicep(signalr.Resource);
-
-        var expectedManifest = """
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "Endpoint=https://{signalr.outputs.hostName};AuthType=azure",
-              "path": "signalr.module.bicep",
-              "params": {
-                "principalType": "",
-                "principalId": ""
-              }
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
-
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param principalType string
-
-            param principalId string
-
-            resource signalr 'Microsoft.SignalRService/signalR@2024-03-01' = {
-              name: take('signalr-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              properties: {
-                cors: {
-                  allowedOrigins: [
-                    '*'
-                  ]
-                }
-                features: [
-                  {
-                    flag: 'ServiceMode'
-                    value: 'Default'
-                  }
-                ]
-              }
-              kind: 'SignalR'
-              sku: {
-                name: 'Free_F1'
-                capacity: 1
-              }
-              tags: {
-                'aspire-resource-name': 'signalr'
-              }
-            }
-
-            resource signalr_SignalRAppServer 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(signalr.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '420fcaa2-552c-430f-98ca-3264be4806c7'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '420fcaa2-552c-430f-98ca-3264be4806c7')
-                principalType: principalType
-              }
-              scope: signalr
-            }
-
-            output hostName string = signalr.properties.hostName
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);

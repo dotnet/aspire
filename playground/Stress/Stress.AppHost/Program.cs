@@ -2,11 +2,17 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = DistributedApplication.CreateBuilder(args);
 builder.Services.AddHttpClient();
+builder.Services.AddHealthChecks().AddAsyncCheck("health-test", async (ct) =>
+{
+    await Task.Delay(500, ct);
+    return HealthCheckResult.Healthy();
+});
 
-for (var i = 0; i < 10; i++)
+for (var i = 0; i < 5; i++)
 {
     var name = $"test-{i:0000}";
     var rb = builder.AddTestResource(name);
@@ -65,5 +71,19 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice");
 // artifacts dir).
 builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
 #endif
+
+IResourceBuilder<IResource>? previousResourceBuilder = null;
+
+for (var i = 0; i < 10; i++)
+{
+    var resourceBuilder = builder.AddProject<Projects.Stress_Empty>($"empty-{i:0000}");
+    if (previousResourceBuilder != null)
+    {
+        resourceBuilder.WaitFor(previousResourceBuilder);
+        resourceBuilder.WithHealthCheck("health-test");
+    }
+
+    previousResourceBuilder = resourceBuilder;
+}
 
 builder.Build().Run();
