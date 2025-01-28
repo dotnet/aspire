@@ -169,8 +169,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
             testOutputHelper.WriteLine($"Starting the second run with the same volume/mount");
 
             using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-            var passwordParameter2 = builder2.AddParameter("pwd");
-            builder2.Configuration["Parameters:pwd"] = password;
+            var passwordParameter2 = builder2.AddParameter("pwd", password);
 
             var rabbitMQ2 = builder2.AddRabbitMQ("rabbitMQ", password: passwordParameter2);
 
