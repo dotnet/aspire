@@ -125,6 +125,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/7291")]
     public async Task VerifyDatabasesAreNotDuplicatedForPersistentRedisInsightContainer()
     {
         var randomResourceSuffix = Random.Shared.Next(10000).ToString();
