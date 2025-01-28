@@ -737,7 +737,7 @@ fluent-switch.table-switch::part(label) {
 
 .language-select {
     margin-bottom: 2px;
-    min-width: 240px;
+    min-width: 235px;
 }
 
 .resources-filter-popup {
