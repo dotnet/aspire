@@ -455,13 +455,13 @@ public class ResourceNotificationService : IDisposable
                     string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
                     string.Join(Environment.NewLine, newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")),
                     string.Join(Environment.NewLine, newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")),
-                    string.Join(Environment.NewLine, newState.HealthReports.Select(p => $"{p.Name} = {p.Status}")));
+                    string.Join(Environment.NewLine, newState.HealthReports.Select(p => $"{p.Name} = {Stringify(p.Status)}")));
 
                 static string Stringify(object? o) => o switch
                 {
                     IEnumerable<int> ints => string.Join(", ", ints.Select(i => i.ToString(CultureInfo.InvariantCulture))),
                     IEnumerable<string> strings => string.Join(", ", strings.Select(s => s)),
-                    null => "null",
+                    null => "(null)",
                     _ => o.ToString()!
                 };
             }
