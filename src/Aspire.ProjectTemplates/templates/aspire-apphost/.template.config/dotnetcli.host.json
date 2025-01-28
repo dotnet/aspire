@@ -4,9 +4,15 @@
       "Framework": {
         "longName": "framework"
       },
-      "AspireVersion": {
+      "AspireVersionCli": {
         "shortName": "",
         "longName": "aspire-version"
+      },
+      "AspireVersion": {
+        "isHidden": true
+      },
+      "AspireVersionNet9": {
+        "isHidden": true
       },
       "skipRestore": {
         "longName": "no-restore",
