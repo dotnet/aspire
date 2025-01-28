@@ -174,7 +174,11 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using var app1 = builder1.Build();
 
+            var rns = app1.Services.GetRequiredService<ResourceNotificationService>();
+
             await app1.StartAsync();
+
+            await rns.WaitForResourceHealthyAsync(masterdb1.Resource.Name, cts.Token);
 
             try
             {
@@ -239,11 +243,9 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             using var builder2 = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
-            var passwordParameter2 = builder2.AddParameter("pwd");
+            var passwordParameter2 = builder2.AddParameter("pwd", password);
 
-            builder2.Configuration["Parameters:pwd"] = password;
-
-            var sqlserver2 = builder2.AddSqlServer("sqlserver", passwordParameter2);
+            var sqlserver2 = builder2.AddSqlServer("sqlserver2", passwordParameter2);
             var masterdb2 = sqlserver2.AddDatabase("master");
 
             if (useVolume)
@@ -257,7 +259,12 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app2 = builder2.Build())
             {
+                rns = app2.Services.GetRequiredService<ResourceNotificationService>();
+
                 await app2.StartAsync();
+
+                await rns.WaitForResourceHealthyAsync(masterdb2.Resource.Name, cts.Token);
+
                 try
                 {
                     var hb2 = Host.CreateApplicationBuilder();
