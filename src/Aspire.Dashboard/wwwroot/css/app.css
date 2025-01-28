@@ -739,3 +739,8 @@ fluent-switch.table-switch::part(label) {
     margin-bottom: 2px;
     min-width: 240px;
 }
+
+.resources-filter-popup {
+    max-height: 400px;
+    overflow-y: auto;
+}
