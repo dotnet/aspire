@@ -712,13 +712,13 @@ internal sealed class DcpExecutor : IDcpExecutor
 
     private async Task CreateContainersAndExecutablesAsync(CancellationToken cancellationToken)
     {
-        var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable || r.DcpResource is ExecutableReplicaSet);
+        var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable);
         AddAllocatedEndpointInfo(toCreate);
 
         await _executorEvents.PublishAsync(new OnEndpointsAllocatedContext(cancellationToken)).ConfigureAwait(false);
 
         var containersTask = CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container), cancellationToken);
-        var executablesTask = CreateExecutablesAsync(toCreate.Where(ar => ar.DcpResource is Executable || ar.DcpResource is ExecutableReplicaSet), cancellationToken);
+        var executablesTask = CreateExecutablesAsync(toCreate.Where(ar => ar.DcpResource is Executable), cancellationToken);
 
         await Task.WhenAll(containersTask, executablesTask).ConfigureAwait(false);
     }
@@ -1022,12 +1022,8 @@ internal sealed class DcpExecutor : IDcpExecutor
                 spec = exe.Spec;
                 createResource = async () => await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
                 break;
-            case ExecutableReplicaSet ers:
-                spec = ers.Spec.Template.Spec;
-                createResource = async () => await _kubernetesService.CreateAsync(ers, cancellationToken).ConfigureAwait(false);
-                break;
             default:
-                throw new InvalidOperationException($"Expected an Executable-like resource, but got {er.DcpResource.Kind} instead");
+                throw new InvalidOperationException($"Expected an Executable resource, but got {er.DcpResource.Kind} instead");
         }
 
         var failedToApplyArgs = false;
@@ -1603,10 +1599,6 @@ internal sealed class DcpExecutor : IDcpExecutor
 
         static bool HasMultipleReplicas(CustomResource resource)
         {
-            if (resource is ExecutableReplicaSet ers && ers.Spec.Replicas > 1)
-            {
-                return true;
-            }
             if (resource is Executable exe && exe.Metadata.Annotations.TryGetValue(CustomResource.ResourceReplicaCount, out var value) && int.TryParse(value, CultureInfo.InvariantCulture, out var replicas) && replicas > 1)
             {
                 return true;
@@ -1673,10 +1665,6 @@ internal sealed class DcpExecutor : IDcpExecutor
                 patch = CreatePatch(e, obj => obj.Spec.Stop = true);
                 await _kubernetesService.PatchAsync(e, patch, cancellationToken).ConfigureAwait(false);
                 break;
-            case ExecutableReplicaSet rs:
-                patch = CreatePatch(rs, obj => obj.Spec.Replicas = 0);
-                await _kubernetesService.PatchAsync(rs, patch, cancellationToken).ConfigureAwait(false);
-                break;
             default:
                 throw new InvalidOperationException($"Unexpected resource type: {matchingResource.DcpResource.GetType().FullName}");
         }
@@ -1709,12 +1697,6 @@ internal sealed class DcpExecutor : IDcpExecutor
                     break;
                 case Executable e:
                     await StartExecutableOrContainerAsync(e).ConfigureAwait(false);
-                    break;
-                case ExecutableReplicaSet rs:
-                    var replicas = matchingResource.ModelResource.GetReplicaCount();
-                    var patch = CreatePatch(rs, obj => obj.Spec.Replicas = replicas);
-
-                    await _kubernetesService.PatchAsync(rs, patch, cancellationToken).ConfigureAwait(false);
                     break;
                 default:
                     throw new InvalidOperationException($"Unexpected resource type: {matchingResource.DcpResource.GetType().FullName}");
