@@ -133,7 +133,7 @@ public static class AzureEventHubsExtensions
         }
 
         // We need to ensure that the hub exists before we can set it as the default entity.
-        if (builder.Resource.Hubs.Any(h => h.Name  == name))
+        if (builder.Resource.Hubs.Any(h => h.Name == name))
         {
             // WithHub is idempotent with respect to enrolling for creation of the hub, but configuration can be applied.
             return WithHub(builder, name, hub => hub.IsDefaultEntity = true);
