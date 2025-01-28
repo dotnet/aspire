@@ -5,7 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using Aspire.Hosting.Azure.Cosmos;
+using Aspire.Hosting.Azure.CosmosDB;
 using Aspire.Hosting.Utils;
 using Azure.Identity;
 using Azure.Provisioning;
@@ -32,66 +32,7 @@ public static class AzureCosmosExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
-        {
-            var kvNameParam = new ProvisioningParameter(AzureBicepResource.KnownParameters.KeyVaultName, typeof(string));
-            infrastructure.Add(kvNameParam);
-
-            var keyVault = KeyVaultService.FromExisting("keyVault");
-            keyVault.Name = kvNameParam;
-            infrastructure.Add(keyVault);
-
-            var cosmosAccount = new CosmosDBAccount(infrastructure.AspireResource.GetBicepIdentifier())
-            {
-                Kind = CosmosDBAccountKind.GlobalDocumentDB,
-                ConsistencyPolicy = new ConsistencyPolicy()
-                {
-                    DefaultConsistencyLevel = DefaultConsistencyLevel.Session
-                },
-                DatabaseAccountOfferType = CosmosDBAccountOfferType.Standard,
-                Locations =
-                {
-                    new CosmosDBAccountLocation
-                    {
-                        LocationName = new IdentifierExpression("location"),
-                        FailoverPriority = 0
-                    }
-                },
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-            };
-            infrastructure.Add(cosmosAccount);
-
-            var azureResource = (AzureCosmosDBResource)infrastructure.AspireResource;
-            var azureResourceBuilder = builder.CreateResourceBuilder(azureResource);
-            List<CosmosDBSqlDatabase> cosmosSqlDatabases = new List<CosmosDBSqlDatabase>();
-            foreach (var databaseName in azureResource.Databases)
-            {
-                var cosmosSqlDatabase = new CosmosDBSqlDatabase(Infrastructure.NormalizeBicepIdentifier(databaseName))
-                {
-                    Parent = cosmosAccount,
-                    Name = databaseName,
-                    Resource = new CosmosDBSqlDatabaseResourceInfo()
-                    {
-                        DatabaseName = databaseName
-                    }
-                };
-                infrastructure.Add(cosmosSqlDatabase);
-                cosmosSqlDatabases.Add(cosmosSqlDatabase);
-            }
-
-            var secret = new KeyVaultSecret("connectionString")
-            {
-                Parent = keyVault,
-                Name = "connectionString",
-                Properties = new SecretProperties
-                {
-                    Value = BicepFunction.Interpolate($"AccountEndpoint={cosmosAccount.DocumentEndpoint};AccountKey={cosmosAccount.GetKeys().PrimaryMasterKey}")
-                }
-            };
-            infrastructure.Add(secret);
-        };
-
-        var resource = new AzureCosmosDBResource(name, configureInfrastructure);
+        var resource = new AzureCosmosDBResource(name, ConfigureCosmosDBInfrastructure);
         return builder.AddResource(resource)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
@@ -155,11 +96,32 @@ public static class AzureCosmosExtensions
             cosmosClient = CreateCosmosClient(connectionString);
         });
 
-        var healthCheckKey = $"{builder.Resource.Name}_check";
-        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureCosmosDB(sp =>
+        builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(builder.Resource, async (@event, ct) =>
         {
-            return cosmosClient ?? throw new InvalidOperationException("CosmosClient is not initialized.");
-        }, name: healthCheckKey);
+            if (cosmosClient is null)
+            {
+                throw new InvalidOperationException("CosmosClient is not initialized.");
+            }
+
+            await cosmosClient.ReadAccountAsync().WaitAsync(ct).ConfigureAwait(false);
+
+            foreach (var database in builder.Resource.Databases)
+            {
+                var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync(database.Name, cancellationToken: ct).ConfigureAwait(false)).Database;
+
+                foreach (var container in database.Containers)
+                {
+                    await db.CreateContainerIfNotExistsAsync(container.Name, container.PartitionKeyPath, cancellationToken: ct).ConfigureAwait(false);
+                }
+            }
+        });
+
+        // Use custom health check that also seeds the databases and containers
+        var healthCheckKey = $"{builder.Resource.Name}_check";
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureCosmosDB(
+            sp => cosmosClient ?? throw new InvalidOperationException("CosmosClient is not initialized."),
+            name: healthCheckKey
+            );
 
         builder.WithHealthCheck(healthCheckKey);
 
@@ -202,7 +164,7 @@ public static class AzureCosmosExtensions
     /// <returns>A builder for the <see cref="AzureCosmosDBEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureCosmosDBEmulatorResource> WithDataVolume(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, string? name = null)
     {
-        var dataPath = builder.Resource.InnerResource.IsPreviewEmulator ? "/data": "/tmp/cosmos/appdata";
+        var dataPath = builder.Resource.InnerResource.IsPreviewEmulator ? "/data" : "/tmp/cosmos/appdata";
 
         return builder.WithEnvironment("AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE", "true")
             .WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), dataPath, isReadOnly: false);
@@ -228,7 +190,7 @@ public static class AzureCosmosExtensions
     /// <param name="builder">Builder for the Cosmos emulator container</param>
     /// <param name="count">Desired partition count.</param>
     /// <returns>Cosmos emulator resource builder.</returns>
-    /// <remarks>Not calling this method will result in the default of 25 partitions. The actual started partitions is always one more than specified.
+    /// <remarks>Not calling this method will result in the default of 10 partitions. The actual started partitions is always one more than specified.
     /// See <a href="https://learn.microsoft.com/en-us/azure/cosmos-db/emulator-windows-arguments#change-the-number-of-default-containers">this documentation</a> about setting the partition count.
     /// </remarks>
     public static IResourceBuilder<AzureCosmosDBEmulatorResource> WithPartitionCount(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, int count)
@@ -252,9 +214,30 @@ public static class AzureCosmosExtensions
     /// <param name="builder">AzureCosmosDB resource builder.</param>
     /// <param name="databaseName">Name of database.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(WithDatabase)} instead to add a Cosmos DB database.")]
     public static IResourceBuilder<AzureCosmosDBResource> AddDatabase(this IResourceBuilder<AzureCosmosDBResource> builder, string databaseName)
     {
-        builder.Resource.Databases.Add(databaseName);
+        return builder.WithDatabase(databaseName);
+    }
+
+    /// <summary>
+    /// Adds a database to the associated Cosmos DB account resource.
+    /// </summary>
+    /// <param name="builder">AzureCosmosDB resource builder.</param>
+    /// <param name="name">Name of database.</param>
+    /// <param name="configure">An optional method that can be used for customizing the <see cref="CosmosDBDatabase"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureCosmosDBResource> WithDatabase(this IResourceBuilder<AzureCosmosDBResource> builder, string name, Action<CosmosDBDatabase>? configure = null)
+    {
+        var database = builder.Resource.Databases.FirstOrDefault(x => x.Name == name);
+
+        if (database == null)
+        {
+            database = new CosmosDBDatabase(name);
+            builder.Resource.Databases.Add(database);
+        }
+
+        configure?.Invoke(database);
         return builder;
     }
 
@@ -281,5 +264,211 @@ public static class AzureCosmosExtensions
             endpoint.TargetPort = 1234;
             endpoint.Port = port;
         });
+    }
+
+    /// <summary>    
+    /// Configures the resource to use access key authentication with Azure Cosmos DB.
+    /// </summary>
+    /// <param name="builder">The Azure Cosmos DB resource builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> builder.</returns>
+    /// <example>
+    /// The following example creates an Azure Cosmos DB resource that uses access key authentication.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var cosmosdb = builder.AddAzureCosmosDB("cache")
+    ///     .WithAccessKeyAuthentication();
+    ///
+    /// builder.AddProject&lt;Projects.ProductService&gt;()
+    ///     .WithReference(cosmosdb);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<AzureCosmosDBResource> WithAccessKeyAuthentication(
+        this IResourceBuilder<AzureCosmosDBResource> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var azureResource = builder.Resource;
+        azureResource.ConnectionStringSecretOutput = new BicepSecretOutputReference("connectionString", azureResource);
+
+        return builder;
+    }
+
+    private static void ConfigureCosmosDBInfrastructure(AzureResourceInfrastructure infrastructure)
+    {
+        var azureResource = (AzureCosmosDBResource)infrastructure.AspireResource;
+
+        var cosmosAccount = new CosmosDBAccount(infrastructure.AspireResource.GetBicepIdentifier())
+        {
+            Kind = CosmosDBAccountKind.GlobalDocumentDB,
+            ConsistencyPolicy = new ConsistencyPolicy()
+            {
+                DefaultConsistencyLevel = DefaultConsistencyLevel.Session
+            },
+            DatabaseAccountOfferType = CosmosDBAccountOfferType.Standard,
+            Locations =
+                {
+                    new CosmosDBAccountLocation
+                    {
+                        LocationName = new IdentifierExpression("location"),
+                        FailoverPriority = 0
+                    }
+                },
+            Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+        };
+        infrastructure.Add(cosmosAccount);
+
+        foreach (var database in azureResource.Databases)
+        {
+            var cosmosSqlDatabase = new CosmosDBSqlDatabase(Infrastructure.NormalizeBicepIdentifier(database.Name))
+            {
+                Parent = cosmosAccount,
+                Name = database.Name,
+                Resource = new CosmosDBSqlDatabaseResourceInfo()
+                {
+                    DatabaseName = database.Name
+                }
+            };
+            infrastructure.Add(cosmosSqlDatabase);
+
+            foreach (var container in database.Containers)
+            {
+                var cosmosContainer = new CosmosDBSqlContainer(Infrastructure.NormalizeBicepIdentifier(container.Name))
+                {
+                    Parent = cosmosSqlDatabase,
+                    Name = container.Name,
+                    Resource = new CosmosDBSqlContainerResourceInfo()
+                    {
+                        ContainerName = container.Name,
+                        PartitionKey = new CosmosDBContainerPartitionKey { Paths = [container.PartitionKeyPath] }
+                    }
+                };
+                infrastructure.Add(cosmosContainer);
+            }
+        }
+
+        if (azureResource.UseAccessKeyAuthentication)
+        {
+            cosmosAccount.DisableLocalAuth = false;
+
+            var kvNameParam = new ProvisioningParameter(AzureBicepResource.KnownParameters.KeyVaultName, typeof(string));
+            infrastructure.Add(kvNameParam);
+
+            var keyVault = KeyVaultService.FromExisting("keyVault");
+            keyVault.Name = kvNameParam;
+            infrastructure.Add(keyVault);
+
+            var secret = new KeyVaultSecret("connectionString")
+            {
+                Parent = keyVault,
+                Name = "connectionString",
+                Properties = new SecretProperties
+                {
+                    Value = BicepFunction.Interpolate($"AccountEndpoint={cosmosAccount.DocumentEndpoint};AccountKey={cosmosAccount.GetKeys().PrimaryMasterKey}")
+                }
+            };
+            infrastructure.Add(secret);
+        }
+        else
+        {
+            cosmosAccount.DisableLocalAuth = true;
+
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            infrastructure.Add(principalTypeParameter);
+
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalIdParameter);
+
+            var roleDefinition = CosmosDBSqlRoleDefinition_Derived.FromExisting(cosmosAccount.BicepIdentifier + "_roleDefinition");
+            roleDefinition.Parent = cosmosAccount;
+            roleDefinition.NameOverride = "00000000-0000-0000-0000-000000000002"; // data plane contributor role
+            infrastructure.Add(roleDefinition);
+
+            infrastructure.Add(new CosmosDBSqlRoleAssignment_Derived(cosmosAccount.BicepIdentifier + "_roleAssignment")
+            {
+                NameOverride = BicepFunction.CreateGuid(principalIdParameter, roleDefinition.Id, cosmosAccount.Id),
+                Parent = cosmosAccount,
+                Scope = cosmosAccount.Id,
+                RoleDefinitionId = roleDefinition.Id,
+                PrincipalId = principalIdParameter
+            });
+
+            infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
+            {
+                Value = cosmosAccount.DocumentEndpoint
+            });
+        }
+    }
+}
+
+// The following classes are working around https://github.com/Azure/azure-sdk-for-net/issues/47979 and can be removed once the issue is fixed.
+
+internal class CosmosDBSqlRoleDefinition_Derived : CosmosDBSqlRoleDefinition
+{
+    private BicepValue<string>? _nameOverride;
+
+    public CosmosDBSqlRoleDefinition_Derived(string name) : base(name)
+    {
+    }
+
+    public static CosmosDBSqlRoleDefinition_Derived FromExisting(string bicepIdentifier)
+    {
+        return new CosmosDBSqlRoleDefinition_Derived(bicepIdentifier)
+        {
+            IsExistingResource = true
+        };
+    }
+
+    public BicepValue<string> NameOverride
+    {
+        get
+        {
+            Initialize();
+            return _nameOverride!;
+        }
+        set
+        {
+            Initialize();
+            _nameOverride!.Assign(value);
+        }
+    }
+
+    protected override void DefineProvisionableProperties()
+    {
+        base.DefineProvisionableProperties();
+
+        _nameOverride = DefineProperty<string>("Name", new string[1] { "name" });
+    }
+}
+
+internal class CosmosDBSqlRoleAssignment_Derived : CosmosDBSqlRoleAssignment
+{
+    private BicepValue<string>? _nameOverride;
+
+    public CosmosDBSqlRoleAssignment_Derived(string name) : base(name)
+    {
+    }
+
+    public BicepValue<string> NameOverride
+    {
+        get
+        {
+            Initialize();
+            return _nameOverride!;
+        }
+        set
+        {
+            Initialize();
+            _nameOverride!.Assign(value);
+        }
+    }
+
+    protected override void DefineProvisionableProperties()
+    {
+        base.DefineProvisionableProperties();
+
+        _nameOverride = DefineProperty<string>("Name", new string[1] { "name" });
     }
 }

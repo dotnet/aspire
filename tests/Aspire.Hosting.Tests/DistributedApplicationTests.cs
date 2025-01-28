@@ -3,10 +3,13 @@
 
 using System.Globalization;
 using System.Text.RegularExpressions;
+using System.Threading.Channels;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Testing.Tests;
 using Aspire.Hosting.Tests.Helpers;
@@ -276,8 +279,15 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
+        var events = app.Services.GetRequiredService<IDistributedApplicationEventing>();
+        var beforeResourceStartedEvents = Channel.CreateUnbounded<BeforeResourceStartedEvent>();
+        events.Subscribe<BeforeResourceStartedEvent>(async (e, ct) =>
+        {
+            await beforeResourceStartedEvents.Writer.WriteAsync(e, ct);
+        });
+
         var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
-        var applicationExecutor = app.Services.GetRequiredService<ApplicationExecutor>();
+        var orchestrator = app.Services.GetRequiredService<ApplicationOrchestrator>();
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
 
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
@@ -289,16 +299,21 @@ public class DistributedApplicationTests
         var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, containerPattern, r => r.Status?.State == ContainerState.Running, token).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         Assert.NotNull(redisContainer);
 
-        await applicationExecutor.StopResourceAsync(redisContainer.Metadata.Name, token).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        // Initial startup event.
+        await beforeResourceStartedEvents.Reader.ReadAsync().DefaultTimeout();
+
+        await orchestrator.StopResourceAsync(redisContainer.Metadata.Name, token).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, containerPattern, r => r.Status?.State == ContainerState.Exited, token).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         Assert.NotNull(redisContainer);
 
-        // TODO: Container start has issues in DCP. Waiting for fix.
-        //await applicationExecutor.StartResourceAsync(redisContainer.Metadata.Name, token);
+        await orchestrator.StartResourceAsync(redisContainer.Metadata.Name, token);
 
-        //redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, containerPattern, r => r.Status?.State == ContainerState.Running, token);
-        //Assert.NotNull(redisContainer);
+        // Restart event.
+        await beforeResourceStartedEvents.Reader.ReadAsync().DefaultTimeout();
+
+        redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, containerPattern, r => r.Status?.State == ContainerState.Running, token);
+        Assert.NotNull(redisContainer);
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }
@@ -314,7 +329,7 @@ public class DistributedApplicationTests
         await using var app = testProgram.Build();
 
         var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
-        var applicationExecutor = app.Services.GetRequiredService<ApplicationExecutor>();
+        var orchestrator = app.Services.GetRequiredService<ApplicationOrchestrator>();
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
 
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
@@ -323,12 +338,12 @@ public class DistributedApplicationTests
         var serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Running).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         Assert.NotNull(serviceA);
 
-        await applicationExecutor.StopResourceAsync(serviceA.Metadata.Name, CancellationToken.None).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await orchestrator.StopResourceAsync(serviceA.Metadata.Name, CancellationToken.None).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Finished).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         Assert.NotNull(serviceA);
 
-        await applicationExecutor.StartResourceAsync(serviceA.Metadata.Name, CancellationToken.None).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await orchestrator.StartResourceAsync(serviceA.Metadata.Name, CancellationToken.None).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Running).DefaultTimeout(TestConstants.LongTimeoutDuration);
         Assert.NotNull(serviceA);

@@ -69,6 +69,17 @@ internal sealed class DcpOptions
 
     public int KubernetesConfigReadRetryIntervalMilliseconds { get; set; } = 100;
 
+    /// <summary>
+    /// The duration to wait for the container runtime to become healthy before aborting startup.
+    /// </summary>
+    /// <remarks>
+    /// A value of zero, which is the default value, indicates that the application will not wait for the container
+    /// runtime to become healthy.
+    /// If this property has a value greater than zero, the application will abort startup if the container runtime
+    /// does not become healthy within the specified timeout.
+    /// </remarks>
+    public TimeSpan ContainerRuntimeInitializationTimeout { get; set; }
+
     public TimeSpan ServiceStartupWatchTimeout { get; set; } = TimeSpan.FromSeconds(10);
 }
 
@@ -170,6 +181,7 @@ internal class ConfigureDefaultDcpOptions(
 
         options.RandomizePorts = dcpPublisherConfiguration.GetValue(nameof(options.RandomizePorts), options.RandomizePorts);
         options.ServiceStartupWatchTimeout = configuration.GetValue("DOTNET_ASPIRE_SERVICE_STARTUP_WATCH_TIMEOUT", options.ServiceStartupWatchTimeout);
+        options.ContainerRuntimeInitializationTimeout = dcpPublisherConfiguration.GetValue(nameof(options.ContainerRuntimeInitializationTimeout), options.ContainerRuntimeInitializationTimeout);
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)

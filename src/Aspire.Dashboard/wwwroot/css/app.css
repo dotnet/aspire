@@ -734,3 +734,13 @@ fluent-switch.table-switch::part(label) {
 .clear-button::part(control) {
     padding: 0 calc((10 + (var(--design-unit) * 2 * var(--density))) * 1px);
 }
+
+.language-select {
+    margin-bottom: 2px;
+    min-width: 240px;
+}
+
+.resources-filter-popup {
+    max-height: 400px;
+    overflow-y: auto;
+}

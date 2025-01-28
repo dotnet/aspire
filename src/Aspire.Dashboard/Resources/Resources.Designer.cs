@@ -169,6 +169,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to (Unset).
+        /// </summary>
+        public static string ResourceFilterOptionEmpty {
+            get {
+                return ResourceManager.GetString("ResourceFilterOptionEmpty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Actions.
         /// </summary>
         public static string ResourcesActionsColumnHeader {
@@ -358,6 +367,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Has filters.
+        /// </summary>
+        public static string ResourcesFiltered {
+            get {
+                return ResourceManager.GetString("ResourcesFiltered", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Resources.
         /// </summary>
         public static string ResourcesHeader {
@@ -385,11 +403,29 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No filters.
+        /// </summary>
+        public static string ResourcesNotFiltered {
+            get {
+                return ResourceManager.GetString("ResourcesNotFiltered", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {0} resources.
         /// </summary>
         public static string ResourcesPageTitle {
             get {
                 return ResourceManager.GetString("ResourcesPageTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to State.
+        /// </summary>
+        public static string ResourcesResourceStatesHeader {
+            get {
+                return ResourceManager.GetString("ResourcesResourceStatesHeader", resourceCulture);
             }
         }
         
@@ -435,24 +471,6 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourcesTypeColumnHeader {
             get {
                 return ResourceManager.GetString("ResourcesTypeColumnHeader", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Type filter: All types visible.
-        /// </summary>
-        public static string ResourcesTypeFilterAllVisible {
-            get {
-                return ResourceManager.GetString("ResourcesTypeFilterAllVisible", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Type filter: Filtered.
-        /// </summary>
-        public static string ResourcesTypeFiltered {
-            get {
-                return ResourceManager.GetString("ResourcesTypeFiltered", resourceCulture);
             }
         }
         

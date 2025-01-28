@@ -107,15 +107,21 @@ public class ResourceNotificationService : IDisposable
                                                      Justification = "targetState(s) parameters are mutually exclusive.")]
     public async Task<string> WaitForResourceAsync(string resourceName, IEnumerable<string> targetStates, CancellationToken cancellationToken = default)
     {
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("Waiting for resource '{Name}' to enter one of the target state: {TargetStates}", resourceName, string.Join(", ", targetStates));
+        }
+
         using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_disposing.Token, cancellationToken);
         var watchToken = watchCts.Token;
         await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
         {
             if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName)
-                && resourceEvent.Snapshot.State?.Text is { Length: > 0 } statusText
-                && targetStates.Contains(statusText, StringComparers.ResourceState))
+                && resourceEvent.Snapshot.State?.Text is { Length: > 0 } stateText
+                && targetStates.Contains(stateText, StringComparers.ResourceState))
             {
-                return statusText;
+                _logger.LogDebug("Finished waiting for resource '{Name}'. Resource state is '{State}'.", resourceName, stateText);
+                return stateText;
             }
         }
 
@@ -128,7 +134,7 @@ public class ResourceNotificationService : IDisposable
         resourceLogger.LogInformation("Waiting for resource '{Name}' to enter the '{State}' state.", dependency.Name, KnownResourceStates.Running);
 
         await PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
-        var resourceEvent = await WaitForResourceAsync(dependency.Name, re => IsContinuableState(re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
+        var resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => IsContinuableState(re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
         var snapshot = resourceEvent.Snapshot;
 
         if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
@@ -161,6 +167,13 @@ public class ResourceNotificationService : IDisposable
             await WaitForResourceHealthyAsync(dependency.Name, cancellationToken).ConfigureAwait(false);
         }
 
+        // Now wait for the resource ready event to be executed.
+        resourceLogger.LogInformation("Waiting for resource ready to execute for '{Name}'.", dependency.Name);
+        resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => re.Snapshot.ResourceReadyEvent is not null, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        // Observe the result of the resource ready event task
+        await resourceEvent.Snapshot.ResourceReadyEvent!.EventTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+
         resourceLogger.LogInformation("Finished waiting for resource '{Name}'.", dependency.Name);
 
         static bool IsContinuableState(CustomResourceSnapshot snapshot) =>
@@ -180,9 +193,13 @@ public class ResourceNotificationService : IDisposable
     /// This method returns a task that will complete with the resource is healthy. A resource
     /// without <see cref="HealthCheckAnnotation"/> annotations will be considered healthy.
     /// </remarks>
-    public Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, CancellationToken cancellationToken = default)
+    public async Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, CancellationToken cancellationToken = default)
     {
-        return WaitForResourceAsync(resourceName, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: cancellationToken);
+        _logger.LogDebug("Waiting for resource '{Name}' to enter the '{State}' state.", resourceName, HealthStatus.Healthy);
+        var resourceEvent = await WaitForResourceCoreAsync(resourceName, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: cancellationToken).ConfigureAwait(false);
+        _logger.LogDebug("Finished waiting for resource '{Name}'.", resourceName);
+
+        return resourceEvent;
     }
 
     private async Task WaitUntilCompletionAsync(IResource resource, IResource dependency, int exitCode, CancellationToken cancellationToken)
@@ -196,7 +213,7 @@ public class ResourceNotificationService : IDisposable
         resourceLogger.LogInformation("Waiting for resource '{Name}' to complete.", dependency.Name);
 
         await PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
-        var resourceEvent = await WaitForResourceAsync(dependency.Name, re => IsKnownTerminalState(re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
+        var resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => IsKnownTerminalState(re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
         var snapshot = resourceEvent.Snapshot;
 
         if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
@@ -275,6 +292,15 @@ public class ResourceNotificationService : IDisposable
                                                      Justification = "predicate and targetState(s) parameters are mutually exclusive.")]
     public async Task<ResourceEvent> WaitForResourceAsync(string resourceName, Func<ResourceEvent, bool> predicate, CancellationToken cancellationToken = default)
     {
+        _logger.LogDebug("Waiting for resource '{Name}' to match predicate.", resourceName);
+        var resourceEvent = await WaitForResourceCoreAsync(resourceName, predicate, cancellationToken).ConfigureAwait(false);
+        _logger.LogDebug("Finished waiting for resource '{Name}'.", resourceName);
+
+        return resourceEvent;
+    }
+
+    private async Task<ResourceEvent> WaitForResourceCoreAsync(string resourceName, Func<ResourceEvent, bool> predicate, CancellationToken cancellationToken = default)
+    {
         using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_disposing.Token, cancellationToken);
         var watchToken = watchCts.Token;
         await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
@@ -298,17 +324,6 @@ public class ResourceNotificationService : IDisposable
     /// <returns></returns>
     public async IAsyncEnumerable<ResourceEvent> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        // Return the last snapshot for each resource.
-        foreach (var state in _resourceNotificationStates)
-        {
-            var (resource, resourceId) = state.Key;
-
-            if (state.Value.LastSnapshot is not null)
-            {
-                yield return new ResourceEvent(resource, resourceId, state.Value.LastSnapshot);
-            }
-        }
-
         var channel = Channel.CreateUnbounded<ResourceEvent>();
 
         void WriteToChannel(ResourceEvent resourceEvent) =>
@@ -319,10 +334,37 @@ public class ResourceNotificationService : IDisposable
             OnResourceUpdated += WriteToChannel;
         }
 
+        // Return the last snapshot for each resource.
+        // We do this after subscribing to the event to avoid missing any updates.
+
+        // Keep track of the versions we have seen so far to avoid duplicates.
+        var versionsSeen = new Dictionary<(IResource, string), long>();
+
+        foreach (var state in _resourceNotificationStates)
+        {
+            var (resource, resourceId) = state.Key;
+
+            if (state.Value.LastSnapshot is { } snapshot)
+            {
+                versionsSeen[state.Key] = snapshot.Version;
+
+                yield return new ResourceEvent(resource, resourceId, snapshot);
+            }
+        }
+
         try
         {
             await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
+                // Skip events that are older than the max version we have seen so far. This avoids duplicates.
+                if (versionsSeen.TryGetValue((item.Resource, item.ResourceId), out var maxVersionSeen) && item.Snapshot.Version <= maxVersionSeen)
+                {
+                    // We can remove the version from the seen list since we have seen it already.
+                    // We only care about events we have returned to the caller
+                    versionsSeen.Remove((item.Resource, item.ResourceId));
+                    continue;
+                }
+
                 yield return item;
             }
         }
@@ -353,6 +395,9 @@ public class ResourceNotificationService : IDisposable
 
             var newState = stateFactory(previousState);
 
+            // Increment the snapshot version, this is a per resource version.
+            newState = newState with { Version = notificationState.GetNextVersion() };
+
             newState = UpdateCommands(resource, newState);
 
             notificationState.LastSnapshot = newState;
@@ -378,11 +423,13 @@ public class ResourceNotificationService : IDisposable
             {
                 _logger.LogTrace(
                     """
+                    Version: {Version}
                     Resource {Resource}/{ResourceId} update published:
                     ResourceType = {ResourceType},
                     CreationTimeStamp = {CreationTimeStamp:s},
                     State = {{ Text = {StateText}, Style = {StateStyle} }},
                     HeathStatus = {HealthStatus},
+                    ResourceReady = {ResourceReady},
                     ExitCode = {ExitCode},
                     Urls = {{ {Urls} }},
                     EnvironmentVariables = {{
@@ -390,8 +437,12 @@ public class ResourceNotificationService : IDisposable
                     }},
                     Properties = {{
                     {Properties}
+                    }},
+                    HealthReports = {{
+                    {HealthReports}
                     }}
                     """,
+                    newState.Version,
                     resource.Name,
                     resourceId,
                     newState.ResourceType,
@@ -399,10 +450,12 @@ public class ResourceNotificationService : IDisposable
                     newState.State?.Text,
                     newState.State?.Style,
                     newState.HealthStatus,
+                    newState.ResourceReadyEvent is not null,
                     newState.ExitCode,
                     string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
                     string.Join(Environment.NewLine, newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")),
-                    string.Join(Environment.NewLine, newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")));
+                    string.Join(Environment.NewLine, newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")),
+                    string.Join(Environment.NewLine, newState.HealthReports.Select(p => $"{p.Name} = {p.Status}")));
 
                 static string Stringify(object? o) => o switch
                 {
@@ -542,6 +595,8 @@ public class ResourceNotificationService : IDisposable
     /// </summary>
     private sealed class ResourceNotificationState
     {
+        private long _lastVersion = 1;
+        public long GetNextVersion() => _lastVersion++;
         public CustomResourceSnapshot? LastSnapshot { get; set; }
     }
 }

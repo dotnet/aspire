@@ -9,7 +9,12 @@
 @inject IStringLocalizer<Dashboard.Resources.TraceDetail> Loc
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
 
-<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.TraceDetail.TraceDetailPageTitle)" Loc="@Loc" /></PageTitle>
+<PageTitle>
+    <ApplicationName
+        AdditionalText="@GetPageTitle()"
+        ResourceName="@nameof(Dashboard.Resources.TraceDetail.TraceDetailPageTitle)"
+        Loc="@Loc"/>
+</PageTitle>
 
 <div class="page-content-container">
     @if (_trace is { } trace)
@@ -19,14 +24,11 @@
             MobileToolbarButtonText="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailMobileToolbarButtonText)]"
             IsSummaryDetailsViewOpen="@(SelectedSpan is not null)">
             <PageTitleSection>
-                @{
-                    var headerSpan = trace.RootOrFirstSpan;
-                }
                 <div class="page-header">
                     <h1>
-                        <span>@GetResourceName(headerSpan.Source): @headerSpan.Name</span>
+                        <span>@GetPageTitle()</span>
                         <span class="trace-id">@OtlpHelpers.ToShortenedId(trace.TraceId)</span>
-                    </h1>                    
+                    </h1>
                 </div>
             </PageTitleSection>
             <ToolbarSection>

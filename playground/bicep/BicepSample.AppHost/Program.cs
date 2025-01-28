@@ -42,7 +42,7 @@ var pg = builder.AddAzurePostgresFlexibleServer("postgres2")
                 .AddDatabase("db2");
 
 var cosmosDb = builder.AddAzureCosmosDB("cosmos")
-                      .AddDatabase("db3");
+                      .WithDatabase("db3");
 
 var logAnalytics = builder.AddAzureLogAnalyticsWorkspace("lawkspc");
 var appInsights = builder.AddAzureApplicationInsights("ai", logAnalytics);

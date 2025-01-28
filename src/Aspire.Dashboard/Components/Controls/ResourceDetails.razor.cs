@@ -99,15 +99,15 @@ public partial class ResourceDetails
     {
         if (!ReferenceEquals(Resource, _resource))
         {
-            // Reset masking when the resource changes.
+            // Reset masking and set data changed flag when the resource changes.
             if (!string.Equals(Resource.Name, _resource?.Name, StringComparisons.ResourceName))
             {
                 _isMaskAllChecked = true;
                 _unmaskedItemNames.Clear();
+                _dataChanged = true;
             }
 
             _resource = Resource;
-            _dataChanged = true;
 
             // Collapse details sections when they have no data.
             _isEndpointsExpanded = GetEndpoints().Any();

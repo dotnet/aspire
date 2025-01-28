@@ -5,7 +5,12 @@
 @using Aspire.Dashboard.Resources
 @namespace Aspire.Dashboard.Components.Pages
 
-<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle)" Loc="@Loc" /></PageTitle>
+<PageTitle>
+    <ApplicationName
+        AdditionalText="@PageViewModel.SelectedOption.Id?.ReplicaSetName"
+        ResourceName="@nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle)"
+        Loc="@Loc"/>
+</PageTitle>
 
 <div class="page-content-container">
     <AspirePageContentLayout AddNewlineOnToolbar="true"
@@ -74,7 +79,7 @@
         </MobilePageTitleToolbarSection>
 
         <MainSection>
-            <LogViewer LogEntries="@_logEntries" HideTimestamp="@PageViewModel.HideTimestamp" />
+            <LogViewer LogEntries="@_logEntries" HideTimestamp="@_hideTimestamp" />
         </MainSection>
     </AspirePageContentLayout>
 </div>

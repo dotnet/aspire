@@ -155,9 +155,11 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         hostBuilderOptions.ApplicationName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
         applicationOptions.AssemblyName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
         applicationOptions.DisableDashboard = true;
+        applicationOptions.EnableResourceLogging = true;
         var cfg = hostBuilderOptions.Configuration ??= new();
         var additionalConfig = new Dictionary<string, string?>
         {
+            ["DcpPublisher:ContainerRuntimeInitializationTimeout"] = "00:00:30",
             ["DcpPublisher:RandomizePorts"] = "true",
             ["DcpPublisher:DeleteResourcesOnShutdown"] = "true",
             ["DcpPublisher:ResourceNameSuffix"] = $"{Random.Shared.Next():x}",
@@ -232,7 +234,6 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     private void OnBuildingCore(DistributedApplicationBuilder applicationBuilder)
     {
         var services = applicationBuilder.Services;
-        services.AddHostedService<ResourceLoggerForwarderService>();
         services.AddHttpClient();
 
         InterceptHostCreation(applicationBuilder);

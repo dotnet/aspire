@@ -3,6 +3,9 @@ Aspire.Hosting.ApplicationModel.ContainerLifetime.Session = 0 -> Aspire.Hosting.
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.get -> Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus?
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Relationships.get -> System.Collections.Immutable.ImmutableArray<Aspire.Hosting.ApplicationModel.RelationshipSnapshot!>
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Relationships.init -> void
+Aspire.Hosting.ApplicationModel.DefaultLaunchProfileAnnotation
+Aspire.Hosting.ApplicationModel.DefaultLaunchProfileAnnotation.DefaultLaunchProfileAnnotation(string! launchProfileName) -> void
+Aspire.Hosting.ApplicationModel.DefaultLaunchProfileAnnotation.LaunchProfileName.get -> string!
 Aspire.Hosting.ApplicationModel.DockerfileBuildAnnotation
 Aspire.Hosting.ApplicationModel.DockerfileBuildAnnotation.BuildArguments.get -> System.Collections.Generic.Dictionary<string!, object?>!
 Aspire.Hosting.ApplicationModel.DockerfileBuildAnnotation.BuildSecrets.get -> System.Collections.Generic.Dictionary<string!, object!>!
@@ -12,6 +15,8 @@ Aspire.Hosting.ApplicationModel.DockerfileBuildAnnotation.DockerfilePath.get -> 
 Aspire.Hosting.ApplicationModel.DockerfileBuildAnnotation.Stage.get -> string?
 Aspire.Hosting.ApplicationModel.EndpointNameAttribute
 Aspire.Hosting.ApplicationModel.EndpointNameAttribute.EndpointNameAttribute() -> void
+Aspire.Hosting.ApplicationModel.ExcludeLaunchProfileAnnotation
+Aspire.Hosting.ApplicationModel.ExcludeLaunchProfileAnnotation.ExcludeLaunchProfileAnnotation() -> void
 Aspire.Hosting.ApplicationModel.HealthReportSnapshot
 Aspire.Hosting.ApplicationModel.HealthReportSnapshot.Description.get -> string?
 Aspire.Hosting.ApplicationModel.HealthReportSnapshot.Description.init -> void
@@ -86,6 +91,9 @@ Aspire.Hosting.ApplicationModel.HealthCheckAnnotation
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation.HealthCheckAnnotation(string! key) -> void
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation.Key.get -> string!
 Aspire.Hosting.ApplicationModel.IResourceWithWaitSupport
+Aspire.Hosting.ApplicationModel.LaunchProfileAnnotation
+Aspire.Hosting.ApplicationModel.LaunchProfileAnnotation.LaunchProfileAnnotation(string! launchProfileName) -> void
+Aspire.Hosting.ApplicationModel.LaunchProfileAnnotation.LaunchProfileName.get -> string!
 Aspire.Hosting.ApplicationModel.RelationshipSnapshot
 Aspire.Hosting.ApplicationModel.RelationshipSnapshot.RelationshipSnapshot(string! ResourceName, string! Type) -> void
 Aspire.Hosting.ApplicationModel.RelationshipSnapshot.ResourceName.get -> string!
@@ -175,6 +183,8 @@ Aspire.Hosting.ApplicationModel.WaitType.WaitForCompletion = 1 -> Aspire.Hosting
 Aspire.Hosting.ApplicationModel.WaitType.WaitUntilHealthy = 0 -> Aspire.Hosting.ApplicationModel.WaitType
 Aspire.Hosting.DistributedApplicationBuilder.AppHostPath.get -> string!
 Aspire.Hosting.DistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
+Aspire.Hosting.DistributedApplicationOptions.EnableResourceLogging.get -> bool
+Aspire.Hosting.DistributedApplicationOptions.EnableResourceLogging.set -> void
 Aspire.Hosting.Eventing.DistributedApplicationEventing
 Aspire.Hosting.Eventing.DistributedApplicationEventing.DistributedApplicationEventing() -> void
 Aspire.Hosting.Eventing.DistributedApplicationEventing.PublishAsync<T>(T event, Aspire.Hosting.Eventing.EventDispatchBehavior dispatchBehavior, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -234,6 +244,8 @@ static Aspire.Hosting.ApplicationModel.ResourceExtensions.HasAnnotationOfType<T>
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetAnnotationsIncludingAncestorsOfType<T>(this Aspire.Hosting.ApplicationModel.IResource! resource, out System.Collections.Generic.IEnumerable<T>? result) -> bool
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBuildArg<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, object? value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithContainerName<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+*REMOVED*static Aspire.Hosting.ContainerResourceBuilderExtensions.WithImage<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! image, string! tag = "latest") -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.ContainerResourceBuilderExtensions.WithImage<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! image, string? tag = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithImageRegistry<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string? registry) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithLifetime<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, Aspire.Hosting.ApplicationModel.ContainerLifetime lifetime) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithVolume<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string? name, string! target, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
@@ -266,6 +278,7 @@ static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Exited -> st
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.FailedToStart -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Finished -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Running -> string!
+static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.RuntimeUnhealthy -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Starting -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Stopping -> string!
 Aspire.Hosting.ProjectResourceOptions
