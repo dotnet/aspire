@@ -170,10 +170,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             // Apply snapshot.
             foreach (var resource in snapshot)
             {
-                var added = _resourceByName.TryAdd(resource.Name, resource);
-                _resourceTypesToVisibility.TryAdd(resource.ResourceType, preselectedVisibleResourceTypes is null || preselectedVisibleResourceTypes.Contains(resource.ResourceType));
-                _resourceStatesToVisibility.TryAdd(resource.State ?? string.Empty, preselectedVisibleResourceStates is null || preselectedVisibleResourceStates.Contains(resource.State ?? string.Empty));
-                _resourceHealthStatusesToVisibility.TryAdd(resource.HealthStatus?.Humanize() ?? string.Empty, preselectedVisibleResourceHealthStates is null || preselectedVisibleResourceHealthStates.Contains(resource.HealthStatus?.Humanize() ?? string.Empty));
+                var added = UpdateFromResource(
+                    resource,
+                    type => preselectedVisibleResourceTypes is null || preselectedVisibleResourceTypes.Contains(type),
+                    state => preselectedVisibleResourceStates is null || preselectedVisibleResourceStates.Contains(state),
+                    healthStatus => preselectedVisibleResourceHealthStates is null || preselectedVisibleResourceHealthStates.Contains(healthStatus));
 
                 Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
             }
@@ -192,7 +193,12 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                     {
                         if (changeType == ResourceViewModelChangeType.Upsert)
                         {
-                            _resourceByName[resource.Name] = resource;
+                            UpdateFromResource(
+                                resource,
+                                t => AreAllTypesVisible,
+                                s => AreAllStatesVisible,
+                                s => AreAllHealthStatesVisible);
+
                             if (string.Equals(SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
                             {
                                 SelectedResource = resource;
@@ -219,6 +225,27 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                     });
                 }
             });
+        }
+
+        bool UpdateFromResource(ResourceViewModel resource, Func<string, bool> resourceTypeVisible, Func<string, bool> stateVisible, Func<string, bool> healthStatusVisible)
+        {
+            // This is ok from threadsafty perspective because we are the only thread that's modifying resources.
+            bool added;
+            if (_resourceByName.TryGetValue(resource.Name, out _))
+            {
+                added = false;
+                _resourceByName[resource.Name] = resource;
+            }
+            else
+            {
+                added = _resourceByName.TryAdd(resource.Name, resource);
+            }
+
+            _resourceTypesToVisibility.TryAdd(resource.ResourceType, resourceTypeVisible(resource.ResourceType));
+            _resourceStatesToVisibility.TryAdd(resource.State ?? string.Empty, stateVisible(resource.State ?? string.Empty));
+            _resourceHealthStatusesToVisibility.TryAdd(resource.HealthStatus?.Humanize() ?? string.Empty, healthStatusVisible(resource.HealthStatus?.Humanize() ?? string.Empty));
+
+            return added;
         }
     }
 
