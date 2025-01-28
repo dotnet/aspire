@@ -17,6 +17,8 @@ Aspire.Hosting.ApplicationModel.EndpointNameAttribute
 Aspire.Hosting.ApplicationModel.EndpointNameAttribute.EndpointNameAttribute() -> void
 Aspire.Hosting.ApplicationModel.ExcludeLaunchProfileAnnotation
 Aspire.Hosting.ApplicationModel.ExcludeLaunchProfileAnnotation.ExcludeLaunchProfileAnnotation() -> void
+Aspire.Hosting.ApplicationModel.ExplicitStartupAnnotation
+Aspire.Hosting.ApplicationModel.ExplicitStartupAnnotation.ExplicitStartupAnnotation() -> void
 Aspire.Hosting.ApplicationModel.HealthReportSnapshot
 Aspire.Hosting.ApplicationModel.HealthReportSnapshot.Description.get -> string?
 Aspire.Hosting.ApplicationModel.HealthReportSnapshot.Description.init -> void
@@ -273,6 +275,7 @@ Aspire.Hosting.DistributedApplicationExecutionContextOptions.ServiceProvider.set
 static Aspire.Hosting.ResourceBuilderExtensions.WaitFor<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IResource!>! dependency) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WaitForCompletion<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IResource!>! dependency, int exitCode = 0) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithCommand<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! name, string! displayName, System.Func<Aspire.Hosting.ApplicationModel.ExecuteCommandContext!, System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ExecuteCommandResult!>!>! executeCommand, System.Func<Aspire.Hosting.ApplicationModel.UpdateCommandStateContext!, Aspire.Hosting.ApplicationModel.ResourceCommandState>? updateState = null, string? displayDescription = null, object? parameter = null, string? confirmationMessage = null, string? iconName = null, Aspire.Hosting.ApplicationModel.IconVariant? iconVariant = null, bool isHighlighted = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithExplicitStart<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithHealthCheck<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! key) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithHttpHealthCheck<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string? path = null, int? statusCode = null, string? endpointName = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithHttpsHealthCheck<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string? path = null, int? statusCode = null, string? endpointName = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
