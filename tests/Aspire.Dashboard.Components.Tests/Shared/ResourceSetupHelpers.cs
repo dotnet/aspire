@@ -50,7 +50,7 @@ internal static class ResourceSetupHelpers
         context.JSInterop.SetupVoid("scrollToTop", _ => true);
     }
 
-    public static void SetupResourcesPage(TestContext context, ViewportInformation viewport, IList<ResourceViewModel> initialResources)
+    public static void SetupResourcesPage(TestContext context, ViewportInformation viewport, IDashboardClient? dashboardClient = null)
     {
         var version = typeof(FluentMain).Assembly.GetName().Version!;
 
@@ -93,7 +93,7 @@ internal static class ResourceSetupHelpers
         context.Services.AddSingleton<IKeyCodeService, KeyCodeService>();
         context.Services.AddFluentUIComponents();
         context.Services.AddScoped<DashboardCommandExecutor, DashboardCommandExecutor>();
-        context.Services.AddSingleton<IDashboardClient>(new TestDashboardClient(isEnabled: true, initialResources: initialResources, resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>));
+        context.Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient(isEnabled: true, initialResources: [], resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>));
 
         var dimensionManager = context.Services.GetRequiredService<DimensionManager>();
         dimensionManager.InvokeOnViewportInformationChanged(viewport);

@@ -80,17 +80,16 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
 
     // Filters in the resource popup
-    private readonly ConcurrentDictionary<string, bool> _resourceTypesToVisibility = new(StringComparers.ResourceName);
-
-    private readonly ConcurrentDictionary<string, bool> _resourceStatesToVisibility = new(StringComparers.ResourceState);
-
-    private readonly ConcurrentDictionary<string, bool> _resourceHealthStatusesToVisibility = new(StringComparer.Ordinal);
+    // Internal for tests
+    internal ConcurrentDictionary<string, bool> ResourceTypesToVisibility { get; } = new(StringComparers.ResourceName);
+    internal ConcurrentDictionary<string, bool> ResourceStatesToVisibility { get; } = new(StringComparers.ResourceState);
+    internal ConcurrentDictionary<string, bool> ResourceHealthStatusesToVisibility { get; } = new(StringComparer.Ordinal);
 
     private bool Filter(ResourceViewModel resource)
     {
-        return IsKeyValueTrue(resource.ResourceType, _resourceTypesToVisibility)
-               && IsKeyValueTrue(resource.State ?? string.Empty, _resourceStatesToVisibility)
-               && IsKeyValueTrue(resource.HealthStatus?.Humanize() ?? string.Empty, _resourceHealthStatusesToVisibility)
+        return IsKeyValueTrue(resource.ResourceType, ResourceTypesToVisibility)
+               && IsKeyValueTrue(resource.State ?? string.Empty, ResourceStatesToVisibility)
+               && IsKeyValueTrue(resource.HealthStatus?.Humanize() ?? string.Empty, ResourceHealthStatusesToVisibility)
                && (_filter.Length == 0 || resource.MatchesFilter(_filter))
                && !resource.IsHiddenState();
 
@@ -115,10 +114,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         await _dataGrid.SafeRefreshDataAsync();
     }
 
-    private bool NoFiltersSet => AreAllTypesVisible && AreAllStatesVisible && AreAllHealthStatesVisible;
-    private bool AreAllTypesVisible => _resourceTypesToVisibility.Values.All(value => value);
-    private bool AreAllStatesVisible => _resourceStatesToVisibility.Values.All(value => value);
-    private bool AreAllHealthStatesVisible => _resourceHealthStatusesToVisibility.Values.All(value => value);
+    // Internal for tests
+    internal bool NoFiltersSet => AreAllTypesVisible && AreAllStatesVisible && AreAllHealthStatesVisible;
+    internal bool AreAllTypesVisible => ResourceTypesToVisibility.Values.All(value => value);
+    internal bool AreAllStatesVisible => ResourceStatesToVisibility.Values.All(value => value);
+    internal bool AreAllHealthStatesVisible => ResourceHealthStatusesToVisibility.Values.All(value => value);
 
     private readonly GridSort<ResourceGridViewModel> _nameSort = GridSort<ResourceGridViewModel>.ByAscending(p => p.Resource, ResourceViewModelNameComparer.Instance);
     private readonly GridSort<ResourceGridViewModel> _stateSort = GridSort<ResourceGridViewModel>.ByAscending(p => p.Resource.State).ThenAscending(p => p.Resource, ResourceViewModelNameComparer.Instance);
@@ -241,9 +241,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 added = _resourceByName.TryAdd(resource.Name, resource);
             }
 
-            _resourceTypesToVisibility.TryAdd(resource.ResourceType, resourceTypeVisible(resource.ResourceType));
-            _resourceStatesToVisibility.TryAdd(resource.State ?? string.Empty, stateVisible(resource.State ?? string.Empty));
-            _resourceHealthStatusesToVisibility.TryAdd(resource.HealthStatus?.Humanize() ?? string.Empty, healthStatusVisible(resource.HealthStatus?.Humanize() ?? string.Empty));
+            ResourceTypesToVisibility.TryAdd(resource.ResourceType, resourceTypeVisible(resource.ResourceType));
+            ResourceStatesToVisibility.TryAdd(resource.State ?? string.Empty, stateVisible(resource.State ?? string.Empty));
+            ResourceHealthStatusesToVisibility.TryAdd(resource.HealthStatus?.Humanize() ?? string.Empty, healthStatusVisible(resource.HealthStatus?.Humanize() ?? string.Empty));
 
             return added;
         }
