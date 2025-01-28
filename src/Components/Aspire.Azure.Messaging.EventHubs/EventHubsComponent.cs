@@ -107,7 +107,7 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
                 }
             }
         }
-        // Live: If we have a namespace and no connection string, ensure there's an EventHubName (also look for hint in FQNS)
+        // If we have a namespace and no connection string, ensure there's an EventHubName (also look for hint in FQNS)
         else if (!string.IsNullOrWhiteSpace(settings.FullyQualifiedNamespace) && string.IsNullOrWhiteSpace(settings.EventHubName))
         {
             if (Uri.TryCreate(settings.FullyQualifiedNamespace, UriKind.Absolute, out var fqns))
