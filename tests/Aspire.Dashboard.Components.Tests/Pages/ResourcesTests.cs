@@ -76,8 +76,13 @@ public partial class ResourcesTests : TestContext
 
     private static void AssertResourceFilterListEquals(IRenderedComponent<Components.Pages.Resources> cut, IEnumerable<KeyValuePair<string, bool>> types, IEnumerable<KeyValuePair<string, bool>> states, IEnumerable<KeyValuePair<string, bool>> healthStates)
     {
-        var filterComponents = cut.FindComponents<SelectResourceOptions<string>>();
-        Assert.Equal(3, filterComponents.Count);
+        IReadOnlyList<IRenderedComponent<SelectResourceOptions<string>>> filterComponents = null!;
+
+        cut.WaitForState(() =>
+        {
+            filterComponents = cut.FindComponents<SelectResourceOptions<string>>();
+            return filterComponents.Count == 3;
+        });
 
         var typeSelect = filterComponents.First(f => f.Instance.Id == "resource-types");
         Assert.Equal(types, typeSelect.Instance.Values.ToImmutableSortedDictionary() /* sort for equality comparison */ );
