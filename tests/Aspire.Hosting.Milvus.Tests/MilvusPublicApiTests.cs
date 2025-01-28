@@ -25,8 +25,7 @@ public class MilvusPublicApiTests
     public void AddMilvusContainerShouldThrowWhenNameIsNull()
     {
         var builder = DistributedApplication.CreateBuilder([]);
-        builder.Configuration["Parameters:ApiKey"] = "root:Milvus";
-        var apiKey = builder.AddParameter("ApiKey");
+        var apiKey = builder.AddParameter("ApiKey", "root:Milvus");
         string name = null!;
 
         var action = () => builder.AddMilvus(name, apiKey);
@@ -39,8 +38,7 @@ public class MilvusPublicApiTests
     public void AddDatabaseShouldThrowWhenNameIsNull()
     {
         var builder = DistributedApplication.CreateBuilder([]);
-        builder.Configuration["Parameters:ApiKey"] = "root:Milvus";
-        var apiKey = builder.AddParameter("ApiKey");
+        var apiKey = builder.AddParameter("ApiKey", "root:Milvus");
 
         var milvus = builder.AddMilvus("Milvus", apiKey);
         string name = null!;
@@ -101,8 +99,7 @@ public class MilvusPublicApiTests
     public void WithDataBindMountShouldThrowWhenSourceIsNull()
     {
         var builder = DistributedApplication.CreateBuilder([]);
-        builder.Configuration["Parameters:ApiKey"] = "root:Milvus";
-        var apiKey = builder.AddParameter("ApiKey");
+        var apiKey = builder.AddParameter("ApiKey", "root:Milvus");
 
         var milvus = builder.AddMilvus("Milvus", apiKey);
         string source = null!;
@@ -128,8 +125,7 @@ public class MilvusPublicApiTests
     public void WithConfigurationBindMountShouldThrowWhenConfigurationFilePathIsNull()
     {
         var builder = DistributedApplication.CreateBuilder([]);
-        builder.Configuration["Parameters:ApiKey"] = "root:Milvus";
-        var apiKey = builder.AddParameter("ApiKey");
+        var apiKey = builder.AddParameter("ApiKey", "root:Milvus");
 
         var milvus = builder.AddMilvus("Milvus", apiKey);
         string configurationFilePath = null!;

@@ -24,12 +24,13 @@
             <FluentSelect
                 TOption="CultureInfo"
                 Immediate="true"
+                Position="SelectPosition.Below"
                 Label="@Loc[nameof(Dialogs.SettingsDialogLanguage)]"
                 Items="@_languageOptions"
                 OptionText="@(c => c.NativeName.Humanize())"
                 @bind-SelectedOption="@_selectedUiCulture"
                 @bind-SelectedOption:after="@OnLanguageChanged"
-                Style="margin-bottom: 2px;"/>
+                Class="language-select"/>
 
             <p class="setting-subtext">@Loc[nameof(Dialogs.SettingsDialogLanguagePageReloads)]</p>
         </div>

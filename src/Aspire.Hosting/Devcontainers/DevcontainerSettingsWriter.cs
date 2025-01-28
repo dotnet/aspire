@@ -19,11 +19,39 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
     private const int WriteLockTimeoutMs = 2000;
     private readonly SemaphoreSlim _writeLock = new SemaphoreSlim(1);
 
-    public async Task SetPortAttributesAsync(int port, string protocol, string label, CancellationToken cancellationToken = default)
+    private readonly List<(string Url, string Port, string Protocol, string Label, bool OpenBrowser)> _pendingPorts = [];
+
+    public void AddPortForward(string url, int port, string protocol, string label, bool openBrowser = false)
     {
+        ArgumentNullException.ThrowIfNullOrEmpty(url);
         ArgumentNullException.ThrowIfNullOrEmpty(protocol);
         ArgumentNullException.ThrowIfNullOrEmpty(label);
 
+        _pendingPorts.Add((url, port.ToString(CultureInfo.InvariantCulture), protocol, label, openBrowser));
+    }
+
+    public async Task FlushAsync(CancellationToken cancellationToken = default)
+    {
+        await WriteSettingsAsync(cancellationToken).ConfigureAwait(false);
+
+        // Don't block the caller on this task, we just want to log the port forwards after a delay.
+        _ = Task.Run(async () =>
+        {
+            // HACK: VS code needs to read an updated settings file before it will pick up the port forwards
+            // we're logging here. This is a hack to give it time to do that.
+            await Task.Delay(5000, cancellationToken).ConfigureAwait(false);
+
+            // This is how VS code finds out about the port forwards in hybrid mode (output + proccess).
+            foreach (var (url, _, _, label, _) in _pendingPorts)
+            {
+                logger.LogInformation("Port forwarding ({label}): {Url}", label, url);
+            }
+
+        }, cancellationToken);
+    }
+
+    private async Task WriteSettingsAsync(CancellationToken cancellationToken = default)
+    {
         var settingsPaths = GetSettingsPaths();
 
         foreach (var settingsPath in settingsPaths)
@@ -43,7 +71,7 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
             JsonObject? portsAttributes;
             if (!settings.TryGetPropertyValue(PortAttributesFieldName, out var portsAttributesNode))
             {
-                portsAttributes = new JsonObject();
+                portsAttributes = [];
                 settings.Add(PortAttributesFieldName, portsAttributes);
             }
             else
@@ -51,22 +79,49 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
                 portsAttributes = (JsonObject)portsAttributesNode!;
             }
 
-            var portAsString = port.ToString(CultureInfo.InvariantCulture);
+            // Data is keyed by port number, but we want to key it by label
+            // e.g
+            // {
+            //     "remote.portsAttributes": {
+            //         "8080": {
+            //             "label": "MyApp",
+            //             "protocol": "http",
+            //             "onAutoForward": "openBrowser"
+            //         }
+            //     }
+            // }
 
-            JsonObject? portAttributes;
-            if (!portsAttributes.TryGetPropertyValue(portAsString, out var portAttributeNode))
-            {
-                portAttributes = new JsonObject();
-                portsAttributes.Add(portAsString, portAttributes);
-            }
-            else
-            {
-                portAttributes = (JsonObject)portAttributeNode!;
-            }
+            var portsByLabel = (from props in portsAttributes
+                                let attrs = props.Value as JsonObject
+                                let forwardedPort = props.Key
+                                let l = attrs["label"]?.ToString()
+                                where l != null
+                                select new { Label = l, Port = forwardedPort })
+                                .ToLookup(p => p.Label, p => p.Port);
 
-            portAttributes["label"] = label;
-            portAttributes["protocol"] = protocol;
-            portAttributes["onAutoForward"] = "notify";
+            foreach (var (url, port, protocol, label, openBrowser) in _pendingPorts)
+            {
+                // Remove any existing ports with the same label
+                foreach (var oldPort in portsByLabel[label])
+                {
+                    portsAttributes.Remove(oldPort);
+                }
+
+                JsonObject? portAttributes;
+                if (!portsAttributes.TryGetPropertyValue(port, out var portAttributeNode))
+                {
+                    portAttributes = [];
+                    portsAttributes.Add(port, portAttributes);
+                }
+                else
+                {
+                    portAttributes = (JsonObject)portAttributeNode!;
+                }
+
+                portAttributes["label"] = label;
+                portAttributes["protocol"] = protocol;
+                portAttributes["onAutoForward"] = openBrowser ? "openBrowser" : "silent";
+            }
 
             settingsContent = settings.ToString();
             await File.WriteAllTextAsync(settingsPath, settingsContent, cancellationToken).ConfigureAwait(false);

@@ -62,6 +62,11 @@
         <target state="translated">Exibir registros do console</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceFilterOptionEmpty">
+        <source>(Unset)</source>
+        <target state="new">(Unset)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesActionsColumnHeader">
         <source>Actions</source>
         <target state="translated">Ações</target>
@@ -162,6 +167,21 @@
         <target state="translated">Ambiente</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesFiltered">
+        <source>Has filters</source>
+        <target state="new">Has filters</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesNotFiltered">
+        <source>No filters</source>
+        <target state="new">No filters</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesResourceStatesHeader">
+        <source>State</source>
+        <target state="new">State</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">
         <source>Source</source>
         <target state="translated">Origem</target>
@@ -210,16 +230,6 @@
       <trans-unit id="ResourcesTypeColumnHeader">
         <source>Type</source>
         <target state="translated">Tipo</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesTypeFilterAllVisible">
-        <source>Type filter: All types visible</source>
-        <target state="translated">Filtro de tipo: todos os tipos visíveis</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesTypeFiltered">
-        <source>Type filter: Filtered</source>
-        <target state="translated">Filtro de tipo: filtrado</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForHealthDataMessage">

@@ -12,9 +12,13 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class KeycloakResourceBuilderExtensions
 {
-    private const string AdminEnvVarName = "KEYCLOAK_ADMIN";
-    private const string AdminPasswordEnvVarName = "KEYCLOAK_ADMIN_PASSWORD";
+    private const string AdminEnvVarName = "KC_BOOTSTRAP_ADMIN_USERNAME";
+    private const string AdminPasswordEnvVarName = "KC_BOOTSTRAP_ADMIN_PASSWORD";
+    private const string HealthCheckEnvVarName = "KC_HEALTH_ENABLED"; // As per https://www.keycloak.org/observability/health
+
     private const int DefaultContainerPort = 8080;
+    private const int ManagementInterfaceContainerPort = 9000; // As per https://www.keycloak.org/server/management-interface
+    private const string ManagementEndpointName = "management";
     private const string RealmImportDirectory = "/opt/keycloak/data/import";
 
     /// <summary>
@@ -59,10 +63,13 @@ public static class KeycloakResourceBuilderExtensions
             .WithImageRegistry(KeycloakContainerImageTags.Registry)
             .WithImageTag(KeycloakContainerImageTags.Tag)
             .WithHttpEndpoint(port: port, targetPort: DefaultContainerPort)
+            .WithHttpEndpoint(targetPort: ManagementInterfaceContainerPort, name: ManagementEndpointName)
+            .WithHttpHealthCheck(endpointName: ManagementEndpointName, path: "/health/ready")
             .WithEnvironment(context =>
             {
                 context.EnvironmentVariables[AdminEnvVarName] = resource.AdminReference;
                 context.EnvironmentVariables[AdminPasswordEnvVarName] = resource.AdminPasswordParameter;
+                context.EnvironmentVariables[HealthCheckEnvVarName] = "true";
             });
 
         if (builder.ExecutionContext.IsRunMode)
@@ -131,7 +138,7 @@ public static class KeycloakResourceBuilderExtensions
     /// Adds a realm import to a Keycloak container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="importDirectory">The directory containing the realm import files.</param>
+    /// <param name="import">The directory containing the realm import files or a single import file.</param>
     /// <param name="isReadOnly">A flag that indicates if the realm import directory is read-only.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
@@ -146,20 +153,26 @@ public static class KeycloakResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<KeycloakResource> WithRealmImport(
         this IResourceBuilder<KeycloakResource> builder,
-        string importDirectory,
+        string import,
         bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(importDirectory);
+        ArgumentNullException.ThrowIfNull(import);
 
-        var importDirectoryFullPath = Path.GetFullPath(importDirectory, builder.ApplicationBuilder.AppHostDirectory);
-        if (!Directory.Exists(importDirectoryFullPath))
+        var importFullPath = Path.GetFullPath(import, builder.ApplicationBuilder.AppHostDirectory);
+
+        if (Directory.Exists(importFullPath))
         {
-            throw new DirectoryNotFoundException($"The realm import directory '{importDirectoryFullPath}' does not exist.");
+            return builder.WithBindMount(importFullPath, RealmImportDirectory, isReadOnly);
         }
 
-        builder.WithBindMount(importDirectoryFullPath, RealmImportDirectory, isReadOnly);
+        if (File.Exists(importFullPath))
+        {
+            var fileName = Path.GetFileName(import);
 
-        return builder;
+            return builder.WithBindMount(importFullPath, $"{RealmImportDirectory}/{fileName}", isReadOnly);
+        }
+
+        throw new InvalidOperationException($"The realm import file or directory '{importFullPath}' does not exist.");
     }
 }
