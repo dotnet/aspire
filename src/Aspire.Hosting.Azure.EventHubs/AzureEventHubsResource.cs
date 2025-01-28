@@ -51,33 +51,24 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
     {
         var builder = new ReferenceExpressionBuilder();
 
+        string entityPathSeparator;
+
         if (IsEmulator)
         {
-            // ConnectionString: Endpoint=...
             builder.Append($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.Host)}:{EmulatorEndpoint.Property(EndpointProperty.Port)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true");
+            entityPathSeparator = ";";
         }
         else
         {
-            // FQNS: Uri format, e.g. https://...
             builder.Append($"{EventHubsEndpoint}");
+            entityPathSeparator = "?";
         }
 
-        if (!Hubs.Any(hub => hub.IsDefaultEntity))
+        if (Hubs.Any(hub => hub.IsDefaultEntity))
         {
-            // Of zero or more hubs, none are flagged as default
-            return builder.Build();
-        }
-
-        // Of one or more hubs, only one may be flagged as default
-        var defaultEntity = Hubs.Single(hub => hub.IsDefaultEntity);
-
-        if (IsEmulator)
-        {
-            builder.Append($";EntityPath={defaultEntity.Name}");
-        }
-        else
-        {
-            builder.Append($"?EntityPath={defaultEntity.Name}");
+            // We ensure that only a single entity is default up the stack in WithDefaultEntity
+            var defaultEntity = Hubs.Single(hub => hub.IsDefaultEntity);
+            builder.Append($"{entityPathSeparator}EntityPath={defaultEntity.Name}");
         }
 
         return builder.Build();
