@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="DialogCloseButtonText">
         <source>Close</source>
-        <target state="translated">Zavřít</target>
+        <target state="new">Close</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogDetailsColumnHeader">
