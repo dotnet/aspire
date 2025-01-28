@@ -1,4 +1,3 @@
-#if !SKIP_UNSTABLE_EMULATORS
 using System.Reflection.Metadata;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
@@ -17,4 +16,3 @@ public class MyCosmosDbTrigger(ILogger<MyCosmosDbTrigger> logger)
         logger.LogInformation("C# cosmosdb trigger function processed: {Count} messages", input.Count);
     }
 }
-#endif

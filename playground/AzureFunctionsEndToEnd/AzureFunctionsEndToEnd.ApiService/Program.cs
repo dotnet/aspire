@@ -4,8 +4,8 @@ using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
 #if !SKIP_UNSTABLE_EMULATORS
 using Azure.Messaging.ServiceBus;
-using Microsoft.Azure.Cosmos;
 #endif
+using Microsoft.Azure.Cosmos;
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
 using Newtonsoft.Json;
@@ -17,9 +17,9 @@ builder.AddServiceDefaults();
 builder.AddAzureQueueClient("queue");
 builder.AddAzureBlobClient("blob");
 builder.AddAzureEventHubProducerClient("eventhubs", static settings => settings.EventHubName = "myhub");
+builder.AddAzureCosmosClient("cosmosdb");
 #if !SKIP_UNSTABLE_EMULATORS
 builder.AddAzureServiceBusClient("messaging");
-builder.AddAzureCosmosClient("cosmosdb");
 #endif
 
 var app = builder.Build();
@@ -67,6 +67,7 @@ app.MapGet("/publish/asb", async (ServiceBusClient client, CancellationToken can
     await sender.SendMessageAsync(message, cancellationToken);
     return Results.Ok("Message sent to Azure Service Bus.");
 });
+#endif
 
 app.MapGet("/publish/cosmosdb", async (CosmosClient cosmosClient) =>
 {
@@ -78,7 +79,6 @@ app.MapGet("/publish/cosmosdb", async (CosmosClient cosmosClient) =>
 
     return Results.Ok("Document created in Azure Cosmos DB.");
 });
-#endif
 
 app.MapGet("/", async (HttpClient client) =>
 {
