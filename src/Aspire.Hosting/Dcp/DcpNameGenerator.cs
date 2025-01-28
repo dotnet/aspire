@@ -37,12 +37,12 @@ internal sealed class DcpNameGenerator
             var (name, suffix) = GetContainerName(resource);
             AddInstancesAnnotation(resource, [new DcpInstance(name, suffix, 0)]);
         }
-        else if (resource is ExecutableResource)
+        else if (resource.IsExecutable())
         {
             var (name, suffix) = GetExecutableName(resource);
             AddInstancesAnnotation(resource, [new DcpInstance(name, suffix, 0)]);
         }
-        else if (resource is ProjectResource)
+        else if (resource.IsProject())
         {
             var replicas = resource.GetReplicaCount();
             var builder = ImmutableArray.CreateBuilder<DcpInstance>(replicas);

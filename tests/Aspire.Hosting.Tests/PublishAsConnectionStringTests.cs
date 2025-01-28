@@ -12,11 +12,9 @@ public class PublishAsConnectionStringTests
     [Fact]
     public async Task PublishAsConnectionStringConfiguresManifestAsParameter()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         var redis = builder.AddRedis("redis").PublishAsConnectionString();
-
-        Assert.True(redis.Resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out _));
 
         var manifest = await ManifestUtils.GetManifest(redis.Resource).DefaultTimeout();
 

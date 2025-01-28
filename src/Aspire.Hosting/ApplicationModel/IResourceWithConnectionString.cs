@@ -23,7 +23,7 @@ public interface IResourceWithConnectionString : IResource, IManifestExpressionP
     /// <summary>
     /// Describes the connection string format string used for this resource.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression { get; }
+    public ReferenceExpression ConnectionStringExpression => Annotations.OfType<ConnectionStringAnnotation>().Last().ConnectionStringExpression;
 
     /// <summary>
     /// The environment variable name to use for the connection string.

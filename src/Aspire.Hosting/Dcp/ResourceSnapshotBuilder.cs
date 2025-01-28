@@ -89,7 +89,7 @@ internal class ResourceSnapshotBuilder
         if (executable.AppModelResourceName is not null &&
             _resourceState.ApplicationModel.TryGetValue(executable.AppModelResourceName, out appModelResource))
         {
-            projectPath = appModelResource is ProjectResource p ? p.GetProjectMetadata().ProjectPath : null;
+            projectPath = appModelResource.TryGetProject(out var p) ? p.GetProjectMetadata().ProjectPath : null;
         }
 
         var state = executable.AppModelInitialState is "Hidden" ? "Hidden" : executable.Status?.State;
@@ -170,7 +170,7 @@ internal class ResourceSnapshotBuilder
                 var ep = resourceWithEndpoints.GetEndpoint(endpointName);
 
                 if (ep.EndpointAnnotation.FromLaunchProfile &&
-                    appModelResource is ProjectResource p &&
+                    appModelResource.TryGetProject(out var p) &&
                     p.GetEffectiveLaunchProfile()?.LaunchProfile is LaunchProfile profile &&
                     profile.LaunchUrl is string launchUrl)
                 {

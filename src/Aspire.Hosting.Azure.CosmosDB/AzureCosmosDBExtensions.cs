@@ -74,13 +74,15 @@ public static class AzureCosmosExtensions
         }
 
         var scheme = useVNextPreview ? "http" : null;
-        builder.WithEndpoint(name: "emulator", scheme: scheme, targetPort: 8081)
-               .WithAnnotation(new ContainerImageAnnotation
-               {
-                   Registry = CosmosDBEmulatorContainerImageTags.Registry,
-                   Image = CosmosDBEmulatorContainerImageTags.Image,
-                   Tag = useVNextPreview ? CosmosDBEmulatorContainerImageTags.TagVNextPreview : CosmosDBEmulatorContainerImageTags.Tag
-               });
+
+        var emulator = new AzureCosmosDBEmulatorResource(builder.Resource);
+        var emulatorBuilder = builder.ApplicationBuilder.CreateResourceBuilder(emulator);
+
+        emulatorBuilder
+                .WithImage(CosmosDBEmulatorContainerImageTags.Image)
+                .WithImageTag(useVNextPreview ? CosmosDBEmulatorContainerImageTags.TagVNextPreview : CosmosDBEmulatorContainerImageTags.Tag)
+                .WithImageRegistry(CosmosDBEmulatorContainerImageTags.Registry)
+                .WithEndpoint(name: "emulator", scheme: scheme, targetPort: 8081);
 
         CosmosClient? cosmosClient = null;
 
@@ -125,12 +127,7 @@ public static class AzureCosmosExtensions
 
         builder.WithHealthCheck(healthCheckKey);
 
-        if (configureContainer != null)
-        {
-            var surrogate = new AzureCosmosDBEmulatorResource(builder.Resource);
-            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
-            configureContainer(surrogateBuilder);
-        }
+        configureContainer?.Invoke(emulatorBuilder);
 
         return builder;
 

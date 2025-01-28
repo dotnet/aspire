@@ -47,7 +47,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                 continue;
             }
 
-            if (!r.IsContainer() && r is not ProjectResource)
+            if ((r.IsContainer() || r.IsProject()) is false)
             {
                 continue;
             }
@@ -303,7 +303,7 @@ internal sealed class AzureContainerAppsInfrastructure(
 
                     // We only keep track of schemes for project resources, since we don't want
                     // a non-project scheme to affect what project endpoints are considered default.
-                    if (resource is ProjectResource && IsHttpScheme(endpoint.UriScheme))
+                    if (resource.IsProject() && IsHttpScheme(endpoint.UriScheme))
                     {
                         httpSchemesEncountered.Add(endpoint.UriScheme);
                     }
@@ -405,7 +405,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                     // We're processed the http ingress, remove it from the list
                     endpointsByTargetPort.Remove(httpIngress);
 
-                    var targetPort = httpIngress.Port ?? (resource is ProjectResource ? null : 80);
+                    var targetPort = httpIngress.Port ?? (resource.IsProject() ? null : 80);
 
                     _httpIngress = (targetPort, httpIngress.AnyH2, httpIngress.External);
 
@@ -643,7 +643,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                     return await ProcessValueAsync(csrs.ConnectionStringExpression, executionContext, cancellationToken, secretType: secretType, parent: parent).ConfigureAwait(false);
                 }
 
-                if (value is ParameterResource param)
+                if (value is IResource r && r.TryGetParameter(out var param))
                 {
                     var st = param.Secret ? SecretType.Normal : secretType;
 

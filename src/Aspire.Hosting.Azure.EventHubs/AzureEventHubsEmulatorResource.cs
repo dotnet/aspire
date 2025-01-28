@@ -9,16 +9,14 @@ namespace Aspire.Hosting.Azure;
 /// Wraps an <see cref="AzureEventHubsResource" /> in a type that exposes container extension methods.
 /// </summary>
 /// <param name="innerResource">The inner resource used to store annotations.</param>
-public class AzureEventHubsEmulatorResource(AzureEventHubsResource innerResource) : ContainerResource(innerResource.Name), IResource
+public class AzureEventHubsEmulatorResource(AzureEventHubsResource innerResource) : ContainerResource(innerResource.Name, innerResource.Annotations), IResource
 {
     // The path to the emulator configuration file in the container.
     internal const string EmulatorConfigJsonPath = "/Eventhubs_Emulator/ConfigFiles/Config.json";
 
-    private readonly AzureEventHubsResource _innerResource = innerResource;
-
     /// <inheritdoc/>
-    public override string Name => _innerResource.Name;
+    public override string Name => base.Name;
 
     /// <inheritdoc />
-    public override ResourceAnnotationCollection Annotations => _innerResource.Annotations;
+    public override ResourceAnnotationCollection Annotations => base.Annotations;
 }

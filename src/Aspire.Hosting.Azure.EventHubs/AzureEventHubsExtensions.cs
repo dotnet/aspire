@@ -154,22 +154,22 @@ public static class AzureEventHubsExtensions
         // Create a default file mount. This could be replaced by a user-provided file mount.
         var configHostFile = Path.Combine(Directory.CreateTempSubdirectory("AspireEventHubsEmulator").FullName, "Config.json");
 
+        var emulator = new AzureEventHubsEmulatorResource(builder.Resource);
+        var emulatorBuilder = builder.ApplicationBuilder.CreateResourceBuilder(emulator);
+
         var defaultConfigFileMount = new ContainerMountAnnotation(
                 configHostFile,
                 AzureEventHubsEmulatorResource.EmulatorConfigJsonPath,
                 ContainerMountType.BindMount,
                 isReadOnly: true);
 
-        builder.WithAnnotation(defaultConfigFileMount);
+        emulatorBuilder.WithAnnotation(defaultConfigFileMount);
 
-        builder
-            .WithEndpoint(name: "emulator", targetPort: 5672)
-            .WithAnnotation(new ContainerImageAnnotation
-            {
-                Registry = EventHubsEmulatorContainerImageTags.Registry,
-                Image = EventHubsEmulatorContainerImageTags.Image,
-                Tag = EventHubsEmulatorContainerImageTags.Tag
-            });
+        emulatorBuilder
+            .WithImage(EventHubsEmulatorContainerImageTags.Image)
+            .WithImageTag(EventHubsEmulatorContainerImageTags.Tag)
+            .WithImageRegistry(EventHubsEmulatorContainerImageTags.Registry)
+            .WithEndpoint(name: "emulator", targetPort: 5672);
 
         // Create a separate storage emulator for the Event Hub one
         var storageResource = builder.ApplicationBuilder
@@ -178,7 +178,7 @@ public static class AzureEventHubsExtensions
 
         var storage = storageResource.Resource;
 
-        builder.WithAnnotation(new EnvironmentCallbackAnnotation((EnvironmentCallbackContext context) =>
+        emulatorBuilder.WithEnvironment(context =>
         {
             var blobEndpoint = storage.GetEndpoint("blob");
             var tableEndpoint = storage.GetEndpoint("table");
@@ -186,7 +186,7 @@ public static class AzureEventHubsExtensions
             context.EnvironmentVariables.Add("ACCEPT_EULA", "Y");
             context.EnvironmentVariables.Add("BLOB_SERVER", $"{blobEndpoint.Resource.Name}:{blobEndpoint.TargetPort}");
             context.EnvironmentVariables.Add("METADATA_SERVER", $"{tableEndpoint.Resource.Name}:{tableEndpoint.TargetPort}");
-        }));
+        });
 
         EventHubProducerClient? client = null;
 
@@ -217,95 +217,84 @@ public static class AzureEventHubsExtensions
 
         builder.WithHealthCheck(healthCheckKey);
 
-        if (configureContainer != null)
-        {
-            var surrogate = new AzureEventHubsEmulatorResource(builder.Resource);
-            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
-            configureContainer(surrogateBuilder);
-        }
+        configureContainer?.Invoke(emulatorBuilder);
 
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, (e, ct) =>
         {
-            var eventHubsEmulatorResources = builder.ApplicationBuilder.Resources.OfType<AzureEventHubsResource>().Where(x => x is { } eventHubsResource && eventHubsResource.IsEmulator);
-
-            if (!eventHubsEmulatorResources.Any())
+            if (!builder.Resource.IsEmulator)
             {
-                // No-op if there is no Azure Event Hubs emulator resource.
                 return Task.CompletedTask;
             }
 
-            foreach (var emulatorResource in eventHubsEmulatorResources)
+            var configFileMount = e.Resource.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == AzureEventHubsEmulatorResource.EmulatorConfigJsonPath);
+
+            // If there is a custom mount for EmulatorConfigJsonPath we don't need to create the Config.json file.
+            if (configFileMount != defaultConfigFileMount)
             {
-                var configFileMount = emulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == AzureEventHubsEmulatorResource.EmulatorConfigJsonPath);
+                return Task.CompletedTask;
+            }
 
-                // If there is a custom mount for EmulatorConfigJsonPath we don't need to create the Config.json file.
-                if (configFileMount != defaultConfigFileMount)
+            var fileStreamOptions = new FileStreamOptions() { Mode = FileMode.Create, Access = FileAccess.Write };
+
+            if (!OperatingSystem.IsWindows())
+            {
+                fileStreamOptions.UnixCreateMode =
+                    UnixFileMode.UserRead | UnixFileMode.UserWrite
+                    | UnixFileMode.GroupRead | UnixFileMode.GroupWrite
+                    | UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
+            }
+
+            using (var stream = new FileStream(configFileMount.Source!, fileStreamOptions))
+            {
+                using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
+
+                writer.WriteStartObject();                      // {
+                writer.WriteStartObject("UserConfig");          //   "UserConfig": {
+                writer.WriteStartArray("NamespaceConfig");      //     "NamespaceConfig": [
+                writer.WriteStartObject();                      //       {
+                writer.WriteString("Type", "EventHub");
+
+                // This name is currently required by the emulator
+                writer.WriteString("Name", "emulatorNs1");
+                writer.WriteStartArray("Entities");             //         "Entities": [
+
+                foreach (var hub in builder.Resource.Hubs)
                 {
-                    continue;
+                    writer.WriteStartObject();
+                    hub.WriteJsonObjectProperties(writer);
+                    writer.WriteEndObject();                    //           }
                 }
 
-                var fileStreamOptions = new FileStreamOptions() { Mode = FileMode.Create, Access = FileAccess.Write };
+                writer.WriteEndArray();                         //         ] (/Entities)
+                writer.WriteEndObject();                        //       }
+                writer.WriteEndArray();                         //     ], (/NamespaceConfig)
+                writer.WriteStartObject("LoggingConfig");       //     "LoggingConfig": {
+                writer.WriteString("Type", "File");             //       "Type": "File"
+                writer.WriteEndObject();                        //     } (/LoggingConfig)
 
-                if (!OperatingSystem.IsWindows())
+                writer.WriteEndObject();                        //   } (/UserConfig)
+                writer.WriteEndObject();                        // } (/Root)
+
+            }
+
+            // Apply ConfigJsonAnnotation modifications
+            var configJsonAnnotations = e.Resource.Annotations.OfType<ConfigJsonAnnotation>();
+
+            foreach (var annotation in configJsonAnnotations)
+            {
+                using var readStream = new FileStream(configFileMount.Source!, FileMode.Open, FileAccess.Read);
+                var jsonObject = JsonNode.Parse(readStream);
+                readStream.Close();
+
+                using var writeStream = new FileStream(configFileMount.Source!, FileMode.Open, FileAccess.Write);
+                using var writer = new Utf8JsonWriter(writeStream, new JsonWriterOptions { Indented = true });
+
+                if (jsonObject == null)
                 {
-                    fileStreamOptions.UnixCreateMode =
-                        UnixFileMode.UserRead | UnixFileMode.UserWrite
-                        | UnixFileMode.GroupRead | UnixFileMode.GroupWrite
-                        | UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
+                    throw new InvalidOperationException("The configuration file mount could not be parsed.");
                 }
-
-                using (var stream = new FileStream(configFileMount.Source!, fileStreamOptions))
-                {
-                    using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
-
-                    writer.WriteStartObject();                      // {
-                    writer.WriteStartObject("UserConfig");          //   "UserConfig": {
-                    writer.WriteStartArray("NamespaceConfig");      //     "NamespaceConfig": [
-                    writer.WriteStartObject();                      //       {
-                    writer.WriteString("Type", "EventHub");
-
-                    // This name is currently required by the emulator
-                    writer.WriteString("Name", "emulatorNs1");
-                    writer.WriteStartArray("Entities");             //         "Entities": [
-
-                    foreach (var hub in emulatorResource.Hubs)
-                    {
-                        writer.WriteStartObject();
-                        hub.WriteJsonObjectProperties(writer);
-                        writer.WriteEndObject();                    //           }
-                    }
-
-                    writer.WriteEndArray();                         //         ] (/Entities)
-                    writer.WriteEndObject();                        //       }
-                    writer.WriteEndArray();                         //     ], (/NamespaceConfig)
-                    writer.WriteStartObject("LoggingConfig");       //     "LoggingConfig": {
-                    writer.WriteString("Type", "File");             //       "Type": "File"
-                    writer.WriteEndObject();                        //     } (/LoggingConfig)
-
-                    writer.WriteEndObject();                        //   } (/UserConfig)
-                    writer.WriteEndObject();                        // } (/Root)
-
-                }
-
-                // Apply ConfigJsonAnnotation modifications
-                var configJsonAnnotations = emulatorResource.Annotations.OfType<ConfigJsonAnnotation>();
-
-                foreach (var annotation in configJsonAnnotations)
-                {
-                    using var readStream = new FileStream(configFileMount.Source!, FileMode.Open, FileAccess.Read);
-                    var jsonObject = JsonNode.Parse(readStream);
-                    readStream.Close();
-
-                    using var writeStream = new FileStream(configFileMount.Source!, FileMode.Open, FileAccess.Write);
-                    using var writer = new Utf8JsonWriter(writeStream, new JsonWriterOptions { Indented = true });
-
-                    if (jsonObject == null)
-                    {
-                        throw new InvalidOperationException("The configuration file mount could not be parsed.");
-                    }
-                    annotation.Configure(jsonObject);
-                    jsonObject.WriteTo(writer);
-                }
+                annotation.Configure(jsonObject);
+                jsonObject.WriteTo(writer);
             }
 
             return Task.CompletedTask;
@@ -365,7 +354,7 @@ public static class AzureEventHubsExtensions
     /// <param name="path">Path to the file on the AppHost where the emulator configuration is located.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureEventHubsEmulatorResource> WithConfigurationFile(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string path)
-    { 
+    {
         // Update the existing mount
         var configFileMount = builder.Resource.Annotations.OfType<ContainerMountAnnotation>().LastOrDefault(v => v.Target == AzureEventHubsEmulatorResource.EmulatorConfigJsonPath);
         if (configFileMount != null)

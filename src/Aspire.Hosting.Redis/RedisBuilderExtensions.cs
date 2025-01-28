@@ -42,9 +42,27 @@ public static class RedisBuilderExtensions
 
         var redis = new RedisResource(name);
 
-        string? connectionString = null;
+        return builder.AddResource(redis).ApplyRedis(port);
+    }
 
-        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(redis, async (@event, ct) =>
+    /// <summary>
+    /// Configures a container resource for Redis container.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="port"></param>
+    /// <param name="configureContainer"></param>
+    /// <returns></returns>
+    /// <exception cref="DistributedApplicationException"></exception>
+    /// <exception cref="InvalidOperationException"></exception>
+    public static IResourceBuilder<RedisResource> ApplyRedis(this IResourceBuilder<RedisResource> builder, int? port = null, Action<IResourceBuilder<RedisResource>>? configureContainer = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        string? connectionString = null;
+        var redis = builder.Resource;
+        var name = builder.Resource.Name;
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(redis, async (@event, ct) =>
         {
             connectionString = await redis.GetConnectionStringAsync(ct).ConfigureAwait(false);
 
@@ -55,10 +73,9 @@ public static class RedisBuilderExtensions
         });
 
         var healthCheckKey = $"{name}_check";
-        builder.Services.AddHealthChecks().AddRedis(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddRedis(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
 
-        return builder.AddResource(redis)
-                      .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
+        return builder.WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
                       .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
                       .WithImageRegistry(RedisContainerImageTags.Registry)
                       .WithHealthCheck(healthCheckKey);

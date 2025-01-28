@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -145,7 +144,6 @@ public static class ParameterResourceBuilderExtensions
             ?? parameterDefault?.GetDefaultValue()
             ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing and the Parameter has no default value."); ;
     }
-
     internal static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder,
                                                                      string name,
                                                                      Func<ParameterDefault?, string> callback,
@@ -154,11 +152,24 @@ public static class ParameterResourceBuilderExtensions
                                                                      ParameterDefault? parameterDefault = null,
                                                                      string? configurationKey = null)
     {
-        var resource = new ParameterResource(name, callback, secret);
-        resource.IsConnectionString = connectionString;
-        resource.Default = parameterDefault;
+        return builder.AddParameter(() => new ParameterResource(name, callback, secret)
+        {
+            IsConnectionString = connectionString,
+            Default = parameterDefault
+        },
+        configurationKey);
+    }
 
-        configurationKey ??= connectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}";
+    internal static IResourceBuilder<T> AddParameter<T>(this IDistributedApplicationBuilder builder,
+                                                        Func<T> resourceFactory,
+                                                        string? configurationKey = null)
+        where T : ParameterResource
+
+    {
+        var resource = resourceFactory();
+        var name = resource.Name;
+
+        configurationKey ??= resource.IsConnectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}";
 
         var state = new CustomResourceSnapshot()
         {
@@ -166,14 +177,14 @@ public static class ParameterResourceBuilderExtensions
             // hide parameters by default
             State = KnownResourceStates.Hidden,
             Properties = [
-                new("parameter.secret", secret.ToString()),
-                new(CustomResourceKnownProperties.Source, configurationKey) { IsSensitive = secret }
+                new("parameter.secret", resource.Secret.ToString()),
+                new(CustomResourceKnownProperties.Source, configurationKey) { IsSensitive = resource.Secret }
             ]
         };
 
         try
         {
-            state = state with { Properties = [.. state.Properties, new("Value", resource.Value) { IsSensitive = secret }] };
+            state = state with { Properties = [.. state.Properties, new("Value", resource.Value) { IsSensitive = resource.Secret }] };
         }
         catch (DistributedApplicationException ex)
         {
@@ -183,27 +194,15 @@ public static class ParameterResourceBuilderExtensions
                 Properties = [.. state.Properties, new("Value", ex.Message)]
             };
 
-            builder.Services.AddLifecycleHook((sp) => new WriteParameterLogsHook(
-                sp.GetRequiredService<ResourceLoggerService>(),
-                name,
-                ex.Message));
+            builder.Eventing.Subscribe<BeforeStartEvent>((e, ct) =>
+            {
+                e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(name).LogError(ex.Message);
+                return Task.CompletedTask;
+            });
         }
 
         return builder.AddResource(resource)
                       .WithInitialState(state);
-    }
-
-    /// <summary>
-    /// Writes the message to the specified resource's logs.
-    /// </summary>
-    private sealed class WriteParameterLogsHook(ResourceLoggerService loggerService, string resourceName, string message) : IDistributedApplicationLifecycleHook
-    {
-        public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
-        {
-            loggerService.GetLogger(resourceName).LogError(message);
-
-            return Task.CompletedTask;
-        }
     }
 
     /// <summary>
@@ -219,15 +218,12 @@ public static class ParameterResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
 
-        var parameterBuilder = builder.AddParameter(name, _ =>
+        string GetConnectionString(ParameterDefault? p)
         {
             return builder.Configuration.GetConnectionString(name) ?? throw new DistributedApplicationException($"Connection string parameter resource could not be used because connection string '{name}' is missing.");
-        },
-        secret: true,
-        connectionString: true);
+        }
 
-        var surrogate = new ResourceWithConnectionStringSurrogate(parameterBuilder.Resource, environmentVariableName);
-        return builder.CreateResourceBuilder(surrogate);
+        return builder.AddParameter(() => new ConnectionStringParameterResource(name, GetConnectionString, environmentVariableName), $"ConnectionStrings:{name}");
     }
 
     /// <summary>
@@ -241,7 +237,11 @@ public static class ParameterResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        ConfigureConnectionStringManifestPublisher(builder);
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+             _ = new ConnectionStringParameterResource(builder.Resource.Name, builder.Resource.Annotations);
+        }
+
         return builder;
     }
 

@@ -25,8 +25,7 @@ public static class AzureProvisioningResourceExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureProvisioningResource(name, configureInfrastructure);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>
@@ -42,8 +41,7 @@ public static class AzureProvisioningResourceExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configure);
 
-        builder.Resource.ConfigureInfrastructure += configure;
-        return builder;
+        return builder.WithAnnotation(new AzureConfigureInfrastructureAnnotation(configure));
     }
 
     /// <summary>

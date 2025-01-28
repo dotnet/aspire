@@ -15,6 +15,17 @@
 *REMOVED*static Aspire.Hosting.AzureConstructResourceExtensions.AssignProperty<T>(this Azure.Provisioning.Resource<T>! resource, System.Linq.Expressions.Expression<System.Func<T, object?>!>! propertySelector, Aspire.Hosting.Azure.BicepOutputReference! outputReference, string? parameterName = null) -> void
 Aspire.Hosting.Azure.AspireV8ResourceNamePropertyResolver
 Aspire.Hosting.Azure.AspireV8ResourceNamePropertyResolver.AspireV8ResourceNamePropertyResolver() -> void
+Aspire.Hosting.Azure.AzureBicepAnnotation
+Aspire.Hosting.Azure.AzureBicepAnnotation.AzureBicepAnnotation(string? templateFile = null, string? templateString = null, string? templateResourceName = null) -> void
+Aspire.Hosting.Azure.AzureBicepAnnotation.Outputs.get -> System.Collections.Generic.Dictionary<string!, object?>!
+Aspire.Hosting.Azure.AzureBicepAnnotation.Parameters.get -> System.Collections.Generic.Dictionary<string!, object?>!
+Aspire.Hosting.Azure.AzureBicepAnnotation.ProvisioningTaskCompletionSource.get -> System.Threading.Tasks.TaskCompletionSource?
+Aspire.Hosting.Azure.AzureBicepAnnotation.ProvisioningTaskCompletionSource.set -> void
+Aspire.Hosting.Azure.AzureBicepAnnotation.SecretOutputs.get -> System.Collections.Generic.Dictionary<string!, string?>!
+Aspire.Hosting.Azure.AzureBicepResource.AzureBicepResource(string! name, Aspire.Hosting.ApplicationModel.ResourceAnnotationCollection! resourceAnnotations) -> void
+Aspire.Hosting.Azure.AzureConfigureInfrastructureAnnotation
+Aspire.Hosting.Azure.AzureConfigureInfrastructureAnnotation.AzureConfigureInfrastructureAnnotation(System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureInfrastructure) -> void
+Aspire.Hosting.Azure.AzureConfigureInfrastructureAnnotation.ConfigureInfrastructure.get -> System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>!
 Aspire.Hosting.Azure.AzureProvisioningOptions
 Aspire.Hosting.Azure.AzureProvisioningOptions.AzureProvisioningOptions() -> void
 Aspire.Hosting.Azure.AzureProvisioningOptions.ProvisioningBuildOptions.get -> Azure.Provisioning.ProvisioningBuildOptions!

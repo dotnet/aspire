@@ -91,30 +91,35 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         // out the JSON. If so use that callback, otherwise use the fallback logic that we have.
         if (resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var manifestPublishingCallbackAnnotation))
         {
-            if (manifestPublishingCallbackAnnotation.Callback != null)
+            if (manifestPublishingCallbackAnnotation.Callback is null)
             {
-                await WriteResourceObjectAsync(resource, () => manifestPublishingCallbackAnnotation.Callback(this)).ConfigureAwait(false);
+                return;
             }
         }
-        else if (resource is ContainerResource container)
+        
+        if (resource.TryGetContainer(out var container))
         {
             await WriteResourceObjectAsync(container, () => WriteContainerAsync(container)).ConfigureAwait(false);
         }
-        else if (resource is ProjectResource project)
+        else if (resource.TryGetProject(out var project))
         {
             await WriteResourceObjectAsync(project, () => WriteProjectAsync(project)).ConfigureAwait(false);
         }
-        else if (resource is ExecutableResource executable)
+        else if (resource.TryGetExecutable(out var executable))
         {
             await WriteResourceObjectAsync(executable, () => WriteExecutableAsync(executable)).ConfigureAwait(false);
+        }
+        else if (resource.TryGetParameter(out var parameter))
+        {
+            await WriteResourceObjectAsync(parameter, () => WriteParameterAsync(parameter)).ConfigureAwait(false);
+        }
+        else if (manifestPublishingCallbackAnnotation?.Callback is { } cb)
+        {
+            await WriteResourceObjectAsync(resource, () => cb(this)).ConfigureAwait(false);
         }
         else if (resource is IResourceWithConnectionString resourceWithConnectionString)
         {
             await WriteResourceObjectAsync(resource, () => WriteConnectionStringAsync(resourceWithConnectionString)).ConfigureAwait(false);
-        }
-        else if (resource is ParameterResource parameter)
-        {
-            await WriteResourceObjectAsync(parameter, () => WriteParameterAsync(parameter)).ConfigureAwait(false);
         }
         else
         {
@@ -144,7 +149,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         return Task.CompletedTask;
     }
 
-    private async Task WriteProjectAsync(ProjectResource project)
+    internal async Task WriteProjectAsync(ProjectResource project)
     {
         if (!project.TryGetLastAnnotation<IProjectMetadata>(out var metadata))
         {
@@ -187,7 +192,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         }
     }
 
-    private async Task WriteExecutableAsync(ExecutableResource executable)
+    internal async Task WriteExecutableAsync(ExecutableResource executable)
     {
         Writer.WriteString("type", "executable.v0");
 

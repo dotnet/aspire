@@ -21,11 +21,6 @@ public class PublishAsDockerfileTests
         var frontend = builder.AddNpmApp("frontend", path, "watch")
             .PublishAsDockerFile();
 
-        // There should be an equivalent container resource with the same name
-        // as the npm app resource.
-        var containerResource = Assert.Single(builder.Resources.OfType<ContainerResource>());
-        Assert.Equal("frontend", containerResource.Name);
-
         var manifest = await ManifestUtils.GetManifest(frontend.Resource, manifestDirectory: path).DefaultTimeout();
 
         var expected =
@@ -64,11 +59,6 @@ public class PublishAsDockerfileTests
                 new DockerBuildArg("SOME_NUMBER", 7),
                 new DockerBuildArg("SOME_NONVALUE"),
             ]);
-
-        // There should be an equivalent container resource with the same name
-        // as the npm app resource.
-        var containerResource = Assert.Single(builder.Resources.OfType<ContainerResource>());
-        Assert.Equal("frontend", containerResource.Name);
 
         var manifest = await ManifestUtils.GetManifest(frontend.Resource, manifestDirectory: path).DefaultTimeout();
 
@@ -111,11 +101,6 @@ public class PublishAsDockerfileTests
             .PublishAsDockerFile(buildArgs: [
                 new DockerBuildArg("SOME_ARG")
             ]);
-
-        // There should be an equivalent container resource with the same name
-        // as the npm app resource.
-        var containerResource = Assert.Single(builder.Resources.OfType<ContainerResource>());
-        Assert.Equal("frontend", containerResource.Name);
 
         var manifest = await ManifestUtils.GetManifest(frontend.Resource, manifestDirectory: path).DefaultTimeout();
 
@@ -160,11 +145,6 @@ public class PublishAsDockerfileTests
                 c.WithArgs("/app");
                 c.WithVolume("vol", "/app/node_modules");
             });
-
-        // There should be an equivalent container resource with the same name
-        // as the npm app resource.
-        var containerResource = Assert.Single(builder.Resources.OfType<ContainerResource>());
-        Assert.Equal("frontend", containerResource.Name);
 
         var manifest = await ManifestUtils.GetManifest(frontend.Resource, manifestDirectory: path).DefaultTimeout();
 
@@ -220,10 +200,6 @@ public class PublishAsDockerfileTests
                                  c.WithArgs("/app");
                                  c.WithVolume("vol", "/app/shared");
                              });
-        // There should be an equivalent container resource with the same name
-        // as the project resource.
-        var containerResource = Assert.Single(builder.Resources.OfType<ContainerResource>());
-        Assert.Equal("project", containerResource.Name);
 
         var manifest = await ManifestUtils.GetManifest(project.Resource, manifestDirectory: path).DefaultTimeout();
 

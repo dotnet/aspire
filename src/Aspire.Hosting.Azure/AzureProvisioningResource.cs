@@ -10,14 +10,12 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// An Aspire resource that supports use of Azure Provisioning APIs to create Azure resources.
 /// </summary>
-/// <param name="name">The name of the resource in the Aspire application model.</param>
-/// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
-public class AzureProvisioningResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) : AzureBicepResource(name, templateFile: $"{name}.module.bicep")
+public class AzureProvisioningResource : AzureBicepResource
 {
     /// <summary>
     /// Callback for configuring the Azure resources.
     /// </summary>
-    public Action<AzureResourceInfrastructure> ConfigureInfrastructure { get; internal set; } = configureInfrastructure;
+    public Action<AzureResourceInfrastructure> ConfigureInfrastructure { get; }
 
     /// <summary>
     /// Gets or sets the <see cref="global::Azure.Provisioning.ProvisioningBuildOptions"/> which contains common settings and
@@ -51,6 +49,24 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
 
     private string? _generatedBicep;
 
+    /// <param name="name">The name of the resource in the Aspire application model.</param>
+    /// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
+    public AzureProvisioningResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) : base(name, templateFile: $"{name}.module.bicep")
+    {
+        Annotations.Add(new AzureConfigureInfrastructureAnnotation(configureInfrastructure));
+
+        ConfigureInfrastructure = static (infra) =>
+        {
+            if (infra.AspireResource.TryGetAnnotationsOfType<AzureConfigureInfrastructureAnnotation>(out var annotations))
+            {
+                foreach (var c in annotations)
+                {
+                    c.ConfigureInfrastructure(infra);
+                }
+            }
+        };
+    }
+
     /// <inheritdoc />
     public override string GetBicepTemplateString()
     {
@@ -81,7 +97,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
                 continue;
             }
 
-            var isSecure = aspireParameter.Value is ParameterResource { Secret: true } || aspireParameter.Value is BicepSecretOutputReference;
+            var isSecure = aspireParameter.Value is IResource r && r.TryGetParameter(out var p) && p.Secret || aspireParameter.Value is BicepSecretOutputReference;
             var parameter = new ProvisioningParameter(aspireParameter.Key, typeof(string)) { IsSecure = isSecure };
             infrastructure.Add(parameter);
         }
