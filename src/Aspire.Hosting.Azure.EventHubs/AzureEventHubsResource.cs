@@ -69,7 +69,7 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
         if (defaultEntity is not null)
         {
             builder.Append($"{entityPathSeparator}EntityPath={defaultEntity.Name}");
-        }       
+        }
 
         return builder.Build();
     }
