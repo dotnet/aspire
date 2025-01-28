@@ -90,7 +90,7 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
                 $"'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'FullyQualifiedNamespace' in the '{configurationSectionName}' configuration section.");
         }
 
-        // Emulator: If we have a connection string, ensure there's an EntityPath if settings.EventHubName is missing
+        // If we have a connection string, ensure there's an EntityPath if settings.EventHubName is missing
         if (!string.IsNullOrWhiteSpace(settings.ConnectionString))
         {
             // We have a connection string -- do we have an EventHubName?
