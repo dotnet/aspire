@@ -11,10 +11,6 @@
   ],
   "symbolInfo": [
     {
-      "id": "AspireVersionCli",
-      "isVisible": false
-    },
-    {
       "id": "AspireVersion",
       "isVisible": true,
       "persistenceScope": "shared",
