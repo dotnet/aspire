@@ -63,8 +63,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ResourceFilterOptionEmpty">
-        <source>No state</source>
-        <target state="new">No state</target>
+        <source>(Unset)</source>
+        <target state="new">(Unset)</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesActionsColumnHeader">
