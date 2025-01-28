@@ -80,11 +80,10 @@ public class AddRedisTests
     public void RedisCreatesConnectionStringWithPassword()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        var password = "p@ssw0rd1";
-        appBuilder.Configuration["Parameters:pass"] = password;
 
-        var pass = appBuilder.AddParameter("pass");
-        appBuilder.AddRedis("myRedis", password: pass).PublishAsContainer();
+        var password = "p@ssw0rd1";
+        var pass = appBuilder.AddParameter("pass", password);
+        appBuilder.AddRedis("myRedis", password: pass);
 
         using var app = appBuilder.Build();
 
@@ -98,11 +97,10 @@ public class AddRedisTests
     public void RedisCreatesConnectionStringWithPasswordAndPort()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        var password = "p@ssw0rd1";
-        appBuilder.Configuration["Parameters:pass"] = password;
 
-        var pass = appBuilder.AddParameter("pass");
-        appBuilder.AddRedis("myRedis", port: 3000, password: pass).PublishAsContainer();
+        var password = "p@ssw0rd1";
+        var pass = appBuilder.AddParameter("pass", password);
+        appBuilder.AddRedis("myRedis", port: 3000, password: pass);
 
         using var app = appBuilder.Build();
 
@@ -308,10 +306,8 @@ public class AddRedisTests
         Assert.Equal(1000, endpoint.Port);
     }
 
-    [Theory]
-    [InlineData("host.docker.internal")]
-    [InlineData("host.containers.internal")]
-    public async Task SingleRedisInstanceWithoutPasswordProducesCorrectRedisHostsVariable(string containerHost)
+    [Fact]
+    public async Task SingleRedisInstanceWithoutPasswordProducesCorrectRedisHostsVariable()
     {
         var builder = DistributedApplication.CreateBuilder();
         var redis = builder.AddRedis("myredis1").WithRedisCommander();
@@ -329,24 +325,20 @@ public class AddRedisTests
             DistributedApplicationOperation.Run,
             TestServiceProvider.Instance);
 
-        Assert.Equal($"myredis1:{containerHost}:5001:0:{redis.Resource.PasswordParameter?.Value}", config["REDIS_HOSTS"]);
+        Assert.Equal($"myredis1:{redis.Resource.Name}:6379:0:{redis.Resource.PasswordParameter?.Value}", config["REDIS_HOSTS"]);
     }
 
-    [Theory]
-    [InlineData("host.docker.internal")]
-    [InlineData("host.containers.internal")]
-    public async Task SingleRedisInstanceWithPasswordProducesCorrectRedisHostsVariable(string containerHost)
+    [Fact]
+    public async Task SingleRedisInstanceWithPasswordProducesCorrectRedisHostsVariable()
     {
         var builder = DistributedApplication.CreateBuilder();
         var password = "p@ssw0rd1";
-        builder.Configuration["Parameters:pass"] = password;
-
-        var pass = builder.AddParameter("pass");
+        var pass = builder.AddParameter("pass", password);
         var redis = builder.AddRedis("myredis1", password: pass).WithRedisCommander();
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
-        redis.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
+        redis.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
 
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
@@ -354,7 +346,7 @@ public class AddRedisTests
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander);
 
-        Assert.Equal($"myredis1:{containerHost}:5001:0:{password}", config["REDIS_HOSTS"]);
+        Assert.Equal($"myredis1:{redis.Resource.Name}:6379:0:{password}", config["REDIS_HOSTS"]);
     }
 
     [Fact]
@@ -378,7 +370,7 @@ public class AddRedisTests
             DistributedApplicationOperation.Run,
             TestServiceProvider.Instance);
 
-        Assert.Equal($"myredis1:{containerHost}:5001:0:{redis1.Resource.PasswordParameter?.Value},myredis2:host2:5002:0:{redis2.Resource.PasswordParameter?.Value}", config["REDIS_HOSTS"]);
+        Assert.Equal($"myredis1:{redis1.Resource.Name}:6379:0:{redis1.Resource.PasswordParameter?.Value},myredis2:myredis2:6379:0:{redis2.Resource.PasswordParameter?.Value}", config["REDIS_HOSTS"]);
     }
 
     [Theory]
@@ -514,9 +506,7 @@ public class AddRedisTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var password = "p@ssw0rd1";
-        builder.Configuration["Parameters:pass"] = password;
-
-        var pass = builder.AddParameter("pass");
+        var pass = builder.AddParameter("pass", password);
         var redis = builder.
             AddRedis("myRedis", password: pass)
            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));

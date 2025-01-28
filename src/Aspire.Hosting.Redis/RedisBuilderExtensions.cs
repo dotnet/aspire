@@ -23,31 +23,20 @@ public static class RedisBuilderExtensions
     /// <summary>
     /// Adds a Redis container to the application model.
     /// </summary>
-    /// <remarks>
-    /// The default image is "redis" and the tag is "7.2.4".
-    /// Password resource will be added to the model at publish time.
-    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port to bind the underlying container to.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <example>
-    /// Use in application host.
-    /// 
-    /// the example of adding <see cref="RedisResource"/> to application model.
-    /// <code>
-    /// var builder = DistributedApplication.CreateBuilder(args);
-    ///
-    /// var redis = builder.AddRedis("redis",6379);
-    /// 
-    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
-    ///   .WithReference(redis);
-    ///   
-    /// builder.Build().Run(); 
-    /// </code>
-    ///
-    /// </example>
-    public static IResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name, int? port)
+    /// <remarks>
+    /// <para>
+    /// This resource includes built-in health checks. When this resource is referenced as a dependency
+    /// using the <see cref="ResourceBuilderExtensions.WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/>
+    /// extension method then the dependent resource will wait until the Redis resource is able to service
+    /// requests.
+    /// </para>
+    /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.Tag"/> tag of the <inheritdoc cref="RedisContainerImageTags.Image"/> container image.
+    /// </remarks>
+    public static IResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, [ResourceName] string name, int? port)
     {
         return builder.AddRedis(name, port, null);
     }
@@ -55,52 +44,23 @@ public static class RedisBuilderExtensions
     /// <summary>
     /// Adds a Redis container to the application model.
     /// </summary>
-    /// <remarks>
-    /// The default image is "redis" and the tag is "7.2.4".
-    /// If a password parameter is not supplied, a password resource will be added to the model at publish time.
-    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port to bind the underlying container to.</param>
-    /// <param name="password">The parameter used to provide the password for the Redis resource.</param>
+    /// <param name="password">The parameter used to provide the password for the Redis resource. If <see langword="null"/> a random password will be generated.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <example>
-    /// Use in application host
-    /// <list type="bullet">
-    /// <item>
-    /// the example of adding <see cref="RedisResource"/> to application model without password
-    /// <code>
-    /// var builder = DistributedApplication.CreateBuilder(args);
-    ///
-    /// var redis = builder.AddRedis("redis");
-    /// 
-    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
-    ///   .WithReference(redis);
-    ///   
-    /// builder.Build().Run(); 
-    /// </code>
-    /// </item>
-    /// <item>
-    /// the example of adding <see cref="RedisResource"/> to application model with password
-    /// <code>
-    /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
-    /// builder.Configuration["Parameters:pass"] = "StrongPassword";
-    /// var password = builder.AddParameter("pass");
-    /// 
-    /// var redis = builder.AddRedis("redis", password: password);
-    ///
-    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
-    ///   .WithReference(redis);
-    ///   
-    /// builder.Build().Run(); 
-    /// </code>
-    /// </item>
-    /// </list>
-    /// </example>
+    /// <remarks>
+    /// <para>
+    /// This resource includes built-in health checks. When this resource is referenced as a dependency
+    /// using the <see cref="ResourceBuilderExtensions.WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/>
+    /// extension method then the dependent resource will wait until the Redis resource is able to service
+    /// requests.
+    /// </para>
+    /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.Tag"/> tag of the <inheritdoc cref="RedisContainerImageTags.Image"/> container image.
+    /// </remarks>
     public static IResourceBuilder<RedisResource> AddRedis(
         this IDistributedApplicationBuilder builder,
-        string name,
+        [ResourceName] string name,
         int? port = null,
         IResourceBuilder<ParameterResource>? password = null)
     {
@@ -110,11 +70,28 @@ public static class RedisBuilderExtensions
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
         var redis = new RedisResource(name, passwordParameter);
+
+        string? connectionString = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(redis, async (@event, ct) =>
+        {
+            connectionString = await redis.GetConnectionStringAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{redis.Name}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks().AddRedis(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+
         return builder.AddResource(redis)
-            .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
-            .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
-            .WithImageRegistry(RedisContainerImageTags.Registry)
-            .EnsureCommandLineCallback();
+                      .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
+                      .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
+                      .WithImageRegistry(RedisContainerImageTags.Registry)
+                      .WithHealthCheck(healthCheckKey)
+                      .EnsureCommandLineCallback();
     }
 
     private static IResourceBuilder<RedisResource> EnsureCommandLineCallback(this IResourceBuilder<RedisResource> builder)
@@ -191,7 +168,10 @@ public static class RedisBuilderExtensions
                 {
                     if (redisInstance.PrimaryEndpoint.IsAllocated)
                     {
-                        var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.PrimaryEndpoint.ContainerHost}:{redisInstance.PrimaryEndpoint.Port}:0";
+
+                        // Redis Commander assumes Redis is being accessed over a default Aspire container network and hardcodes the resource address
+                        // This will need to be refactored once updated service discovery APIs are available
+                        var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.Name}:{redisInstance.PrimaryEndpoint.TargetPort}:0";
                         if (redisInstance.PasswordParameter is not null)
                         {
                             hostString += $":{redisInstance.PasswordParameter.Value}";

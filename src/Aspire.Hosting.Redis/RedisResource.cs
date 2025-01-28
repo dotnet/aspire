@@ -9,9 +9,8 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 public class RedisResource(string name) : ContainerResource(name), IResourceWithConnectionString
 {
-
     /// <summary>
-    /// A resource that represents a Redis resource independent of the hosting model.
+    /// Initializes a new instance of the <see cref="RedisResource"/> class.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
     /// <param name="password">A parameter that contains the Redis server password.</param>

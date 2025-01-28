@@ -399,7 +399,7 @@ public class ManifestGenerationTests
                 "redis": {
                   "type": "container.v0",
                   "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+                  "image": "{{ComponentTestConstants.AspireTestContainerRegistry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
                   "args": [
                     "--requirepass",
                     "{redis-password.value}"
@@ -436,43 +436,6 @@ public class ManifestGenerationTests
                 "postgresdb": {
                   "type": "value.v0",
                   "connectionString": "{postgres.connectionString};Database=postgresdb"
-                },
-                "oracledatabase": {
-                  "type": "container.v0",
-                  "connectionString": "user id=system;password={oracledatabase-password.value};data source={oracledatabase.bindings.tcp.host}:{oracledatabase.bindings.tcp.port}",
-                  "image": "{{OracleContainerImageTags.Registry}}/{{OracleContainerImageTags.Image}}:{{OracleContainerImageTags.Tag}}",
-                  "env": {
-                    "ORACLE_PWD": "{oracledatabase-password.value}"
-                  },
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 1521
-                    }
-                  }
-                },
-                "freepdb1": {
-                  "type": "value.v0",
-                  "connectionString": "{oracledatabase.connectionString}/freepdb1"
-                },
-                "cosmos": {
-                  "type": "azure.bicep.v0",
-                  "connectionString": "{cosmos.secretOutputs.connectionString}",
-                  "path": "cosmos.module.bicep",
-                  "params": {
-                    "keyVaultName": ""
-                  }
-                },
-                "eventhubns": {
-                  "type": "azure.bicep.v0",
-                  "connectionString": "{eventhubns.outputs.eventHubsEndpoint}",
-                  "path": "eventhubns.module.bicep",
-                  "params": {
-                    "principalId": "",
-                    "principalType": ""
-                  }
                 },
                 "redis-password": {
                   "type": "parameter.v0",

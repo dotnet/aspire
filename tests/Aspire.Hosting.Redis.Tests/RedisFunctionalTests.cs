@@ -717,22 +717,27 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task WithRedisCommanderShouldWorkWithPassword()
     {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
-        var password = "p@ssw0rd1";
-        builder.Configuration["Parameters:pass"] = password;
-        var passwordParameter = builder.AddParameter("pass");
+        var passwordParameter = builder.AddParameter("pass", "p@ssw0rd1");
 
-        builder.AddRedis("redis", password: passwordParameter)
+        var redis = builder.AddRedis("redis", password: passwordParameter)
            .WithRedisCommander();
 
         builder.Services.AddHttpClient();
         using var app = builder.Build();
 
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
         await app.StartAsync();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var redisCommander = Assert.Single(appModel.Resources.OfType<RedisCommanderResource>());
+
+        await rns.WaitForResourceHealthyAsync(redis.Resource.Name, cts.Token);
+        await rns.WaitForResourceHealthyAsync(redisCommander.Name, cts.Token);
 
         var endpoint = redisCommander.GetEndpoint("http");
         var redisCommanderUrl = endpoint.Url;
