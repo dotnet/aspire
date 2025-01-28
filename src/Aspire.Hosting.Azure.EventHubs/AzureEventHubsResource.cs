@@ -64,12 +64,12 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
             entityPathSeparator = "?";
         }
 
-        if (Hubs.Any(hub => hub.IsDefaultEntity))
+        // WithDefaultEntity guards against multiple default entities.
+        var defaultEntity = Hubs.SingleOrDefault(hub => hub.IsDefaultEntity);
+        if (defaultEntity is not null)
         {
-            // We ensure that only a single entity is default up the stack in WithDefaultEntity
-            var defaultEntity = Hubs.Single(hub => hub.IsDefaultEntity);
             builder.Append($"{entityPathSeparator}EntityPath={defaultEntity.Name}");
-        }
+        }       
 
         return builder.Build();
     }
