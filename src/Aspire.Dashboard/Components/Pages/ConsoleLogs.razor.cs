@@ -92,7 +92,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private readonly List<MenuButtonItem> _resourceMenuItems = new();
 
     // State
-    private bool _hideTimestamp;
+    private bool _showTimestamp;
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
 
     public string BasePath => DashboardUrls.ConsoleLogBasePath;
@@ -106,9 +106,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
 
         var timestampStorageResult = await LocalStorage.GetUnprotectedAsync<ConsoleLogConsoleSettings>(BrowserStorageKeys.ConsoleLogConsoleSettings);
-        if (timestampStorageResult.Value?.HideTimestamp is { } hideTimestamp)
+        if (timestampStorageResult.Value?.ShowTimestamp is { } showTimestamp)
         {
-            _hideTimestamp = hideTimestamp;
+            _showTimestamp = showTimestamp;
         }
 
         var loadingTcs = new TaskCompletionSource();
@@ -268,11 +268,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             Icon = new Icons.Regular.Size16.ArrowDownload()
         });
 
-        if (_hideTimestamp)
+        if (!_showTimestamp)
         {
             _logsMenuItems.Add(new()
             {
-                OnClick = () => ToggleTimestampAsync(hideTimestamp: false),
+                OnClick = () => ToggleTimestampAsync(showTimestamp: true),
                 Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampShow)],
                 Icon = new Icons.Regular.Size16.CalendarClock()
             });
@@ -281,7 +281,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         {
             _logsMenuItems.Add(new()
             {
-                OnClick = () => ToggleTimestampAsync(hideTimestamp: true),
+                OnClick = () => ToggleTimestampAsync(showTimestamp: false),
                 Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampHide)],
                 Icon = new Icons.Regular.Size16.DismissSquareMultiple()
             });
@@ -314,11 +314,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         }
     }
 
-    private async Task ToggleTimestampAsync(bool hideTimestamp)
+    private async Task ToggleTimestampAsync(bool showTimestamp)
     {
-        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ConsoleLogConsoleSettings, new ConsoleLogConsoleSettings(HideTimestamp: hideTimestamp));
-        _hideTimestamp = hideTimestamp;
+        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ConsoleLogConsoleSettings, new ConsoleLogConsoleSettings(ShowTimestamp: showTimestamp));
+        _showTimestamp = showTimestamp;
 
+        UpdateMenuButtons();
         StateHasChanged();
     }
 
@@ -548,7 +549,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     public record ConsoleLogsPageState(string? SelectedResource);
 
-    public record ConsoleLogConsoleSettings(bool HideTimestamp);
+    public record ConsoleLogConsoleSettings(bool ShowTimestamp);
 
     public Task UpdateViewModelFromQueryAsync(ConsoleLogsViewModel viewModel)
     {
