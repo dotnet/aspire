@@ -149,8 +149,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-            var passwordParameter2 = builder2.AddParameter("pwd");
-            builder2.Configuration["Parameters:pwd"] = password;
+            var passwordParameter2 = builder2.AddParameter("pwd", password);
             var elasticsearch2 = builder2.AddElasticsearch("elasticsearch", passwordParameter2);
 
             if (useVolume)
