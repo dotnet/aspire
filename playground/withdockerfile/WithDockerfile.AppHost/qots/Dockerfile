@@ -1,6 +1,6 @@
 # Stage 1: Build the Go program
-ARG GO_VERSION=1.16
-FROM golang:${GO_VERSION} AS builder
+ARG GO_VERSION=1.23
+FROM mcr.microsoft.com/oss/go/microsoft/golang:${GO_VERSION} AS builder
 WORKDIR /app
 COPY . .
 RUN go build qots.go

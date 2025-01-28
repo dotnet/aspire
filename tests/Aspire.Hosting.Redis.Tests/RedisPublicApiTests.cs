@@ -47,9 +47,32 @@ public class RedisPublicApiTests
     }
 
     [Fact]
-    public void WithHostPortShouldThrowWhenBuilderIsNull()
+    public void WithRedisInsightResourceShouldThrowWhenBuilderIsNull()
+    {
+        IResourceBuilder<RedisResource> builder = null!;
+
+        var action = () => builder.WithRedisInsight();
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Fact]
+    public void RedisCommanderWithHostPortShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<RedisCommanderResource> builder = null!;
+        const int port = 777;
+
+        var action = () => builder.WithHostPort(port);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Fact]
+    public void RedisInsightResourceWithHostPortShouldThrowWhenBuilderIsNull()
+    {
+        IResourceBuilder<RedisInsightResource> builder = null!;
         const int port = 777;
 
         var action = () => builder.WithHostPort(port);

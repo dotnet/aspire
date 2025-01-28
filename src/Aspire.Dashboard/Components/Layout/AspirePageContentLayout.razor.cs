@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -49,9 +48,6 @@ public partial class AspirePageContentLayout : ComponentBase
     [Inject]
     public required IDialogService DialogService { get; init; }
 
-    [Inject]
-    public required NavigationManager NavigationManager { get; init; }
-
     private IDialogReference? _toolbarPanel;
 
     public bool IsToolbarPanelOpen => _toolbarPanel is not null;
@@ -77,7 +73,7 @@ public partial class AspirePageContentLayout : ComponentBase
         return style;
     }
 
-    private async Task OpenMobileToolbarAsync()
+    public async Task OpenMobileToolbarAsync()
     {
         _toolbarPanel = await DialogService.ShowPanelAsync<ToolbarPanel>(
             new MobileToolbar(
@@ -92,7 +88,11 @@ public partial class AspirePageContentLayout : ComponentBase
                 Modal = false,
                 PrimaryAction = null,
                 SecondaryAction = null,
-                OnDialogClosing = EventCallback.Factory.Create<DialogInstance>(this, InvokeListeners)
+                OnDialogClosing = EventCallback.Factory.Create<DialogInstance>(this, async () =>
+                {
+                    await InvokeListenersAsync();
+                    _toolbarPanel = null;
+                })
             });
     }
 
@@ -102,13 +102,13 @@ public partial class AspirePageContentLayout : ComponentBase
         {
             await _toolbarPanel.CloseAsync();
             // CloseAsync doesn't invoke OnDialogClosing, so we need to call InvokeListeners ourselves
-            await InvokeListeners();
+            await InvokeListenersAsync();
 
             _toolbarPanel = null;
         }
     }
 
-    private async Task InvokeListeners()
+    private async Task InvokeListenersAsync()
     {
         foreach (var dialogCloseListener in DialogCloseListeners.Values)
         {

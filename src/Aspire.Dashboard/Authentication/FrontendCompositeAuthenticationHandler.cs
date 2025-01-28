@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Aspire.Dashboard.Authentication.Connection;
 using Aspire.Dashboard.Configuration;
@@ -27,13 +26,6 @@ public sealed class FrontendCompositeAuthenticationHandler(
                 new AuthenticationProperties(
                     items: new Dictionary<string, string?>(),
                     parameters: new Dictionary<string, object?> { [AspirePolicyEvaluator.SuppressChallengeKey] = true }));
-        }
-
-        var scheme = GetRelevantAuthenticationScheme();
-        if (scheme == null)
-        {
-            var id = new ClaimsIdentity([new Claim(OtlpAuthorization.OtlpClaimName, bool.FalseString)]);
-            return AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(id), Scheme.Name));
         }
 
         result = await Context.AuthenticateAsync().ConfigureAwait(false);

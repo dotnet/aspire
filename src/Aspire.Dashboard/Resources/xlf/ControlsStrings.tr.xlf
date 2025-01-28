@@ -2,14 +2,29 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="tr" original="../ControlsStrings.resx">
     <body>
-      <trans-unit id="All">
-        <source>(All)</source>
-        <target state="needs-review-translation">Tümü</target>
+      <trans-unit id="ActionStructuredLogsText">
+        <source>Structured logs</source>
+        <target state="translated">Yapılandırılmış günlükler</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ActionViewDetailsText">
+        <source>View details</source>
+        <target state="translated">Ayrıntıları görüntüle</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ActionsButtonText">
+        <source>Actions</source>
+        <target state="translated">Eylemler</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ActionsColumnHeader">
+        <source>Actions</source>
+        <target state="translated">Eylemler</target>
         <note />
       </trans-unit>
       <trans-unit id="ApplicationLower">
         <source>application</source>
-        <target state="new">application</target>
+        <target state="translated">uygulama</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerAllTags">
@@ -62,6 +77,21 @@
         <target state="translated">Liste görüntülenemiyor</target>
         <note />
       </trans-unit>
+      <trans-unit id="ClearAllResources">
+        <source>Remove all</source>
+        <target state="translated">Tümünü kaldır</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ClearPendingSelectedResource">
+        <source>Remove for resource</source>
+        <target state="translated">Kaynak için kaldır</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ClearSelectedResource">
+        <source>Remove for {0}</source>
+        <target state="translated">Bu işlem için {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">Ayrıntılar</target>
@@ -75,6 +105,11 @@
       <trans-unit id="EventColumnHeader">
         <source>Event</source>
         <target state="translated">Olay</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExceptionDetailsTitle">
+        <source>Exception details</source>
+        <target state="translated">Özel durum ayrıntıları</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
@@ -104,27 +139,27 @@
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellResizeButtonText">
         <source>Resize</source>
-        <target state="new">Resize</target>
+        <target state="translated">Yeniden boyutlandır</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellResizeLabel">
         <source>Column width (in pixels)</source>
-        <target state="new">Column width (in pixels)</target>
+        <target state="translated">Sütun genişliği (piksel)</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellSortAscendingButtonText">
         <source>Sort (ascending)</source>
-        <target state="new">Sort (ascending)</target>
+        <target state="translated">Sırala (artan)</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellSortButtonText">
         <source>Sort</source>
-        <target state="new">Sort</target>
+        <target state="translated">Sırala</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellSortDescendingButtonText">
         <source>Sort (descending)</source>
-        <target state="new">Sort (descending)</target>
+        <target state="translated">Sırala (azalan)</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueCopied">
@@ -147,6 +182,26 @@
         <target state="translated">Değeri göster</target>
         <note />
       </trans-unit>
+      <trans-unit id="LabelAll">
+        <source>(All)</source>
+        <target state="translated">(Tümü)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LabelEmpty">
+        <source>(Empty)</source>
+        <target state="translated">(Boş)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LabelNone">
+        <source>(None)</source>
+        <target state="translated">(Yok)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LabelUnset">
+        <source>(Unset)</source>
+        <target state="translated">(Ayarı Kaldır)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Loading">
         <source>Loading...</source>
         <target state="translated">Yükleniyor...</target>
@@ -154,7 +209,7 @@
       </trans-unit>
       <trans-unit id="MetricTableExemplarsColumnHeader">
         <source>Exemplars</source>
-        <target state="new">Exemplars</target>
+        <target state="translated">Örnekler</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableNoMetricsFound">
@@ -194,7 +249,7 @@
       </trans-unit>
       <trans-unit id="MetricTableViewExemplarsLabel">
         <source>View exemplars</source>
-        <target state="new">View exemplars</target>
+        <target state="translated">Örnekleri görüntüle</target>
         <note />
       </trans-unit>
       <trans-unit id="NameColumnHeader">
@@ -202,14 +257,9 @@
         <target state="translated">Ad</target>
         <note />
       </trans-unit>
-      <trans-unit id="None">
-        <source>(None)</source>
-        <target state="new">(None)</target>
-        <note />
-      </trans-unit>
       <trans-unit id="PageToolbarLandmark">
         <source>Page toolbar</source>
-        <target state="new">Page toolbar</target>
+        <target state="translated">Sayfa araç çubuğu</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -219,7 +269,7 @@
       </trans-unit>
       <trans-unit id="PlotlyChartExemplars">
         <source>Exemplars</source>
-        <target state="new">Exemplars</target>
+        <target state="translated">Örnekler</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartLength">
@@ -229,12 +279,12 @@
       </trans-unit>
       <trans-unit id="PlotlyChartTime">
         <source>Time</source>
-        <target state="new">Time</target>
+        <target state="translated">Saat</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartTrace">
         <source>Trace</source>
-        <target state="new">Trace</target>
+        <target state="translated">İzleme</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartValue">
@@ -247,6 +297,11 @@
         <target state="translated">Değer</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceDetailsBackReferences">
+        <source>Back references</source>
+        <target state="translated">Geri başvurular</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceDetailsEndpointsHeader">
         <source>Endpoints</source>
         <target state="translated">Uç Noktalar</target>
@@ -257,9 +312,24 @@
         <target state="translated">Ortam değişkenleri</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceDetailsReferences">
+        <source>References</source>
+        <target state="translated">Başvurular</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceDetailsResourceHeader">
         <source>Resource</source>
         <target state="translated">Kaynak</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceDetailsTypeHeader">
+        <source>Type</source>
+        <target state="translated">Tür</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceDetailsVolumesHeader">
+        <source>Volumes</source>
+        <target state="translated">Birimler</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDropdownReplicaAccessibleTitle">
@@ -267,9 +337,14 @@
         <target state="translated">{0} ({1} çoğaltması)</target>
         <note>{0} is a resource name, {1} is a replica set name</note>
       </trans-unit>
+      <trans-unit id="ResourceHealthChecksHeader">
+        <source>Health checks</source>
+        <target state="translated">Sistem durumu denetimleri</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceLabel">
         <source>Resource</source>
-        <target state="new">Resource</target>
+        <target state="translated">Kaynak</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">
@@ -279,17 +354,17 @@
       </trans-unit>
       <trans-unit id="SpanDetailsBacklinksHeader">
         <source>Backlinks</source>
-        <target state="new">Backlinks</target>
+        <target state="translated">Geri Bağlantıları</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsContextHeader">
         <source>Context</source>
-        <target state="new">Context</target>
+        <target state="translated">Bağlam</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsDetailsColumnHeader">
         <source>Details</source>
-        <target state="new">Details</target>
+        <target state="translated">Ayrıntılar</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsDuration">
@@ -304,7 +379,7 @@
       </trans-unit>
       <trans-unit id="SpanDetailsLinksHeader">
         <source>Links</source>
-        <target state="new">Links</target>
+        <target state="translated">Bağlantılar</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsResource">
@@ -319,7 +394,7 @@
       </trans-unit>
       <trans-unit id="SpanDetailsSpanColumnHeader">
         <source>Span</source>
-        <target state="new">Span</target>
+        <target state="translated">Yayılma</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsSpanHeader">
@@ -329,13 +404,33 @@
       </trans-unit>
       <trans-unit id="SpanDetailsSpanPrefix">
         <source>Span</source>
-        <target state="new">Span</target>
+        <target state="translated">Yayılma</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsStartTime">
         <source>Start time &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="translated">Başlangıç zamanı &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="StateColumnHeader">
+        <source>State</source>
+        <target state="translated">Durum</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredFilteringAddFilter">
+        <source>Add filter</source>
+        <target state="translated">Filtre ekle</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredFilteringFilters">
+        <source>Filters</source>
+        <target state="translated">Filtreler</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredFilteringNoFilters">
+        <source>No filters</source>
+        <target state="translated">Filtre bulunamadı</target>
+        <note />
       </trans-unit>
       <trans-unit id="StructuredLogsDetailsContextHeader">
         <source>Context</source>
@@ -411,6 +506,16 @@
         <source>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</source>
         <target state="translated">Toplam: &lt;strong&gt;{0} sonuç bulundu&lt;/strong&gt;</target>
         <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="VolumeMountTypeColumnHeader">
+        <source>Mount type</source>
+        <target state="translated">Bağlama türü</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VolumePathColumnHeader">
+        <source>Path</source>
+        <target state="translated">Yol</target>
+        <note />
       </trans-unit>
     </body>
   </file>

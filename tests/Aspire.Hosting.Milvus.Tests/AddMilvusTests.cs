@@ -123,7 +123,7 @@ public class AddMilvusTests
         var containerServicesKeysCount = containerConfig.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(1, containerServicesKeysCount);
 
-        Assert.Contains(containerConfig, kvp => kvp.Key == "ConnectionStrings__my-milvus" && kvp.Value == "Endpoint=http://localhost:19530;Key=root:pass");
+        Assert.Contains(containerConfig, kvp => kvp.Key == "ConnectionStrings__my-milvus" && kvp.Value == "Endpoint=http://my-milvus:19530;Key=root:pass");
     }
 
     [Fact]

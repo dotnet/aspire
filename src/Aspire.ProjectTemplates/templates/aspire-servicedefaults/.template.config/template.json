@@ -20,10 +20,22 @@
     "language": "C#",
     "type": "project"
   },
-  "precedence": "8000",
+  "precedence": "9000",
   "identity": "Aspire.ServiceDefaults.CSharp.8.0",
-  "thirdPartyNotices": "https://aka.ms/dotnet/aspire/8.0-third-party-notices",
+  "thirdPartyNotices": "https://aka.ms/dotnet/aspire/third-party-notices",
   "groupIdentity": "Aspire.ServiceDefaults",
+  "sources": [
+    {
+      "source": "./9.0",
+      "target": "./",
+      "condition": "AspireVersionActual == 9.0"
+    },
+    {
+      "source": "./8.2",
+      "target": "./",
+      "condition": "AspireVersionActual == 8.2"
+    }
+  ],
   "symbols": {
     "Framework": {
       "type": "parameter",
@@ -33,10 +45,50 @@
         {
           "choice": "net8.0",
           "description": "Target net8.0"
+        },
+        {
+          "choice": "net9.0",
+          "description": "Target net9.0"
         }
       ],
       "replaces": "net8.0",
-      "defaultValue": "net8.0"
+      "defaultValue": "net9.0"
+    },
+    "AspireVersion": {
+      "type": "parameter",
+      "description": "The version of .NET Aspire to use.",
+      "displayName": ".NET Aspire version",
+      "datatype": "choice",
+      "isEnabled": "Framework == net8.0",
+      "choices": [
+          {
+             "choice": "9.0",
+             "displayName": "9.0",
+             "description": "Chooses .NET Aspire 9.0"
+          },
+          {
+            "choice": "8.2",
+            "displayName": "8.2",
+            "description": "Chooses .NET Aspire 8.2"
+         }
+      ],
+      "defaultValue": "9.0"
+    },
+    "AspireVersionDefault": {
+      "type": "generated",
+      "generator": "constant",
+      "parameters": {
+        "value": "9.0"
+      }
+    },
+    "AspireVersionActual": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "AspireVersion",
+        "fallbackVariableName": "AspireVersionDefault"
+      },
+      "replaces": "aspireVersion"
     },
     "hostIdentifier": {
       "type": "bind",

@@ -2,10 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Confluent.Kafka;
-using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Polly;
 using Xunit;
@@ -15,6 +18,45 @@ namespace Aspire.Hosting.Kafka.Tests;
 
 public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
 {
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWaitForOnKafkaBlocksDependentResources()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
+        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
+        {
+            return healthCheckTcs.Task;
+        });
+
+        var resource = builder.AddKafka("resource")
+                              .WithHealthCheck("blocking_check");
+
+        var dependentResource = builder.AddKafka("dependentresource")
+                                       .WaitFor(resource);
+
+        using var app = builder.Build();
+
+        var pendingStart = app.StartAsync().DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
+
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        await pendingStart;
+
+        await app.StopAsync().DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+    }
+
     [Fact]
     [RequiresDocker]
     public async Task VerifyKafkaResource()
@@ -31,10 +73,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var hb = Host.CreateApplicationBuilder();
 
-        hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            [$"ConnectionStrings:{kafka.Resource.Name}"] = await kafka.Resource.ConnectionStringExpression.GetValueAsync(default)
-        });
+        hb.Configuration[$"ConnectionStrings:{kafka.Resource.Name}"] = await kafka.Resource.ConnectionStringExpression.GetValueAsync(default);
 
         hb.AddKafkaProducer<string, string>("kafka");
         hb.AddKafkaConsumer<string, string>("kafka", consumerBuilder =>
@@ -73,7 +112,6 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4909")]
     [InlineData(true)]
     [InlineData(false)]
     [RequiresDocker]
@@ -92,7 +130,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
             if (useVolume)
             {
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
-                volumeName = VolumeNameGenerator.CreateVolumeName(kafka1, nameof(WithDataShouldPersistStateBetweenUsages));
+                volumeName = VolumeNameGenerator.Generate(kafka1, nameof(WithDataShouldPersistStateBetweenUsages));
 
                 // if the volume already exists (because of a crashing previous run), delete it
                 DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
@@ -101,20 +139,34 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
             else
             {
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
+                Directory.CreateDirectory(bindMountPath);
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    // the docker container runs as a non-root user, so we need to grant other user's read/write permission
+                    // to the bind mount directory.
+                    // Note that we need to do this after creating the directory, because the umask is applied at the time of creation.
+                    const UnixFileMode BindMountPermissions =
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                        UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
+                    File.SetUnixFileMode(bindMountPath, BindMountPermissions);
+                }
                 kafka1.WithDataBindMount(bindMountPath);
             }
 
             using (var app = builder1.Build())
             {
                 await app.StartAsync();
+
+                await app.WaitForHealthyAsync(kafka1);
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-                    {
-                        [$"ConnectionStrings:{kafka1.Resource.Name}"] = await kafka1.Resource.ConnectionStringExpression.GetValueAsync(default)
-                    });
+                    hb.Configuration[$"ConnectionStrings:{kafka1.Resource.Name}"] = await kafka1.Resource.ConnectionStringExpression.GetValueAsync(default);
 
                     hb.AddKafkaProducer<string, string>("kafka");
 
@@ -139,6 +191,9 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
                 {
                     // Stops the container, or the Volume/mount would still be in use
                     await app.StopAsync();
+                    //kafka shutdown has delay,so without delay to running instance using same data and second instance failed to start.
+                    await Task.Delay(TimeSpan.FromMinutes(1));
+
                 }
             }
 
@@ -157,14 +212,13 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
             using (var app = builder2.Build())
             {
                 await app.StartAsync();
+                await app.WaitForHealthyAsync(kafka1);
+
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-                    {
-                        [$"ConnectionStrings:{kafka2.Resource.Name}"] = await kafka2.Resource.ConnectionStringExpression.GetValueAsync(default)
-                    });
+                    hb.Configuration[$"ConnectionStrings:{kafka2.Resource.Name}"] = await kafka2.Resource.ConnectionStringExpression.GetValueAsync(default);
 
                     hb.AddKafkaConsumer<string, string>("kafka", consumerBuilder =>
                     {

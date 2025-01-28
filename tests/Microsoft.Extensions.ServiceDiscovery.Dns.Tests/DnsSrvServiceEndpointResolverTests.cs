@@ -112,7 +112,7 @@ public class DnsSrvServiceEndpointResolverTests
             var tcs = new TaskCompletionSource<ServiceEndpointResolverResult>();
             watcher.OnEndpointsUpdated = tcs.SetResult;
             watcher.Start();
-            var initialResult = await tcs.Task.ConfigureAwait(false);
+            var initialResult = await tcs.Task;
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
             Assert.Equal(3, initialResult.EndpointSource.Endpoints.Count);
@@ -199,7 +199,7 @@ public class DnsSrvServiceEndpointResolverTests
             var tcs = new TaskCompletionSource<ServiceEndpointResolverResult>();
             watcher.OnEndpointsUpdated = tcs.SetResult;
             watcher.Start();
-            var initialResult = await tcs.Task.ConfigureAwait(false);
+            var initialResult = await tcs.Task;
             Assert.NotNull(initialResult);
             Assert.Null(initialResult.Exception);
             Assert.True(initialResult.ResolvedSuccessfully);

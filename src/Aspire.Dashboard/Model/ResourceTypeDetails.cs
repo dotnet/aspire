@@ -8,7 +8,7 @@ using Aspire.Dashboard.Otlp.Storage;
 namespace Aspire.Dashboard.Model;
 
 [DebuggerDisplay("Type = {Type}, InstanceId = {InstanceId}, ReplicaSetName = {ReplicaSetName}")]
-public class ResourceTypeDetails
+public class ResourceTypeDetails : IEquatable<ResourceTypeDetails>
 {
     private ResourceTypeDetails(OtlpApplicationType type, string? instanceId, string? replicaSetName)
     {
@@ -49,5 +49,20 @@ public class ResourceTypeDetails
     public override string ToString()
     {
         return $"Type = {Type}, InstanceId = {InstanceId}, ReplicaSetName = {ReplicaSetName}";
+    }
+
+    public bool Equals(ResourceTypeDetails? other)
+    {
+        if (other == null)
+        {
+            return false;
+        }
+
+        if (Type != other.Type || InstanceId != other.InstanceId || ReplicaSetName != other.ReplicaSetName)
+        {
+            return false;
+        }
+
+        return true;
     }
 }

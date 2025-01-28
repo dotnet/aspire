@@ -3,7 +3,7 @@
 
 namespace Aspire.Confluent.Kafka;
 
-internal sealed class ConfluentKafkaCommon
+internal static class ConfluentKafkaCommon
 {
     public const string MeterName = "Aspire.Confluent.Kafka";
 
@@ -13,4 +13,9 @@ internal sealed class ConfluentKafkaCommon
     public const string KeyedConsumerHealthCheckName = "Aspire.Confluent.Kafka.Consumer_";
 
     public const string LogCategoryName = "Aspire.Confluent.Kafka";
+
+    private const string EnableAspire8ConfluentKafkaMetrics = "EnableAspire8ConfluentKafkaMetrics";
+
+    internal static bool IsAspire8ConfluentKafkaMetricsEnabled { get; } =
+        AppContext.TryGetSwitch(EnableAspire8ConfluentKafkaMetrics, out var value) && value;
 }

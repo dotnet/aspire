@@ -3,13 +3,25 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var db1 = builder.AddSqlServer("sql1").PublishAsAzureSqlDatabase().AddDatabase("db1");
-var db2 = builder.AddSqlServer("sql2").PublishAsContainer().AddDatabase("db2");
+var sql1 = builder.AddAzureSqlServer("sql1")
+                  .RunAsContainer();
+
+var db1 = sql1.AddDatabase("db1");
+
+var sql2 = builder.AddSqlServer("sql2")
+                  .PublishAsContainer();
+
+var db2 = sql2.AddDatabase("db2");
+
+var dbsetup = builder.AddProject<Projects.SqlServerEndToEnd_DbSetup>("dbsetup")
+                     .WithReference(db1).WaitFor(sql1)
+                     .WithReference(db2).WaitFor(sql2);
 
 builder.AddProject<Projects.SqlServerEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()
-       .WithReference(db1)
-       .WithReference(db2);
+       .WithReference(db1).WaitFor(db1)
+       .WithReference(db2).WaitFor(db2)
+       .WaitForCompletion(dbsetup);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

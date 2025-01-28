@@ -36,7 +36,7 @@ Weitere Informationen zu unterstützten Containerruntimes finden Sie unter „ht
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check returned an error: {0}</source>
-        <target state="needs-review-translation">Bei der Abhängigkeitsprüfung des Anwendungsorchestrators ist ein unerwarteter Fehler aufgetreten: {0}.</target>
+        <target state="translated">Fehler bei der Abhängigkeitsprüfung des Anwendungsorchestrierers: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">

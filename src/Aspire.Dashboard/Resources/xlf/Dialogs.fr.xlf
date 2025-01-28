@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="ExemplarsDialogCloseButtonText">
         <source>Close</source>
-        <target state="new">Close</target>
+        <target state="translated">Fermer</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogDetailsColumnHeader">
         <source>Details</source>
-        <target state="new">Details</target>
+        <target state="translated">Détails</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogTimestampColumnHeader">
         <source>Timestamp</source>
-        <target state="new">Timestamp</target>
+        <target state="translated">Timestamp</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogTitle">
         <source>Exemplars</source>
-        <target state="new">Exemplars</target>
+        <target state="translated">Exemplaires</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogTrace">
         <source>Trace</source>
-        <target state="new">Trace</target>
+        <target state="translated">Trace</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogTraceColumnHeader">
         <source>Trace</source>
-        <target state="new">Trace</target>
+        <target state="translated">Trace</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogValueColumnHeader">
         <source>Value</source>
-        <target state="new">Value</target>
+        <target state="translated">Valeur</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogApplyFilterButtonText">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="FilterDialogConditionInputLabel">
         <source>Condition</source>
-        <target state="new">Condition</target>
+        <target state="translated">Condition</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="FilterDialogParameterInputLabel">
         <source>Parameter</source>
-        <target state="new">Parameter</target>
+        <target state="translated">Paramètre</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogRemoveFilterButtonText">
@@ -159,22 +159,32 @@
       </trans-unit>
       <trans-unit id="OpenInTextVisualizer">
         <source>Open in text visualizer</source>
-        <target state="new">Open in text visualizer</target>
+        <target state="translated">Ouvrir dans le visualiseur de texte</target>
         <note />
       </trans-unit>
       <trans-unit id="OpenTraceDialogCancelButtonText">
         <source>Cancel</source>
-        <target state="new">Cancel</target>
+        <target state="translated">Annuler</target>
         <note />
       </trans-unit>
       <trans-unit id="OpenTraceDialogMessage">
         <source>Waiting for trace {0} to load...</source>
-        <target state="new">Waiting for trace {0} to load...</target>
+        <target state="translated">En attente du chargement du {0} de trace...</target>
         <note>{0} is a trace ID</note>
       </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>
         <target state="translated">Sombre</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogLanguage">
+        <source>Language</source>
+        <target state="translated">Langue</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogLanguagePageReloads">
+        <source>The page will reload on language change.</source>
+        <target state="translated">La page se rechargera en cas de changement de langue.</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">
@@ -199,22 +209,22 @@
       </trans-unit>
       <trans-unit id="TextVisualizerDialogJsonFormat">
         <source>Format JSON</source>
-        <target state="new">Format JSON</target>
+        <target state="translated">Format JSON</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerDialogPlaintextFormat">
         <source>Unformatted</source>
-        <target state="new">Unformatted</target>
+        <target state="translated">Non formaté</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerDialogXmlFormat">
         <source>Format XML</source>
-        <target state="new">Format XML</target>
+        <target state="translated">Format XML</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerSelectFormatType">
         <source>Select format</source>
-        <target state="new">Select format</target>
+        <target state="translated">Sélectionner un format</target>
         <note />
       </trans-unit>
     </body>

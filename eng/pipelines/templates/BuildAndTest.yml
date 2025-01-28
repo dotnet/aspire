@@ -21,16 +21,33 @@ parameters:
     default: false
 
 steps:
-  - script: ${{ parameters.buildScript }}
-            -restore -build
-            -pack
-            -configuration ${{ parameters.buildConfig }}
-            /p:ArchiveTests=true
-            /bl:${{ parameters.repoLogPath }}/build.binlog
-            $(_OfficialBuildIdArgs)
-    displayName: Build
+  # Internal pipeline: Build with pack+sign
+  - ${{ if ne(parameters.runAsPublic, 'true') }}:
+    - script: ${{ parameters.buildScript }}
+              -restore -build
+              -pack
+              -sign $(_SignArgs)
+              -publish $(_PublishArgs)
+              -configuration ${{ parameters.buildConfig }}
+              /bl:${{ parameters.repoLogPath }}/build.binlog
+              $(_OfficialBuildIdArgs)
+              $(_InternalBuildArgs)
+      displayName: Build
 
-  - ${{ if or(ne(parameters.runAsPublic, 'true'), ne(parameters.runHelixTests, 'true')) }}:
+  # Public pipeline - helix tests
+  - ${{ if eq(parameters.runAsPublic, 'true') }}:
+    - script: ${{ parameters.buildScript }}
+              -restore -build
+              -configuration ${{ parameters.buildConfig }}
+              -pack
+              /p:ArchiveTests=${{ lower(eq(parameters.runHelixTests, 'true')) }}
+              /bl:${{ parameters.repoLogPath }}/build.binlog
+              $(_OfficialBuildIdArgs)
+      displayName: Build
+
+  # Non-helix tests are run only on the public pipeline
+  - ${{ if and(eq(parameters.runAsPublic, 'true'), ne(parameters.runHelixTests, 'true')) }}:
+    # non-helix tests
     - ${{ if ne(parameters.isWindows, 'true') }}:
       - script: mkdir ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
                 cd ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
@@ -57,20 +74,22 @@ steps:
 
       displayName: Run non-helix tests
 
-  - ${{ if or(ne(parameters.runAsPublic, 'true'), eq(parameters.runHelixTests, 'true')) }}:
+  # Helix tests are run only on the public pipeline
+  - ${{ if and(eq(parameters.runAsPublic, 'true'), eq(parameters.runHelixTests, 'true')) }}:
     - script: ${{ parameters.buildScript }}
               /p:Configuration=${{ parameters.buildConfig }}
               $(_OfficialBuildIdArgs)
-              /bl:${{ parameters.repoLogPath }}/WorkloadInstallForTesting.binlog
+              /bl:${{ parameters.repoLogPath }}/InstallSdksForTesting.binlog
               -projects $(Build.SourcesDirectory)/tests/workloads.proj
-      displayName: Install sdk+workload for testing
+      displayName: Install sdk for testing
 
     # Helix captures code coverage information and, once tests are complete, the code coverage information is
     # downloaded to <repo root>/artifacts/helixresults folder.
     - template: /eng/pipelines/templates/send-to-helix.yml
       parameters:
         HelixProjectPath: '$(Build.SourcesDirectory)/tests/helix/send-to-helix-ci.proj'
-        HelixProjectArguments: /m /p:Configuration=${{ parameters.buildConfig }} /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
+        # Code coverage on windows is disabled: <issue>
+        HelixProjectArguments: /m /p:ContinuousIntegrationBuild=true /p:Configuration=${{ parameters.buildConfig }} /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
 
         ${{ if eq(parameters.isWindows, 'true') }}:
           ${{ if eq(variables['System.TeamProject'], 'public') }}:
@@ -100,62 +119,18 @@ steps:
       continueOnError: true
       condition: always()
 
-  - task: CopyFiles@2
-    inputs:
-      Contents: '${{ parameters.repoArtifactsPath }}/**/*.cobertura.xml'
-      TargetFolder: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
-      flattenFolders: true
-    displayName: Gather code coverage results
-
+  # Code coverage - only on public pipelines
   - ${{ if eq(parameters.runAsPublic, 'true') }}:
+    - task: CopyFiles@2
+      inputs:
+        Contents: '${{ parameters.repoArtifactsPath }}/**/*.cobertura.xml'
+        TargetFolder: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
+        flattenFolders: true
+      displayName: Gather code coverage results
+
     - task: PublishPipelineArtifact@1
       displayName: Publish coverage results (cobertura.xml)
       inputs:
         targetPath: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
         artifactName: '$(Agent.JobName)_CodeCoverageResults'
         publishLocation: 'pipeline'
-
-  - ${{ if ne(parameters.runAsPublic, 'true') }}:
-    - task: 1ES.PublishPipelineArtifact@1
-      displayName: Publish code coverage results
-      inputs:
-        targetPath: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
-        artifactName: '$(Agent.JobName)_CodeCoverageResults'
-
-  # Run on windows, for internal pipeline, or public+non-helix-tests job
-  - ${{ if and(eq(parameters.isWindows, 'true'), or(ne(parameters.runAsPublic, 'true'), ne(parameters.runHelixTests, 'true'))) }}:
-    - script: ${{ parameters.buildScript }}
-              -pack
-              -sign $(_SignArgs)
-              -publish $(_PublishArgs)
-              -configuration ${{ parameters.buildConfig }}
-              /bl:${{ parameters.repoLogPath }}/pack.binlog
-              /p:Restore=false /p:Build=false
-              $(_OfficialBuildIdArgs)
-      displayName: Pack, Sign, and Publish
-
-    - script: ${{ parameters.buildScript }}
-        -restore -build
-        -pack
-        -sign $(_SignArgs)
-        -publish $(_PublishArgs)
-        -configuration $(_BuildConfig)
-        /bl:${{ parameters.repoLogPath }}/build-workloads.binlog
-        -projects eng\workloads\workloads.csproj
-        $(_InternalBuildArgs)
-      displayName: Build Workloads
-
-    - ${{ if eq(parameters.runAsPublic, 'true') }}:
-      - task: PublishPipelineArtifact@1
-        displayName: Publish VSDrop MSIs
-        inputs:
-          targetPath: '$(Build.SourcesDirectory)/artifacts/VSSetup/$(_BuildConfig)'
-          artifactName: VSDropInsertion
-          publishLocation: 'pipeline'
-
-    - ${{ if ne(parameters.runAsPublic, 'true') }}:
-      - task: 1ES.PublishPipelineArtifact@1
-        displayName: Publish VSDrop MSIs
-        inputs:
-          targetPath: '$(Build.SourcesDirectory)/artifacts/VSSetup/$(_BuildConfig)'
-          artifactName: VSDropInsertion

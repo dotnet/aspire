@@ -32,6 +32,9 @@ public partial class PlotlyChart : ChartBase
 
     public string ChartDivId { get; } = $"plotly-chart-container-{Interlocked.Increment(ref s_nextChartId)}";
 
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+
     private DotNetObjectReference<ChartInterop>? _chartInteropReference;
     private IJSObjectReference? _jsModule;
 

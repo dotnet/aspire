@@ -31,7 +31,7 @@ else
                        Id="@($"tab-{Metrics.MetricViewKind.Table}")"
                        Label="@Loc[nameof(ControlsStrings.ChartContainerTableTab)]"
                        Icon="@(new Icons.Regular.Size24.Table())">
-                <div class="metric-tab">
+                <div class="metrics-chart-container metric-tab">
                     <MetricTable InstrumentViewModel="_instrumentViewModel" Duration="Duration" Applications="Applications" />
                     <ChartFilters InstrumentViewModel="_instrumentViewModel" Instrument="_instrument" DimensionFilters="@DimensionFilters"/>
                 </div>

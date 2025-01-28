@@ -2,8 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Otlp;
 using Microsoft.AspNetCore.Components;
-using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
 
@@ -15,79 +16,105 @@ public partial class StructuredLogDetails
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
 
-    private IQueryable<LogEntryPropertyViewModel> FilteredItems =>
-        _logEntryAttributes.Select(p => new LogEntryPropertyViewModel { Name = p.Key, Value = p.Value })
-            .Where(ApplyFilter).AsQueryable();
+    [Inject]
+    public required IJSRuntime JS { get; init; }
 
-    private IQueryable<LogEntryPropertyViewModel> FilteredExceptionItems =>
-        _exceptionAttributes.Select(p => new LogEntryPropertyViewModel { Name = p.Key, Value = p.Value })
-            .Where(ApplyFilter).AsQueryable();
+    internal IQueryable<TelemetryPropertyViewModel> FilteredItems =>
+        _logEntryAttributes.Where(ApplyFilter).AsQueryable();
 
-    private IQueryable<LogEntryPropertyViewModel> FilteredContextItems =>
-        _contextAttributes.Select(p => new LogEntryPropertyViewModel { Name = p.Key, Value = p.Value })
-            .Where(ApplyFilter).AsQueryable();
+    internal IQueryable<TelemetryPropertyViewModel> FilteredExceptionItems =>
+        _exceptionAttributes.Where(ApplyFilter).AsQueryable();
 
-    private IQueryable<LogEntryPropertyViewModel> FilteredResourceItems =>
-        ViewModel.LogEntry.Application.AllProperties().Select(p => new LogEntryPropertyViewModel { Name = p.Key, Value = p.Value })
+    internal IQueryable<TelemetryPropertyViewModel> FilteredContextItems =>
+        _contextAttributes.Where(ApplyFilter).AsQueryable();
+
+    internal IQueryable<TelemetryPropertyViewModel> FilteredResourceItems =>
+        ViewModel.LogEntry.ApplicationView.AllProperties().Select(p => new TelemetryPropertyViewModel { Name = p.DisplayName, Key = p.Key, Value = p.Value })
             .Where(ApplyFilter).AsQueryable();
 
     private string _filter = "";
+    private bool _dataChanged;
+    private StructureLogsDetailsViewModel? _viewModel;
 
-    private readonly GridSort<LogEntryPropertyViewModel> _nameSort = GridSort<LogEntryPropertyViewModel>.ByAscending(vm => vm.Name);
-    private readonly GridSort<LogEntryPropertyViewModel> _valueSort = GridSort<LogEntryPropertyViewModel>.ByAscending(vm => vm.Value);
-    private List<KeyValuePair<string, string>> _logEntryAttributes = null!;
-    private List<KeyValuePair<string, string>> _contextAttributes = null!;
-    private List<KeyValuePair<string, string>> _exceptionAttributes = null!;
+    private List<TelemetryPropertyViewModel> _logEntryAttributes = null!;
+    private List<TelemetryPropertyViewModel> _contextAttributes = null!;
+    private List<TelemetryPropertyViewModel> _exceptionAttributes = null!;
 
     protected override void OnParametersSet()
     {
-        // Move some attributes to separate lists, e.g. exception attributes to their own list.
-        // Remaining attributes are displayed along side the message.
-        var attributes = ViewModel.LogEntry.Attributes.ToList();
-
-        _contextAttributes =
-        [
-            new KeyValuePair<string, string>("Category", ViewModel.LogEntry.Scope.ScopeName)
-        ];
-        MoveAttributes(attributes, _contextAttributes, a => a.Key is "event.name" or "logrecord.event.id" or "logrecord.event.name");
-        if (HasTelemetryBaggage(ViewModel.LogEntry.TraceId))
+        if (!ReferenceEquals(ViewModel, _viewModel))
         {
-            _contextAttributes.Add(new KeyValuePair<string, string>("TraceId", ViewModel.LogEntry.TraceId));
-        }
-        if (HasTelemetryBaggage(ViewModel.LogEntry.SpanId))
-        {
-            _contextAttributes.Add(new KeyValuePair<string, string>("SpanId", ViewModel.LogEntry.SpanId));
-        }
-        if (HasTelemetryBaggage(ViewModel.LogEntry.ParentId))
-        {
-            _contextAttributes.Add(new KeyValuePair<string, string>("ParentId", ViewModel.LogEntry.ParentId));
-        }
+            // Only set data changed flag if the item being view changes.
+            if (ViewModel.LogEntry.InternalId != _viewModel?.LogEntry.InternalId)
+            {
+                _dataChanged = true;
+            }
 
-        _exceptionAttributes = [];
-        MoveAttributes(attributes, _exceptionAttributes, a => a.Key.StartsWith("exception.", StringComparison.OrdinalIgnoreCase));
+            _viewModel = ViewModel;
 
-        _logEntryAttributes =
-        [
-            new KeyValuePair<string, string>("Level", ViewModel.LogEntry.Severity.ToString()),
-            new KeyValuePair<string, string>("Message", ViewModel.LogEntry.Message),
-            .. attributes,
-        ];
+            // Move some attributes to separate lists, e.g. exception attributes to their own list.
+            // Remaining attributes are displayed along side the message.
+            var attributes = _viewModel.LogEntry.Attributes
+                .Select(a => new TelemetryPropertyViewModel { Name = a.Key, Key = $"unknown-{a.Key}", Value = a.Value })
+                .ToList();
+
+            _contextAttributes =
+            [
+                new TelemetryPropertyViewModel { Name ="Category", Key = KnownStructuredLogFields.CategoryField, Value = _viewModel.LogEntry.Scope.ScopeName }
+            ];
+            MoveAttributes(attributes, _contextAttributes, a => a.Name is "event.name" or "logrecord.event.id" or "logrecord.event.name");
+            if (HasTelemetryBaggage(_viewModel.LogEntry.TraceId))
+            {
+                _contextAttributes.Add(new TelemetryPropertyViewModel { Name = "TraceId", Key = KnownStructuredLogFields.TraceIdField, Value = _viewModel.LogEntry.TraceId });
+            }
+            if (HasTelemetryBaggage(_viewModel.LogEntry.SpanId))
+            {
+                _contextAttributes.Add(new TelemetryPropertyViewModel { Name = "SpanId", Key = KnownStructuredLogFields.SpanIdField, Value = _viewModel.LogEntry.SpanId });
+            }
+            if (HasTelemetryBaggage(_viewModel.LogEntry.ParentId))
+            {
+                _contextAttributes.Add(new TelemetryPropertyViewModel { Name = "ParentId", Key = KnownStructuredLogFields.ParentIdField, Value = _viewModel.LogEntry.ParentId });
+            }
+
+            _exceptionAttributes = [];
+            MoveAttributes(attributes, _exceptionAttributes, a => a.Name.StartsWith("exception.", StringComparison.OrdinalIgnoreCase));
+
+            _logEntryAttributes =
+            [
+                new TelemetryPropertyViewModel { Name = "Level", Key = KnownStructuredLogFields.LevelField, Value = _viewModel.LogEntry.Severity.ToString() },
+                new TelemetryPropertyViewModel { Name = "Message", Key = KnownStructuredLogFields.MessageField, Value = _viewModel.LogEntry.Message },
+                .. attributes,
+            ];
+        }
     }
 
-    private static void MoveAttributes(List<KeyValuePair<string, string>> source, List<KeyValuePair<string, string>> desintation, Func<KeyValuePair<string, string>, bool> predicate)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var insertStart = desintation.Count;
+        if (_dataChanged)
+        {
+            if (!firstRender)
+            {
+                await JS.InvokeVoidAsync("scrollToTop", ".property-grid-container");
+            }
+
+            _dataChanged = false;
+        }
+    }
+
+    private static void MoveAttributes(List<TelemetryPropertyViewModel> source, List<TelemetryPropertyViewModel> destination, Func<TelemetryPropertyViewModel, bool> predicate)
+    {
+        var insertStart = destination.Count;
         for (var i = source.Count - 1; i >= 0; i--)
         {
             if (predicate(source[i]))
             {
-                desintation.Insert(insertStart, source[i]);
+                destination.Insert(insertStart, source[i]);
                 source.RemoveAt(i);
             }
         }
     }
 
-    private bool ApplyFilter(LogEntryPropertyViewModel vm)
+    private bool ApplyFilter(TelemetryPropertyViewModel vm)
     {
         return vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
             vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true;

@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
+  "resources": {
+    "keycloak": {
+      "type": "container.v0",
+      "image": "quay.io/keycloak/keycloak:26.0",
+      "args": [
+        "start",
+        "--import-realm"
+      ],
+      "bindMounts": [
+        {
+          "source": "../realms",
+          "target": "/opt/keycloak/data/import",
+          "readOnly": false
+        }
+      ],
+      "volumes": [
+        {
+          "name": "keycloak.apphost-18509cd2da-keycloak-data",
+          "target": "/opt/keycloak/data",
+          "readOnly": false
+        }
+      ],
+      "env": {
+        "KEYCLOAK_ADMIN": "admin",
+        "KEYCLOAK_ADMIN_PASSWORD": "{keycloak-password.value}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 8080
+        }
+      }
+    },
+    "apiservice": {
+      "type": "project.v0",
+      "path": "../Keycloak.ApiService/Keycloak.ApiService.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{apiservice.bindings.http.targetPort}",
+        "services__keycloak__http__0": "{keycloak.bindings.http.url}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "webfrontend": {
+      "type": "project.v0",
+      "path": "../Keycloak.Web/Keycloak.Web.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{webfrontend.bindings.http.targetPort}",
+        "services__keycloak__http__0": "{keycloak.bindings.http.url}",
+        "services__apiservice__http__0": "{apiservice.bindings.http.url}",
+        "services__apiservice__https__0": "{apiservice.bindings.https.url}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        }
+      }
+    },
+    "keycloak-password": {
+      "type": "parameter.v0",
+      "value": "{keycloak-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
+        }
+      }
+    }
+  }
+}

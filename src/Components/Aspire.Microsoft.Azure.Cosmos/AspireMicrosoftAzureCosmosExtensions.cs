@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Azure.Cosmos;
+using Aspire.Hosting.Azure.CosmosDB;
 using Aspire.Microsoft.Azure.Cosmos;
 using Azure.Identity;
 using Microsoft.Azure.Cosmos;
@@ -33,7 +33,7 @@ public static class AspireMicrosoftAzureCosmosExtensions
         Action<MicrosoftAzureCosmosSettings>? configureSettings = null,
         Action<CosmosClientOptions>? configureClientOptions = null)
     {
-        AddAzureCosmosClient(builder, DefaultConfigSectionName, configureSettings, configureClientOptions, connectionName, serviceKey: null);
+        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, connectionName, serviceKey: null);
     }
 
     /// <summary>
@@ -52,12 +52,11 @@ public static class AspireMicrosoftAzureCosmosExtensions
         Action<MicrosoftAzureCosmosSettings>? configureSettings = null,
         Action<CosmosClientOptions>? configureClientOptions = null)
     {
-        AddAzureCosmosClient(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureClientOptions, connectionName: name, serviceKey: name);
+        AddAzureCosmosClient(builder, configureSettings, configureClientOptions, connectionName: name, serviceKey: name);
     }
 
     private static void AddAzureCosmosClient(
         this IHostApplicationBuilder builder,
-        string configurationSectionName,
         Action<MicrosoftAzureCosmosSettings>? configureSettings,
         Action<CosmosClientOptions>? configureClientOptions,
         string connectionName,
@@ -66,7 +65,11 @@ public static class AspireMicrosoftAzureCosmosExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         var settings = new MicrosoftAzureCosmosSettings();
-        builder.Configuration.GetSection(configurationSectionName).Bind(settings);
+        var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
+
+        configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -133,7 +136,7 @@ public static class AspireMicrosoftAzureCosmosExtensions
                 throw new InvalidOperationException(
                         $"A CosmosClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
                         $"{nameof(settings.ConnectionString)} or {nameof(settings.AccountEndpoint)} must be provided " +
-                        $"in the '{configurationSectionName}' configuration section.");
+                        $"in the '{DefaultConfigSectionName}' or '{DefaultConfigSectionName}:{connectionName}' configuration section.");
             }
         }
     }

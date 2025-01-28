@@ -8,7 +8,8 @@ var oracle = builder.AddOracle("oracle");
 var pdb = oracle.AddDatabase("FREEPDB1");
 
 builder.AddProject<Projects.OracleEndToEnd_ApiService>("api")
-       .WithReference(pdb);
+       .WithReference(pdb)
+       .WaitFor(pdb);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

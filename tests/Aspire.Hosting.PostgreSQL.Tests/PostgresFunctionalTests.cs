@@ -2,10 +2,17 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Data;
+using System.Net;
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Postgres;
+using Aspire.Hosting.Testing;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Npgsql;
 using Polly;
@@ -16,6 +23,79 @@ namespace Aspire.Hosting.PostgreSQL.Tests;
 
 public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 {
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWaitForOnPostgresServerBlocksDependentResources()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        // We use the following check added to the Postgres resource to block
+        // dependent reosurces from starting. This means we'll have two checks
+        // associated with the postgres resource ... the built in one and the
+        // one that we add here. We'll manipulate the TCS to allow us to check
+        // states at various stages of the execution.
+        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
+        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
+        {
+            return healthCheckTcs.Task;
+        });
+
+        var postgres = builder.AddPostgres("postgres")
+                              .WithHealthCheck("blocking_check");
+
+        var dependentResource = builder.AddPostgres("dependentresource")
+                                       .WaitFor(postgres); // Just using another postgres instance as a dependent resource.
+
+        using var app = builder.Build();
+
+        var pendingStart = app.StartAsync();
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        // What for the postgres server to start.
+        await rns.WaitForResourceAsync(postgres.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        // Wait for the dependent resource to be in the Waiting state.
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        // Now unblock the health check.
+        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
+
+        // ... and wait for the resource as a whole to move into the health state.
+        await rns.WaitForResourceHealthyAsync(postgres.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        // ... then the dependent resource should be able to move into a running state.
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        await pendingStart.DefaultTimeout(TestConstants.LongTimeoutTimeSpan); // Startup should now complete.
+
+        // ... but we'll shut everything down immediately because we are done.
+        await app.StopAsync().DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyPgAdminResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        IResourceBuilder<PgAdminContainerResource>? adminBuilder = null;
+        var redis = builder.AddPostgres("postgres").WithPgAdmin(c => adminBuilder = c);
+        Assert.NotNull(adminBuilder);
+
+        using var app = builder.Build();
+
+        await app.StartAsync();
+
+        await app.WaitForTextAsync("Listening at", resourceName: adminBuilder.Resource.Name);
+
+        var client = app.CreateHttpClient(adminBuilder.Resource.Name, "http");
+
+        var path = $"/";
+        var response = await client.GetAsync(path);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
     [Fact]
     [RequiresDocker]
     public async Task VerifyPostgresResource()
@@ -62,6 +142,44 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         }, cts.Token);
     }
 
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWithPgWeb()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        IResourceBuilder<PgWebContainerResource>? pgWebBuilder = null;
+        var dbName = "postgres";
+        var pg = builder.AddPostgres("pg1");
+        var db = pg.AddDatabase(dbName);
+        pg.WithPgWeb(c =>
+        {
+            c.WaitFor(pg);
+            pgWebBuilder = c;
+        });
+
+        Assert.NotNull(pgWebBuilder);
+
+        using var app = builder.Build();
+
+        await app.StartAsync();
+
+        await app.WaitForTextAsync("Starting server...", resourceName: pgWebBuilder.Resource.Name);
+
+        var client = app.CreateHttpClient(pgWebBuilder.Resource.Name, "http");
+
+        var httpContent = new MultipartFormDataContent
+        {
+            { new StringContent(dbName), "bookmark_id" }
+        };
+
+        client.DefaultRequestHeaders.Add("x-session-id", Guid.NewGuid().ToString());
+
+        var response = await client.PostAsync("/api/connect", httpContent);
+        var d = await response.Content.ReadAsStringAsync();
+        response.EnsureSuccessStatusCode();
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -96,7 +214,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             if (useVolume)
             {
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
-                volumeName = VolumeNameGenerator.CreateVolumeName(postgres1, nameof(WithDataShouldPersistStateBetweenUsages));
+                volumeName = VolumeNameGenerator.Generate(postgres1, nameof(WithDataShouldPersistStateBetweenUsages));
 
                 // if the volume already exists (because of a crashing previous run), delete it
                 DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);

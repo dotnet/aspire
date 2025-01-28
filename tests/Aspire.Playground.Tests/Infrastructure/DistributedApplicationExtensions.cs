@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
@@ -134,7 +134,9 @@ public static partial class DistributedApplicationExtensions
 
         var (appHostlogs, resourceLogs) = app.GetLogs();
 
-        AssertDoesNotContain(appHostlogs, log => log.Level >= LogLevel.Error);
+        // Ignoring log entries from DefaultHealthCheckService for now. Once we have dashboard integration for health checks
+        // we'll filter out these log messages from the apphost completely but its useful for debugging for now.
+        AssertDoesNotContain(appHostlogs, log => log.Level >= LogLevel.Error && log.Category != "Microsoft.Extensions.Diagnostics.HealthChecks.DefaultHealthCheckService");
         AssertDoesNotContain(resourceLogs, log => log.Category is { Length: > 0 } category && assertableResourceLogNames.Contains(category) && log.Level >= LogLevel.Error);
 
         static bool ShouldAssertErrorsForResource(IResource resource)

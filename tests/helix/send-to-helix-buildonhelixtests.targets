@@ -4,6 +4,7 @@
     <BuildHelixWorkItemsDependsOn>$(BuildHelixWorkItemsDependsOn);BuildHelixWorkItemsForBuildOnHelixTests</BuildHelixWorkItemsDependsOn>
     <NeedsWorkload>true</NeedsWorkload>
     <NeedsPlaywright>true</NeedsPlaywright>
+    <NeedsAzureFunctionsCli>true</NeedsAzureFunctionsCli>
 
     <WorkItemArchiveWildCard>$(TestArchiveTestsDirForBuildOnHelixTests)**/*.zip</WorkItemArchiveWildCard>
 
@@ -14,6 +15,8 @@
   <ItemGroup>
     <HelixPreCommand Include="$(_EnvVarSetKeyword) SkipDashboardProjectReference=true" />
     <HelixPreCommand Include="$(_EnvVarSetKeyword) TestsRunningOutsideOfRepo=true" />
+    <!-- required for tests that build docker images, like Aspire.Playground.Tests -->
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) DOCKER_BUILDKIT=1" />
 
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set NUGET_PACKAGES=%HELIX_WORKITEM_ROOT%\nuget-cache\" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export NUGET_PACKAGES=$HELIX_WORKITEM_ROOT/nuget-cache/" />
@@ -27,8 +30,12 @@
     <ItemGroup>
       <_TestRunCommandArguments Remove="@(_TestRunCommandArguments)" />
 
+      <_TestBlameArguments Remove="@(_TestBlameArguments)" />
+      <_TestBlameArguments Include="--blame-crash" />
+      <_TestBlameArguments Include="--blame-crash-dump-type full" />
+
       <!-- Using `dotnet test` for the project directly here -->
-      <_TestRunCommandArguments Include="dotnet test -s .runsettings --results-directory $(_HelixLogsPath)" />
+      <_TestRunCommandArguments Include="dotnet test -s .runsettings --results-directory $(_HelixLogsPath) -v:n" />
       <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
     </ItemGroup>
 
@@ -36,14 +43,15 @@
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
 
-      <_TestRunCommand>dotnet build -bl:$(_HelixLogsPath)/build.binlog $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
+      <_TestRunCommand>dotnet build -bl:$(_HelixLogsPath)/build.binlog /p:TreatWarningsAsErrors=true $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
+      <_TestRunCommand Condition="'$(HelixPerWorkItemPreCommand)' != ''">$(HelixPerWorkItemPreCommand) $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
 
       <_SetPathEnvVar Condition="'$(OS)' != 'Windows_NT'">PATH=${SDK_FOR_WORKLOAD_TESTING_PATH}:$PATH</_SetPathEnvVar>
       <_SetPathEnvVar Condition="'$(OS)' == 'Windows_NT'">PATH=%SDK_FOR_WORKLOAD_TESTING_PATH%%3B%PATH%</_SetPathEnvVar>
     </PropertyGroup>
 
     <ItemGroup>
-      <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
+      <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" PreCommands="" />
 
       <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
         <PayloadArchive>%(Identity)</PayloadArchive>

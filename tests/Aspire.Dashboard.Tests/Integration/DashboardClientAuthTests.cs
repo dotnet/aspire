@@ -2,19 +2,24 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
+using System.Threading.Channels;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
-using Google.Protobuf.WellKnownTypes;
 using Aspire.ResourceService.Proto.V1;
+using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
+using Xunit.Abstractions;
 using DashboardServiceBase = Aspire.ResourceService.Proto.V1.DashboardService.DashboardServiceBase;
 
 namespace Aspire.Dashboard.Tests.Integration;
@@ -23,15 +28,23 @@ public sealed class DashboardClientAuthTests
 {
     private const string ApiKeyHeaderName = "x-resource-service-api-key";
 
+    private readonly ITestOutputHelper _testOutputHelper;
+
+    public DashboardClientAuthTests(ITestOutputHelper testOutputHelper)
+    {
+        _testOutputHelper = testOutputHelper;
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public async Task ConnectsToResourceService_Unsecured(bool useHttps)
     {
-        await using var server = await CreateResourceServiceServerAsync(useHttps);
-        await using var client = await CreateDashboardClientAsync(server.Url, authMode: ResourceClientAuthMode.Unsecured);
+        var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(_testOutputHelper);
+        await using var server = await CreateResourceServiceServerAsync(loggerFactory, useHttps).DefaultTimeout();
+        await using var client = await CreateDashboardClientAsync(loggerFactory, server.Url, authMode: ResourceClientAuthMode.Unsecured).DefaultTimeout();
 
-        var call = server.Calls.ApplicationInformationCalls.Single();
+        var call = await server.Calls.ApplicationInformationCallsChannel.Reader.ReadAsync().DefaultTimeout();
 
         Assert.NotNull(call.Request);
         Assert.NotNull(call.RequestHeaders);
@@ -43,26 +56,28 @@ public sealed class DashboardClientAuthTests
     [InlineData(false)]
     public async Task ConnectsToResourceService_ApiKey(bool useHttps)
     {
-        await using var server = await CreateResourceServiceServerAsync(useHttps);
-        await using var client = await CreateDashboardClientAsync(server.Url, authMode: ResourceClientAuthMode.ApiKey, configureOptions: options => options.ResourceServiceClient.ApiKey = "TestApiKey!");
+        var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(_testOutputHelper);
+        await using var server = await CreateResourceServiceServerAsync(loggerFactory, useHttps).DefaultTimeout();
+        await using var client = await CreateDashboardClientAsync(loggerFactory, server.Url, authMode: ResourceClientAuthMode.ApiKey, configureOptions: options => options.ResourceServiceClient.ApiKey = "TestApiKey!").DefaultTimeout();
 
-        var call = server.Calls.ApplicationInformationCalls.Single();
+        var call = await server.Calls.ApplicationInformationCallsChannel.Reader.ReadAsync().DefaultTimeout();
 
         Assert.NotNull(call.Request);
         Assert.NotNull(call.RequestHeaders);
         Assert.Equal("TestApiKey!", call.RequestHeaders.GetValue(ApiKeyHeaderName));
     }
 
-    private static async Task<ResourceServiceServer> CreateResourceServiceServerAsync(bool useHttps, Action<TestCalls>? configureCalls = null)
+    private static async Task<ResourceServiceServer> CreateResourceServiceServerAsync(ILoggerFactory loggerFactory, bool useHttps, Action<TestCalls>? configureCalls = null)
     {
         var serverAppBuilder = WebApplication.CreateSlimBuilder();
 
-        TestCalls testCalls = new();
+        var testCalls = new TestCalls();
 
         configureCalls?.Invoke(testCalls);
 
         serverAppBuilder.Services.AddGrpc(options => options.EnableDetailedErrors = true);
         serverAppBuilder.Services.AddSingleton(testCalls);
+        serverAppBuilder.Services.AddSingleton(loggerFactory);
         serverAppBuilder.WebHost.ConfigureKestrel(ConfigureKestrel);
 
         var serverApp = serverAppBuilder.Build();
@@ -94,6 +109,7 @@ public sealed class DashboardClientAuthTests
     }
 
     private static async Task<DashboardClient> CreateDashboardClientAsync(
+        ILoggerFactory loggerFactory,
         string serverAddress,
         ResourceClientAuthMode authMode = ResourceClientAuthMode.Unsecured,
         Action<DashboardOptions>? configureOptions = null)
@@ -111,10 +127,13 @@ public sealed class DashboardClientAuthTests
 
         options.ResourceServiceClient.TryParseOptions(out _);
 
-        DashboardClient client = new(
-            loggerFactory: NullLoggerFactory.Instance,
+        var client = new DashboardClient(
+            loggerFactory: loggerFactory,
             configuration: new ConfigurationManager(),
             dashboardOptions: Options.Create(options),
+            dashboardClientStatus: new TestDashboardClientStatus(),
+            timeProvider: new BrowserTimeProvider(NullLoggerFactory.Instance),
+            knownPropertyLookup: new MockKnownPropertyLookup(),
             configureHttpHandler: handler => handler.SslOptions.RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true);
 
         var iClient = (IDashboardClient)client;
@@ -139,13 +158,12 @@ public sealed class DashboardClientAuthTests
 
     private sealed class TestCalls
     {
-        public List<ApplicationInformationCall> ApplicationInformationCalls { get; }
-            = [
-                new ApplicationInformationCall(new ApplicationInformationResponse()
-                {
-                    ApplicationName = "Test application"
-                })
-            ];
+        public Channel<ReceivedCallInfo<ApplicationInformationRequest>> ApplicationInformationCallsChannel { get; } = Channel.CreateUnbounded<ReceivedCallInfo<ApplicationInformationRequest>>();
+    }
+
+    private sealed class TestDashboardClientStatus : IDashboardClientStatus
+    {
+        public bool IsEnabled => true;
     }
 
     private sealed class MockDashboardService(TestCalls testCalls) : DashboardServiceBase
@@ -154,10 +172,12 @@ public sealed class DashboardClientAuthTests
             ApplicationInformationRequest request,
             ServerCallContext context)
         {
-            var call = testCalls.ApplicationInformationCalls.First(call => call.Request is null);
-            call.Request = request;
-            call.RequestHeaders = context.RequestHeaders;
-            return Task.FromResult(call.Response);
+            testCalls.ApplicationInformationCallsChannel.Writer.TryWrite(new ReceivedCallInfo<ApplicationInformationRequest>(request, context.RequestHeaders));
+
+            return Task.FromResult(new ApplicationInformationResponse()
+            {
+                ApplicationName = "Test application"
+            });
         }
 
         public override Task WatchResources(
@@ -178,10 +198,9 @@ public sealed class DashboardClientAuthTests
         }
     }
 
-    private sealed class ApplicationInformationCall(ApplicationInformationResponse response)
+    private sealed class ReceivedCallInfo<T>(T request, Metadata requestHeaders) where T : IMessage
     {
-        public ApplicationInformationRequest? Request { get; set; }
-        public Metadata? RequestHeaders { get; set; }
-        public ApplicationInformationResponse Response => response;
+        public T Request => request;
+        public Metadata RequestHeaders => requestHeaders;
     }
 }

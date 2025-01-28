@@ -1,43 +1,52 @@
-targetScope = 'resourceGroup'
-
-@description('')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-@description('')
 param sku string = 'Free_F1'
 
-@description('')
 param capacity int = 1
 
-@description('')
-param principalId string
-
-@description('')
 param principalType string
 
+param principalId string
 
-resource webPubSubService_L5mmKvg0U 'Microsoft.SignalRService/webPubSub@2021-10-01' = {
-  name: toLower(take('wps1${uniqueString(resourceGroup().id)}', 24))
+param ChatForAspire_url_0 string
+
+resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
+  name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
   location: location
-  tags: {
-    'aspire-resource-name': 'wps1'
-  }
   sku: {
     name: sku
     capacity: capacity
   }
-  properties: {
+  tags: {
+    'aspire-resource-name': 'wps1'
   }
 }
 
-resource roleAssignment_yvXMOMBDZ 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: webPubSubService_L5mmKvg0U
-  name: guid(webPubSubService_L5mmKvg0U.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4'))
+resource wps1_WebPubSubServiceOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(wps1.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4'))
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4')
     principalId: principalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4')
     principalType: principalType
   }
+  scope: wps1
 }
 
-output endpoint string = 'https://${webPubSubService_L5mmKvg0U.properties.hostName}'
+resource ChatForAspire 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
+  name: 'ChatForAspire'
+  properties: {
+    eventHandlers: [
+      {
+        urlTemplate: ChatForAspire_url_0
+        userEventPattern: '*'
+        systemEvents: [
+          'connected'
+        ]
+      }
+    ]
+  }
+  parent: wps1
+}
+
+output endpoint string = 'https://${wps1.properties.hostName}'

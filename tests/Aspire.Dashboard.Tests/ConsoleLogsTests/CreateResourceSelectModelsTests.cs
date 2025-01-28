@@ -2,11 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
-using System.Collections.Frozen;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
-using Google.Protobuf.WellKnownTypes;
+using Aspire.Tests.Shared.DashboardModel;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.ConsoleLogsTests;
@@ -20,17 +19,17 @@ public class CreateResourceSelectModelsTests
         var applications = new List<ResourceViewModel>
         {
             // replica set
-            CreateResourceViewModel("App1-r1", KnownResourceState.Running, displayName: "App1"),
-            CreateResourceViewModel("App1-r2", null, displayName: "App1"),
+            ModelTestHelpers.CreateResource(appName: "App1-r1", state: KnownResourceState.Running, displayName: "App1"),
+            ModelTestHelpers.CreateResource(appName: "App1-r2", displayName: "App1"),
 
             // singleton, starting state (should be listed in text)
-            CreateResourceViewModel("App2", KnownResourceState.Starting),
+            ModelTestHelpers.CreateResource(appName: "App2", state: KnownResourceState.Starting),
 
             // singleton, finished state (should be listed in text)
-            CreateResourceViewModel("App3", KnownResourceState.Finished),
+            ModelTestHelpers.CreateResource(appName: "App3", state: KnownResourceState.Finished),
 
             // singleton, should not have state in text
-            CreateResourceViewModel("App4", KnownResourceState.Running)
+            ModelTestHelpers.CreateResource(appName: "App4", state: KnownResourceState.Running)
         };
 
         var resourcesByName = new ConcurrentDictionary<string, ResourceViewModel>(applications.ToDictionary(app => app.Name));
@@ -99,25 +98,5 @@ public class CreateResourceSelectModelsTests
 
                 Assert.Equal("App4", entry.Name);
             });
-    }
-
-    // display name will be replica set when there are multiple resources with the same display name
-    private static ResourceViewModel CreateResourceViewModel(string appName, KnownResourceState? state, string? displayName = null)
-    {
-        return new ResourceViewModel
-        {
-            Name = appName,
-            ResourceType = "CustomResource",
-            DisplayName = displayName ?? appName,
-            Uid = Guid.NewGuid().ToString(),
-            CreationTimeStamp = DateTime.UtcNow,
-            Environment = [],
-            Properties = FrozenDictionary<string, Value>.Empty,
-            Urls = [],
-            State = state?.ToString(),
-            KnownState = state,
-            StateStyle = null,
-            Commands = []
-        };
     }
 }

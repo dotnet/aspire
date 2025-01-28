@@ -6,14 +6,10 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Aspire.Dashboard.Extensions;
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -21,8 +17,17 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Resources : ComponentBase, IAsyncDisposable
 {
+    private const string TypeColumn = nameof(TypeColumn);
+    private const string NameColumn = nameof(NameColumn);
+    private const string StateColumn = nameof(StateColumn);
+    private const string StartTimeColumn = nameof(StartTimeColumn);
+    private const string SourceColumn = nameof(SourceColumn);
+    private const string EndpointsColumn = nameof(EndpointsColumn);
+    private const string ActionsColumn = nameof(ActionsColumn);
+
     private Subscription? _logsSubscription;
-    private Dictionary<OtlpApplication, int>? _applicationUnviewedErrorCounts;
+    private IList<GridColumn>? _gridColumns;
+    private Dictionary<ApplicationKey, int>? _applicationUnviewedErrorCounts;
 
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
@@ -31,22 +36,22 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
     [Inject]
-    public required IDialogService DialogService { get; init; }
-    [Inject]
-    public required IToastService ToastService { get; init; }
+    public required DashboardCommandExecutor DashboardCommandExecutor { get; init; }
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
     [Inject]
     public required IJSRuntime JS { get; init; }
-    [Inject]
-    public required ProtectedSessionStorage SessionStorage { get; init; }
 
     [CascadingParameter]
-    public required ViewportInformation ViewportInformation { get; init; }
+    public required ViewportInformation ViewportInformation { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery]
     public string? VisibleTypes { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "resource")]
+    public string? ResourceName { get; set; }
 
     private ResourceViewModel? SelectedResource { get; set; }
 
@@ -54,15 +59,28 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly ConcurrentDictionary<string, bool> _allResourceTypes = [];
     private readonly ConcurrentDictionary<string, bool> _visibleResourceTypes = new(StringComparers.ResourceName);
+    private readonly HashSet<string> _expandedResourceNames = [];
     private string _filter = "";
     private bool _isTypeFilterVisible;
     private Task? _resourceSubscriptionTask;
     private bool _isLoading = true;
     private string? _elementIdBeforeDetailsViewOpened;
+    private FluentDataGrid<ResourceGridViewModel> _dataGrid = null!;
+    private GridColumnManager _manager = null!;
+    private int _maxHighlightedCount;
+
+    private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
+    private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
 
     private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && !resource.IsHiddenState();
 
-    private Task OnResourceTypeVisibilityChangedAsync(string resourceType, bool isVisible)
+    private async Task OnAllResourceTypesCheckedChangedAsync(bool? areAllTypesVisible)
+    {
+        AreAllTypesVisible = areAllTypesVisible;
+        await _dataGrid.SafeRefreshDataAsync();
+    }
+
+    private async Task OnResourceTypeVisibilityChangedAsync(string resourceType, bool isVisible)
     {
         if (isVisible)
         {
@@ -73,12 +91,14 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             _visibleResourceTypes.TryRemove(resourceType, out _);
         }
 
-        return ClearSelectedResourceAsync();
+        await ClearSelectedResourceAsync();
+        await _dataGrid.SafeRefreshDataAsync();
     }
 
-    private Task HandleSearchFilterChangedAsync()
+    private async Task HandleSearchFilterChangedAsync()
     {
-        return ClearSelectedResourceAsync();
+        await ClearSelectedResourceAsync();
+        await _dataGrid.SafeRefreshDataAsync();
     }
 
     private bool? AreAllTypesVisible
@@ -126,16 +146,24 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         }
     }
 
-    private bool HasResourcesWithCommands => _resourceByName.Any(r => r.Value.Commands.Any());
-
-    private IQueryable<ResourceViewModel>? FilteredResources => _resourceByName.Values.Where(Filter).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).AsQueryable();
-
-    private readonly GridSort<ResourceViewModel> _nameSort = GridSort<ResourceViewModel>.ByAscending(p => p.Name);
-    private readonly GridSort<ResourceViewModel> _stateSort = GridSort<ResourceViewModel>.ByAscending(p => p.State);
-    private readonly GridSort<ResourceViewModel> _startTimeSort = GridSort<ResourceViewModel>.ByDescending(p => p.CreationTimeStamp);
+    private readonly GridSort<ResourceGridViewModel> _nameSort = GridSort<ResourceGridViewModel>.ByAscending(p => p.Resource, ResourceViewModelNameComparer.Instance);
+    private readonly GridSort<ResourceGridViewModel> _stateSort = GridSort<ResourceGridViewModel>.ByAscending(p => p.Resource.State).ThenAscending(p => p.Resource, ResourceViewModelNameComparer.Instance);
+    private readonly GridSort<ResourceGridViewModel> _startTimeSort = GridSort<ResourceGridViewModel>.ByDescending(p => p.Resource.StartTimeStamp).ThenAscending(p => p.Resource, ResourceViewModelNameComparer.Instance);
+    private readonly GridSort<ResourceGridViewModel> _typeSort = GridSort<ResourceGridViewModel>.ByAscending(p => p.Resource.ResourceType).ThenAscending(p => p.Resource, ResourceViewModelNameComparer.Instance);
 
     protected override async Task OnInitializedAsync()
     {
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
+
+        _gridColumns = [
+            new GridColumn(Name: NameColumn, DesktopWidth: "1.5fr", MobileWidth: "1.5fr"),
+            new GridColumn(Name: StateColumn, DesktopWidth: "1.25fr", MobileWidth: "1.25fr"),
+            new GridColumn(Name: StartTimeColumn, DesktopWidth: "1fr"),
+            new GridColumn(Name: TypeColumn, DesktopWidth: "1fr"),
+            new GridColumn(Name: SourceColumn, DesktopWidth: "2.25fr"),
+            new GridColumn(Name: EndpointsColumn, DesktopWidth: "2.25fr", MobileWidth: "2fr"),
+            new GridColumn(Name: ActionsColumn, DesktopWidth: "minmax(150px, 1.5fr)", MobileWidth: "1fr")
+        ];
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
         if (DashboardClient.IsEnabled)
@@ -151,7 +179,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             if (ApplicationErrorCountsChanged(newApplicationUnviewedErrorCounts))
             {
                 _applicationUnviewedErrorCounts = newApplicationUnviewedErrorCounts;
-                await InvokeAsync(StateHasChanged);
+                await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             }
         });
 
@@ -178,19 +206,33 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
             }
 
+            UpdateMaxHighlightedCount();
+            await _dataGrid.SafeRefreshDataAsync();
+
             // Listen for updates and apply.
             _resourceSubscriptionTask = Task.Run(async () =>
             {
                 await foreach (var changes in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token).ConfigureAwait(false))
                 {
+                    var selectedResourceHasChanged = false;
+
                     foreach (var (changeType, resource) in changes)
                     {
                         if (changeType == ResourceViewModelChangeType.Upsert)
                         {
                             _resourceByName[resource.Name] = resource;
+                            if (string.Equals(SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
+                            {
+                                SelectedResource = resource;
+                                selectedResourceHasChanged = true;
+                            }
 
-                            _allResourceTypes[resource.ResourceType] = true;
-                            _visibleResourceTypes[resource.ResourceType] = true;
+                            if (_allResourceTypes.TryAdd(resource.ResourceType, true))
+                            {
+                                // If someone has filtered out a resource type then don't remove filter because an update was received.
+                                // Only automatically set resource type to visible if it is a new resource.
+                                _visibleResourceTypes[resource.ResourceType] = true;
+                            }
                         }
                         else if (changeType == ResourceViewModelChangeType.Delete)
                         {
@@ -199,13 +241,82 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                         }
                     }
 
-                    await InvokeAsync(StateHasChanged);
+                    UpdateMaxHighlightedCount();
+                    await InvokeAsync(async () =>
+                    {
+                        await _dataGrid.SafeRefreshDataAsync();
+                        if (selectedResourceHasChanged)
+                        {
+                            // Notify page that the selected resource parameter has changed.
+                            // This is required so the resource open in the details view is refreshed.
+                            StateHasChanged();
+                        }
+                    });
                 }
             });
         }
     }
 
-    private bool ApplicationErrorCountsChanged(Dictionary<OtlpApplication, int> newApplicationUnviewedErrorCounts)
+    private ValueTask<GridItemsProviderResult<ResourceGridViewModel>> GetData(GridItemsProviderRequest<ResourceGridViewModel> request)
+    {
+        // Get filtered and ordered resources.
+        var filteredResources = _resourceByName.Values
+            .Where(Filter)
+            .Select(r => new ResourceGridViewModel { Resource = r })
+            .AsQueryable();
+        filteredResources = request.ApplySorting(filteredResources);
+
+        // Rearrange resources based on parent information.
+        // This must happen after resources are ordered so nested resources are in the right order.
+        // Collapsed resources are filtered out of results.
+        var orderedResources = ResourceGridViewModel.OrderNestedResources(filteredResources.ToList(), r => !_expandedResourceNames.Contains(r.Name))
+            .Where(r => !r.IsHidden)
+            .ToList();
+
+        // Paging visible resources.
+        var query = orderedResources
+            .Skip(request.StartIndex)
+            .Take(request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount);
+
+        return ValueTask.FromResult(GridItemsProviderResult.From(query.ToList(), orderedResources.Count));
+    }
+
+    private void UpdateMaxHighlightedCount()
+    {
+        var maxHighlightedCount = 0;
+        foreach (var kvp in _resourceByName)
+        {
+            var resourceHighlightedCount = 0;
+            foreach (var command in kvp.Value.Commands)
+            {
+                if (command.IsHighlighted && command.State != CommandViewModelState.Hidden)
+                {
+                    resourceHighlightedCount++;
+                }
+            }
+            maxHighlightedCount = Math.Max(maxHighlightedCount, resourceHighlightedCount);
+        }
+
+        // Don't attempt to display more than 2 highlighted commands. Many commands will take up too much space.
+        // Extra highlighted commands are still available in the menu.
+        _maxHighlightedCount = Math.Min(maxHighlightedCount, DashboardUIHelpers.MaxHighlightedCommands);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ResourceName is not null)
+        {
+            if (_resourceByName.TryGetValue(ResourceName, out var selectedResource))
+            {
+                await ShowResourceDetailsAsync(selectedResource, buttonId: null);
+            }
+
+            // Navigate to remove ?resource=xxx in the URL.
+            NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(), new NavigationOptions { ReplaceHistoryEntry = true });
+        }
+    }
+
+    private bool ApplicationErrorCountsChanged(Dictionary<ApplicationKey, int> newApplicationUnviewedErrorCounts)
     {
         if (_applicationUnviewedErrorCounts == null || _applicationUnviewedErrorCounts.Count != newApplicationUnviewedErrorCounts.Count)
         {
@@ -227,13 +338,31 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
 
-        if (SelectedResource == resource)
+        if (string.Equals(SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
         {
             await ClearSelectedResourceAsync();
         }
         else
         {
             SelectedResource = resource;
+
+            // Ensure that the selected resource is visible in the grid. All parents must be expanded.
+            var current = resource;
+            while (current != null)
+            {
+                if (current.GetResourcePropertyValue(KnownProperties.Resource.ParentName) is { Length: > 0 } value)
+                {
+                    if (_resourceByName.TryGetValue(value, out current))
+                    {
+                        _expandedResourceNames.Add(value);
+                        continue;
+                    }
+                }
+
+                break;
+            }
+
+            await _dataGrid.SafeRefreshDataAsync();
         }
     }
 
@@ -263,7 +392,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 continue;
             }
 
-            if (item.DisplayName == resource.DisplayName)
+            if (string.Equals(item.DisplayName, resource.DisplayName, StringComparisons.ResourceName))
             {
                 count++;
                 if (count >= 2)
@@ -276,85 +405,26 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         return false;
     }
 
-    private string? GetRowClass(ResourceViewModel resource)
-        => resource == SelectedResource ? "selected-row resource-row" : "resource-row";
+    private string GetRowClass(ResourceViewModel resource)
+        => string.Equals(resource.Name, SelectedResource?.Name, StringComparisons.ResourceName) ? "selected-row resource-row" : "resource-row";
 
     private async Task ExecuteResourceCommandAsync(ResourceViewModel resource, CommandViewModel command)
     {
-        if (!string.IsNullOrWhiteSpace(command.ConfirmationMessage))
-        {
-            var dialogReference = await DialogService.ShowConfirmationAsync(command.ConfirmationMessage);
-            var result = await dialogReference.Result;
-            if (result.Cancelled)
-            {
-                return;
-            }
-        }
-
-        var response = await DashboardClient.ExecuteResourceCommandAsync(resource.Name, resource.ResourceType, command, CancellationToken.None);
-
-        if (response.Kind == ResourceCommandResponseKind.Succeeded)
-        {
-            ToastService.ShowSuccess(string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandSuccess)], command.DisplayName));
-        }
-        else
-        {
-            ToastService.ShowCommunicationToast(new ToastParameters<CommunicationToastContent>()
-            {
-                Intent = ToastIntent.Error,
-                Title = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandFailed)], command.DisplayName),
-                PrimaryAction = Loc[nameof(Dashboard.Resources.Resources.ResourceCommandToastViewLogs)],
-                OnPrimaryAction = EventCallback.Factory.Create<ToastResult>(this, () => NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: resource.Name))),
-                Content = new CommunicationToastContent()
-                {
-                    Details = response.ErrorMessage
-                }
-            });
-        }
+        await DashboardCommandExecutor.ExecuteAsync(resource, command, GetResourceName);
     }
 
-    private static (string Value, string? ContentAfterValue, string ValueToCopy, string Tooltip)? GetSourceColumnValueAndTooltip(ResourceViewModel resource)
+    private static string GetEndpointsTooltip(ResourceViewModel resource)
     {
-        // NOTE projects are also executables, so we have to check for projects first
-        if (resource.IsProject() && resource.TryGetProjectPath(out var projectPath))
+        var displayedEndpoints = GetDisplayedEndpoints(resource);
+
+        if (displayedEndpoints.Count == 0)
         {
-            return (Value: Path.GetFileName(projectPath), ContentAfterValue: null, ValueToCopy: projectPath, Tooltip: projectPath);
-        }
-
-        if (resource.TryGetExecutablePath(out var executablePath))
-        {
-            resource.TryGetExecutableArguments(out var arguments);
-            var argumentsString = arguments.IsDefaultOrEmpty ? "" : string.Join(" ", arguments);
-            var fullCommandLine = $"{executablePath} {argumentsString}";
-
-            return (Value: Path.GetFileName(executablePath), ContentAfterValue: argumentsString, ValueToCopy: fullCommandLine, Tooltip: fullCommandLine);
-        }
-
-        if (resource.TryGetContainerImage(out var containerImage))
-        {
-            return (Value: containerImage, ContentAfterValue: null, ValueToCopy: containerImage, Tooltip: containerImage);
-        }
-
-        if (resource.Properties.TryGetValue(KnownProperties.Resource.Source, out var value) && value.HasStringValue)
-        {
-            return (Value: value.StringValue, ContentAfterValue: null, ValueToCopy: value.StringValue, Tooltip: value.StringValue);
-        }
-
-        return null;
-    }
-
-    private string GetEndpointsTooltip(ResourceViewModel resource)
-    {
-        var displayedEndpoints = GetDisplayedEndpoints(resource, out var additionalMessage);
-
-        if (additionalMessage is not null)
-        {
-            return additionalMessage;
+            return string.Empty;
         }
 
         if (displayedEndpoints.Count == 1)
         {
-            return displayedEndpoints.First().Text;
+            return displayedEndpoints[0].Text;
         }
 
         var maxShownEndpoints = 3;
@@ -368,17 +438,26 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         return tooltipBuilder.ToString();
     }
 
-    private List<DisplayedEndpoint> GetDisplayedEndpoints(ResourceViewModel resource, out string? additionalMessage)
+    private async Task OnToggleCollapse(ResourceGridViewModel viewModel)
     {
-        if (resource.Urls.Length == 0)
+        // View model data is recreated if data updates.
+        // Persist the collapsed state in a separate list.
+        if (viewModel.IsCollapsed)
         {
-            // If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None
-            additionalMessage = ColumnsLoc[nameof(Columns.EndpointsColumnDisplayNone)];
-            return [];
+            viewModel.IsCollapsed = false;
+            _expandedResourceNames.Add(viewModel.Resource.Name);
+        }
+        else
+        {
+            viewModel.IsCollapsed = true;
+            _expandedResourceNames.Remove(viewModel.Resource.Name);
         }
 
-        additionalMessage = null;
+        await _dataGrid.SafeRefreshDataAsync();
+    }
 
+    private static List<DisplayedEndpoint> GetDisplayedEndpoints(ResourceViewModel resource)
+    {
         return ResourceEndpointHelpers.GetEndpoints(resource, includeInternalUrls: false);
     }
 

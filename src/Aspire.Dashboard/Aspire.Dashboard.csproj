@@ -1,9 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <!-- This list of runtimes needs to match the set of runtimes specified in eng/workloads/workloads.csproj -->
     <RuntimeIdentifiers>win-x86;win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <!-- Enable System.GC.DynamicAdaptationMode to get a GC that dynamically adapts to the application's memory use. -->
     <GarbageCollectionAdaptationMode>1</GarbageCollectionAdaptationMode>
     <!--
@@ -11,6 +11,14 @@
       CS8002: Referenced assembly does not have a strong name
     -->
     <NoWarn>$(NoWarn);CS1591;CS8002</NoWarn>
+
+    <!-- This Application is a framework-dependent application that targets .NET 8.0. This means that the
+    application is not able to run if the place where it is deployed does not have the .NET 8.0 runtime installed.
+    Given we want to be able to support people running on environments where they only have the 9.0 SDK/runtime installed,
+    we allow roll-forward to the next major in order to support these customers.-->
+    <RollForward>Major</RollForward>
+
+    <DefineConstants>$(DefineConstants);ASPIRE_DASHBOARD</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -34,6 +42,9 @@
     </Protobuf>
   </ItemGroup>
 
+  <!-- Used by publishing infrastructure to get the version to use for blob publishing -->
+  <Target Name="ReturnPackageVersion" Returns="$(PackageVersion)" />
+
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="Humanizer.Core" />
@@ -49,6 +60,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="Aspire.Dashboard.Components.Resize" />
     <Using Include="Aspire.Dashboard.Model.BrowserStorage" />
   </ItemGroup>
 
@@ -113,10 +125,10 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Routes.resx</DependentUpon>
     </Compile>
-    <Compile Update="Resources\Logs.Designer.cs">
+    <Compile Update="Resources\StructuredFiltering.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>Logs.resx</DependentUpon>
+      <DependentUpon>StructuredFiltering.resx</DependentUpon>
     </Compile>
   </ItemGroup>
 
@@ -205,12 +217,12 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Routes.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Update="Resources\Logs.resx">
+    <EmbeddedResource Update="Resources\StructuredFiltering.resx">
       <XlfSourceFormat>Resx</XlfSourceFormat>
       <XlfOutputItem>EmbeddedResource</XlfOutputItem>
       <SubType>Designer</SubType>
       <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>Logs.Designer.cs</LastGenOutput>
+      <LastGenOutput>StructuredFiltering.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
 
@@ -229,5 +241,13 @@
     <Compile Include="$(SharedDir)TokenGenerator.cs" Link="Utils\TokenGenerator.cs" />
     <Compile Include="$(SharedDir)LoggingHelpers.cs" Link="Utils\LoggingHelpers.cs" />
     <Compile Include="$(SharedDir)StringUtils.cs" Link="Utils\StringUtils.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\LogEntries.cs" Link="Utils\ConsoleLogs\LogEntries.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\LogEntry.cs" Link="Utils\ConsoleLogs\LogEntry.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\TimestampParser.cs" Link="Utils\ConsoleLogs\TimestampParser.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="wwwroot\js\README.md" />
+    <None Include="wwwroot\js\README.md" />
   </ItemGroup>
 </Project>

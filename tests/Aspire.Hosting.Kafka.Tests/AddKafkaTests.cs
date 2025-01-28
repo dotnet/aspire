@@ -109,6 +109,42 @@ public class AddKafkaTests
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
+    [Fact]
+    public async Task WithDataVolumeConfigureCorrectEnvironment()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+
+        var kafka = appBuilder.AddKafka("kafka")
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017))
+            .WithDataVolume("kafka-data");
+
+        var config = await kafka.Resource.GetEnvironmentVariableValuesAsync();
+
+        var volumeAnnotation = kafka.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        Assert.Equal("kafka-data", volumeAnnotation.Source);
+        Assert.Equal("/var/lib/kafka/data", volumeAnnotation.Target);
+        Assert.Contains(config, kvp => kvp.Key == "KAFKA_LOG_DIRS" && kvp.Value == "/var/lib/kafka/data");
+    }
+
+    [Fact]
+    public async Task WithDataBindConfigureCorrectEnvironment()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+
+        var kafka = appBuilder.AddKafka("kafka")
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017))
+            .WithDataBindMount("kafka-data");
+
+        var config = await kafka.Resource.GetEnvironmentVariableValuesAsync();
+
+        var volumeAnnotation = kafka.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        Assert.Equal(Path.Combine(appBuilder.AppHostDirectory, "kafka-data"), volumeAnnotation.Source);
+        Assert.Equal("/var/lib/kafka/data", volumeAnnotation.Target);
+        Assert.Contains(config, kvp => kvp.Key == "KAFKA_LOG_DIRS" && kvp.Value == "/var/lib/kafka/data");
+    }
+
     public static TheoryData<string?, string, int?> WithKafkaUIAddsAnUniqueContainerSetsItsNameAndInvokesConfigurationCallbackTestVariations()
     {
         return new()

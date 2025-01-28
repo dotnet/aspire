@@ -30,11 +30,11 @@ public class AspirePolicyEvaluator : IPolicyEvaluator
 
     /// <summary>
     /// Does authentication for <see cref="AuthorizationPolicy.AuthenticationSchemes"/> and sets the resulting
-    /// <see cref="ClaimsPrincipal"/> to <see cref="HttpContext.User"/>.  If no schemes are set, this is a no-op.
+    /// <see cref="ClaimsPrincipal"/> to <see cref="HttpContext.User"/>. If no schemes are set, this is a no-op.
     /// </summary>
     /// <param name="policy">The <see cref="AuthorizationPolicy"/>.</param>
     /// <param name="context">The <see cref="HttpContext"/>.</param>
-    /// <returns><see cref="AuthenticateResult.Success"/> unless all schemes specified by <see cref="AuthorizationPolicy.AuthenticationSchemes"/> failed to authenticate.  </returns>
+    /// <returns><see cref="AuthenticateResult.Success"/> unless all schemes specified by <see cref="AuthorizationPolicy.AuthenticationSchemes"/> failed to authenticate.</returns>
     public virtual async Task<AuthenticateResult> AuthenticateAsync(AuthorizationPolicy policy, HttpContext context)
     {
         if (policy.AuthenticationSchemes != null && policy.AuthenticationSchemes.Count > 0)

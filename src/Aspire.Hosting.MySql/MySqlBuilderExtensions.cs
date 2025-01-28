@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MySql;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -15,14 +16,17 @@ public static class MySqlBuilderExtensions
     private const string PasswordEnvVarName = "MYSQL_ROOT_PASSWORD";
 
     /// <summary>
-    /// Adds a MySQL server resource to the application model. For local development a container is used. This version the package defaults to the 8.3.0 tag of the mysql container image
+    /// Adds a MySQL server resource to the application model. For local development a container is used.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="MySqlContainerImageTags.Tag"/> tag of the <inheritdoc cref="MySqlContainerImageTags.Image"/> container image.
+    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="password">The parameter used to provide the root password for the MySQL resource. If <see langword="null"/> a random password will be generated.</param>
     /// <param name="port">The host port for MySQL.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<MySqlServerResource> AddMySql(this IDistributedApplicationBuilder builder, string name, IResourceBuilder<ParameterResource>? password = null, int? port = null)
+    public static IResourceBuilder<MySqlServerResource> AddMySql(this IDistributedApplicationBuilder builder, [ResourceName] string name, IResourceBuilder<ParameterResource>? password = null, int? port = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
@@ -30,6 +34,22 @@ public static class MySqlBuilderExtensions
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
         var resource = new MySqlServerResource(name, passwordParameter);
+
+        string? connectionString = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(resource, async (@event, ct) =>
+        {
+            connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{resource.Name}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks().AddMySql(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+
         return builder.AddResource(resource)
                       .WithEndpoint(port: port, targetPort: 3306, name: MySqlServerResource.PrimaryEndpointName) // Internal port is always 3306.
                       .WithImage(MySqlContainerImageTags.Image, MySqlContainerImageTags.Tag)
@@ -37,7 +57,8 @@ public static class MySqlBuilderExtensions
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables[PasswordEnvVarName] = resource.PasswordParameter;
-                      });
+                      })
+                      .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -47,7 +68,7 @@ public static class MySqlBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<MySqlDatabaseResource> AddDatabase(this IResourceBuilder<MySqlServerResource> builder, string name, string? databaseName = null)
+    public static IResourceBuilder<MySqlDatabaseResource> AddDatabase(this IResourceBuilder<MySqlServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
@@ -61,8 +82,11 @@ public static class MySqlBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a phpMyAdmin administration and development platform for MySql to the application model. This version the package defaults to the 5.2 tag of the phpmyadmin container image
+    /// Adds a phpMyAdmin administration and development platform for MySql to the application model.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="MySqlContainerImageTags.PhpMyAdminTag"/> tag of the <inheritdoc cref="MySqlContainerImageTags.PhpMyAdminImage"/> container image.
+    /// </remarks>
     /// <param name="builder">The MySql server resource builder.</param>
     /// <param name="configureContainer">Callback to configure PhpMyAdmin container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
@@ -82,7 +106,7 @@ public static class MySqlBuilderExtensions
 
         var phpMyAdminContainer = new PhpMyAdminContainerResource(containerName);
         var phpMyAdminContainerBuilder = builder.ApplicationBuilder.AddResource(phpMyAdminContainer)
-                                                .WithImage("library/phpmyadmin", "5.2")
+                                                .WithImage(MySqlContainerImageTags.PhpMyAdminImage, MySqlContainerImageTags.PhpMyAdminTag)
                                                 .WithImageRegistry(MySqlContainerImageTags.Registry)
                                                 .WithHttpEndpoint(targetPort: 80, name: "http")
                                                 .WithBindMount(configurationTempFileName, "/etc/phpmyadmin/config.user.inc.php")
@@ -106,7 +130,9 @@ public static class MySqlBuilderExtensions
                     var endpoint = singleInstance.PrimaryEndpoint;
                     phpMyAdminContainerBuilder.WithEnvironment(context =>
                     {
-                        context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.ContainerHost}:{endpoint.Port}");
+                        // PhpMyAdmin assumes MySql is being accessed over a default Aspire container network and hardcodes the resource address
+                        // This will need to be refactored once updated service discovery APIs are available
+                        context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.Resource.Name}:{endpoint.TargetPort}");
                         context.EnvironmentVariables.Add("PMA_USER", "root");
                         context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.PasswordParameter.Value);
                     });
@@ -127,7 +153,9 @@ public static class MySqlBuilderExtensions
                     {
                         var endpoint = mySqlInstance.PrimaryEndpoint;
                         writer.WriteLine("$i++;");
-                        writer.WriteLine($"$cfg['Servers'][$i]['host'] = '{endpoint.ContainerHost}:{endpoint.Port}';");
+                        // PhpMyAdmin assumes MySql is being accessed over a default Aspire container network and hardcodes the resource address
+                        // This will need to be refactored once updated service discovery APIs are available
+                        writer.WriteLine($"$cfg['Servers'][$i]['host'] = '{endpoint.Resource.Name}:{endpoint.TargetPort}';");
                         writer.WriteLine($"$cfg['Servers'][$i]['verbose'] = '{mySqlInstance.Name}';");
                         writer.WriteLine($"$cfg['Servers'][$i]['auth_type'] = 'cookie';");
                         writer.WriteLine($"$cfg['Servers'][$i]['user'] = 'root';");
@@ -157,7 +185,7 @@ public static class MySqlBuilderExtensions
     public static IResourceBuilder<PhpMyAdminContainerResource> WithHostPort(this IResourceBuilder<PhpMyAdminContainerResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        
+
         return builder.WithEndpoint("http", endpoint =>
         {
             endpoint.Port = port;
@@ -175,7 +203,7 @@ public static class MySqlBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/mysql", isReadOnly);
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/var/lib/mysql", isReadOnly);
     }
 
     /// <summary>

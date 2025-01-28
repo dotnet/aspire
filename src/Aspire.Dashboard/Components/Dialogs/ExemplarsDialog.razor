@@ -11,30 +11,27 @@
 @implements IDialogContentComponent<ExemplarsDialogViewModel>
 
 @inject IStringLocalizer<Dialogs> Loc
-@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
 <div style="max-height: 44vh; overflow-y: auto;">
-    <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
-                    ResizeType="DataGridResizeType.Discrete"
-                    Items="@MetricView"
-                    ItemSize="46"
+    <FluentDataGrid Items="@MetricView"
+                    RowSize="DataGridRowSize.Medium"
                     GridTemplateColumns="2fr 1fr 1fr 1fr"
                     TGridItem="ChartExemplar">
         <ChildContent>
-            <AspireTemplateColumn Title="@Loc[nameof(Dialogs.ExemplarsDialogTraceColumnHeader)]" TooltipText="@(context => GetTitle(context))" Tooltip="true">
+            <TemplateColumn Title="@Loc[nameof(Dialogs.ExemplarsDialogTraceColumnHeader)]" TooltipText="@(context => GetTitle(context))" Tooltip="true">
                 <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(context.Span != null ? ColorGenerator.Instance.GetColorHexByKey(OtlpApplication.GetResourceName(context.Span.Source, Content.Applications)) : "transparent");">
                     @GetTitle(context)
                 </span>
-            </AspireTemplateColumn>
-            <AspireTemplateColumn Title="@Loc[nameof(Dialogs.ExemplarsDialogTimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, TimeProvider.ToLocal(context.Start), MillisecondsDisplay.None, CultureInfo.CurrentCulture))" Tooltip="true">
+            </TemplateColumn>
+            <TemplateColumn Title="@Loc[nameof(Dialogs.ExemplarsDialogTimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, TimeProvider.ToLocal(context.Start), MillisecondsDisplay.None, CultureInfo.CurrentCulture))" Tooltip="true">
                 @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, TimeProvider.ToLocal(context.Start), MillisecondsDisplay.Truncated)
-            </AspireTemplateColumn>
-            <AspireTemplateColumn Title="@Loc[nameof(Dialogs.ExemplarsDialogValueColumnHeader)]">
+            </TemplateColumn>
+            <TemplateColumn Title="@Loc[nameof(Dialogs.ExemplarsDialogValueColumnHeader)]">
                 @FormatMetricValue(context.Value)
-            </AspireTemplateColumn>
-            <AspireTemplateColumn Title="@Loc[nameof(Dialogs.ExemplarsDialogDetailsColumnHeader)]">
+            </TemplateColumn>
+            <TemplateColumn Title="@Loc[nameof(Dialogs.ExemplarsDialogDetailsColumnHeader)]">
                 <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewDetailsAsync(context))">View</FluentButton>
-            </AspireTemplateColumn>
+            </TemplateColumn>
         </ChildContent>
         <EmptyContent>
             <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" />&nbsp;@Loc[nameof(ControlsStrings.MetricTableNoMetricsFound)]

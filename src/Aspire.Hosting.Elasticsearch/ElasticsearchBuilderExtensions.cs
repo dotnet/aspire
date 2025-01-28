@@ -1,9 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Elastic.Clients.Elasticsearch;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Elasticsearch;
 using Aspire.Hosting.Utils;
+using Elastic.Clients.Elasticsearch;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting;
 
@@ -19,7 +23,7 @@ public static class ElasticsearchBuilderExtensions
     /// Adds an Elasticsearch container resource to the application model.
     /// </summary>
     /// <remarks>
-    /// The default image is "elasticsearch" and the tag is "8.14.0".
+    /// This version of the package defaults to the <inheritdoc cref="ElasticsearchContainerImageTags.Tag"/> tag of the <inheritdoc cref="ElasticsearchContainerImageTags.Image"/> container image.
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -34,8 +38,8 @@ public static class ElasticsearchBuilderExtensions
     /// var elasticsearch = builder.AddElasticsearch("elasticsearch");
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithReference(elasticsearch);
-    ///  
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     public static IResourceBuilder<ElasticsearchResource> AddElasticsearch(
@@ -44,9 +48,36 @@ public static class ElasticsearchBuilderExtensions
         IResourceBuilder<ParameterResource>? password = null,
         int? port = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
         var elasticsearch = new ElasticsearchResource(name, passwordParameter);
+
+        string? connectionString = null;
+        ElasticsearchClient? elasticsearchClient = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(elasticsearch, async (@event, ct) =>
+        {
+            connectionString = await elasticsearch.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+            if (connectionString is null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{elasticsearch.Name}' resource but the connection string was null.");
+            }
+            elasticsearchClient = new ElasticsearchClient(new Uri(connectionString));
+        });
+
+        var healthCheckKey = $"{name}_check";
+        // todo: Use health check from AspNetCore.Diagnostics.HealthChecks once following PR released:
+        // https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks/pull/2244
+        builder.Services.AddHealthChecks()
+          .Add(new HealthCheckRegistration(
+              healthCheckKey,
+              sp => new ElasticsearchHealthCheck(elasticsearchClient!),
+              failureStatus: default,
+              tags: default,
+              timeout: default));
 
         return builder.AddResource(elasticsearch)
              .WithImage(ElasticsearchContainerImageTags.Image, ElasticsearchContainerImageTags.Tag)
@@ -58,7 +89,8 @@ public static class ElasticsearchBuilderExtensions
              .WithEnvironment(context =>
              {
                  context.EnvironmentVariables["ELASTIC_PASSWORD"] = elasticsearch.PasswordParameter;
-             });
+             })
+             .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -77,12 +109,16 @@ public static class ElasticsearchBuilderExtensions
     /// .WithDataVolume();
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithReference(elasticsearch);
-    ///  
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     public static IResourceBuilder<ElasticsearchResource> WithDataVolume(this IResourceBuilder<ElasticsearchResource> builder, string? name = null)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/usr/share/elasticsearch/data");
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/usr/share/elasticsearch/data");
+    }
 
     /// <summary>
     /// Adds a bind mount for the data folder to a Elasticsearch container resource.
@@ -100,11 +136,15 @@ public static class ElasticsearchBuilderExtensions
     /// .WithDataBindMount("./data/elasticsearch/data");
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithReference(elasticsearch);
-    ///  
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     public static IResourceBuilder<ElasticsearchResource> WithDataBindMount(this IResourceBuilder<ElasticsearchResource> builder, string source)
-        => builder.WithBindMount(source, "/usr/share/elasticsearch/data");
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
 
+        return builder.WithBindMount(source, "/usr/share/elasticsearch/data");
+    }
 }

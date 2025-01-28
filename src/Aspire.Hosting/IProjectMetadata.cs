@@ -17,8 +17,12 @@ public interface IProjectMetadata : IResourceAnnotation
     /// </summary>
     public string ProjectPath { get; }
 
-    // These are for testing
-    internal LaunchSettings? LaunchSettings => null;
+    /// <summary>
+    /// Gets the launch settings associated with the project.
+    /// </summary>
+    public LaunchSettings? LaunchSettings => null;
+
+    // Internal for testing.
     internal IConfiguration? Configuration => null;
 }
 

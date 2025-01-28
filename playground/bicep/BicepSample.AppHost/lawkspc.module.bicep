@@ -1,20 +1,17 @@
-targetScope = 'resourceGroup'
-
-@description('')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-
-resource operationalInsightsWorkspace_FFogvqZja 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
-  name: toLower(take('lawkspc${uniqueString(resourceGroup().id)}', 24))
+resource lawkspc 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  name: take('lawkspc-${uniqueString(resourceGroup().id)}', 63)
   location: location
-  tags: {
-    'aspire-resource-name': 'lawkspc'
-  }
   properties: {
     sku: {
       name: 'PerGB2018'
     }
   }
+  tags: {
+    'aspire-resource-name': 'lawkspc'
+  }
 }
 
-output logAnalyticsWorkspaceId string = operationalInsightsWorkspace_FFogvqZja.id
+output logAnalyticsWorkspaceId string = lawkspc.id

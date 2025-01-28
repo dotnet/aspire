@@ -9,20 +9,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CosmosDB" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.EventHubs" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.MongoDB" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.MySql" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Oracle" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.PostgreSQL" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Redis" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="..\Common\TestResourceNames.cs" />
-
     <ProjectReference Include="..\TestProject.IntegrationServiceA\TestProject.IntegrationServiceA.csproj" AspireProjectMetadataTypeName="IntegrationServiceA" />
     <ProjectReference Include="..\TestProject.ServiceA\TestProject.ServiceA.csproj" AspireProjectMetadataTypeName="ServiceA" />
     <ProjectReference Include="..\TestProject.ServiceB\TestProject.ServiceB.csproj" AspireProjectMetadataTypeName="ServiceB" />

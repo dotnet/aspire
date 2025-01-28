@@ -1,37 +1,32 @@
-targetScope = 'resourceGroup'
-
-@description('')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-@description('')
-param principalId string
-
-@description('')
 param principalType string
 
+param principalId string
 
-resource appConfigurationStore_xM7mBhesj 'Microsoft.AppConfiguration/configurationStores@2023-03-01' = {
-  name: toLower(take('appConfig${uniqueString(resourceGroup().id)}', 24))
+resource appConfig 'Microsoft.AppConfiguration/configurationStores@2024-05-01' = {
+  name: take('appConfig-${uniqueString(resourceGroup().id)}', 50)
   location: location
-  tags: {
-    'aspire-resource-name': 'appConfig'
+  properties: {
+    disableLocalAuth: true
   }
   sku: {
     name: 'standard'
   }
-  properties: {
-    disableLocalAuth: true
+  tags: {
+    'aspire-resource-name': 'appConfig'
   }
 }
 
-resource roleAssignment_3uatMWw7h 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: appConfigurationStore_xM7mBhesj
-  name: guid(appConfigurationStore_xM7mBhesj.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b'))
+resource appConfig_AppConfigurationDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(appConfig.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b'))
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b')
     principalId: principalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b')
     principalType: principalType
   }
+  scope: appConfig
 }
 
-output appConfigEndpoint string = appConfigurationStore_xM7mBhesj.properties.endpoint
+output appConfigEndpoint string = appConfig.properties.endpoint

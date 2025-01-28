@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
@@ -15,13 +15,23 @@
 
   <ItemGroup>
     <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
+
+    <Compile Include="$(RepoRoot)tests\Aspire.Hosting.Tests\Utils\LoggerNotificationExtensions.cs" />
+    <Compile Include="$(RepoRoot)tests\Aspire.Hosting.Tests\Utils\MSBuildUtils.cs" Link="shared\tests\MSBuildUtils.cs" />
+    <Compile Include="$(RepoRoot)tests\testproject\Common\TestResourceNames.cs" Link="shared\tests\TestResourceNames.cs" />
+    <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared\Logging" />
+    <Compile Include="$(TestsSharedDir)ConsoleLogging\*.cs" LinkBase="shared" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" IsAspireProjectResource="false"  />
     <ProjectReference Include="..\..\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Testing\Aspire.Hosting.Testing.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\Aspire.Hosting.Tests\Aspire.Hosting.Tests.csproj" />
-    <ProjectReference Include="..\TestingAppHost1\TestingAppHost1.AppHost\TestingAppHost1.AppHost.csproj" />
+    <ProjectReference Include="..\TestingAppHost1\TestingAppHost1.AppHost\TestingAppHost1.AppHost.csproj" IsAspireProjectResource="false"  />
+
+    <!-- This ProjectReference is *only* to get this project built, but not referenced directly.
+         It will be loaded dynamically by individual tests. -->
+    <ProjectReference Include="..\testproject\TestProject.AppHost\TestProject.AppHost.csproj" ReferenceOutputAssembly="false" IsAspireProjectResource="false" Private="false" />
   </ItemGroup>
 
   <ItemGroup>

@@ -6,13 +6,12 @@
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
 <FluentStack Orientation="Orientation.Vertical">
-    <FluentCheckbox Label="@ControlsStringsLoc[nameof(ControlsStrings.All)]"
+    <FluentCheckbox Label="@ControlsStringsLoc[nameof(ControlsStrings.LabelAll)]"
                     ThreeState="true"
                     ShowIndeterminate="false"
-                    onkeydown="e => console.log(e)"
                     ThreeStateOrderUncheckToIntermediate="true"
                     @bind-CheckState:get="@AreAllTypesVisible()"
-                    @bind-CheckState:set="@OnAllResourceTypesCheckedChanged"
+                    @bind-CheckState:set="@OnAllResourceTypesCheckedChangedAsync"
                      />
     @foreach (var (resourceType, _) in AllResourceTypes)
     {
@@ -33,7 +32,7 @@
     public required ConcurrentDictionary<string,bool> VisibleResourceTypes { get; set; }
 
     [Parameter, EditorRequired]
-    public required Action<bool?> OnAllResourceTypesCheckedChanged { get; set; }
+    public required Func<bool?, Task> OnAllResourceTypesCheckedChangedAsync { get; set; }
 
     [Parameter, EditorRequired]
     public required Func<string, bool,Task> OnResourceTypeVisibilityChangedAsync { get; set; }

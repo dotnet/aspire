@@ -133,6 +133,7 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
 
     const copyIcon = button.querySelector('.copy-icon');
     const checkmarkIcon = button.querySelector('.checkmark-icon');
+
     const anchoredTooltip = document.querySelector(`fluent-tooltip[anchor="${id}"]`);
     const tooltipDiv = anchoredTooltip ? anchoredTooltip.children[0] : null;
     navigator.clipboard.writeText(text)
@@ -140,8 +141,10 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
             if (tooltipDiv) {
                 tooltipDiv.innerText = postcopy;
             }
-            copyIcon.style.display = 'none';
-            checkmarkIcon.style.display = 'inline';
+            if (copyIcon && checkmarkIcon) {
+                copyIcon.style.display = 'none';
+                checkmarkIcon.style.display = 'inline';
+            }
         })
         .catch(() => {
             if (tooltipDiv) {
@@ -154,17 +157,13 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
             tooltipDiv.innerText = precopy;
         }
 
-        copyIcon.style.display = 'inline';
-        checkmarkIcon.style.display = 'none';
+        if (copyIcon && checkmarkIcon) {
+            copyIcon.style.display = 'inline';
+            checkmarkIcon.style.display = 'none';
+        }
         delete button.dataset.copyTimeout;
    }, 1500);
 };
-
-window.updateFluentSelectDisplayValue = function (fluentSelect) {
-    if (fluentSelect) {
-        fluentSelect.updateDisplayValue();
-    }
-}
 
 function isActiveElementInput() {
     const currentElement = document.activeElement;
@@ -325,35 +324,38 @@ window.listenToWindowResize = function(dotnetHelper) {
     window.addEventListener('resize', throttledResizeListener);
 }
 
-window.registerOpenTextVisualizerOnClick = function(layout) {
-    const onClickListener = function (e) {
-        const fluentMenuItem = getFluentMenuItemForTarget(e.target);
+window.setCellTextClickHandler = function (id) {
+    var cellTextElement = document.getElementById(id);
+    if (!cellTextElement) {
+        return;
+    }
 
-        if (!fluentMenuItem) {
-            return;
-        }
-
-        const text = fluentMenuItem.getAttribute("data-text");
-        const description = fluentMenuItem.getAttribute("data-textvisualizer-description");
-
-        if (text && description) {
+    cellTextElement.addEventListener('click', e => {
+        // Propagation behavior:
+        // - Link click stops. Link will open in a new window.
+        // - Any other text allows propagation. Potentially opens details view.
+        if (isElementTagName(e.target, 'a')) {
             e.stopPropagation();
-
-            // data-text may be larger than the max Blazor message size limit for very large strings
-            // we have to stream it
-            const textAsArray = new TextEncoder().encode(text);
-            const textAsStream = DotNet.createJSStreamReference(textAsArray);
-            layout.invokeMethodAsync("OpenTextVisualizerAsync", textAsStream, description);
         }
+    });
+};
+
+window.scrollToTop = function (selector) {
+    var element = document.querySelector(selector);
+    if (element) {
+        element.scrollTop = 0;
     }
+};
 
-    document.addEventListener('click', onClickListener);
-
-    return {
-        onClickListener: onClickListener,
-    }
-}
-
-window.unregisterOpenTextVisualizerOnClick = function (obj) {
-    document.removeEventListener('click', obj.onClickListener);
-}
+// taken from https://learn.microsoft.com/en-us/aspnet/core/blazor/file-downloads?view=aspnetcore-8.0#download-from-a-stream
+window.downloadStreamAsFile = async function (fileName, contentStreamReference) {
+    const arrayBuffer = await contentStreamReference.arrayBuffer();
+    const blob = new Blob([arrayBuffer]);
+    const url = URL.createObjectURL(blob);
+    const anchorElement = document.createElement('a');
+    anchorElement.href = url;
+    anchorElement.download = fileName ?? '';
+    anchorElement.click();
+    anchorElement.remove();
+    URL.revokeObjectURL(url);
+};

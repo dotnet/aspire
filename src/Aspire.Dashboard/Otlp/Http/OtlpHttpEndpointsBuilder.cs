@@ -24,7 +24,7 @@ public static class OtlpHttpEndpointsBuilder
 
     public static void MapHttpOtlpApi(this IEndpointRouteBuilder endpoints, OtlpOptions options)
     {
-        var httpEndpoint = options.GetHttpEndpointUri();
+        var httpEndpoint = options.GetHttpEndpointAddress();
         if (httpEndpoint == null)
         {
             // Don't map OTLP HTTP route endpoints if there isn't a Kestrel endpoint to access them with.

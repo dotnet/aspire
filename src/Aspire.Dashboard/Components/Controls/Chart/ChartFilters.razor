@@ -11,28 +11,27 @@
     {
         <div class="metrics-filters-section">
             <h5>@Loc[nameof(ControlsStrings.ChartContainerFiltersHeader)]</h5>
-            <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
-                            ResizeType="DataGridResizeType.Discrete"
-                            Items="@Queryable.AsQueryable(DimensionFilters)"
+            <FluentDataGrid Items="@Queryable.AsQueryable(DimensionFilters)"
                             GridTemplateColumns="200px 1fr auto"
-                            GenerateHeader="GenerateHeaderOption.None">
+                            GenerateHeader="GenerateHeaderOption.None"
+                            RowSize="DataGridRowSize.Medium">
                 <ChildContent>
                     <AspirePropertyColumn Tooltip="true" TooltipText="@(c => c.Name)" Property="@(c => c.Name)"/>
-                    <AspireTemplateColumn Tooltip="true" TooltipText="@(c => c.SelectedValues.Count == 0 ? Loc[nameof(ControlsStrings.None)] : string.Join(", ", c.SelectedValues.Select(v => v.Name)))">
+                    <AspireTemplateColumn Tooltip="true" TooltipText="@(c => c.SelectedValues.Count == 0 ? Loc[nameof(ControlsStrings.LabelNone)] : string.Join(", ", c.SelectedValues.OrderBy(v => v.Text).Select(v => v.Text)))">
                         <FluentOverflow Class="dimension-overflow">
                             <ChildContent>
                                 @if (context.SelectedValues.Count == 0)
                                 {
-                                    <FluentBadge>@Loc[nameof(ControlsStrings.None)]</FluentBadge>
+                                    <FluentBadge>@Loc[nameof(ControlsStrings.LabelNone)]</FluentBadge>
                                 }
                                 else
                                 {
                                     var i = 0;
-                                    foreach (var item in context.SelectedValues.OrderBy(g => g.Name))
+                                    foreach (var item in context.SelectedValues.OrderBy(v => v.Text))
                                     {
                                         // Always display the first item by setting a fixed value.
                                         <FluentOverflowItem Fixed="@((i == 0) ? OverflowItemFixed.Ellipsis : OverflowItemFixed.None)">
-                                            <span class="dimension-tag">@item.Name</span>
+                                            <span class="dimension-tag">@item.Text</span>
                                         </FluentOverflowItem>
                                         i++;
                                     }
@@ -62,16 +61,16 @@
                             <Header>@context.Name</Header>
                             <Body>
                             <FluentStack Orientation="Orientation.Vertical" Class="dimension-popup">
-                                <FluentCheckbox Label="@Loc[nameof(ControlsStrings.All)]"
+                                <FluentCheckbox Label="@Loc[nameof(ControlsStrings.LabelAll)]"
                                                 ThreeState="true"
                                                 ShowIndeterminate="false"
                                                 ThreeStateOrderUncheckToIntermediate="true"
                                                 @bind-CheckState="context.AreAllValuesSelected"/>
-                                @foreach (var tag in context.Values)
+                                @foreach (var tag in context.Values.OrderBy(v => v.Text))
                                 {
                                     var isChecked = context.SelectedValues.Contains(tag);
-                                    <FluentCheckbox Label="@tag.Name"
-                                                    title="@tag.Name"
+                                    <FluentCheckbox Label="@tag.Text"
+                                                    title="@tag.Text"
                                                     @key=tag
                                                     @bind-Value:get="isChecked"
                                                     @bind-Value:set="c => context.OnTagSelectionChanged(tag, c)"/>

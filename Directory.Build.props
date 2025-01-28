@@ -7,6 +7,7 @@
     <LangVersion>preview</LangVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <SharedDir>$(MSBuildThisFileDirectory)/src/Shared/</SharedDir>
+    <ComponentsDir>$(MSBuildThisFileDirectory)/src/Components/</ComponentsDir>
     <TestsSharedDir>$([MSBuild]::NormalizeDirectory($(MSBuildThisFileDirectory), 'tests', 'Shared'))</TestsSharedDir>
     <TestsSharedRepoTestingDir>$([MSBuild]::NormalizeDirectory($(TestsSharedDir), 'RepoTesting'))</TestsSharedRepoTestingDir>
     <VendoringDir>$(MSBuildThisFileDirectory)/src/Vendoring/</VendoringDir>
@@ -43,7 +44,7 @@
     <BuildArch Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'X86' ">386</BuildArch>
     <BuildArch Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64' ">arm64</BuildArch>
     <BuildArch Condition=" '$(BuildArch)' == '' ">amd64</BuildArch>
-    <DcpDir>$(NuGetPackageRoot)microsoft.developercontrolplane.$(BuildOs)-$(BuildArch)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools/</DcpDir>
+    <DcpDir>$(NuGetPackageRoot)microsoft.developercontrolplane.$(BuildOs)-$(BuildArch)/$(MicrosoftDeveloperControlPlanedarwinamd64Version)/tools/</DcpDir>
 
     <!-- TODO: Need to figure out we can automatically detect target framework here. This property
                is specified to support dashboard path metadata generation on the inner loop. -->

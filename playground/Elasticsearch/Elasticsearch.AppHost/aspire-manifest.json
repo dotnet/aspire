@@ -4,10 +4,10 @@
     "elasticsearch": {
       "type": "container.v0",
       "connectionString": "http://elastic:{elasticsearch-password.value}@{elasticsearch.bindings.http.host}:{elasticsearch.bindings.http.port}",
-      "image": "docker.io/library/elasticsearch:8.14.0",
+      "image": "docker.io/library/elasticsearch:8.15.3",
       "volumes": [
         {
-          "name": "data",
+          "name": "elasticsearch.apphost-93fd2337c1-elasticsearch-data",
           "target": "/usr/share/elasticsearch/data",
           "readOnly": false
         }
@@ -40,6 +40,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{elasticsearch-apiservice.bindings.http.targetPort}",
         "ConnectionStrings__elasticsearch": "{elasticsearch.connectionString}"
       },
       "bindings": {

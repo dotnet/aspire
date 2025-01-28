@@ -2,10 +2,16 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Polly;
 
 namespace Aspire.Hosting;
 
@@ -141,6 +147,9 @@ public static class RedisBuilderExtensions
     /// <summary>
     /// Configures a container resource for Redis Commander which is pre-configured to connect to the <see cref="RedisResource"/> that this method is used on.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.RedisCommanderTag"/> tag of the <inheritdoc cref="RedisContainerImageTags.RedisCommanderImage"/> container image.
+    /// </remarks>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the <see cref="RedisResource"/>.</param>
     /// <param name="configureContainer">Configuration callback for Redis Commander container resource.</param>
     /// <param name="containerName">Override the container name used for Redis Commander.</param>
@@ -198,8 +207,197 @@ public static class RedisBuilderExtensions
 
             configureContainer?.Invoke(resourceBuilder);
 
+            resourceBuilder.WithRelationship(builder.Resource, "RedisCommander");
+
             return builder;
         }
+    }
+
+    /// <summary>
+    /// Configures a container resource for Redis Insight which is pre-configured to connect to the <see cref="RedisResource"/> that this method is used on.
+    /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.RedisInsightTag"/> tag of the <inheritdoc cref="RedisContainerImageTags.RedisInsightImage"/> container image.
+    /// </remarks>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the <see cref="RedisResource"/>.</param>
+    /// <param name="configureContainer">Configuration callback for Redis Insight container resource.</param>
+    /// <param name="containerName">Override the container name used for Redis Insight.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<RedisResource> WithRedisInsight(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<RedisInsightResource>>? configureContainer = null, string? containerName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        if (builder.ApplicationBuilder.Resources.OfType<RedisInsightResource>().SingleOrDefault() is { } existingRedisCommanderResource)
+        {
+            var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingRedisCommanderResource);
+            configureContainer?.Invoke(builderForExistingResource);
+            return builder;
+        }
+        else
+        {
+            containerName ??= $"{builder.Resource.Name}-insight";
+
+            var resource = new RedisInsightResource(containerName);
+            var resourceBuilder = builder.ApplicationBuilder.AddResource(resource)
+                                      .WithImage(RedisContainerImageTags.RedisInsightImage, RedisContainerImageTags.RedisInsightTag)
+                                      .WithImageRegistry(RedisContainerImageTags.RedisInsightRegistry)
+                                      .WithHttpEndpoint(targetPort: 5540, name: "http")
+                                      .ExcludeFromManifest();
+
+            // We need to wait for all endpoints to be allocated before attempting to import databases
+            var endpointsAllocatedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+            {
+                endpointsAllocatedTcs.TrySetResult();
+                return Task.CompletedTask;
+            });
+
+            builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(resource, async (e, ct) =>
+            {
+                var redisInstances = builder.ApplicationBuilder.Resources.OfType<RedisResource>();
+
+                if (!redisInstances.Any())
+                {
+                    // No-op if there are no Redis resources present.
+                    return;
+                }
+
+                // Wait for all endpoints to be allocated before attempting to import databases
+                await endpointsAllocatedTcs.Task.ConfigureAwait(false);
+
+                var redisInsightResource = builder.ApplicationBuilder.Resources.OfType<RedisInsightResource>().Single();
+                var insightEndpoint = redisInsightResource.PrimaryEndpoint;
+
+                using var client = new HttpClient();
+                client.BaseAddress = new Uri($"{insightEndpoint.Scheme}://{insightEndpoint.Host}:{insightEndpoint.Port}");
+
+                var rls = e.Services.GetRequiredService<ResourceLoggerService>();
+                var resourceLogger = rls.GetLogger(resource);
+
+                await ImportRedisDatabases(resourceLogger, redisInstances, client, ct).ConfigureAwait(false);
+            });
+
+            configureContainer?.Invoke(resourceBuilder);
+
+            return builder;
+        }
+
+        static async Task ImportRedisDatabases(ILogger resourceLogger, IEnumerable<RedisResource> redisInstances, HttpClient client, CancellationToken cancellationToken)
+        {
+            var databasesPath = "/api/databases";
+
+            var pipeline = new ResiliencePipelineBuilder().AddRetry(new Polly.Retry.RetryStrategyOptions
+            {
+                Delay = TimeSpan.FromSeconds(2),
+                MaxRetryAttempts = 5,
+            }).Build();
+
+            using (var stream = new MemoryStream())
+            {
+                // As part of configuring RedisInsight we need to factor in the possibility that the
+                // container resource is being run with persistence turned on. In this case we need
+                // to get the list of existing databases because we might need to delete some.
+                var lookup = await pipeline.ExecuteAsync(async (ctx) =>
+                {
+                    var getDatabasesResponse = await client.GetFromJsonAsync<RedisDatabaseDto[]>(databasesPath, cancellationToken).ConfigureAwait(false);
+                    return getDatabasesResponse?.ToLookup(
+                        i => i.Name ?? throw new InvalidDataException("Database name is missing."),
+                        i => i.Id ?? throw new InvalidDataException("Database ID is missing."));
+                }, cancellationToken).ConfigureAwait(false);
+
+                var databasesToDelete = new List<Guid>();
+
+                using var writer = new Utf8JsonWriter(stream);
+
+                writer.WriteStartArray();
+
+                foreach (var redisResource in redisInstances)
+                {
+                    if (lookup is { } && lookup.Contains(redisResource.Name))
+                    {
+                        // It is possible that there are multiple databases with
+                        // a conflicting name so we delete them all. This just keeps
+                        // track of the specific ID that we need to delete.
+                        databasesToDelete.AddRange(lookup[redisResource.Name]);
+                    }
+
+                    if (redisResource.PrimaryEndpoint.IsAllocated)
+                    {
+                        var endpoint = redisResource.PrimaryEndpoint;
+                        writer.WriteStartObject();
+
+                        writer.WriteString("host", redisResource.Name);
+                        writer.WriteNumber("port", endpoint.TargetPort!.Value);
+                        writer.WriteString("name", redisResource.Name);
+                        writer.WriteNumber("db", 0);
+                        //todo: provide username and password when https://github.com/dotnet/aspire/pull/4642 merged.
+                        writer.WriteNull("username");
+                        writer.WriteNull("password");
+                        writer.WriteString("connectionType", "STANDALONE");
+                        writer.WriteEndObject();
+                    }
+                }
+                writer.WriteEndArray();
+                await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                stream.Seek(0, SeekOrigin.Begin);
+
+                var content = new MultipartFormDataContent();
+
+                var fileContent = new StreamContent(stream);
+
+                content.Add(fileContent, "file", "RedisInsight_connections.json");
+
+                var apiUrl = $"{databasesPath}/import";
+
+                try
+                {
+                    if (databasesToDelete.Any())
+                    {
+                        await pipeline.ExecuteAsync(async (ctx) =>
+                        {
+                            // Create a DELETE request to send to the existing instance of
+                            // RedisInsight with the IDs of the database to delete.
+                            var deleteContent = JsonContent.Create(new
+                            {
+                                ids = databasesToDelete
+                            });
+
+                            var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, databasesPath)
+                            {
+                                Content = deleteContent
+                            };
+
+                            var deleteResponse = await client.SendAsync(deleteRequest, cancellationToken).ConfigureAwait(false);
+                            deleteResponse.EnsureSuccessStatusCode();
+
+                        }, cancellationToken).ConfigureAwait(false);
+                    }
+
+                    await pipeline.ExecuteAsync(async (ctx) =>
+                    {
+                        var response = await client.PostAsync(apiUrl, content, ctx)
+                        .ConfigureAwait(false);
+
+                        response.EnsureSuccessStatusCode();
+                    }, cancellationToken).ConfigureAwait(false);
+
+                }
+                catch (Exception ex)
+                {
+                    resourceLogger.LogError("Could not import Redis databases into RedisInsight. Reason: {reason}", ex.Message);
+                }
+            };
+        }
+    }
+
+    private class RedisDatabaseDto
+    {
+        [JsonPropertyName("id")]
+        public Guid? Id { get; set; }
+
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
     }
 
     /// <summary>
@@ -207,8 +405,24 @@ public static class RedisBuilderExtensions
     /// </summary>
     /// <param name="builder">The resource builder for Redis Commander.</param>
     /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
-    /// <returns>The resource builder for PGAdmin.</returns>
+    /// <returns>The resource builder for RedisCommander.</returns>
     public static IResourceBuilder<RedisCommanderResource> WithHostPort(this IResourceBuilder<RedisCommanderResource> builder, int? port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithEndpoint("http", endpoint =>
+        {
+            endpoint.Port = port;
+        });
+    }
+
+    /// <summary>
+    /// Configures the host port that the Redis Insight resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder for Redis Insight.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <returns>The resource builder for RedisInsight.</returns>
+    public static IResourceBuilder<RedisInsightResource> WithHostPort(this IResourceBuilder<RedisInsightResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -240,7 +454,7 @@ public static class RedisBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data", isReadOnly);
+        builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/data", isReadOnly);
         if (!isReadOnly)
         {
             builder.WithPersistence();
@@ -307,5 +521,33 @@ public static class RedisBuilderExtensions
     {
         public TimeSpan? Interval => interval;
         public long KeysChangedThreshold => keysChangedThreshold;
+    }
+
+    /// <summary>
+    /// Adds a named volume for the data folder to a Redis Insight container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Each overload targets a different resource builder type, allowing for tailored functionality. Optional volume names enhance usability, enabling users to easily provide custom names while maintaining clear and distinct method signatures.")]
+    public static IResourceBuilder<RedisInsightResource> WithDataVolume(this IResourceBuilder<RedisInsightResource> builder, string? name = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/data");
+    }
+
+    /// <summary>
+    /// Adds a bind mount for the data folder to a Redis Insight container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<RedisInsightResource> WithDataBindMount(this IResourceBuilder<RedisInsightResource> builder, string source)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+
+        return builder.WithBindMount(source, "/data");
     }
 }

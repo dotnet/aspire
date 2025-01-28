@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="ExemplarsDialogCloseButtonText">
         <source>Close</source>
-        <target state="new">Close</target>
+        <target state="translated">Kapat</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogDetailsColumnHeader">
         <source>Details</source>
-        <target state="new">Details</target>
+        <target state="translated">Ayrıntılar</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogTimestampColumnHeader">
         <source>Timestamp</source>
-        <target state="new">Timestamp</target>
+        <target state="translated">Zaman damgası</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogTitle">
         <source>Exemplars</source>
-        <target state="new">Exemplars</target>
+        <target state="translated">Örnekler</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogTrace">
         <source>Trace</source>
-        <target state="new">Trace</target>
+        <target state="translated">İzleme</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogTraceColumnHeader">
         <source>Trace</source>
-        <target state="new">Trace</target>
+        <target state="translated">İzleme</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogValueColumnHeader">
         <source>Value</source>
-        <target state="new">Value</target>
+        <target state="translated">Değer</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogApplyFilterButtonText">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="FilterDialogConditionInputLabel">
         <source>Condition</source>
-        <target state="new">Condition</target>
+        <target state="translated">Koşul</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="FilterDialogParameterInputLabel">
         <source>Parameter</source>
-        <target state="new">Parameter</target>
+        <target state="translated">Parametre</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogRemoveFilterButtonText">
@@ -159,22 +159,32 @@
       </trans-unit>
       <trans-unit id="OpenInTextVisualizer">
         <source>Open in text visualizer</source>
-        <target state="new">Open in text visualizer</target>
+        <target state="translated">Metin görselleştiricide aç</target>
         <note />
       </trans-unit>
       <trans-unit id="OpenTraceDialogCancelButtonText">
         <source>Cancel</source>
-        <target state="new">Cancel</target>
+        <target state="translated">İptal</target>
         <note />
       </trans-unit>
       <trans-unit id="OpenTraceDialogMessage">
         <source>Waiting for trace {0} to load...</source>
-        <target state="new">Waiting for trace {0} to load...</target>
+        <target state="translated">{0} izinin yüklenmesi bekleniyor...</target>
         <note>{0} is a trace ID</note>
       </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>
         <target state="translated">Koyu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogLanguage">
+        <source>Language</source>
+        <target state="translated">Dil</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogLanguagePageReloads">
+        <source>The page will reload on language change.</source>
+        <target state="translated">Dil değişikliğinde sayfa yeniden yüklenemedi.</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">
@@ -199,22 +209,22 @@
       </trans-unit>
       <trans-unit id="TextVisualizerDialogJsonFormat">
         <source>Format JSON</source>
-        <target state="new">Format JSON</target>
+        <target state="translated">JSON dosyasını biçimlendir</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerDialogPlaintextFormat">
         <source>Unformatted</source>
-        <target state="new">Unformatted</target>
+        <target state="translated">Biçimlendirilmemiş</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerDialogXmlFormat">
         <source>Format XML</source>
-        <target state="new">Format XML</target>
+        <target state="translated">XML dosyasını biçimlendir</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerSelectFormatType">
         <source>Select format</source>
-        <target state="new">Select format</target>
+        <target state="translated">Biçimi seç</target>
         <note />
       </trans-unit>
     </body>

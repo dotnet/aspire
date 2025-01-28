@@ -2,19 +2,49 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ja" original="../Resources.resx">
     <body>
+      <trans-unit id="ResourceActionConsoleLogsText">
+        <source>Console logs</source>
+        <target state="translated">コンソール ログ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionMetricsText">
+        <source>Metrics</source>
+        <target state="translated">メトリック</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionStructuredLogsText">
+        <source>Structured logs</source>
+        <target state="translated">構造化ログ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionTelemetryTooltip">
+        <source>No telemetry found for this resource.</source>
+        <target state="translated">このリソースのテレメトリが見つかりません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionTracesText">
+        <source>Traces</source>
+        <target state="translated">トレース</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceCommandFailed">
-        <source>"{0}" command failed</source>
-        <target state="translated">"{0}" コマンドが失敗しました</target>
-        <note>{0} is the display name of the command that failed</note>
+        <source>{0} "{1}" failed</source>
+        <target state="translated">{0} "{1}" が失敗しました</target>
+        <note>{0} is the resource. {1} is the display name of the command.</note>
+      </trans-unit>
+      <trans-unit id="ResourceCommandStarting">
+        <source>{0} "{1}" starting</source>
+        <target state="translated">{0} "{1}" を開始しています</target>
+        <note>{0} is the resource. {1} is the display name of the command.</note>
       </trans-unit>
       <trans-unit id="ResourceCommandSuccess">
-        <source>"{0}" command succeeded</source>
-        <target state="translated">"{0}" コマンドが成功しました</target>
-        <note>{0} is the display name of the command that succeeded</note>
+        <source>{0} "{1}" succeeded</source>
+        <target state="translated">{0} "{1}" が成功しました</target>
+        <note>{0} is the resource. {1} is the display name of the command.</note>
       </trans-unit>
       <trans-unit id="ResourceCommandToastViewLogs">
-        <source>View Logs</source>
-        <target state="translated">ログの表示</target>
+        <source>View console logs</source>
+        <target state="translated">コンソール ログの表示</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointUrl">
@@ -27,14 +57,14 @@
         <target state="translated">プロキシ URL</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesCommandsColumnHeader">
-        <source>Commands</source>
-        <target state="translated">コマンド</target>
+      <trans-unit id="ResourceDetailsViewConsoleLogs">
+        <source>View console logs</source>
+        <target state="translated">コンソール ログの表示</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesDetailsColumnHeader">
-        <source>Details</source>
-        <target state="translated">詳細</target>
+      <trans-unit id="ResourcesActionsColumnHeader">
+        <source>Actions</source>
+        <target state="translated">アクション</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerArgumentsProperty">
@@ -55,6 +85,11 @@
       <trans-unit id="ResourcesDetailsContainerImageProperty">
         <source>Container image</source>
         <target state="translated">コンテナー イメージ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsContainerLifetimeProperty">
+        <source>Container lifetime</source>
+        <target state="translated">コンテナーの有効期間</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerPortsProperty">
@@ -92,6 +127,11 @@
         <target state="translated">終了コード</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsHealthStateProperty">
+        <source>Health state</source>
+        <target state="translated">正常性状態</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
         <source>Project path</source>
         <target state="translated">プロジェクト パス</target>
@@ -107,6 +147,11 @@
         <target state="translated">状態</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsStopTimeProperty">
+        <source>Stop time</source>
+        <target state="translated">停止時刻</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesEndpointsColumnHeader">
         <source>Endpoints</source>
         <target state="translated">エンドポイント</target>
@@ -115,11 +160,6 @@
       <trans-unit id="ResourcesEnvironmentColumnHeader">
         <source>Environment</source>
         <target state="translated">環境</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesLogsColumnHeader">
-        <source>Logs</source>
-        <target state="translated">ログ</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">
@@ -181,6 +221,16 @@
         <source>Type filter: Filtered</source>
         <target state="translated">型フィルター: フィルター処理済み</target>
         <note />
+      </trans-unit>
+      <trans-unit id="WaitingForHealthDataMessage">
+        <source>Waiting for health data...</source>
+        <target state="translated">正常性データを待機しています...</target>
+        <note>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
+      </trans-unit>
+      <trans-unit id="WaitingHealthDataStatusMessage">
+        <source>Waiting...</source>
+        <target state="translated">待機中...</target>
+        <note>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
       </trans-unit>
     </body>
   </file>

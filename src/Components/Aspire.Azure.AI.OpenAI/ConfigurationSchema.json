@@ -35,14 +35,21 @@
                           "type": "string",
                           "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                           "description": "The timeout applied to an individual network operation."
+                        },
+                        "UserAgentApplicationId": {
+                          "type": "string",
+                          "description": "An optional application ID to use as part of the request User-Agent header."
                         }
                       },
                       "description": "Defines the scenario-independent, client-level options for the Azure-specific OpenAI client."
                     },
+                    "DisableMetrics": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not."
+                    },
                     "DisableTracing": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
-                      "default": false
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not."
                     },
                     "Endpoint": {
                       "type": "string",

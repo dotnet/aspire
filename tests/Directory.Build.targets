@@ -8,6 +8,8 @@
     <VSTestRunSettingsFile Condition="'$(VSTestRunSettingsFile)' == ''">$(RunSettingsFilePath)</VSTestRunSettingsFile>
 
     <DeployRunSettingsFile Condition="'$(DeployRunSettingsFile)' == ''">true</DeployRunSettingsFile>
+    <!-- Use a separate xunit.runner.json for helix that disables parallel test runs -->
+    <XunitRunnerJson Condition="'$(XunitRunnerJson)' == '' and '$(ArchiveTests)' == 'true'">$(RepoRoot)tests\helix\xunit.runner.json</XunitRunnerJson>
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == ''">$(RepositoryEngineeringDir)testing\xunit.runner.json</XunitRunnerJson>
 
     <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestSupportProject)' != 'true')">true</RunTestsOnHelix>
@@ -19,21 +21,23 @@
     <None Include="$(XunitRunnerJson)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <Target Name="ZipTestArchive" AfterTargets="Build" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true'">
+  <Target Name="ZipTestArchive" AfterTargets="Build" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true' and '$(IsCrossTargetingBuild)' != 'true'">
     <Error Condition="'$(TestArchiveTestsDir)' == ''" Text="TestArchiveTestsDir property to archive the test folder must be set." />
     <PropertyGroup>
       <TestsArchiveSourceDir Condition="'$(TestsArchiveSourceDir)' == ''">$(OutDir)</TestsArchiveSourceDir>
+      <ZipTestArchiveTfm></ZipTestArchiveTfm>
+      <ZipTestArchiveTfm Condition="'$(TargetFramework)' != '$(DefaultTargetFramework)'">-$(TargetFramework)</ZipTestArchiveTfm>
     </PropertyGroup>
 
     <MakeDir Directories="$(TestArchiveTestsDir)" />
     <ZipDirectory SourceDirectory="$(TestsArchiveSourceDir)"
-                  DestinationFile="$([MSBuild]::NormalizePath('$(TestArchiveTestsDir)', '$(MSBuildProjectName).zip'))"
+                  DestinationFile="$([MSBuild]::NormalizePath($(TestArchiveTestsDir), '$(MSBuildProjectName)$(ZipTestArchiveTfm).zip'))"
                   Overwrite="true" />
   </Target>
 
   <!-- Used for running one helix job per test class -->
   <Target Name="_ExtractTestClassNames"
-          Condition="'$(ExtractTestClassNamesForHelix)' == 'true'"
+          Condition="'$(ExtractTestClassNamesForHelix)' == 'true' and '$(ArchiveTests)' == 'true'"
           BeforeTargets="ZipTestArchive">
 
     <Error Condition="'$(ExtractTestClassNamesPrefix)' == ''"
@@ -51,10 +55,14 @@
       <TestClassName Include="$([System.IO.Path]::GetFileNameWithoutExtension('%(_TestLines0.Identity)'))" />
     </ItemGroup>
 
+    <ItemGroup>
+      <UniqueTestClassNamesFiltered Include="@(TestClassName->Distinct())" Exclude="@(TestClassNamesToSkipTests)" />
+    </ItemGroup>
+
     <Error Text="No $(ExtractTestClassNamesPrefix) test classes found!" Condition="'@(TestClassName)' == ''" />
 
     <WriteLinesToFile File="$(TestArchiveTestsDir)$(MSBuildProjectName).tests.list"
-                      Lines="@(TestClassName->Distinct())"
+                      Lines="@(UniqueTestClassNamesFiltered)"
                       Overwrite="true" />
   </Target>
 

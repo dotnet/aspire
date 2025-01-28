@@ -1,9 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Data.Common;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Qdrant;
 using Aspire.Hosting.Utils;
+using Aspire.Qdrant.Client;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Qdrant.Client;
 
 namespace Aspire.Hosting;
 
@@ -21,8 +26,8 @@ public static class QdrantBuilderExtensions
     /// Adds a Qdrant resource to the application. A container is used for local development.
     /// </summary>
     /// <remarks>
-    /// This version the package defaults to the v1.8.4 tag of the qdrant/qdrant container image.
     /// The .NET client library uses the gRPC port by default to communicate and this resource exposes that endpoint.
+    /// This version of the package defaults to the <inheritdoc cref="QdrantContainerImageTags.Tag"/> tag of the <inheritdoc cref="QdrantContainerImageTags.Image"/> container image.
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency</param>
@@ -42,6 +47,26 @@ public static class QdrantBuilderExtensions
         var apiKeyParameter = apiKey?.Resource ??
             ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-Key", special: false);
         var qdrant = new QdrantServerResource(name, apiKeyParameter);
+
+        QdrantClient? qdrantClient = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(qdrant, async (@event, ct) =>
+        {
+            var connectionString = await qdrant.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false)
+            ?? throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{qdrant.Name}' resource but the connection string was null.");
+
+            qdrantClient = CreateQdrantClient(connectionString);
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks()
+          .Add(new HealthCheckRegistration(
+              healthCheckKey,
+              sp => new QdrantHealthCheck(qdrantClient ?? throw new InvalidOperationException("Qdrant Client is unavailable")),
+              failureStatus: default,
+              tags: default,
+              timeout: default));
+
         return builder.AddResource(qdrant)
             .WithImage(QdrantContainerImageTags.Image, QdrantContainerImageTags.Tag)
             .WithImageRegistry(QdrantContainerImageTags.Registry)
@@ -61,7 +86,8 @@ public static class QdrantBuilderExtensions
                 {
                     context.EnvironmentVariables[EnableStaticContentEnvVarName] = "0";
                 }
-            });
+            })
+            .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -75,7 +101,7 @@ public static class QdrantBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/qdrant/storage",
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/qdrant/storage",
             isReadOnly);
     }
 
@@ -99,7 +125,7 @@ public static class QdrantBuilderExtensions
     /// </summary>
     /// <param name="builder">An <see cref="IResourceBuilder{T}"/> for <see cref="ProjectResource"/></param>
     /// <param name="qdrantResource">The Qdrant server resource</param>
-    /// <returns></returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<QdrantServerResource> qdrantResource)
          where TDestination : IResourceWithEnvironment
     {
@@ -116,5 +142,46 @@ public static class QdrantBuilderExtensions
         });
 
         return builder;
+    }
+
+    private static QdrantClient CreateQdrantClient(string? connectionString)
+    {
+        if (connectionString is null)
+        {
+            throw new InvalidOperationException("Connection string is unavailable");
+        }
+
+        Uri? endpoint = null;
+        string? key = null;
+
+        if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+        {
+            endpoint = uri;
+        }
+        else
+        {
+            var connectionBuilder = new DbConnectionStringBuilder
+            {
+                ConnectionString = connectionString
+            };
+
+            if (connectionBuilder.TryGetValue("Endpoint", out var endpointValue) && Uri.TryCreate(endpointValue.ToString(), UriKind.Absolute, out var serviceUri))
+            {
+                endpoint = serviceUri;
+            }
+
+            if (connectionBuilder.TryGetValue("Key", out var keyValue))
+            {
+                key = keyValue.ToString();
+            }
+        }
+
+        if (endpoint is null)
+        {
+            throw new InvalidOperationException("Endpoint is unavailable");
+        }
+        
+        var client = new QdrantClient(endpoint, key);
+        return client;
     }
 }

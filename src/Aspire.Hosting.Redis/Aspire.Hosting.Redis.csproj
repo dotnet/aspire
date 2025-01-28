@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting redis</PackageTags>
+    <PackageTags>aspire integration hosting redis</PackageTags>
     <Description>Redis® support for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)redis-cube-red_white-rgb.png</PackageIconFullPath>
   </PropertyGroup>
@@ -13,11 +13,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
+    <PackageReference Include="AspNetCore.HealthChecks.Redis" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Redis.Tests"/>
+  </ItemGroup>
+  
 </Project>

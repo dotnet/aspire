@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
         <source>Settings</source>
-        <target state="needs-review-translation">Configuración de inicio</target>
+        <target state="translated">Configuración</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutSettingsDialogClose">
@@ -88,8 +88,8 @@
         <note />
       </trans-unit>
       <trans-unit id="PageLayoutViewFilters">
-        <source>View Filters</source>
-        <target state="new">View Filters</target>
+        <source>View filters</source>
+        <target state="translated">Ver filtros</target>
         <note />
       </trans-unit>
     </body>

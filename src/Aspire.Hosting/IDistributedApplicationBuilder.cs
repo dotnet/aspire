@@ -144,7 +144,7 @@ public interface IDistributedApplicationBuilder
     /// method. Other extension methods (such as <see cref="ContainerResourceBuilderExtensions.WithImage{T}(IResourceBuilder{T}, string, string)"/>
     /// in this case) can be chained to configure the resource as desired.
     /// <code lang="csharp">
-    /// public static IResourceBuilder&lt;ContainerResource&gt; AddContainer(this IDistributedApplicationBuilder builder, string name, string image, string tag)
+    /// public static IResourceBuilder&lt;ContainerResource&gt; AddContainer(this IDistributedApplicationBuilder builder, [ResourceName] string name, string image, string tag)
     /// {
     ///     var container = new ContainerResource(name);
     ///     return builder.AddResource(container)
@@ -194,7 +194,7 @@ public interface IDistributedApplicationBuilder
     /// another resource to the application model.
     /// </para>
     /// <code lang="csharp">
-    /// public static IResourceBuilder&lt;IResourceWithConnectionString&gt; AddConnectionString(this IDistributedApplicationBuilder builder, string name, string? environmentVariableName = null)
+    /// public static IResourceBuilder&lt;IResourceWithConnectionString&gt; AddConnectionString(this IDistributedApplicationBuilder builder, [ResourceName] string name, string? environmentVariableName = null)
     /// {
     ///     var parameterBuilder = builder.AddParameter(name, _ =>
     ///     {

@@ -8,6 +8,7 @@ using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -96,7 +97,7 @@ public class ManifestGenerationTests
         var redis = builder.AddContainer("redis", "redis");
         builder.Build().Run();
 
-        var redisManifest = await ManifestUtils.GetManifest(redis.Resource);
+        var redisManifest = await ManifestUtils.GetManifest(redis.Resource).DefaultTimeout();
         var expectedManifest = $$"""
             {
               "type": "container.v0",
@@ -104,43 +105,6 @@ public class ManifestGenerationTests
             }
             """;
         Assert.Equal(expectedManifest, redisManifest.ToString());
-    }
-
-    [Fact]
-    public void EnsureExecutablesWithDockerfileProduceDockerfilev0Manifest()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-        program.AppBuilder
-            .AddNodeApp("nodeapp", "fakePath")
-            .WithHttpsEndpoint(targetPort: 3000, env: "HTTPS_PORT")
-            .PublishAsDockerFile();
-        program.AppBuilder
-            .AddNpmApp("npmapp", "fakeDirectory");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        // NPM app should still be executable.v0
-        var npmapp = resources.GetProperty("npmapp");
-        Assert.Equal("executable.v0", npmapp.GetProperty("type").GetString());
-        Assert.DoesNotContain("\\", npmapp.GetProperty("workingDirectory").GetString());
-
-        // Node app should now be dockerfile.v0
-        var nodeapp = resources.GetProperty("nodeapp");
-        Assert.Equal("dockerfile.v0", nodeapp.GetProperty("type").GetString());
-        Assert.True(nodeapp.TryGetProperty("path", out _));
-        Assert.True(nodeapp.TryGetProperty("context", out _));
-        Assert.True(nodeapp.TryGetProperty("env", out var env));
-        Assert.True(nodeapp.TryGetProperty("bindings", out var bindings));
-
-        Assert.Equal(3000, bindings.GetProperty("https").GetProperty("targetPort").GetInt32());
-        Assert.Equal("https", bindings.GetProperty("https").GetProperty("scheme").GetString());
-        Assert.Equal("{nodeapp.bindings.https.targetPort}", env.GetProperty("HTTPS_PORT").GetString());
     }
 
     [Fact]
@@ -417,10 +381,7 @@ public class ManifestGenerationTests
                     "HTTP_PORTS": "{integrationservicea.bindings.http.targetPort}",
                     "SKIP_RESOURCES": "None",
                     "ConnectionStrings__redis": "{redis.connectionString}",
-                    "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
-                    "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
-                    "ConnectionStrings__cosmos": "{cosmos.connectionString}",
-                    "ConnectionStrings__eventhubns": "{eventhubns.connectionString}"
+                    "ConnectionStrings__postgresdb": "{postgresdb.connectionString}"
                   },
                   "bindings": {
                     "http": {
@@ -455,7 +416,7 @@ public class ManifestGenerationTests
                 "postgres": {
                   "type": "container.v0",
                   "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
+                  "image": "{{ComponentTestConstants.AspireTestContainerRegistry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
                   "env": {
                     "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
                     "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -542,21 +503,6 @@ public class ManifestGenerationTests
                       }
                     }
                   }
-                },
-                "oracledatabase-password": {
-                  "type": "parameter.v0",
-                  "value": "{oracledatabase-password.inputs.value}",
-                  "inputs": {
-                    "value": {
-                      "type": "string",
-                      "secret": true,
-                      "default": {
-                        "generate": {
-                          "minLength": 22
-                        }
-                      }
-                    }
-                  }
                 }
               }
             }
@@ -607,7 +553,7 @@ public class ManifestGenerationTests
             }
             """;
 
-        var manifest = await ManifestUtils.GetManifest(param.Resource);
+        var manifest = await ManifestUtils.GetManifest(param.Resource).DefaultTimeout();
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 

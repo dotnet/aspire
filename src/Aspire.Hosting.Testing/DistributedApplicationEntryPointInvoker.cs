@@ -7,7 +7,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.Testing;
 
-internal sealed class DistributedApplicationEntryPointInvoker
+internal static class DistributedApplicationEntryPointInvoker
 {
     // This helpers encapsulates all of the complex logic required to:
     // 1. Execute the entry point of the specified assembly in a different thread.

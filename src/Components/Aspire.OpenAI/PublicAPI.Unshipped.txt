@@ -1,0 +1,27 @@
+#nullable enable
+Aspire.OpenAI.AspireOpenAIClientBuilder
+Aspire.OpenAI.AspireOpenAIClientBuilder.AspireOpenAIClientBuilder(Microsoft.Extensions.Hosting.IHostApplicationBuilder! hostBuilder, string! connectionName, string? serviceKey, bool disableTracing) -> void
+Aspire.OpenAI.AspireOpenAIClientBuilder.ConnectionName.get -> string!
+Aspire.OpenAI.AspireOpenAIClientBuilder.DisableTracing.get -> bool
+Aspire.OpenAI.AspireOpenAIClientBuilder.HostBuilder.get -> Microsoft.Extensions.Hosting.IHostApplicationBuilder!
+Aspire.OpenAI.AspireOpenAIClientBuilder.ServiceKey.get -> string?
+Aspire.OpenAI.OpenAISettings
+Aspire.OpenAI.OpenAISettings.DisableMetrics.get -> bool
+Aspire.OpenAI.OpenAISettings.DisableMetrics.set -> void
+Aspire.OpenAI.OpenAISettings.DisableTracing.get -> bool
+Aspire.OpenAI.OpenAISettings.DisableTracing.set -> void
+Aspire.OpenAI.OpenAISettings.Endpoint.get -> System.Uri?
+Aspire.OpenAI.OpenAISettings.Endpoint.set -> void
+Aspire.OpenAI.OpenAISettings.Key.get -> string?
+Aspire.OpenAI.OpenAISettings.Key.set -> void
+Aspire.OpenAI.OpenAISettings.OpenAISettings() -> void
+Microsoft.Extensions.Hosting.AspireOpenAIClientBuilderChatClientExtensions
+Microsoft.Extensions.Hosting.AspireOpenAIClientBuilderEmbeddingGeneratorExtensions
+Microsoft.Extensions.Hosting.AspireOpenAIExtensions
+static Microsoft.Extensions.Hosting.AspireOpenAIClientBuilderChatClientExtensions.AddChatClient(this Aspire.OpenAI.AspireOpenAIClientBuilder! builder, string? deploymentName = null) -> Microsoft.Extensions.AI.ChatClientBuilder!
+static Microsoft.Extensions.Hosting.AspireOpenAIClientBuilderChatClientExtensions.AddKeyedChatClient(this Aspire.OpenAI.AspireOpenAIClientBuilder! builder, string! serviceKey, string? deploymentName = null) -> Microsoft.Extensions.AI.ChatClientBuilder!
+static Microsoft.Extensions.Hosting.AspireOpenAIClientBuilderEmbeddingGeneratorExtensions.AddEmbeddingGenerator(this Aspire.OpenAI.AspireOpenAIClientBuilder! builder, string? deploymentName = null) -> Microsoft.Extensions.AI.EmbeddingGeneratorBuilder<string!, Microsoft.Extensions.AI.Embedding<float>!>!
+static Microsoft.Extensions.Hosting.AspireOpenAIClientBuilderEmbeddingGeneratorExtensions.AddKeyedEmbeddingGenerator(this Aspire.OpenAI.AspireOpenAIClientBuilder! builder, string! serviceKey, string? deploymentName = null) -> Microsoft.Extensions.AI.EmbeddingGeneratorBuilder<string!, Microsoft.Extensions.AI.Embedding<float>!>!
+static Microsoft.Extensions.Hosting.AspireOpenAIExtensions.AddKeyedOpenAIClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.OpenAI.OpenAISettings!>? configureSettings = null, System.Action<OpenAI.OpenAIClientOptions!>? configureOptions = null) -> Aspire.OpenAI.AspireOpenAIClientBuilder!
+static Microsoft.Extensions.Hosting.AspireOpenAIExtensions.AddOpenAIClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.OpenAI.OpenAISettings!>? configureSettings = null, System.Action<OpenAI.OpenAIClientOptions!>? configureOptions = null) -> Aspire.OpenAI.AspireOpenAIClientBuilder!
+virtual Aspire.OpenAI.AspireOpenAIClientBuilder.ConfigurationSectionName.get -> string!

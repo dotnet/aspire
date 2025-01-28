@@ -47,6 +47,7 @@ public class TestProgram : IDisposable
             DisableDashboard = disableDashboard,
             AssemblyName = assemblyName,
             AllowUnsecuredTransport = allowUnsecuredTransport,
+            EnableResourceLogging = true
         });
 
         builder.Configuration["DcpPublisher:DeleteResourcesOnShutdown"] = "true";
@@ -81,23 +82,6 @@ public class TestProgram : IDisposable
                     .WithEnvironment("POSTGRES_DB", postgresDbName)
                     .AddDatabase(postgresDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(postgres);
-            }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))
-            {
-                var oracleDbName = "freepdb1";
-                var oracleDatabase = AppBuilder.AddOracle("oracledatabase")
-                    .AddDatabase(oracleDbName);
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(oracleDatabase);
-            }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
-            {
-                var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(cosmos);
-            }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
-            {
-                var eventHub = AppBuilder.AddAzureEventHubs("eventhubns").RunAsEmulator().AddEventHub("hub");
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(eventHub);
             }
         }
 

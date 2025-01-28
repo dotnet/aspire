@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
-using Xunit.Sdk;
 
 namespace Aspire.Workload.Tests;
 
@@ -41,7 +40,7 @@ public struct CommandResult
                 }
             }
 
-            throw new XunitException(message.ToString());
+            throw new ToolCommandException(message.ToString(), this);
         }
 
         return this;

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -19,6 +20,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     private List<SelectViewModel<TimeSpan>> _durations = null!;
     private static readonly TimeSpan s_defaultDuration = TimeSpan.FromMinutes(5);
     private AspirePageContentLayout? _contentLayout;
+    private TreeMetricSelector? _treeMetricSelector;
 
     private List<OtlpApplication> _applications = default!;
     private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
@@ -26,7 +28,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     private Subscription? _metricsSubscription;
 
     public string BasePath => DashboardUrls.MetricsBasePath;
-    public string SessionStorageKey => "Metrics_PageState";
+    public string SessionStorageKey => BrowserStorageKeys.MetricsPageState;
     public MetricsViewModel PageViewModel { get; set; } = null!;
 
     [Parameter]
@@ -42,7 +44,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "duration")]
-    public int DurationMinutes { get; set; }
+    public int? DurationMinutes { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "view")]
@@ -59,6 +61,9 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     [Inject]
     public required ILogger<Metrics> Logger { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; init; }
 
     protected override Task OnInitializedAsync()
     {
@@ -77,7 +82,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         _selectApplication = new SelectViewModel<ResourceTypeDetails>
         {
             Id = null,
-            Name = ControlsStringsLoc[ControlsStrings.None]
+            Name = ControlsStringsLoc[nameof(ControlsStrings.LabelNone)]
         };
 
         PageViewModel = new MetricsViewModel
@@ -98,7 +103,10 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     protected override async Task OnParametersSetAsync()
     {
-        await this.InitializeViewModelAsync();
+        if (await this.InitializeViewModelAsync())
+        {
+            return;
+        }
         UpdateSubscription();
     }
 
@@ -114,7 +122,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         };
     }
 
-    public void UpdateViewModelFromQuery(MetricsViewModel viewModel)
+    public Task UpdateViewModelFromQueryAsync(MetricsViewModel viewModel)
     {
         viewModel.SelectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
         viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _selectApplication);
@@ -133,6 +141,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
                 viewModel.SelectedInstrument = viewModel.Instruments.FirstOrDefault(i => i.Parent.MeterName == MeterName && i.Name == InstrumentName);
             }
         }
+        return Task.CompletedTask;
     }
 
     private void UpdateApplications()
@@ -143,7 +152,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         UpdateSubscription();
     }
 
-    private Task HandleSelectedApplicationChangedAsync()
+    private async Task HandleSelectedApplicationChangedAsync()
     {
         // The new resource might not have the currently selected meter/instrument.
         // Check whether the new resource has the current values or not, and clear if they're not available.
@@ -160,7 +169,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             }
         }
 
-        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
+        _treeMetricSelector?.OnResourceChanged();
     }
 
     private bool ShouldClearSelectedMetrics(List<OtlpInstrumentSummary> instruments)
@@ -177,9 +187,15 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         return false;
     }
 
+    private Task ClearMetrics(ApplicationKey? key)
+    {
+        TelemetryRepository.ClearMetrics(key);
+        return Task.CompletedTask;
+    }
+
     private Task HandleSelectedDurationChangedAsync()
     {
-        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
+        return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
     public sealed class MetricsViewModel
@@ -226,20 +242,16 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             PageViewModel.SelectedInstrument = null;
         }
 
-        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: false);
+        return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
     }
 
     public string GetUrlFromSerializableViewModel(MetricsPageState serializable)
     {
-        var duration = PageViewModel.SelectedDuration.Id != s_defaultDuration
-            ? (int?)serializable.DurationMinutes
-            : null;
-
         var url = DashboardUrls.MetricsUrl(
             resource: serializable.ApplicationName,
             meter: serializable.MeterName,
             instrument: serializable.InstrumentName,
-            duration: duration,
+            duration: serializable.DurationMinutes,
             view: serializable.ViewKind);
 
         return url;
@@ -248,7 +260,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     private async Task OnViewChangedAsync(MetricViewKind newView)
     {
         PageViewModel.SelectedViewKind = newView;
-        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: false);
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
     }
 
     private void UpdateSubscription()
@@ -266,7 +278,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
                     // If there are more instruments than before then update the UI.
                     var instruments = TelemetryRepository.GetInstrumentsSummaries(selectedApplicationKey.Value);
 
-                    if (PageViewModel.Instruments is null || instruments.Count > PageViewModel.Instruments.Count)
+                    if (PageViewModel.Instruments is null || instruments.Count != PageViewModel.Instruments.Count)
                     {
                         PageViewModel.Instruments = instruments;
                         await InvokeAsync(StateHasChanged);

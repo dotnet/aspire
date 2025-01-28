@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Issue: https://github.com/dotnet/dnceng/issues/3091 -->
@@ -32,7 +32,7 @@
       2. Run npm run build before building the .NET project.
       MSBuild runs NpmInstall before this task because of the DependsOnTargets attribute.
    -->
-  <Target Name="NpmRunBuild" DependsOnTargets="NpmInstall" BeforeTargets="BeforeBuild" Condition="'$(Configuration)' == 'Debug' and '$(NpmUnavailable)' != 'true' ">
+  <Target Name="NpmRunBuild" DependsOnTargets="NpmInstall" Condition="'$(Configuration)' == 'Debug' and '$(NpmUnavailable)' != 'true' ">
     <Exec Command="npm run build" />
   </Target>
 

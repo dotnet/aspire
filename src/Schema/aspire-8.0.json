@@ -3,14 +3,14 @@
   "$id": "https://json.schemastore.org/aspire-8.0.json",
   "type": "object",
   "description": "Defines the .NET Aspire 8.0 deployment manifest JSON schema.",
-  "required": [ "resources" ],
+  "required": ["resources"],
   "properties": {
     "resources": {
       "type": "object",
       "description": "Contains the set of resources deployable as part of this manifest. Each property is a distinct resource.",
       "additionalProperties": {
         "type": "object",
-        "required": [ "type" ],
+        "required": ["type"],
         "properties": {
           "type": {
             "type": "string"
@@ -38,6 +38,9 @@
               },
               "bindings": {
                 "$ref": "#/definitions/bindings"
+              },
+              "buildArgs": {
+                "$ref": "#/definitions/buildArgs"
               }
             },
             "additionalProperties": false
@@ -103,6 +106,9 @@
                 "type": "string",
                 "description": "The entrypoint to use for the container image when executed."
               },
+              "deployment": {
+                "$ref": "#/definitions/resource.azure.bicep.v0"
+              },
               "args": {
                 "$ref": "#/definitions/args"
               },
@@ -138,6 +144,33 @@
               "path": {
                 "type": "string",
                 "description": "The path to the project file. Relative paths are interpreted as being relative to the location of the manifest file."
+              },
+              "args": {
+                "$ref": "#/definitions/args"
+              },
+              "env": {
+                "$ref": "#/definitions/env"
+              },
+              "bindings": {
+                "$ref": "#/definitions/bindings"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "Represents a .NET project resource.",
+            "required": [ "type", "path" ],
+            "properties": {
+              "type": {
+                "const": "project.v1"
+              },
+              "path": {
+                "type": "string",
+                "description": "The path to the project file. Relative paths are interpreted as being relative to the location of the manifest file."
+              },
+              "deployment": {
+                "$ref": "#/definitions/resource.azure.bicep.v0"
               },
               "args": {
                 "$ref": "#/definitions/args"
@@ -225,53 +258,65 @@
                     },
                     "default": {
                       "type": "object",
-                      "required": [ "generate" ],
-                      "properties": {
-                        "generate": {
-                          "type": "object",
-                          "required": [ "minLength" ],
+                      "oneOf": [
+                        {
+                          "required": [ "generate" ],
                           "properties": {
-                            "minLength": {
-                              "type": "number",
-                              "description": "The minimum length of the generated value."
+                            "generate": {
+                              "type": "object",
+                              "required": [ "minLength" ],
+                              "properties": {
+                                "minLength": {
+                                  "type": "number",
+                                  "description": "The minimum length of the generated value."
+                                },
+                                "lower": {
+                                  "type": "boolean",
+                                  "description": "Indicates whether lower case characters are allowed in the generated value."
+                                },
+                                "upper": {
+                                  "type": "boolean",
+                                  "description": "Indicates whether upper case characters are allowed in the generated value."
+                                },
+                                "numeric": {
+                                  "type": "boolean",
+                                  "description": "Indicates whether numeric characters are allowed in the generated value."
+                                },
+                                "special": {
+                                  "type": "boolean",
+                                  "description": "Indicates whether special characters are allowed in the generated value."
+                                },
+                                "minLower": {
+                                  "type": "number",
+                                  "description": "Specifies the minimum number of lower case characters that must appear in the generated value."
+                                },
+                                "minUpper": {
+                                  "type": "number",
+                                  "description": "Specifies the minimum number of upper case characters that must appear in the generated value."
+                                },
+                                "minNumeric": {
+                                  "type": "number",
+                                  "description": "Specifies the minimum number of numeric characters that must appear in the generated value."
+                                },
+                                "minSpecial": {
+                                  "type": "number",
+                                  "description": "Specifies the minimum number of special characters that must appear in the generated value."
+                                }
+                              }
                             },
-                            "lower": {
-                              "type": "boolean",
-                              "description": "Indicates whether lower case characters are allowed in the generated value."
-                            },
-                            "upper": {
-                              "type": "boolean",
-                              "description": "Indicates whether upper case characters are allowed in the generated value."
-                            },
-                            "numeric": {
-                              "type": "boolean",
-                              "description": "Indicates whether numeric characters are allowed in the generated value."
-                            },
-                            "special": {
-                              "type": "boolean",
-                              "description": "Indicates whether special characters are allowed in the generated value."
-                            },
-                            "minLower": {
-                              "type": "number",
-                              "description": "Specifies the minimum number of lower case characters that must appear in the generated value."
-                            },
-                            "minUpper": {
-                              "type": "number",
-                              "description": "Specifies the minimum number of upper case characters that must appear in the generated value."
-                            },
-                            "minNumeric": {
-                              "type": "number",
-                              "description": "Specifies the minimum number of numeric characters that must appear in the generated value."
-                            },
-                            "minSpecial": {
-                              "type": "number",
-                              "description": "Specifies the minimum number of special characters that must appear in the generated value."
+                            "additionalProperties": false
+                          }
+                        },
+                        {
+                          "required": [ "value" ],
+                          "properties": {
+                            "value": {
+                              "type": "string",
+                              "description": "The default value to use if the parameter is not provided at deployment time."
                             }
-                          },
-                          "additionalProperties": false
+                          }
                         }
-                      },
-                      "additionalProperties": false
+                      ]
                     }
                   },
                   "additionalProperties": false
@@ -331,35 +376,7 @@
             "additionalProperties": false
           },
           {
-            "type": "object",
-            "default": "Represents a resource that is deployed using Azure Bicep.",
-            "required": [ "path" ],
-            "properties": {
-              "type": {
-                "const": "azure.bicep.v0"
-              },
-              "path": {
-                "type": "string",
-                "description": "Path to the Bicep file to be used for deployment."
-              },
-              "connectionString": {
-                "$ref": "#/definitions/connectionString"
-              },
-              "params": {
-                "type": "object",
-                "description": "A list of parameters which are passed to Azure deployment.",
-                "additionalProperties": {
-                  "oneOf": [
-                    { "type": "array" },
-                    { "type": "boolean" },
-                    { "type": "number" },
-                    { "type": "object" },
-                    { "type": "string"}
-                  ]
-                }
-              }
-            },
-            "additionalProperties": false
+            "$ref": "#/definitions/resource.azure.bicep.v0"
           },
           {
             "type": "object",
@@ -428,6 +445,7 @@
                     "container.v1",
                     "dockerfile.v0",
                     "project.v0",
+                    "project.v1",
                     "value.v0",
                     "executable.v0",
                     "azure.bicep.v0",
@@ -450,6 +468,37 @@
     }
   },
   "definitions": {
+    "resource.azure.bicep.v0": {
+      "type": "object",
+      "default": "Represents a resource that is deployed using Azure Bicep.",
+      "required": [ "path" ],
+      "properties": {
+        "type": {
+          "const": "azure.bicep.v0"
+        },
+        "path": {
+          "type": "string",
+          "description": "Path to the Bicep file to be used for deployment."
+        },
+        "connectionString": {
+          "$ref": "#/definitions/connectionString"
+        },
+        "params": {
+          "type": "object",
+          "description": "A list of parameters which are passed to Azure deployment.",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "array" },
+              { "type": "boolean" },
+              { "type": "number" },
+              { "type": "object" },
+              { "type": "string" }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "connectionString": {
       "type": "string",
       "description": "A connection string that can be used to connect to this resource."
@@ -523,6 +572,13 @@
         }
       },
       "additionalProperties": false
+    },
+    "buildArgs": {
+      "type": "object",
+      "description": "A list of build arguments which are used during container build (for dockerfile.v0 resource type).",
+      "additionalProperties": {
+        "type": "string"
+      }
     },
     "bindings": {
       "type": "object",

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <OutputType>Library</OutputType>
     <IsPackable>true</IsPackable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -15,9 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)LaunchSettings.cs" Link="LaunchSettings.cs" />
-    <Compile Include="$(SharedDir)LaunchProfile.cs" Link="LaunchProfile.cs" />
-    <Compile Include="$(SharedDir)LaunchSettingsSerializerContext.cs" Link="LaunchSettingsSerializerContext.cs" />
+    <Compile Include="$(SharedDir)LaunchProfiles\LaunchSettingsSerializerContext.cs" Link="LaunchSettingsSerializerContext.cs" />
   </ItemGroup>
 
   <ItemGroup>

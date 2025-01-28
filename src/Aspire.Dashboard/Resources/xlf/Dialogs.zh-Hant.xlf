@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="ExemplarsDialogCloseButtonText">
         <source>Close</source>
-        <target state="new">Close</target>
+        <target state="translated">關閉</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogDetailsColumnHeader">
         <source>Details</source>
-        <target state="new">Details</target>
+        <target state="translated">詳細資料</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogTimestampColumnHeader">
         <source>Timestamp</source>
-        <target state="new">Timestamp</target>
+        <target state="translated">時間戳記</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogTitle">
         <source>Exemplars</source>
-        <target state="new">Exemplars</target>
+        <target state="translated">樣本</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogTrace">
         <source>Trace</source>
-        <target state="new">Trace</target>
+        <target state="translated">追蹤</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogTraceColumnHeader">
         <source>Trace</source>
-        <target state="new">Trace</target>
+        <target state="translated">追蹤</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogValueColumnHeader">
         <source>Value</source>
-        <target state="new">Value</target>
+        <target state="translated">值</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogApplyFilterButtonText">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="FilterDialogConditionInputLabel">
         <source>Condition</source>
-        <target state="new">Condition</target>
+        <target state="translated">條件</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="FilterDialogParameterInputLabel">
         <source>Parameter</source>
-        <target state="new">Parameter</target>
+        <target state="translated">參數</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogRemoveFilterButtonText">
@@ -159,22 +159,32 @@
       </trans-unit>
       <trans-unit id="OpenInTextVisualizer">
         <source>Open in text visualizer</source>
-        <target state="new">Open in text visualizer</target>
+        <target state="translated">在文字視覺化工具中開啟</target>
         <note />
       </trans-unit>
       <trans-unit id="OpenTraceDialogCancelButtonText">
         <source>Cancel</source>
-        <target state="new">Cancel</target>
+        <target state="translated">取消</target>
         <note />
       </trans-unit>
       <trans-unit id="OpenTraceDialogMessage">
         <source>Waiting for trace {0} to load...</source>
-        <target state="new">Waiting for trace {0} to load...</target>
+        <target state="translated">正在等候追蹤 {0} 載入...</target>
         <note>{0} is a trace ID</note>
       </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>
         <target state="translated">深色</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogLanguage">
+        <source>Language</source>
+        <target state="translated">語言</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogLanguagePageReloads">
+        <source>The page will reload on language change.</source>
+        <target state="translated">頁面將在語言變更時重載。</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">
@@ -199,22 +209,22 @@
       </trans-unit>
       <trans-unit id="TextVisualizerDialogJsonFormat">
         <source>Format JSON</source>
-        <target state="new">Format JSON</target>
+        <target state="translated">格式化 JSON</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerDialogPlaintextFormat">
         <source>Unformatted</source>
-        <target state="new">Unformatted</target>
+        <target state="translated">未格式化</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerDialogXmlFormat">
         <source>Format XML</source>
-        <target state="new">Format XML</target>
+        <target state="translated">格式化 XML</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerSelectFormatType">
         <source>Select format</source>
-        <target state="new">Select format</target>
+        <target state="translated">選取格式</target>
         <note />
       </trans-unit>
     </body>

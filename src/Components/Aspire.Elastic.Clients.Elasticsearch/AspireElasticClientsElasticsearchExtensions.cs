@@ -36,7 +36,7 @@ public static class AspireElasticClientsElasticsearchExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
-        builder.AddElasticsearchClient(DefaultConfigSectionName, configureSettings, configureClientSettings, connectionName, serviceKey: null);
+        builder.AddElasticsearchClient(configureSettings, configureClientSettings, connectionName, serviceKey: null);
     }
 
     /// <summary>
@@ -57,7 +57,6 @@ public static class AspireElasticClientsElasticsearchExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         builder.AddElasticsearchClient(
-            $"{DefaultConfigSectionName}:{name}",
             configureSettings,
             configureClientSettings,
             connectionName: name,
@@ -66,7 +65,6 @@ public static class AspireElasticClientsElasticsearchExtensions
 
     private static void AddElasticsearchClient(
         this IHostApplicationBuilder builder,
-        string configurationSectionName,
         Action<ElasticClientsElasticsearchSettings>? configureSettings,
         Action<ElasticsearchClientSettings>? configureClientSettings,
         string connectionName,
@@ -74,10 +72,12 @@ public static class AspireElasticClientsElasticsearchExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var configSection = builder.Configuration.GetSection(configurationSectionName);
+        var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
 
         ElasticClientsElasticsearchSettings settings = new();
         configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -119,7 +119,7 @@ public static class AspireElasticClientsElasticsearchExtensions
 
         ElasticsearchClient CreateElasticsearchClient(IServiceProvider serviceProvider)
         {
-            var elasticsearchClientSettings = CreateElasticsearchClientSettings(settings, connectionName, configurationSectionName);
+            var elasticsearchClientSettings = CreateElasticsearchClientSettings(settings, connectionName, DefaultConfigSectionName);
 
             configureClientSettings?.Invoke(elasticsearchClientSettings);
 

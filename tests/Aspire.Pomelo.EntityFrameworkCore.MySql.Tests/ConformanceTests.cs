@@ -88,7 +88,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, PomeloEntityFram
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<PomeloEntityFrameworkCoreMySqlSettings>? configure = null, string? key = null)
-        => builder.AddMySqlDbContext<TestDbContext>("mysql", configure);
+        => builder.AddMySqlDbContext<TestDbContext>(key ?? "mysql", configure);
 
     protected override void SetHealthCheck(PomeloEntityFrameworkCoreMySqlSettings options, bool enabled)
         => options.DisableHealthChecks = !enabled;

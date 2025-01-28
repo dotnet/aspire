@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using System.Net;
 using System.Net.Http.Headers;
 using Xunit;
@@ -16,15 +17,15 @@ public class ResponseCompressionTests(ITestOutputHelper testOutputHelper)
     {
         // Arrange
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper);
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         using var httpClientHandler = new HttpClientHandler { AutomaticDecompression = DecompressionMethods.None };
-        using var client = new HttpClient(httpClientHandler) { BaseAddress = new Uri($"http://{app.FrontendEndPointAccessor().EndPoint}") };
+        using var client = new HttpClient(httpClientHandler) { BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}") };
 
         // Act 1
         var request = new HttpRequestMessage(HttpMethod.Get, DashboardUrls.StructuredLogsBasePath);
         request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("br"));
-        var response = await client.SendAsync(request);
+        var response = await client.SendAsync(request).DefaultTimeout();
 
         // Assert 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -38,15 +39,15 @@ public class ResponseCompressionTests(ITestOutputHelper testOutputHelper)
     {
         // Arrange
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper);
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         using var httpClientHandler = new HttpClientHandler { AutomaticDecompression = DecompressionMethods.None };
-        using var client = new HttpClient(httpClientHandler) { BaseAddress = new Uri($"http://{app.FrontendEndPointAccessor().EndPoint}") };
+        using var client = new HttpClient(httpClientHandler) { BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}") };
 
         // Act 1
         var request = new HttpRequestMessage(HttpMethod.Get, path);
         request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("br"));
-        var response = await client.SendAsync(request);
+        var response = await client.SendAsync(request).DefaultTimeout();
 
         // Assert 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

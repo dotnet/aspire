@@ -4,7 +4,8 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddProject<Projects.BrowserTelemetry_Web>("web")
-    .WithExternalHttpEndpoints();
+    .WithExternalHttpEndpoints()
+    .WithReplicas(2);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

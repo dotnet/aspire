@@ -9,9 +9,10 @@ namespace Aspire.Hosting.Azure;
 /// Represents an resource for Azure Postgres Flexible Server.
 /// </summary>
 /// <param name="innerResource"><see cref="PostgresServerResource"/> that this resource wraps.</param>
-/// <param name="configureConstruct">Callback to configure construct.</param>
-public class AzurePostgresResource(PostgresServerResource innerResource, Action<ResourceModuleConstruct> configureConstruct) :
-    AzureConstructResource(innerResource.Name, configureConstruct),
+/// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
+[Obsolete($"This class is obsolete and will be removed in a future version. Use {nameof(AzurePostgresExtensions.AddAzurePostgresFlexibleServer)} instead to add an Azure Postgres Flexible Server resource.")]
+public class AzurePostgresResource(PostgresServerResource innerResource, Action<AzureResourceInfrastructure> configureInfrastructure) :
+    AzureProvisioningResource(innerResource.Name, configureInfrastructure),
     IResourceWithConnectionString
 {
     /// <summary>

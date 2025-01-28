@@ -30,6 +30,7 @@ internal sealed class EventHubConsumerClientComponent : EventHubsComponent<Azure
     {
         return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<EventHubConsumerClient, EventHubConsumerClientOptions>((options, cred) =>
         {
+            // ensure that the connection string or namespace+eventhubname is provided 
             EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
 
             var consumerGroup = settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName;
@@ -39,18 +40,14 @@ internal sealed class EventHubConsumerClientComponent : EventHubsComponent<Azure
             {
                 return new EventHubConsumerClient(consumerGroup, settings.FullyQualifiedNamespace, settings.EventHubName, cred, options);
             }
-            else
+
+            // If no specific EventHubName is provided, it has to be in the connection string
+            if (string.IsNullOrEmpty(settings.EventHubName))
             {
-                // If no specific EventHubName is provided, it has to be in the connection string
-                if (string.IsNullOrEmpty(settings.EventHubName))
-                {
-                    return new EventHubConsumerClient(consumerGroup, settings.ConnectionString, options);
-                }
-                else
-                {
-                    return new EventHubConsumerClient(consumerGroup, settings.ConnectionString, settings.EventHubName, options);
-                }
+                return new EventHubConsumerClient(consumerGroup, settings.ConnectionString, options);
             }
+
+            return new EventHubConsumerClient(consumerGroup, settings.ConnectionString, settings.EventHubName, options);
 
         }, requiresCredential: false);
     }

@@ -1,7 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <NoWarn>
+      $(NoWarn);
+      ASPIREHOSTINGPYTHON001;
+    </NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

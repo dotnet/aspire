@@ -1,39 +1,33 @@
-targetScope = 'resourceGroup'
-
-@description('')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-@description('')
-param keyVaultName string
+param principalType string
 
+param principalId string
 
-resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
-  name: keyVaultName
-}
-
-resource cosmosDBAccount_MZyw35gqp 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
-  name: toLower(take('cosmos${uniqueString(resourceGroup().id)}', 24))
+resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
+  name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
   location: location
-  tags: {
-    'aspire-resource-name': 'cosmos'
-  }
-  kind: 'GlobalDocumentDB'
   properties: {
-    databaseAccountOfferType: 'Standard'
-    consistencyPolicy: {
-      defaultConsistencyLevel: 'Session'
-    }
     locations: [
       {
         locationName: location
         failoverPriority: 0
       }
     ]
+    consistencyPolicy: {
+      defaultConsistencyLevel: 'Session'
+    }
+    databaseAccountOfferType: 'Standard'
+    disableLocalAuth: true
+  }
+  kind: 'GlobalDocumentDB'
+  tags: {
+    'aspire-resource-name': 'cosmos'
   }
 }
 
-resource cosmosDBSqlDatabase_LFJis0a6w 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' = {
-  parent: cosmosDBAccount_MZyw35gqp
+resource db 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
   name: 'db'
   location: location
   properties: {
@@ -41,13 +35,38 @@ resource cosmosDBSqlDatabase_LFJis0a6w 'Microsoft.DocumentDB/databaseAccounts/sq
       id: 'db'
     }
   }
+  parent: cosmos
 }
 
-resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
-  parent: keyVault_IeF8jZvXV
-  name: 'connectionString'
+resource entries 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
+  name: 'entries'
   location: location
   properties: {
-    value: 'AccountEndpoint=${cosmosDBAccount_MZyw35gqp.properties.documentEndpoint};AccountKey=${cosmosDBAccount_MZyw35gqp.listkeys(cosmosDBAccount_MZyw35gqp.apiVersion).primaryMasterKey}'
+    resource: {
+      id: 'entries'
+      partitionKey: {
+        paths: [
+          '/id'
+        ]
+      }
+    }
   }
+  parent: db
 }
+
+resource cosmos_roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-08-15' existing = {
+  name: '00000000-0000-0000-0000-000000000002'
+  parent: cosmos
+}
+
+resource cosmos_roleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-08-15' = {
+  name: guid(principalId, cosmos_roleDefinition.id, cosmos.id)
+  properties: {
+    principalId: principalId
+    roleDefinitionId: cosmos_roleDefinition.id
+    scope: cosmos.id
+  }
+  parent: cosmos
+}
+
+output connectionString string = cosmos.properties.documentEndpoint

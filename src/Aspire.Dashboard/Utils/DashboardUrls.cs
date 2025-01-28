@@ -13,9 +13,15 @@ internal static class DashboardUrls
     public const string StructuredLogsBasePath = "structuredlogs";
     public const string TracesBasePath = "traces";
 
-    public static string ResourcesUrl()
+    public static string ResourcesUrl(string? resource = null)
     {
-        return "/";
+        var url = "/";
+        if (resource != null)
+        {
+            url = QueryHelpers.AddQueryString(url, "resource", resource);
+        }
+
+        return url;
     }
 
     public static string ConsoleLogsUrl(string? resource = null)
@@ -70,8 +76,10 @@ internal static class DashboardUrls
         }
         if (filters != null)
         {
-            // Filters should already be escaped.
-            url += (!url.Contains('?')) ? $"?filters={filters}" : $"&filters={filters}";
+            // Filters contains : and + characters. These are escaped when they're not needed to,
+            // which makes the URL harder to read. Consider having a custom method for appending
+            // query string here that uses an encoder that doesn't encode those characters.
+            url = QueryHelpers.AddQueryString(url, "filters", filters);
         }
         if (traceId != null)
         {
@@ -85,12 +93,19 @@ internal static class DashboardUrls
         return url;
     }
 
-    public static string TracesUrl(string? resource = null)
+    public static string TracesUrl(string? resource = null, string? filters = null)
     {
         var url = $"/{TracesBasePath}";
         if (resource != null)
         {
             url += $"/resource/{Uri.EscapeDataString(resource)}";
+        }
+        if (filters != null)
+        {
+            // Filters contains : and + characters. These are escaped when they're not needed to,
+            // which makes the URL harder to read. Consider having a custom method for appending
+            // query string here that uses an encoder that doesn't encode those characters.
+            url = QueryHelpers.AddQueryString(url, "filters", filters);
         }
 
         return url;
@@ -118,6 +133,15 @@ internal static class DashboardUrls
         {
             url = QueryHelpers.AddQueryString(url, "t", token);
         }
+
+        return url;
+    }
+
+    public static string SetLanguageUrl(string language, string redirectUrl)
+    {
+        var url = "/api/set-language";
+        url = QueryHelpers.AddQueryString(url, "language", language);
+        url = QueryHelpers.AddQueryString(url, "redirectUrl", redirectUrl);
 
         return url;
     }

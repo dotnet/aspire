@@ -155,9 +155,11 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         hostBuilderOptions.ApplicationName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
         applicationOptions.AssemblyName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
         applicationOptions.DisableDashboard = true;
+        applicationOptions.EnableResourceLogging = true;
         var cfg = hostBuilderOptions.Configuration ??= new();
         var additionalConfig = new Dictionary<string, string?>
         {
+            ["DcpPublisher:ContainerRuntimeInitializationTimeout"] = "00:00:30",
             ["DcpPublisher:RandomizePorts"] = "true",
             ["DcpPublisher:DeleteResourcesOnShutdown"] = "true",
             ["DcpPublisher:ResourceNameSuffix"] = $"{Random.Shared.Next():x}",
@@ -232,7 +234,6 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     private void OnBuildingCore(DistributedApplicationBuilder applicationBuilder)
     {
         var services = applicationBuilder.Services;
-        services.AddHostedService<ResourceLoggerForwarderService>();
         services.AddHttpClient();
 
         InterceptHostCreation(applicationBuilder);
@@ -249,7 +250,10 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
             {
                 if (!_entryPointStarted)
                 {
-                    EnsureDepsFile(_entryPoint);
+                    if (entryPoint.Assembly.EntryPoint == null)
+                    {
+                        throw new InvalidOperationException($"Assembly of specified type {entryPoint.Name} does not have an entry point.");
+                    }
 
                     // This helper launches the target assembly's entry point and hooks into the lifecycle
                     // so we can intercept execution at key stages.
@@ -325,21 +329,6 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         if (!_startedTcs.Task.IsCompletedSuccessfully)
         {
             throw new InvalidOperationException("The application has not been initialized.");
-        }
-    }
-
-    private static void EnsureDepsFile(Type entryPoint)
-    {
-        if (entryPoint.Assembly.EntryPoint == null)
-        {
-            throw new InvalidOperationException($"Assembly of specified type {entryPoint.Name} does not have an entry point.");
-        }
-
-        var depsFileName = $"{entryPoint.Assembly.GetName().Name}.deps.json";
-        var depsFile = new FileInfo(Path.Combine(AppContext.BaseDirectory, depsFileName));
-        if (!depsFile.Exists)
-        {
-            throw new InvalidOperationException($"Missing deps file '{Path.GetFileName(depsFile.FullName)}'. Make sure the project has been built.");
         }
     }
 

@@ -7,7 +7,8 @@ var elasticsearch = builder.AddElasticsearch("elasticsearch")
     .WithDataVolume();
 
 builder.AddProject<Projects.Elasticsearch_ApiService>("elasticsearch-apiservice")
-    .WithReference(elasticsearch);
+    .WithReference(elasticsearch)
+    .WaitFor(elasticsearch);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

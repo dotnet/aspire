@@ -78,6 +78,11 @@ public static class ConsoleStresser
         Console.WriteLine("https://www.example.com/path/with/percent%25encoded");
         Console.WriteLine("https://www.example.com/path/with/dollar$sign");
         Console.WriteLine("https://www.example.com/path/with/exclamation!mark");
+        Console.WriteLine("https://www.example.com/;path/");
+        Console.WriteLine("https://www.example.com/path/?query;string");
+        Console.WriteLine("https://;www.example.com/");
+        Console.WriteLine("https://www;.example.com/");
+        Console.WriteLine("https://www.exa;mple.com/");
 
         Console.Write("\x1b[0m"); // reset color
 
@@ -97,8 +102,8 @@ public static class ConsoleStresser
         for (var color = 40; color <= 47; color++)
         {
             Console.Write("\x1b[" + color + "m"); // Set background color
-            Console.WriteLine($"This is background color {color}");
-            Console.Write("\x1b[0m"); // Reset colors to default after each background to maintain readability
+            Console.Write($"This is background color {color}");
+            Console.WriteLine("\x1b[0m"); // Reset colors to default after each background to maintain readability
         }
         Console.Write("\x1b[0m"); // Reset all colors to default at the end
 

@@ -27,7 +27,7 @@ message ApplicationInformationResponse {
 // using data from this message.
 message ResourceCommand {
     // Unique identifier for the command. Not intended for display.
-    string command_type = 1;
+    string name = 1;
     // The display name of the command, to be shown in the UI. May be localized.
     string display_name = 2;
     // When present, this message must be shown to the user and their confirmation obtained
@@ -38,6 +38,24 @@ message ResourceCommand {
     // Clients must return any value provided by the server when invoking
     // the command.
     optional google.protobuf.Value parameter = 4;
+    // A flag that indicates whether the command is highlighted in the UI.
+    bool is_highlighted = 5;
+    // Optional icon name. This name should be a valid FluentUI icon name.
+    // https://aka.ms/fluentui-system-icons
+    optional string icon_name = 6;
+    // Optional icon variant.
+    optional IconVariant icon_variant = 7;
+    // Optional description of the command, to be shown in the UI.
+    // Could be used as a tooltip. May be localized.
+    optional string display_description = 8;
+    // The state of the command. Controls whether the command is enabled, disabled,
+    // or hidden in the UI.
+    ResourceCommandState state = 9;
+}
+
+enum IconVariant {
+    REGULAR = 0;
+    FILLED = 1;
 }
 
 // Represents a request to execute a command.
@@ -46,7 +64,7 @@ message ResourceCommand {
 message ResourceCommandRequest {
     // Unique identifier for the command.
     // Copied from the ResourceCommand that this request object is initialized from.
-    string command_type = 1;
+    string command_name = 1;
     // The name of the resource to apply the command to. Matches Resource.name.
     // Copied from the ResourceCommand that this request object is initialized from.
     string resource_name = 2;
@@ -56,6 +74,12 @@ message ResourceCommandRequest {
     // An optional parameter to accompany the command.
     // Copied from the ResourceCommand that this request object is initialized from.
     optional google.protobuf.Value parameter = 4;
+}
+
+enum ResourceCommandState {
+    ENABLED = 0;
+    DISABLED = 1;
+    HIDDEN = 2;
 }
 
 enum ResourceCommandResponseKind {
@@ -109,19 +133,59 @@ message Url {
     bool is_internal = 3;
 }
 
+// Data about a volume mounted to a container.
+message Volume {
+    // The source of the volume, such as "TestShop.AppHost-postgres-data".
+    string source = 1;
+    // The target path in the container, such as "/var/lib/postgresql/data".
+    string target = 2;
+    // The type of the mount, such as "bind" or "volume".
+    string mount_type = 3;
+    // Whether the volume is mounted as read-only or not.
+    bool is_read_only = 4;
+}
+
+message HealthReport {
+    // The health status of the resource. Not provided if we have not yet received an initial report from the check.
+    optional HealthStatus status = 1;
+    // Identifies the health check that produced this report.
+    string key = 2;
+    // The reason for the health status.
+    string description = 3;
+    // Any exception details.
+    string exception = 4;
+}
+
+enum HealthStatus {
+    HEALTHY = 0;
+    UNHEALTHY = 1;
+    DEGRADED = 2;
+}
+
+message ResourceRelationship {
+    // The name of the resource.
+    string resource_name = 1;
+    // The type of relationship.
+    string type = 2;
+}
+
 message ResourceProperty {
     // Name of the data item, e.g. "container.id", "executable.pid", "project.path", ...
     string name = 1;
-    // TODO move display_name to reference data, sent once when the connection starts
+    // TODO move display_name to reference data, sent once when the connection starts (https://github.com/dotnet/aspire/issues/1644)
     // Optional display name, may be localized
     optional string display_name = 2;
     // The data value. May be null, a number, a string, a boolean, a dictionary of values (Struct), or a list of values (ValueList).
     google.protobuf.Value value = 3;
+    // TODO move is_sensitive to reference data, sent once when the connection starts (https://github.com/dotnet/aspire/issues/1644)
+    // Whether the value is sensitive and should be masked in the UI by default.
+    // Defaults to false. When true, the user must explicitly unmask the value to view it.
+    optional bool is_sensitive = 4;
 }
 
 // Models the full state of an resource (container, executable, project, etc) at a particular point in time.
 message Resource {
-    reserved 8, 9, 10;
+    reserved 8, 9, 10, 16;
     string name = 1;
     string resource_type = 2;
     string display_name = 3;
@@ -140,13 +204,27 @@ message Resource {
     // - Projects: process_id, project_path
     repeated ResourceProperty properties = 12;
 
-    // The list of urls that this resource exposes
+    // The list of urls that this resource exposes.
     repeated Url urls = 13;
 
     // The style of the state. This is used to determine the state icon.
     // Supported styles are "success", "info", "warning" and "error". Any other style
     // will be treated as "unknown".
     optional string state_style = 14;
+
+    // The set of volumes mounted to the resource. Only applies to containers.
+    repeated Volume volumes = 15;
+
+    // Reports from health checks, about this resource.
+    repeated HealthReport health_reports = 17;
+
+    // The resource start time.
+    optional google.protobuf.Timestamp started_at = 18;
+    // The resource stop time.
+    optional google.protobuf.Timestamp stopped_at = 19;
+
+    // The list of relationships for this resource.
+    repeated ResourceRelationship relationships = 20;
 }
 
 ////////////////////////////////////////////

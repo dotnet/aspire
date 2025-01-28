@@ -1,4 +1,4 @@
-import './plotly-2.32.0.min.js'
+import './plotly-basic-2.35.2.min.js'
 
 export function initializeChart(id, traces, exemplarTrace, rangeStartTime, rangeEndTime, serverLocale, chartInterop) {
     registerLocale(serverLocale);
@@ -50,16 +50,8 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
     };
     data.push(points);
 
-    // Explicitly set the width and height based on the container div.
-    // If there is no explicit width and height, Plotly will use the rendered container size.
-    // However, if the container isn't visible then it uses a default size.
-    // Being explicit ensures the chart is always the correct size.
-    var width = parseInt(chartContainerDiv.style.width);
-    var height = parseInt(chartContainerDiv.style.height);
-
+    // Width and height are set using ResizeObserver + ploty resize call.
     var layout = {
-        width: width,
-        height: height,
         paper_bgcolor: themeColors.backgroundColor,
         plot_bgcolor: themeColors.backgroundColor,
         margin: { t: 0, r: 0, b: 40, l: 50 },
@@ -90,7 +82,7 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
 
     var options = { scrollZoom: false, displayModeBar: false };
 
-    Plotly.newPlot(chartDiv, data, layout, options);
+    var plot = Plotly.newPlot(chartDiv, data, layout, options);
 
     fixTraceLineRendering(chartDiv);
 
@@ -106,7 +98,6 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
         var point = data.points[0];
         if (point.fullData.name == exemplarTrace.name) {
             currentPoint = point;
-            var pointTraceData = point.data.traceData[point.pointIndex];
             dragLayer.style.cursor = 'pointer';
         }
     });
@@ -124,6 +115,20 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
 
             chartInterop.invokeMethodAsync('ViewSpan', pointTraceData.traceId, pointTraceData.spanId);
         }
+    });
+
+    const resizeObserver = new ResizeObserver(entries => {
+        for (let entry of entries) {
+            // Don't resize if not visible.
+            var display = window.getComputedStyle(entry.target).display;
+            var isHidden = !display || display === "none";
+            if (!isHidden) {
+                Plotly.Plots.resize(entry.target);
+            }
+        }
+    });
+    plot.then(plotyDiv => {
+        resizeObserver.observe(plotyDiv);
     });
 }
 

@@ -1,33 +1,48 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 
-public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
+public partial class SettingsDialog : IDialogContentComponent, IDisposable
 {
-    private string _currentSetting = ThemeManager.ThemeSettingSystem;
+    private string? _currentSetting;
+    private List<CultureInfo> _languageOptions = null!;
+    private CultureInfo? _selectedUiCulture;
 
-    private IJSObjectReference? _jsModule;
     private IDisposable? _themeChangedSubscription;
-
-    [Inject]
-    public required IJSRuntime JS { get; init; }
 
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
 
+    [Inject]
+    public required TelemetryRepository TelemetryRepository { get; init; }
+
+    [Inject]
+    public required NavigationManager NavigationManager { get; init; }
+
     protected override void OnInitialized()
     {
+        // Order cultures in the dropdown with invariant culture. This prevents the order of languages changing when the culture changes.
+        _languageOptions = [.. GlobalizationHelpers.LocalizedCultures.OrderBy(c => c.NativeName, StringComparer.InvariantCultureIgnoreCase)];
+
+        _selectedUiCulture = GlobalizationHelpers.TryGetKnownParentCulture(_languageOptions, CultureInfo.CurrentUICulture, out var matchedCulture)
+            ? matchedCulture :
+            // Otherwise, Blazor has fallen back to a supported language
+            CultureInfo.CurrentUICulture;
+
+        _currentSetting = ThemeManager.SelectedTheme ?? ThemeManager.ThemeSettingSystem;
+
         // Handle value being changed in a different browser window.
         _themeChangedSubscription = ThemeManager.OnThemeChanged(async () =>
         {
-            var newValue = ThemeManager.Theme!;
+            var newValue = ThemeManager.SelectedTheme!;
             if (_currentSetting != newValue)
             {
                 _currentSetting = newValue;
@@ -36,27 +51,41 @@ public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
         });
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private async Task ThemeChangedAsync()
     {
-        if (firstRender)
+        // The field is being transiently set to null when the value changes. Maybe a bug in FluentUI?
+        // This should never be set to null by the dashboard so we can ignore null values.
+        if (_currentSetting != null)
         {
-            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/app-theme.js");
-            _currentSetting = await _jsModule.InvokeAsync<string>("getThemeCookieValue");
-            StateHasChanged();
+            // The theme isn't changed here. Instead, the MainLayout subscribes to the change event
+            // and applies the new theme to the browser window.
+            await ThemeManager.RaiseThemeChangedAsync(_currentSetting);
         }
     }
 
-    private async Task SettingChangedAsync(string newValue)
+    private void OnLanguageChanged()
     {
-        // The theme isn't changed here. Instead, the MainLayout subscribes to the change event
-        // and applies the new theme to the browser window.
-        _currentSetting = newValue;
-        await ThemeManager.RaiseThemeChangedAsync(newValue);
+        if (_selectedUiCulture is null || StringComparers.CultureName.Equals(CultureInfo.CurrentUICulture.Name, _selectedUiCulture.Name))
+        {
+            return;
+        }
+
+        var uri = new Uri(NavigationManager.Uri)
+            .GetComponents(UriComponents.PathAndQuery, UriFormat.Unescaped);
+
+        // A cookie (CookieRequestCultureProvider.DefaultCookieName) must be set and the page reloaded to use the new culture set by the localization middleware.
+        NavigationManager.NavigateTo(
+            DashboardUrls.SetLanguageUrl(_selectedUiCulture.Name, uri),
+            forceLoad: true);
     }
 
-    public async ValueTask DisposeAsync()
+    private void ClearAllSignals()
+    {
+        TelemetryRepository.ClearAllSignals();
+    }
+
+    public void Dispose()
     {
         _themeChangedSubscription?.Dispose();
-        await JSInteropHelpers.SafeDisposeAsync(_jsModule);
     }
 }

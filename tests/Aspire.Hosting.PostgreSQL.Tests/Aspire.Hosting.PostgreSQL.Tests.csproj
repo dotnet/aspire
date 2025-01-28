@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
@@ -9,6 +9,10 @@
     <ProjectReference Include="..\..\src\Aspire.Hosting.PostgreSQL\Aspire.Hosting.PostgreSQL.csproj" />
     <ProjectReference Include="..\..\src\Components\Aspire.Npgsql\Aspire.Npgsql.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Tests\Aspire.Hosting.Tests.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(TestsSharedDir)AsyncTestHelpers.cs" Link="shared/AsyncTestHelpers.cs" />
   </ItemGroup>
 
 </Project>

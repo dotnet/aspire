@@ -41,8 +41,7 @@ automatically.
 In the _Program.cs_ file of `AppHost`, register a SqlServer database and consume the connection using the following methods:
 
 ```csharp
-var sql = builder.AddSqlServer("sql")
-                 .AsAzureSqlDatabase()
+var sql = builder.AddAzureSqlServer("sql")
                  .AddDatabase("sqldata");
 
 var myService = builder.AddProject<Projects.MyService>()

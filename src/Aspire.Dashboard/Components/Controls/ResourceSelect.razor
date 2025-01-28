@@ -2,18 +2,17 @@
 
 @inject IStringLocalizer<ControlsStrings> Loc
 
-<FluentInputLabel
-    Label="@Loc[nameof(ControlsStrings.ResourceLabel)]"
-    ForId="@_selectId"
-    Orientation="Orientation.Horizontal" />
+<FluentInputLabel Label="@Loc[nameof(ControlsStrings.ResourceLabel)]"
+                  ForId="@_selectId"
+                  Orientation="Orientation.Horizontal"
+                  class="@LabelClass" />
 
-<FluentSelect @ref="_resourceSelectComponent"
-              Items="Resources"
+<FluentSelect Items="Resources"
               Id="@_selectId"
               OptionValue="@(c => c!.Name)"
               OptionDisabled="@(c => !CanSelectGrouping && c!.Id?.Type is Otlp.Model.OtlpApplicationType.ResourceGrouping)"
-              SelectedOption="SelectedResource"
-              SelectedOptionChanged="SelectedResourceChanged"
+              @bind-SelectedOption="SelectedResource"
+              @bind-SelectedOption:after="SelectedResourceChangedCore"
               ValueChanged="ValuedChanged"
               AriaLabel="@AriaLabel"
               Class="resource-list"

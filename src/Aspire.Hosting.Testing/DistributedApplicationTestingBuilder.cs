@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -72,6 +73,22 @@ public static class DistributedApplicationTestingBuilder
     /// <summary>
     /// Creates a new instance of <see cref="DistributedApplicationTestingBuilder"/>.
     /// </summary>
+    /// <typeparam name="TEntryPoint">
+    /// A type in the entry point assembly of the target Aspire AppHost. Typically, the Program class can be used.
+    /// </typeparam>
+    /// <param name="args">The command line arguments to pass to the entry point.</param>
+    /// <param name="configureBuilder">The delegate used to configure the builder.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>
+    /// A new instance of <see cref="DistributedApplicationTestingBuilder"/>.
+    /// </returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Generic and non-generic")]
+    public static Task<IDistributedApplicationTestingBuilder> CreateAsync<TEntryPoint>(string[] args, Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder, CancellationToken cancellationToken = default)
+        => CreateAsync(typeof(TEntryPoint), args, configureBuilder, cancellationToken);
+
+    /// <summary>
+    /// Creates a new instance of <see cref="DistributedApplicationTestingBuilder"/>.
+    /// </summary>
     /// <param name="entryPoint">A type in the entry point assembly of the target Aspire AppHost. Typically, the Program class can be used.</param>
     /// <param name="args">The command line arguments to pass to the entry point.</param>
     /// <param name="configureBuilder">The delegate used to configure the builder.</param>
@@ -80,8 +97,12 @@ public static class DistributedApplicationTestingBuilder
     /// A new instance of <see cref="DistributedApplicationTestingBuilder"/>.
     /// </returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Generic and non-generic")]
-    internal static async Task<IDistributedApplicationTestingBuilder> CreateAsync(Type entryPoint, string[] args, Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder, CancellationToken cancellationToken = default)
+    public static async Task<IDistributedApplicationTestingBuilder> CreateAsync(Type entryPoint, string[] args, Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(entryPoint, nameof(entryPoint));
+        ArgumentNullException.ThrowIfNull(args, nameof(args));
+        ArgumentNullException.ThrowIfNull(configureBuilder, nameof(configureBuilder));
+
         var factory = new SuspendingDistributedApplicationFactory(entryPoint, args, configureBuilder);
         return await factory.CreateBuilderAsync(cancellationToken).ConfigureAwait(false);
     }
@@ -149,6 +170,8 @@ public static class DistributedApplicationTestingBuilder
             public DistributedApplicationExecutionContext ExecutionContext => innerBuilder.ExecutionContext;
 
             public IResourceCollection Resources => innerBuilder.Resources;
+
+            public IDistributedApplicationEventing Eventing => innerBuilder.Eventing;
 
             public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => innerBuilder.AddResource(resource);
 
@@ -240,6 +263,11 @@ public interface IDistributedApplicationTestingBuilder
     /// Execution context for this invocation of the AppHost.
     /// </summary>
     DistributedApplicationExecutionContext ExecutionContext { get; }
+
+    /// <summary>
+    /// Eventing infrastructure for AppHost lifecycle.
+    /// </summary>
+    IDistributedApplicationEventing Eventing { get; }
 
     /// <summary>
     /// Gets the collection of resources for the distributed application.

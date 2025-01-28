@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Testing;
+using Aspire.Hosting.Tests.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -28,7 +30,7 @@ public abstract class TestProgramFixture : IAsyncLifetime
 
         _app = _testProgram.Build();
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
         await _app.StartAsync(cts.Token);
 
@@ -63,12 +65,15 @@ public class SlimTestProgramFixture : TestProgramFixture
     public override async Task WaitReadyStateAsync(CancellationToken cancellationToken = default)
     {
         // Make sure services A, B and C are running
+        await App.WaitForTextAsync("Application started.", "servicea", cancellationToken);
         using var clientA = App.CreateHttpClient(TestProgram.ServiceABuilder.Resource.Name, "http");
         await clientA.GetStringAsync("/", cancellationToken);
 
+        await App.WaitForTextAsync("Application started.", "serviceb", cancellationToken);
         using var clientB = App.CreateHttpClient(TestProgram.ServiceBBuilder.Resource.Name, "http");
         await clientB.GetStringAsync("/", cancellationToken);
 
+        await App.WaitForTextAsync("Application started.", "servicec", cancellationToken);
         using var clientC = App.CreateHttpClient(TestProgram.ServiceCBuilder.Resource.Name, "http");
         await clientC.GetStringAsync("/", cancellationToken);
     }

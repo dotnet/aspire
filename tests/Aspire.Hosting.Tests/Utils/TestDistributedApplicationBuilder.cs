@@ -7,7 +7,8 @@ using System.Reflection;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Eventing;
-using Aspire.Hosting.Testing;
+using Aspire.Hosting.Orchestrator;
+using Aspire.Hosting.Tests.Dcp;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -40,9 +41,18 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
         return Create(args);
     }
 
+    // Returns the unique prefix used for volumes from unnamed volumes this builder
+    public string GetVolumePrefix() =>
+        $"{VolumeNameGenerator.Sanitize(Environment.ApplicationName).ToLowerInvariant()}-{Configuration["AppHost:Sha256"]!.ToLowerInvariant()[..10]}";
+
     public static TestDistributedApplicationBuilder Create(params string[] args)
     {
         return new TestDistributedApplicationBuilder(options => options.Args = args);
+    }
+
+    public static TestDistributedApplicationBuilder Create(ITestOutputHelper testOutputHelper, params string[] args)
+    {
+        return new TestDistributedApplicationBuilder(options => options.Args = args, testOutputHelper);
     }
 
     public static TestDistributedApplicationBuilder Create(Action<DistributedApplicationOptions>? configureOptions, ITestOutputHelper? testOutputHelper = null)
@@ -51,7 +61,7 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
     }
 
     public static TestDistributedApplicationBuilder CreateWithTestContainerRegistry(ITestOutputHelper testOutputHelper) =>
-        Create(o => o.ContainerRegistryOverride = TestConstants.AspireTestContainerRegistry, testOutputHelper);
+        Create(o => o.ContainerRegistryOverride = ComponentTestConstants.AspireTestContainerRegistry, testOutputHelper);
 
     private TestDistributedApplicationBuilder(Action<DistributedApplicationOptions>? configureOptions, ITestOutputHelper? testOutputHelper = null)
     {
@@ -67,6 +77,8 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
             o.OtlpGrpcEndpointUrl ??= "http://localhost:4317";
         });
 
+        _innerBuilder.Services.AddSingleton<ApplicationOrchestratorProxy>(sp => new ApplicationOrchestratorProxy(sp.GetRequiredService<ApplicationOrchestrator>()));
+
         _innerBuilder.Services.AddHttpClient();
         _innerBuilder.Services.ConfigureHttpClientDefaults(http => http.AddStandardResilienceHandler());
         if (testOutputHelper is not null)
@@ -80,6 +92,7 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
             hostBuilderOptions.ApplicationName = appAssembly.GetName().Name;
             applicationOptions.AssemblyName = assemblyName;
             applicationOptions.DisableDashboard = true;
+            applicationOptions.EnableResourceLogging = true;
             var cfg = hostBuilderOptions.Configuration ??= new();
             cfg.AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -95,7 +108,7 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
     public TestDistributedApplicationBuilder WithTestAndResourceLogging(ITestOutputHelper testOutputHelper)
     {
         Services.AddXunitLogging(testOutputHelper);
-        Services.AddHostedService<ResourceLoggerForwarderService>();
+        Services.AddLogging(builder => builder.AddFilter("Aspire.Hosting", LogLevel.Trace));
         return this;
     }
 

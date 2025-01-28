@@ -24,7 +24,7 @@ public class ContainerResourceTests
 
         var containerResource = Assert.Single(containerResources);
         Assert.Equal("container", containerResource.Name);
-        var containerAnnotation = Assert.IsType<ContainerImageAnnotation>(Assert.Single(containerResource.Annotations));
+        var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal("latest", containerAnnotation.Tag);
         Assert.Equal("none", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
@@ -43,9 +43,49 @@ public class ContainerResourceTests
 
         var containerResource = Assert.Single(containerResources);
         Assert.Equal("container", containerResource.Name);
-        var containerAnnotation = Assert.IsType<ContainerImageAnnotation>(Assert.Single(containerResource.Annotations));
+        var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal("nightly", containerAnnotation.Tag);
         Assert.Equal("none", containerAnnotation.Image);
+        Assert.Null(containerAnnotation.Registry);
+    }
+
+    [Fact]
+    public void AddContainerWithTagInImage()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        appBuilder.AddContainer("container", "image:tag");
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var containerResources = appModel.GetContainerResources();
+
+        var containerResource = Assert.Single(containerResources);
+        Assert.Equal("container", containerResource.Name);
+        var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
+        Assert.Equal("tag", containerAnnotation.Tag);
+        Assert.Equal("image", containerAnnotation.Image);
+        Assert.Null(containerAnnotation.SHA256);
+        Assert.Null(containerAnnotation.Registry);
+    }
+
+    [Fact]
+    public void AddContainerWithSha256InImage()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        appBuilder.AddContainer("container", "imagewithdigest@sha256:01234567890abcdef01234567890abcdef01234567890abcdef01234567890ab");
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var containerResources = appModel.GetContainerResources();
+
+        var containerResource = Assert.Single(containerResources);
+        Assert.Equal("container", containerResource.Name);
+        var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
+        Assert.Equal("01234567890abcdef01234567890abcdef01234567890abcdef01234567890ab", containerAnnotation.SHA256);
+        Assert.Equal("imagewithdigest", containerAnnotation.Image);
+        Assert.Null(containerAnnotation.Tag);
         Assert.Null(containerAnnotation.Registry);
     }
 

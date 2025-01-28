@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting Seq</PackageTags>
+    <PackageTags>aspire integration hosting Seq</PackageTags>
     <Description>Seq support for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)Seq_logo.275x147.png</PackageIconFullPath>
   </PropertyGroup>
@@ -11,10 +11,6 @@
   <PropertyGroup>
     <MinCodeCoverage>100</MinCodeCoverage>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />

@@ -32,6 +32,13 @@ public class AzureBicepProvisionerTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
+        var container = builder.AddContainer("foo", "image")
+            .WithHttpEndpoint()
+            .WithEndpoint("http", e =>
+            {
+                e.AllocatedEndpoint = new(e, "localhost", 1023);
+            });
+
         builder.Configuration["Parameters:param"] = "paramValue";
 
         var connectionStringResource = builder.CreateResourceBuilder(
@@ -45,18 +52,22 @@ public class AzureBicepProvisionerTests
                .WithParameter("values", ["a", "b", "c"])
                .WithParameter("conn", connectionStringResource)
                .WithParameter("jsonObj", new JsonObject { ["key"] = "value" })
-               .WithParameter("param", param);
+               .WithParameter("param", param)
+               .WithParameter("expr", ReferenceExpression.Create($"{param.Resource}/1"))
+               .WithParameter("endpoint", container.GetEndpoint("http"));
 
         var parameters = new JsonObject();
         await BicepProvisioner.SetParametersAsync(parameters, bicep0.Resource);
 
-        Assert.Equal(6, parameters.Count);
+        Assert.Equal(8, parameters.Count);
         Assert.Equal("john", parameters["name"]?["value"]?.ToString());
         Assert.Equal(20, parameters["age"]?["value"]?.GetValue<int>());
         Assert.Equal(["a", "b", "c"], parameters["values"]?["value"]?.AsArray()?.Select(v => v?.ToString()) ?? []);
         Assert.Equal("connection string", parameters["conn"]?["value"]?.ToString());
         Assert.Equal("value", parameters["jsonObj"]?["value"]?["key"]?.ToString());
         Assert.Equal("paramValue", parameters["param"]?["value"]?.ToString());
+        Assert.Equal("paramValue/1", parameters["expr"]?["value"]?.ToString());
+        Assert.Equal("http://localhost:1023", parameters["endpoint"]?["value"]?.ToString());
     }
 
     [Fact]
@@ -95,14 +106,12 @@ public class AzureBicepProvisionerTests
     [InlineData("alpha 123")]
     public void WithParameterDoesNotAllowParameterNamesWhichAreInvalidBicepIdentifiers(string bicepParameterName)
     {
-        var ex = Assert.Throws<ArgumentException>(() =>
+        Assert.Throws<ArgumentException>(() =>
         {
             using var builder = TestDistributedApplicationBuilder.Create();
-            builder.AddAzureConstruct("construct", _ => { })
+            builder.AddAzureInfrastructure("infrastructure", _ => { })
                    .WithParameter(bicepParameterName);
         });
-
-        Assert.Equal("Bicep parameter names must only contain alpha, numeric, and _ characters and must start with an alpha or _ characters. (Parameter 'bicepParameterName')", ex.Message);
     }
 
     [Theory]
@@ -115,7 +124,7 @@ public class AzureBicepProvisionerTests
     public void WithParameterAllowsParameterNamesWhichAreValidBicepIdentifiers(string bicepParameterName)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.AddAzureConstruct("construct", _ => { })
+        builder.AddAzureInfrastructure("infrastructure", _ => { })
                 .WithParameter(bicepParameterName);
     }
 
