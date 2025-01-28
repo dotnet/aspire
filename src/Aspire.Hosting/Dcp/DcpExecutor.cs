@@ -773,6 +773,12 @@ internal sealed class DcpExecutor : IDcpExecutor
                 var serviceName = _nameGenerator.GetServiceName(sp.ModelResource, endpoint, endpoints.Length > 1, serviceNames);
                 var svc = Service.Create(serviceName);
 
+                if (!sp.ModelResource.SupportsProxy())
+                {
+                    // If the resource shouldn't be proxied, we need to enforce that on the annotation
+                    endpoint.IsProxied = false;
+                }
+
                 var port = _options.Value.RandomizePorts && endpoint.IsProxied ? null : endpoint.Port;
                 svc.Spec.Port = port;
                 svc.Spec.Protocol = PortProtocol.FromProtocolType(endpoint.Protocol);
@@ -1399,7 +1405,7 @@ internal sealed class DcpExecutor : IDcpExecutor
                     resourceLogger.LogCritical(ex, "Failed to apply container runtime argument '{ConfigKey}'. A dependency may have failed to start.", arg);
                     _logger.LogDebug(ex, "Failed to apply container runtime argument '{ConfigKey}' to '{ResourceName}'. A dependency may have failed to start.", arg, modelContainerResource.Name);
                     failedToApplyConfiguration = true;
-                }                
+                }
             }
         }
 

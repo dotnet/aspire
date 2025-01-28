@@ -851,6 +851,61 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    public async Task WithEndpointProxySupportDisablesProxies()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+#pragma warning disable ASPIREPROXYENDPOINTS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        var redis = builder.AddRedis("redis", 1234).WithEndpointProxySupport(false);
+#pragma warning restore ASPIREPROXYENDPOINTS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+        // Since port is not specified, this instance will use the container target port (6379) as the host port.
+#pragma warning disable ASPIREPROXYENDPOINTS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        var redisNoPort = builder.AddRedis("redisNoPort").WithEndpointProxySupport(false);
+#pragma warning restore ASPIREPROXYENDPOINTS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+        var servicea = builder.AddProject<Projects.ServiceA>("servicea")
+            .WithReference(redis)
+            .WithReference(redisNoPort);
+
+        using var app = builder.Build();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+
+        // Wait for the application to be ready
+        await app.WaitForTextAsync("Application started.").DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+
+        // Wait until the service itself starts.
+        using var clientA = app.CreateHttpClient(servicea.Resource.Name, "http");
+        await clientA.GetStringAsync("/").DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+
+        var serviceList = await s.ListAsync<Service>().DefaultTimeout();
+        Assert.All(serviceList.Where(s => s.Metadata.Name.Contains("redis")), s => Assert.Equal(AddressAllocationModes.Proxyless, s.Spec.AddressAllocationMode));
+
+        var exeList = await s.ListAsync<Executable>().DefaultTimeout();
+
+        var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
+        Assert.NotNull(suffix);
+        var service = Assert.Single(exeList.Where(c => "servicea".Equals(c.AppModelResourceName) && c.Name().Contains(suffix)));
+        var env = Assert.Single(service.Spec.Env!.Where(e => e.Name == "ConnectionStrings__redis"));
+        Assert.Equal("localhost:1234", env.Value);
+
+        var list = await s.ListAsync<Container>().DefaultTimeout();
+        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(),$"redis-{ReplicaIdRegex}-{suffix}"))) ;
+        Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
+
+        var otherRedisEnv = Assert.Single(service.Spec.Env!.Where(e => e.Name == "ConnectionStrings__redisNoPort"));
+        Assert.Equal("localhost:6379", otherRedisEnv.Value);
+
+        var otherRedisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"redisNoPort-{ReplicaIdRegex}-{suffix}")));
+        Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+    }
+
+    [Fact]
+    [RequiresDocker]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessContainerWithoutPortThrows()
     {
