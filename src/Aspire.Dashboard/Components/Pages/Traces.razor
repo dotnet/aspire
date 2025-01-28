@@ -7,10 +7,13 @@
 @using Aspire.Dashboard.Utils
 @using System.Globalization
 @using Aspire.Dashboard.Components.Controls.Grid
+
 @inject IJSRuntime JS
 @inject IStringLocalizer<Dashboard.Resources.Traces> Loc
 @inject IStringLocalizer<StructuredFiltering> FilterLoc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
+@inject IStringLocalizer<Dialogs> DialogsLoc
+
 @implements IDisposable
 
 <PageTitle>
