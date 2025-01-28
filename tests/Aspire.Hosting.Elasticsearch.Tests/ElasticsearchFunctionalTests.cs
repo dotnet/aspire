@@ -69,6 +69,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
     [InlineData(true)]
     [InlineData(false)]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/7276")]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
