@@ -44,7 +44,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                     if (state == null)
                     {
                         // The resource has entered a running state so it's time to start monitoring it's health.
-                        state = new ResourceMonitorState(resourceEvent, stoppingToken);
+                        state = new ResourceMonitorState(logger, resourceEvent, stoppingToken);
 
                         lock (_resourceMonitoringStates)
                         {
@@ -58,8 +58,6 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                 {
                     if (state != null)
                     {
-                        logger.LogDebug("Health monitoring for resource '{Resource}' stopping.", resourceName);
-
                         // The resource is in a terminal state, so we can stop monitoring it.
                         state.StopResourceMonitor();
                         lock (_resourceMonitoringStates)
@@ -130,6 +128,8 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                     cancellationToken
                     ).ConfigureAwait(false);
 
+                logger.LogTrace("Health report status for '{Resource}' is {HealthReportStatus}.", resource.Name, report.Status);
+
                 if (report.Status == HealthStatus.Healthy)
                 {
                     if (!resourceReadyEventFired)
@@ -148,6 +148,8 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
                 if (ContainsAnyHealthReportChange(report, currentEvent.Snapshot.HealthReports))
                 {
+                    logger.LogTrace("Health reports for '{Resource}' have changed. Publishing updated reports.", resource.Name);
+
                     await resourceNotificationService.PublishUpdateAsync(resource, s =>
                     {
                         var healthReports = MergeHealthReports(s.HealthReports, report);
@@ -270,20 +272,32 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
         return builder.ToImmutable();
     }
 
-    internal class ResourceMonitorState(ResourceEvent initialEvent, CancellationToken serviceStoppingToken)
+    internal class ResourceMonitorState
     {
-        private readonly CancellationTokenSource _cts = CancellationTokenSource.CreateLinkedTokenSource(serviceStoppingToken);
+        private readonly ILogger _logger;
+        private readonly CancellationTokenSource _cts;
         private readonly object _lock = new object();
-
+        private readonly string _resourceName;
         private TaskCompletionSource? _delayInterruptTcs;
+
+        public ResourceMonitorState(ILogger logger, ResourceEvent initialEvent, CancellationToken serviceStoppingToken)
+        {
+            _logger = logger;
+            _cts = CancellationTokenSource.CreateLinkedTokenSource(serviceStoppingToken);
+            _resourceName = initialEvent.Resource.Name;
+            LatestEvent = initialEvent;
+
+            _logger.LogDebug("Starting health monitoring for resource '{Resource}'.", _resourceName);
+        }
 
         // Used to cancel and exit the monitoring loop for a resource.
         public CancellationToken CancellationToken => _cts.Token;
 
-        public ResourceEvent LatestEvent { get; private set; } = initialEvent;
+        public ResourceEvent LatestEvent { get; private set; }
 
         public void StopResourceMonitor()
         {
+            _logger.LogDebug("Stopping health monitoring for resource '{Resource}'.", _resourceName);
             _cts.Cancel();
         }
 
@@ -310,6 +324,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                 // The event might have changed before delay was called. Interrupt immediately if required.
                 if (currentEvent != null && ShouldInterrupt(currentEvent, LatestEvent))
                 {
+                    _logger.LogTrace("Health monitoring delay interrupted for resource '{Resource}'.", _resourceName);
                     return true;
                 }
                 _delayInterruptTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
