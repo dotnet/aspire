@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Configuration;
@@ -12,49 +11,49 @@ namespace Microsoft.Extensions.SecretManager.Tools.Internal;
 /// <summary>
 /// Adapted from dotnet user-secrets at https://github.com/dotnet/aspnetcore/blob/482730a4c773ee4b3ae9525186d10999c89b556d/src/Tools/dotnet-user-secrets/src/Internal/SecretsStore.cs
 /// </summary>
-internal sealed class SecretsStore
+internal abstract class KeyValueStore
 {
-    private readonly string _secretsFilePath;
-    private readonly Dictionary<string, string?> _secrets;
+    private readonly string _filePath;
+    private readonly Dictionary<string, string?> _store;
 
-    public SecretsStore(string userSecretsId)
+    protected KeyValueStore(string filePath)
     {
-        ArgumentNullException.ThrowIfNull(userSecretsId);
+        ArgumentNullException.ThrowIfNull(filePath);
 
-        _secretsFilePath = PathHelper.GetSecretsPathFromSecretsId(userSecretsId);
+        _filePath = filePath;
 
-        EnsureUserSecretsDirectory();
+        EnsureDirectory();
 
-        _secrets = Load(_secretsFilePath);
+        _store = Load(_filePath);
     }
 
-    public string? this[string key] => _secrets[key];
+    public string? this[string key] => _store[key];
 
-    public int Count => _secrets.Count;
+    public int Count => _store.Count;
 
     // For testing.
-    internal string SecretsFilePath => _secretsFilePath;
+    internal string FilePath => _filePath;
 
-    public bool ContainsKey(string key) => _secrets.ContainsKey(key);
+    public bool ContainsKey(string key) => _store.ContainsKey(key);
 
-    public IEnumerable<KeyValuePair<string, string?>> AsEnumerable() => _secrets;
+    public IEnumerable<KeyValuePair<string, string?>> AsEnumerable() => _store;
 
-    public void Clear() => _secrets.Clear();
+    public void Clear() => _store.Clear();
 
-    public void Set(string key, string value) => _secrets[key] = value;
+    public void Set(string key, string value) => _store[key] = value;
 
-    public bool Remove(string key) => _secrets.Remove(key);
+    public bool Remove(string key) => _store.Remove(key);
 
     public void Save()
     {
-        EnsureUserSecretsDirectory();
+        EnsureDirectory();
 
         var contents = new JsonObject();
-        if (_secrets is not null)
+        if (_store is not null)
         {
-            foreach (var secret in _secrets.AsEnumerable())
+            foreach (var item in _store.AsEnumerable())
             {
-                contents[secret.Key] = secret.Value;
+                contents[item.Key] = item.Value;
             }
         }
 
@@ -62,7 +61,7 @@ internal sealed class SecretsStore
         if (!OperatingSystem.IsWindows())
         {
             var tempFilename = Path.GetTempFileName();
-            File.Move(tempFilename, _secretsFilePath, overwrite: true);
+            File.Move(tempFilename, _filePath, overwrite: true);
         }
 
         var json = contents.ToJsonString(new()
@@ -70,25 +69,34 @@ internal sealed class SecretsStore
             WriteIndented = true
         });
 
-        File.WriteAllText(_secretsFilePath, json, Encoding.UTF8);
+        File.WriteAllText(_filePath, json, Encoding.UTF8);
     }
 
-    private void EnsureUserSecretsDirectory()
+    protected virtual void EnsureDirectory()
     {
-        var directoryName = Path.GetDirectoryName(_secretsFilePath);
+        var directoryName = Path.GetDirectoryName(_filePath);
         if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
         {
             Directory.CreateDirectory(directoryName);
         }
     }
 
-    private static Dictionary<string, string?> Load(string secretsFilePath)
+    private static Dictionary<string, string?> Load(string filePath)
     {
         return new ConfigurationBuilder()
-            .AddJsonFile(secretsFilePath, optional: true)
+            .AddJsonFile(filePath, optional: true)
             .Build()
             .AsEnumerable()
             .Where(i => i.Value != null)
             .ToDictionary(i => i.Key, i => i.Value, StringComparer.OrdinalIgnoreCase);
+    }
+}
+
+internal sealed class SecretsStore : KeyValueStore
+{
+    public SecretsStore(string userSecretsId)
+        : base(PathHelper.GetSecretsPathFromSecretsId(userSecretsId))
+    {
+        ArgumentNullException.ThrowIfNull(userSecretsId);
     }
 }

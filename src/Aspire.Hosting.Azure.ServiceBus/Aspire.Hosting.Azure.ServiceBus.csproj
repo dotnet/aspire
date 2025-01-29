@@ -15,6 +15,7 @@
   <ItemGroup>
     <Compile Include="$(RepoRoot)src\Aspire.Hosting\Utils\PasswordGenerator.cs" Link="Utils\PasswordGenerator.cs" />
     <Compile Include="$(SharedDir)AspireStore.cs" Link="Utils\AspireStore.cs" />
+    <Compile Include="$(SharedDir)SecretsStore.cs" Link="Utils\SecretsStore.cs" />
   </ItemGroup>
   
   <ItemGroup>
