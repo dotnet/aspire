@@ -13,7 +13,6 @@ internal class AppResource : IResourceReference
     public IResource ModelResource { get; }
     public CustomResource DcpResource { get; }
     public string DcpResourceName => DcpResource.Metadata.Name;
-    public SemaphoreSlim ResourceLock { get; } = new SemaphoreSlim(1);
     public virtual List<ServiceAppResource> ServicesProduced { get; } = [];
     public virtual List<ServiceAppResource> ServicesConsumed { get; } = [];
 
@@ -48,5 +47,4 @@ internal interface IResourceReference
 {
     IResource ModelResource { get; }
     string DcpResourceName { get; }
-    SemaphoreSlim ResourceLock { get; }
 }
