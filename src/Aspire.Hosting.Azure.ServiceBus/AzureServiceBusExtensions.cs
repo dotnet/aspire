@@ -276,7 +276,7 @@ public static class AzureServiceBusExtensions
         var aspireStore = AspireStore.Create(builder.ApplicationBuilder);
 
         // Deterministic file path for the configuration file
-        var configHostFile = aspireStore.GetOrCreateFile("Config.json");
+        var configHostFile = aspireStore.GetOrCreateFile($"{builder.Resource.Name}-Config.json");
 
         if (configureContainer != null)
         {
