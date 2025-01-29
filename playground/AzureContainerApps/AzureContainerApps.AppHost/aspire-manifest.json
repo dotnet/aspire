@@ -31,7 +31,7 @@
     },
     "cache": {
       "type": "container.v1",
-      "connectionString": "{cache.bindings.tcp.host}:{cache.bindings.tcp.port}",
+      "connectionString": "{cache.bindings.tcp.host}:{cache.bindings.tcp.port},password={cache-password.value}",
       "image": "docker.io/library/redis:7.4",
       "deployment": {
         "type": "azure.bicep.v0",
@@ -40,10 +40,13 @@
           "cache_volumes_0_storage": "{cache.volumes.0.storage}",
           "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
           "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+          "cache_password_value": "{cache-password.value}",
           "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
         }
       },
       "args": [
+        "--requirepass",
+        "{cache-password.value}",
         "--save",
         "60",
         "1"
@@ -112,6 +115,7 @@
         "params": {
           "api_containerport": "{api.containerPort}",
           "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
+          "cache_password_value": "{cache-password.value}",
           "account_outputs_connectionstring": "{account.outputs.connectionString}",
           "secretparam_value": "{secretparam.value}",
           "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
@@ -146,6 +150,21 @@
           "protocol": "tcp",
           "transport": "http",
           "external": true
+        }
+      }
+    },
+    "cache-password": {
+      "type": "parameter.v0",
+      "value": "{cache-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
         }
       }
     }

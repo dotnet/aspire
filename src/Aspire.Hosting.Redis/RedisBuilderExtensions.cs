@@ -169,7 +169,6 @@ public static class RedisBuilderExtensions
                 {
                     if (redisInstance.PrimaryEndpoint.IsAllocated)
                     {
-
                         // Redis Commander assumes Redis is being accessed over a default Aspire container network and hardcodes the resource address
                         // This will need to be refactored once updated service discovery APIs are available
                         var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.Name}:{redisInstance.PrimaryEndpoint.TargetPort}:0";
