@@ -33,7 +33,6 @@
     <MicrosoftDotNetXUnitExtensionsVersion>9.0.0-beta.25065.2</MicrosoftDotNetXUnitExtensionsVersion>
     <MicrosoftDotNetBuildTasksInstallersVersion>9.0.0-beta.25065.2</MicrosoftDotNetBuildTasksInstallersVersion>
     <MicrosoftDotNetBuildTasksWorkloadsVersion>9.0.0-beta.25065.2</MicrosoftDotNetBuildTasksWorkloadsVersion>
-    <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.0-preview.5.24272.3</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
     <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.1-servicing.24603.14</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
     <!-- dotnet/extensions -->
     <MicrosoftExtensionsAIVersion>9.1.0-preview.1.25064.3</MicrosoftExtensionsAIVersion>
