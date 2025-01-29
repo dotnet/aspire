@@ -264,6 +264,14 @@ public class ResourceNotificationService : IDisposable
         var pendingDependencies = new List<Task>();
         foreach (var waitAnnotation in waitAnnotations)
         {
+            if (waitAnnotation.Resource is ParameterResource or ResourceWithConnectionStringSurrogate)
+            {
+                // Parameters and connection string resources are inert and don't need to be waited on.
+                // If we add support for parameter resources that can be waited on, we can remove this check.
+                // As of right now, we don't support waiting on parameter resources.
+                continue;
+            }
+
             var pendingDependency = waitAnnotation.WaitType switch
             {
                 WaitType.WaitUntilHealthy => WaitUntilHealthyAsync(resource, waitAnnotation.Resource, cancellationToken),
