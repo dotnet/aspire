@@ -71,7 +71,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="appDirectory">The path to the directory containing the python app files.</param>
-    /// <param name="scriptPath">The path to the script relative to the project directory to run.</param>
+    /// <param name="scriptPath">The path to the script to run, relative to the app directory.</param>
     /// <param name="virtualEnvironmentPath">Path to the virtual environment.</param>
     /// <param name="scriptArgs">The arguments for the script.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
@@ -130,12 +130,12 @@ public static class PythonAppResourceBuilderExtensions
 
         var resourceBuilder = builder.AddResource(resource).WithArgs(context =>
         {
-            // If the project is to be automatically instrumented, add the instrumentation executable arguments first.
+            // If the app is to be automatically instrumented, add the instrumentation executable arguments first.
             if (!string.IsNullOrEmpty(instrumentationExecutable))
             {
                 AddOpenTelemetryArguments(context);
 
-                // Add the python executable as the next argument so we can run the project.
+                // Add the python executable as the next argument so we can run the app.
                 context.Args.Add(pythonExecutable!);
             }
 
