@@ -29,41 +29,6 @@ using Polly.Timeout;
 
 namespace Aspire.Hosting.Dcp;
 
-[DebuggerDisplay("ModelResource = {ModelResource}, DcpResource = {DcpResource}")]
-internal class AppResource
-{
-    public IResource ModelResource { get; }
-    public CustomResource DcpResource { get; }
-    public virtual List<ServiceAppResource> ServicesProduced { get; } = [];
-    public virtual List<ServiceAppResource> ServicesConsumed { get; } = [];
-
-    public AppResource(IResource modelResource, CustomResource dcpResource)
-    {
-        ModelResource = modelResource;
-        DcpResource = dcpResource;
-    }
-}
-
-internal sealed class ServiceAppResource : AppResource
-{
-    public Service Service => (Service)DcpResource;
-    public EndpointAnnotation EndpointAnnotation { get; }
-
-    public override List<ServiceAppResource> ServicesProduced
-    {
-        get { throw new InvalidOperationException("Service resources do not produce any services"); }
-    }
-    public override List<ServiceAppResource> ServicesConsumed
-    {
-        get { throw new InvalidOperationException("Service resources do not consume any services"); }
-    }
-
-    public ServiceAppResource(IResource modelResource, Service service, EndpointAnnotation sba) : base(modelResource, service)
-    {
-        EndpointAnnotation = sba;
-    }
-}
-
 internal sealed class DcpExecutor : IDcpExecutor
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
@@ -1650,12 +1615,12 @@ internal sealed class DcpExecutor : IDcpExecutor
         return new V1Patch(jsonPatch, V1Patch.PatchType.JsonPatch);
     }
 
-    public async Task StopResourceAsync(string resourceName, CancellationToken cancellationToken)
+    public async Task StopResourceAsync(IResourceReference resourceReference, CancellationToken cancellationToken)
     {
-        var matchingResource = GetMatchingResource(resourceName);
+        var appResource = (AppResource)resourceReference;
 
         V1Patch patch;
-        switch (matchingResource.DcpResource)
+        switch (appResource.DcpResource)
         {
             case Container c:
                 patch = CreatePatch(c, obj => obj.Spec.Stop = true);
@@ -1666,11 +1631,11 @@ internal sealed class DcpExecutor : IDcpExecutor
                 await _kubernetesService.PatchAsync(e, patch, cancellationToken).ConfigureAwait(false);
                 break;
             default:
-                throw new InvalidOperationException($"Unexpected resource type: {matchingResource.DcpResource.GetType().FullName}");
+                throw new InvalidOperationException($"Unexpected resource type: {appResource.DcpResource.GetType().FullName}");
         }
     }
 
-    private AppResource GetMatchingResource(string resourceName)
+    public IResourceReference GetResource(string resourceName)
     {
         var matchingResource = _appResources
             .Where(r => r.DcpResource is not Service)
@@ -1683,14 +1648,14 @@ internal sealed class DcpExecutor : IDcpExecutor
         return matchingResource;
     }
 
-    public async Task StartResourceAsync(string resourceName, CancellationToken cancellationToken)
+    public async Task StartResourceAsync(IResourceReference resourceReference, CancellationToken cancellationToken)
     {
-        var matchingResource = GetMatchingResource(resourceName);
-        var resourceType = GetResourceType(matchingResource.DcpResource, matchingResource.ModelResource);
+        var appResource = (AppResource)resourceReference;
+        var resourceType = GetResourceType(appResource.DcpResource, appResource.ModelResource);
 
         try
         {
-            switch (matchingResource.DcpResource)
+            switch (appResource.DcpResource)
             {
                 case Container c:
                     await StartExecutableOrContainerAsync(c).ConfigureAwait(false);
@@ -1699,13 +1664,13 @@ internal sealed class DcpExecutor : IDcpExecutor
                     await StartExecutableOrContainerAsync(e).ConfigureAwait(false);
                     break;
                 default:
-                    throw new InvalidOperationException($"Unexpected resource type: {matchingResource.DcpResource.GetType().FullName}");
+                    throw new InvalidOperationException($"Unexpected resource type: {appResource.DcpResource.GetType().FullName}");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to start resource {ResourceName}", matchingResource.ModelResource.Name);
-            await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, matchingResource.ModelResource, matchingResource.DcpResource.Metadata.Name)).ConfigureAwait(false);
+            _logger.LogError(ex, "Failed to start resource {ResourceName}", appResource.ModelResource.Name);
+            await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResource.Metadata.Name)).ConfigureAwait(false);
             throw;
         }
 
@@ -1765,7 +1730,7 @@ internal sealed class DcpExecutor : IDcpExecutor
 
             // Raise event after resource has been deleted. This is required because the event sets the status to "Starting" and resources being
             // deleted will temporarily override the status to a terminal state, such as "Exited".
-            await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, matchingResource.ModelResource, matchingResource.DcpResource.Metadata.Name)).ConfigureAwait(false);
+            await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResource.Metadata.Name)).ConfigureAwait(false);
 
             await _kubernetesService.CreateAsync(resource, cancellationToken).ConfigureAwait(false);
         }

@@ -8,7 +8,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 builder.Services.AddHttpClient();
 builder.Services.AddHealthChecks().AddAsyncCheck("health-test", async (ct) =>
 {
-    await Task.Delay(500, ct);
+    await Task.Delay(10_000, ct);
     return HealthCheckResult.Healthy();
 });
 
