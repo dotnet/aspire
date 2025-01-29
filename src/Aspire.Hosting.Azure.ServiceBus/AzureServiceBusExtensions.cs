@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.ServiceBus;
+using Aspire.Hosting.Utils;
 using Azure.Messaging.ServiceBus;
 using Azure.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
@@ -272,7 +273,10 @@ public static class AzureServiceBusExtensions
 
         var lifetime = ContainerLifetime.Session;
 
-        string configHostFile;
+        var aspireStore = AspireStore.Create(builder.ApplicationBuilder);
+
+        // Deterministic file path for the configuration file
+        var configHostFile = aspireStore.GetOrCreateFile("Config.json");
 
         if (configureContainer != null)
         {
@@ -284,20 +288,6 @@ public static class AzureServiceBusExtensions
             {
                 lifetime = lifetimeAnnotation.Lifetime;
             }
-        }
-
-        static string createTempConfigFile() => Path.Combine(Directory.CreateTempSubdirectory("AspireServiceBusEmulator").FullName, "Config.json");
-
-        // If the container is persistent, reuse the same configHostFile value across restarts.
-        if (lifetime == ContainerLifetime.Persistent)
-        {
-            var configParameter = ParameterResourceBuilderExtensions.AddPersistentParameter(builder.ApplicationBuilder, $"{builder.Resource.Name}-configJson", createTempConfigFile);
-            configHostFile = configParameter.Value;
-        }
-        else
-        {
-            // Otherwise, create a default file mount. This could be replaced by a user-provided file mount.
-            configHostFile = createTempConfigFile();
         }
 
         sqlEdgeResource = sqlEdgeResource.WithLifetime(lifetime);
@@ -353,15 +343,8 @@ public static class AzureServiceBusExtensions
                     continue;
                 }
 
-                var fileStreamOptions = new FileStreamOptions() { Mode = FileMode.Create, Access = FileAccess.Write };
-
-                if (!OperatingSystem.IsWindows())
-                {
-                    fileStreamOptions.UnixCreateMode =
-                        UnixFileMode.UserRead | UnixFileMode.UserWrite
-                        | UnixFileMode.GroupRead | UnixFileMode.GroupWrite
-                        | UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
-                }
+                // Truncate the file since we are going to write to it.
+                var fileStreamOptions = new FileStreamOptions() { Mode = FileMode.Truncate, Access = FileAccess.Write };
 
                 using (var stream = new FileStream(configFileMount.Source!, fileStreamOptions))
                 {
