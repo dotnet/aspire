@@ -95,6 +95,17 @@ public partial class TraceDetail : ComponentBase, IDisposable
         });
     }
 
+    private string? GetPageTitle()
+    {
+        if (_trace is null)
+        {
+            return null;
+        }
+
+        var headerSpan = _trace.RootOrFirstSpan;
+        return $"{GetResourceName(headerSpan.Source)}: {headerSpan.Name}";
+    }
+
     private static Icon GetSpanIcon(OtlpSpan span)
     {
         switch (span.Kind)

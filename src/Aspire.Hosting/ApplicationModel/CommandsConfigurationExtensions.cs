@@ -115,7 +115,9 @@ internal static class CommandsConfigurationExtensions
             iconVariant: IconVariant.Regular,
             isHighlighted: false));
 
-        static bool IsStopped(string? state) => state is "Exited" or "Finished" or "FailedToStart";
+        // Treat "Unknown" as stopped so the command to start the resource is available when "Unknown".
+        // There is a situation where a container can be stopped with this state: https://github.com/dotnet/aspire/issues/5977
+        static bool IsStopped(string? state) => state is "Exited" or "Finished" or "FailedToStart" or "Unknown";
         static bool IsStopping(string? state) => state is "Stopping";
         static bool IsStarting(string? state) => state is "Starting";
         static bool IsWaiting(string? state) => state is "Waiting";

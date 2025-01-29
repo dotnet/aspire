@@ -25,8 +25,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync(includeSecrets: true);
 
-        var parameter = builder.AddParameter("secret", secret: true);
         builder.Configuration["Parameters:secret"] = "open sesame from env";
+        var parameter = builder.AddParameter("secret", secret: true);
 
         builder.AddContainer("testcontainer", "testimage")
                .WithHttpEndpoint(targetPort: 80)
@@ -160,8 +160,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         });
         builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
 
-        var parameter = builder.AddParameter("message");
         builder.Configuration["Parameters:message"] = "hello";
+        var parameter = builder.AddParameter("message");
 
         var container = builder.AddContainer("testcontainer", "testimage")
                                .WithHttpEndpoint(targetPort: 80)
@@ -208,8 +208,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         });
         builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
 
-        var parameter = builder.AddParameter("message");
         builder.Configuration["Parameters:message"] = "hello";
+        var parameter = builder.AddParameter("message");
 
         var container = builder.AddDockerfile("testcontainer", tempContextPath, tempDockerfilePath, "runner")
                                .WithHttpEndpoint(targetPort: 80)
@@ -255,8 +255,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         });
         builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
 
-        var parameter = builder.AddParameter("secret", secret: true);
         builder.Configuration["Parameters:secret"] = "open sesame";
+        var parameter = builder.AddParameter("secret", secret: true);
 
         var container = builder.AddContainer("testcontainer", "testimage")
                                .WithHttpEndpoint(targetPort: 80)
@@ -301,8 +301,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         });
         builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
 
-        var parameter = builder.AddParameter("secret", secret: true);
         builder.Configuration["Parameters:secret"] = "open sesame";
+        var parameter = builder.AddParameter("secret", secret: true);
 
         var container = builder.AddDockerfile("testcontainer", tempContextPath, tempDockerfilePath)
                                .WithHttpEndpoint(targetPort: 80)
@@ -344,8 +344,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
 
-        var parameter = builder.AddParameter("message");
         builder.Configuration["Parameters:message"] = "hello";
+        var parameter = builder.AddParameter("message");
 
         builder.AddContainer("testcontainer", "testimage")
                .WithHttpEndpoint(targetPort: 80)
@@ -415,8 +415,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
 
-        var parameter = builder.AddParameter("message");
         builder.Configuration["Parameters:message"] = "hello";
+        var parameter = builder.AddParameter("message");
 
         builder.AddDockerfile("testcontainer", tempContextPath, tempDockerfilePath)
                .WithHttpEndpoint(targetPort: 80)

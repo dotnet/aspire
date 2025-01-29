@@ -124,14 +124,20 @@
   <data name="ResourcesHeader" xml:space="preserve">
     <value>Resources</value>
   </data>
-  <data name="ResourcesTypeFilterAllVisible" xml:space="preserve">
-    <value>Type filter: All types visible</value>
+  <data name="ResourcesNotFiltered" xml:space="preserve">
+    <value>No filters</value>
   </data>
-  <data name="ResourcesTypeFiltered" xml:space="preserve">
-    <value>Type filter: Filtered</value>
+  <data name="ResourcesFiltered" xml:space="preserve">
+    <value>Has filters</value>
   </data>
   <data name="ResourcesResourceTypesHeader" xml:space="preserve">
     <value>Resource types</value>
+  </data>
+  <data name="ResourcesResourceStatesHeader" xml:space="preserve">
+    <value>State</value>
+  </data>
+  <data name="ResourceFilterOptionEmpty" xml:space="preserve">
+    <value>(Unset)</value>
   </data>
   <data name="ResourcesEnvironmentVariablesHeader" xml:space="preserve">
     <value>Environment variables for {0}</value>

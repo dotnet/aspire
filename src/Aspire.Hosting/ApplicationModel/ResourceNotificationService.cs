@@ -264,6 +264,14 @@ public class ResourceNotificationService : IDisposable
         var pendingDependencies = new List<Task>();
         foreach (var waitAnnotation in waitAnnotations)
         {
+            if (waitAnnotation.Resource is ParameterResource or ResourceWithConnectionStringSurrogate)
+            {
+                // Parameters and connection string resources are inert and don't need to be waited on.
+                // If we add support for parameter resources that can be waited on, we can remove this check.
+                // As of right now, we don't support waiting on parameter resources.
+                continue;
+            }
+
             var pendingDependency = waitAnnotation.WaitType switch
             {
                 WaitType.WaitUntilHealthy => WaitUntilHealthyAsync(resource, waitAnnotation.Resource, cancellationToken),
@@ -455,13 +463,13 @@ public class ResourceNotificationService : IDisposable
                     string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
                     string.Join(Environment.NewLine, newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")),
                     string.Join(Environment.NewLine, newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")),
-                    string.Join(Environment.NewLine, newState.HealthReports.Select(p => $"{p.Name} = {p.Status}")));
+                    string.Join(Environment.NewLine, newState.HealthReports.Select(p => $"{p.Name} = {Stringify(p.Status)}")));
 
                 static string Stringify(object? o) => o switch
                 {
                     IEnumerable<int> ints => string.Join(", ", ints.Select(i => i.ToString(CultureInfo.InvariantCulture))),
                     IEnumerable<string> strings => string.Join(", ", strings.Select(s => s)),
-                    null => "null",
+                    null => "(null)",
                     _ => o.ToString()!
                 };
             }

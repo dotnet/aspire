@@ -94,6 +94,10 @@ Aspire.Hosting.ApplicationModel.IResourceWithWaitSupport
 Aspire.Hosting.ApplicationModel.LaunchProfileAnnotation
 Aspire.Hosting.ApplicationModel.LaunchProfileAnnotation.LaunchProfileAnnotation(string! launchProfileName) -> void
 Aspire.Hosting.ApplicationModel.LaunchProfileAnnotation.LaunchProfileName.get -> string!
+Aspire.Hosting.ApplicationModel.ProxySupportAnnotation
+Aspire.Hosting.ApplicationModel.ProxySupportAnnotation.ProxyEnabled.get -> bool
+Aspire.Hosting.ApplicationModel.ProxySupportAnnotation.ProxyEnabled.set -> void
+Aspire.Hosting.ApplicationModel.ProxySupportAnnotation.ProxySupportAnnotation() -> void
 Aspire.Hosting.ApplicationModel.RelationshipSnapshot
 Aspire.Hosting.ApplicationModel.RelationshipSnapshot.RelationshipSnapshot(string! ResourceName, string! Type) -> void
 Aspire.Hosting.ApplicationModel.RelationshipSnapshot.ResourceName.get -> string!
@@ -244,6 +248,7 @@ static Aspire.Hosting.ApplicationModel.ResourceExtensions.HasAnnotationOfType<T>
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetAnnotationsIncludingAncestorsOfType<T>(this Aspire.Hosting.ApplicationModel.IResource! resource, out System.Collections.Generic.IEnumerable<T>? result) -> bool
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBuildArg<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, object? value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithContainerName<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.ContainerResourceBuilderExtensions.WithEndpointProxySupport<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, bool proxyEnabled) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 *REMOVED*static Aspire.Hosting.ContainerResourceBuilderExtensions.WithImage<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! image, string! tag = "latest") -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithImage<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! image, string? tag = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithImageRegistry<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string? registry) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!

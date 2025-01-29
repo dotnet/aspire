@@ -15,6 +15,7 @@ public class ResourceCommandAnnotationTests
     [InlineData(CommandsConfigurationExtensions.StartCommandName, "Exited", ResourceCommandState.Enabled)]
     [InlineData(CommandsConfigurationExtensions.StartCommandName, "Finished", ResourceCommandState.Enabled)]
     [InlineData(CommandsConfigurationExtensions.StartCommandName, "FailedToStart", ResourceCommandState.Enabled)]
+    [InlineData(CommandsConfigurationExtensions.StartCommandName, "Unknown", ResourceCommandState.Enabled)]
     [InlineData(CommandsConfigurationExtensions.StartCommandName, "Waiting", ResourceCommandState.Enabled)]
     [InlineData(CommandsConfigurationExtensions.StartCommandName, "RuntimeUnhealthy", ResourceCommandState.Disabled)]
     [InlineData(CommandsConfigurationExtensions.StopCommandName, "Starting", ResourceCommandState.Hidden)]
@@ -23,6 +24,7 @@ public class ResourceCommandAnnotationTests
     [InlineData(CommandsConfigurationExtensions.StopCommandName, "Exited", ResourceCommandState.Hidden)]
     [InlineData(CommandsConfigurationExtensions.StopCommandName, "Finished", ResourceCommandState.Hidden)]
     [InlineData(CommandsConfigurationExtensions.StopCommandName, "FailedToStart", ResourceCommandState.Hidden)]
+    [InlineData(CommandsConfigurationExtensions.StopCommandName, "Unknown", ResourceCommandState.Hidden)]
     [InlineData(CommandsConfigurationExtensions.StopCommandName, "Waiting", ResourceCommandState.Hidden)]
     [InlineData(CommandsConfigurationExtensions.StopCommandName, "RuntimeUnhealthy", ResourceCommandState.Hidden)]
     [InlineData(CommandsConfigurationExtensions.RestartCommandName, "Starting", ResourceCommandState.Disabled)]
@@ -31,6 +33,7 @@ public class ResourceCommandAnnotationTests
     [InlineData(CommandsConfigurationExtensions.RestartCommandName, "Exited", ResourceCommandState.Disabled)]
     [InlineData(CommandsConfigurationExtensions.RestartCommandName, "Finished", ResourceCommandState.Disabled)]
     [InlineData(CommandsConfigurationExtensions.RestartCommandName, "FailedToStart", ResourceCommandState.Disabled)]
+    [InlineData(CommandsConfigurationExtensions.RestartCommandName, "Unknown", ResourceCommandState.Disabled)]
     [InlineData(CommandsConfigurationExtensions.RestartCommandName, "Waiting", ResourceCommandState.Disabled)]
     [InlineData(CommandsConfigurationExtensions.RestartCommandName, "RuntimeUnhealthy", ResourceCommandState.Disabled)]
     public void LifeCycleCommands_CommandState(string commandName, string resourceState, ResourceCommandState commandState)

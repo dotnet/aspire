@@ -32,7 +32,7 @@ public sealed partial class LogViewer
     public LogEntries? LogEntries { get; set; } = null!;
 
     [Parameter]
-    public bool HideTimestamp { get; set; }
+    public bool ShowTimestamp { get; set; }
 
     protected override void OnParametersSet()
     {
