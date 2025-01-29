@@ -106,6 +106,10 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
                 _dcpInfo = dcpInfo;
                 return dcpInfo;
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex) when (ex is not DistributedApplicationException)
             {
                 throw new DistributedApplicationException(string.Format(
