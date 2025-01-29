@@ -187,6 +187,8 @@ internal sealed class ApplicationOrchestrator
     {
         var resourceReference = _dcpExecutor.GetResource(resourceName);
 
+        // Figure out if the resource is waiting or not using PublishUpdateAsync, and if it is then set the
+        // state to "Starting" to force waiting to complete.
         var isWaiting = false;
         await _notificationService.PublishUpdateAsync(
             resourceReference.ModelResource,
@@ -201,9 +203,10 @@ internal sealed class ApplicationOrchestrator
                 return s;
             }).ConfigureAwait(false);
 
+        // A waiting resource is already trying to start up and asking DCP to start it will result in a conflict.
+        // We only want to ask the DCP to start the resource if it wasn't.
         if (!isWaiting)
-        {
-            // Resource either isn't waiting or doesn't support it.
+        {   
             await _dcpExecutor.StartResourceAsync(resourceReference, cancellationToken).ConfigureAwait(false);
         }
     }
