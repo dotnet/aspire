@@ -169,7 +169,7 @@
       </trans-unit>
       <trans-unit id="ResourcesFiltered">
         <source>Has filters</source>
-        <target state="new">Has filters</target>
+        <target state="translated">Tem filtros</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
