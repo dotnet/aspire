@@ -206,7 +206,7 @@ internal sealed class ApplicationOrchestrator
         // A waiting resource is already trying to start up and asking DCP to start it will result in a conflict.
         // We only want to ask the DCP to start the resource if it wasn't.
         if (!isWaiting)
-        {   
+        {
             await _dcpExecutor.StartResourceAsync(resourceReference, cancellationToken).ConfigureAwait(false);
         }
     }
