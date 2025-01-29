@@ -8,6 +8,7 @@ using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Health;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Testing;
@@ -18,6 +19,7 @@ using Aspire.Hosting.Utils;
 using k8s.Models;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -106,6 +108,49 @@ public class DistributedApplicationTests
         Assert.Equal(exceptionMessage, ex.Message);
         Assert.True(signal.FirstHookExecuted);
         Assert.True(signal.SecondHookExecuted);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task StartResourceForcesStart()
+    {
+        using var testProgram = CreateTestProgram();
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        testProgram.AppBuilder.Services.AddHealthChecks().AddCheck("dummy_healthcheck", () => HealthCheckResult.Unhealthy());
+
+        var dependentResourceName = "serviceb";
+
+        testProgram.ServiceABuilder.WithHealthCheck("dummy_healthcheck");
+        testProgram.ServiceBBuilder.WaitFor(testProgram.ServiceABuilder);
+
+        using var app = testProgram.Build();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        var orchestrator = app.Services.GetRequiredService<ApplicationOrchestrator>();
+        var logger = app.Services.GetRequiredService<ILogger<ResourceHealthCheckService>>();
+
+        var startTask = app.StartAsync();
+
+        var resourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        logger.LogInformation("Force resource to start.");
+        await orchestrator.StartResourceAsync(resourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        logger.LogInformation("Stop resource.");
+        await orchestrator.StopResourceAsync(resourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Finished).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        logger.LogInformation("Start resource (into waiting state)");
+        var restartResourceTask = orchestrator.StartResourceAsync(resourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        logger.LogInformation("Force resource to start.");
+        await orchestrator.StartResourceAsync(resourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        await restartResourceTask.DefaultTimeout(TestConstants.LongTimeoutDuration);
+        await startTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.StopAsync().DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
     }
 
     [Fact]

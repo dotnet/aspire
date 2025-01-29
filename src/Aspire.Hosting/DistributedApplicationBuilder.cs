@@ -173,12 +173,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
 
-        Eventing.Subscribe<BeforeResourceStartedEvent>(async (@event, ct) =>
-        {
-            var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
-            await rns.WaitForDependenciesAsync(@event.Resource, ct).ConfigureAwait(false);
-        });
-
         // Conditionally configure AppHostSha based on execution context. For local scenarios, we want to
         // account for the path the AppHost is running from to disambiguate between different projects
         // with the same name as seen in https://github.com/dotnet/aspire/issues/5413. For publish scenarios,

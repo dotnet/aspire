@@ -7,6 +7,7 @@ internal interface IDcpExecutor
 {
     Task RunApplicationAsync(CancellationToken cancellationToken);
     Task StopAsync(CancellationToken cancellationToken);
-    Task StartResourceAsync(string resourceName, CancellationToken cancellationToken);
-    Task StopResourceAsync(string resourceName, CancellationToken cancellationToken);
+    IResourceReference GetResource(string resourceName);
+    Task StartResourceAsync(IResourceReference resourceReference, CancellationToken cancellationToken);
+    Task StopResourceAsync(IResourceReference resourceReference, CancellationToken cancellationToken);
 }

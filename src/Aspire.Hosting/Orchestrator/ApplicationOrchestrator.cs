@@ -44,6 +44,43 @@ internal sealed class ApplicationOrchestrator
         dcpExecutorEvents.Subscribe<OnResourcesPreparedContext>(OnResourcesPrepared);
         dcpExecutorEvents.Subscribe<OnResourceChangedContext>(OnResourceChanged);
         dcpExecutorEvents.Subscribe<OnResourceFailedToStartContext>(OnResourceFailedToStart);
+
+        // Implement WaitFor functionality using BeforeResourceStartedEvent.
+        _eventing.Subscribe<BeforeResourceStartedEvent>(WaitForInBeforeResourceStartedEvent);
+    }
+
+    private async Task WaitForInBeforeResourceStartedEvent(BeforeResourceStartedEvent @event, CancellationToken cancellationToken)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        var waitForDependenciesTask = _notificationService.WaitForDependenciesAsync(@event.Resource, cts.Token);
+        if (waitForDependenciesTask.IsCompletedSuccessfully)
+        {
+            // Nothing to wait for. Return immediately.
+            return;
+        }
+
+        // Wait for either dependencies to be ready or for someone to move the resource out of a waiting state.
+        // This happens when resource start command is run, which forces the status to "Starting".
+        var waitForNonWaitingStateTask = _notificationService.WaitForResourceAsync(
+            @event.Resource.Name,
+            e => e.Snapshot.State?.Text != KnownResourceStates.Waiting,
+            cts.Token);
+
+        try
+        {
+            var completedTask = await Task.WhenAny(waitForDependenciesTask, waitForNonWaitingStateTask).ConfigureAwait(false);
+            if (completedTask.IsFaulted)
+            {
+                // Make error visible from completed task.
+                await completedTask.ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            // Ensure both wait tasks are cancelled.
+            cts.Cancel();
+        }
     }
 
     private async Task OnEndpointsAllocated(OnEndpointsAllocatedContext context)
@@ -148,12 +185,36 @@ internal sealed class ApplicationOrchestrator
 
     public async Task StartResourceAsync(string resourceName, CancellationToken cancellationToken)
     {
-        await _dcpExecutor.StartResourceAsync(resourceName, cancellationToken).ConfigureAwait(false);
+        var resourceReference = _dcpExecutor.GetResource(resourceName);
+
+        // Figure out if the resource is waiting or not using PublishUpdateAsync, and if it is then set the
+        // state to "Starting" to force waiting to complete.
+        var isWaiting = false;
+        await _notificationService.PublishUpdateAsync(
+            resourceReference.ModelResource,
+            s =>
+            {
+                if (s.State?.Text == KnownResourceStates.Waiting)
+                {
+                    isWaiting = true;
+                    return s with { State = KnownResourceStates.Starting };
+                }
+
+                return s;
+            }).ConfigureAwait(false);
+
+        // A waiting resource is already trying to start up and asking DCP to start it will result in a conflict.
+        // We only want to ask the DCP to start the resource if it wasn't.
+        if (!isWaiting)
+        {
+            await _dcpExecutor.StartResourceAsync(resourceReference, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     public async Task StopResourceAsync(string resourceName, CancellationToken cancellationToken)
     {
-        await _dcpExecutor.StopResourceAsync(resourceName, cancellationToken).ConfigureAwait(false);
+        var resourceReference = _dcpExecutor.GetResource(resourceName);
+        await _dcpExecutor.StopResourceAsync(resourceReference, cancellationToken).ConfigureAwait(false);
     }
 
     private static ILookup<IResource?, IResourceWithParent> GetParentChildLookup(DistributedApplicationModel model)

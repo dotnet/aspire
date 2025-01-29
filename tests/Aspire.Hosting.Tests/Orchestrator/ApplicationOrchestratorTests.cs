@@ -80,13 +80,15 @@ public class ApplicationOrchestratorTests
 
     private sealed class TestDcpExecutor : IDcpExecutor
     {
+        public IResourceReference GetResource(string resourceName) => throw new NotImplementedException();
+
         public Task RunApplicationAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-        public Task StartResourceAsync(string resourceName, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task StartResourceAsync(IResourceReference resourceReference, CancellationToken cancellationToken) => Task.CompletedTask;
 
         public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-        public Task StopResourceAsync(string resourceName, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task StopResourceAsync(IResourceReference resourceReference, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     private sealed class CustomChildResource(string name, IResource parent) : Resource(name), IResourceWithParent
