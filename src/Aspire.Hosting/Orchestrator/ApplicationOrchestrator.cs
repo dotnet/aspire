@@ -45,11 +45,11 @@ internal sealed class ApplicationOrchestrator
         dcpExecutorEvents.Subscribe<OnResourceChangedContext>(OnResourceChanged);
         dcpExecutorEvents.Subscribe<OnResourceFailedToStartContext>(OnResourceFailedToStart);
 
-        // This is used to implement WaitFor functionality.
-        _eventing.Subscribe<BeforeResourceStartedEvent>(OnBeforeResourceStartedEvent);
+        // Implement WaitFor functionality using BeforeResourceStartedEvent.
+        _eventing.Subscribe<BeforeResourceStartedEvent>(WaitForInBeforeResourceStartedEvent);
     }
 
-    private async Task OnBeforeResourceStartedEvent(BeforeResourceStartedEvent @event, CancellationToken cancellationToken)
+    private async Task WaitForInBeforeResourceStartedEvent(BeforeResourceStartedEvent @event, CancellationToken cancellationToken)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
