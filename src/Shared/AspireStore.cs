@@ -12,7 +12,7 @@ internal sealed class AspireStore : KeyValueStore
 {
     private readonly string _storeBasePath;
     private const string StoreFileName = "aspire.json";
-    private static readonly SearchValues<char> s_invalidChars = SearchValues.Create(['/', '\\', '?', '%', '*', ':', '|', '"', '<', '>', '.', ' ']);
+    private static readonly SearchValues<char> s_invalidFileNameChars = SearchValues.Create(Path.GetInvalidFileNameChars());
 
     private AspireStore(string basePath)
         : base(Path.Combine(basePath, StoreFileName))
@@ -121,11 +121,15 @@ internal sealed class AspireStore : KeyValueStore
 
         // Move the temporary file to the final location.
         // TODO: Use System.Buffers.Text implementation when targeting .NET 9.0 or greater
-        var finalFilePath = Path.Combine(_storeBasePath, filename, ".", Base64Url.Encode(hash).ToLowerInvariant());
-        File.Move(tempFileName, finalFilePath, overwrite: false);
+        var name = Path.GetFileNameWithoutExtension(filename);
+        var ext = Path.GetExtension(filename);
+        var finalFilePath = Path.Combine(_storeBasePath, $"{name}.{Convert.ToHexString(hash)[..12].ToLowerInvariant()}{ext}".ToLowerInvariant());
 
-        // If the file already exists, delete the temporary file.
-        if (File.Exists(tempFileName))
+        if (!File.Exists(finalFilePath))
+        {
+            File.Move(tempFileName, finalFilePath);
+        }
+        else
         {
             File.Delete(tempFileName);
         }
@@ -156,6 +160,14 @@ internal sealed class AspireStore : KeyValueStore
         return finalFilePath;
     }
 
+    public void Delete()
+    {
+        if (Directory.Exists(_storeBasePath))
+        {
+            Directory.Delete(_storeBasePath, recursive: true);
+        }
+    }
+
     /// <summary>
     /// Removes any unwanted characters from the <paramref name="filename"/>.
     /// </summary>
@@ -163,13 +175,11 @@ internal sealed class AspireStore : KeyValueStore
     {
         return string.Create(filename.Length, filename, static (s, name) =>
         {
-            var nameSpan = name.AsSpan();
-
-            for (var i = 0; i < nameSpan.Length; i++)
+            name.CopyTo(s);
+            var i = -1;
+            while ((i = s.IndexOfAny(s_invalidFileNameChars)) != -1)
             {
-                var c = nameSpan[i];
-
-                s[i] = s_invalidChars.Contains(c) ? '_' : c;
+                s[i] = '_';
             }
         });
     }
