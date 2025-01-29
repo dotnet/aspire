@@ -164,16 +164,15 @@ public partial class BuildAndRunTemplateTests : WorkloadTestsBase
     public async Task CreateAndModifyAspireAppHostTemplate(string version)
     {
         string id = GetNewProjectId(prefix: $"aspire_apphost_{version.Replace("*", "wildcard").Replace("[", "").Replace("]", "")}");
-        await using var project = await AspireProject.CreateNewTemplateProjectAsync(id, "aspire-apphost", _testOutput, buildEnvironment: BuildEnvironment.ForDefaultFramework);
+        await using var project = await AspireProject.CreateNewTemplateProjectAsync(id, "aspire-apphost", _testOutput, buildEnvironment: BuildEnvironment.ForDefaultFramework, addEndpointsHook: false);
 
         ModifyProjectFile(project, version);
 
-        await project.BuildAsync();
-        await project.StartAppHostAsync();
+        await project.BuildAsync(workingDirectory: project.RootDir);
 
         static void ModifyProjectFile(AspireProject project, string version)
         {
-            var projectName = Directory.GetFiles(project.AppHostProjectDirectory, "*.csproj").FirstOrDefault();
+            var projectName = Directory.GetFiles(project.RootDir, "*.csproj").FirstOrDefault();
             Assert.False(string.IsNullOrEmpty(projectName));
 
             var projectContents = File.ReadAllText(projectName);
