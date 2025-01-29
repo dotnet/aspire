@@ -69,11 +69,12 @@ internal sealed class ApplicationOrchestrator
 
         try
         {
-            await Task.WhenAny(waitForDependenciesTask, waitForNonWaitingStateTask).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            // Ignore cancellation.
+            var completedTask = await Task.WhenAny(waitForDependenciesTask, waitForNonWaitingStateTask).ConfigureAwait(false);
+            if (completedTask.IsFaulted)
+            {
+                // Make error visible from completed task.
+                await completedTask.ConfigureAwait(false);
+            }
         }
         finally
         {
