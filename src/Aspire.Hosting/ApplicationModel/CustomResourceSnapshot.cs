@@ -72,6 +72,11 @@ public sealed record CustomResourceSnapshot
     internal EventSnapshot? ResourceReadyEvent { get; init; }
 
     /// <summary>
+    /// A snapshot of the event that indicates the resource is ready.
+    /// </summary>
+    internal EventSnapshot? WaitForEvent { get; init; }
+
+    /// <summary>
     /// Gets the health status of the resource.
     /// </summary>
     /// <remarks>
