@@ -65,8 +65,8 @@ public class ResourceSourceViewModelTests
             new ResourceSourceViewModel(
                 value: "project",
                 contentAfterValue: "arg1 arg2",
-                valueToVisualize: "path/to/executable arg1 arg2",
-                tooltip: "path/to/executable arg1 arg2"));
+                valueToVisualize: "path/to/project arg1 arg2",
+                tooltip: "path/to/project arg1 arg2"));
 
         // Project without executable arguments
         data.Add(new TestData(
