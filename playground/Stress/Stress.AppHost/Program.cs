@@ -8,11 +8,11 @@ var builder = DistributedApplication.CreateBuilder(args);
 builder.Services.AddHttpClient();
 builder.Services.AddHealthChecks().AddAsyncCheck("health-test", async (ct) =>
 {
-    await Task.Delay(10_000, ct);
+    await Task.Delay(1_000 * 1_000, ct);
     return HealthCheckResult.Healthy();
 });
 
-for (var i = 0; i < 5; i++)
+for (var i = 0; i < 0; i++)
 {
     var name = $"test-{i:0000}";
     var rb = builder.AddTestResource(name);

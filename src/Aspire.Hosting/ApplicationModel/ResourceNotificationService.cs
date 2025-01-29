@@ -133,7 +133,10 @@ public class ResourceNotificationService : IDisposable
         var resourceLogger = _resourceLoggerService.GetLogger(resource);
         resourceLogger.LogInformation("Waiting for resource '{Name}' to enter the '{State}' state.", dependency.Name, KnownResourceStates.Running);
 
-        await PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
+        var waitingTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        cancellationToken.Register(() => waitingTcs.TrySetCanceled());
+
+        await PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Waiting, WaitForEvent = new(waitingTcs.Task) }).ConfigureAwait(false);
         var resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => IsContinuableState(re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
         var snapshot = resourceEvent.Snapshot;
 
@@ -166,6 +169,8 @@ public class ResourceNotificationService : IDisposable
             resourceLogger.LogInformation("Waiting for resource '{Name}' to become healthy.", dependency.Name);
             await WaitForResourceHealthyAsync(dependency.Name, cancellationToken).ConfigureAwait(false);
         }
+
+        waitingTcs.TrySetResult();
 
         // Now wait for the resource ready event to be executed.
         resourceLogger.LogInformation("Waiting for resource ready to execute for '{Name}'.", dependency.Name);
@@ -211,6 +216,9 @@ public class ResourceNotificationService : IDisposable
 
         var resourceLogger = _resourceLoggerService.GetLogger(resource);
         resourceLogger.LogInformation("Waiting for resource '{Name}' to complete.", dependency.Name);
+
+        var waitingTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        cancellationToken.Register(() => waitingTcs.TrySetCanceled());
 
         await PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
         var resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => IsKnownTerminalState(re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);

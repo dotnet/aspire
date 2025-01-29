@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Data;
 using System.Diagnostics;
@@ -23,15 +22,6 @@ internal sealed class ApplicationOrchestrator
     private readonly IDistributedApplicationEventing _eventing;
     private readonly IServiceProvider _serviceProvider;
     private readonly CancellationTokenSource _shutdownCancellation = new();
-
-    private readonly ConcurrentDictionary<IResource, StartingResourceState> _startingResourceState = new();
-
-    private class StartingResourceState
-    {
-        public CancellationTokenSource? WaitCancellation { get; set; }
-        public Task? WaitForDependenciesTask { get; set; }
-        public SemaphoreSlim StartingLock { get; } = new(1);
-    }
 
     public ApplicationOrchestrator(DistributedApplicationModel model,
                                    IDcpExecutor dcpExecutor,
@@ -55,49 +45,41 @@ internal sealed class ApplicationOrchestrator
         dcpExecutorEvents.Subscribe<OnResourceChangedContext>(OnResourceChanged);
         dcpExecutorEvents.Subscribe<OnResourceFailedToStartContext>(OnResourceFailedToStart);
 
-        _eventing.Subscribe<BeforeResourceStartedEvent>(async (@event, ct) =>
+        // This is used to implement WaitFor functionality.
+        _eventing.Subscribe<BeforeResourceStartedEvent>(OnBeforeResourceStartedEvent);
+    }
+
+    private async Task OnBeforeResourceStartedEvent(BeforeResourceStartedEvent @event, CancellationToken cancellationToken)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        var waitForDependenciesTask = _notificationService.WaitForDependenciesAsync(@event.Resource, cts.Token);
+        if (waitForDependenciesTask.IsCompletedSuccessfully)
         {
-            if (!_startingResourceState.TryGetValue(@event.Resource, out var state))
-            {
-                // Resource doesn't support cancellation of waiting for dependencies.
-                await _notificationService.WaitForDependenciesAsync(@event.Resource, ct).ConfigureAwait(false);
-            }
-            else
-            {
-                //Debug.Assert(state.WaitCancellation is not null, "Cancellation token source should have been created.");
+            // Nothing to wait for. Return immediately.
+            return;
+        }
 
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        // Wait for either dependencies to be ready or for someone to move the resource out of a waiting state.
+        // This happens when resource start command is run, which forces the status to "Starting".
+        var waitForNonWaitingStateTask = _notificationService.WaitForResourceAsync(
+            @event.Resource.Name,
+            e => e.Snapshot.State?.Text != KnownResourceStates.Waiting,
+            cts.Token);
 
-                var waitForDependenciesTask = _notificationService.WaitForDependenciesAsync(@event.Resource, cts.Token);
-                await _notificationService.PublishUpdateAsync(@event.Resource, s => s with
-                {
-                    WaitForEvent = new(waitForDependenciesTask)
-                }).ConfigureAwait(false);
-
-                if (waitForDependenciesTask.IsCompletedSuccessfully)
-                {
-                    return;
-                }
-
-                var waitForNonWaitingStateTask = _notificationService.WaitForResourceAsync(
-                    @event.Resource.GetResolvedResourceNames().Single(),
-                    e => e.Snapshot.State?.Text != KnownResourceStates.Waiting,
-                    cts.Token);
-
-                try
-                {
-                    await Task.WhenAny(waitForDependenciesTask, waitForNonWaitingStateTask).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    // Ignore cancellation.
-                }
-                finally
-                {
-                    cts.Cancel();
-                }
-            }
-        });
+        try
+        {
+            await Task.WhenAny(waitForDependenciesTask, waitForNonWaitingStateTask).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Ignore cancellation.
+        }
+        finally
+        {
+            // Ensure both wait tasks are cancelled.
+            cts.Cancel();
+        }
     }
 
     private async Task OnEndpointsAllocated(OnEndpointsAllocatedContext context)
@@ -113,65 +95,39 @@ internal sealed class ApplicationOrchestrator
 
     private async Task OnResourceStarting(OnResourceStartingContext context)
     {
-        // Note that this state is for an IResource which could mean it is shared between multiple DCP resources in the case of replicas.
-        // Sharing the state is required because the BeforeResourceStartedEvent doesn't take a DCP resource name, which means it is shared
-        // and the IResource is the only key available.
-        var state = _startingResourceState.GetOrAdd(context.Resource, r =>
+        switch (context.ResourceType)
         {
-            return new StartingResourceState();
-        });
+            case KnownResourceTypes.Project:
+            case KnownResourceTypes.Executable:
+                await _notificationService.PublishUpdateAsync(context.Resource, s => s with
+                {
+                    State = KnownResourceStates.Starting,
+                    ResourceType = context.ResourceType,
+                    HealthReports = GetInitialHealthReports(context.Resource)
+                })
+                .ConfigureAwait(false);
+                break;
+            case KnownResourceTypes.Container:
+                await _notificationService.PublishUpdateAsync(context.Resource, s => s with
+                {
+                    State = KnownResourceStates.Starting,
+                    Properties = s.Properties.SetResourceProperty(KnownProperties.Container.Image, context.Resource.TryGetContainerImageName(out var imageName) ? imageName : ""),
+                    ResourceType = KnownResourceTypes.Container,
+                    HealthReports = GetInitialHealthReports(context.Resource)
+                })
+                .ConfigureAwait(false);
 
-        var hasLock = await state.StartingLock.WaitAsync(TimeSpan.Zero, context.CancellationToken).ConfigureAwait(false);
-        if (!hasLock)
-        {
-            // The resource is already starting.
-            return;
+                Debug.Assert(context.DcpResourceName is not null, "Container that is starting should always include the DCP name.");
+                await SetChildResourceAsync(context.Resource, context.DcpResourceName, state: KnownResourceStates.Starting, startTimeStamp: null, stopTimeStamp: null).ConfigureAwait(false);
+                break;
+            default:
+                break;
         }
 
-        try
-        {
-            switch (context.ResourceType)
-            {
-                case KnownResourceTypes.Project:
-                case KnownResourceTypes.Executable:
-                    await _notificationService.PublishUpdateAsync(context.Resource, s => s with
-                    {
-                        State = KnownResourceStates.Starting,
-                        ResourceType = context.ResourceType,
-                        HealthReports = GetInitialHealthReports(context.Resource)
-                    })
-                    .ConfigureAwait(false);
-                    break;
-                case KnownResourceTypes.Container:
-                    await _notificationService.PublishUpdateAsync(context.Resource, s => s with
-                    {
-                        State = KnownResourceStates.Starting,
-                        Properties = s.Properties.SetResourceProperty(KnownProperties.Container.Image, context.Resource.TryGetContainerImageName(out var imageName) ? imageName : ""),
-                        ResourceType = KnownResourceTypes.Container,
-                        HealthReports = GetInitialHealthReports(context.Resource)
-                    })
-                    .ConfigureAwait(false);
+        await PublishConnectionStringAvailableEvent(context.Resource, context.CancellationToken).ConfigureAwait(false);
 
-                    Debug.Assert(context.DcpResourceName is not null, "Container that is starting should always include the DCP name.");
-                    await SetChildResourceAsync(context.Resource, context.DcpResourceName, state: KnownResourceStates.Starting, startTimeStamp: null, stopTimeStamp: null).ConfigureAwait(false);
-                    break;
-                default:
-                    break;
-            }
-
-            await PublishConnectionStringAvailableEvent(context.Resource, context.CancellationToken).ConfigureAwait(false);
-
-            state.WaitCancellation = new();
-
-            var beforeResourceStartedEvent = new BeforeResourceStartedEvent(context.Resource, _serviceProvider);
-            await _eventing.PublishAsync(beforeResourceStartedEvent, context.CancellationToken).ConfigureAwait(false);
-
-            state.WaitForDependenciesTask = null;
-        }
-        finally
-        {
-            state.StartingLock.Release();
-        }
+        var beforeResourceStartedEvent = new BeforeResourceStartedEvent(context.Resource, _serviceProvider);
+        await _eventing.PublishAsync(beforeResourceStartedEvent, context.CancellationToken).ConfigureAwait(false);
     }
 
     private async Task OnResourcesPrepared(OnResourcesPreparedContext _)
@@ -230,56 +186,25 @@ internal sealed class ApplicationOrchestrator
     {
         var resourceReference = _dcpExecutor.GetResource(resourceName);
 
-        await resourceReference.ResourceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        var isWaiting = false;
+        await _notificationService.PublishUpdateAsync(
+            resourceReference.ModelResource,
+            s =>
+            {
+                if (s.State?.Text == KnownResourceStates.Waiting)
+                {
+                    isWaiting = true;
+                    return s with { State = KnownResourceStates.Starting };
+                }
 
-        try
+                return s;
+            }).ConfigureAwait(false);
+
+        if (!isWaiting)
         {
-            //_notificationService.WaitForDependenciesAsync
-            // Clear the BeforeResourceStart snapshot to indicate that the resource is starting.
-            await _notificationService.PublishUpdateAsync(
-                resourceReference.ModelResource,
-                s => s with { State = s.State?.Text == KnownResourceStates.Waiting ? "ForceStart" : s.State?.Text }).ConfigureAwait(false);
-
-            var task = await _notificationService.WaitForResourceAsync(resourceName, e => e.Snapshot.WaitForEvent != null, cancellationToken).ConfigureAwait(false);
-
-            GetResourceSnapshotAsync(resourceName, e => e.Snapshot.WaitForEvent == null)
-            //await foreach (var resourceEvent in _notificationService.WatchAsync(cancellationToken).ConfigureAwait(false))
-            //{
-            //    resourceEvent.Snapshot.ResourceReadyEvent
-            //}
-
-            //if (_startingResourceState.TryGetValue(resourceReference.ModelResource, out var state))
-            //{
-            //    if (state.WaitForDependenciesTask is { } task && !task.IsCompleted)
-            //    {
-            //        // The resource is already trying to start but is blocked on waiting for its dependencies.
-            //        // Cancel waiting to unblock the start then exit.
-            //        state.WaitCancellation?.Cancel();
-            //        await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
-            //        return;
-            //    }
-            //}
-
             // Resource either isn't waiting or doesn't support it.
             await _dcpExecutor.StartResourceAsync(resourceReference, cancellationToken).ConfigureAwait(false);
         }
-        finally
-        {
-            resourceReference.ResourceLock.Release();
-        }
-    }
-
-    private async Task<CustomResourceSnapshot> GetResourceSnapshotAsync(string resourceName, Func<ResourceEvent, bool> predicate, CancellationToken cancellationToken = default)
-    {
-        await foreach (var resourceEvent in _notificationService.WatchAsync(cancellationToken).ConfigureAwait(false))
-        {
-            if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName))
-            {
-                return resourceEvent.Snapshot;
-            }
-        }
-
-        throw new OperationCanceledException($"The operation was cancelled before resource '{resourceName}' was found.");
     }
 
     public async Task StopResourceAsync(string resourceName, CancellationToken cancellationToken)
