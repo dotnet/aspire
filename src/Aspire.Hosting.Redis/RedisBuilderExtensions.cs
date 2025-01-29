@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Redis;
@@ -273,6 +274,11 @@ public static class RedisBuilderExtensions
                 MaxRetryAttempts = 5,
             }).Build();
 
+            await pipeline.ExecuteAsync(async (ctx) =>
+            {
+                await InitializeRedisInsightSettings(client, resourceLogger, ctx).ConfigureAwait(false);
+            }, cancellationToken).ConfigureAwait(false);
+
             using (var stream = new MemoryStream())
             {
                 // As part of configuring RedisInsight we need to factor in the possibility that the
@@ -311,9 +317,15 @@ public static class RedisBuilderExtensions
                         writer.WriteNumber("port", endpoint.TargetPort!.Value);
                         writer.WriteString("name", redisResource.Name);
                         writer.WriteNumber("db", 0);
-                        //todo: provide username and password when https://github.com/dotnet/aspire/pull/4642 merged.
                         writer.WriteNull("username");
-                        writer.WriteNull("password");
+                        if (redisResource.PasswordParameter is { } passwordParam)
+                        {
+                            writer.WriteString("password", passwordParam.Value);
+                        }
+                        else
+                        {
+                            writer.WriteNull("password");
+                        }
                         writer.WriteString("connectionType", "STANDALONE");
                         writer.WriteEndObject();
                     }
@@ -367,8 +379,53 @@ public static class RedisBuilderExtensions
                 {
                     resourceLogger.LogError("Could not import Redis databases into RedisInsight. Reason: {reason}", ex.Message);
                 }
-            };
+            }
         }
+    }
+
+    /// <summary>
+    /// Initializes the Redis Insight settings to work around https://github.com/RedisInsight/RedisInsight/issues/3452.
+    /// Redis Insight requires the encryption property to be set if the Redis database connection contains a password.
+    /// </summary>
+    private static async Task InitializeRedisInsightSettings(HttpClient client, ILogger resourceLogger, CancellationToken ct)
+    {
+        if (await AreSettingsInitialized(client, ct).ConfigureAwait(false))
+        {
+            return;
+        }
+
+        var jsonContent = JsonContent.Create(new
+        {
+            agreements = new
+            {
+                // all 4 are required to be set
+                eula = false,
+                analytics = false,
+                notifications = false,
+                encryption = false,
+            }
+        });
+
+        var response = await client.PatchAsync("/api/settings", jsonContent, ct).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            resourceLogger.LogDebug("Could not initialize RedisInsight settings. Reason: {reason}", await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false));
+        }
+
+        response.EnsureSuccessStatusCode();
+    }
+
+    private static async Task<bool> AreSettingsInitialized(HttpClient client, CancellationToken ct)
+    {
+        var response = await client.GetAsync("/api/settings", ct).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+
+        var content = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+
+        var jsonResponse = JsonNode.Parse(content);
+        var agreements = jsonResponse?["agreements"];
+
+        return agreements is not null;
     }
 
     private class RedisDatabaseDto
