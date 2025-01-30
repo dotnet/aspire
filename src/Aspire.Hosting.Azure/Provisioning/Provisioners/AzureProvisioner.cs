@@ -99,13 +99,6 @@ internal sealed class AzureProvisioner(
             return;
         }
 
-        static IResource? SelectParentResource(IResource resource) => resource switch
-        {
-            IAzureResource ar => ar,
-            IResourceWithParent rp => SelectParentResource(rp.Parent),
-            _ => null
-        };
-
         // Create a map of parents to their children used to propagate state changes later.
         _parentChildLookup = appModel.Resources.OfType<IResourceWithParent>().ToLookup(r => r.Parent);
 
