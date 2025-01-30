@@ -55,7 +55,7 @@ jobs:
         run: dotnet restore ${{ matrix.project }}
 
       - name: Build projects
-        run: dotnet build ${{ matrix.project }} /p:ContinuousIntegration=true --no-restore /bl
+        run: dotnet build ${{ matrix.project }} /p:ContinuousIntegrationBuild=true --no-restore /bl
 
       - name: Run tests
         id: run-tests
@@ -70,7 +70,7 @@ jobs:
             --results-directory testresults \
             --no-restore \
             --no-build \
-            /p:ContinuousIntegration=true
+            /p:ContinuousIntegrationBuild=true
 
       - name: Compress test results
         if: always()
