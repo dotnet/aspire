@@ -13,6 +13,7 @@ internal class AppResource : IResourceReference
     public IResource ModelResource { get; }
     public CustomResource DcpResource { get; }
     public string DcpResourceName => DcpResource.Metadata.Name;
+    public bool IsStartingOrHasStarted { get; set; }
     public virtual List<ServiceAppResource> ServicesProduced { get; } = [];
     public virtual List<ServiceAppResource> ServicesConsumed { get; } = [];
 
