@@ -63,23 +63,20 @@ internal sealed class PeriodicRestartAsyncEnumerable<T> : IAsyncEnumerable<T>
             }
         }
 
+        private async Task<IAsyncEnumerator<T>> GetNextInnerEnumerator()
+        {
+            _restartCts?.Cancel();
+            _restartCts?.Dispose();
+            _restartCts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken);
+            _restartCts.CancelAfter(_restartTimeout);
+
+            var enumerable = await _enumerableFactory(_restartCts.Token).ConfigureAwait(false);
+            return enumerable.GetAsyncEnumerator(_restartCts.Token);
+        }
+
         public async ValueTask<bool> MoveNextAsync()
         {
-            if (_innerEnumerator == null)
-            {
-                var newRetryCts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken);
-                var oldRetryCts = Interlocked.Exchange(ref _restartCts, newRetryCts);
-                oldRetryCts?.Cancel();
-                oldRetryCts?.Dispose();
-
-                newRetryCts.CancelAfter(_restartTimeout);
-                var enumerable = await _enumerableFactory(newRetryCts.Token).ConfigureAwait(false);
-                var oldEnumerator = Interlocked.Exchange(ref _innerEnumerator, enumerable.GetAsyncEnumerator(newRetryCts.Token));
-                if (oldEnumerator is not null)
-                {
-                    await oldEnumerator.DisposeAsync().ConfigureAwait(false);
-                }
-            }
+            _innerEnumerator ??= await GetNextInnerEnumerator().ConfigureAwait(false);
 
             try
             {
@@ -87,17 +84,8 @@ internal sealed class PeriodicRestartAsyncEnumerable<T> : IAsyncEnumerable<T>
             }
             catch (OperationCanceledException) when (!_cancellationToken.IsCancellationRequested)
             {
-                // If only the retry token cancelled, we want to restart enumerating the sequence
-                var newRetryCts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken);
-                var oldRetryCts = Interlocked.Exchange(ref _restartCts, newRetryCts);
-                oldRetryCts?.Cancel();
-                oldRetryCts?.Dispose();
-
-                newRetryCts.CancelAfter(_restartTimeout);
-
-                var enumerable = await _enumerableFactory(newRetryCts.Token).ConfigureAwait(false);
-
-                await Interlocked.Exchange(ref _innerEnumerator, enumerable.GetAsyncEnumerator(newRetryCts.Token)).DisposeAsync().ConfigureAwait(false);
+                await _innerEnumerator.DisposeAsync().ConfigureAwait(false);
+                _innerEnumerator = await GetNextInnerEnumerator().ConfigureAwait(false);
 
                 return await _innerEnumerator.MoveNextAsync().ConfigureAwait(false);
             }
