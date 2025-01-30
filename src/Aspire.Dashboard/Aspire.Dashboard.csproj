@@ -85,11 +85,6 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Layout.resx</DependentUpon>
     </Compile>
-    <Compile Update="Resources\Columns.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Columns.resx</DependentUpon>
-    </Compile>
     <Compile Update="Resources\Metrics.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -223,6 +218,13 @@
       <SubType>Designer</SubType>
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>StructuredFiltering.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\Commands.resx">
+      <XlfSourceFormat>Resx</XlfSourceFormat>
+      <XlfOutputItem>EmbeddedResource</XlfOutputItem>
+      <SubType>Designer</SubType>
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Commands.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
 

@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Aspire.Dashboard.Model;
 using FluentUIIconVariant = Microsoft.FluentUI.AspNetCore.Components.IconVariant;
+using CommandsResources = Aspire.Dashboard.Resources.Commands;
 
 namespace Aspire.ResourceService.Proto.V1;
 
@@ -107,8 +108,38 @@ partial class Resource
         ImmutableArray<CommandViewModel> GetCommands()
         {
             return Commands
-                .Select(c => new CommandViewModel(c.Name, MapState(c.State), c.DisplayName, c.DisplayDescription, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.IconName, MapIconVariant(c.IconVariant)))
+                .Select(c =>
+                {
+                    var (displayName, displayDescription) = GetDisplayNameAndDescription(c.Name, c.DisplayName, c.DisplayDescription);
+                    return new CommandViewModel(c.Name, MapState(c.State), displayName, displayDescription, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.IconName, MapIconVariant(c.IconVariant));
+                })
                 .ToImmutableArray();
+
+            // Use custom localizations for built-in lifecycle commands
+            static (string DisplayName, string DisplayDescription) GetDisplayNameAndDescription(string commandName, string displayName, string description)
+            {
+                const string startCommandName = "resource-start";
+                const string stopCommandName = "resource-stop";
+                const string restartCommandName = "resource-restart";
+
+                if (commandName is startCommandName)
+                {
+                    return (CommandsResources.StartCommandDisplayName, CommandsResources.StartCommandDisplayDescription);
+                }
+
+                if (commandName is stopCommandName)
+                {
+                    return (CommandsResources.StopCommandDisplayName, CommandsResources.StopCommandDisplayDescription);
+                }
+
+                if (commandName is restartCommandName)
+                {
+                    return (CommandsResources.RestartCommandDisplayName, CommandsResources.RestartCommandDisplayDescription);
+                }
+
+                return (displayName, description);
+            }
+
             static CommandViewModelState MapState(ResourceCommandState state)
             {
                 return state switch
@@ -119,6 +150,7 @@ partial class Resource
                     _ => throw new InvalidOperationException("Unknown state: " + state),
                 };
             }
+
             static FluentUIIconVariant MapIconVariant(IconVariant iconVariant)
             {
                 return iconVariant switch
