@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.Dcp.Model;
+using Aspire.Hosting.Utils;
 using k8s;
 using k8s.Autorest;
 using k8s.Exceptions;
@@ -234,35 +235,73 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var resourceType = GetResourceFor<T>();
-        var result = await ExecuteWithRetry(
-            DcpApiOperationType.Watch,
-            resourceType,
-            (kubernetes) =>
-            {
-                var responseTask = string.IsNullOrEmpty(namespaceParameter)
-                    ? kubernetes.CustomObjects.ListClusterCustomObjectWithHttpMessagesAsync(
-                        GroupVersion.Group,
-                        GroupVersion.Version,
-                        resourceType,
-                        watch: true,
-                        cancellationToken: cancellationToken)
-                    : kubernetes.CustomObjects.ListNamespacedCustomObjectWithHttpMessagesAsync(
-                        GroupVersion.Group,
-                        GroupVersion.Version,
-                        namespaceParameter,
-                        resourceType,
-                        watch: true,
-                        cancellationToken: cancellationToken);
 
-                return responseTask.WatchAsync<T, object>(null, cancellationToken);
-            },
-            RetryOnConnectivityAndConflictErrors,
-            cancellationToken).ConfigureAwait(false);
+        // WatchAsync can become unresponsive if running long enough
+        // Periodically restart the watch to ensure we keep getting updates
+        var result = new PeriodicRestartAsyncEnumerable<(WatchEventType, T)>((CancellationToken restartCancellationToken) =>
+        {
+            return ExecuteWithRetry(
+                DcpApiOperationType.Watch,
+                resourceType,
+                (kubernetes) =>
+                {
+                    var responseTask = string.IsNullOrEmpty(namespaceParameter)
+                        ? kubernetes.CustomObjects.ListClusterCustomObjectWithHttpMessagesAsync(
+                            GroupVersion.Group,
+                            GroupVersion.Version,
+                            resourceType,
+                            watch: true,
+                            cancellationToken: restartCancellationToken)
+                        : kubernetes.CustomObjects.ListNamespacedCustomObjectWithHttpMessagesAsync(
+                            GroupVersion.Group,
+                            GroupVersion.Version,
+                            namespaceParameter,
+                            resourceType,
+                            watch: true,
+                            cancellationToken: restartCancellationToken);
+
+                    return responseTask.WatchAsync<T, object>(null, restartCancellationToken);
+                },
+                RetryOnConnectivityAndConflictErrors,
+                restartCancellationToken);
+        }, TimeSpan.FromMinutes(5));
 
         await foreach (var item in result.ConfigureAwait(false))
         {
             yield return item;
         }
+
+        /*
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            using var watchCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            watchCancellationSource.CancelAfter(TimeSpan.FromMinutes(5));
+
+            var result = await ExecuteWithRetry(
+                DcpApiOperationType.Watch,
+                resourceType,
+                (kubernetes) =>
+                {
+                    var responseTask = string.IsNullOrEmpty(namespaceParameter)
+                        ? kubernetes.CustomObjects.ListClusterCustomObjectWithHttpMessagesAsync(
+                            GroupVersion.Group,
+                            GroupVersion.Version,
+                            resourceType,
+                            watch: true,
+                            cancellationToken: watchCancellationSource.Token)
+                        : kubernetes.CustomObjects.ListNamespacedCustomObjectWithHttpMessagesAsync(
+                            GroupVersion.Group,
+                            GroupVersion.Version,
+                            namespaceParameter,
+                            resourceType,
+                            watch: true,
+                            cancellationToken: watchCancellationSource.Token);
+
+                    return responseTask.WatchAsync<T, object>(null, watchCancellationSource.Token);
+                },
+                RetryOnConnectivityAndConflictErrors,
+                watchCancellationSource.Token).ConfigureAwait(false);
+        }*/
     }
 
     public Task<Stream> GetLogStreamAsync<T>(
