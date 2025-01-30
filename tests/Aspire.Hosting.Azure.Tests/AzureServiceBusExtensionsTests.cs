@@ -182,7 +182,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
-    [Fact(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
+    [Fact]
     [RequiresDocker]
     public async Task VerifyWaitForOnServiceBusEmulatorBlocksDependentResources()
     {
@@ -224,7 +224,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         await app.StopAsync();
     }
 
-    [Fact(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
+    [Fact]
     [RequiresDocker]
     public async Task VerifyAzureServiceBusEmulatorResource()
     {
