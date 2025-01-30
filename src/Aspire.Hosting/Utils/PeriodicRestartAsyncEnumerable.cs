@@ -52,7 +52,8 @@ internal sealed class PeriodicRestartAsyncEnumerable<T> : IAsyncEnumerable<T>
 
         public ValueTask DisposeAsync()
         {
-            Interlocked.Exchange(ref _restartCts, null)?.Dispose();
+            _restartCts?.Dispose();
+            _restartCts = null;
             if (_innerEnumerator is not null)
             {
                 return _innerEnumerator.DisposeAsync();
