@@ -1,0 +1,84 @@
+name: Run Integration Tests
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60 
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: tests/Aspire.Hosting.Elasticsearch.Tests/Aspire.Hosting.Elasticsearch.Tests.csproj
+            name: Elasticsearch
+          - project: tests/Aspire.Hosting.PostgreSQL.Tests/Aspire.Hosting.PostgreSQL.Tests.csproj
+            name: PostgreSQL
+          - project: tests/Aspire.Hosting.Oracle.Tests/Aspire.Hosting.Oracle.Tests.csproj
+            name: Oracle
+          - project: tests/Aspire.Hosting.Kafka.Tests/Aspire.Hosting.Kafka.Tests.csproj
+            name: Kafka
+          - project: tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj
+            name: Hosting
+          - project: tests/Aspire.Hosting.Redis.Tests/Aspire.Hosting.Redis.Tests.csproj
+            name: Redis
+          - project: tests/Aspire.Hosting.Azure.Tests/Aspire.Hosting.Azure.Tests.csproj
+            name: Azure
+          - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
+            name: Playground
+          # Add more projects as needed
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.x
+            9.x
+
+      - name: Trust HTTPS development certificate
+        run: dotnet dev-certs https --trust
+
+      - name: Verify Docker is running
+        run: docker info
+
+      - name: Install Azure Functions Core Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y azure-functions-core-tools-4
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ matrix.project }}
+
+      - name: Build projects
+        run: dotnet build ${{ matrix.project }} /p:CI=false --no-restore
+
+      - name: Run tests
+        id: run-tests
+        run: |
+          dotnet test ${{ matrix.project }} \
+            -s eng/testing/.runsettings \
+            --logger "console;verbosity=normal" \
+            --logger "trx" \
+            --logger html \
+            --blame \
+            --blame-hang-timeout 7m \
+            --results-directory testresults \
+            --no-restore \
+            --no-build \
+            /p:CI=false
+
+      - name: Compress test results
+        if: always()
+        run: zip -r testresults.zip testresults
+
+      - name: Upload test results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testresults-${{ matrix.name }}
+          path: testresults.zip
