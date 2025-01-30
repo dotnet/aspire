@@ -62,7 +62,8 @@ jobs:
       - name: Run tests
         id: run-tests
         run: |
-          export CI=false && ./build.sh -ci -test -projects ${{ github.workspace }}/${{ matrix.project }} \
+          export CI=false && ./dotnet.sh test ${{ github.workspace }}/${{ matrix.project }} \
+            /p:ContinuousIntegrationBuild=true \
             -s eng/testing/.runsettings \
             --logger "console;verbosity=normal" \
             --logger "trx" \
