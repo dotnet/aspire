@@ -6,7 +6,7 @@ using System.Diagnostics;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents a wait relationship between two resources.
+/// Represents an annotation for instructing the resource not to be started with the app host.
 /// </summary>
 [DebuggerDisplay("Type = {GetType().Name,nq}")]
 public sealed class ExplicitStartupAnnotation : IResourceAnnotation
