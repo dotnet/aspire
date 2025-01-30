@@ -1,123 +1,21 @@
-﻿@using Aspire.Dashboard.Extensions
-@using Aspire.Dashboard.Model
-@using Aspire.Dashboard.Otlp.Model
-@using Aspire.Dashboard.Otlp.Storage
+﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
-@using Microsoft.Extensions.Diagnostics.HealthChecks
-@using Humanizer
 
-@inject IStringLocalizer<Columns> Loc
-
-@if (Resource.IsStopped())
-{
-    if (Resource.TryGetExitCode(out var exitCode) && exitCode is not 0)
-    {
-        <!-- process completed unexpectedly, hence the non-zero code. this is almost certainly an error, so warn users -->
-        <FluentIcon Title="@string.Format(Loc[Columns.StateColumnResourceExitedUnexpectedly], Resource.ResourceType, exitCode)"
-                    Icon="Icons.Filled.Size16.ErrorCircle"
-                    Color="Color.Error"
-                    Class="severity-icon" />
-    }
-    else if (Resource.IsFinishedState())
-    {
-        <FluentIcon Title="@string.Format(Loc[Columns.StateColumnResourceExited], Resource.ResourceType)"
-                    Icon="Icons.Regular.Size16.CheckmarkUnderlineCircle"
-                    Color="Color.Success"
-                    Class="severity-icon" />
-    }
-    else
-    {
-        <!-- process completed, which may not have been unexpected -->
-        <FluentIcon Title="@string.Format(Loc[Columns.StateColumnResourceExited], Resource.ResourceType)"
-                    Icon="Icons.Filled.Size16.Warning"
-                    Color="Color.Warning"
-                    Class="severity-icon" />
-    }
+@{
+    // Create view model every render. The resource state may have changed.
+    var vm = ResourceStateViewModel.GetStateViewModel(Resource, Loc);
 }
-else if (Resource.IsUnusableTransitoryState())
-{
-    <FluentIcon Icon="Icons.Regular.Size16.CircleHint"
-                Color="Color.Info"
+
+<div class="state-column-cell">
+
+    <FluentIcon Value="@vm.Icon"
+                Color="@vm.Color"
                 Class="severity-icon" />
-}
-else if (Resource.HasNoState())
-{
-    <FluentIcon Icon="Icons.Filled.Size16.Circle"
-                Color="Color.Neutral"
-                Class="severity-icon" />
-}
-else if (!string.IsNullOrEmpty(Resource.StateStyle))
-{
-    switch (Resource.StateStyle)
-    {
-        case "warning":
-            <FluentIcon Icon="Icons.Filled.Size16.Warning"
-                        Color="Color.Warning"
-                        Class="severity-icon" />
-            break;
-        case "error":
-            <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle"
-                        Color="Color.Error"
-                        Class="severity-icon" />
-            break;
-        case "success":
-            <FluentIcon Icon="Icons.Filled.Size16.CheckmarkCircle"
-                        Color="Color.Success"
-                        Class="severity-icon" />
-            break;
-        case "info":
-            <FluentIcon Icon="Icons.Filled.Size16.Info"
-                        Color="Color.Info"
-                        Class="severity-icon" />
-            break;
-        default:
-            <FluentIcon Icon="Icons.Filled.Size16.Circle"
-                        Color="Color.Neutral"
-                        Class="severity-icon" />
-            break;
-    }
-}
-else
-{
-    switch (Resource.ReadinessState)
-    {
-        // Unknown state is treated as ready state (we don't know if it's ready or not)
-        case ReadinessState.Unknown or ReadinessState.Ready:
-            <FluentIcon Icon="Icons.Filled.Size16.CheckmarkCircle"
-                        Color="Color.Success"
-                        Class="severity-icon" />
-            break;
-        default:
-            <FluentIcon Icon="Icons.Regular.Size16.CheckmarkCircleWarning"
-                        Color="Color.Neutral"
-                        Class="severity-icon" />
-            break;
-    }
-}
 
-@if (Resource.HasNoState())
-{
-    <span>@Loc[Columns.UnknownStateLabel]</span>
-}
-else
-{
-    if (Resource.ShowReadinessState())
-    {
-        <span>@Resource.State.Humanize() (@Resource.ReadinessState.Humanize())</span>
-    }
-    else
-    {
-        <span>@Resource.State.Humanize()</span>
-    }
-}
+    <span>@vm.Text</span>
 
-<UnreadLogErrorsBadge UnviewedErrorCounts="UnviewedErrorCounts" Resource="@Resource" />
+    <UnreadLogErrorsBadge
+        UnviewedErrorCounts="UnviewedErrorCounts"
+        Resource="@Resource" />
 
-@code {
-    [Parameter, EditorRequired]
-    public required ResourceViewModel Resource { get; set; }
-
-
-    [Parameter, EditorRequired]
-    public required Dictionary<ApplicationKey, int>? UnviewedErrorCounts { get; set; }
-}
+</div>

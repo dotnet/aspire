@@ -55,62 +55,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await pendingStart;
-
-        await app.StopAsync();
-    }
-
-    [Fact]
-    [RequiresDocker]
-    public async Task VerifyWaitForOnMySqlDatabaseBlocksDependentResources()
-    {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-
-        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
-        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
-        {
-            return healthCheckTcs.Task;
-        });
-
-        var resource = builder.AddMySql("resource")
-                              .WithHealthCheck("blocking_check");
-
-        var db = resource.AddDatabase("db");
-
-        var dependentResource = builder.AddMySql("dependentresource")
-                                       .WaitFor(db);
-
-        using var app = builder.Build();
-
-        var pendingStart = app.StartAsync(cts.Token);
-
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(db.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
-
-        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
-
-        await rns.WaitForResourceAsync(resource.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
-
-        // Create the database.
-        var connectionString = await resource.Resource.ConnectionStringExpression.GetValueAsync(cts.Token);
-        using var connection = new MySqlConnection(connectionString);
-        await connection.OpenAsync(cts.Token);
-
-        var command = connection.CreateCommand();
-        command.CommandText = "CREATE DATABASE db;";
-        await command.ExecuteNonQueryAsync(cts.Token);
-
-        await rns.WaitForResourceAsync(db.Resource.Name, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cts.Token);
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
@@ -194,7 +139,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             if (useVolume)
             {
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
-                volumeName = VolumeNameGenerator.CreateVolumeName(mysql1, nameof(WithDataShouldPersistStateBetweenUsages));
+                volumeName = VolumeNameGenerator.Generate(mysql1, nameof(WithDataShouldPersistStateBetweenUsages));
 
                 // if the volume already exists (because of a crashing previous run), delete it
                 DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
@@ -261,8 +206,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-            var passwordParameter2 = builder2.AddParameter("pwd");
-            builder2.Configuration["Parameters:pwd"] = password;
+            var passwordParameter2 = builder2.AddParameter("pwd", password);
 
             var mysql2 = builder2.AddMySql("mysql", passwordParameter2);
             var db2 = mysql2.AddDatabase(mySqlDbName);

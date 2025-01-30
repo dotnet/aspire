@@ -1,11 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
 using System.Text;
+using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
@@ -19,7 +20,7 @@ public static class PostgresBuilderExtensions
     private const string PasswordEnvVarName = "POSTGRES_PASSWORD";
 
     /// <summary>
-    /// Adds a PostgreSQL resource to the application model. A container is used for local development. This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.Tag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.Image"/> container image
+    /// Adds a PostgreSQL resource to the application model. A container is used for local development.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -34,9 +35,10 @@ public static class PostgresBuilderExtensions
     /// extension method then the dependent resource will wait until the Postgres resource is able to service
     /// requests.
     /// </para>
+    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.Tag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.Image"/> container image.
     /// </remarks>
     public static IResourceBuilder<PostgresServerResource> AddPostgres(this IDistributedApplicationBuilder builder,
-        string name,
+        [ResourceName] string name,
         IResourceBuilder<ParameterResource>? userName = null,
         IResourceBuilder<ParameterResource>? password = null,
         int? port = null)
@@ -58,22 +60,6 @@ public static class PostgresBuilderExtensions
             {
                 throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{postgresServer.Name}' resource but the connection string was null.");
             }
-
-            var lookup = builder.Resources.OfType<PostgresDatabaseResource>().ToDictionary(d => d.Name);
-
-            foreach (var databaseName in postgresServer.Databases)
-            {
-                if (!lookup.TryGetValue(databaseName.Key, out var databaseResource))
-                {
-                    throw new DistributedApplicationException($"Database resource '{databaseName}' under Postgres server resource '{postgresServer.Name}' not in model.");
-                }
-
-                var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(databaseResource, @event.Services);
-                await builder.Eventing.PublishAsync<ConnectionStringAvailableEvent>(connectionStringAvailableEvent, ct).ConfigureAwait(false);
-
-                var beforeResourceStartedEvent = new BeforeResourceStartedEvent(databaseResource, @event.Services);
-                await builder.Eventing.PublishAsync(beforeResourceStartedEvent, ct).ConfigureAwait(false);
-            }
         });
 
         var healthCheckKey = $"{name}_check";
@@ -85,7 +71,7 @@ public static class PostgresBuilderExtensions
             //
             //       https://github.com/npgsql/npgsql/blob/c3b31c393de66a4b03fba0d45708d46a2acb06d2/src/Npgsql/NpgsqlConnection.cs#L445
             //
-            connection.ConnectionString = connection.ConnectionString + ";Database=postgres;";
+            connection.ConnectionString += ";Database=postgres;";
         });
 
         return builder.AddResource(postgresServer)
@@ -122,7 +108,7 @@ public static class PostgresBuilderExtensions
     /// is used with this resource it will wait indefinitely until the database exists.
     /// </para>
     /// </remarks>
-    public static IResourceBuilder<PostgresDatabaseResource> AddDatabase(this IResourceBuilder<PostgresServerResource> builder, string name, string? databaseName = null)
+    public static IResourceBuilder<PostgresDatabaseResource> AddDatabase(this IResourceBuilder<PostgresServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
@@ -132,29 +118,15 @@ public static class PostgresBuilderExtensions
 
         builder.Resource.AddDatabase(name, databaseName);
         var postgresDatabase = new PostgresDatabaseResource(name, databaseName, builder.Resource);
-
-        string? connectionString = null;
-
-        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(postgresDatabase, async (@event, ct) =>
-        {
-            connectionString = await postgresDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
-
-            if (connectionString == null)
-            {
-                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{postgresDatabase}' resource but the connection string was null.");
-            }
-        });
-
-        var healthCheckKey = $"{name}_check";
-        builder.ApplicationBuilder.Services.AddHealthChecks().AddNpgSql(sp => connectionString!, name: healthCheckKey);
-
-        return builder.ApplicationBuilder.AddResource(postgresDatabase)
-                                         .WithHealthCheck(healthCheckKey);
+        return builder.ApplicationBuilder.AddResource(postgresDatabase);
     }
 
     /// <summary>
-    /// Adds a pgAdmin 4 administration and development platform for PostgreSQL to the application model. This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgAdminTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgAdminImage"/> container image
+    /// Adds a pgAdmin 4 administration and development platform for PostgreSQL to the application model.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgAdminTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgAdminImage"/> container image.
+    /// </remarks>
     /// <param name="builder">The PostgreSQL server resource builder.</param>
     /// <param name="configureContainer">Callback to configure PgAdmin container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
@@ -180,6 +152,7 @@ public static class PostgresBuilderExtensions
                                                  .WithHttpEndpoint(targetPort: 80, name: "http")
                                                  .WithEnvironment(SetPgAdminEnvironmentVariables)
                                                  .WithBindMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
+                                                 .WithHttpHealthCheck("/browser")
                                                  .ExcludeFromManifest();
 
             builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
@@ -215,7 +188,7 @@ public static class PostgresBuilderExtensions
                         // This will need to be refactored once updated service discovery APIs are available
                         writer.WriteString("Host", endpoint.Resource.Name);
                         writer.WriteNumber("Port", (int)endpoint.TargetPort!);
-                        writer.WriteString("Username", "postgres");
+                        writer.WriteString("Username", postgresInstance.UserNameParameter?.Value ?? "postgres");
                         writer.WriteString("SSLMode", "prefer");
                         writer.WriteString("MaintenanceDB", "postgres");
                         writer.WriteString("PasswordExecCommand", $"echo '{postgresInstance.PasswordParameter.Value}'"); // HACK: Generating a pass file and playing around with chmod is too painful.
@@ -232,6 +205,8 @@ public static class PostgresBuilderExtensions
             });
 
             configureContainer?.Invoke(pgAdminContainerBuilder);
+
+            pgAdminContainerBuilder.WithRelationship(builder.Resource, "PgAdmin");
 
             return builder;
         }
@@ -270,6 +245,9 @@ public static class PostgresBuilderExtensions
     /// <summary>
     /// Adds an administration and development platform for PostgreSQL to the application model using pgweb.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgWebTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgWebImage"/> container image.
+    /// </remarks>
     /// <param name="builder">The Postgres server resource builder.</param>
     /// <param name="configureContainer">Configuration callback for pgweb container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
@@ -288,13 +266,9 @@ public static class PostgresBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    /// <remarks>
-    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgWebTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgWebImage"/> container image.
-    /// </remarks>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<PostgresServerResource> WithPgWeb(this IResourceBuilder<PostgresServerResource> builder, Action<IResourceBuilder<PgWebContainerResource>>? configureContainer = null, string? containerName = null)
     {
-
         if (builder.ApplicationBuilder.Resources.OfType<PgWebContainerResource>().SingleOrDefault() is { } existingPgWebResource)
         {
             var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingPgWebResource);
@@ -316,6 +290,8 @@ public static class PostgresBuilderExtensions
                                                .ExcludeFromManifest();
 
             configureContainer?.Invoke(pgwebContainerBuilder);
+
+            pgwebContainerBuilder.WithRelationship(builder.Resource, "PgWeb");
 
             builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>(async (e, ct) =>
             {
@@ -361,6 +337,16 @@ public static class PostgresBuilderExtensions
         // You need to define the PGADMIN_DEFAULT_EMAIL and PGADMIN_DEFAULT_PASSWORD or PGADMIN_DEFAULT_PASSWORD_FILE environment variables.
         context.EnvironmentVariables.Add("PGADMIN_DEFAULT_EMAIL", "admin@domain.com");
         context.EnvironmentVariables.Add("PGADMIN_DEFAULT_PASSWORD", "admin");
+
+        // When running in the context of Codespaces we need to set some additional environment
+        // variables so that PGAdmin will trust the forwarded headers that Codespaces port
+        // forwarding will send.
+        var config = context.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
+        if (context.ExecutionContext.IsRunMode && config.GetValue<bool>("CODESPACES", false))
+        {
+            context.EnvironmentVariables["PGADMIN_CONFIG_PROXY_X_HOST_COUNT"] = "1";
+            context.EnvironmentVariables["PGADMIN_CONFIG_PROXY_X_PREFIX_COUNT"] = "1";
+        }
     }
 
     /// <summary>
@@ -374,7 +360,7 @@ public static class PostgresBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"),
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"),
             "/var/lib/postgresql/data", isReadOnly);
     }
 

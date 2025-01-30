@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
@@ -19,6 +20,8 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Aspire.Hosting.Devcontainers;
+using Aspire.Hosting.Orchestrator;
 
 namespace Aspire.Hosting;
 
@@ -131,6 +134,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         LogBuilderConstructing(options, innerBuilderOptions);
         _innerBuilder = new HostApplicationBuilder(innerBuilderOptions);
 
+        _innerBuilder.Services.AddSingleton(TimeProvider.System);
+
         _innerBuilder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
         _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
         _innerBuilder.Logging.AddFilter("Aspire.Hosting.Dashboard", LogLevel.Error);
@@ -151,9 +156,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var appHostName = options.ProjectName ?? _innerBuilder.Environment.ApplicationName;
         AppHostPath = Path.Join(AppHostDirectory, appHostName);
 
-        var appHostShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath));
-        var appHostSha = Convert.ToHexString(appHostShaBytes);
-
         // Set configuration
         ConfigurePublishingOptions(options);
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -161,7 +163,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             // Make the app host directory available to the application via configuration
             ["AppHost:Directory"] = AppHostDirectory,
             ["AppHost:Path"] = AppHostPath,
-            ["AppHost:Sha256"] = appHostSha,
         });
 
         _executionContextOptions = _innerBuilder.Configuration["Publishing:Publisher"] switch
@@ -171,6 +172,26 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         };
 
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
+
+        // Conditionally configure AppHostSha based on execution context. For local scenarios, we want to
+        // account for the path the AppHost is running from to disambiguate between different projects
+        // with the same name as seen in https://github.com/dotnet/aspire/issues/5413. For publish scenarios,
+        // we want to use a stable hash based only on the project name.
+        string appHostSha;
+        if (ExecutionContext.IsPublishMode)
+        {
+            var appHostNameShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostName));
+            appHostSha = Convert.ToHexString(appHostNameShaBytes);
+        }
+        else
+        {
+            var appHostShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath));
+            appHostSha = Convert.ToHexString(appHostShaBytes);
+        }
+        _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["AppHost:Sha256"] = appHostSha
+        });
 
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
@@ -229,6 +250,16 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                         }
                     );
                 }
+                else
+                {
+                    // The dashboard is enabled but is unsecured. Set auth mode config setting to reflect this state.
+                    _innerBuilder.Configuration.AddInMemoryCollection(
+                        new Dictionary<string, string?>
+                        {
+                            ["AppHost:ResourceService:AuthMode"] = nameof(ResourceServiceAuthMode.Unsecured)
+                        }
+                    );
+                }
 
                 _innerBuilder.Services.AddSingleton<DashboardCommandExecutor>();
                 _innerBuilder.Services.AddOptions<TransportOptions>().ValidateOnStart().PostConfigure(MapTransportOptionsFromCustomKeys);
@@ -241,16 +272,38 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>());
             }
 
+            if (options.EnableResourceLogging)
+            {
+                // This must be added before DcpHostService to ensure that it can subscribe to the ResourceNotificationService and ResourceLoggerService
+                _innerBuilder.Services.AddHostedService<ResourceLoggerForwarderService>();
+            }
+
+            // Orchestrator
+            _innerBuilder.Services.AddSingleton<ApplicationOrchestrator>();
+            _innerBuilder.Services.AddHostedService<OrchestratorHostService>();
+
             // DCP stuff
-            _innerBuilder.Services.AddSingleton<ApplicationExecutor>();
+            _innerBuilder.Services.AddSingleton<IDcpExecutor, DcpExecutor>();
+            _innerBuilder.Services.AddSingleton<DcpExecutorEvents>();
+            _innerBuilder.Services.AddSingleton<DcpHost>();
             _innerBuilder.Services.AddSingleton<IDcpDependencyCheckService, DcpDependencyCheck>();
-            _innerBuilder.Services.AddHostedService<DcpHostService>();
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DcpOptions>, ConfigureDefaultDcpOptions>());
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DcpOptions>, ValidateDcpOptions>());
+            _innerBuilder.Services.AddSingleton<DcpNameGenerator>();
 
             // We need a unique path per application instance
             _innerBuilder.Services.AddSingleton(new Locations());
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
+
+            // Devcontainers & Codespaces
+            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CodespacesOptions>, ConfigureCodespacesOptions>());
+            _innerBuilder.Services.AddSingleton<CodespacesUrlRewriter>();
+            _innerBuilder.Services.AddHostedService<CodespacesResourceUrlRewriterService>();
+            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DevcontainersOptions>, ConfigureDevcontainersOptions>());
+            _innerBuilder.Services.AddSingleton<DevcontainerSettingsWriter>();
+            _innerBuilder.Services.TryAddLifecycleHook<DevcontainerPortForwardingLifecycleHook>();
+
+            Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
         }
 
         // Publishing support
@@ -271,18 +324,40 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     private void ConfigureHealthChecks()
     {
+        _innerBuilder.Services.AddSingleton<IValidateOptions<HealthCheckServiceOptions>>(sp =>
+        {
+            var appModel = sp.GetRequiredService<DistributedApplicationModel>();
+            var logger = sp.GetRequiredService<ILogger<DistributedApplicationBuilder>>();
+
+            // Generic message (we update it in the callback to make it more specific).
+            var failureMessage = "A health check registration is missing. Check logs for more details.";
+
+            return new ValidateOptions<HealthCheckServiceOptions>(null, (options) =>
+            {
+                var resourceHealthChecks = appModel.Resources.SelectMany(
+                    r => r.Annotations.OfType<HealthCheckAnnotation>().Select(hca => new { Resource = r, Annotation = hca })
+                    );
+
+                var healthCheckRegistrationKeys = options.Registrations.Select(hcr => hcr.Name).ToHashSet();
+                var missingResourceHealthChecks = resourceHealthChecks.Where(rhc => !healthCheckRegistrationKeys.Contains(rhc.Annotation.Key));
+
+                foreach (var missingResourceHealthCheck in missingResourceHealthChecks)
+                {
+                    sp.GetRequiredService<ILogger<DistributedApplicationBuilder>>().LogCritical(
+                        "The health check '{Key}' is not registered and is required for resource '{ResourceName}'.",
+                        missingResourceHealthCheck.Annotation.Key,
+                        missingResourceHealthCheck.Resource.Name);
+                }
+
+                return !missingResourceHealthChecks.Any();
+            }, failureMessage);
+        });
+
         _innerBuilder.Services.AddSingleton<IConfigureOptions<HealthCheckPublisherOptions>>(sp =>
         {
             return new ConfigureOptions<HealthCheckPublisherOptions>(options =>
             {
-                if (ExecutionContext.IsRunMode)
-                {
-                    // In run mode we route requests to the health check scheduler.
-                    var hcs = sp.GetRequiredService<ResourceHealthCheckScheduler>();
-                    options.Predicate = hcs.Predicate;
-                    options.Period = TimeSpan.FromSeconds(5);
-                }
-                else
+                if (ExecutionContext.IsPublishMode)
                 {
                     // In publish mode we don't run any checks.
                     options.Predicate = (check) => false;
@@ -292,9 +367,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         if (ExecutionContext.IsRunMode)
         {
-            _innerBuilder.Services.AddSingleton<IHealthCheckPublisher, ResourceNotificationHealthCheckPublisher>();
-            _innerBuilder.Services.AddSingleton<ResourceHealthCheckScheduler>();
-            _innerBuilder.Services.AddHostedService<ResourceHealthCheckScheduler>(sp => sp.GetRequiredService<ResourceHealthCheckScheduler>());
+            _innerBuilder.Services.AddSingleton<ResourceHealthCheckService>();
+            _innerBuilder.Services.AddHostedService<ResourceHealthCheckService>(sp => sp.GetRequiredService<ResourceHealthCheckService>());
         }
     }
 

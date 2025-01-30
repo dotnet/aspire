@@ -15,8 +15,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="$(TestsSharedDir)AsyncTestHelpers.cs" Link="shared/AsyncTestHelpers.cs" />
     <Compile Include="$(TestsSharedDir)Telemetry\*.cs" LinkBase="shared/Telemetry" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
+    <Compile Include="$(TestsSharedDir)DashboardModel\*.cs" LinkBase="shared/DashboardModel" />
   </ItemGroup>
 
   <ItemGroup>

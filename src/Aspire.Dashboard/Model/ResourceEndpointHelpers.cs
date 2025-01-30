@@ -60,6 +60,8 @@ public sealed class DisplayedEndpoint : IPropertyGridItem
     /// </summary>
     string? IPropertyGridItem.Value => null;
 
+    public string? ValueToVisualize => Url ?? Text;
+
     public bool MatchesFilter(string filter)
         => Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
            Text.Contains(filter, StringComparison.CurrentCultureIgnoreCase);

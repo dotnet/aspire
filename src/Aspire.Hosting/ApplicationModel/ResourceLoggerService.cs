@@ -47,7 +47,79 @@ public class ResourceLoggerService
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        return GetResourceLoggerState(resource.Name).Logger;
+        var resourceNames = resource.GetResolvedResourceNames();
+        if (resourceNames.Length > 1)
+        {
+            // If a resource has multiple replicas then return a composite logger that writes to multiple.
+            var loggers = new List<ILogger>();
+            foreach (var resourceName in resourceNames)
+            {
+                loggers.Add(GetResourceLoggerState(resourceName).Logger);
+            }
+
+            return new CompositeLogger(loggers);
+        }
+        else
+        {
+            return GetResourceLoggerState(resourceNames[0]).Logger;
+        }
+    }
+
+    private sealed class CompositeLogger(List<ILogger> innerLoggers) : ILogger
+    {
+        private readonly List<ILogger> _innerLoggers = innerLoggers;
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull
+        {
+            var scopes = new List<IDisposable>();
+            foreach (var logger in _innerLoggers)
+            {
+                if (logger.BeginScope(state) is { } scope)
+                {
+                    scopes.Add(scope);
+                }
+            }
+
+            if (scopes.Count == 0)
+            {
+                return null;
+            }
+            else if (scopes.Count == 1)
+            {
+                return scopes[0];
+            }
+            else
+            {
+                return new CompositeDisposable(scopes);
+            }
+        }
+
+        private sealed class CompositeDisposable(List<IDisposable> disposables) : IDisposable
+        {
+            private readonly List<IDisposable> _disposables = disposables;
+
+            public void Dispose()
+            {
+                foreach (var disposable in _disposables)
+                {
+                    disposable.Dispose();
+                }
+            }
+        }
+
+        public bool IsEnabled(LogLevel logLevel)
+        {
+            // All loggers have the same log level.
+            return _innerLoggers[0].IsEnabled(logLevel);
+        }
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            foreach (var logger in _innerLoggers)
+            {
+                logger.Log(logLevel, eventId, state, exception, formatter);
+            }
+        }
     }
 
     /// <summary>
@@ -66,11 +138,12 @@ public class ResourceLoggerService
     /// The internal logger is used when adding logs from resource's stream logs.
     /// It allows the parsed date from text to be used as the log line date.
     /// </summary>
-    internal Action<DateTime?, string, bool> GetInternalLogger(string resourceName)
+    internal Action<LogEntry> GetInternalLogger(string resourceName)
     {
         ArgumentNullException.ThrowIfNull(resourceName);
 
-        return GetResourceLoggerState(resourceName).AddLog;
+        var state = GetResourceLoggerState(resourceName);
+        return (logEntry) => state.AddLog(logEntry, inMemorySource: false);
     }
 
     /// <summary>
@@ -82,7 +155,46 @@ public class ResourceLoggerService
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        return WatchAsync(resource.Name);
+        var resourceNames = resource.GetResolvedResourceNames();
+        if (resourceNames.Length > 1)
+        {
+            return WatchMultipleAsync(resourceNames, WatchAsync);
+        }
+        else
+        {
+            return WatchAsync(resourceNames[0]);
+        }
+
+        static async IAsyncEnumerable<IReadOnlyList<LogLine>> WatchMultipleAsync(string[] resourceNames, Func<string, IAsyncEnumerable<IReadOnlyList<LogLine>>> watch)
+        {
+            var channel = Channel.CreateUnbounded<IReadOnlyList<LogLine>>();
+            var readTasks = resourceNames.Select(async (name) =>
+            {
+                await foreach (var logLines in watch(name).ConfigureAwait(false))
+                {
+                    channel.Writer.TryWrite(logLines);
+                }
+            });
+
+            var completionTask = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.WhenAll(readTasks).ConfigureAwait(false);
+                }
+                finally
+                {
+                    channel.Writer.Complete();
+                }
+            });
+
+            await foreach (var item in channel.Reader.ReadAllAsync().ConfigureAwait(false))
+            {
+                yield return item;
+            }
+
+            await completionTask.ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -141,9 +253,13 @@ public class ResourceLoggerService
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        if (_loggers.TryGetValue(resource.Name, out var logger))
+        var resourceNames = resource.GetResolvedResourceNames();
+        foreach (var resourceName in resourceNames)
         {
-            logger.Complete();
+            if (_loggers.TryGetValue(resourceName, out var logger))
+            {
+                logger.Complete();
+            }
         }
     }
 
@@ -183,17 +299,21 @@ public class ResourceLoggerService
             return state;
         },
         this);
+    internal Dictionary<string, ResourceLoggerState> Loggers => _loggers.ToDictionary();
 
     /// <summary>
     /// A logger for the resource to write to.
     /// </summary>
     internal sealed class ResourceLoggerState
     {
+        private const int MaxLogCount = 10_000;
+
         private readonly ResourceLogger _logger;
         private readonly CancellationTokenSource _logStreamCts = new();
         private readonly object _lock = new();
 
-        private readonly LogEntries _backlog = new(10000) { BaseLineNumber = 0 };
+        private readonly CircularBuffer<LogEntry> _inMemoryEntries = new(MaxLogCount);
+        private readonly LogEntries _backlog = new(MaxLogCount) { BaseLineNumber = 0 };
         private readonly TimeProvider _timeProvider;
 
         /// <summary>
@@ -246,24 +366,35 @@ public class ResourceLoggerService
 
             using var _ = _logStreamCts.Token.Register(() => channel.Writer.TryComplete());
 
-            // No need to lock in the log method because TryWrite/TryComplete are already threadsafe.
+            // No need to lock in the log method because TryWrite/TryComplete are already thread safe.
             void Log(LogEntry log) => channel.Writer.TryWrite(log);
 
             LogEntry[] backlogSnapshot;
             lock (_lock)
             {
-                // Get back
+                // If there are no subscribers then the backlog must be empty. Populate it with any in-memory logs.
+                if (!HasSubscribers)
+                {
+                    Debug.Assert(_backlog.EntriesCount == 0, "The backlog should be empty if there are no subscribers.");
+
+                    // Populate backlog with in-memory log messages on first subscription.
+                    foreach (var logEntry in _inMemoryEntries)
+                    {
+                        _backlog.InsertSorted(logEntry);
+                    }
+                }
+
                 backlogSnapshot = GetBacklogSnapshot();
                 OnNewLog += Log;
             }
 
-            if (backlogSnapshot.Length > 0)
-            {
-                yield return CreateLogLines(ref lineNumber, backlogSnapshot);
-            }
-
             try
             {
+                if (backlogSnapshot.Length > 0)
+                {
+                    yield return CreateLogLines(ref lineNumber, backlogSnapshot);
+                }
+
                 await foreach (var entry in channel.GetBatchesAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
                 {
                     yield return CreateLogLines(ref lineNumber, entry);
@@ -295,6 +426,15 @@ public class ResourceLoggerService
                 }
 
                 return logs;
+            }
+        }
+
+        private bool HasSubscribers
+        {
+            get
+            {
+                Debug.Assert(Monitor.IsEntered(_lock));
+                return _onNewLog != null;
             }
         }
 
@@ -369,12 +509,23 @@ public class ResourceLoggerService
             }
         }
 
-        public void AddLog(DateTime? timestamp, string logMessage, bool isErrorMessage)
+        public void AddLog(LogEntry logEntry, bool inMemorySource)
         {
-            var logEntry = new LogEntry { Timestamp = timestamp, Content = logMessage, Type = isErrorMessage ? LogEntryType.Error : LogEntryType.Default };
             lock (_lock)
             {
-                _backlog.InsertSorted(logEntry);
+                // Only add logs into the backlog if there are subscribers. If there aren't subscribers then
+                // logs are replayed into this collection from various sources (DCP, in-memory).
+                if (HasSubscribers)
+                {
+                    _backlog.InsertSorted(logEntry);
+                }
+
+                // Keep in-memory logs (i.e. logs not loaded from DCP) in their own collection.
+                // These logs are replayed into the backlog when a log watch starts.
+                if (inMemorySource)
+                {
+                    _inMemoryEntries.Add(logEntry);
+                }
             }
 
             _onNewLog?.Invoke(logEntry);
@@ -399,7 +550,7 @@ public class ResourceLoggerService
                 var logMessage = formatter(state, exception) + (exception is null ? "" : $"\n{exception}");
                 var isErrorMessage = logLevel >= LogLevel.Error;
 
-                loggerState.AddLog(logTime, logMessage, isErrorMessage);
+                loggerState.AddLog(LogEntry.Create(logTime, logMessage, isErrorMessage), inMemorySource: true);
             }
         }
     }

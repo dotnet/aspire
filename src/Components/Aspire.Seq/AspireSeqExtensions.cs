@@ -18,6 +18,8 @@ namespace Microsoft.Extensions.Hosting;
 /// </summary>
 public static class AspireSeqExtensions
 {
+    private const string DefaultConfigSectionName = "Aspire:Seq";
+
     /// <summary>
     /// Registers OTLP log and trace exporters to send to Seq.
     /// </summary>
@@ -36,7 +38,11 @@ public static class AspireSeqExtensions
         settings.Traces.Protocol = OtlpExportProtocol.HttpProtobuf;
         settings.Logs.ExportProcessorType = ExportProcessorType.Batch;
         settings.Traces.ExportProcessorType = ExportProcessorType.Batch;
-        builder.Configuration.GetSection("Aspire:Seq").Bind(settings);
+
+        var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
+        var namedConfigSection = builder.Configuration.GetSection(connectionName);
+        configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {

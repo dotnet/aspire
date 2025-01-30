@@ -103,7 +103,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
             if (useVolume)
             {
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
-                volumeName = VolumeNameGenerator.CreateVolumeName(oracle1, nameof(WithDataShouldPersistStateBetweenUsages));
+                volumeName = VolumeNameGenerator.Generate(oracle1, nameof(WithDataShouldPersistStateBetweenUsages));
 
                 // If the volume already exists (because of a crashing previous run), try to delete it
                 DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
@@ -167,8 +167,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             using var builder2 = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
-            var passwordParameter2 = builder2.AddParameter("pwd");
-            builder2.Configuration["Parameters:pwd"] = password;
+            var passwordParameter2 = builder2.AddParameter("pwd", password);
 
             var oracle2 = builder2.AddOracle("oracle", passwordParameter2);
 
@@ -378,53 +377,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await pendingStart;
-
-        await app.StopAsync();
-    }
-
-    [Fact]
-    [RequiresDocker]
-    public async Task VerifyWaitForOnOracleDatabaseBlocksDependentResources()
-    {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
-
-        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
-        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
-        {
-            return healthCheckTcs.Task;
-        });
-
-        var resource = builder.AddOracle("resource")
-                              .WithHealthCheck("blocking_check");
-
-        var db = resource.AddDatabase("db");
-
-        var dependentResource = builder.AddOracle("dependentresource")
-                                       .WaitFor(db);
-
-        using var app = builder.Build();
-
-        var pendingStart = app.StartAsync(cts.Token);
-
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(db.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
-
-        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
-
-        await rns.WaitForResourceAsync(resource.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
-
-        await rns.WaitForResourceAsync(db.Resource.Name, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cts.Token);
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 

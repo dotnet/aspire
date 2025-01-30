@@ -20,6 +20,19 @@ updates:
       - dependency-name: "Microsoft.DotNet.Helix.Sdk"
       - dependency-name: "Microsoft.DotNet.SharedFramework.Sdk"
       - dependency-name: "Microsoft.Build.NoTargets"
+      # Pinned versions that should not be updated
+      - dependency-name: "Microsoft.CodeAnalysis.CSharp"
+      # NetPlatform dependencies shouldn't update across major versions
+      - dependency-name: "Microsoft.AspNetCore.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Microsoft.EntityFrameworkCore.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Microsoft.Extensions.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "System.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Npgsql.*"
+        update-types: ["version-update:semver-major"]
     groups:
       Azure:
         patterns:
@@ -29,14 +42,6 @@ updates:
       AspNetCoreHealthChecks:
         patterns:
           - "AspNetCore.HealthChecks.*"
-      AWS:
-        patterns:
-          - "AWS.*"
-          - "AWSSDK.*"
-          - "OpenTelemetry.*.AWS"
-      EntityFrameworkCore:
-        patterns:
-          - "Microsoft.EntityFrameworkCore.*"
       FluentUi:
         patterns:
           - "Microsoft.FluentUI.*"
@@ -49,10 +54,18 @@ updates:
       NetPlatform:
         patterns:
           - "Microsoft.AspNetCore.*"
+          - "Microsoft.EntityFrameworkCore.*"
           - "Microsoft.Extensions.*"
+          - "System.*"
+        update-types:
+          - 'minor'
+          - 'patch'
       Npgsql:
         patterns:
           - "Npgsql.*"
+        update-types:
+          - 'minor'
+          - 'patch'
       MicrosoftDotNet:
         patterns:
           - "Microsoft.DotNet.*"

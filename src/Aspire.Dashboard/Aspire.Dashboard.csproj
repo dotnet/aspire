@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <!-- This list of runtimes needs to match the set of runtimes specified in eng/workloads/workloads.csproj -->
@@ -17,6 +17,8 @@
     Given we want to be able to support people running on environments where they only have the 9.0 SDK/runtime installed,
     we allow roll-forward to the next major in order to support these customers.-->
     <RollForward>Major</RollForward>
+
+    <DefineConstants>$(DefineConstants);ASPIRE_DASHBOARD</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -39,6 +41,9 @@
       <Link>ResourceService\resource_service.proto</Link>
     </Protobuf>
   </ItemGroup>
+
+  <!-- Used by publishing infrastructure to get the version to use for blob publishing -->
+  <Target Name="ReturnPackageVersion" Returns="$(PackageVersion)" />
 
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />

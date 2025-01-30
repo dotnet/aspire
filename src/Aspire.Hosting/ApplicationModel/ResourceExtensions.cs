@@ -16,7 +16,7 @@ public static class ResourceExtensions
     /// <typeparam name="T">The type of the annotation to get.</typeparam>
     /// <param name="resource">The resource to get the annotation from.</param>
     /// <param name="annotation">When this method returns, contains the last annotation of the specified type from the resource, if found; otherwise, the default value for <typeparamref name="T"/>.</param>
-    /// <returns><c>true</c> if the last annotation of the specified type was found in the resource; otherwise, <c>false</c>.</returns>
+    /// <returns><see langword="true"/> if the last annotation of the specified type was found in the resource; otherwise, <see langword="false"/>.</returns>
     public static bool TryGetLastAnnotation<T>(this IResource resource, [NotNullWhen(true)] out T? annotation) where T : IResourceAnnotation
     {
         if (resource.Annotations.OfType<T>().LastOrDefault() is { } lastAnnotation)
@@ -26,7 +26,7 @@ public static class ResourceExtensions
         }
         else
         {
-            annotation = default(T);
+            annotation = default;
             return false;
         }
     }
@@ -36,15 +36,15 @@ public static class ResourceExtensions
     /// </summary>
     /// <typeparam name="T">The type of annotation to retrieve.</typeparam>
     /// <param name="resource">The resource to retrieve annotations from.</param>
-    /// <param name="result">When this method returns, contains the annotations of the specified type, if found; otherwise, null.</param>
-    /// <returns>true if annotations of the specified type were found; otherwise, false.</returns>
+    /// <param name="result">When this method returns, contains the annotations of the specified type, if found; otherwise, <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> if annotations of the specified type were found; otherwise, <see langword="false"/>.</returns>
     public static bool TryGetAnnotationsOfType<T>(this IResource resource, [NotNullWhen(true)] out IEnumerable<T>? result) where T : IResourceAnnotation
     {
-        var matchingTypeAnnotations = resource.Annotations.OfType<T>();
+        var matchingTypeAnnotations = resource.Annotations.OfType<T>().ToArray();
 
-        if (matchingTypeAnnotations.Any())
+        if (matchingTypeAnnotations.Length is not 0)
         {
-            result = matchingTypeAnnotations.ToArray();
+            result = matchingTypeAnnotations;
             return true;
         }
         else
@@ -52,6 +52,88 @@ public static class ResourceExtensions
             result = null;
             return false;
         }
+    }
+
+    /// <summary>
+    /// Gets whether <paramref name="resource"/> has an annotation of type <typeparamref name="T"/>
+    /// </summary>
+    /// <typeparam name="T">The type of annotation to retrieve.</typeparam>
+    /// <param name="resource">The resource to retrieve annotations from.</param>
+    /// <returns><see langword="true"/> if an annotation of the specified type was found; otherwise, <see langword="false"/>.</returns>
+    public static bool HasAnnotationOfType<T>(this IResource resource) where T : IResourceAnnotation
+    {
+        return resource.Annotations.Any(a => a is T);
+    }
+
+    /// <summary>
+    /// Attempts to retrieve all annotations of the specified type from the given resource including from parents.
+    /// </summary>
+    /// <typeparam name="T">The type of annotation to retrieve.</typeparam>
+    /// <param name="resource">The resource to retrieve annotations from.</param>
+    /// <param name="result">When this method returns, contains the annotations of the specified type, if found; otherwise, <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> if annotations of the specified type were found; otherwise, <see langword="false"/>.</returns>
+    public static bool TryGetAnnotationsIncludingAncestorsOfType<T>(this IResource resource, [NotNullWhen(true)] out IEnumerable<T>? result) where T : IResourceAnnotation
+    {
+        if (resource is IResourceWithParent)
+        {
+            List<T>? annotations = null;
+
+            while (true)
+            {
+                foreach (var annotation in resource.Annotations.OfType<T>())
+                {
+                    annotations ??= [];
+                    annotations.Add(annotation);
+                }
+
+                if (resource is IResourceWithParent child)
+                {
+                    resource = child.Parent;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            result = annotations;
+            return annotations is not null;
+        }
+
+        return TryGetAnnotationsOfType(resource, out result);
+    }
+
+    /// <summary>
+    /// Gets whether <paramref name="resource"/> or its ancestors have an annotation of type <typeparamref name="T"/>
+    /// </summary>
+    /// <typeparam name="T">The type of annotation to retrieve.</typeparam>
+    /// <param name="resource">The resource to retrieve annotations from.</param>
+    /// <returns><see langword="true"/> if an annotation of the specified type was found; otherwise, <see langword="false"/>.</returns>
+    public static bool HasAnnotationIncludingAncestorsOfType<T>(this IResource resource) where T : IResourceAnnotation
+    {
+        if (resource is IResourceWithParent)
+        {
+            while (true)
+            {
+                if (HasAnnotationOfType<T>(resource))
+                {
+                    return true;
+                }
+
+                if (resource is IResourceWithParent child)
+                {
+                    resource = child.Parent;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return false;
+        }
+
+        return HasAnnotationOfType<T>(resource);
     }
 
     /// <summary>
@@ -235,11 +317,14 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Gets the lifetime type of the container for the specified resoruce. Defaults to <see cref="ContainerLifetime.Default"/> if
-    /// no <see cref="ContainerLifetimeAnnotation"/> is found.
+    /// Gets the lifetime type of the container for the specified resource.
+    /// Defaults to <see cref="ContainerLifetime.Session"/> if no <see cref="ContainerLifetimeAnnotation"/> is found.
     /// </summary>
-    /// <param name="resource">The resource to the get the ContainerLifetimeType for.</param>
-    /// <returns>The <see cref="ContainerLifetime"/> from the <see cref="ContainerLifetimeAnnotation"/> for the resource (if the annotation exists). Defaults to <see cref="ContainerLifetime.Default"/> if the annotation is not set.</returns>
+    /// <param name="resource">The resource to get the ContainerLifetimeType for.</param>
+    /// <returns>
+    /// The <see cref="ContainerLifetime"/> from the <see cref="ContainerLifetimeAnnotation"/> for the resource (if the annotation exists).
+    /// Defaults to <see cref="ContainerLifetime.Session"/> if the annotation is not set.
+    /// </returns>
     internal static ContainerLifetime GetContainerLifetimeType(this IResource resource)
     {
         if (resource.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
@@ -247,6 +332,46 @@ public static class ResourceExtensions
             return lifetimeAnnotation.Lifetime;
         }
 
-        return ContainerLifetime.Default;
+        return ContainerLifetime.Session;
+    }
+
+    /// <summary>
+    /// Determines whether a resource has proxy support enabled or not. Container resources may have a <see cref="ProxySupportAnnotation"/> setting that disables proxying for their
+    /// endpoints regardless of the endpoint proxy configuration.
+    /// </summary>
+    /// <param name="resource">The resource to get proxy support for.</param>
+    /// <returns>True if the resource supports proxied endpoints/services, false otherwise.</returns>
+    internal static bool SupportsProxy(this IResource resource)
+    {
+        // If the resource doesn't have a ProxySupportAnnotation or the ProxyEnabled property on the annotation is true, then the resource supports proxying.
+        return !resource.TryGetLastAnnotation<ProxySupportAnnotation>(out var proxySupportAnnotation) || proxySupportAnnotation.ProxyEnabled;
+    }
+
+    /// <summary>
+    /// Get the top resource in the resource hierarchy.
+    /// e.g. for a AzureBlobStorageResource, the top resource is the AzureStorageResource.
+    /// </summary>
+    internal static IResource GetRootResource(this IResource resource) =>
+        resource switch
+        {
+            IResourceWithParent resWithParent => resWithParent.Parent.GetRootResource(),
+            _ => resource
+        };
+
+    /// <summary>
+    /// Gets resolved names for the specified resource.
+    /// DCP resources are given a unique suffix as part of the complete name. We want to use that value.
+    /// Also, a DCP resource could have multiple instances. All instance names are returned for a resource.
+    /// </summary>
+    internal static string[] GetResolvedResourceNames(this IResource resource)
+    {
+        if (resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var replicaAnnotation) && !replicaAnnotation.Instances.IsEmpty)
+        {
+            return replicaAnnotation.Instances.Select(i => i.Name).ToArray();
+        }
+        else
+        {
+            return [resource.Name];
+        }
     }
 }

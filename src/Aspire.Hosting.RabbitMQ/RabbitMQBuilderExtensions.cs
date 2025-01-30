@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.RabbitMQ;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using RabbitMQ.Client;
 
 namespace Aspire.Hosting;
 
@@ -17,7 +18,7 @@ public static class RabbitMQBuilderExtensions
     /// Adds a RabbitMQ container to the application model.
     /// </summary>
     /// <remarks>
-    /// The default image and tag are "rabbitmq" and "3.13".
+    /// This version of the package defaults to the <inheritdoc cref="RabbitMQContainerImageTags.Tag"/> tag of the <inheritdoc cref="RabbitMQContainerImageTags.Image"/> container image.
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -26,7 +27,7 @@ public static class RabbitMQBuilderExtensions
     /// <param name="port">The host port that the underlying container is bound to when running locally.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RabbitMQServerResource> AddRabbitMQ(this IDistributedApplicationBuilder builder,
-        string name,
+        [ResourceName] string name,
         IResourceBuilder<ParameterResource>? userName = null,
         IResourceBuilder<ParameterResource>? password = null,
         int? port = null)
@@ -52,12 +53,22 @@ public static class RabbitMQBuilderExtensions
         });
 
         var healthCheckKey = $"{name}_check";
-        builder.Services.AddHealthChecks().AddRabbitMQ((sp, options) =>
+        // cache the connection so it is reused on subsequent calls to the health check
+        IConnection? connection = null;
+        builder.Services.AddHealthChecks().AddRabbitMQ(async (sp) =>
         {
-            // NOTE: This specific callback signature needs to be used to ensure
-            //       that execution of this setup callback is deferred until after
-            //       the container is build & started.
-            options.ConnectionUri = new Uri(connectionString!);
+            // NOTE: Ensure that execution of this setup callback is deferred until after
+            //       the container is built & started.
+            return connection ??= await CreateConnection(connectionString!).ConfigureAwait(false);
+
+            static Task<IConnection> CreateConnection(string connectionString)
+            {
+                var factory = new ConnectionFactory
+                {
+                    Uri = new Uri(connectionString)
+                };
+                return factory.CreateConnectionAsync();
+            }
         }, healthCheckKey);
 
         var rabbitmq = builder.AddResource(rabbitMq)
@@ -85,7 +96,7 @@ public static class RabbitMQBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/rabbitmq", isReadOnly)
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/var/lib/rabbitmq", isReadOnly)
                       .RunWithStableNodeName();
     }
 
@@ -109,8 +120,9 @@ public static class RabbitMQBuilderExtensions
     /// Configures the RabbitMQ container resource to enable the RabbitMQ management plugin.
     /// </summary>
     /// <remarks>
-    /// This method only supports the default RabbitMQ container image and tags, e.g. <c>3</c>, <c>3.12-alpine</c>, <c>3.12.13-management-alpine</c>, etc.<br />
+    /// This method only supports custom tags matching the default RabbitMQ ones for the corresponding management tag to be inferred automatically, e.g. <c>4</c>, <c>4.0-alpine</c>, <c>4.0.2-management-alpine</c>, etc.<br />
     /// Calling this method on a resource configured with an unrecognized image registry, name, or tag will result in a <see cref="DistributedApplicationException"/> being thrown.
+    /// This version of the package defaults to the <inheritdoc cref="RabbitMQContainerImageTags.ManagementTag"/> tag of the <inheritdoc cref="RabbitMQContainerImageTags.Image"/> container image.
     /// </remarks>
     /// <param name="builder">The resource builder.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
@@ -156,7 +168,7 @@ public static class RabbitMQBuilderExtensions
             if (string.IsNullOrEmpty(existingTag))
             {
                 // Set to default tag with management
-                annotation.Tag = RabbitMQContainerImageTags.TagManagement;
+                annotation.Tag = RabbitMQContainerImageTags.ManagementTag;
                 handled = true;
             }
             else if (existingTag.EndsWith(management, StringComparison.OrdinalIgnoreCase)

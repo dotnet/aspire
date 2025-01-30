@@ -31,6 +31,7 @@ internal sealed class PartitionReceiverClientComponent()
     {
         return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<PartitionReceiver, PartitionReceiverOptions>((options, cred) =>
         {
+            // ensure that the connection string or namespace+eventhubname is provided
             EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
 
             if (string.IsNullOrEmpty(settings.PartitionId))
@@ -41,17 +42,34 @@ internal sealed class PartitionReceiverClientComponent()
 
             options.Identifier ??= GenerateClientIdentifier(settings.EventHubName, settings.ConsumerGroup);
 
-            var receiver = !string.IsNullOrEmpty(settings.ConnectionString)
-                ? new PartitionReceiver(
-                    settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName, settings.PartitionId,
+            if (string.IsNullOrEmpty(settings.ConnectionString))
+            {
+                return new PartitionReceiver(
+                    settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName,
+                    settings.PartitionId,
                     settings.EventPosition,
-                    settings.ConnectionString, settings.EventHubName, options)
-                : new PartitionReceiver(
-                    settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName, settings.PartitionId,
-                    settings.EventPosition,
-                    settings.FullyQualifiedNamespace, settings.EventHubName, cred, options);
+                    settings.FullyQualifiedNamespace,
+                    settings.EventHubName,
+                    cred, options);
+            }
 
-            return receiver;
+            if (string.IsNullOrEmpty(settings.EventHubName))
+            {
+                return new PartitionReceiver(
+                    settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName,
+                    settings.PartitionId,
+                    settings.EventPosition,
+                    settings.ConnectionString,
+                    options);
+            }
+
+            return new PartitionReceiver(
+                settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName,
+                settings.PartitionId,
+                settings.EventPosition,
+                settings.ConnectionString,
+                settings.EventHubName,
+                options);            
 
         }, requiresCredential: false);
     }

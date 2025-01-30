@@ -11,11 +11,10 @@
 @implements IDialogContentComponent<ExemplarsDialogViewModel>
 
 @inject IStringLocalizer<Dialogs> Loc
-@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
 <div style="max-height: 44vh; overflow-y: auto;">
     <FluentDataGrid Items="@MetricView"
-                    ItemSize="46"
+                    RowSize="DataGridRowSize.Medium"
                     GridTemplateColumns="2fr 1fr 1fr 1fr"
                     TGridItem="ChartExemplar">
         <ChildContent>

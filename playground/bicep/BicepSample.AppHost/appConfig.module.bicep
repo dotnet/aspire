@@ -1,14 +1,14 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param principalId string
-
 param principalType string
+
+param principalId string
 
 param sku string
 
-resource appConfig 'Microsoft.AppConfiguration/configurationStores@2019-10-01' = {
-  name: toLower(take('appConfig${uniqueString(resourceGroup().id)}', 24))
+resource appConfig 'Microsoft.AppConfiguration/configurationStores@2024-05-01' = {
+  name: take('appConfig-${uniqueString(resourceGroup().id)}', 50)
   location: location
   properties: {
     disableLocalAuth: true

@@ -19,6 +19,9 @@ public static class GarnetBuilderExtensions
     /// <summary>
     /// Adds a Garnet container to the application model.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="GarnetContainerImageTags.Tag"/> tag of the <inheritdoc cref="GarnetContainerImageTags.Registry"/>/<inheritdoc cref="GarnetContainerImageTags.Image"/> container image.
+    /// </remarks>
     /// <example>
     /// Use in application host
     /// <code lang="csharp">
@@ -27,8 +30,8 @@ public static class GarnetBuilderExtensions
     /// var garnet = builder.AddGarnet("garnet");
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api)
     ///                  .WithReference(garnet);
-    ///  
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     /// <example>
@@ -39,7 +42,7 @@ public static class GarnetBuilderExtensions
     ///
     /// var multiplexer = builder.Services.BuildServiceProvider()
     ///                                   .GetRequiredService&lt;IConnectionMultiplexer&gt;();
-    /// 
+    ///
     /// var db = multiplexer.GetDatabase();
     /// db.HashSet("key", [new HashEntry("hash", "value")]);
     /// var value = db.HashGet("key", "hash");
@@ -49,7 +52,7 @@ public static class GarnetBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port to bind the underlying container to.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<GarnetResource> AddGarnet(this IDistributedApplicationBuilder builder, string name,
+    public static IResourceBuilder<GarnetResource> AddGarnet(this IDistributedApplicationBuilder builder, [ResourceName] string name,
         int? port = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -102,7 +105,7 @@ public static class GarnetBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), GarnetContainerDataDirectory,
+        builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), GarnetContainerDataDirectory,
             isReadOnly);
         if (!isReadOnly)
         {

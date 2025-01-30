@@ -1,16 +1,16 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
+param principalType string
+
+param principalId string
+
 param storagesku string
 
 param locationOverride string
 
-param principalId string
-
-param principalType string
-
-resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
-  name: toLower(take('storage${uniqueString(resourceGroup().id)}', 24))
+resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
+  name: take('storage${uniqueString(resourceGroup().id)}', 24)
   kind: 'StorageV2'
   location: locationOverride
   sku: {
@@ -29,7 +29,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   }
 }
 
-resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01' = {
+resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
   name: 'default'
   parent: storage
 }

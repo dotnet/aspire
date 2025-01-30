@@ -59,7 +59,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
@@ -106,6 +106,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
     [InlineData(true)]
     [InlineData(false)]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/7293")]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var dbName = "testdb";
@@ -121,12 +122,13 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
         {
             using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var mongodb1 = builder1.AddMongoDB("mongodb");
+            var password = mongodb1.Resource.PasswordParameter!.Value;
             var db1 = mongodb1.AddDatabase(dbName);
 
             if (useVolume)
             {
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
-                volumeName = VolumeNameGenerator.CreateVolumeName(mongodb1, nameof(WithDataShouldPersistStateBetweenUsages));
+                volumeName = VolumeNameGenerator.Generate(mongodb1, nameof(WithDataShouldPersistStateBetweenUsages));
 
                 // if the volume already exists (because of a crashing previous run), delete it
                 DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
@@ -168,7 +170,9 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-            var mongodb2 = builder2.AddMongoDB("mongodb");
+            var passwordParameter2 = builder2.AddParameter("pwd", password);
+
+            var mongodb2 = builder2.AddMongoDB("mongodb", password: passwordParameter2);
             var db2 = mongodb2.AddDatabase(dbName);
 
             if (useVolume)
@@ -244,6 +248,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/5937")]
     public async Task VerifyWithInitBindMount()
     {
         // Creates a script that should be executed when the container is initialized.

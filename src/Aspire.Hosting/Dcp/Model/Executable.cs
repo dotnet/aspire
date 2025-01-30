@@ -96,13 +96,13 @@ internal sealed class ExecutableStatus : V1Status
     /// Start (attempt) timestamp.
     /// </summary>
     [JsonPropertyName("startupTimestamp")]
-    public DateTimeOffset? StartupTimestamp { get; set; }
+    public DateTime? StartupTimestamp { get; set; }
 
     /// <summary>
     /// The time when the replica finished execution
     /// </summary>
     [JsonPropertyName("finishTimestamp")]
-    public DateTimeOffset? FinishTimestamp { get; set; }
+    public DateTime? FinishTimestamp { get; set; }
 
     /// <summary>
     /// Exit code of the process associated with the Executable.
@@ -178,6 +178,13 @@ internal static class ExecutableState
     /// but it does not track the corresponding process or IDE session.
     /// </summary>
     public const string Unknown = "Unknown";
+
+    // The Executable has been scheduled to launch, but we will need to re-evaluate its state in a subsequent
+    // reconciliation loop.
+    public const string Starting = "Starting";
+
+    // Executable is stopping (DCP is trying to stop the process)
+    public const string Stopping = "Stopping";
 }
 
 internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStatus>

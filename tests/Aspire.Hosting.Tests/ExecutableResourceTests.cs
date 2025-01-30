@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -35,7 +36,7 @@ public class ExecutableResourceTests
 
         using var app = appBuilder.Build();
 
-        var args = await ArgumentEvaluator.GetArgumentListAsync(exe2.Resource);
+        var args = await ArgumentEvaluator.GetArgumentListAsync(exe2.Resource).DefaultTimeout();
 
         Assert.Collection(args,
             arg => Assert.Equal("app.py", arg),
@@ -47,7 +48,7 @@ public class ExecutableResourceTests
             arg => Assert.Equal("anotherConnectionString", arg)
             );
 
-        var manifest = await ManifestUtils.GetManifest(exe2.Resource);
+        var manifest = await ManifestUtils.GetManifest(exe2.Resource).DefaultTimeout();
 
         var expectedManifest =
         """

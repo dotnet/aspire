@@ -21,6 +21,10 @@ namespace Aspire.Hosting.Dashboard;
 internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime, ILogger<DashboardService> logger)
     : Aspire.ResourceService.Proto.V1.DashboardService.DashboardServiceBase
 {
+    // gRPC has a maximum receive size of 4MB. Force logs into batches to avoid exceeding receive size.
+    // Protobuf sends strings as UTF8. Be conservative and assume the average character byte size is 2.
+    public const int LogMaxBatchCharacters = 1024 * 1024 * 2;
+
     // Calls that consume or produce streams must create a linked cancellation token
     // with IHostApplicationLifetime.ApplicationStopping to ensure eager cancellation
     // of pending connections during shutdown.
@@ -71,7 +75,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
 
             await foreach (var batch in updates.WithCancellation(cancellationToken).ConfigureAwait(false))
             {
-                WatchResourcesChanges changes = new();
+                var changes = new WatchResourcesChanges();
 
                 foreach (var update in batch)
                 {
@@ -118,21 +122,45 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
 
             await foreach (var group in subscription.WithCancellation(cancellationToken).ConfigureAwait(false))
             {
-                var update = new WatchResourceConsoleLogsUpdate();
+                var sentLines = 0;
 
-                foreach (var (lineNumber, content, isErrorMessage) in group)
+                while (sentLines < group.Count)
                 {
-                    update.LogLines.Add(new ConsoleLogLine() { LineNumber = lineNumber, Text = content, IsStdErr = isErrorMessage });
-                }
+                    var update = new WatchResourceConsoleLogsUpdate();
+                    var currentChars = 0;
 
-                await responseStream.WriteAsync(update, cancellationToken).ConfigureAwait(false);
+                    foreach (var (lineNumber, content, isErrorMessage) in group.Skip(sentLines))
+                    {
+                        // Truncate excessively long lines.
+                        var resolvedContent = content.Length > LogMaxBatchCharacters
+                            ? content[..LogMaxBatchCharacters]
+                            : content;
+
+                        // Count number of characters to figure out if batch exceeds the limit.
+                        // We could calculate byte size here with UTF8 encoding, but getting the exact size of the text and message
+                        // would be a bit more complicated. Character count plus a conservative limit should be fine.
+                        currentChars += resolvedContent.Length;
+
+                        if (currentChars <= LogMaxBatchCharacters)
+                        {
+                            update.LogLines.Add(new ConsoleLogLine() { LineNumber = lineNumber, Text = resolvedContent, IsStdErr = isErrorMessage });
+                            sentLines++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+
+                    await responseStream.WriteAsync(update, cancellationToken).ConfigureAwait(false);
+                }
             }
         }
     }
 
     public override async Task<ResourceCommandResponse> ExecuteResourceCommand(ResourceCommandRequest request, ServerCallContext context)
     {
-        var (result, errorMessage) = await serviceData.ExecuteCommandAsync(request.ResourceName, request.CommandType, context.CancellationToken).ConfigureAwait(false);
+        var (result, errorMessage) = await serviceData.ExecuteCommandAsync(request.ResourceName, request.CommandName, context.CancellationToken).ConfigureAwait(false);
         var responseKind = result switch
         {
             DashboardServiceData.ExecuteCommandResult.Success => ResourceCommandResponseKind.Succeeded,

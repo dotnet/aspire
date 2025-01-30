@@ -8,6 +8,7 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Tests.Integration;
 using Google.Protobuf.Collections;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Proto.Logs.V1;
 using Xunit;
@@ -88,6 +89,47 @@ public class LogTests
         var propertyKeys = repository.GetLogPropertyKeys(applications[0].ApplicationKey)!;
         Assert.Collection(propertyKeys,
             s => Assert.Equal("Log", s));
+    }
+
+    [Fact]
+    public void AddLogs_NoBody_EmptyMessage()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(skipBody: true) }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var logs = repository.GetLogs(new GetLogsContext
+        {
+            ApplicationKey = null,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+        Assert.Collection(logs.Items,
+            app =>
+            {
+                Assert.Equal("", app.Message);
+            });
     }
 
     [Fact]
@@ -434,7 +476,7 @@ public class LogTests
 
         // Assert 1
         Assert.Equal(0, addContext1.FailureCount);
-        await newApplicationsTcs.Task;
+        await newApplicationsTcs.Task.DefaultTimeout();
 
         var applications = repository.GetApplications();
         Assert.Collection(applications,
@@ -469,7 +511,7 @@ public class LogTests
             }
         });
 
-        await newLogsTcs.Task;
+        await newLogsTcs.Task.DefaultTimeout();
 
         // Assert 2
         Assert.Equal(0, addContext2.FailureCount);
@@ -563,10 +605,10 @@ public class LogTests
             });
         }
 
-        await task;
+        await task.DefaultTimeout();
 
         // Assert
-        var callbackValue = await tcs.Task;
+        var callbackValue = await tcs.Task.DefaultTimeout();
         Assert.Equal("CustomValue", callbackValue);
     }
 
@@ -704,7 +746,7 @@ public class LogTests
         });
 
         // Assert
-        var read1 = await resultChannel.Reader.ReadAsync();
+        var read1 = await resultChannel.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(1, read1);
         logger.LogInformation("Received log 1 callback");
 
@@ -725,7 +767,7 @@ public class LogTests
             }
         });
 
-        var read2 = await resultChannel.Reader.ReadAsync();
+        var read2 = await resultChannel.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(2, read2);
         logger.LogInformation("Received log 2 callback");
 
@@ -967,5 +1009,251 @@ public class LogTests
         Assert.Collection(propertyKeys,
             s => Assert.Equal("key-1", s),
             s => Assert.Equal("key-2", s));
+    }
+
+    [Fact]
+    public void RemoveLogs_All()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "app1", instanceId: "123"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(1), message: "message-1") }
+                    }
+                }
+            },
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "app1", instanceId: "456"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(2), message: "message-2") }
+                    }
+                }
+            },
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "app2"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(3)) }
+                    }
+                }
+            }
+        });
+
+        // Act
+        repository.ClearStructuredLogs();
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var logs = repository.GetLogs(new GetLogsContext
+        {
+            ApplicationKey = null,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+        Assert.NotNull(logs);
+        Assert.Empty(logs.Items);
+        Assert.Equal(0, logs.TotalItemCount);
+    }
+
+    [Fact]
+    public void RemoveLogs_SelectedResource()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "app1", instanceId: "123"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(1), message: "message-1") }
+                    }
+                }
+            },
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "app1", instanceId: "456"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(2), message: "message-2") }
+                    }
+                }
+            },
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "app2"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(3), message: "message-3") }
+                    }
+                }
+            }
+        });
+
+        // Act
+        repository.ClearStructuredLogs(new ApplicationKey("app1", "123"));
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var logs = repository.GetLogs(new GetLogsContext
+        {
+            ApplicationKey = null,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+        Assert.Equal(2, logs.TotalItemCount);
+        Assert.Collection(logs.Items,
+                    app =>
+                    {
+                        Assert.Equal("message-2", app.Message);
+                        Assert.Equal("TestLogger", app.Scope.ScopeName);
+                    },
+                    app =>
+                    {
+                        Assert.Equal("message-3", app.Message);
+                        Assert.Equal("TestLogger", app.Scope.ScopeName);
+                    });
+    }
+
+    [Fact]
+    public void RemoveLogs_MultipleSelectedResources()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "app1", instanceId: "123"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(1), message: "message-1") }
+                    }
+                }
+            },
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "app1", instanceId: "456"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(2), message: "message-2") }
+                    }
+                }
+            },
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "app2"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(3), message: "message-3") }
+                    }
+                }
+            }
+        });
+
+        // Act
+        repository.ClearStructuredLogs(new ApplicationKey("app1", null));
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var logs = repository.GetLogs(new GetLogsContext
+        {
+            ApplicationKey = null,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+        Assert.Equal(1, logs.TotalItemCount);
+        var log = Assert.Single(logs.Items);
+        Assert.Equal("message-3", log.Message);
+        Assert.Equal("TestLogger", log.Scope.ScopeName);
+    }
+
+    [Fact]
+    public void AddLogs_ObservedUnixTimeNanos()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: DateTime.UnixEpoch, observedTime: s_testTime.AddMinutes(1)) }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var logs = repository.GetLogs(new GetLogsContext
+        {
+            ApplicationKey = null,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+        Assert.Collection(logs.Items,
+            app =>
+            {
+                Assert.Equal(s_testTime.AddMinutes(1), app.TimeStamp);
+            });
     }
 }

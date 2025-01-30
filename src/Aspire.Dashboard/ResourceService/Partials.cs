@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Aspire.Dashboard.Model;
@@ -25,8 +24,10 @@ partial class Resource
                 DisplayName = ValidateNotNull(DisplayName),
                 Uid = ValidateNotNull(Uid),
                 CreationTimeStamp = ValidateNotNull(CreatedAt).ToDateTime(),
-                Properties = Properties.ToFrozenDictionary(
-                    comparer: StringComparers.ResourcePropertyName,
+                StartTimeStamp = StartedAt?.ToDateTime(),
+                StopTimeStamp = StoppedAt?.ToDateTime(),
+                Properties = Properties.ToImmutableDictionary(
+                    keyComparer: StringComparers.ResourcePropertyName,
                     keySelector: property => ValidateNotNull(property.Name),
                     elementSelector: property =>
                     {
@@ -43,15 +44,12 @@ partial class Resource
                 Environment = GetEnvironment(),
                 Urls = GetUrls(),
                 Volumes = GetVolumes(),
+                Relationships = GetRelationships(),
                 State = HasState ? State : null,
                 KnownState = HasState ? Enum.TryParse(State, out KnownResourceState knownState) ? knownState : null : null,
                 StateStyle = HasStateStyle ? StateStyle : null,
-                ReadinessState = HasHealthState ? HealthState switch
-                {
-                    HealthStateKind.Healthy => ReadinessState.Ready,
-                    _ => ReadinessState.NotReady,
-                } : ReadinessState.Unknown,
-                Commands = GetCommands()
+                Commands = GetCommands(),
+                HealthReports = HealthReports.Select(ToHealthReportViewModel).OrderBy(vm => vm.Name).ToImmutableArray(),
             };
         }
         catch (Exception ex)
@@ -59,10 +57,33 @@ partial class Resource
             throw new InvalidOperationException($@"Error converting resource ""{Name}"" to {nameof(ResourceViewModel)}.", ex);
         }
 
+        HealthReportViewModel ToHealthReportViewModel(HealthReport healthReport)
+        {
+            return new HealthReportViewModel(healthReport.Key, healthReport.HasStatus ? MapHealthStatus(healthReport.Status) : null, healthReport.Description, healthReport.Exception);
+        }
+
+        Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus MapHealthStatus(HealthStatus healthStatus)
+        {
+            return healthStatus switch
+            {
+                HealthStatus.Healthy => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy,
+                HealthStatus.Degraded => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded,
+                HealthStatus.Unhealthy => Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
+                _ => throw new InvalidOperationException("Unknown health status: " + healthStatus),
+            };
+        }
+
         ImmutableArray<EnvironmentVariableViewModel> GetEnvironment()
         {
             return Environment
                 .Select(e => new EnvironmentVariableViewModel(e.Name, e.Value, e.IsFromSpec))
+                .ToImmutableArray();
+        }
+
+        ImmutableArray<RelationshipViewModel> GetRelationships()
+        {
+            return Relationships
+                .Select(r => new RelationshipViewModel(r.ResourceName, r.Type))
                 .ToImmutableArray();
         }
 
@@ -79,14 +100,14 @@ partial class Resource
         ImmutableArray<VolumeViewModel> GetVolumes()
         {
             return Volumes
-                .Select(v => new VolumeViewModel(v.Source, v.Target, v.MountType, v.IsReadOnly))
+                .Select((v, i) => new VolumeViewModel(i, v.Source, v.Target, v.MountType, v.IsReadOnly))
                 .ToImmutableArray();
         }
 
         ImmutableArray<CommandViewModel> GetCommands()
         {
             return Commands
-                .Select(c => new CommandViewModel(c.CommandType, MapState(c.State), c.DisplayName, c.DisplayDescription, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.IconName, MapIconVariant(c.IconVariant)))
+                .Select(c => new CommandViewModel(c.Name, MapState(c.State), c.DisplayName, c.DisplayDescription, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.IconName, MapIconVariant(c.IconVariant)))
                 .ToImmutableArray();
             static CommandViewModelState MapState(ResourceCommandState state)
             {

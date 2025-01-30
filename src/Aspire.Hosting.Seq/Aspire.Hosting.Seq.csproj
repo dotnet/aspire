@@ -13,10 +13,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
 

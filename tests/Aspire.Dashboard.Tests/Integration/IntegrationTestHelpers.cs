@@ -7,6 +7,7 @@ using Aspire.Hosting;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Configuration;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
@@ -38,17 +39,23 @@ public static class IntegrationTestHelpers
     public static DashboardWebApplication CreateDashboardWebApplication(
         ITestOutputHelper testOutputHelper,
         Action<Dictionary<string, string?>>? additionalConfiguration = null,
+        Action<WebApplicationBuilder>? preConfigureBuilder = null,
+        bool? clearLogFilterRules = null,
         ITestSink? testSink = null)
     {
         var loggerFactory = CreateLoggerFactory(testOutputHelper, testSink);
 
-        return CreateDashboardWebApplication(loggerFactory, additionalConfiguration);
+        return CreateDashboardWebApplication(loggerFactory, additionalConfiguration, preConfigureBuilder, clearLogFilterRules);
     }
 
     public static DashboardWebApplication CreateDashboardWebApplication(
         ILoggerFactory loggerFactory,
-        Action<Dictionary<string, string?>>? additionalConfiguration = null)
+        Action<Dictionary<string, string?>>? additionalConfiguration = null,
+        Action<WebApplicationBuilder>? preConfigureBuilder = null,
+        bool? clearLogFilterRules = null)
     {
+        clearLogFilterRules ??= true;
+
         var initialData = new Dictionary<string, string?>
         {
             [DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "http://127.0.0.1:0",
@@ -67,10 +74,16 @@ public static class IntegrationTestHelpers
 
         var dashboardWebApplication = new DashboardWebApplication(builder =>
         {
-            builder.Services.PostConfigure<LoggerFilterOptions>(o =>
+            preConfigureBuilder?.Invoke(builder);
+
+            // Clear log filter rules by default so all logs are available in test output.
+            if (clearLogFilterRules.Value)
             {
-                o.Rules.Clear();
-            });
+                builder.Services.PostConfigure<LoggerFilterOptions>(o =>
+                {
+                    o.Rules.Clear();
+                });
+            }
 
             // Remove environment variable source of configuration.
             var sources = ((IConfigurationBuilder)builder.Configuration).Sources;

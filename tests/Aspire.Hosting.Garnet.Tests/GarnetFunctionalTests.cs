@@ -47,7 +47,7 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
@@ -119,7 +119,7 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
             if (useVolume)
             {
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
-                volumeName = VolumeNameGenerator.CreateVolumeName(garnet1, nameof(WithDataShouldPersistStateBetweenUsages));
+                volumeName = VolumeNameGenerator.Generate(garnet1, nameof(WithDataShouldPersistStateBetweenUsages));
 
                 // if the volume already exists (because of a crashing previous run), try to delete it
                 DockerUtils.AttemptDeleteDockerVolume(volumeName);

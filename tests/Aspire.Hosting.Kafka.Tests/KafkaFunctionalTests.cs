@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Confluent.Kafka;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
@@ -21,7 +22,6 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyWaitForOnKafkaBlocksDependentResources()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
@@ -38,23 +38,23 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        var pendingStart = app.StartAsync(cts.Token);
+        var pendingStart = app.StartAsync().DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         await pendingStart;
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
     }
 
     [Fact]
@@ -130,7 +130,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
             if (useVolume)
             {
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
-                volumeName = VolumeNameGenerator.CreateVolumeName(kafka1, nameof(WithDataShouldPersistStateBetweenUsages));
+                volumeName = VolumeNameGenerator.Generate(kafka1, nameof(WithDataShouldPersistStateBetweenUsages));
 
                 // if the volume already exists (because of a crashing previous run), delete it
                 DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
@@ -161,7 +161,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 await app.StartAsync();
 
-                await app.WaitForTextAsync("Server started, listening for requests...", kafka1.Resource.Name);
+                await app.WaitForHealthyAsync(kafka1);
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
@@ -212,7 +212,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
             using (var app = builder2.Build())
             {
                 await app.StartAsync();
-                await app.WaitForTextAsync("Server started, listening for requests...", kafka1.Resource.Name);
+                await app.WaitForHealthyAsync(kafka1);
 
                 try
                 {

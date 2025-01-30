@@ -8,7 +8,8 @@ namespace Aspire.Hosting.Dapr;
 /// <summary>
 /// Represents a Dapr component resource.
 /// </summary>
-public interface IDaprComponentResource : IResource
+[Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", error: false)]
+public interface IDaprComponentResource : IResource, IResourceWithWaitSupport
 {
     /// <summary>
     /// Gets the type of the Dapr component.

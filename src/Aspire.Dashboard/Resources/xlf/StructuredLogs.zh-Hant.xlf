@@ -2,14 +2,19 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="../StructuredLogs.resx">
     <body>
+      <trans-unit id="ActionLogMessageText">
+        <source>Log message</source>
+        <target state="translated">記錄訊息</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MessageExceededLimitBody">
         <source>A maximum of {0} structured logs are stored. Old structured logs are automatically removed.</source>
-        <target state="new">A maximum of {0} structured logs are stored. Old structured logs are automatically removed.</target>
+        <target state="translated">最多會儲存 {0} 個結構化記錄。會自動移除舊的結構化記錄。</target>
         <note>{0} is the max count</note>
       </trans-unit>
       <trans-unit id="MessageExceededLimitTitle">
         <source>Exceeded structured log limit</source>
-        <target state="new">Exceeded structured log limit</target>
+        <target state="translated">超過結構化記錄限制</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsAddFilter">
@@ -29,7 +34,7 @@
       </trans-unit>
       <trans-unit id="StructuredLogsFilters">
         <source>Filters</source>
-        <target state="needs-review-translation">篩選: </target>
+        <target state="translated">篩選</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
@@ -44,7 +49,7 @@
       </trans-unit>
       <trans-unit id="StructuredLogsLevels">
         <source>Level</source>
-        <target state="needs-review-translation">層級:</target>
+        <target state="translated">等級</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsMessageColumnHeader">

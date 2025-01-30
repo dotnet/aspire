@@ -12,8 +12,14 @@
 @inject IStringLocalizer<Dashboard.Resources.StructuredLogs> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 @inject IStringLocalizer<StructuredFiltering> FilterLoc
+@inject IStringLocalizer<Dialogs> DialogsLoc
 
-<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle)" Loc="@Loc" /></PageTitle>
+<PageTitle>
+    <ApplicationName
+        AdditionalText="@PageViewModel.SelectedApplication.Id?.ReplicaSetName"
+        ResourceName="@nameof(Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle)"
+        Loc="@Loc"/>
+</PageTitle>
 
 <div class="page-content-container">
     <AspirePageContentLayout @ref="@_contentLayout"
@@ -28,10 +34,16 @@
                             AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
                             @bind-SelectedResource="PageViewModel.SelectedApplication"
                             @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync"
-                            CanSelectGrouping="true" />
+                            CanSelectGrouping="true"
+                            LabelClass="toolbar-left" />
+
+            <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
+                                HandleClearSignal="ClearStructureLogs" />
+
             <FluentSearch @bind-Value="_filter"
-                          @oninput="HandleFilter"
                           @bind-Value:after="HandleAfterFilterBindAsync"
+                          Immediate="true"
+                          ImmediateDelay="@FluentUIExtensions.InputDelay"
                           Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
                           title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageFilter)]"
                           slot="end" />
@@ -63,21 +75,25 @@
             }
             else
             {
-                foreach (var filter in ViewModel.Filters)
+                for (var i = 0; i < ViewModel.Filters.Count; i++)
                 {
-                    <FluentButton slot="end" Appearance="Appearance.Outline" OnClick="() => OpenFilterAsync(filter)">@filter.GetDisplayText(FilterLoc)</FluentButton>
-                    <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+                    var filter = ViewModel.Filters[i];
+                    if (i != 0)
+                    {
+                        <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+                    }
+                    <FluentButton slot="end" Appearance="Appearance.Outline" OnClick="() => OpenFilterAsync(filter)" class="telemetry-filter-button" title="@filter.GetDisplayText(FilterLoc)">@filter.GetDisplayText(FilterLoc)</FluentButton>
                 }
             }
-
+            <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             @if (ViewportInformation.IsDesktop)
             {
-                <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="@FilterLoc[nameof(StructuredFiltering.AddFilter)]" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
+                <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="@FilterLoc[nameof(StructuredFiltering.AddFilter)]" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size20.Filter())" /></FluentButton>
             }
             else
             {
                 <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="@FilterLoc[nameof(StructuredFiltering.AddFilter)]" OnClick="() => OpenFilterAsync(null)">
-                    <FluentIcon Class="align-text-bottom" Value="@(new Icons.Regular.Size16.Filter())" /> @Loc[nameof(StructuredFiltering.AddFilter)]
+                    <FluentIcon Class="align-text-bottom" Value="@(new Icons.Regular.Size20.Filter())" /> @FilterLoc[nameof(StructuredFiltering.AddFilter)]
                 </FluentButton>
             }
         </ToolbarSection>
@@ -105,7 +121,10 @@
                     <div class="logs-summary-layout">
                         <div class="logs-grid-container continuous-scroll-overflow">
                             <GridColumnManager @ref="_manager" Columns="@_gridColumns">
-                                <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
+                                <FluentDataGrid @ref="_dataGrid"
+                                                ColumnResizeLabels="@_resizeLabels"
+                                                ColumnSortLabels="@_sortLabels"
+                                                HeaderCellAsButtonWithMenu="true"
                                                 ResizeType="DataGridResizeType.Discrete"
                                                 Virtualize="true"
                                                 RowClass="@GetRowClass"
@@ -118,7 +137,7 @@
                                                 ShowHover="true"
                                                 ItemKey="@(r => r.InternalId)"
                                                 OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, buttonId: null)))"
-                                                Class="enable-row-click">
+                                                Class="main-grid enable-row-click">
                                     <ChildContent>
                                         <AspireTemplateColumn ColumnId="@ResourceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsResourceColumnHeader)]" Tooltip="true" TooltipText="@(e => GetResourceName(e.ApplicationView))">
                                             <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.ApplicationView)));">
@@ -137,17 +156,22 @@
                                         <AspireTemplateColumn ColumnId="@TraceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTraceColumnHeader)]">
                                             @if (!string.IsNullOrEmpty(context.TraceId))
                                             {
-                                                <a href="@DashboardUrls.TraceDetailUrl(context.TraceId)" class="long-inner-content" @onclick:stopPropagation="true">
+                                                <a href="@DashboardUrls.TraceDetailUrl(context.TraceId, context.SpanId)" class="long-inner-content" @onclick:stopPropagation="true">
                                                     @OtlpHelpers.ToShortenedId(context.TraceId)
                                                 </a>
                                             }
+                                            else
+                                            {
+                                                <span class="empty-data"></span>
+                                            }
                                         </AspireTemplateColumn>
-                                        <AspireTemplateColumn ColumnId="@DetailsColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
+                                        <AspireTemplateColumn ColumnId="@ActionsColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.ActionsColumnHeader)]" Class="no-ellipsis">
                                             @{
                                                 var id = $"details-button-{context.InternalId}";
                                             }
-                                            <div @onclick:stopPropagation="true">
-                                                <FluentButton Id="@id" Appearance="Appearance.Lightweight" OnClick="@(() => OnShowPropertiesAsync(context, id))">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                                            <div class="grid-action-container" @onclick:stopPropagation="true">
+                                                <StructuredLogActions LogEntry="@context"
+                                                                      OnViewDetails="@((buttonId) => OnShowPropertiesAsync(context, buttonId))" />
                                             </div>
                                         </AspireTemplateColumn>
                                     </ChildContent>
@@ -166,7 +190,7 @@
         </MainSection>
 
         <FooterSection>
-            <TotalItemsFooter @ref="_totalItemsFooter" />
+            <TotalItemsFooter @ref="_totalItemsFooter" TotalItemCount="@_totalItemsCount" />
         </FooterSection>
     </AspirePageContentLayout>
 </div>

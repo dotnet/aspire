@@ -5,6 +5,7 @@ using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components;
 
@@ -19,13 +20,25 @@ public partial class AspireMenuButton : FluentComponentBase
     public string? Text { get; set; }
 
     [Parameter]
+    public Icon? IconStart { get; set; }
+
+    [Parameter]
     public Icon? Icon { get; set; }
+
+    [Parameter]
+    public Color? IconColor { get; set; }
+
+    [Parameter]
+    public string? ButtonClass { get; set; }
 
     [Parameter]
     public required IList<MenuButtonItem> Items { get; set; }
 
     [Parameter]
     public Appearance? ButtonAppearance { get; set; }
+
+    [Parameter]
+    public string? Title { get; set; }
 
     public string MenuButtonId { get; } = Identifier.NewId();
 

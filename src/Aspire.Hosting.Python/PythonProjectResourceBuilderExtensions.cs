@@ -8,12 +8,13 @@ using Aspire.Hosting.Utils;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Provides extension methods for adding Python applications to an <see cref="IDistributedApplicationBuilder"/>.
+/// This class is retained only for compatibility.
 /// </summary>
+[Obsolete("PythonProjectResource is deprecated. Please use PythonAppResource instead.")]
 public static class PythonProjectResourceBuilderExtensions
 {
     /// <summary>
-    /// Adds a python application with a virtual environment to the application model.
+    /// This method is retained only for compatibility.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the resource.</param>
@@ -45,7 +46,7 @@ public static class PythonProjectResourceBuilderExtensions
     /// </remarks>
     /// <example>
     /// Add a python project to the application model. In this example the project is located in the <c>PythonProject</c> directory
-    /// if this path is relative then it is assumed to be relative to the AppHost directory, and the virtual enviroment path if relative
+    /// if this path is relative then it is assumed to be relative to the AppHost directory, and the virtual environment path if relative
     /// is relative to the project directory. In the example below, if the app host directory is <c>$HOME/repos/MyApp/src/MyApp.AppHost</c> then
     /// the ProjectPath would be <c>$HOME/repos/MyApp/src/MyApp.AppHost/PythonProject</c> and the virtual environment path (defaulted) would
     /// be <c>$HOME/repos/MyApp/src/MyApp.AppHost/PythonProject/.venv</c>.
@@ -57,8 +58,9 @@ public static class PythonProjectResourceBuilderExtensions
     /// builder.Build().Run(); 
     /// </code>
     /// </example>
+    [Obsolete("AddPythonProject is deprecated. Please use AddPythonApp instead.")]
     public static IResourceBuilder<PythonProjectResource> AddPythonProject(
-        this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath, params string[] scriptArgs)
+        this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectDirectory, string scriptPath, params string[] scriptArgs)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -66,7 +68,7 @@ public static class PythonProjectResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a python application with a virtual environment to the application model.
+    /// This method is retained only for compatibility.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the resource.</param>
@@ -94,7 +96,7 @@ public static class PythonProjectResourceBuilderExtensions
     /// </remarks>
     /// <example>
     /// Add a python project to the application model. In this example the project is located in the <c>PythonProject</c> directory
-    /// if this path is relative then it is assumed to be relative to the AppHost directory, and the virtual enviroment path if relative
+    /// if this path is relative then it is assumed to be relative to the AppHost directory, and the virtual environment path if relative
     /// is relative to the project directory. In the example below, if the app host directory is <c>$HOME/repos/MyApp/src/MyApp.AppHost</c> then
     /// the ProjectPath would be <c>$HOME/repos/MyApp/src/MyApp.AppHost/PythonProject</c> and the virtual environment path (defaulted) would
     /// be <c>$HOME/repos/MyApp/src/MyApp.AppHost/PythonProject/.venv</c>.
@@ -106,8 +108,9 @@ public static class PythonProjectResourceBuilderExtensions
     /// builder.Build().Run(); 
     /// </code>
     /// </example>
+    [Obsolete("AddPythonProject is deprecated. Please use AddPythonApp instead.")]
     public static IResourceBuilder<PythonProjectResource> AddPythonProject(
-        this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath,
+        this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectDirectory, string scriptPath,
         string virtualEnvironmentPath, params string[] scriptArgs)
     {
         ArgumentNullException.ThrowIfNull(builder);

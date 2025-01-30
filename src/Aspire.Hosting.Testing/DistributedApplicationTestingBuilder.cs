@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -170,6 +171,8 @@ public static class DistributedApplicationTestingBuilder
 
             public IResourceCollection Resources => innerBuilder.Resources;
 
+            public IDistributedApplicationEventing Eventing => innerBuilder.Eventing;
+
             public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => innerBuilder.AddResource(resource);
 
             public async Task<DistributedApplication> BuildAsync(CancellationToken cancellationToken)
@@ -260,6 +263,11 @@ public interface IDistributedApplicationTestingBuilder
     /// Execution context for this invocation of the AppHost.
     /// </summary>
     DistributedApplicationExecutionContext ExecutionContext { get; }
+
+    /// <summary>
+    /// Eventing infrastructure for AppHost lifecycle.
+    /// </summary>
+    IDistributedApplicationEventing Eventing { get; }
 
     /// <summary>
     /// Gets the collection of resources for the distributed application.

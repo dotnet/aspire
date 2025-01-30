@@ -31,11 +31,23 @@ internal sealed class EventHubBufferedProducerClientComponent : EventHubsCompone
             .RegisterClientFactory<EventHubBufferedProducerClient, EventHubBufferedProducerClientOptions>(
                 (options, cred) =>
                 {
+                    // ensure that the connection string or namespace+eventhubname is provided 
                     EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
 
-                    return !string.IsNullOrEmpty(settings.ConnectionString)
-                        ? new EventHubBufferedProducerClient(settings.ConnectionString, options)
-                        : new EventHubBufferedProducerClient(settings.FullyQualifiedNamespace, settings.EventHubName, cred, options);
+                    // If no connection is provided use TokenCredential
+                    if (string.IsNullOrEmpty(settings.ConnectionString))
+                    {
+                        return new EventHubBufferedProducerClient(settings.FullyQualifiedNamespace, settings.EventHubName, cred, options);
+                    }
+
+                    // If no specific EventHubName is provided, it has to be in the connection string
+                    if (string.IsNullOrEmpty(settings.EventHubName))
+                    {
+                        return new EventHubBufferedProducerClient(settings.ConnectionString, options);
+                    }
+
+                    return new EventHubBufferedProducerClient(settings.ConnectionString, settings.EventHubName, options);
+
                 }, requiresCredential: false);
     }
 }

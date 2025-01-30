@@ -59,13 +59,13 @@ internal sealed class ContainerExecStatus : V1Status
     /// Start (attempt) timestamp.
     /// </summary>
     [JsonPropertyName("startupTimestamp")]
-    public DateTimeOffset? StartupTimestamp { get; set; }
+    public DateTime? StartupTimestamp { get; set; }
 
     /// <summary>
     /// The time when the command finished execution
     /// </summary>
     [JsonPropertyName("finishTimestamp")]
-    public DateTimeOffset? FinishTimestamp { get; set; }
+    public DateTime? FinishTimestamp { get; set; }
 
     /// <summary>
     /// Exit code of the process associated with the ContainerExec.
@@ -138,5 +138,6 @@ internal sealed class ContainerExec : CustomResource<ContainerExecSpec, Containe
     public bool LogsAvailable =>
         this.Status?.State == ExecutableState.Running
         || this.Status?.State == ExecutableState.Finished
-        || this.Status?.State == ExecutableState.Terminated;
+        || this.Status?.State == ExecutableState.Terminated
+        || this.Status?.State == ExecutableState.Stopping;
 }

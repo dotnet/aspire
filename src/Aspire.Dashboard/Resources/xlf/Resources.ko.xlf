@@ -4,27 +4,47 @@
     <body>
       <trans-unit id="ResourceActionConsoleLogsText">
         <source>Console logs</source>
-        <target state="new">Console logs</target>
+        <target state="translated">콘솔 로그</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceActionViewDetailsText">
-        <source>View details</source>
-        <target state="new">View details</target>
+      <trans-unit id="ResourceActionMetricsText">
+        <source>Metrics</source>
+        <target state="translated">메트릭</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionStructuredLogsText">
+        <source>Structured logs</source>
+        <target state="translated">구조화된 로그</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionTelemetryTooltip">
+        <source>No telemetry found for this resource.</source>
+        <target state="translated">이 리소스에 대한 원격 분석을 찾을 수 없습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionTracesText">
+        <source>Traces</source>
+        <target state="translated">추적</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceCommandFailed">
-        <source>"{0}" command failed</source>
-        <target state="translated">"{0}" 명령이 실패했습니다.</target>
-        <note>{0} is the display name of the command that failed</note>
+        <source>{0} "{1}" failed</source>
+        <target state="translated">{0} "{1}" 실패함</target>
+        <note>{0} is the resource. {1} is the display name of the command.</note>
+      </trans-unit>
+      <trans-unit id="ResourceCommandStarting">
+        <source>{0} "{1}" starting</source>
+        <target state="translated">{0} "{1}" 시작 중</target>
+        <note>{0} is the resource. {1} is the display name of the command.</note>
       </trans-unit>
       <trans-unit id="ResourceCommandSuccess">
-        <source>"{0}" command succeeded</source>
-        <target state="translated">"{0}" 명령이 성공했습니다.</target>
-        <note>{0} is the display name of the command that succeeded</note>
+        <source>{0} "{1}" succeeded</source>
+        <target state="translated">{0} "{1}" 성공함</target>
+        <note>{0} is the resource. {1} is the display name of the command.</note>
       </trans-unit>
       <trans-unit id="ResourceCommandToastViewLogs">
-        <source>View Logs</source>
-        <target state="translated">로그 보기</target>
+        <source>View console logs</source>
+        <target state="translated">콘솔 로그 보기</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointUrl">
@@ -39,12 +59,17 @@
       </trans-unit>
       <trans-unit id="ResourceDetailsViewConsoleLogs">
         <source>View console logs</source>
-        <target state="new">View console logs</target>
+        <target state="translated">콘솔 로그 보기</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceFilterOptionEmpty">
+        <source>(Unset)</source>
+        <target state="translated">(설정 해제)</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesActionsColumnHeader">
         <source>Actions</source>
-        <target state="new">Actions</target>
+        <target state="translated">작업</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerArgumentsProperty">
@@ -65,6 +90,11 @@
       <trans-unit id="ResourcesDetailsContainerImageProperty">
         <source>Container image</source>
         <target state="translated">컨테이너 이미지</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsContainerLifetimeProperty">
+        <source>Container lifetime</source>
+        <target state="translated">컨테이너 수명</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerPortsProperty">
@@ -103,8 +133,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsHealthStateProperty">
-        <source>Health State</source>
-        <target state="new">Health State</target>
+        <source>Health state</source>
+        <target state="translated">성능 상태</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
@@ -122,6 +152,11 @@
         <target state="translated">상태</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsStopTimeProperty">
+        <source>Stop time</source>
+        <target state="translated">중지 시간</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesEndpointsColumnHeader">
         <source>Endpoints</source>
         <target state="translated">엔드포인트</target>
@@ -130,6 +165,21 @@
       <trans-unit id="ResourcesEnvironmentColumnHeader">
         <source>Environment</source>
         <target state="translated">환경</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesFiltered">
+        <source>Has filters</source>
+        <target state="translated">필터 있음</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesNotFiltered">
+        <source>No filters</source>
+        <target state="translated">필터 없음</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesResourceStatesHeader">
+        <source>State</source>
+        <target state="translated">상태</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">
@@ -182,15 +232,15 @@
         <target state="translated">형식</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesTypeFilterAllVisible">
-        <source>Type filter: All types visible</source>
-        <target state="translated">형식 필터: 모든 형식 표시</target>
-        <note />
+      <trans-unit id="WaitingForHealthDataMessage">
+        <source>Waiting for health data...</source>
+        <target state="translated">상태 데이터를 기다리는 중...</target>
+        <note>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
       </trans-unit>
-      <trans-unit id="ResourcesTypeFiltered">
-        <source>Type filter: Filtered</source>
-        <target state="translated">형식 필터: 필터링됨</target>
-        <note />
+      <trans-unit id="WaitingHealthDataStatusMessage">
+        <source>Waiting...</source>
+        <target state="translated">대기 중…</target>
+        <note>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
       </trans-unit>
     </body>
   </file>

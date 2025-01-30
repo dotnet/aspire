@@ -1,12 +1,12 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param principalId string
-
 param principalType string
 
+param principalId string
+
 resource search 'Microsoft.Search/searchServices@2023-11-01' = {
-  name: toLower(take('search${uniqueString(resourceGroup().id)}', 24))
+  name: take('search-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {
     hostingMode: 'default'

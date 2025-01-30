@@ -25,20 +25,24 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     private const string NameColumn = nameof(NameColumn);
     private const string SpansColumn = nameof(SpansColumn);
     private const string DurationColumn = nameof(DurationColumn);
-    private const string DetailsColumn = nameof(DetailsColumn);
+    private const string ActionsColumn = nameof(ActionsColumn);
     private IList<GridColumn> _gridColumns = null!;
     private SelectViewModel<ResourceTypeDetails> _allApplication = null!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
+    private int _totalItemsCount;
     private List<OtlpApplication> _applications = default!;
     private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
     private Subscription? _applicationsSubscription;
     private Subscription? _tracesSubscription;
     private bool _applicationChanged;
-    private CancellationTokenSource? _filterCts;
     private string _filter = string.Empty;
     private AspirePageContentLayout? _contentLayout;
+    private FluentDataGrid<OtlpTrace> _dataGrid = null!;
     private GridColumnManager _manager = null!;
+
+    private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
+    private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
 
     public string SessionStorageKey => BrowserStorageKeys.TracesPageState;
     public string BasePath => DashboardUrls.TracesBasePath;
@@ -82,7 +86,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "filters")]
-    public string? SerializedLogFilters { get; set; }
+    public string? SerializedFilters { get; set; }
 
     private string GetNameTooltip(OtlpTrace trace)
     {
@@ -92,12 +96,12 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         return tooltip;
     }
 
-    private string GetSpansTooltip(IGrouping<OtlpApplication, OtlpSpan> applicationSpans)
+    private string GetSpansTooltip(OrderedApplication applicationSpans)
     {
-        var count = applicationSpans.Count();
-        var errorCount = applicationSpans.Count(s => s.Status == OtlpSpanStatusCode.Error);
+        var count = applicationSpans.TotalSpans;
+        var errorCount = applicationSpans.ErroredSpans;
 
-        var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesResourceSpans)], GetResourceName(applicationSpans.Key));
+        var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesResourceSpans)], GetResourceName(applicationSpans.Application));
         tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesTotalTraces)], count);
         if (errorCount > 0)
         {
@@ -110,7 +114,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     private async ValueTask<GridItemsProviderResult<OtlpTrace>> GetData(GridItemsProviderRequest<OtlpTrace> request)
     {
         TracesViewModel.StartIndex = request.StartIndex;
-        TracesViewModel.Count = request.Count;
+        TracesViewModel.Count = request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount;
         var traces = TracesViewModel.GetTraces();
 
         if (DashboardOptions.Value.TelemetryLimits.MaxTraceCount == traces.TotalItemCount && !TelemetryRepository.HasDisplayedMaxTraceLimitMessage)
@@ -127,23 +131,26 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         }
 
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
-        // The workaround is to put the count inside a control and explicitly update and refresh the control.
-        _totalItemsFooter.SetTotalItemCount(traces.TotalItemCount);
+        // The workaround is to explicitly update and refresh the control.
+        _totalItemsCount = traces.TotalItemCount;
+        _totalItemsFooter.UpdateDisplayedCount(_totalItemsCount);
 
         return GridItemsProviderResult.From(traces.Items, traces.TotalItemCount);
     }
 
     protected override Task OnInitializedAsync()
     {
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
+
         _gridColumns = [
             new GridColumn(Name: TimestampColumn, DesktopWidth: "0.8fr", MobileWidth: "0.8fr"),
             new GridColumn(Name: NameColumn, DesktopWidth: "2fr", MobileWidth: "2fr"),
             new GridColumn(Name: SpansColumn, DesktopWidth: "3fr"),
             new GridColumn(Name: DurationColumn, DesktopWidth: "0.8fr"),
-            new GridColumn(Name: DetailsColumn, DesktopWidth: "0.5fr", MobileWidth: "1fr")
+            new GridColumn(Name: ActionsColumn, DesktopWidth: "0.5fr", MobileWidth: "1fr")
         ];
 
-        _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = ControlsStringsLoc[name: nameof(ControlsStrings.All)] };
+        _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = ControlsStringsLoc[name: nameof(ControlsStrings.LabelAll)] };
         PageViewModel = new TracesPageViewModel { SelectedApplication = _allApplication };
 
         UpdateApplications();
@@ -183,7 +190,8 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     private Task HandleSelectedApplicationChanged()
     {
         _applicationChanged = true;
-        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
+
+        return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
     private void UpdateSubscription()
@@ -197,42 +205,15 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             _tracesSubscription = TelemetryRepository.OnNewTraces(selectedApplicationKey, SubscriptionType.Read, async () =>
             {
                 TracesViewModel.ClearData();
-                await InvokeAsync(StateHasChanged);
-            });
-        }
-    }
-
-    private void HandleFilter(ChangeEventArgs args)
-    {
-        if (args.Value is string newFilter)
-        {
-            _filterCts?.Cancel();
-
-            // Debouncing logic. Apply the filter after a delay.
-            var cts = _filterCts = new CancellationTokenSource();
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(400, cts.Token);
-                TracesViewModel.FilterText = newFilter;
-                await InvokeAsync(StateHasChanged);
+                await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             });
         }
     }
 
     private async Task HandleAfterFilterBindAsync()
     {
-        if (!string.IsNullOrEmpty(_filter))
-        {
-            return;
-        }
-
-        if (_filterCts is not null)
-        {
-            await _filterCts.CancelAsync();
-        }
-
-        TracesViewModel.FilterText = string.Empty;
-        await InvokeAsync(StateHasChanged);
+        TracesViewModel.FilterText = _filter;
+        await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
     private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
@@ -268,14 +249,14 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
     }
 
-    public void UpdateViewModelFromQuery(TracesPageViewModel viewModel)
+    public async Task UpdateViewModelFromQueryAsync(TracesPageViewModel viewModel)
     {
         viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _allApplication);
         TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
 
-        if (SerializedLogFilters is not null)
+        if (SerializedFilters is not null)
         {
-            var filters = LogFilterFormatter.DeserializeLogFiltersFromString(SerializedLogFilters);
+            var filters = TelemetryFilterFormatter.DeserializeFiltersFromString(SerializedFilters);
 
             if (filters.Count > 0)
             {
@@ -287,15 +268,12 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             }
         }
 
-        _ = Task.Run(async () =>
-        {
-            await InvokeAsync(StateHasChanged);
-        });
+        await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
     public string GetUrlFromSerializableViewModel(TracesPageState serializable)
     {
-        var filters = (serializable.Filters.Count > 0) ? LogFilterFormatter.SerializeLogFiltersToString(serializable.Filters) : null;
+        var filters = (serializable.Filters.Count > 0) ? TelemetryFilterFormatter.SerializeFiltersToString(serializable.Filters) : null;
 
         return DashboardUrls.TracesUrl(
             resource: serializable.SelectedApplication,
@@ -323,6 +301,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         {
             OnDialogResult = DialogService.CreateDialogCallback(this, HandleFilterDialog),
             Title = title,
+            DismissTitle = DialogsLoc[nameof(Dashboard.Resources.Dialogs.DialogCloseButtonText)],
             Alignment = HorizontalAlignment.Right,
             PrimaryAction = null,
             SecondaryAction = null,
@@ -333,6 +312,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             Filter = entry,
             PropertyKeys = TelemetryRepository.GetTracePropertyKeys(PageViewModel.SelectedApplication.Id?.GetApplicationKey()),
             KnownKeys = KnownTraceFields.AllFields,
+            GetFieldValues = TelemetryRepository.GetTraceFieldValues
         };
         await DialogService.ShowPanelAsync<FilterDialog>(data, parameters);
     }
@@ -351,7 +331,13 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             }
         }
 
-        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
+    }
+
+    private Task ClearTraces(ApplicationKey? key)
+    {
+        TelemetryRepository.ClearTraces(key);
+        return Task.CompletedTask;
     }
 
     public class TracesPageViewModel

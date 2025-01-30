@@ -3,8 +3,10 @@
 
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -13,13 +15,14 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A service that allows publishing and subscribing to changes in the state of a resource.
 /// </summary>
-public class ResourceNotificationService
+public class ResourceNotificationService : IDisposable
 {
     // Resource state is keyed by the resource and the unique name of the resource. This could be the name of the resource, or a replica ID.
     private readonly ConcurrentDictionary<(IResource, string), ResourceNotificationState> _resourceNotificationStates = new();
     private readonly ILogger<ResourceNotificationService> _logger;
     private readonly IServiceProvider _serviceProvider;
-    private readonly CancellationToken _applicationStopping;
+    private readonly CancellationTokenSource _disposing = new();
+    private readonly ResourceLoggerService _resourceLoggerService;
 
     private Action<ResourceEvent>? OnResourceUpdated { get; set; }
 
@@ -33,15 +36,15 @@ public class ResourceNotificationService
     /// <param name="logger">The logger.</param>
     /// <param name="hostApplicationLifetime">The host application lifetime.</param>
     [Obsolete($"""
-        {nameof(ResourceNotificationService)} now requires an {nameof(IServiceProvider)}.
-        Use the constructor that accepts an {nameof(ILogger)}<{nameof(ResourceNotificationService)}>, {nameof(IHostApplicationLifetime)} and {nameof(IServiceProvider)}.
+        {nameof(ResourceNotificationService)} now requires an {nameof(IServiceProvider)} and {nameof(ResourceLoggerService)}.
+        Use the constructor that accepts an {nameof(ILogger)}<{nameof(ResourceNotificationService)}>, {nameof(IHostApplicationLifetime)}, {nameof(IServiceProvider)} and {nameof(ResourceLoggerService)}.
         This constructor will be removed in the next major version of Aspire.
         """)]
     public ResourceNotificationService(ILogger<ResourceNotificationService> logger, IHostApplicationLifetime hostApplicationLifetime)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _serviceProvider = new NullServiceProvider();
-        _applicationStopping = hostApplicationLifetime?.ApplicationStopping ?? throw new ArgumentNullException(nameof(hostApplicationLifetime));
+        _resourceLoggerService = new ResourceLoggerService();
     }
 
     /// <summary>
@@ -49,12 +52,16 @@ public class ResourceNotificationService
     /// </summary>
     /// <param name="logger">The logger.</param>
     /// <param name="hostApplicationLifetime">The host application lifetime.</param>
+    /// <param name="resourceLoggerService">The resource logger service.</param>
     /// <param name="serviceProvider">The service provider.</param>
-    public ResourceNotificationService(ILogger<ResourceNotificationService> logger, IHostApplicationLifetime hostApplicationLifetime, IServiceProvider serviceProvider)
+    public ResourceNotificationService(ILogger<ResourceNotificationService> logger, IHostApplicationLifetime hostApplicationLifetime, IServiceProvider serviceProvider, ResourceLoggerService resourceLoggerService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _serviceProvider = serviceProvider;
-        _applicationStopping = hostApplicationLifetime?.ApplicationStopping ?? throw new ArgumentNullException(nameof(hostApplicationLifetime));
+        _resourceLoggerService = resourceLoggerService ?? throw new ArgumentNullException(nameof(resourceLoggerService));
+
+        // The IHostApplicationLifetime parameter is not used anymore, but we keep it for backwards compatibility.
+        // Notification updates will be cancelled when the service is disposed.
     }
 
     private class NullServiceProvider : IServiceProvider
@@ -72,8 +79,8 @@ public class ResourceNotificationService
     /// will throw <see cref="OperationCanceledException"/>.
     /// </remarks>
     /// <param name="resourceName">The name of the resource.</param>
-    /// <param name="targetState"></param>
-    /// <param name="cancellationToken">A <see cref="CancellationToken"/> </param>
+    /// <param name="targetState">The state to wait for the resource to transition to. See <see cref="KnownResourceStates"/> for common states.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="Task"/> representing the wait operation.</returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "targetState(s) parameters are mutually exclusive.")]
@@ -100,19 +107,205 @@ public class ResourceNotificationService
                                                      Justification = "targetState(s) parameters are mutually exclusive.")]
     public async Task<string> WaitForResourceAsync(string resourceName, IEnumerable<string> targetStates, CancellationToken cancellationToken = default)
     {
-        using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_applicationStopping, cancellationToken);
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("Waiting for resource '{Name}' to enter one of the target state: {TargetStates}", resourceName, string.Join(", ", targetStates));
+        }
+
+        using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_disposing.Token, cancellationToken);
         var watchToken = watchCts.Token;
         await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
         {
             if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName)
-                && resourceEvent.Snapshot.State?.Text is { Length: > 0 } statusText
-                && targetStates.Contains(statusText, StringComparers.ResourceState))
+                && resourceEvent.Snapshot.State?.Text is { Length: > 0 } stateText
+                && targetStates.Contains(stateText, StringComparers.ResourceState))
             {
-                return statusText;
+                _logger.LogDebug("Finished waiting for resource '{Name}'. Resource state is '{State}'.", resourceName, stateText);
+                return stateText;
             }
         }
 
         throw new OperationCanceledException($"The operation was cancelled before the resource reached one of the target states: [{string.Join(", ", targetStates)}]");
+    }
+
+    private async Task WaitUntilHealthyAsync(IResource resource, IResource dependency, CancellationToken cancellationToken)
+    {
+        var resourceLogger = _resourceLoggerService.GetLogger(resource);
+        resourceLogger.LogInformation("Waiting for resource '{Name}' to enter the '{State}' state.", dependency.Name, KnownResourceStates.Running);
+        await PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
+
+        var names = dependency.GetResolvedResourceNames();
+        var tasks = new Task[names.Length];
+
+        for (var i = 0; i < names.Length; i++)
+        {
+            var displayName = names.Length > 1 ? names[i] : dependency.Name;
+            tasks[i] = Core(displayName, names[i]);
+        }
+
+        await Task.WhenAll(tasks).ConfigureAwait(false);
+
+        async Task Core(string displayName, string resourceId)
+        {
+            var resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => re.ResourceId == resourceId && IsContinuableState(re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
+            var snapshot = resourceEvent.Snapshot;
+
+            if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
+            {
+                resourceLogger.LogError(
+                    "Dependency resource '{ResourceName}' failed to start.",
+                    displayName
+                    );
+
+                throw new DistributedApplicationException($"Dependency resource '{displayName}' failed to start.");
+            }
+            else if (snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited)
+            {
+                resourceLogger.LogError(
+                    "Resource '{ResourceName}' has entered the '{State}' state prematurely.",
+                    displayName,
+                    snapshot.State.Text
+                    );
+
+                throw new DistributedApplicationException(
+                    $"Resource '{displayName}' has entered the '{snapshot.State.Text}' state prematurely."
+                    );
+            }
+
+            // If our dependency resource has health check annotations we want to wait until they turn healthy
+            // otherwise we don't care about their health status.
+            if (dependency.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var _))
+            {
+                resourceLogger.LogInformation("Waiting for resource '{Name}' to become healthy.", displayName);
+                await WaitForResourceCoreAsync(dependency.Name, re => re.ResourceId == resourceId && re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken).ConfigureAwait(false);
+            }
+
+            // Now wait for the resource ready event to be executed.
+            resourceLogger.LogInformation("Waiting for resource ready to execute for '{Name}'.", displayName);
+            resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => re.ResourceId == resourceId && re.Snapshot.ResourceReadyEvent is not null, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            // Observe the result of the resource ready event task
+            await resourceEvent.Snapshot.ResourceReadyEvent!.EventTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+            resourceLogger.LogInformation("Finished waiting for resource '{Name}'.", displayName);
+
+            static bool IsContinuableState(CustomResourceSnapshot snapshot) =>
+                snapshot.State?.Text == KnownResourceStates.Running ||
+                snapshot.State?.Text == KnownResourceStates.Finished ||
+                snapshot.State?.Text == KnownResourceStates.Exited ||
+                snapshot.State?.Text == KnownResourceStates.FailedToStart;
+        }
+    }
+
+    /// <summary>
+    /// Waits for a resource to become healthy.
+    /// </summary>
+    /// <param name="resourceName">The name of the resource.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task.</returns>
+    /// <remarks>
+    /// This method returns a task that will complete with the resource is healthy. A resource
+    /// without <see cref="HealthCheckAnnotation"/> annotations will be considered healthy.
+    /// </remarks>
+    public async Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, CancellationToken cancellationToken = default)
+    {
+        _logger.LogDebug("Waiting for resource '{Name}' to enter the '{State}' state.", resourceName, HealthStatus.Healthy);
+        var resourceEvent = await WaitForResourceCoreAsync(resourceName, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: cancellationToken).ConfigureAwait(false);
+        _logger.LogDebug("Finished waiting for resource '{Name}'.", resourceName);
+
+        return resourceEvent;
+    }
+
+    private async Task WaitUntilCompletionAsync(IResource resource, IResource dependency, int exitCode, CancellationToken cancellationToken)
+    {
+        var names = dependency.GetResolvedResourceNames();
+        var tasks = new Task[names.Length];
+
+        var resourceLogger = _resourceLoggerService.GetLogger(resource);
+        resourceLogger.LogInformation("Waiting for resource '{Name}' to complete.", dependency.Name);
+
+        await PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
+
+        for (var i = 0; i < names.Length; i++)
+        {
+            var displayName = names.Length > 1 ? names[i] : dependency.Name;
+            tasks[i] = Core(displayName, names[i]);
+        }
+
+        await Task.WhenAll(tasks).ConfigureAwait(false);
+
+        async Task Core(string displayName, string resourceId)
+        {
+            var resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => re.ResourceId == resourceId && IsKnownTerminalState(re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
+            var snapshot = resourceEvent.Snapshot;
+
+            if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
+            {
+                resourceLogger.LogError(
+                    "Dependency resource '{ResourceName}' failed to start.",
+                    displayName
+                    );
+
+                throw new DistributedApplicationException($"Dependency resource '{displayName}' failed to start.");
+            }
+            else if ((snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited) && snapshot.ExitCode is not null && snapshot.ExitCode != exitCode)
+            {
+                resourceLogger.LogError(
+                    "Resource '{ResourceName}' has entered the '{State}' state with exit code '{ExitCode}' expected '{ExpectedExitCode}'.",
+                    displayName,
+                    snapshot.State.Text,
+                    snapshot.ExitCode,
+                    exitCode
+                    );
+
+                throw new DistributedApplicationException(
+                    $"Resource '{displayName}' has entered the '{snapshot.State.Text}' state with exit code '{snapshot.ExitCode}', expected '{exitCode}'."
+                    );
+            }
+
+            resourceLogger.LogInformation("Finished waiting for resource '{Name}'.", displayName);
+
+            static bool IsKnownTerminalState(CustomResourceSnapshot snapshot) =>
+                KnownResourceStates.TerminalStates.Contains(snapshot.State?.Text) ||
+                snapshot.ExitCode is not null;
+        }
+    }
+
+    /// <summary>
+    /// Waits for all dependencies of the resource to be ready.
+    /// </summary>
+    /// <param name="resource">The resource with dependencies to wait for.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task.</returns>
+    /// <exception cref="DistributedApplicationException"></exception>
+    public async Task WaitForDependenciesAsync(IResource resource, CancellationToken cancellationToken)
+    {
+        if (!resource.TryGetAnnotationsOfType<WaitAnnotation>(out var waitAnnotations))
+        {
+            return;
+        }
+
+        var pendingDependencies = new List<Task>();
+        foreach (var waitAnnotation in waitAnnotations)
+        {
+            if (waitAnnotation.Resource is ParameterResource or ResourceWithConnectionStringSurrogate)
+            {
+                // Parameters and connection string resources are inert and don't need to be waited on.
+                // If we add support for parameter resources that can be waited on, we can remove this check.
+                // As of right now, we don't support waiting on parameter resources.
+                continue;
+            }
+
+            var pendingDependency = waitAnnotation.WaitType switch
+            {
+                WaitType.WaitUntilHealthy => WaitUntilHealthyAsync(resource, waitAnnotation.Resource, cancellationToken),
+                WaitType.WaitForCompletion => WaitUntilCompletionAsync(resource, waitAnnotation.Resource, waitAnnotation.ExitCode, cancellationToken),
+                _ => throw new DistributedApplicationException($"Unexpected wait type: {waitAnnotation.WaitType}")
+            };
+            pendingDependencies.Add(pendingDependency);
+        }
+
+        await Task.WhenAll(pendingDependencies).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -131,7 +324,16 @@ public class ResourceNotificationService
                                                      Justification = "predicate and targetState(s) parameters are mutually exclusive.")]
     public async Task<ResourceEvent> WaitForResourceAsync(string resourceName, Func<ResourceEvent, bool> predicate, CancellationToken cancellationToken = default)
     {
-        using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_applicationStopping, cancellationToken);
+        _logger.LogDebug("Waiting for resource '{Name}' to match predicate.", resourceName);
+        var resourceEvent = await WaitForResourceCoreAsync(resourceName, predicate, cancellationToken).ConfigureAwait(false);
+        _logger.LogDebug("Finished waiting for resource '{Name}'.", resourceName);
+
+        return resourceEvent;
+    }
+
+    private async Task<ResourceEvent> WaitForResourceCoreAsync(string resourceName, Func<ResourceEvent, bool> predicate, CancellationToken cancellationToken = default)
+    {
+        using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_disposing.Token, cancellationToken);
         var watchToken = watchCts.Token;
         await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
         {
@@ -154,17 +356,6 @@ public class ResourceNotificationService
     /// <returns></returns>
     public async IAsyncEnumerable<ResourceEvent> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        // Return the last snapshot for each resource.
-        foreach (var state in _resourceNotificationStates)
-        {
-            var (resource, resourceId) = state.Key;
-
-            if (state.Value.LastSnapshot is not null)
-            {
-                yield return new ResourceEvent(resource, resourceId, state.Value.LastSnapshot);
-            }
-        }
-
         var channel = Channel.CreateUnbounded<ResourceEvent>();
 
         void WriteToChannel(ResourceEvent resourceEvent) =>
@@ -175,10 +366,37 @@ public class ResourceNotificationService
             OnResourceUpdated += WriteToChannel;
         }
 
+        // Return the last snapshot for each resource.
+        // We do this after subscribing to the event to avoid missing any updates.
+
+        // Keep track of the versions we have seen so far to avoid duplicates.
+        var versionsSeen = new Dictionary<(IResource, string), long>();
+
+        foreach (var state in _resourceNotificationStates)
+        {
+            var (resource, resourceId) = state.Key;
+
+            if (state.Value.LastSnapshot is { } snapshot)
+            {
+                versionsSeen[state.Key] = snapshot.Version;
+
+                yield return new ResourceEvent(resource, resourceId, snapshot);
+            }
+        }
+
         try
         {
             await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
+                // Skip events that are older than the max version we have seen so far. This avoids duplicates.
+                if (versionsSeen.TryGetValue((item.Resource, item.ResourceId), out var maxVersionSeen) && item.Snapshot.Version <= maxVersionSeen)
+                {
+                    // We can remove the version from the seen list since we have seen it already.
+                    // We only care about events we have returned to the caller
+                    versionsSeen.Remove((item.Resource, item.ResourceId));
+                    continue;
+                }
+
                 yield return item;
             }
         }
@@ -209,6 +427,9 @@ public class ResourceNotificationService
 
             var newState = stateFactory(previousState);
 
+            // Increment the snapshot version, this is a per resource version.
+            newState = newState with { Version = notificationState.GetNextVersion() };
+
             newState = UpdateCommands(resource, newState);
 
             notificationState.LastSnapshot = newState;
@@ -232,15 +453,49 @@ public class ResourceNotificationService
 
             if (_logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace("Resource {Resource}/{ResourceId} update published: " +
-                    "ResourceType = {ResourceType}, CreationTimeStamp = {CreationTimeStamp:s}, State = {{ Text = {StateText}, Style = {StateStyle} }}, " +
-                    "HealthStatus = {HealthStatus} " +
-                    "ExitCode = {ExitCode}, EnvironmentVariables = {{ {EnvironmentVariables} }}, Urls = {{ {Urls} }}, " +
-                    "Properties = {{ {Properties} }}",
-                    resource.Name, resourceId,
-                    newState.ResourceType, newState.CreationTimeStamp, newState.State?.Text, newState.State?.Style, newState.HealthStatus,
-                    newState.ExitCode, string.Join(", ", newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")), string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
-                    string.Join(", ", newState.Properties.Select(p => $"{p.Name} = {p.Value}")));
+                _logger.LogTrace(
+                    """
+                    Version: {Version}
+                    Resource {Resource}/{ResourceId} update published:
+                    ResourceType = {ResourceType},
+                    CreationTimeStamp = {CreationTimeStamp:s},
+                    State = {{ Text = {StateText}, Style = {StateStyle} }},
+                    HeathStatus = {HealthStatus},
+                    ResourceReady = {ResourceReady},
+                    ExitCode = {ExitCode},
+                    Urls = {{ {Urls} }},
+                    EnvironmentVariables = {{
+                    {EnvironmentVariables}
+                    }},
+                    Properties = {{
+                    {Properties}
+                    }},
+                    HealthReports = {{
+                    {HealthReports}
+                    }}
+                    """,
+                    newState.Version,
+                    resource.Name,
+                    resourceId,
+                    newState.ResourceType,
+                    newState.CreationTimeStamp,
+                    newState.State?.Text,
+                    newState.State?.Style,
+                    newState.HealthStatus,
+                    newState.ResourceReadyEvent is not null,
+                    newState.ExitCode,
+                    string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
+                    string.Join(Environment.NewLine, newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")),
+                    string.Join(Environment.NewLine, newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")),
+                    string.Join(Environment.NewLine, newState.HealthReports.Select(p => $"{p.Name} = {Stringify(p.Status)}")));
+
+                static string Stringify(object? o) => o switch
+                {
+                    IEnumerable<int> ints => string.Join(", ", ints.Select(i => i.ToString(CultureInfo.InvariantCulture))),
+                    IEnumerable<string> strings => string.Join(", ", strings.Select(s => s)),
+                    null => "(null)",
+                    _ => o.ToString()!
+                };
             }
         }
 
@@ -256,7 +511,7 @@ public class ResourceNotificationService
 
         foreach (var annotation in resource.Annotations.OfType<ResourceCommandAnnotation>())
         {
-            var existingCommand = FindByType(previousState.Commands, annotation.Type);
+            var existingCommand = FindByName(previousState.Commands, annotation.Name);
 
             if (existingCommand == null)
             {
@@ -300,11 +555,11 @@ public class ResourceNotificationService
 
         return previousState with { Commands = builder.ToImmutable() };
 
-        static ResourceCommandSnapshot? FindByType(ImmutableArray<ResourceCommandSnapshot> commands, string type)
+        static ResourceCommandSnapshot? FindByName(ImmutableArray<ResourceCommandSnapshot> commands, string name)
         {
             for (var i = 0; i < commands.Length; i++)
             {
-                if (commands[i].Type == type)
+                if (commands[i].Name == name)
                 {
                     return commands[i];
                 }
@@ -317,7 +572,7 @@ public class ResourceNotificationService
         {
             var state = annotation.UpdateState(new UpdateCommandStateContext { ResourceSnapshot = previousState, ServiceProvider = serviceProvider });
 
-            return new ResourceCommandSnapshot(annotation.Type, state, annotation.DisplayName, annotation.IconName, annotation.IconVariant, annotation.IsHighlighted);
+            return new ResourceCommandSnapshot(annotation.Name, state, annotation.DisplayName, annotation.DisplayDescription, annotation.Parameter, annotation.ConfirmationMessage, annotation.IconName, annotation.IconVariant, annotation.IsHighlighted);
         }
     }
 
@@ -326,9 +581,13 @@ public class ResourceNotificationService
     /// </summary>
     /// <param name="resource">The resource to update</param>
     /// <param name="stateFactory">A factory that creates the new state based on the previous state.</param>
-    public Task PublishUpdateAsync(IResource resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
+    public async Task PublishUpdateAsync(IResource resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
     {
-        return PublishUpdateAsync(resource, resource.Name, stateFactory);
+        var resourceNames = resource.GetResolvedResourceNames();
+        foreach (var resourceName in resourceNames)
+        {
+            await PublishUpdateAsync(resource, resourceName, stateFactory).ConfigureAwait(false);
+        }
     }
 
     private static CustomResourceSnapshot GetCurrentSnapshot(IResource resource, ResourceNotificationState notificationState)
@@ -346,7 +605,8 @@ public class ResourceNotificationService
             previousState ??= new CustomResourceSnapshot()
             {
                 ResourceType = resource.GetType().Name,
-                Properties = []
+                Properties = [],
+                Relationships = ResourceSnapshotBuilder.BuildRelationships(resource)
             };
         }
 
@@ -356,11 +616,19 @@ public class ResourceNotificationService
     private ResourceNotificationState GetResourceNotificationState(IResource resource, string resourceId) =>
         _resourceNotificationStates.GetOrAdd((resource, resourceId), _ => new ResourceNotificationState());
 
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        _disposing.Cancel();
+    }
+
     /// <summary>
     /// The annotation that allows publishing and subscribing to changes in the state of a resource.
     /// </summary>
     private sealed class ResourceNotificationState
     {
+        private long _lastVersion = 1;
+        public long GetNextVersion() => _lastVersion++;
         public CustomResourceSnapshot? LastSnapshot { get; set; }
     }
 }

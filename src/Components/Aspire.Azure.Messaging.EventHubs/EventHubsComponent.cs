@@ -44,6 +44,9 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
     protected override TokenCredential? GetTokenCredential(TSettings settings)
         => settings.Credential;
 
+    protected override bool GetMetricsEnabled(TSettings settings)
+        => false;
+
     protected override bool GetTracingEnabled(TSettings settings)
         => !settings.DisableTracing;
 

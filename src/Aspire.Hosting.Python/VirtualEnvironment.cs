@@ -4,9 +4,9 @@
 namespace Aspire.Hosting.Python;
 
 /// <summary>
-/// Handles location of files within the virtual environment of a python project.
+/// Handles location of files within the virtual environment of a python app.
 /// </summary>
-/// <param name="virtualEnvironmentPath">The path to the directory containing the python project files.</param>
+/// <param name="virtualEnvironmentPath">The path to the directory containing the python app files.</param>
 internal sealed class VirtualEnvironment(string virtualEnvironmentPath)
 {
     /// <summary>

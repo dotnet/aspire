@@ -154,4 +154,23 @@ public class AspireServiceBusExtensionsTests
         Assert.Equal("aspireservicebustests2.servicebus.windows.net", client2.FullyQualifiedNamespace);
         Assert.Equal("aspireservicebustests3.servicebus.windows.net", client3.FullyQualifiedNamespace);
     }
+
+    [Fact]
+    public void FavorsNamedClientOptionsOverTopLevelClientOptionsWhenBothProvided()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("Aspire:Azure:Messaging:ServiceBus:ClientOptions:Identifier", "top-level-identifier"),
+            new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:Azure:Messaging:ServiceBus", "sb", "ConnectionString"), ConnectionString),
+            new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:Azure:Messaging:ServiceBus", "sb", "ClientOptions:Identifier"), "local-identifier"),
+        ]);
+
+        builder.AddAzureServiceBusClient("sb");
+
+        using var host = builder.Build();
+
+        var client = host.Services.GetRequiredService<ServiceBusClient>();
+        Assert.Equal("local-identifier", client.Identifier);
+    }
 }
