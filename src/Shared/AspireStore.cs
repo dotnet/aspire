@@ -2,25 +2,27 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Buffers;
+using System.Reflection;
 using System.Security.Cryptography;
-using IdentityModel;
-using Microsoft.Extensions.SecretManager.Tools.Internal;
 
 namespace Aspire.Hosting.Utils;
 
-internal sealed class AspireStore : KeyValueStore
+internal sealed class AspireStore
 {
-    private readonly string _storeBasePath;
-    private const string StoreFileName = "aspire.json";
+    internal const string AspireStoreDir = "ASPIRE_STORE_DIR";
+
+    private readonly string _basePath;
     private static readonly SearchValues<char> s_invalidFileNameChars = SearchValues.Create(Path.GetInvalidFileNameChars());
 
     private AspireStore(string basePath)
-        : base(Path.Combine(basePath, StoreFileName))
     {
         ArgumentNullException.ThrowIfNull(basePath);
 
-        _storeBasePath = basePath;
+        _basePath = basePath;
+        EnsureDirectory();
     }
+
+    internal string BasePath => _basePath;
 
     /// <summary>
     /// Creates a new instance of <see cref="AspireStore"/> using the provided <paramref name="builder"/>.
@@ -40,53 +42,59 @@ internal sealed class AspireStore : KeyValueStore
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        const string aspireStoreFallbackDir = "ASPIRE_STORE_FALLBACK_DIR";
+        var assemblyMetadata = builder.AppHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
+        var objDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
 
-        var appData = Environment.GetEnvironmentVariable("APPDATA");
-        var root = appData                                                                   // On Windows it goes to %APPDATA%\Microsoft\UserSecrets\
-                   ?? Environment.GetEnvironmentVariable("HOME")                             // On Mac/Linux it goes to ~/.microsoft/usersecrets/
+        var fallbackDir = Environment.GetEnvironmentVariable(AspireStoreDir);
+        var root = fallbackDir
+                   ?? objDir
+                   ?? Environment.GetEnvironmentVariable("APPDATA")                        // On Windows it goes to %APPDATA%\Microsoft\UserSecrets\
+                   ?? Environment.GetEnvironmentVariable("HOME")                           // On Mac/Linux it goes to ~/.microsoft/usersecrets/
                    ?? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-                   ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
-                   ?? Environment.GetEnvironmentVariable(aspireStoreFallbackDir);            // this fallback is an escape hatch if everything else fails
+                   ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
         if (string.IsNullOrEmpty(root))
         {
-            throw new InvalidOperationException($"Could not determine an appropriate location for storing user secrets. Set the {aspireStoreFallbackDir} environment variable to a folder where Aspire content should be stored.");
+            throw new InvalidOperationException($"Could not determine an appropriate location for storing user secrets. Set the {AspireStoreDir} environment variable to a folder where the App Host content should be stored.");
         }
 
-        var appName = Sanitize(builder.Environment.ApplicationName).ToLowerInvariant();
-        var appNameHash = builder.Configuration["AppHost:Sha256"]![..10].ToLowerInvariant();
+        var directoryPath = Path.Combine(root, ".aspire");
 
-        var directoryPath = !string.IsNullOrEmpty(appData)
-            ? Path.Combine(root, "Aspire", $"{appName}.{appNameHash}")
-            : Path.Combine(root, ".aspire", $"{appName}.{appNameHash}");
+        // The /obj directory doesn't need to be prefixed with the app host name.
+        if (root != objDir)
+        {
+            directoryPath = Path.Combine(directoryPath, GetAppHostSpecificPrefix(builder));
+        }
 
         return new AspireStore(directoryPath);
     }
 
-    protected override void EnsureDirectory()
+    private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key) =>
+        assemblyMetadata?.FirstOrDefault(a => string.Equals(a.Key, key, StringComparison.OrdinalIgnoreCase))?.Value;
+
+    private static string GetAppHostSpecificPrefix(IDistributedApplicationBuilder builder)
     {
-        var directoryName = Path.GetDirectoryName(FilePath);
-        if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
-        {
-            if (!OperatingSystem.IsWindows())
-            {
-                var tempDir = Directory.CreateTempSubdirectory();
-                tempDir.MoveTo(directoryName);
-            }
-            else
-            {
-                Directory.CreateDirectory(directoryName);
-            }
-        }
+        var appName = Sanitize(builder.Environment.ApplicationName).ToLowerInvariant();
+        var appNameHash = builder.Configuration["AppHost:Sha256"]![..10].ToLowerInvariant();
+        return $"{appName}.{appNameHash}";
     }
 
-    public string GetOrCreateFileWithContent(string filename, Stream contentStream)
+    /// <summary>
+    /// Gets a deterministic file path that is a copy of the <paramref name="sourceFilename"/>.
+    /// The resulting file name will depend on the content of the file.
+    /// </summary>
+    /// <param name="filename">A file name the to base the result on.</param>
+    /// <param name="sourceFilename">An existing file.</param>
+    /// <returns>A deterministic file path with the same content as <paramref name="sourceFilename"/>.</returns>
+    public string GetOrCreateFileWithContent(string filename, string sourceFilename)
     {
-        // THIS HASN'T BEEN TESTED YET. FOR DISCUSSIONS ONLY.
-
         ArgumentNullException.ThrowIfNullOrWhiteSpace(filename);
-        ArgumentNullException.ThrowIfNull(contentStream);
+        ArgumentNullException.ThrowIfNullOrWhiteSpace(sourceFilename);
+
+        if (!File.Exists(sourceFilename))
+        {
+            throw new FileNotFoundException("The source file '{0}' does not exist.", sourceFilename);
+        }
 
         EnsureDirectory();
 
@@ -94,7 +102,7 @@ internal sealed class AspireStore : KeyValueStore
         filename = Path.GetFileName(filename);
 
         // Delete existing file versions with the same name.
-        var allFiles = Directory.EnumerateFiles(_storeBasePath, filename + ".*");
+        var allFiles = Directory.EnumerateFiles(_basePath, filename + ".*");
 
         foreach (var file in allFiles)
         {
@@ -107,6 +115,30 @@ internal sealed class AspireStore : KeyValueStore
             }
         }
 
+        var hashStream = File.OpenRead(sourceFilename);
+
+        // Compute the hash of the content.
+        var hash = SHA256.HashData(hashStream);
+
+        hashStream.Dispose();
+
+        var name = Path.GetFileNameWithoutExtension(filename);
+        var ext = Path.GetExtension(filename);
+        var finalFilePath = Path.Combine(_basePath, $"{name}.{Convert.ToHexString(hash)[..12].ToLowerInvariant()}{ext}".ToLowerInvariant());
+
+        if (!File.Exists(finalFilePath))
+        {
+            File.Copy(sourceFilename, finalFilePath, overwrite: true);
+        }
+
+        return finalFilePath;
+    }
+
+    public string GetOrCreateFileWithContent(string filename, Stream contentStream)
+    {
+        ArgumentNullException.ThrowIfNullOrWhiteSpace(filename);
+        ArgumentNullException.ThrowIfNull(contentStream);
+
         // Create a temporary file to write the content to.
         var tempFileName = Path.GetTempFileName();
 
@@ -116,23 +148,9 @@ internal sealed class AspireStore : KeyValueStore
             contentStream.CopyTo(fileStream);
         }
 
-        // Compute the hash of the content.
-        var hash = SHA256.HashData(File.ReadAllBytes(tempFileName));
+        var finalFilePath = GetOrCreateFileWithContent(filename, tempFileName);
 
-        // Move the temporary file to the final location.
-        // TODO: Use System.Buffers.Text implementation when targeting .NET 9.0 or greater
-        var name = Path.GetFileNameWithoutExtension(filename);
-        var ext = Path.GetExtension(filename);
-        var finalFilePath = Path.Combine(_storeBasePath, $"{name}.{Convert.ToHexString(hash)[..12].ToLowerInvariant()}{ext}".ToLowerInvariant());
-
-        if (!File.Exists(finalFilePath))
-        {
-            File.Move(tempFileName, finalFilePath);
-        }
-        else
-        {
-            File.Delete(tempFileName);
-        }
+        File.Delete(tempFileName);
 
         return finalFilePath;
     }
@@ -149,7 +167,7 @@ internal sealed class AspireStore : KeyValueStore
         // Strip any folder information from the filename.
         filename = Path.GetFileName(filename);
 
-        var finalFilePath = Path.Combine(_storeBasePath, filename);
+        var finalFilePath = Path.Combine(_basePath, filename);
 
         if (!File.Exists(finalFilePath))
         {
@@ -160,11 +178,24 @@ internal sealed class AspireStore : KeyValueStore
         return finalFilePath;
     }
 
-    public void Delete()
+    public void DeleteFile(string filename)
     {
-        if (Directory.Exists(_storeBasePath))
+        // Strip any folder information from the filename.
+        filename = Path.GetFileName(filename);
+
+        var finalFilePath = Path.Combine(_basePath, filename);
+
+        if (File.Exists(finalFilePath))
         {
-            Directory.Delete(_storeBasePath, recursive: true);
+            File.Delete(finalFilePath);
+        }
+    }
+
+    public void DeleteStore()
+    {
+        if (Directory.Exists(_basePath))
+        {
+            Directory.Delete(_basePath, recursive: true);
         }
     }
 
@@ -176,11 +207,27 @@ internal sealed class AspireStore : KeyValueStore
         return string.Create(filename.Length, filename, static (s, name) =>
         {
             name.CopyTo(s);
-            var i = -1;
-            while ((i = s.IndexOfAny(s_invalidFileNameChars)) != -1)
+
+            while (s.IndexOfAny(s_invalidFileNameChars) is var i and not -1)
             {
                 s[i] = '_';
             }
         });
+    }
+
+    private void EnsureDirectory()
+    {
+        if (!string.IsNullOrEmpty(_basePath) && !Directory.Exists(_basePath))
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                var tempDir = Directory.CreateTempSubdirectory();
+                tempDir.MoveTo(_basePath);
+            }
+            else
+            {
+                Directory.CreateDirectory(_basePath);
+            }
+        }
     }
 }

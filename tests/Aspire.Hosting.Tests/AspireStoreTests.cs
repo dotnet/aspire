@@ -16,8 +16,7 @@ public class AspireStoreTests
         var store = AspireStore.Create(builder);
 
         Assert.NotNull(store);
-        Assert.Equal(0, store.Count);
-        Assert.True(Directory.Exists(Path.GetDirectoryName(store.FilePath)));
+        Assert.True(Directory.Exists(Path.GetDirectoryName(store.BasePath)));
     }
 
     [Fact]

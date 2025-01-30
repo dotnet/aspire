@@ -11,49 +11,49 @@ namespace Microsoft.Extensions.SecretManager.Tools.Internal;
 /// <summary>
 /// Adapted from dotnet user-secrets at https://github.com/dotnet/aspnetcore/blob/482730a4c773ee4b3ae9525186d10999c89b556d/src/Tools/dotnet-user-secrets/src/Internal/SecretsStore.cs
 /// </summary>
-internal abstract class KeyValueStore
+internal sealed class SecretsStore
 {
-    private readonly string _filePath;
-    private readonly Dictionary<string, string?> _store;
+    private readonly string _secretsFilePath;
+    private readonly Dictionary<string, string?> _secrets;
 
-    protected KeyValueStore(string filePath)
+    public SecretsStore(string userSecretsId)
     {
-        ArgumentNullException.ThrowIfNull(filePath);
+        ArgumentNullException.ThrowIfNull(userSecretsId);
 
-        _filePath = filePath;
+        _secretsFilePath = PathHelper.GetSecretsPathFromSecretsId(userSecretsId);
 
-        EnsureDirectory();
+        EnsureUserSecretsDirectory();
 
-        _store = Load(_filePath);
+        _secrets = Load(_secretsFilePath);
     }
 
-    public string? this[string key] => _store[key];
+    public string? this[string key] => _secrets[key];
 
-    public int Count => _store.Count;
+    public int Count => _secrets.Count;
 
     // For testing.
-    internal string FilePath => _filePath;
+    internal string SecretsFilePath => _secretsFilePath;
 
-    public bool ContainsKey(string key) => _store.ContainsKey(key);
+    public bool ContainsKey(string key) => _secrets.ContainsKey(key);
 
-    public IEnumerable<KeyValuePair<string, string?>> AsEnumerable() => _store;
+    public IEnumerable<KeyValuePair<string, string?>> AsEnumerable() => _secrets;
 
-    public void Clear() => _store.Clear();
+    public void Clear() => _secrets.Clear();
 
-    public void Set(string key, string value) => _store[key] = value;
+    public void Set(string key, string value) => _secrets[key] = value;
 
-    public bool Remove(string key) => _store.Remove(key);
+    public bool Remove(string key) => _secrets.Remove(key);
 
     public void Save()
     {
-        EnsureDirectory();
+        EnsureUserSecretsDirectory();
 
         var contents = new JsonObject();
-        if (_store is not null)
+        if (_secrets is not null)
         {
-            foreach (var item in _store.AsEnumerable())
+            foreach (var secret in _secrets.AsEnumerable())
             {
-                contents[item.Key] = item.Value;
+                contents[secret.Key] = secret.Value;
             }
         }
 
@@ -61,7 +61,7 @@ internal abstract class KeyValueStore
         if (!OperatingSystem.IsWindows())
         {
             var tempFilename = Path.GetTempFileName();
-            File.Move(tempFilename, _filePath, overwrite: true);
+            File.Move(tempFilename, _secretsFilePath, overwrite: true);
         }
 
         var json = contents.ToJsonString(new()
@@ -69,34 +69,25 @@ internal abstract class KeyValueStore
             WriteIndented = true
         });
 
-        File.WriteAllText(_filePath, json, Encoding.UTF8);
+        File.WriteAllText(_secretsFilePath, json, Encoding.UTF8);
     }
 
-    protected virtual void EnsureDirectory()
+    private void EnsureUserSecretsDirectory()
     {
-        var directoryName = Path.GetDirectoryName(_filePath);
+        var directoryName = Path.GetDirectoryName(_secretsFilePath);
         if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
         {
             Directory.CreateDirectory(directoryName);
         }
     }
 
-    private static Dictionary<string, string?> Load(string filePath)
+    private static Dictionary<string, string?> Load(string secretsFilePath)
     {
         return new ConfigurationBuilder()
-            .AddJsonFile(filePath, optional: true)
+            .AddJsonFile(secretsFilePath, optional: true)
             .Build()
             .AsEnumerable()
             .Where(i => i.Value != null)
             .ToDictionary(i => i.Key, i => i.Value, StringComparer.OrdinalIgnoreCase);
-    }
-}
-
-internal sealed class SecretsStore : KeyValueStore
-{
-    public SecretsStore(string userSecretsId)
-        : base(PathHelper.GetSecretsPathFromSecretsId(userSecretsId))
-    {
-        ArgumentNullException.ThrowIfNull(userSecretsId);
     }
 }
