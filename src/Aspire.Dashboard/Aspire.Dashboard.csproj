@@ -65,6 +65,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Resources\Columns.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Columns.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\Commands.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Commands.resx</DependentUpon>
+    </Compile>
     <Compile Update="Resources\ControlsStrings.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
