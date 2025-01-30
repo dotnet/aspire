@@ -81,7 +81,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: binlog-${{ matrix.name }}
-          path: /**/*.binlog
+          path: "**/*.binlog"
 
       - name: Upload test results artifact
         if: always()
