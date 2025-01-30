@@ -55,7 +55,7 @@ jobs:
         run: dotnet restore ${{ matrix.project }}
 
       - name: Build projects
-        run: dotnet build ${{ matrix.project }} /p:CI=true --no-restore
+        run: dotnet build ${{ matrix.project }} /p:CI=true --no-restore /bl
 
       - name: Run tests
         id: run-tests
@@ -75,6 +75,13 @@ jobs:
       - name: Compress test results
         if: always()
         run: zip -r testresults.zip testresults
+
+      - name: Upload bin log artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: binlog-${{ matrix.name }}
+          path: $(System.DefaultWorkingDirectory)/**/*.binlog
 
       - name: Upload test results artifact
         if: always()
