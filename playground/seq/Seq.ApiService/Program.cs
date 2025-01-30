@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using Seq.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +11,8 @@ builder.AddServiceDefaults();
 var app = builder.Build();
 
 ActivitySource source = new("MyApp.Source");
+
+app.MapDefaultEndpoints();
 
 app.MapGet("/", () =>
 {

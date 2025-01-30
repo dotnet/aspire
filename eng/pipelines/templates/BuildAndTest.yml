@@ -16,40 +16,80 @@ parameters:
     type: string
   - name: dotnetScript
     type: string
-  - name: skipTests
+  - name: runHelixTests
     type: boolean
     default: false
 
 steps:
-  - script: ${{ parameters.buildScript }}
-            -restore -build
-            -pack
-            -configuration ${{ parameters.buildConfig }}
-            /p:ArchiveTests=true
-            /bl:${{ parameters.repoLogPath }}/build.binlog
-            $(_OfficialBuildIdArgs)
-    displayName: Build
+  # Internal pipeline: Build with pack+sign
+  - ${{ if ne(parameters.runAsPublic, 'true') }}:
+    - script: ${{ parameters.buildScript }}
+              -restore -build
+              -pack
+              -sign $(_SignArgs)
+              -publish $(_PublishArgs)
+              -configuration ${{ parameters.buildConfig }}
+              /bl:${{ parameters.repoLogPath }}/build.binlog
+              $(_OfficialBuildIdArgs)
+              $(_InternalBuildArgs)
+      displayName: Build
 
-  - ${{ if ne(parameters.skipTests, 'true') }}:
+  # Public pipeline - helix tests
+  - ${{ if eq(parameters.runAsPublic, 'true') }}:
+    - script: ${{ parameters.buildScript }}
+              -restore -build
+              -configuration ${{ parameters.buildConfig }}
+              -pack
+              /p:ArchiveTests=${{ lower(eq(parameters.runHelixTests, 'true')) }}
+              /bl:${{ parameters.repoLogPath }}/build.binlog
+              $(_OfficialBuildIdArgs)
+      displayName: Build
+
+  # Non-helix tests are run only on the public pipeline
+  - ${{ if and(eq(parameters.runAsPublic, 'true'), ne(parameters.runHelixTests, 'true')) }}:
+    # non-helix tests
+    - ${{ if ne(parameters.isWindows, 'true') }}:
+      - script: mkdir ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
+                cd ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
+                wget https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/ubuntu-create-dotnet-devcert.sh &&
+                wget https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/common.sh &&
+                chmod +x ubuntu-create-dotnet-devcert.sh &&
+                ./ubuntu-create-dotnet-devcert.sh
+        displayName: Install devcerts
+
+    - ${{ if eq(parameters.isWindows, 'true') }}:
+      - script: dotnet dev-certs https
+        displayName: Install dev-certs
+
     - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
               --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
               --output ${{ parameters.repoTestResultsPath }}/NonHelix.cobertura.xml
               "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog $(_OfficialBuildIdArgs)"
+      env:
+        DOCKER_BUILDKIT: 1
+        # Disable on Linux - https://github.com/dotnet/aspire/issues/4623
+        DISABLE_PLAYWRIGHT_TESTS: ${{ ne(parameters.isWindows, 'true') }}
+        # https://github.com/dotnet/aspire/issues/5195#issuecomment-2271687822
+        DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
+
       displayName: Run non-helix tests
 
+  # Helix tests are run only on the public pipeline
+  - ${{ if and(eq(parameters.runAsPublic, 'true'), eq(parameters.runHelixTests, 'true')) }}:
     - script: ${{ parameters.buildScript }}
               /p:Configuration=${{ parameters.buildConfig }}
               $(_OfficialBuildIdArgs)
-              /bl:${{ parameters.repoLogPath }}/WorkloadInstallForTesting.binlog
+              /bl:${{ parameters.repoLogPath }}/InstallSdksForTesting.binlog
               -projects $(Build.SourcesDirectory)/tests/workloads.proj
-      displayName: Install sdk+workload for testing
+      displayName: Install sdk for testing
 
     # Helix captures code coverage information and, once tests are complete, the code coverage information is
     # downloaded to <repo root>/artifacts/helixresults folder.
     - template: /eng/pipelines/templates/send-to-helix.yml
       parameters:
         HelixProjectPath: '$(Build.SourcesDirectory)/tests/helix/send-to-helix-ci.proj'
-        HelixProjectArguments: /m /p:Configuration=${{ parameters.buildConfig }} /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
+        # Code coverage on windows is disabled: <issue>
+        HelixProjectArguments: /m /p:ContinuousIntegrationBuild=true /p:Configuration=${{ parameters.buildConfig }} /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
 
         ${{ if eq(parameters.isWindows, 'true') }}:
           ${{ if eq(variables['System.TeamProject'], 'public') }}:
@@ -68,6 +108,19 @@ steps:
         HelixBuild: $(Build.BuildNumber)
         HelixAccessToken: $(HelixApiAccessToken)
 
+  - ${{ if eq(parameters.runHelixTests, 'true') }}:
+    - task: CopyFiles@2
+      inputs:
+        Contents: '${{ parameters.repoArtifactsPath }}/helixresults/**/*.trx'
+        TargetFolder: '${{ parameters.repoArtifactsPath }}/log/$(_BuildConfig)/TestResults'
+        flattenFolders: true
+        OverWrite: true
+      displayName: Gather helix trx files
+      continueOnError: true
+      condition: always()
+
+  # Code coverage - only on public pipelines
+  - ${{ if eq(parameters.runAsPublic, 'true') }}:
     - task: CopyFiles@2
       inputs:
         Contents: '${{ parameters.repoArtifactsPath }}/**/*.cobertura.xml'
@@ -75,54 +128,9 @@ steps:
         flattenFolders: true
       displayName: Gather code coverage results
 
-    - ${{ if eq(parameters.runAsPublic, 'true') }}:
-      - task: PublishPipelineArtifact@1
-        displayName: Publish coverage results (cobertura.xml)
-        inputs:
-          targetPath: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
-          artifactName: '$(Agent.JobName)_CodeCoverageResults'
-          publishLocation: 'pipeline'
-
-    - ${{ if ne(parameters.runAsPublic, 'true') }}:
-      - task: 1ES.PublishPipelineArtifact@1
-        displayName: Publish code coverage results
-        inputs:
-          targetPath: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
-          artifactName: '$(Agent.JobName)_CodeCoverageResults'
-
-  - ${{ if eq(parameters.isWindows, 'true') }}:
-    - script: ${{ parameters.buildScript }}
-              -pack
-              -sign $(_SignArgs)
-              -publish $(_PublishArgs)
-              -configuration ${{ parameters.buildConfig }}
-              /bl:${{ parameters.repoLogPath }}/pack.binlog
-              /p:Restore=false /p:Build=false
-              $(_OfficialBuildIdArgs)
-      displayName: Pack, Sign, and Publish
-
-    - script: ${{ parameters.buildScript }}
-        -restore -build
-        -pack
-        -sign $(_SignArgs)
-        -publish $(_PublishArgs)
-        -configuration $(_BuildConfig)
-        /bl:${{ parameters.repoLogPath }}/build-workloads.binlog
-        -projects eng\workloads\workloads.csproj
-        $(_InternalBuildArgs)
-      displayName: Build Workloads
-
-    - ${{ if eq(parameters.runAsPublic, 'true') }}:
-      - task: PublishPipelineArtifact@1
-        displayName: Publish VSDrop MSIs
-        inputs:
-          targetPath: '$(Build.SourcesDirectory)/artifacts/VSSetup/$(_BuildConfig)'
-          artifactName: VSDropInsertion
-          publishLocation: 'pipeline'
-
-    - ${{ if ne(parameters.runAsPublic, 'true') }}:
-      - task: 1ES.PublishPipelineArtifact@1
-        displayName: Publish VSDrop MSIs
-        inputs:
-          targetPath: '$(Build.SourcesDirectory)/artifacts/VSSetup/$(_BuildConfig)'
-          artifactName: VSDropInsertion
+    - task: PublishPipelineArtifact@1
+      displayName: Publish coverage results (cobertura.xml)
+      inputs:
+        targetPath: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
+        artifactName: '$(Agent.JobName)_CodeCoverageResults'
+        publishLocation: 'pipeline'

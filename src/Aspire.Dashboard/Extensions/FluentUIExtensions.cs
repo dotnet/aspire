@@ -5,12 +5,14 @@ namespace Aspire.Dashboard.Extensions;
 
 internal static class FluentUIExtensions
 {
+    public const int InputDelay = 200;
+
     public static Dictionary<string, object> GetClipboardCopyAdditionalAttributes(string? text, string? precopy, string? postcopy, params (string Attribute, object Value)[] additionalAttributes)
     {
         // No onclick attribute is added here. The CSP restricts inline scripts, including onclick.
         // Instead, a click event listener is added to the document and clicking the button is bubbled up to the event.
         // The document click listener looks for a button element and these attributes.
-        var attributes = new Dictionary<string, object>
+        var attributes = new Dictionary<string, object>(StringComparers.HtmlAttribute)
         {
             { "data-text", text ?? string.Empty },
             { "data-precopy", precopy ?? string.Empty },

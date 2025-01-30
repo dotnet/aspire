@@ -2,8 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Http.Json;
-using Aspire.Hosting.Tests.Helpers;
+using Aspire.Components.Common.Tests;
+using Aspire.Hosting.Tests.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Xunit;
 
 namespace Aspire.Hosting.Testing.Tests;
@@ -12,7 +15,8 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
 {
     private readonly DistributedApplication _app = fixture.Application;
 
-    [LocalOnlyFact]
+    [Fact]
+    [RequiresDocker]
     public async Task HasEndPoints()
     {
         // Get an endpoint from a resource
@@ -26,7 +30,17 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
         Assert.True(pgConnectionString.Length > 0);
     }
 
-    [LocalOnlyFact]
+    [Fact]
+    [RequiresDocker]
+    public async Task CanGetConnectionStringFromAddConnectionString()
+    {
+        // Get a connection string from a resource
+        var connectionString = await _app.GetConnectionStringAsync("cs");
+        Assert.Equal("testconnection", connectionString);
+    }
+
+    [Fact]
+    [RequiresDocker]
     public void CanGetResources()
     {
         var appModel = _app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -34,13 +48,47 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
         Assert.Contains(appModel.GetProjectResources(), p => p.Name == "myworker1");
     }
 
-    [LocalOnlyFact]
+    [Fact]
+    [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4650", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task HttpClientGetTest()
     {
-        var httpClient = _app.CreateHttpClient("mywebapp1");
+        // Wait for the application to be ready
+        await _app.WaitForTextAsync("Application started.", "mywebapp1").WaitAsync(TimeSpan.FromMinutes(1));
+
+        var httpClient = _app.CreateHttpClientWithResilience("mywebapp1");
+
         var result1 = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
         Assert.NotNull(result1);
         Assert.True(result1.Length > 0);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public void SetsCorrectContentRoot()
+    {
+        var appModel = _app.Services.GetRequiredService<IHostEnvironment>();
+        Assert.Contains("TestingAppHost1", appModel.ContentRootPath);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4650")]
+    public async Task SelectsFirstLaunchProfile()
+    {
+        var config = _app.Services.GetRequiredService<IConfiguration>();
+        var profileName = config["AppHost:DefaultLaunchProfileName"];
+        Assert.Equal("https", profileName);
+
+        // Wait for resource to start.
+        var rns = _app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceAsync("mywebapp1").WaitAsync(TimeSpan.FromSeconds(60));
+
+        // Explicitly get the HTTPS endpoint - this is only available on the "https" launch profile.
+        var httpClient = _app.CreateHttpClientWithResilience("mywebapp1", "https");
+        var result = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
     }
 
     private sealed record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)

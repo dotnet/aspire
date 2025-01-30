@@ -1,12 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Components.Resize;
+using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Bunit;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
@@ -17,15 +18,13 @@ namespace Aspire.Dashboard.Components.Tests.Controls;
 [UseCulture("en-US")]
 public class PlotlyChartTests : TestContext
 {
-    private const string ContainerHtml = "<div id=\"plotly-chart-container\" style=\"width:650px; height:450px;\"></div>";
+    private static string GetContainerHtml(string divId) => $"""<div id="{divId}" class="plotly-chart-container"></div>""";
 
     [Fact]
     public void Render_NoInstrument_NoPlotlyInvocations()
     {
         // Arrange
-        Services.AddLocalization();
-        Services.AddSingleton<IInstrumentUnitResolver, TestInstrumentUnitResolver>();
-        Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
+        MetricsSetupHelpers.SetupPlotlyChart(this);
 
         var model = new InstrumentViewModel();
 
@@ -33,36 +32,43 @@ public class PlotlyChartTests : TestContext
         var cut = RenderComponent<PlotlyChart>(builder =>
         {
             builder.Add(p => p.InstrumentViewModel, model);
+            builder.Add(p => p.ViewportInformation, new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
         });
 
         // Assert
-        cut.MarkupMatches(ContainerHtml);
+        cut.MarkupMatches(GetContainerHtml(cut.Instance.ChartDivId));
 
-        Assert.Empty(JSInterop.Invocations);
+        Assert.Collection(JSInterop.Invocations,
+            i =>
+            {
+                Assert.Equal("import", i.Identifier);
+                Assert.Equal("/js/app-metrics.js", i.Arguments[0]);
+            });
     }
 
     [Fact]
     public async Task Render_HasInstrument_InitializeChartInvocation()
     {
         // Arrange
-        JSInterop.SetupVoid("initializeChart", _ => true);
-
-        Services.AddLocalization();
-        Services.AddSingleton<IInstrumentUnitResolver, TestInstrumentUnitResolver>();
-        Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
+        MetricsSetupHelpers.SetupPlotlyChart(this);
 
         var options = new TelemetryLimitOptions();
+        var logger = NullLogger.Instance;
+        var context = new OtlpContext { Options = options, Logger = logger };
         var instrument = new OtlpInstrument
         {
-            Name = "Name-<b>Bold</b>",
-            Unit = "Unit-<b>Bold</b>",
-            Options = options,
-            Description = "Description-<b>Bold</b>",
-            Parent = new OtlpMeter(new InstrumentationScope
+            Summary = new OtlpInstrumentSummary
             {
-                Name = "Parent-Name-<b>Bold</b>"
-            }, options),
-            Type = OtlpInstrumentType.Sum
+                Name = "Name-<b>Bold</b>",
+                Unit = "Unit-<b>Bold</b>",
+                Description = "Description-<b>Bold</b>",
+                Parent = new OtlpMeter(new InstrumentationScope
+                {
+                    Name = "Parent-Name-<b>Bold</b>"
+                }, context),
+                Type = OtlpInstrumentType.Sum
+            },
+            Context = context
         };
 
         var model = new InstrumentViewModel();
@@ -72,54 +78,36 @@ public class PlotlyChartTests : TestContext
             AsInt = 1,
             StartTimeUnixNano = 0,
             TimeUnixNano = long.MaxValue
-        });
+        }, context);
 
-        await model.UpdateDataAsync(instrument, new List<DimensionScope>
-        {
-            dimension
-        });
+        await model.UpdateDataAsync(instrument.Summary, [dimension]);
 
         // Act
         var cut = RenderComponent<PlotlyChart>(builder =>
         {
             builder.Add(p => p.InstrumentViewModel, model);
             builder.Add(p => p.Duration, TimeSpan.FromSeconds(1));
+            builder.Add(p => p.ViewportInformation, new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
         });
 
         // Assert
-        cut.MarkupMatches(ContainerHtml);
+        cut.MarkupMatches(GetContainerHtml(cut.Instance.ChartDivId));
 
-        var result = Assert.Single(JSInterop.Invocations);
-        Assert.Equal("initializeChart", result.Identifier);
-        Assert.Equal("plotly-chart-container", result.Arguments[0]);
-        Assert.Collection((IEnumerable<PlotlyTrace>)result.Arguments[1]!, trace =>
-        {
-            Assert.Equal("Unit-&lt;b&gt;Bold&lt;/b&gt;", trace.Name);
-            Assert.Equal("<b>Name-&lt;b&gt;Bold&lt;/b&gt;</b><br />Unit-&lt;b&gt;Bold&lt;/b&gt;: 1<br />Time: 12:59:57 AM", trace.Tooltips[0]);
-        });
-    }
-
-    private sealed class TestInstrumentUnitResolver : IInstrumentUnitResolver
-    {
-        public string ResolveDisplayedUnit(OtlpInstrument instrument)
-        {
-            return instrument.Unit;
-        }
-    }
-
-    private sealed class TestTimeProvider : BrowserTimeProvider
-    {
-        private TimeZoneInfo? _localTimeZone;
-
-        public TestTimeProvider() : base(NullLoggerFactory.Instance)
-        {
-        }
-
-        public override DateTimeOffset GetUtcNow()
-        {
-            return new DateTimeOffset(2025, 12, 20, 23, 59, 59, TimeSpan.Zero);
-        }
-
-        public override TimeZoneInfo LocalTimeZone => _localTimeZone ??= TimeZoneInfo.CreateCustomTimeZone(nameof(PlotlyChartTests), TimeSpan.FromHours(1), nameof(PlotlyChartTests), nameof(PlotlyChartTests));
+        Assert.Collection(JSInterop.Invocations,
+            i =>
+            {
+                Assert.Equal("import", i.Identifier);
+                Assert.Equal("/js/app-metrics.js", i.Arguments[0]);
+            },
+            i =>
+            {
+                Assert.Equal("initializeChart", i.Identifier);
+                Assert.Equal(cut.Instance.ChartDivId, i.Arguments[0]);
+                Assert.Collection((IEnumerable<PlotlyTrace>)i.Arguments[1]!, trace =>
+                {
+                    Assert.Equal("Unit-&lt;b&gt;Bold&lt;/b&gt;", trace.Name);
+                    Assert.Equal("<b>Name-&lt;b&gt;Bold&lt;/b&gt;</b><br />Unit-&lt;b&gt;Bold&lt;/b&gt;: 1<br />Time: 12:59:57 AM", trace.Tooltips[0]);
+                });
+            });
     }
 }

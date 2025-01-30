@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -211,7 +212,7 @@ public class WithEndpointTests
 
         var resource = Assert.Single(exeResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("foo", resource.Name);
         var endpoints = resource.Annotations.OfType<EndpointAnnotation>().ToArray();
@@ -268,7 +269,7 @@ public class WithEndpointTests
         var container = builder.AddContainer("app", "image")
                                .WithEndpoint(name: "ep0", port: 8080, targetPort: 3000);
 
-        var manifest = await ManifestUtils.GetManifest(container.Resource);
+        var manifest = await ManifestUtils.GetManifest(container.Resource).DefaultTimeout();
         var expectedManifest =
             """
             {
@@ -296,7 +297,7 @@ public class WithEndpointTests
         var container = builder.AddContainer("app", "image")
                                .WithHttpEndpoint(name: "h1", targetPort: 3001);
 
-        var manifest = await ManifestUtils.GetManifest(container.Resource);
+        var manifest = await ManifestUtils.GetManifest(container.Resource).DefaultTimeout();
         var expectedManifest =
             """
             {
@@ -323,7 +324,7 @@ public class WithEndpointTests
         var container = builder.AddContainer("app", "image")
                                .WithHttpsEndpoint(name: "h2", targetPort: 3001);
 
-        var manifest = await ManifestUtils.GetManifest(container.Resource);
+        var manifest = await ManifestUtils.GetManifest(container.Resource).DefaultTimeout();
         var expectedManifest =
             """
             {
@@ -350,7 +351,7 @@ public class WithEndpointTests
         var container = builder.AddContainer("app", "image")
                                .WithHttpEndpoint(name: "h3");
 
-        var manifest = await ManifestUtils.GetManifest(container.Resource);
+        var manifest = await ManifestUtils.GetManifest(container.Resource).DefaultTimeout();
         var expectedManifest =
             """
             {
@@ -377,7 +378,7 @@ public class WithEndpointTests
         var container = builder.AddContainer("app", "image")
                                .WithHttpsEndpoint(name: "h4");
 
-        var manifest = await ManifestUtils.GetManifest(container.Resource);
+        var manifest = await ManifestUtils.GetManifest(container.Resource).DefaultTimeout();
         var expectedManifest =
             """
             {
@@ -404,7 +405,7 @@ public class WithEndpointTests
         var container = builder.AddContainer("app", "image")
                                .WithHttpEndpoint(name: "otlp", port: 1004);
 
-        var manifest = await ManifestUtils.GetManifest(container.Resource);
+        var manifest = await ManifestUtils.GetManifest(container.Resource).DefaultTimeout();
         var expectedManifest =
             """
             {
@@ -431,7 +432,7 @@ public class WithEndpointTests
         var container = builder.AddContainer("app", "image")
                                .WithEndpoint(name: "custom");
 
-        var manifest = await ManifestUtils.GetManifest(container.Resource);
+        var manifest = await ManifestUtils.GetManifest(container.Resource).DefaultTimeout();
         var expectedManifest =
             """
             {
@@ -452,14 +453,17 @@ public class WithEndpointTests
     }
 
     [Fact]
-    public async Task VerifyManifestProjectWithHttpEndpointDoesNotAllocatePort()
+    public async Task VerifyManifestProjectWithDefaultHttpEndpointsDoesNotAllocatePort()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         var project = builder.AddProject<TestProject>("proj")
-            .WithHttpEndpoint(name: "hp")
-            .WithHttpsEndpoint(name: "hps");
+            .WithHttpEndpoint(name: "hp")       // Won't get targetPort since it's the first http
+            .WithHttpEndpoint(name: "hp2")      // Will get a targetPort
+            .WithHttpsEndpoint(name: "hps")     // Won't get targetPort since it's the first https
+            .WithHttpsEndpoint(name: "hps2")   // Will get a targetPort
+            .WithEndpoint(scheme: "tcp", name: "tcp0");  // Will get a targetPort
 
-        var manifest = await ManifestUtils.GetManifest(project.Resource);
+        var manifest = await ManifestUtils.GetManifest(project.Resource).DefaultTimeout();
 
         var expectedManifest =
             """
@@ -470,7 +474,9 @@ public class WithEndpointTests
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
-                "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
+                "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+                "HTTP_PORTS": "{proj.bindings.hp.targetPort};{proj.bindings.hp2.targetPort}",
+                "HTTPS_PORTS": "{proj.bindings.hps.targetPort};{proj.bindings.hps2.targetPort}"
               },
               "bindings": {
                 "hp": {
@@ -478,16 +484,70 @@ public class WithEndpointTests
                   "protocol": "tcp",
                   "transport": "http"
                 },
+                "hp2": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "targetPort": 8000
+                },
                 "hps": {
                   "scheme": "https",
                   "protocol": "tcp",
                   "transport": "http"
+                },
+                "hps2": {
+                  "scheme": "https",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "targetPort": 8001
+                },
+                "tcp0": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "targetPort": 8002
                 }
               }
             }
             """;
 
         Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyManifestProjectWithEndpointsSetsPortsEnvVariables()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var project = builder.AddProject<TestProject>("proj")
+            .WithHttpEndpoint()
+            .WithHttpEndpoint(name: "hp1", port: 5001)
+            .WithHttpEndpoint(name: "hp2", port: 5002, targetPort: 5003)
+            .WithHttpEndpoint(name: "hp3", targetPort: 5004)
+            .WithHttpEndpoint(name: "hp4")
+            .WithHttpEndpoint(name: "dontinjectme")
+            .WithHttpsEndpoint()
+            .WithHttpsEndpoint(name: "hps1", port: 7001)
+            .WithHttpsEndpoint(name: "hps2", port: 7002, targetPort: 7003)
+            .WithHttpsEndpoint(name: "hps3", targetPort: 7004)
+            .WithHttpsEndpoint(name: "hps4", targetPort: 7005)
+            // Should not be included in HTTP_PORTS
+            .WithEndpointsInEnvironment(e => e.Name != "dontinjectme");
+
+        var manifest = await ManifestUtils.GetManifest(project.Resource).DefaultTimeout();
+
+        var expectedEnv =
+            """
+            {
+              "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+              "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+              "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+              "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+              "HTTP_PORTS": "{proj.bindings.http.targetPort};{proj.bindings.hp1.targetPort};{proj.bindings.hp2.targetPort};{proj.bindings.hp3.targetPort};{proj.bindings.hp4.targetPort}",
+              "HTTPS_PORTS": "{proj.bindings.https.targetPort};{proj.bindings.hps1.targetPort};{proj.bindings.hps2.targetPort};{proj.bindings.hps3.targetPort};{proj.bindings.hps4.targetPort}"
+            }
+            """;
+
+        Assert.Equal(expectedEnv, manifest["env"]!.ToString());
     }
 
     [Fact]
@@ -500,7 +560,7 @@ public class WithEndpointTests
         var container1 = builder.AddContainer("app1", "image")
                                .WithEndpoint(name: "custom");
 
-        var manifests = await ManifestUtils.GetManifests([container0.Resource, container1.Resource]);
+        var manifests = await ManifestUtils.GetManifests([container0.Resource, container1.Resource]).DefaultTimeout();
         var expectedManifest0 =
             """
             {

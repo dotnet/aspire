@@ -5,8 +5,14 @@ using System.Text.Json.Serialization;
 
 namespace Aspire.Hosting;
 
-internal sealed class LaunchSettings
+/// <summary>
+/// Represents the launch settings for a <see cref="ApplicationModel.ProjectResource"/>.
+/// </summary>
+public sealed class LaunchSettings
 {
+    /// <summary>
+    /// Gets or sets the collection of named launch profiles associated with the <see cref="ApplicationModel.ProjectResource"/>.
+    /// </summary>
     [JsonPropertyName("profiles")]
-    public Dictionary<string, LaunchProfile> Profiles { get; set; } = new Dictionary<string, LaunchProfile>();
+    public Dictionary<string, LaunchProfile> Profiles { get; set; } = [];
 }

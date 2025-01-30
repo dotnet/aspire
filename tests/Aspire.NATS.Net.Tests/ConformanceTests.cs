@@ -18,9 +18,9 @@ public class ConformanceTests : ConformanceTests<INatsConnection, NatsClientSett
     public ConformanceTests(NatsContainerFixture containerFixture)
     {
         _containerFixture = containerFixture;
-        _connectionString = RequiresDockerTheoryAttribute.IsSupported
+        _connectionString = RequiresDockerAttribute.IsSupported
             ? _containerFixture.GetConnectionString()
-            : "nats://apire-host:4222";
+            : "nats://user:password@apire-host:4222";
     }
 
     protected override bool SupportsKeyedRegistrations => true;
@@ -33,6 +33,9 @@ public class ConformanceTests : ConformanceTests<INatsConnection, NatsClientSett
         "NATS.Client.Core.NatsSubBase",
         "NATS.Client.Core.NatsConnection",
     ];
+
+    protected override string? ConfigurationSectionName => "Aspire:NATS:Net";
+
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NatsClientSettings>? configure = null, string? key = null)
     {
         if (key is null)
@@ -53,7 +56,7 @@ public class ConformanceTests : ConformanceTests<INatsConnection, NatsClientSett
 
     protected override bool CanCreateClientWithoutConnectingToServer => false;
 
-    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
+    protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
     protected override void TriggerActivity(INatsConnection service)
     {

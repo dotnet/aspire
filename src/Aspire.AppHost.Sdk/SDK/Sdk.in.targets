@@ -1,0 +1,147 @@
+<Project>
+
+  <!--
+  A property-based workload cannot import props files (except AutoImport.props, which has very tight limitations.
+  Instead, we copy everything from Aspire.Hosting.AppHost.props into these targets.
+  This means they cannot be overridden in the csproj, and may cause ordering issues, particularly StaticWebAssets.
+  -->
+
+  <ItemGroup>
+    <ProjectCapability Include="DynamicFileNesting" />
+    <ProjectCapability Include="DynamicFileNestingEnabled" />
+    <ProjectCapability Include="AspireOrchestration" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <!-- Aspire hosting projects aren't publishable right now until https://github.com/dotnet/aspire/issues/147 is good -->
+    <IsPublishable Condition="'$(IsPublishable)' == ''">false</IsPublishable>
+    <IsPackable Condition="'$(IsPackable)' == ''">false</IsPackable>
+  </PropertyGroup>
+
+  <!--
+  Default AppHost ProjectReference items to not be referenced in the AppHost, unless it is IsAspireProjectResource=false.
+  This defaulting needs to happen in the SDK targets so this metadata affects NuGet Restore.
+  -->
+  <ItemGroup Condition="'$(IsAspireHost)' == 'true'">
+    
+    <ProjectReference Update="@(ProjectReference)">
+      <IsAspireProjectResource Condition="'%(IsAspireProjectResource)' != 'false'">true</IsAspireProjectResource>
+
+      <ReferenceOutputAssembly Condition="'%(ReferenceOutputAssembly)' == '' and '%(IsAspireProjectResource)' == 'true'">false</ReferenceOutputAssembly>
+      <SkipGetTargetFrameworkProperties Condition="'%(SkipGetTargetFrameworkProperties)' == '' and '%(IsAspireProjectResource)' == 'true'">true</SkipGetTargetFrameworkProperties>
+      <ExcludeAssets Condition="'%(ExcludeAssets)' == '' and '%(IsAspireProjectResource)' == 'true'">all</ExcludeAssets>
+      <Private Condition="'%(Private)' == '' and '%(IsAspireProjectResource)' == 'true'">false</Private>
+    </ProjectReference>
+
+  </ItemGroup>
+
+  <Target Name="__WarnOnAspireCapabilityMissing" BeforeTargets="PrepareForBuild" Condition="!@(ProjectCapability->AnyHaveMetadataValue('Identity', 'Aspire'))">
+    <Warning Code="ASPIRE002" Text="$(MSBuildProjectName) is an Aspire AppHost project but necessary dependencies aren't present. Are you missing an Aspire.Hosting.AppHost PackageReference?" />
+  </Target>
+
+  <Target Name="__WarnOnMininumVsVersionMissing" BeforeTargets="PrepareForBuild" Condition="'$(BuildingInsideVisualStudio)' == 'true' and $([MSBuild]::VersionLessThan('$(MSBuildVersion)', '17.10.0'))">
+    <Warning Code="ASPIRE003" Text="$(MSBuildProjectName) is a .NET Aspire AppHost project that requires Visual Studio version 17.10 or above to work correctly. You are using version $(MSBuildVersion)." />
+  </Target>
+
+  <PropertyGroup>
+    <AspireRidToolRoot>$(MSBuildThisFileDirectory)..\tools\@DefaultTargetFramework@\</AspireRidToolRoot>
+    <AspireRidToolDirectory>$([MSBuild]::NormalizePath('$(AspireRidToolRoot)\'))</AspireRidToolDirectory>
+    <AspireRidToolExecutable>$(AspireRidToolDirectory)Aspire.RuntimeIdentifier.Tool.dll</AspireRidToolExecutable>
+  </PropertyGroup>
+
+  <!-- This target extracts the version of Aspire.Hosting.AppHost referenced by the project, and adds
+       a reference to Aspire.Dashboard.Sdk and Aspire.Hosting.Orchestration for the build-time platform using
+       the same version. This is done here dynamically to avoid having to pull in DCP and Dashboard packages
+       for all of the platforms. This mechanism can be disabled by setting `SkipAddAspireDefaultReferences` to `true` -->
+  <Target Name="AddReferenceToDashboardAndDCP" BeforeTargets="Restore;CollectPackageReferences" Condition="'$(SkipAddAspireDefaultReferences)' != 'true'">
+
+    <!-- First, we assume project is not using Central Package Management, and we try to extract the version
+         from PackageReference Items. -->
+    <ItemGroup>
+      <_AppHostPackageReference Include="@(PackageReference)" Condition="'%(Identity)' == 'Aspire.Hosting.AppHost'" />
+    </ItemGroup>
+
+    <!-- Extract the Version metadata -->
+    <PropertyGroup>
+      <_AppHostVersion>%(_AppHostPackageReference.Version)</_AppHostVersion>
+    </PropertyGroup>
+
+    <!-- If the version is still empty, then we assume the project is using Central Package Management, 
+         and we try to extract the PackageVersion Items. -->
+    <ItemGroup Condition="'$(_AppHostVersion)' == ''">
+      <_AppHostPackageReference />
+      <_AppHostPackageReference Include="@(PackageVersion)" Condition="'%(Identity)' == 'Aspire.Hosting.AppHost'" />
+    </ItemGroup>
+
+    <PropertyGroup Condition="'$(_AppHostVersion)' == ''">
+      <_AppHostVersion>%(_AppHostPackageReference.Version)</_AppHostVersion>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(_AppHostVersion)' != ''">
+      <!-- Check if the version is in the format major.minor.patch -->
+      <_IsValidVersion>$([System.Text.RegularExpressions.Regex]::IsMatch('$(_AppHostVersion)', '^\d+\.\d+\.\d+$'))</_IsValidVersion>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(_AppHostVersion)' != '' and '$(_IsValidVersion)' == 'true' and $([MSBuild]::VersionLessThan('$(_AppHostVersion)', '8.2.0'))">
+      <!-- If we find the version to Aspire.Hosting.AppHost package but it is lower than 8.2.0, then we fall back
+      to use the Dashboard and DCP packages that match the version of the installed workload for backwards compatibility.
+      This results in the same behavior that we had before moving Dashboard and DCP out of the workload, since the version
+      is again just matching to the one the workload has. -->
+      <_AppHostVersion>@VERSION@</_AppHostVersion>
+    </PropertyGroup>
+
+    <!-- At this point, we should have the version either by CPM or PackageReference, so we fail if not. -->
+    <Error Condition="'$(_AppHostVersion)' == ''" 
+       Text="$(MSBuildProjectName) is a .NET Aspire AppHost project that needs a package reference to Aspire.Hosting.AppHost version 8.2.0 or above to work correctly." />
+
+    <!--The following is the list of the RIDs that we currently multitarget for DCP and Dashboard packages-->
+    <ItemGroup>
+      <_DashboardAndDCPSupportedTargetingRIDs Include="win-x64" />
+      <_DashboardAndDCPSupportedTargetingRIDs Include="win-x86" />
+      <_DashboardAndDCPSupportedTargetingRIDs Include="win-arm64" />
+      <_DashboardAndDCPSupportedTargetingRIDs Include="linux-x64" />
+      <_DashboardAndDCPSupportedTargetingRIDs Include="linux-arm64" />
+      <_DashboardAndDCPSupportedTargetingRIDs Include="osx-x64" />
+      <_DashboardAndDCPSupportedTargetingRIDs Include="osx-arm64" />
+    </ItemGroup>
+
+    <!-- If running in .NET Core, DOTNET_HOST_PATH is set to point to the dotnet executable being used
+    for the build. -->
+    <PropertyGroup>
+      <_DotNetHostPath>$(DOTNET_HOST_PATH)</_DotNetHostPath>
+    </PropertyGroup>
+
+    <!-- If running on .NET Framework MSBuild, then DOTNET_HOST_PATH won't be set, so we need to construct
+    the path using well-known properties. -->
+    <PropertyGroup Condition="'$(_DotNetHostPath)' == ''">
+      <_DotNetHostDirectory>$(NetCoreRoot)</_DotNetHostDirectory>
+      <_DotNetHostFileName>dotnet</_DotNetHostFileName>
+      <_DotNetHostFileName Condition="'$(OS)' == 'Windows_NT'">dotnet.exe</_DotNetHostFileName>
+
+      <_DotNetHostPath>$(_DotNetHostDirectory)\$(_DotNetHostFileName)</_DotNetHostPath>
+    </PropertyGroup>
+
+    <!-- Call Aspire.RuntimeIdentifier.Tool to get the RIDs for Dashboard and DCP packages -->
+    <Exec Command="&quot;$(_DotNetHostPath)&quot; exec &quot;$(AspireRidToolExecutable)&quot; --runtimeGraphPath &quot;$(BundledRuntimeIdentifierGraphFile)&quot; --supportedRids &quot;@(_DashboardAndDCPSupportedTargetingRIDs -> '%(Identity)', ',')&quot; --netcoreSdkRuntimeIdentifier &quot;$(NETCoreSdkRuntimeIdentifier)&quot;"
+          ConsoleToMSBuild="true"
+          StandardOutputImportance="Low"
+          IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="_AspireRidToolExitCode" />
+      <Output TaskParameter="ConsoleOutput" ItemName="_AspireRidToolOutput" />
+    </Exec>
+
+    <Error Condition="$(_AspireRidToolExitCode) != 0" Text="Failed to run Aspire.RuntimeIdentifier.Tool. Exit code: $(_AspireRidToolExitCode). Output: @(_AspireRidToolOutput)" />
+
+    <PropertyGroup>
+      <_DashboardAndDcpRID>@(_AspireRidToolOutput)</_DashboardAndDcpRID>
+    </PropertyGroup>
+
+    
+    <!-- Now that we have the version, we add the package references -->
+    <ItemGroup>
+      <PackageReference Include="Aspire.Dashboard.Sdk.$(_DashboardAndDcpRID)" Version="$(_AppHostVersion)" IsImplicitlyDefined="true" />
+      <PackageReference Include="Aspire.Hosting.Orchestration.$(_DashboardAndDcpRID)" Version="$(_AppHostVersion)" IsImplicitlyDefined="true" />
+    </ItemGroup>
+  </Target>
+
+</Project>

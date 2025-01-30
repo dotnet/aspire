@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Storage.Blobs" />
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Storage.Queues" />
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Messaging.EventHubs" />
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Messaging.ServiceBus" />
+    <AspireProjectOrPackageReference Include="Aspire.Microsoft.Azure.Cosmos" />
+  </ItemGroup>
+
+</Project>

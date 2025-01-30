@@ -3,7 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire;
-using Aspire.Hosting.Azure.Cosmos;
+using Aspire.Hosting.Azure.CosmosDB;
 using Aspire.Microsoft.EntityFrameworkCore.Cosmos;
 using Azure.Identity;
 using Microsoft.Azure.Cosmos;
@@ -133,21 +133,19 @@ public static class AspireAzureEFCoreCosmosExtensions
 
         if (settings.RequestTimeout.HasValue)
         {
+            builder.CheckDbContextRegistered<TContext>();
+
+#if NET9_0_OR_GREATER
+            builder.Services.ConfigureDbContext<TContext>(optionsBuilder =>
+            {
+                ConfigureRequestTimeout<TContext>(optionsBuilder, settings);
+            });
+#else
             builder.PatchServiceDescriptor<TContext>(optionsBuilder =>
             {
-#pragma warning disable EF1001 // Internal EF Core API usage.
-                var extension = optionsBuilder.Options.FindExtension<CosmosOptionsExtension>();
-
-                if (extension != null &&
-                    extension.RequestTimeout.HasValue &&
-                    extension.RequestTimeout != settings.RequestTimeout)
-                {
-                    throw new InvalidOperationException($"Conflicting values for 'RequestTimeout' were found in {nameof(EntityFrameworkCoreCosmosSettings)} and set in DbContextOptions<{typeof(TContext).Name}>.");
-                }
-
-                extension?.WithRequestTimeout(settings.RequestTimeout);
-#pragma warning restore EF1001 // Internal EF Core API usage.
+                ConfigureRequestTimeout<TContext>(optionsBuilder, settings);
             });
+#endif
         }
         else
         {
@@ -155,6 +153,22 @@ public static class AspireAzureEFCoreCosmosExtensions
         }
 
         ConfigureInstrumentation<TContext>(builder, settings);
+    }
+
+    private static void ConfigureRequestTimeout<TContext>(DbContextOptionsBuilder builder, EntityFrameworkCoreCosmosSettings settings)
+    {
+#pragma warning disable EF1001 // Internal EF Core API usage.
+        var extension = builder.Options.FindExtension<CosmosOptionsExtension>();
+
+        if (extension != null &&
+            extension.RequestTimeout.HasValue &&
+            extension.RequestTimeout != settings.RequestTimeout)
+        {
+            throw new InvalidOperationException($"Conflicting values for 'RequestTimeout' were found in {nameof(EntityFrameworkCoreCosmosSettings)} and set in DbContextOptions<{typeof(TContext).Name}>.");
+        }
+
+        extension?.WithRequestTimeout(settings.RequestTimeout);
+#pragma warning restore EF1001 // Internal EF Core API usage.
     }
 
     private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, EntityFrameworkCoreCosmosSettings settings) where TContext : DbContext

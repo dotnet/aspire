@@ -39,21 +39,35 @@ internal sealed class EventProcessorClientComponent()
         return azureFactoryBuilder.AddClient<EventProcessorClient, EventProcessorClientOptions>(
             (options, cred, provider) =>
             {
+                // ensure that the connection string or namespace+eventhubname is provided 
                 EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
 
                 options.Identifier ??= GenerateClientIdentifier(settings.EventHubName, settings.ConsumerGroup);
 
                 var containerClient = GetBlobContainerClient(settings, provider, configurationSectionName);
 
-                var processor = !string.IsNullOrEmpty(settings.ConnectionString)
-                    ? new EventProcessorClient(containerClient,
-                        settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName,
-                        settings.ConnectionString)
-                    : new EventProcessorClient(containerClient,
-                        settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName, settings.FullyQualifiedNamespace,
-                        settings.EventHubName, cred, options);
+                var consumerGroup = settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName;
 
-                return processor;
+                if (string.IsNullOrEmpty(settings.ConnectionString))
+                {
+                    return new EventProcessorClient(containerClient,
+                        consumerGroup,
+                        settings.FullyQualifiedNamespace,
+                        settings.EventHubName, cred, options);
+                }
+
+                if (string.IsNullOrEmpty(settings.EventHubName))
+                {
+                    return new EventProcessorClient(containerClient,
+                        consumerGroup,
+                        settings.ConnectionString, options);
+                }
+
+                return new EventProcessorClient(containerClient,
+                    consumerGroup,
+                    settings.ConnectionString,
+                    settings.EventHubName, options);
+
             });
     }
 

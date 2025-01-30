@@ -1,14 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting rabbitmq</PackageTags>
+    <PackageTags>aspire integration hosting rabbitmq</PackageTags>
     <Description>RabbitMQ support for .NET Aspire.</Description>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <MinCodeCoverage>59</MinCodeCoverage>
+  </PropertyGroup>
+
   <ItemGroup>
-    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
+    <PackageReference Include="AspNetCore.HealthChecks.Rabbitmq" />
   </ItemGroup>
 
   <ItemGroup>

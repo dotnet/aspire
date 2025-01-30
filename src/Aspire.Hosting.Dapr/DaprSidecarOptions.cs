@@ -8,6 +8,7 @@ namespace Aspire.Hosting.Dapr;
 /// <summary>
 /// Options for configuring a Dapr sidecar.
 /// </summary>
+[Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", error: false)]
 public sealed record DaprSidecarOptions
 {
     /// <summary>
@@ -156,6 +157,15 @@ public sealed record DaprSidecarOptions
     /// Gets or sets the directory of the Dapr runtime (i.e. daprd).
     /// </summary>
     public string? RuntimePath { get; init; }
+
+    /// <summary>
+    /// Gets or sets the address of the scheduler service.
+    /// </summary>
+    /// <remarks>
+    /// The format is either "hostname" for the default port or "hostname:port" for a custom port.
+    /// The default is "localhost".
+    /// </remarks>
+    public string? SchedulerHostAddress { get; init; }
 
     /// <summary>
     /// Gets or sets the path to a Unix Domain Socket (UDS) directory.

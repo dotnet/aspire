@@ -1,95 +1,21 @@
 ﻿@using Aspire.Dashboard.Model
-@using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
-@using Humanizer
 
-@inject IStringLocalizer<Columns> Loc
-
-@if (Resource is { State: ResourceStates.ExitedState /* containers */ or ResourceStates.FinishedState /* executables */ or ResourceStates.FailedToStartState })
-{
-    if (Resource.TryGetExitCode(out int exitCode) && exitCode is not 0)
-    {
-        <!-- process completed unexpectedly, hence the non-zero code. this is almost certainly an error, so warn users -->
-        <FluentIcon Title="@string.Format(Loc[Columns.StateColumnResourceExitedUnexpectedly], Resource.ResourceType, exitCode)"
-                    Icon="Icons.Filled.Size16.ErrorCircle"
-                    Color="Color.Error"
-                    Class="severity-icon" />
-    }
-    else
-    {
-        <!-- process completed, which may not have been unexpected -->
-        <FluentIcon Title="@string.Format(Loc[Columns.StateColumnResourceExited], Resource.ResourceType)"
-                    Icon="Icons.Filled.Size16.Warning"
-                    Color="Color.Warning"
-                    Class="severity-icon" />
-    }
+@{
+    // Create view model every render. The resource state may have changed.
+    var vm = ResourceStateViewModel.GetStateViewModel(Resource, Loc);
 }
-else if (Resource is { State: ResourceStates.StartingState })
-{
-    <FluentIcon Icon="Icons.Regular.Size16.CircleHint"
-                Color="Color.Info"
+
+<div class="state-column-cell">
+
+    <FluentIcon Value="@vm.Icon"
+                Color="@vm.Color"
                 Class="severity-icon" />
-}
-else if (Resource is { State: /* unknown */ null or { Length: 0 } })
-{
-    <FluentIcon Icon="Icons.Filled.Size16.Circle"
-                Color="Color.Neutral"
-                Class="severity-icon" />
-}
-else if (!string.IsNullOrEmpty(Resource.StateStyle))
-{
-    switch (Resource.StateStyle)
-    {
-        case "warning":
-            <FluentIcon Icon="Icons.Filled.Size16.Warning"
-                        Color="Color.Warning"
-                        Class="severity-icon" />
-            break;
-        case "error":
-            <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle"
-                        Color="Color.Error"
-                        Class="severity-icon" />
-            break;
-        case "success":
-            <FluentIcon Icon="Icons.Filled.Size16.CheckmarkCircle"
-                        Color="Color.Success"
-                        Class="severity-icon" />
-            break;
-        case "info":
-            <FluentIcon Icon="Icons.Filled.Size16.Info"
-                        Color="Color.Info"
-                        Class="severity-icon" />
-            break;
-        default:
-            <FluentIcon Icon="Icons.Filled.Size16.Circle"
-                        Color="Color.Neutral"
-                        Class="severity-icon" />
-            break;
-    }
-}
-else
-{
-    <FluentIcon Icon="Icons.Filled.Size16.CheckmarkCircle"
-                Color="Color.Success"
-                Class="severity-icon" />
-}
 
-@if (string.IsNullOrEmpty(Resource.State))
-{
-    <span>@Loc[Columns.UnknownStateLabel]</span>
-}
-else
-{
-    <span>@Resource.State.Humanize()</span>
-}
+    <span>@vm.Text</span>
 
-<UnreadLogErrorsBadge UnviewedErrorCounts="UnviewedErrorCounts" Resource="@Resource" />
+    <UnreadLogErrorsBadge
+        UnviewedErrorCounts="UnviewedErrorCounts"
+        Resource="@Resource" />
 
-@code {
-    [Parameter, EditorRequired]
-    public required ResourceViewModel Resource { get; set; }
-
-
-    [Parameter, EditorRequired]
-    public required Dictionary<OtlpApplication, int>? UnviewedErrorCounts { get; set; }
-}
+</div>

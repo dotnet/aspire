@@ -12,17 +12,20 @@ using Xunit;
 
 namespace Aspire.Azure.AI.OpenAI.Tests;
 
-public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettings>
+public class ConformanceTests : ConformanceTests<AzureOpenAIClient, AzureOpenAISettings>
 {
     protected const string Endpoint = "https://aspireopenaitests.openai.azure.com/";
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
-    protected override string[] RequiredLogCategories => new string[] {
-        "Azure.Core"
-    };
+    protected override string[] RequiredLogCategories => [
+        // since we don't have a way to connect to the server, we can't test the actual calls
+        "Azure.Identity"
+    ];
 
     protected override bool SupportsKeyedRegistrations => true;
+
+    protected override string? ConfigurationSectionName => "Aspire:Azure:AI:OpenAI";
 
     protected override string ValidJsonConfig => """
         {
@@ -32,14 +35,9 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
                 "OpenAI": {
                   "Endpoint": "http://YOUR_URI",
                   "DisableTracing": false,
+                  "DisableMetrics": false,
                   "ClientOptions": {
-                    "ConnectionIdleTimeout": "00:10",
-                    "EnableCrossEntityTransactions": true,
-                    "RetryOptions": {
-                      "Mode": "Fixed",
-                      "MaxDelay": "00:00:30"  
-                    },
-                    "TransportType": "AmqpWebSockets"
+                    "NetworkTimeout": "00:00:02"
                   }
                 }
               }
@@ -54,7 +52,7 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
             ("""{"Aspire": { "Azure": { "AI":{ "OpenAI": {"Endpoint": "http://YOUR_URI", "DisableTracing": "true"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
-    protected override string ActivitySourceName => "Azure.AI.OpenAI.OpenAIClient";
+    protected override string ActivitySourceName => "OpenAI.ChatClient";
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
@@ -86,21 +84,27 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
 
     [Fact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
+        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null), EnableTelemetry()).Dispose();
 
     [Fact]
     public void TracingEnablesTheRightActivitySource_Keyed()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
+        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key"), EnableTelemetry()).Dispose();
 
     protected override void SetHealthCheck(AzureOpenAISettings options, bool enabled)
         => throw new NotImplementedException();
 
     protected override void SetMetrics(AzureOpenAISettings options, bool enabled)
-        => throw new NotImplementedException();
+        => options.DisableMetrics = !enabled;
 
     protected override void SetTracing(AzureOpenAISettings options, bool enabled)
         => options.DisableTracing = !enabled;
 
-    protected override void TriggerActivity(OpenAIClient service)
-        => service.GetCompletions(new CompletionsOptions { DeploymentName = "dummy-gpt" });
+    protected override void TriggerActivity(AzureOpenAIClient service)
+        => service.GetChatClient("dummy").CompleteChat("dummy gpt");
+
+    private static RemoteInvokeOptions EnableTelemetry()
+        => new()
+        {
+            RuntimeConfigurationOptions = { { "OpenAI.Experimental.EnableOpenTelemetry", true } }
+        };
 }

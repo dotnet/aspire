@@ -31,8 +31,8 @@
       "connectionString": "{kv3.outputs.vaultUri}",
       "path": "kv3.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "principalId": ""
       }
     },
     "appConfig": {
@@ -40,17 +40,17 @@
       "connectionString": "{appConfig.outputs.appConfigEndpoint}",
       "path": "appConfig.module.bicep",
       "params": {
-        "principalId": "",
+        "sku": "standard",
         "principalType": "",
-        "sku": "standard"
+        "principalId": ""
       }
     },
     "storage": {
       "type": "azure.bicep.v0",
       "path": "storage.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "principalId": ""
       }
     },
     "blob": {
@@ -102,21 +102,22 @@
       "connectionString": "{postgres2.secretOutputs.connectionString}",
       "path": "postgres2.module.bicep",
       "params": {
-        "keyVaultName": "",
         "administratorLogin": "{administratorLogin.value}",
-        "administratorLoginPassword": "{administratorLoginPassword.value}"
+        "administratorLoginPassword": "{administratorLoginPassword.value}",
+        "keyVaultName": ""
       }
     },
     "db2": {
       "type": "value.v0",
-      "connectionString": "{postgres2.connectionString};Database=db2"
+      "connectionString": "{postgres2.secretOutputs.db2-connectionString}"
     },
     "cosmos": {
       "type": "azure.bicep.v0",
-      "connectionString": "{cosmos.secretOutputs.connectionString}",
+      "connectionString": "{cosmos.outputs.connectionString}",
       "path": "cosmos.module.bicep",
       "params": {
-        "keyVaultName": ""
+        "principalType": "",
+        "principalId": ""
       }
     },
     "lawkspc": {
@@ -141,10 +142,11 @@
     },
     "redis": {
       "type": "azure.bicep.v0",
-      "connectionString": "{redis.secretOutputs.connectionString}",
+      "connectionString": "{redis.outputs.connectionString}",
       "path": "redis.module.bicep",
       "params": {
-        "keyVaultName": ""
+        "principalId": "",
+        "principalName": ""
       }
     },
     "sb": {
@@ -152,8 +154,8 @@
       "connectionString": "{sb.outputs.serviceBusEndpoint}",
       "path": "sb.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "principalId": ""
       }
     },
     "signalr": {
@@ -161,8 +163,17 @@
       "connectionString": "Endpoint=https://{signalr.outputs.hostName};AuthType=azure",
       "path": "signalr.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "wps": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{wps.outputs.endpoint}",
+      "path": "wps.module.bicep",
+      "params": {
+        "principalType": "",
+        "principalId": ""
       }
     },
     "api": {
@@ -173,6 +184,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{api.bindings.http.targetPort}",
         "ConnectionStrings__db": "{db.connectionString}",
         "ConnectionStrings__db2": "{db2.connectionString}",
         "ConnectionStrings__cosmos": "{cosmos.connectionString}",
@@ -185,6 +197,7 @@
         "ConnectionStrings__redis": "{redis.connectionString}",
         "ConnectionStrings__sb": "{sb.connectionString}",
         "ConnectionStrings__signalr": "{signalr.connectionString}",
+        "ConnectionStrings__wps": "{wps.connectionString}",
         "bicepValue_test": "{test.outputs.test}",
         "bicepValue0": "{test.outputs.val0}",
         "bicepValue1": "{test.outputs.val1}"

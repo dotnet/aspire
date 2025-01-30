@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Testing;
-using Aspire.Hosting.Tests.Helpers;
+using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -17,12 +17,12 @@ public class SlimTestProgramTests
         _slimTestProgramFixture = slimTestProgramFixture;
     }
 
-    [LocalOnlyFact]
+    [Fact]
     public async Task TestProjectStartsAndStopsCleanly()
     {
         var testProgram = _slimTestProgramFixture.TestProgram;
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
         // Make sure each service is running
         await EnsureServicesAreRunning(testProgram, cts.Token);
@@ -30,7 +30,7 @@ public class SlimTestProgramTests
 
     private static async Task EnsureServicesAreRunning(TestProgram testProgram, CancellationToken cancellationToken)
     {
-        var app = testProgram.App!;
+        var app = testProgram.App ?? throw new ArgumentException("TestProgram.App is null");
         using var clientA = app.CreateHttpClient(testProgram.ServiceABuilder.Resource.Name, "http");
         await clientA.GetStringAsync("/", cancellationToken);
 
@@ -41,12 +41,12 @@ public class SlimTestProgramTests
         await clientC.GetStringAsync("/", cancellationToken);
     }
 
-    [LocalOnlyFact]
+    [Fact]
     public async Task TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatch()
     {
         var testProgram = _slimTestProgramFixture.TestProgram;
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
         // Make sure each service is running
         await EnsureServicesAreRunning(testProgram, cts.Token);
@@ -59,12 +59,12 @@ public class SlimTestProgramTests
         }
     }
 
-    [LocalOnlyFact]
+    [Fact]
     public async Task TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatchForReplicatedServices()
     {
         var testProgram = _slimTestProgramFixture.TestProgram;
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
         // Make sure each service is running
         await EnsureServicesAreRunning(testProgram, cts.Token);

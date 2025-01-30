@@ -1,13 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
 
@@ -17,211 +18,266 @@ public partial class ResourceDetails
     public required ResourceViewModel Resource { get; set; }
 
     [Parameter]
+    public required ConcurrentDictionary<string, ResourceViewModel> ResourceByName { get; set; }
+
+    [Parameter]
     public bool ShowSpecOnlyToggle { get; set; }
 
     [Inject]
-    public required IStringLocalizer<Resources.Resources> Loc { get; init; }
+    public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
-    public required ILogger<ResourceDetails> Logger { get; init; }
+    public required IJSRuntime JS { get; init; }
 
-    [Inject]
-    public required BrowserTimeProvider TimeProvider { get; init; }
+    private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceProperties(ordered: false).Any(static vm => vm.KnownProperty is null);
 
-    private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceValues().Any(v => v.KnownProperty == null);
+    // NOTE Excludes endpoints as they don't expose sensitive items (and enumerating endpoints is non-trivial)
+    private IEnumerable<IPropertyGridItem> SensitiveGridItems => Resource.Environment.Cast<IPropertyGridItem>().Concat(Resource.Properties.Values).Where(static vm => vm.IsValueSensitive);
 
     private bool _showAll;
     private ResourceViewModel? _resource;
+    private readonly HashSet<string> _unmaskedItemNames = new();
 
-    private IQueryable<EnvironmentVariableViewModel> FilteredItems =>
-        Resource.Environment.Where(vm =>
-            (_showAll || vm.FromSpec) &&
-            (vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
-            vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true)
-        ).AsQueryable();
+    private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
+    private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
 
-    private IQueryable<DisplayedEndpoint> FilteredEndpoints => GetEndpoints()
-        .Where(v => v.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) || v.Text.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true)
-        .AsQueryable();
+    internal IQueryable<EnvironmentVariableViewModel> FilteredEnvironmentVariables =>
+        Resource.Environment
+            .Where(vm => (_showAll || vm.FromSpec) && ((IPropertyGridItem)vm).MatchesFilter(_filter))
+            .AsQueryable();
 
-    private IQueryable<SummaryValue> FilteredResourceValues => GetResourceValues()
-        .Where(v => _showAll || v.KnownProperty != null)
-        .Where(v => v.Key.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) || v.Tooltip.Contains(_filter, StringComparison.CurrentCultureIgnoreCase))
-        .AsQueryable();
+    internal IQueryable<DisplayedEndpoint> FilteredEndpoints =>
+        GetEndpoints()
+            .Where(vm => vm.MatchesFilter(_filter))
+            .AsQueryable();
+
+    internal IQueryable<ResourceDetailRelationship> FilteredRelationships =>
+        GetRelationships()
+            .Where(vm => vm.MatchesFilter(_filter))
+            .AsQueryable();
+
+    internal IQueryable<ResourceDetailRelationship> FilteredBackRelationships =>
+        GetBackRelationships()
+            .Where(vm => vm.MatchesFilter(_filter))
+            .AsQueryable();
+
+    internal IQueryable<VolumeViewModel> FilteredVolumes =>
+        Resource.Volumes
+            .Where(vm => vm.MatchesFilter(_filter))
+            .AsQueryable();
+
+    internal IQueryable<HealthReportViewModel> FilteredHealthReports =>
+        Resource.HealthReports
+            .Where(vm => vm.MatchesFilter(_filter))
+            .AsQueryable();
+
+    internal IQueryable<ResourcePropertyViewModel> FilteredResourceProperties =>
+        GetResourceProperties(ordered: true)
+            .Where(vm => (_showAll || vm.KnownProperty != null) && vm.MatchesFilter(_filter))
+            .AsQueryable();
+
+    private bool _isVolumesExpanded;
+    private bool _isEnvironmentVariablesExpanded;
+    private bool _isEndpointsExpanded;
+    private bool _isHealthChecksExpanded;
+    private bool _isRelationshipsExpanded;
+    private bool _isBackRelationshipsExpanded;
 
     private string _filter = "";
-    private bool _areEnvironmentVariablesMasked = true;
+    private bool? _isMaskAllChecked;
+    private bool _dataChanged;
 
-    private readonly GridSort<EnvironmentVariableViewModel> _nameSort = GridSort<EnvironmentVariableViewModel>.ByAscending(vm => vm.Name);
-    private readonly GridSort<EnvironmentVariableViewModel> _valueSort = GridSort<EnvironmentVariableViewModel>.ByAscending(vm => vm.Value);
-
-    private List<KnownProperty> _resourceProperties = default!;
-    private List<KnownProperty> _projectProperties = default!;
-    private List<KnownProperty> _executableProperties = default!;
-    private List<KnownProperty> _containerProperties = default!;
-
-    protected override void OnInitialized()
+    private bool IsMaskAllChecked
     {
-        // Known properties can't be static because they need the localizer for translations.
-        _resourceProperties =
-        [
-            new KnownProperty(KnownProperties.Resource.DisplayName, Loc[Resources.Resources.ResourcesDetailsDisplayNameProperty]),
-            new KnownProperty(KnownProperties.Resource.State, Loc[Resources.Resources.ResourcesDetailsStateProperty]),
-            new KnownProperty(KnownProperties.Resource.CreateTime, Loc[Resources.Resources.ResourcesDetailsStartTimeProperty]),
-            new KnownProperty(KnownProperties.Resource.ExitCode, Loc[Resources.Resources.ResourcesDetailsExitCodeProperty])
-        ];
-        _projectProperties =
-        [
-            .. _resourceProperties,
-            new KnownProperty(KnownProperties.Project.Path, Loc[Resources.Resources.ResourcesDetailsProjectPathProperty]),
-            new KnownProperty(KnownProperties.Executable.Pid, Loc[Resources.Resources.ResourcesDetailsExecutableProcessIdProperty]),
-        ];
-        _executableProperties =
-        [
-            .. _resourceProperties,
-            new KnownProperty(KnownProperties.Executable.Path, Loc[Resources.Resources.ResourcesDetailsExecutablePathProperty]),
-            new KnownProperty(KnownProperties.Executable.WorkDir, Loc[Resources.Resources.ResourcesDetailsExecutableWorkingDirectoryProperty]),
-            new KnownProperty(KnownProperties.Executable.Args, Loc[Resources.Resources.ResourcesDetailsExecutableArgumentsProperty]),
-            new KnownProperty(KnownProperties.Executable.Pid, Loc[Resources.Resources.ResourcesDetailsExecutableProcessIdProperty]),
-        ];
-        _containerProperties =
-        [
-            .. _resourceProperties,
-            new KnownProperty(KnownProperties.Container.Image, Loc[Resources.Resources.ResourcesDetailsContainerImageProperty]),
-            new KnownProperty(KnownProperties.Container.Id, Loc[Resources.Resources.ResourcesDetailsContainerIdProperty]),
-            new KnownProperty(KnownProperties.Container.Command, Loc[Resources.Resources.ResourcesDetailsContainerCommandProperty]),
-            new KnownProperty(KnownProperties.Container.Args, Loc[Resources.Resources.ResourcesDetailsContainerArgumentsProperty]),
-            new KnownProperty(KnownProperties.Container.Ports, Loc[Resources.Resources.ResourcesDetailsContainerPortsProperty]),
-        ];
+        get => _isMaskAllChecked ?? false;
+        set { _isMaskAllChecked = value; }
     }
+
+    private readonly GridSort<DisplayedEndpoint> _endpointValueSort = GridSort<DisplayedEndpoint>.ByAscending(vm => vm.Url ?? vm.Text);
 
     protected override void OnParametersSet()
     {
         if (!ReferenceEquals(Resource, _resource))
         {
+            // Reset masking and set data changed flag when the resource changes.
+            if (!string.Equals(Resource.Name, _resource?.Name, StringComparisons.ResourceName))
+            {
+                _isMaskAllChecked = true;
+                _unmaskedItemNames.Clear();
+                _dataChanged = true;
+            }
+
             _resource = Resource;
-            ResetResourceEnvironmentVariableMasks();
-        }
-    }
 
-    private void ResetResourceEnvironmentVariableMasks()
-    {
-        foreach (var vm in Resource.Environment.Where(vm => vm.IsValueMasked != _areEnvironmentVariablesMasked))
-        {
-            vm.IsValueMasked = _areEnvironmentVariablesMasked;
-        }
-    }
+            // Collapse details sections when they have no data.
+            _isEndpointsExpanded = GetEndpoints().Any();
+            _isEnvironmentVariablesExpanded = _resource.Environment.Any();
+            _isVolumesExpanded = _resource.Volumes.Any();
+            _isHealthChecksExpanded = _resource.HealthReports.Any() || _resource.HealthStatus is null; // null means we're waiting for health reports
+            _isRelationshipsExpanded = GetRelationships().Any();
+            _isBackRelationshipsExpanded = GetBackRelationships().Any();
 
-    private IEnumerable<DisplayedEndpoint> GetEndpoints()
-    {
-        return ResourceEndpointHelpers.GetEndpoints(Resource, includeInteralUrls: true);
-    }
-
-    private IEnumerable<SummaryValue> GetResourceValues()
-    {
-        var resolvedKnownProperties = Resource.ResourceType switch
-        {
-            KnownResourceTypes.Project => _projectProperties,
-            KnownResourceTypes.Executable => _executableProperties,
-            KnownResourceTypes.Container => _containerProperties,
-            _ => _resourceProperties
-        };
-
-        // This is a left outer join for the SQL fans.
-        // Return the resource properties, with an optional known property.
-        // Order properties by the known property order. Unmatched properties are last.
-        var values = Resource.Properties
-            .Where(p => !p.Value.HasNullValue && !(p.Value.KindCase == Value.KindOneofCase.ListValue && p.Value.ListValue.Values.Count == 0))
-            .GroupJoin(
-                resolvedKnownProperties,
-                p => p.Key,
-                k => k.Key,
-                (p, k) => new SummaryValue { Key = p.Key, Value = p.Value, KnownProperty = k.SingleOrDefault(), Tooltip = GetTooltip(p.Value) })
-            .OrderBy(v => v.KnownProperty != null ? resolvedKnownProperties.IndexOf(v.KnownProperty) : int.MaxValue);
-
-        return values;
-    }
-
-    private static string GetTooltip(Value value)
-    {
-        if (value.HasStringValue)
-        {
-            return value.StringValue;
-        }
-        else
-        {
-            return value.ToString();
-        }
-    }
-
-    private static string GetDisplayedValue(BrowserTimeProvider timeProvider, SummaryValue summaryValue)
-    {
-        string value;
-        if (summaryValue.Value.HasStringValue)
-        {
-            value = summaryValue.Value.StringValue;
-        }
-        else
-        {
-            // Complex values such as arrays and objects will be output as JSON.
-            // Consider how complex values are rendered in the future.
-            value = summaryValue.Value.ToString();
-        }
-        if (summaryValue.Key == KnownProperties.Container.Id)
-        {
-            // Container images have a short ID of 12 characters
-            value = value.Substring(0, Math.Min(value.Length, 12));
-        }
-        else
-        {
-            // Dates are returned as ISO 8601 text.
-            // Use try parse to check if a value matches ISO 8601 format. If there is a match then convert to a friendly format.
-            if (DateTime.TryParseExact(value, "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+            foreach (var item in SensitiveGridItems)
             {
-                value = FormatHelpers.FormatDateTime(timeProvider, date, cultureInfo: CultureInfo.CurrentCulture);
-            }
-        }
-
-        return value;
-    }
-
-    private void ToggleMaskState()
-    {
-        if (Resource.Environment is var environment)
-        {
-            foreach (var vm in environment)
-            {
-                vm.IsValueMasked = _areEnvironmentVariablesMasked;
+                if (_isMaskAllChecked != null)
+                {
+                    item.IsValueMasked = _isMaskAllChecked.Value;
+                }
+                else if (_unmaskedItemNames.Count > 0)
+                {
+                    item.IsValueMasked = !_unmaskedItemNames.Contains(item.Name);
+                }
             }
         }
     }
 
-    private void CheckAllMaskStates()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var foundMasked = false;
-        var foundUnmasked = false;
-
-        foreach (var vm in Resource.Environment)
+        if (_dataChanged)
         {
-            foundMasked |= vm.IsValueMasked;
-            foundUnmasked |= !vm.IsValueMasked;
+            if (!firstRender)
+            {
+                await JS.InvokeVoidAsync("scrollToTop", ".property-grid-container");
+            }
+
+            _dataChanged = false;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlStringsLoc);
+    }
+
+    private IEnumerable<ResourceDetailRelationship> GetRelationships()
+    {
+        if (ResourceByName == null)
+        {
+            return [];
         }
 
-        _areEnvironmentVariablesMasked = foundMasked switch
+        var items = new List<ResourceDetailRelationship>();
+
+        foreach (var resourceRelationships in Resource.Relationships.GroupBy(r => r.ResourceName, StringComparers.ResourceName))
         {
-            false when foundUnmasked => false,
-            true when !foundUnmasked => true,
-            _ => _areEnvironmentVariablesMasked
-        };
+            var matches = ResourceByName.Values
+                .Where(r => string.Equals(r.DisplayName, resourceRelationships.Key, StringComparisons.ResourceName))
+                .Where(r => r.KnownState != KnownResourceState.Hidden)
+                .ToList();
+
+            foreach (var match in matches)
+            {
+                items.Add(new()
+                {
+                    Resource = match,
+                    ResourceName = ResourceViewModel.GetResourceName(match, ResourceByName),
+                    Types = resourceRelationships.Select(r => r.Type).OrderBy(r => r).ToList()
+                });
+            }
+        }
+
+        return items.OrderBy(r => r.ResourceName, StringComparers.ResourceName);
     }
 
-    private sealed class SummaryValue
+    private IEnumerable<ResourceDetailRelationship> GetBackRelationships()
     {
-        public required string Key { get; init; }
-        public required Value Value { get; init; }
-        public required string Tooltip { get; init; }
-        public KnownProperty? KnownProperty { get; set; }
+        if (ResourceByName == null)
+        {
+            return [];
+        }
+
+        var items = new List<ResourceDetailRelationship>();
+
+        var otherResources = ResourceByName.Values
+            .Where(r => r != Resource)
+            .Where(r => r.KnownState != KnownResourceState.Hidden);
+
+        foreach (var otherResource in otherResources)
+        {
+            foreach (var resourceRelationships in otherResource.Relationships.GroupBy(r => r.ResourceName, StringComparers.ResourceName))
+            {
+                if (string.Equals(resourceRelationships.Key, Resource.DisplayName, StringComparisons.ResourceName))
+                {
+                    items.Add(new()
+                    {
+                        Resource = otherResource,
+                        ResourceName = ResourceViewModel.GetResourceName(otherResource, ResourceByName),
+                        Types = resourceRelationships.Select(r => r.Type).OrderBy(r => r).ToList()
+                    });
+                }
+            }
+        }
+
+        return items.OrderBy(r => r.ResourceName, StringComparers.ResourceName);
     }
 
-    private sealed record KnownProperty(string Key, string DisplayName);
+    private List<DisplayedEndpoint> GetEndpoints()
+    {
+        return ResourceEndpointHelpers.GetEndpoints(Resource, includeInternalUrls: true);
+    }
+
+    private IEnumerable<ResourcePropertyViewModel> GetResourceProperties(bool ordered)
+    {
+        var vms = Resource.Properties.Values
+            .Where(vm => vm.Value is { HasNullValue: false } and not { KindCase: Value.KindOneofCase.ListValue, ListValue.Values.Count: 0 });
+
+        return ordered
+            ? vms.OrderBy(vm => vm.Priority).ThenBy(vm => vm.Name)
+            : vms;
+    }
+
+    private void OnMaskAllCheckedChanged()
+    {
+        Debug.Assert(_isMaskAllChecked != null);
+
+        _unmaskedItemNames.Clear();
+
+        foreach (var vm in SensitiveGridItems)
+        {
+            vm.IsValueMasked = _isMaskAllChecked.Value;
+        }
+    }
+
+    private void OnValueMaskedChanged(IPropertyGridItem vm)
+    {
+        // Check the "Mask All" checkbox if all sensitive values are masked.
+        var valueMaskedValues = SensitiveGridItems.Select(i => i.IsValueMasked).Distinct().ToList();
+        if (valueMaskedValues.Count == 1)
+        {
+            _isMaskAllChecked = valueMaskedValues[0];
+            _unmaskedItemNames.Clear();
+        }
+        else
+        {
+            _isMaskAllChecked = null;
+
+            if (vm.IsValueMasked)
+            {
+                _unmaskedItemNames.Remove(vm.Name);
+            }
+            else
+            {
+                _unmaskedItemNames.Add(vm.Name);
+            }
+        }
+    }
+
+    public Task OnViewRelationshipAsync(ResourceDetailRelationship relationship)
+    {
+        NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: relationship.Resource.Name));
+        return Task.CompletedTask;
+    }
+}
+
+public sealed class ResourceDetailRelationship
+{
+    public required ResourceViewModel Resource { get; init; }
+    public required string ResourceName { get; init; }
+    public required List<string> Types { get; set; }
+
+    public bool MatchesFilter(string filter)
+    {
+        return Resource.DisplayName.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
+            Types.Any(t => t.Contains(filter, StringComparison.CurrentCultureIgnoreCase));
+    }
 }

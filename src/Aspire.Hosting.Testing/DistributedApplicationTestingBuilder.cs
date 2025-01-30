@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -36,14 +38,77 @@ public static class DistributedApplicationTestingBuilder
     /// A new instance of <see cref="DistributedApplicationTestingBuilder"/>.
     /// </returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Generic and non-generic")]
-    public static async Task<IDistributedApplicationTestingBuilder> CreateAsync(Type entryPoint, CancellationToken cancellationToken = default)
+    public static Task<IDistributedApplicationTestingBuilder> CreateAsync(Type entryPoint, CancellationToken cancellationToken = default)
+        => CreateAsync(entryPoint, [], cancellationToken);
+
+    /// <summary>
+    /// Creates a new instance of <see cref="DistributedApplicationTestingBuilder"/>.
+    /// </summary>
+    /// <typeparam name="TEntryPoint">
+    /// A type in the entry point assembly of the target Aspire AppHost. Typically, the Program class can be used.
+    /// </typeparam>
+    /// <param name="args">The command line arguments to pass to the entry point.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>
+    /// A new instance of <see cref="DistributedApplicationTestingBuilder"/>.
+    /// </returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Generic and non-generic")]
+    public static Task<IDistributedApplicationTestingBuilder> CreateAsync<TEntryPoint>(string[] args, CancellationToken cancellationToken = default)
+        where TEntryPoint : class
+        => CreateAsync(typeof(TEntryPoint), args, (_, __) => { }, cancellationToken);
+
+    /// <summary>
+    /// Creates a new instance of <see cref="DistributedApplicationTestingBuilder"/>.
+    /// </summary>
+    /// <param name="entryPoint">A type in the entry point assembly of the target Aspire AppHost. Typically, the Program class can be used.</param>
+    /// <param name="args">The command line arguments to pass to the entry point.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>
+    /// A new instance of <see cref="DistributedApplicationTestingBuilder"/>.
+    /// </returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Generic and non-generic")]
+    public static Task<IDistributedApplicationTestingBuilder> CreateAsync(Type entryPoint, string[] args, CancellationToken cancellationToken = default)
+        => CreateAsync(entryPoint, args, (_, __) => { }, cancellationToken);
+
+    /// <summary>
+    /// Creates a new instance of <see cref="DistributedApplicationTestingBuilder"/>.
+    /// </summary>
+    /// <typeparam name="TEntryPoint">
+    /// A type in the entry point assembly of the target Aspire AppHost. Typically, the Program class can be used.
+    /// </typeparam>
+    /// <param name="args">The command line arguments to pass to the entry point.</param>
+    /// <param name="configureBuilder">The delegate used to configure the builder.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>
+    /// A new instance of <see cref="DistributedApplicationTestingBuilder"/>.
+    /// </returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Generic and non-generic")]
+    public static Task<IDistributedApplicationTestingBuilder> CreateAsync<TEntryPoint>(string[] args, Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder, CancellationToken cancellationToken = default)
+        => CreateAsync(typeof(TEntryPoint), args, configureBuilder, cancellationToken);
+
+    /// <summary>
+    /// Creates a new instance of <see cref="DistributedApplicationTestingBuilder"/>.
+    /// </summary>
+    /// <param name="entryPoint">A type in the entry point assembly of the target Aspire AppHost. Typically, the Program class can be used.</param>
+    /// <param name="args">The command line arguments to pass to the entry point.</param>
+    /// <param name="configureBuilder">The delegate used to configure the builder.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>
+    /// A new instance of <see cref="DistributedApplicationTestingBuilder"/>.
+    /// </returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Generic and non-generic")]
+    public static async Task<IDistributedApplicationTestingBuilder> CreateAsync(Type entryPoint, string[] args, Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder, CancellationToken cancellationToken = default)
     {
-        var factory = new SuspendingDistributedApplicationFactory(entryPoint, (_, __) => { });
+        ArgumentNullException.ThrowIfNull(entryPoint, nameof(entryPoint));
+        ArgumentNullException.ThrowIfNull(args, nameof(args));
+        ArgumentNullException.ThrowIfNull(configureBuilder, nameof(configureBuilder));
+
+        var factory = new SuspendingDistributedApplicationFactory(entryPoint, args, configureBuilder);
         return await factory.CreateBuilderAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private sealed class SuspendingDistributedApplicationFactory(Type entryPoint, Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)
-        : DistributedApplicationFactory(entryPoint)
+    private sealed class SuspendingDistributedApplicationFactory(Type entryPoint, string[] args, Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)
+        : DistributedApplicationFactory(entryPoint, args)
     {
         private readonly SemaphoreSlim _continueBuilding = new(0);
 
@@ -96,6 +161,8 @@ public static class DistributedApplicationTestingBuilder
 
             public string AppHostDirectory => innerBuilder.AppHostDirectory;
 
+            public Assembly? AppHostAssembly => innerBuilder.AppHostAssembly;
+
             public IHostEnvironment Environment => innerBuilder.Environment;
 
             public IServiceCollection Services => innerBuilder.Services;
@@ -103,6 +170,8 @@ public static class DistributedApplicationTestingBuilder
             public DistributedApplicationExecutionContext ExecutionContext => innerBuilder.ExecutionContext;
 
             public IResourceCollection Resources => innerBuilder.Resources;
+
+            public IDistributedApplicationEventing Eventing => innerBuilder.Eventing;
 
             public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => innerBuilder.AddResource(resource);
 
@@ -160,7 +229,7 @@ public static class DistributedApplicationTestingBuilder
 
             public async Task StopAsync(CancellationToken cancellationToken)
             {
-                await appFactory.DisposeAsync().ConfigureAwait(false);
+                await appFactory.DisposeAsync().AsTask().WaitAsync(cancellationToken).ConfigureAwait(false);
             }
         }
     }
@@ -179,6 +248,11 @@ public interface IDistributedApplicationTestingBuilder
     /// </summary>
     string AppHostDirectory { get; }
 
+    /// <summary>
+    /// The assembly of the app host.
+    /// </summary>
+    Assembly? AppHostAssembly { get; }
+
     /// <inheritdoc cref="HostApplicationBuilder.Environment" />
     IHostEnvironment Environment { get; }
 
@@ -189,6 +263,11 @@ public interface IDistributedApplicationTestingBuilder
     /// Execution context for this invocation of the AppHost.
     /// </summary>
     DistributedApplicationExecutionContext ExecutionContext { get; }
+
+    /// <summary>
+    /// Eventing infrastructure for AppHost lifecycle.
+    /// </summary>
+    IDistributedApplicationEventing Eventing { get; }
 
     /// <summary>
     /// Gets the collection of resources for the distributed application.

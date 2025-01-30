@@ -1,14 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json.Nodes;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
-using Xunit;
+using Azure.Provisioning.KeyVault;
+using Json.Schema;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json.Schema;
-using Newtonsoft.Json.Linq;
-using Amazon;
+using Xunit;
 
 namespace Aspire.Hosting.Tests.Schema;
 
@@ -44,6 +44,51 @@ public class SchemaTests
                     }
                 },
 
+                { "ContainerWithBuild", (IDistributedApplicationBuilder builder) =>
+                    {
+                        var tempPath = Path.GetTempPath();
+                        var tempContextPath = Path.Combine(tempPath, Path.GetRandomFileName());
+                        Directory.CreateDirectory(tempContextPath);
+                        var tempDockerfilePath = Path.Combine(tempContextPath, "Dockerfile");
+                        File.WriteAllText(tempDockerfilePath, "does not need to be valid dockerfile content here");
+
+                        builder.AddContainer("mycontainer", "myimage").WithDockerfile(tempContextPath);
+                    }
+                },
+
+                { "ContainerWithBuildAndBuildArgs", (IDistributedApplicationBuilder builder) =>
+                    {
+                        var tempPath = Path.GetTempPath();
+                        var tempContextPath = Path.Combine(tempPath, Path.GetRandomFileName());
+                        Directory.CreateDirectory(tempContextPath);
+                        var tempDockerfilePath = Path.Combine(tempContextPath, "Dockerfile");
+                        File.WriteAllText(tempDockerfilePath, "does not need to be valid dockerfile content here");
+
+                        var p = builder.AddParameter("p");
+                        builder.AddContainer("mycontainer", "myimage")
+                               .WithDockerfile(tempContextPath)
+                               .WithBuildArg("stringArg", "a string")
+                               .WithBuildArg("intArg", 42)
+                               .WithBuildArg("boolArg", true)
+                               .WithBuildArg("parameterArg", p);
+                    }
+                },
+
+                { "ContainerWithBuildAndSecretBuildArgs", (IDistributedApplicationBuilder builder) =>
+                    {
+                        var tempPath = Path.GetTempPath();
+                        var tempContextPath = Path.Combine(tempPath, Path.GetRandomFileName());
+                        Directory.CreateDirectory(tempContextPath);
+                        var tempDockerfilePath = Path.Combine(tempContextPath, "Dockerfile");
+                        File.WriteAllText(tempDockerfilePath, "does not need to be valid dockerfile content here");
+
+                        var p = builder.AddParameter("p", secret: true);
+                        builder.AddContainer("mycontainer", "myimage")
+                               .WithDockerfile(tempContextPath)
+                               .WithBuildSecret("secretArg", p);
+                    }
+                },
+
                 { "ContainerWithVolume", (IDistributedApplicationBuilder builder) =>
                     {
                         builder.AddRedis("redis").WithDataVolume();
@@ -62,15 +107,13 @@ public class SchemaTests
                     }
                 },
 
-                { "CdkResourceWithChildResource", (IDistributedApplicationBuilder builder) =>
-                    {
-                        builder.AddPostgres("postgres").PublishAsAzurePostgresFlexibleServer().AddDatabase("db");
-                    }
-                },
-
                 { "BasicDockerfile", (IDistributedApplicationBuilder builder) =>
                     {
-                        builder.AddExecutable("foo", "bar", "baz", "one", "two", "three").PublishAsDockerFile();
+                        var tempContextPath = Directory.CreateTempSubdirectory().FullName;
+                        var tempDockerfilePath = Path.Combine(tempContextPath, "Dockerfile");
+                        File.WriteAllText(tempDockerfilePath, "does not need to be valid dockerfile content here");
+
+                        builder.AddExecutable(name:"foo", command: "bar", workingDirectory: tempContextPath, "one", "two", "three").PublishAsDockerFile();
                     }
                 },
 
@@ -92,72 +135,83 @@ public class SchemaTests
                     }
                 },
 
-                { "AwsStack", (IDistributedApplicationBuilder builder) =>
+                { "VanillaProjectBasedContainerApp", (IDistributedApplicationBuilder builder) =>
                     {
-                        var awsSdkConfig = builder.AddAWSSDKConfig()
-                                                  .WithRegion(RegionEndpoint.USWest2)
-                                                  .WithProfile("test-profile");
+                        builder.AddProject<Projects.ServiceA>("project")
+                               .PublishAsAzureContainerApp((_, _) => { });
 
-                        builder.AddAWSCloudFormationStack("ExistingStack")
-                               .WithReference(awsSdkConfig);
                     }
                 },
 
-                { "AwsTemplate", (IDistributedApplicationBuilder builder) =>
+                { "CustomizedProjectBasedContainerApp", (IDistributedApplicationBuilder builder) =>
                     {
-                        var awsSdkConfig = builder.AddAWSSDKConfig()
-                                                  .WithRegion(RegionEndpoint.USWest2)
-                                                  .WithProfile("test-profile");
-
-                        builder.AddAWSCloudFormationTemplate("TemplateStack", "nonexistenttemplate")
-                               .WithReference(awsSdkConfig);
-                    }
-                },
-
-                { "DaprWithComponents", (IDistributedApplicationBuilder builder) =>
-                    {
-                        var dapr = builder.AddDapr(dopts =>
-                        {
-                            // Just to avoid dynamic discovery which will throw.
-                            dopts.DaprPath = "notrealpath";
-                        });
-                        var state = dapr.AddDaprStateStore("daprstate");
-                        var pubsub = dapr.AddDaprPubSub("daprpubsub");
+                        var minReplicas = builder.AddParameter("minReplicas");
 
                         builder.AddProject<Projects.ServiceA>("project")
-                               .WithDaprSidecar()
-                               .WithReference(state)
-                               .WithReference(pubsub);
+                               .PublishAsAzureContainerApp((infrastructure, app) =>
+                               {
+                                   app.Template.Scale.MinReplicas = minReplicas.AsProvisioningParameter(infrastructure);
+                               });
+
                     }
-                }
+                },
+
+                { "VanillaContainerBasedContainerApp", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddContainer("mycontainer", "myimage")
+                               .PublishAsAzureContainerApp((_, _) => { });
+
+                    }
+                },
+
+                { "CustomizedContainerBasedContainerApp", (IDistributedApplicationBuilder builder) =>
+                    {
+                        var minReplicas = builder.AddParameter("minReplicas");
+
+                        builder.AddContainer("mycontainer", "myimage")
+                               .PublishAsAzureContainerApp((infrastructure, app) =>
+                               {
+                                   app.Template.Scale.MinReplicas = minReplicas.AsProvisioningParameter(infrastructure);
+                               });
+
+                    }
+                },
+
+                { "VanillaBicepResource", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddAzureInfrastructure("infrastructure", infrastructure =>
+                        {
+                            var kv = KeyVaultService.FromExisting("doesnotexist");
+                            infrastructure.Add(kv);
+                        });
+                    }
+                },
             };
 
             return data;
         }
     }
 
-    private static JSchema? s_schema;
+    private static JsonSchema? s_schema;
 
-    private static async Task<JSchema> GetSchemaAsync()
+    private static JsonSchema GetSchema()
     {
         if (s_schema == null)
         {
             var relativePath = Path.Combine("Schema", "aspire-8.0.json");
             var schemaPath = Path.GetFullPath(relativePath);
-            var schemaText = await File.ReadAllTextAsync(schemaPath);
-            s_schema = JSchema.Parse(schemaText);
+            s_schema = JsonSchema.FromFile(schemaPath);
         }
 
         return s_schema;
     }
 
-    [SkipOnHelixTheory]
+    [Theory]
     [MemberData(nameof(ApplicationSamples))]
-    public async Task ValidateApplicationSamples(string testCaseName, Action<IDistributedApplicationBuilder> configurator)
+    public void ValidateApplicationSamples(string testCaseName, Action<IDistributedApplicationBuilder> configurator)
     {
-        _ = testCaseName;
-
-        var builder = TestDistributedApplicationBuilder.Create(["--publisher", "manifest", "--output-path", "not-used.json"]);
+        string manifestDir = Directory.CreateTempSubdirectory(testCaseName).FullName;
+        var builder = TestDistributedApplicationBuilder.Create(["--publisher", "manifest", "--output-path", Path.Combine(manifestDir, "not-used.json")]);
         builder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
         configurator(builder);
 
@@ -167,34 +221,26 @@ public class SchemaTests
         program.Run();
 
         var manifestText = publisher.ManifestDocument.RootElement.ToString();
-        var manifestJson = JToken.Parse(manifestText);
-        var schema = await GetSchemaAsync();
-        var isValid = manifestJson.IsValid(schema, out IList<ValidationError> errors);
-
-        if (!isValid)
-        {
-            var errorMessages = errors.Select(e => e.Message).ToList();
-            Assert.True(isValid, string.Join(Environment.NewLine, errorMessages));
-        }
+        AssertValid(manifestText);
     }
 
     [Fact]
-    public async Task SchemaRejectsEmptyManifest()
+    public void SchemaRejectsEmptyManifest()
     {
-        var manifestTest = """
+        var manifestText = """
             {
             }
             """;
 
-        var manifestJson = JToken.Parse(manifestTest);
-        var schema = await GetSchemaAsync();
-        Assert.False(manifestJson.IsValid(schema));
+        var manifestJson = JsonNode.Parse(manifestText);
+        var schema = GetSchema();
+        Assert.False(schema.Evaluate(manifestJson).IsValid);
     }
 
-    [SkipOnHelixFact]
-    public async Task ManifestAcceptsUnknownResourceType()
+    [Fact]
+    public void ManifestAcceptsUnknownResourceType()
     {
-        var manifestTest = """
+        var manifestText = """
             {
               "resources": {
                 "aresource": {
@@ -204,15 +250,13 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JToken.Parse(manifestTest);
-        var schema = await GetSchemaAsync();
-        Assert.True(manifestJson.IsValid(schema));
+        AssertValid(manifestText);
     }
 
-    [SkipOnHelixFact]
-    public async Task ManifestWithContainerResourceWithMissingImageIsRejected()
+    [Fact]
+    public void ManifestWithContainerResourceWithMissingImageIsRejected()
     {
-        var manifestTest = """
+        var manifestText = """
             {
               "resources": {
                 "mycontainer": {
@@ -222,15 +266,15 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JToken.Parse(manifestTest);
-        var schema = await GetSchemaAsync();
-        Assert.False(manifestJson.IsValid(schema));
+        var manifestJson = JsonNode.Parse(manifestText);
+        var schema = GetSchema();
+        Assert.False(schema.Evaluate(manifestJson).IsValid);
     }
 
-    [SkipOnHelixFact]
-    public async Task ManifestWithValue0ResourceWithConnectionStringAndValueIsRejectedIsRejected()
+    [Fact]
+    public void ManifestWithValue0ResourceWithConnectionStringAndValueIsRejectedIsRejected()
     {
-        var manifestTest = """
+        var manifestText = """
             {
               "resources": {
                 "valueresource": {
@@ -242,15 +286,34 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JToken.Parse(manifestTest);
-        var schema = await GetSchemaAsync();
-        Assert.False(manifestJson.IsValid(schema));
+        var manifestJson = JsonNode.Parse(manifestText);
+        var schema = GetSchema();
+        Assert.False(schema.Evaluate(manifestJson).IsValid);
     }
 
-    [SkipOnHelixFact]
-    public async Task ManifestWithContainerResourceAndNoEnvOrBindingsIsAccepted()
+    [Fact]
+    public void InvalidBicepResourceFailsValidationToProveItIsntBeingIgnored()
     {
-        var manifestTest = """
+        var manifestText = """
+            {
+              "resources": {
+                "invalidbicepresource": {
+                  "type": "azure.bicep.v0",
+                  "invalidproperty": "invalidvalue"
+                }
+              }
+            }
+            """;
+
+        var manifestJson = JsonNode.Parse(manifestText);
+        var schema = GetSchema();
+        Assert.False(schema.Evaluate(manifestJson).IsValid);
+    }
+
+    [Fact]
+    public void ManifestWithContainerResourceAndNoEnvOrBindingsIsAccepted()
+    {
+        var manifestText = """
             {
               "resources": {
                 "mycontainer": {
@@ -261,15 +324,140 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JToken.Parse(manifestTest);
-        var schema = await GetSchemaAsync();
-        Assert.True(manifestJson.IsValid(schema));
+        AssertValid(manifestText);
     }
 
-    [SkipOnHelixFact]
-    public async Task ManifestWithProjectResourceAndNoEnvOrBindingsIsAccepted()
+    [Fact]
+    public void ManifestWithContainerV0ResourceAndBuildFieldIsRejected()
     {
-        var manifestTest = """
+        var manifestText = """
+            {
+              "resources": {
+                "mycontainer": {
+                  "type": "container.v0",
+                  "image": "myimage:latest",
+                  "build": {
+                    "context": "relativepath",
+                    "dockerfile": "relativepath/Dockerfile"
+                  }
+                }
+              }
+            }
+            """;
+
+        var manifestJson = JsonNode.Parse(manifestText);
+        var schema = GetSchema();
+        Assert.False(schema.Evaluate(manifestJson).IsValid);
+    }
+
+    [Fact]
+    public void ManifestWithContainerV1ResourceWithImageAndBuildFieldIsRejected()
+    {
+        var manifestText = """
+            {
+              "resources": {
+                "mycontainer": {
+                  "type": "container.v1",
+                  "image": "myimage:latest",
+                  "build": {
+                    "context": "relativepath",
+                    "dockerfile": "relativepath/Dockerfile"
+                  }
+                }
+              }
+            }
+            """;
+
+        var manifestJson = JsonNode.Parse(manifestText);
+        var schema = GetSchema();
+        Assert.False(schema.Evaluate(manifestJson).IsValid);
+    }
+
+    [Fact]
+    public void ManifestWithContainerV1ResourceAndBuildFieldIsAccepted()
+    {
+        var manifestText = """
+            {
+              "resources": {
+                "mycontainer": {
+                  "type": "container.v1",
+                  "build": {
+                    "context": "relativepath",
+                    "dockerfile": "relativepath/Dockerfile"
+                  }
+                }
+              }
+            }
+            """;
+
+        AssertValid(manifestText);
+    }
+
+    [Fact]
+    public void ManifestWithDockerfileV0ResourceAndBuildFieldAndArgsIsAccepted()
+    {
+        var manifestText = """
+            {
+              "resources": {
+                "mycontainer": {
+                  "type": "dockerfile.v0",
+                  "context": "relativepath",
+                  "path": "relativepath/Dockerfile",
+                  "buildArgs": {
+                    "ARG1": "an arg"
+                  }
+                }
+              }
+            }
+            """;
+
+        AssertValid(manifestText);
+    }
+
+    [Fact]
+    public void ManifestWithContainerV1ResourceAndBuildFieldAndArgsIsAccepted()
+    {
+        var manifestText = """
+            {
+              "resources": {
+                "mycontainer": {
+                  "type": "container.v1",
+                  "build": {
+                    "context": "relativepath",
+                    "dockerfile": "relativepath/Dockerfile",
+                    "args": {
+                      "ARG1": "an arg"
+                    }
+                  }
+                }
+              }
+            }
+            """;
+
+        AssertValid(manifestText);
+    }
+
+    [Fact]
+    public void ManifestWithContainerV1ResourceAndImageFieldIsAccepted()
+    {
+        var manifestText = """
+            {
+              "resources": {
+                "mycontainer": {
+                  "type": "container.v1",
+                  "image": "myimage:latest"
+                }
+              }
+            }
+            """;
+
+        AssertValid(manifestText);
+    }
+
+    [Fact]
+    public void ManifestWithProjectResourceAndNoEnvOrBindingsIsAccepted()
+    {
+        var manifestText = """
             {
               "resources": {
                 "myapp": {
@@ -280,23 +468,15 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JToken.Parse(manifestTest);
-        var schema = await GetSchemaAsync();
-        var isValid = manifestJson.IsValid(schema, out IList<ValidationError> errors);
-
-        if (!isValid)
-        {
-            var errorMessages = errors.Select(e => e.Message).ToList();
-            Assert.True(isValid, string.Join(Environment.NewLine, errorMessages));
-        }
+        AssertValid(manifestText);
     }
 
-    [SkipOnHelixFact]
-    public async Task BicepManifestIsAccepted()
+    [Fact]
+    public void BicepManifestIsAccepted()
     {
         // The reason this large test is here is that when submitting the positive test cases to SchemaStore.org
         // I found this one was failing. So I'm including it here.
-        var manifestTest = """
+        var manifestText = """
             {
               "resources": {
                 "administratorLogin": {
@@ -312,11 +492,37 @@ public class SchemaTests
                   "inputs": {
                     "value": {
                       "secret": true,
-                      "type": "string"
+                      "type": "string",
+                      "default": {
+                        "generate": {
+                          "minLength": 16,
+                          "lower": false,
+                          "upper": false,
+                          "numeric": false,
+                          "special": false,
+                          "minLower": 1,
+                          "minUpper": 2,
+                          "minNumeric": 3,
+                          "minSpecial": 4
+                        }
+                      }
                     }
                   },
                   "type": "parameter.v0",
                   "value": "{administratorLoginPassword.inputs.value}"
+                },
+                "administratorName": {
+                  "inputs": {
+                    "value": {
+                      "secret": true,
+                      "type": "string",
+                      "default": {
+                        "value": "David"
+                      }
+                    }
+                  },
+                  "type": "parameter.v0",
+                  "value": "{administratorName.inputs.value}"
                 },
                 "ai": {
                   "connectionString": "{ai.outputs.appInsightsConnectionString}",
@@ -504,14 +710,59 @@ public class SchemaTests
 
             """;
 
-        var manifestJson = JToken.Parse(manifestTest);
-        var schema = await GetSchemaAsync();
-        var isValid = manifestJson.IsValid(schema, out IList<ValidationError> errors);
+        AssertValid(manifestText);
+    }
 
-        if (!isValid)
+    [Fact]
+    public void BothDefaultGenerateAndValueAreMutuallyExclusive()
+    {
+        // Trying to us both 'generate' and 'value' in the same parameter should be rejected.
+        var manifestText = """
+            {
+              "resources": {
+                "foo": {
+                  "inputs": {
+                    "value": {
+                      "secret": true,
+                      "type": "string",
+                      "default": {
+                        "generate": {
+                          "minLength": 16
+                        },
+                        "value": "some value"
+                      }
+                    }
+                  },
+                  "type": "parameter.v0",
+                  "value": "{foo.inputs.value}"
+                }
+              }
+            }
+
+            """;
+
+        AssertInvalid(manifestText);
+    }
+
+    private static void AssertValid(string manifestText)
+    {
+        var manifestJson = JsonNode.Parse(manifestText);
+        var schema = GetSchema();
+        var results = schema.Evaluate(manifestJson);
+
+        if (!results.IsValid)
         {
-            var errorMessages = errors.Select(e => e.Message).ToList();
-            Assert.True(isValid, string.Join(Environment.NewLine, errorMessages));
+            var errorMessages = results.Details.Where(x => x.HasErrors).SelectMany(e => e.Errors!).Select(e => e.Value);
+            Assert.True(results.IsValid, string.Join(Environment.NewLine, errorMessages ?? ["Schema failed validation with no errors"]));
         }
+    }
+
+    private static void AssertInvalid(string manifestText)
+    {
+        var manifestJson = JsonNode.Parse(manifestText);
+        var schema = GetSchema();
+        var results = schema.Evaluate(manifestJson);
+
+        Assert.False(results.IsValid);
     }
 }

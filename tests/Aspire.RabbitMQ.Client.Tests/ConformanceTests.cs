@@ -26,13 +26,15 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
     // IConnectionMultiplexer can be created only via call to ConnectionMultiplexer.Connect
     protected override bool CanCreateClientWithoutConnectingToServer => false;
 
-    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
+    protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
     protected override bool SupportsKeyedRegistrations => true;
 
     protected override string[] RequiredLogCategories => Array.Empty<string>();
 
     protected override string ActivitySourceName => "";
+
+    protected override string? ConfigurationSectionName => "Aspire:RabbitMQ:Client";
 
     protected override string ValidJsonConfig => """
         {
@@ -69,7 +71,7 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
     {
-        var connectionString = RequiresDockerTheoryAttribute.IsSupported ?
+        var connectionString = RequiresDockerAttribute.IsSupported ?
             _containerFixture.GetConnectionString() :
             "amqp://localhost:5672";
 
@@ -106,6 +108,7 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
 
     protected override void TriggerActivity(IConnection service)
     {
+#if RABBITMQ_V6
         var channel = service.CreateModel();
         channel.QueueDeclare("test-queue", exclusive: false);
         channel.BasicPublish(
@@ -113,6 +116,17 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
             routingKey: "test-queue",
             basicProperties: null,
             body: "hello world"u8.ToArray());
+#else
+        Task.Run(async () =>
+        {
+            using var channel = await service.CreateChannelAsync();
+            await channel.QueueDeclareAsync("test-queue", exclusive: false);
+            await channel.BasicPublishAsync(
+                exchange: "",
+                routingKey: "test-queue",
+                body: "hello world"u8.ToArray());
+        }).Wait();
+#endif
     }
 
     protected override void SetupConnectionInformationIsDelayValidated()

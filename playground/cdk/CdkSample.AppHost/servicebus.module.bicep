@@ -1,108 +1,85 @@
-targetScope = 'resourceGroup'
-
-@description('')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-@description('')
 param sku string = 'Standard'
 
-@description('')
-param principalId string
-
-@description('')
 param principalType string
 
+param principalId string
 
-resource serviceBusNamespace_eRbchjzJN 'Microsoft.ServiceBus/namespaces@2021-11-01' = {
-  name: toLower(take('servicebus${uniqueString(resourceGroup().id)}', 24))
+resource servicebus 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
+  name: take('servicebus-${uniqueString(resourceGroup().id)}', 50)
   location: location
-  tags: {
-    'aspire-resource-name': 'servicebus'
+  properties: {
+    disableLocalAuth: true
   }
   sku: {
     name: sku
   }
-  properties: {
+  tags: {
+    'aspire-resource-name': 'servicebus'
   }
 }
 
-resource roleAssignment_zLydyz7xm 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: serviceBusNamespace_eRbchjzJN
-  name: guid(serviceBusNamespace_eRbchjzJN.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
+resource servicebus_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(servicebus.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
     principalId: principalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
     principalType: principalType
   }
+  scope: servicebus
 }
 
-resource serviceBusQueue_YGyPfTH4Y 'Microsoft.ServiceBus/namespaces/queues@2021-11-01' = {
-  parent: serviceBusNamespace_eRbchjzJN
+resource queue1 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
   name: 'queue1'
-  location: location
   properties: {
     lockDuration: 'PT5M'
     maxDeliveryCount: 5
   }
+  parent: servicebus
 }
 
-resource serviceBusTopic_1PfQC0XCu 'Microsoft.ServiceBus/namespaces/topics@2021-11-01' = {
-  parent: serviceBusNamespace_eRbchjzJN
+resource topic1 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
   name: 'topic1'
-  location: location
   properties: {
     enablePartitioning: true
   }
+  parent: servicebus
 }
 
-resource serviceBusSubscription_CRhdrb3WU 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2021-11-01' = {
-  parent: serviceBusTopic_1PfQC0XCu
+resource subscription2 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
+  name: 'subscription2'
+  parent: topic1
+}
+
+resource topic2 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
+  name: 'topic2'
+  parent: servicebus
+}
+
+resource subscription1 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
   name: 'subscription1'
-  location: location
   properties: {
     lockDuration: 'PT5M'
     requiresSession: true
   }
+  parent: topic2
 }
 
-resource serviceBusSubscription_4bNfuM8dY 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2021-11-01' = {
-  parent: serviceBusTopic_1PfQC0XCu
-  name: 'subscription2'
-  location: location
-  properties: {
-  }
-}
-
-resource serviceBusTopic_Bc2arm6yg 'Microsoft.ServiceBus/namespaces/topics@2021-11-01' = {
-  parent: serviceBusNamespace_eRbchjzJN
-  name: 'topic2'
-  location: location
-  properties: {
-  }
-}
-
-resource serviceBusTopic_5Lcroh5WO 'Microsoft.ServiceBus/namespaces/topics@2021-11-01' = {
-  parent: serviceBusNamespace_eRbchjzJN
+resource topic3 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
   name: 'topic3'
-  location: location
-  properties: {
-  }
+  parent: servicebus
 }
 
-resource serviceBusSubscription_Sc1OgRrIK 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2021-11-01' = {
-  parent: serviceBusTopic_5Lcroh5WO
+resource sub1 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
   name: 'sub1'
-  location: location
-  properties: {
-  }
+  parent: topic3
 }
 
-resource serviceBusSubscription_R6GJEiXWz 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2021-11-01' = {
-  parent: serviceBusTopic_5Lcroh5WO
+resource sub2 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
   name: 'sub2'
-  location: location
-  properties: {
-  }
+  parent: topic3
 }
 
-output serviceBusEndpoint string = serviceBusNamespace_eRbchjzJN.properties.serviceBusEndpoint
+output serviceBusEndpoint string = servicebus.properties.serviceBusEndpoint

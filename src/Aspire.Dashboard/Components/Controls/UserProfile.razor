@@ -1,7 +1,7 @@
-﻿<AuthorizeView>
-    <Authorized>
-        @if (_showUserProfileMenu)
-        {
+﻿@if (_showUserProfileMenu)
+{
+    <AuthorizeView>
+        <Authorized>
             <div class="profile-menu-container">
                 <FluentProfileMenu Initials="@_initials"
                                    EMail="@_username"
@@ -28,6 +28,6 @@
                     </ChildContent>
                 </FluentProfileMenu>
             </div>
-        }
-    </Authorized>
-</AuthorizeView>
+        </Authorized>
+    </AuthorizeView>
+}

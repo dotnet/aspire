@@ -61,11 +61,6 @@ internal sealed class DcpOptions
     public string? ResourceNameSuffix { get; set; }
 
     /// <summary>
-    /// Whether to delete resources created by this application when the application is shut down.
-    /// </summary>
-    public bool DeleteResourcesOnShutdown { get; set; }
-
-    /// <summary>
     /// Whether to randomize ports used by resources during orchestration.
     /// </summary>
     public bool RandomizePorts { get; set; }
@@ -73,6 +68,17 @@ internal sealed class DcpOptions
     public int KubernetesConfigReadRetryCount { get; set; } = 300;
 
     public int KubernetesConfigReadRetryIntervalMilliseconds { get; set; } = 100;
+
+    /// <summary>
+    /// The duration to wait for the container runtime to become healthy before aborting startup.
+    /// </summary>
+    /// <remarks>
+    /// A value of zero, which is the default value, indicates that the application will not wait for the container
+    /// runtime to become healthy.
+    /// If this property has a value greater than zero, the application will abort startup if the container runtime
+    /// does not become healthy within the specified timeout.
+    /// </remarks>
+    public TimeSpan ContainerRuntimeInitializationTimeout { get; set; }
 
     public TimeSpan ServiceStartupWatchTimeout { get; set; } = TimeSpan.FromSeconds(10);
 }
@@ -111,18 +117,32 @@ internal class ConfigureDefaultDcpOptions(
     public void Configure(DcpOptions options)
     {
         var dcpPublisherConfiguration = configuration.GetSection(DcpPublisher);
+        var assemblyMetadata = appOptions.Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
 
         if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.CliPath)]))
         {
             // If an explicit path to DCP was provided from configuration, don't try to resolve via assembly attributes
             options.CliPath = dcpPublisherConfiguration[nameof(options.CliPath)];
+            if (Path.GetDirectoryName(options.CliPath) is string dcpDir && !string.IsNullOrEmpty(dcpDir))
+            {
+                options.ExtensionsPath = Path.Combine(dcpDir, "ext");
+                options.BinPath = Path.Combine(options.ExtensionsPath, "bin");
+            }
         }
         else
         {
-            var assemblyMetadata = appOptions.Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
             options.CliPath = GetMetadataValue(assemblyMetadata, DcpCliPathMetadataKey);
             options.ExtensionsPath = GetMetadataValue(assemblyMetadata, DcpExtensionsPathMetadataKey);
             options.BinPath = GetMetadataValue(assemblyMetadata, DcpBinPathMetadataKey);
+        }
+
+        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.DashboardPath)]))
+        {
+            // If an explicit path to DCP was provided from configuration, don't try to resolve via assembly attributes
+            options.DashboardPath = dcpPublisherConfiguration[nameof(options.DashboardPath)];
+        }
+        else
+        {
             options.DashboardPath = GetMetadataValue(assemblyMetadata, DashboardPathMetadataKey);
         }
 
@@ -143,7 +163,7 @@ internal class ConfigureDefaultDcpOptions(
             }
             else
             {
-                throw new InvalidOperationException($"Invalid value \"{dcpPublisherConfiguration[nameof(options.DependencyCheckTimeout)]}\" for \"--dependency-check-timeout\". Exepcted an integer value.");
+                throw new InvalidOperationException($"Invalid value \"{dcpPublisherConfiguration[nameof(options.DependencyCheckTimeout)]}\" for \"--dcp-dependency-check-timeout\". Expected an integer value.");
             }
         }
         else
@@ -159,9 +179,9 @@ internal class ConfigureDefaultDcpOptions(
             options.ResourceNameSuffix = dcpPublisherConfiguration[nameof(options.ResourceNameSuffix)];
         }
 
-        options.DeleteResourcesOnShutdown = dcpPublisherConfiguration.GetValue(nameof(options.DeleteResourcesOnShutdown), options.DeleteResourcesOnShutdown);
         options.RandomizePorts = dcpPublisherConfiguration.GetValue(nameof(options.RandomizePorts), options.RandomizePorts);
         options.ServiceStartupWatchTimeout = configuration.GetValue("DOTNET_ASPIRE_SERVICE_STARTUP_WATCH_TIMEOUT", options.ServiceStartupWatchTimeout);
+        options.ContainerRuntimeInitializationTimeout = dcpPublisherConfiguration.GetValue(nameof(options.ContainerRuntimeInitializationTimeout), options.ContainerRuntimeInitializationTimeout);
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)

@@ -1,54 +1,66 @@
-﻿@using Aspire.Dashboard.Extensions
-@using Aspire.Dashboard.Resources
+﻿@using Aspire.Dashboard.Resources
 @inject IStringLocalizer<ControlsStrings> Loc
+@inject IStringLocalizer<Dialogs> DialogsLoc
 
 <div class="@GetContainerClass()" style="width: inherit;">
+
+    @* Value area *@
+
     @if (EnableMasking && IsMasked)
     {
-        <span class="cellText">
+        <span class="grid-value masked" id="@_cellTextId">
             &#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;
-        </span>
-    }
-    else if (EnableHighlighting)
-    {
-        <span class="cellText" title="@(ToolTip ?? Value)">
-            <FluentHighlighter HighlightedText="@HighlightText"
-                               Text="@Value" />
-            @ContentAfterValue
         </span>
     }
     else
     {
-        <span class="cellText" title="@(ToolTip ?? Value)">
-            @(MaxDisplayLength.HasValue ? TrimLength(Value) : Value)
-            @ContentAfterValue
+        <span class="grid-value" title="@(ToolTip ?? Value)" id="@_cellTextId">
+            @if (ContentBeforeValue == null && ContentAfterValue == null && string.IsNullOrEmpty(Value))
+            {
+                <span class="empty-data"></span>
+            }
+            else
+            {
+                @ContentBeforeValue
+                if (EnableHighlighting && !string.IsNullOrEmpty(HighlightText))
+                {
+                    <FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />
+                }
+                else if (_formattedValue != null)
+                {
+                    @((MarkupString)_formattedValue)
+                }
+                @ContentAfterValue
+            }            
         </span>
     }
-    @if (EnableMasking)
-    {
-        <FluentButton Appearance="Appearance.Lightweight"
-                      IconEnd="@(IsMasked ? _unmaskIcon : _maskIcon)"
-                      Title="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])"
-                      OnClick="ToggleMaskStateAsync"
-                      aria-label="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])" />
-    }
 
-    @{
-        (string, object)[] uncapturedAttributes = [
-            ("alt", PreCopyToolTip),
-            ("title", string.Empty),
-            ("aria-label", Loc[nameof(ControlsStrings.GridValueCopyToClipboard)]),
-            ("tabindex", "0")
-        ];
-    }
+    @* Button area *@
 
-    <FluentButton Appearance="Appearance.Lightweight"
-                  Id="@_anchorId"
-                  Class="defaultHidden"
-                  Style="float: right; flex-shrink: 0"
-                  AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, uncapturedAttributes)">
-        <FluentIcon Class="copy-icon" Style="display:inline;" Icon="Icons.Regular.Size16.Copy" />
-        <FluentIcon Class="checkmark-icon" Style="display:none;" Icon="Icons.Regular.Size16.Checkmark" />
-    </FluentButton>
-    <FluentTooltip @ref="_tooltipComponent" Anchor="@_anchorId" Position="TooltipPosition.Top" HideTooltipOnCursorLeave="true">@PreCopyToolTip</FluentTooltip>
+    <div @onclick:stopPropagation="true" class="button-container">
+
+        <span class="defaultHidden">
+            <FluentButton Appearance="Appearance.Lightweight"
+                          Disabled="@(ValueToVisualize is null && Value is null)"
+                          OnClick="OpenTextVisualizerAsync">
+                <FluentIcon Icon="Icons.Regular.Size16.SlideSearch" />
+            </FluentButton>
+        </span>
+
+        @if (ContentInButtonArea is not null)
+        {
+            @ContentInButtonArea
+        }
+
+        @if (EnableMasking)
+        {
+            <FluentButton Appearance="Appearance.Lightweight"
+                          IconEnd="@(IsMasked ? _unmaskIcon : _maskIcon)"
+                          Title="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])"
+                          OnClick="ToggleMaskStateAsync"
+                          aria-label="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])"
+                          Class="grid-value-mask-button" />
+        }
+
+    </div>
 </div>

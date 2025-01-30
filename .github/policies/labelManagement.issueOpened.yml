@@ -28,3 +28,11 @@ configuration:
         then:
           - addLabel:
               label: Servicing-consider
+      - description: Add untriaged to new issues
+        if:
+          - payloadType: Issues
+          - isAction:
+            action: Opened
+        then:
+          - addLabel:
+              label: untriaged

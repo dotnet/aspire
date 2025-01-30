@@ -4,7 +4,7 @@
     "qdrant": {
       "type": "container.v0",
       "connectionString": "Endpoint={qdrant.bindings.grpc.url};Key={qdrant-Key.value}",
-      "image": "docker.io/qdrant/qdrant:v1.8.4",
+      "image": "docker.io/qdrant/qdrant:v1.12.1",
       "volumes": [
         {
           "name": "qdrant-data",
@@ -39,6 +39,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{apiservice.bindings.http.targetPort}",
         "ConnectionStrings__qdrant": "Endpoint={qdrant.bindings.grpc.url};Key={qdrant-Key.value}",
         "ConnectionStrings__qdrant_http": "Endpoint={qdrant.bindings.http.url};Key={qdrant-Key.value}"
       },

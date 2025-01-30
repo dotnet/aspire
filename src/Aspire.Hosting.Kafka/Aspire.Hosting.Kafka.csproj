@@ -1,14 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
-    <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting kafka</PackageTags>
-    <Description>Kafka support for .NET Aspire.</Description>
+  <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+  <IsPackable>true</IsPackable>
+  <PackageTags>aspire integration hosting kafka</PackageTags>
+  <Description>Kafka support for .NET Aspire.</Description>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>25</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
+    <PackageReference Include="AspNetCore.HealthChecks.Kafka" />
   </ItemGroup>
 
   <ItemGroup>

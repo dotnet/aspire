@@ -22,7 +22,8 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
         _containerFixture = containerFixture;
     }
 
-    [RequiresDockerTheory]
+    [Theory]
+    [RequiresDocker]
     [InlineData(true)]
     [InlineData(false)]
     public void ReadsFromConnectionStringsCorrectly(bool useKeyed)
@@ -49,7 +50,8 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
         AssertEquals(_containerFixture.GetConnectionString(), connection.Endpoint);
     }
 
-    [RequiresDockerTheory]
+    [Theory]
+    [RequiresDocker]
     [InlineData(true)]
     [InlineData(false)]
     public void ConnectionStringCanBeSetInCode(bool useKeyed)
@@ -77,7 +79,8 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
         AssertEquals(_containerFixture.GetConnectionString(), connection.Endpoint);
     }
 
-    [RequiresDockerTheory]
+    [Theory]
+    [RequiresDocker]
     [InlineData(true)]
     [InlineData(false)]
     public void ConnectionNameWinsOverConfigSection(bool useKeyed)
@@ -127,7 +130,7 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
                     "Enabled": true,
                     "Version": "Tls13"
                   },
-                  "MaxMessageSize": 304,
+                  "RequestedFrameMax": 304,
                   "ClientProvidedName": "aspire-app"
                 }
               }
@@ -152,11 +155,12 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
         Assert.True(connectionFactory.Ssl.Enabled);
         Assert.Equal(SslProtocols.Tls13, connectionFactory.Ssl.Version);
         Assert.Equal(TimeSpan.FromSeconds(3), connectionFactory.SocketReadTimeout);
-        Assert.Equal((uint)304, connectionFactory.MaxMessageSize);
+        Assert.Equal((uint)304, connectionFactory.RequestedFrameMax);
         Assert.Equal("aspire-app", connectionFactory.ClientProvidedName);
     }
 
-    [RequiresDockerFact]
+    [Fact]
+    [RequiresDocker]
     public async Task CanAddMultipleKeyedServices()
     {
         await using var container2 = await RabbitMQContainerFixture.CreateContainerAsync();

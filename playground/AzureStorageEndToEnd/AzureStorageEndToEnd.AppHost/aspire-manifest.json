@@ -5,13 +5,17 @@
       "type": "azure.bicep.v0",
       "path": "storage.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "principalId": ""
       }
     },
     "blobs": {
       "type": "value.v0",
       "connectionString": "{storage.outputs.blobEndpoint}"
+    },
+    "queues": {
+      "type": "value.v0",
+      "connectionString": "{storage.outputs.queueEndpoint}"
     },
     "api": {
       "type": "project.v0",
@@ -21,7 +25,9 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
-        "ConnectionStrings__blobs": "{blobs.connectionString}"
+        "HTTP_PORTS": "{api.bindings.http.targetPort}",
+        "ConnectionStrings__blobs": "{blobs.connectionString}",
+        "ConnectionStrings__queues": "{queues.connectionString}"
       },
       "bindings": {
         "http": {

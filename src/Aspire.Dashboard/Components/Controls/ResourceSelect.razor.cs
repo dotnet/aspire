@@ -4,8 +4,6 @@
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Microsoft.AspNetCore.Components;
-using Microsoft.FluentUI.AspNetCore.Components;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
 
@@ -14,6 +12,8 @@ public partial class ResourceSelect
     private const int ResourceOptionPixelHeight = 32;
     private const int MaxVisibleResourceOptions = 15;
     private const int SelectPadding = 8; // 4px top + 4px bottom
+
+    private readonly string _selectId = $"resource-select-{Guid.NewGuid():N}";
 
     [Parameter]
     public IEnumerable<SelectViewModel<ResourceTypeDetails>> Resources { get; set; } = default!;
@@ -27,31 +27,20 @@ public partial class ResourceSelect
     [Parameter]
     public string? AriaLabel { get; set; }
 
-    [Inject]
-    public required IJSRuntime JS { get; init; }
+    [Parameter]
+    public bool CanSelectGrouping { get; set; }
 
-    private FluentSelect<SelectViewModel<ResourceTypeDetails>>? _resourceSelectComponent;
+    [Parameter]
+    public string? LabelClass { get; set; }
 
-    /// <summary>
-    /// Workaround for issue in fluent-select web component where the display value of the
-    /// selected item doesn't update automatically when the item changes.
-    /// </summary>
-    public async ValueTask UpdateDisplayValueAsync()
+    private async Task SelectedResourceChangedCore()
     {
-        if (_resourceSelectComponent is null)
-        {
-            return;
-        }
+        await SelectedResourceChanged.InvokeAsync(SelectedResource);
+    }
 
-        try
-        {
-            await JS.InvokeVoidAsync("updateFluentSelectDisplayValue", _resourceSelectComponent.Element);
-        }
-        catch (JSDisconnectedException)
-        {
-            // Per https://learn.microsoft.com/aspnet/core/blazor/javascript-interoperability/?view=aspnetcore-7.0#javascript-interop-calls-without-a-circuit
-            // this is one of the calls that will fail if the circuit is disconnected, and we just need to catch the exception so it doesn't pollute the logs
-        }
+    private static void ValuedChanged(string value)
+    {
+        // Do nothing. Required for bunit change to trigger SelectedOptionChanged.
     }
 
     private string? GetPopupHeight()

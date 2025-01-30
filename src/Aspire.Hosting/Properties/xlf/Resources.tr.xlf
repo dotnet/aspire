@@ -36,8 +36,8 @@ Desteklenen konteyner çalışma zamanları hakkında daha fazla ayrıntı için
         <note />
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
-        <source>Application orchestrator dependency check had an unexpected error {0}.</source>
-        <target state="translated">Uygulama düzenleyicisi bağımlılık denetiminde beklenmeyen bir hata oluştu {0}.</target>
+        <source>Application orchestrator dependency check returned an error: {0}</source>
+        <target state="translated">Uygulama düzenleyicisi bağımlılık denetimi bir hata döndürdü: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">

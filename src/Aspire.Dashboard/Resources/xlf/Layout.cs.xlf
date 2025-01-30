@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
-        <source>Launch settings</source>
-        <target state="translated">Nastavení pro spuštění</target>
+        <source>Settings</source>
+        <target state="translated">Nastavení</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutSettingsDialogClose">
@@ -85,6 +85,11 @@
       <trans-unit id="NavMenuTracesTab">
         <source>Traces</source>
         <target state="translated">Trasování</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PageLayoutViewFilters">
+        <source>View filters</source>
+        <target state="translated">Zobrazit filtry</target>
         <note />
       </trans-unit>
     </body>

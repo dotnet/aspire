@@ -87,6 +87,11 @@
         <target state="translated">Aracı seçin.</target>
         <note />
       </trans-unit>
+      <trans-unit id="MetricsViewAttributesToolbar">
+        <source>View attributes</source>
+        <target state="translated">Öznitelikleri görüntüle</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

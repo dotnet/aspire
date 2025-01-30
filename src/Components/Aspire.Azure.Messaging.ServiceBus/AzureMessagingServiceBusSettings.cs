@@ -53,7 +53,7 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
     /// Or by setting "AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE" environment variable to "true".
     /// </remarks>
     /// <value>  
-    /// The default value is <see langword="false"/>.  
+    /// The default value is <see langword="false"/>.
     /// </value>
     public bool DisableTracing
     {

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
@@ -36,24 +37,24 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
             return ValidateOptionsResult.Fail($"The 'applicationUrl' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
         }
 
-        // Vaidate DOTNET_DASHBOARD_OTLP_ENDPOINT_URL
-        var dashboardOtlpEndpointUrl = configuration[KnownConfigNames.DashboardOtlpEndpointUrl];
-        if (string.IsNullOrEmpty(dashboardOtlpEndpointUrl))
+        // Validate DOTNET_DASHBOARD_OTLP_ENDPOINT_URL
+        var dashboardOtlpGrpcEndpointUrl = configuration[KnownConfigNames.DashboardOtlpGrpcEndpointUrl];
+        var dashboardOtlpHttpEndpointUrl = configuration[KnownConfigNames.DashboardOtlpHttpEndpointUrl];
+        if (string.IsNullOrEmpty(dashboardOtlpGrpcEndpointUrl) && string.IsNullOrEmpty(dashboardOtlpHttpEndpointUrl))
         {
-            return ValidateOptionsResult.Fail($"AppHost does not have the {KnownConfigNames.DashboardOtlpEndpointUrl} setting defined.");
+            return ValidateOptionsResult.Fail($"AppHost does not have the {KnownConfigNames.DashboardOtlpGrpcEndpointUrl} or {KnownConfigNames.DashboardOtlpHttpEndpointUrl} settings defined. At least one OTLP endpoint must be provided.");
         }
 
-        if (!Uri.TryCreate(dashboardOtlpEndpointUrl, UriKind.Absolute, out var parsedDashboardOtlpEndpointUrl))
+        if (!TryValidateGrpcEndpointUrl(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, dashboardOtlpGrpcEndpointUrl, out var resultGrpc))
         {
-            return ValidateOptionsResult.Fail($"The {KnownConfigNames.DashboardOtlpEndpointUrl} setting with a value of '{dashboardOtlpEndpointUrl}' could not be parsed as a URI.");
+            return resultGrpc;
+        }
+        if (!TryValidateGrpcEndpointUrl(KnownConfigNames.DashboardOtlpHttpEndpointUrl, dashboardOtlpHttpEndpointUrl, out var resultHttp))
+        {
+            return resultHttp;
         }
 
-        if (parsedDashboardOtlpEndpointUrl.Scheme == "http")
-        {
-            return ValidateOptionsResult.Fail($"The '{KnownConfigNames.DashboardOtlpEndpointUrl}' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
-        }
-
-        // Vaidate DOTNET_DASHBOARD_RESOURCE_SERVER_ENDPOINT_URL
+        // Validate DOTNET_DASHBOARD_RESOURCE_SERVER_ENDPOINT_URL
         var resourceServiceEndpointUrl = configuration[KnownConfigNames.ResourceServiceEndpointUrl];
         if (string.IsNullOrEmpty(resourceServiceEndpointUrl))
         {
@@ -71,5 +72,26 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
         }
 
         return ValidateOptionsResult.Success;
+
+        static bool TryValidateGrpcEndpointUrl(string configName, string? value, [NotNullWhen(false)] out ValidateOptionsResult? result)
+        {
+            if (!string.IsNullOrEmpty(value))
+            {
+                if (!Uri.TryCreate(value, UriKind.Absolute, out var parsedUri))
+                {
+                    result = ValidateOptionsResult.Fail($"The {configName} setting with a value of '{value}' could not be parsed as a URI.");
+                    return false;
+                }
+
+                if (parsedUri.Scheme == "http")
+                {
+                    result = ValidateOptionsResult.Fail($"The '{configName}' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
+                    return false;
+                }
+            }
+
+            result = null;
+            return true;
+        }
     }
 }

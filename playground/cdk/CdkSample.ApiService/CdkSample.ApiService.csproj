@@ -1,20 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Azure.Messaging.ServiceBus\Aspire.Azure.Messaging.ServiceBus.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Azure.Search.Documents\Aspire.Azure.Search.Documents.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Azure.Security.KeyVault\Aspire.Azure.Security.KeyVault.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Azure.Storage.Blobs\Aspire.Azure.Storage.Blobs.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Microsoft.EntityFrameworkCore.Cosmos\Aspire.Microsoft.EntityFrameworkCore.Cosmos.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Microsoft.EntityFrameworkCore.SqlServer\Aspire.Microsoft.EntityFrameworkCore.SqlServer.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.StackExchange.Redis\Aspire.StackExchange.Redis.csproj" />
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Messaging.ServiceBus" />
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Search.Documents" />
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Security.KeyVault" />
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Storage.Blobs" />
+    <AspireProjectOrPackageReference Include="Aspire.Microsoft.EntityFrameworkCore.Cosmos" />
+    <AspireProjectOrPackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" />
+    <AspireProjectOrPackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <!-- Npgsql EF needs to match the same major version as the underlying Npgsql assemblies. -->
+    <PackageReference Include="Npgsql.DependencyInjection" VersionOverride="$(Npgsql8Version)" />
+    <PackageReference Include="Npgsql.OpenTelemetry" VersionOverride="$(Npgsql8Version)" />
+    <AspireProjectOrPackageReference Include="Aspire.StackExchange.Redis" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
 
     <PackageReference Include="Microsoft.Azure.AppConfiguration.AspNetCore" />

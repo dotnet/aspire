@@ -102,7 +102,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
                     if (string.Equals(hostAndPort, value, StringComparison.OrdinalIgnoreCase))
                     {
-                        name = resource.Name;
+                        name = ResourceViewModel.GetResourceName(resource, resources);
                         return true;
                     }
                 }

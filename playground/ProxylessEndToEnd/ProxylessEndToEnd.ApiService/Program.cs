@@ -11,6 +11,7 @@ builder.AddKeyedRedisClient("redis");
 
 var app = builder.Build();
 
+app.MapDefaultEndpoints();
 app.MapGet("/", () =>
 {
     return Random.Shared.Next();

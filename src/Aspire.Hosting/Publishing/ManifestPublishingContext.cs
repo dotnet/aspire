@@ -146,8 +146,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
     private async Task WriteProjectAsync(ProjectResource project)
     {
-        Writer.WriteString("type", "project.v0");
-
         if (!project.TryGetLastAnnotation<IProjectMetadata>(out var metadata))
         {
             throw new DistributedApplicationException("Project metadata not found.");
@@ -155,12 +153,38 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         var relativePathToProjectFile = GetManifestRelativePath(metadata.ProjectPath);
 
+        if (project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var deploymentTarget))
+        {
+            Writer.WriteString("type", "project.v1");
+        }
+        else
+        {
+            Writer.WriteString("type", "project.v0");
+        }
+
         Writer.WriteString("path", relativePathToProjectFile);
+
+        if (deploymentTarget is not null)
+        {
+            await WriteDeploymentTarget(deploymentTarget).ConfigureAwait(false);
+        }
 
         await WriteCommandLineArgumentsAsync(project).ConfigureAwait(false);
 
         await WriteEnvironmentVariablesAsync(project).ConfigureAwait(false);
+
         WriteBindings(project);
+    }
+
+    private async Task WriteDeploymentTarget(DeploymentTargetAnnotation deploymentTarget)
+    {
+        if (deploymentTarget.DeploymentTarget.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var manifestPublishingCallbackAnnotation) &&
+            manifestPublishingCallbackAnnotation.Callback is not null)
+        {
+            Writer.WriteStartObject("deployment");
+            await manifestPublishingCallbackAnnotation.Callback(this).ConfigureAwait(false);
+            Writer.WriteEndObject();
+        }
     }
 
     private async Task WriteExecutableAsync(ExecutableResource executable)
@@ -224,17 +248,38 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <exception cref="DistributedApplicationException">Thrown if the container resource does not contain a <see cref="ContainerImageAnnotation"/>.</exception>
     public async Task WriteContainerAsync(ContainerResource container)
     {
-        Writer.WriteString("type", "container.v0");
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var deploymentTarget);
 
-        // Attempt to write the connection string for the container (if this resource has one).
-        WriteConnectionString(container);
-
-        if (!container.TryGetContainerImageName(out var image))
+        if (container.Annotations.OfType<DockerfileBuildAnnotation>().Any())
         {
-            throw new DistributedApplicationException("Could not get container image name.");
+            Writer.WriteString("type", "container.v1");
+            WriteConnectionString(container);
+            WriteBuildContext(container);
+        }
+        else
+        {
+            if (!container.TryGetContainerImageName(out var image))
+            {
+                throw new DistributedApplicationException("Could not get container image name.");
+            }
+
+            if (deploymentTarget is not null)
+            {
+                Writer.WriteString("type", "container.v1");
+            }
+            else
+            {
+                Writer.WriteString("type", "container.v0");
+            }
+
+            WriteConnectionString(container);
+            Writer.WriteString("image", image);
         }
 
-        Writer.WriteString("image", image);
+        if (deploymentTarget is not null)
+        {
+            await WriteDeploymentTarget(deploymentTarget).ConfigureAwait(false);
+        }
 
         if (container.Entrypoint is not null)
         {
@@ -249,6 +294,79 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         await WriteEnvironmentVariablesAsync(container).ConfigureAwait(false);
         WriteBindings(container);
+    }
+
+    private void WriteBuildContext(ContainerResource container)
+    {
+        if (container.TryGetAnnotationsOfType<DockerfileBuildAnnotation>(out var annotations) && annotations.Single() is { } annotation)
+        {
+            Writer.WriteStartObject("build");
+            Writer.WriteString("context", GetManifestRelativePath(annotation.ContextPath));
+            Writer.WriteString("dockerfile", GetManifestRelativePath(annotation.DockerfilePath));
+
+            if (annotation.Stage is { } stage)
+            {
+                Writer.WriteString("stage", stage);
+            }
+
+            if (annotation.BuildArguments.Count > 0)
+            {
+                Writer.WriteStartObject("args");
+
+                foreach (var (key, value) in annotation.BuildArguments)
+                {
+                    var valueString = value switch
+                    {
+                        string stringValue => stringValue,
+                        IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
+                        bool boolValue => boolValue ? "true" : "false",
+                        null => null, // null means let docker build pull from env var.
+                        _ => value.ToString()
+                    };
+
+                    Writer.WriteString(key, valueString);
+                }
+
+                Writer.WriteEndObject();
+            }
+
+            if (annotation.BuildSecrets.Count > 0)
+            {
+                Writer.WriteStartObject("secrets");
+
+                foreach (var (key, value) in annotation.BuildSecrets)
+                {
+                    var valueString = value switch
+                    {
+                        FileInfo fileValue => GetManifestRelativePath(fileValue.FullName),
+                        string stringValue => stringValue,
+                        IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
+                        bool boolValue => boolValue ? "true" : "false",
+                        null => null, // null means let docker build pull from env var.
+                        _ => value.ToString()
+                    };
+
+                    Writer.WriteStartObject(key);
+
+                    if (value is FileInfo)
+                    {
+                        Writer.WriteString("type", "file");
+                        Writer.WriteString("source", valueString);
+                    }
+                    else
+                    {
+                        Writer.WriteString("type", "env");
+                        Writer.WriteString("value", valueString);
+                    }
+
+                    Writer.WriteEndObject();
+                }
+
+                Writer.WriteEndObject();
+            }
+
+            Writer.WriteEndObject();
+        }
     }
 
     /// <summary>
@@ -274,6 +392,16 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     {
         if (resource.TryGetEndpoints(out var endpoints))
         {
+            // This is used to determine if an endpoint should be treated as the Default endpoint.
+            // Endpoints can come from 3 different sources (in this order):
+            // 1. Kestrel configuration
+            // 2. Default endpoints added by the framework
+            // 3. Explicitly added endpoints
+            // But wherever they come from, we treat the first one as Default, for each scheme.
+            var httpSchemesEncountered = new HashSet<string>();
+
+            static bool IsHttpScheme(string scheme) => scheme is "http" or "https";
+
             Writer.WriteStartObject("bindings");
             foreach (var endpoint in endpoints)
             {
@@ -290,13 +418,20 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                     // Container resources get their default listening port from the exposed port.
                     (ContainerResource, _, null, int port) => port,
 
-                    // Project resources get their default listening port from the deployment tool
-                    // ideally we would default to a known port but we don't know it at this point
-                    (ProjectResource, var scheme, null, _) when scheme is "http" or "https" => null,
+                    // Check whether the project view this endpoint as Default (for its scheme).
+                    // If so, we don't specify the target port, as it will get one from the deployment tool.
+                    (ProjectResource project, string uriScheme, null, _) when IsHttpScheme(uriScheme) && !httpSchemesEncountered.Contains(uriScheme) => null,
 
                     // Allocate a dynamic port
                     _ => PortAllocator.AllocatePort()
                 };
+
+                // We only keep track of schemes for project resources, since we don't want
+                // a non-project scheme to affect what project endpoints are considered default.
+                if (resource is ProjectResource && IsHttpScheme(endpoint.UriScheme))
+                {
+                    httpSchemesEncountered.Add(endpoint.UriScheme);
+                }
 
                 int? exposedPort = (endpoint.UriScheme, endpoint.Port, targetPort) switch
                 {

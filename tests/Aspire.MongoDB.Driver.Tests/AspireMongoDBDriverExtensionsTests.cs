@@ -25,9 +25,11 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
     private string DefaultConnectionString => _containerFixture.GetConnectionString();
 
     [Theory]
-    [InlineData("mongodb://localhost:27017/mydatabase", true)]
-    [InlineData("mongodb://localhost:27017", false)]
-    public void AddMongoDBDataSource_ReadsFromConnectionStringsCorrectly(string connectionString, bool shouldRegisterDatabase)
+    [InlineData("mongodb://localhost:27017/mydatabase", true, false)]
+    [InlineData("mongodb://localhost:27017", false, false)]
+    [InlineData("mongodb://admin:pass@localhost:27017/mydatabase?authSource=admin&authMechanism=SCRAM-SHA-256", true, true)]
+    [InlineData("mongodb://admin:pass@localhost:27017?authSource=admin&authMechanism=SCRAM-SHA-256", false, true)]
+    public void AddMongoDBDataSource_ReadsFromConnectionStringsCorrectly(string connectionString, bool shouldRegisterDatabase, bool shouldUseAuthentication)
     {
         var builder = CreateBuilder(connectionString);
 
@@ -42,6 +44,17 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
         Assert.Equal(uri.Server.Host, mongoClient.Settings.Server.Host);
         Assert.Equal(uri.Server.Port, mongoClient.Settings.Server.Port);
 
+        if (shouldUseAuthentication)
+        {
+            Assert.NotNull(mongoClient.Settings.Credential);
+            Assert.Equal(uri.AuthenticationSource, mongoClient.Settings.Credential.Source);
+            Assert.Equal(uri.AuthenticationMechanism, mongoClient.Settings.Credential.Mechanism);
+            Assert.Equal(uri.Username, mongoClient.Settings.Credential.Username);
+        }
+        else
+        {
+            Assert.Null(mongoClient.Settings.Credential);
+        }
         var mongoDatabase = host.Services.GetService<IMongoDatabase>();
 
         if (shouldRegisterDatabase)
@@ -56,9 +69,11 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
     }
 
     [Theory]
-    [InlineData("mongodb://localhost:27017/mydatabase", true)]
-    [InlineData("mongodb://localhost:27017", false)]
-    public void AddKeyedMongoDBDataSource_ReadsFromConnectionStringsCorrectly(string connectionString, bool shouldRegisterDatabase)
+    [InlineData("mongodb://localhost:27017/mydatabase", true, false)]
+    [InlineData("mongodb://localhost:27017", false, false)]
+    [InlineData("mongodb://admin:pass@localhost:27017/mydatabase?authSource=admin&authMechanism=SCRAM-SHA-256", true, true)]
+    [InlineData("mongodb://admin:pass@localhost:27017?authSource=admin&authMechanism=SCRAM-SHA-256", false, true)]
+    public void AddKeyedMongoDBDataSource_ReadsFromConnectionStringsCorrectly(string connectionString, bool shouldRegisterDatabase, bool shouldUseAuthentication)
     {
         var key = DefaultConnectionName;
 
@@ -75,6 +90,18 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
         Assert.Equal(uri.Server.Host, mongoClient.Settings.Server.Host);
         Assert.Equal(uri.Server.Port, mongoClient.Settings.Server.Port);
 
+        if (shouldUseAuthentication)
+        {
+            Assert.NotNull(mongoClient.Settings.Credential);
+            Assert.Equal(uri.AuthenticationSource, mongoClient.Settings.Credential.Source);
+            Assert.Equal(uri.AuthenticationMechanism, mongoClient.Settings.Credential.Mechanism);
+            Assert.Equal(uri.Username, mongoClient.Settings.Credential.Username);
+        }
+        else
+        {
+            Assert.Null(mongoClient.Settings.Credential);
+        }
+
         var mongoDatabase = host.Services.GetKeyedService<IMongoDatabase>(key);
 
         if (shouldRegisterDatabase)
@@ -88,7 +115,8 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
         }
     }
 
-    [RequiresDockerFact]
+    [Fact]
+    [RequiresDocker]
     public async Task AddMongoDBDataSource_HealthCheckShouldBeRegisteredWhenEnabled()
     {
         var builder = CreateBuilder(DefaultConnectionString);
@@ -110,7 +138,8 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
         Assert.Contains(healthCheckReport.Entries, x => x.Key == healthCheckName);
     }
 
-    [RequiresDockerFact]
+    [Fact]
+    [RequiresDocker]
     public void AddKeyedMongoDBDataSource_HealthCheckShouldNotBeRegisteredWhenDisabled()
     {
         var builder = CreateBuilder(DefaultConnectionString);
@@ -128,7 +157,8 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
 
     }
 
-    [RequiresDockerFact]
+    [Fact]
+    [RequiresDocker]
     public async Task AddKeyedMongoDBDataSource_HealthCheckShouldBeRegisteredWhenEnabled()
     {
         var key = DefaultConnectionName;
@@ -152,7 +182,8 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
         Assert.Contains(healthCheckReport.Entries, x => x.Key == healthCheckName);
     }
 
-    [RequiresDockerFact]
+    [Fact]
+    [RequiresDocker]
     public void AddMongoDBDataSource_HealthCheckShouldNotBeRegisteredWhenDisabled()
     {
         var builder = CreateBuilder(DefaultConnectionString);

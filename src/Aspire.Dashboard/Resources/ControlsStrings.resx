@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!-- 
-    Microsoft ResX Schema 
-    
+  <!--
+    Microsoft ResX Schema
+
     Version 2.0
-    
-    The primary goals of this format is to allow a simple XML format 
-    that is mostly human readable. The generation and parsing of the 
-    various data types are done through the TypeConverter classes 
+
+    The primary goals of this format is to allow a simple XML format
+    that is mostly human readable. The generation and parsing of the
+    various data types are done through the TypeConverter classes
     associated with the data types.
-    
+
     Example:
-    
+
     ... ado.net/XML headers & schema ...
     <resheader name="resmimetype">text/microsoft-resx</resheader>
     <resheader name="version">2.0</resheader>
@@ -26,36 +26,36 @@
         <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
         <comment>This is a comment</comment>
     </data>
-                
-    There are any number of "resheader" rows that contain simple 
+
+    There are any number of "resheader" rows that contain simple
     name/value pairs.
-    
-    Each data row contains a name, and value. The row also contains a 
-    type or mimetype. Type corresponds to a .NET class that support 
-    text/value conversion through the TypeConverter architecture. 
-    Classes that don't support this are serialized and stored with the 
+
+    Each data row contains a name, and value. The row also contains a
+    type or mimetype. Type corresponds to a .NET class that support
+    text/value conversion through the TypeConverter architecture.
+    Classes that don't support this are serialized and stored with the
     mimetype set.
-    
-    The mimetype is used for serialized objects, and tells the 
-    ResXResourceReader how to depersist the object. This is currently not 
+
+    The mimetype is used for serialized objects, and tells the
+    ResXResourceReader how to depersist the object. This is currently not
     extensible. For a given mimetype the value must be set accordingly:
-    
-    Note - application/x-microsoft.net.object.binary.base64 is the format 
-    that the ResXResourceWriter will generate, however the reader can 
+
+    Note - application/x-microsoft.net.object.binary.base64 is the format
+    that the ResXResourceWriter will generate, however the reader can
     read any of the formats listed below.
-    
+
     mimetype: application/x-microsoft.net.object.binary.base64
-    value   : The object must be serialized with 
+    value   : The object must be serialized with
             : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
             : and then encoded with base64 encoding.
-    
+
     mimetype: application/x-microsoft.net.object.soap.base64
-    value   : The object must be serialized with 
+    value   : The object must be serialized with
             : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
             : and then encoded with base64 encoding.
 
     mimetype: application/x-microsoft.net.object.bytearray.base64
-    value   : The object must be serialized into a byte array 
+    value   : The object must be serialized into a byte array
             : using a System.ComponentModel.TypeConverter
             : and then encoded with base64 encoding.
     -->
@@ -160,6 +160,9 @@
   <data name="GridValueCopyToClipboard" xml:space="preserve">
     <value>Copy to clipboard</value>
   </data>
+  <data name="ExceptionDetailsTitle" xml:space="preserve">
+    <value>Exception details</value>
+  </data>
   <data name="GridValueCopied" xml:space="preserve">
     <value>Copied!</value>
   </data>
@@ -180,6 +183,9 @@
   </data>
   <data name="PropertyGridValueColumnHeader" xml:space="preserve">
     <value>Value</value>
+  </data>
+  <data name="StateColumnHeader" xml:space="preserve">
+    <value>State</value>
   </data>
   <data name="SpanDetailsResource" xml:space="preserve">
     <value>Resource &lt;strong&gt;{0}&lt;/strong&gt;</value>
@@ -215,8 +221,8 @@
   <data name="ViewAction" xml:space="preserve">
     <value>View</value>
   </data>
-  <data name="All" xml:space="preserve">
-    <value>All</value>
+  <data name="LabelAll" xml:space="preserve">
+    <value>(All)</value>
   </data>
   <data name="ChartContainerAllTags" xml:space="preserve">
     <value>All tags</value>
@@ -230,7 +236,7 @@
   <data name="ChartContainerShowCountLabel" xml:space="preserve">
     <value>Show count</value>
   </data>
-  <data name="ChartContainerNoneSelected" xml:space="preserve">
+  <data name="LabelNone" xml:space="preserve">
     <value>(None)</value>
   </data>
   <data name="MetricTableStartColumnHeader" xml:space="preserve">
@@ -254,8 +260,8 @@
   <data name="MetricTableNoMetricsFound" xml:space="preserve">
     <value>No metrics data found</value>
   </data>
-  <data name="SelectAResource" xml:space="preserve">
-    <value>Select a resource</value>
+  <data name="ResourceLabel" xml:space="preserve">
+    <value>Resource</value>
   </data>
   <data name="TimeOffsetColumnHeader" xml:space="preserve">
     <value>Time offset</value>
@@ -276,8 +282,8 @@
     <value>{0} (replica of {1})</value>
     <comment>{0} is a resource name, {1} is a replica set name</comment>
   </data>
-  <data name="ReplicaSetLower" xml:space="preserve">
-    <value>replica set</value>
+  <data name="ApplicationLower" xml:space="preserve">
+    <value>application</value>
   </data>
   <data name="Loading" xml:space="preserve">
     <value>Loading...</value>
@@ -295,6 +301,12 @@
   </data>
   <data name="ResourceDetailsEnvironmentVariablesHeader" xml:space="preserve">
     <value>Environment variables</value>
+  </data>
+  <data name="ResourceDetailsVolumesHeader" xml:space="preserve">
+    <value>Volumes</value>
+  </data>
+  <data name="ResourceHealthChecksHeader" xml:space="preserve">
+    <value>Health checks</value>
   </data>
   <data name="ResourceDetailsResourceHeader" xml:space="preserve">
     <value>Resource</value>
@@ -319,5 +331,110 @@
   </data>
   <data name="StructuredLogsDetailsResourceHeader" xml:space="preserve">
     <value>Resource</value>
+  </data>
+  <data name="TraceDetailAttributesHeader" xml:space="preserve">
+    <value>Attributes</value>
+  </data>
+  <data name="SpanDetailsContextHeader" xml:space="preserve">
+    <value>Context</value>
+  </data>
+  <data name="MetricTableExemplarsColumnHeader" xml:space="preserve">
+    <value>Exemplars</value>
+  </data>
+  <data name="MetricTableViewExemplarsLabel" xml:space="preserve">
+    <value>View exemplars</value>
+  </data>
+  <data name="PlotlyChartTime" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="PlotlyChartExemplars" xml:space="preserve">
+    <value>Exemplars</value>
+  </data>
+  <data name="PlotlyChartTrace" xml:space="preserve">
+    <value>Trace</value>
+  </data>
+  <data name="SpanDetailsLinksHeader" xml:space="preserve">
+    <value>Links</value>
+  </data>
+  <data name="SpanDetailsSpanPrefix" xml:space="preserve">
+    <value>Span</value>
+  </data>
+  <data name="SpanDetailsSpanColumnHeader" xml:space="preserve">
+    <value>Span</value>
+  </data>
+  <data name="SpanDetailsDetailsColumnHeader" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="SpanDetailsBacklinksHeader" xml:space="preserve">
+    <value>Backlinks</value>
+  </data>
+  <data name="PageToolbarLandmark" xml:space="preserve">
+    <value>Page toolbar</value>
+  </data>
+  <data name="FluentDataGridHeaderCellResizeLabel" xml:space="preserve">
+    <value>Column width (in pixels)</value>
+  </data>
+  <data name="FluentDataGridHeaderCellSortButtonText" xml:space="preserve">
+    <value>Sort</value>
+  </data>
+  <data name="FluentDataGridHeaderCellSortAscendingButtonText" xml:space="preserve">
+    <value>Sort (ascending)</value>
+  </data>
+  <data name="FluentDataGridHeaderCellSortDescendingButtonText" xml:space="preserve">
+    <value>Sort (descending)</value>
+  </data>
+  <data name="FluentDataGridHeaderCellResizeButtonText" xml:space="preserve">
+    <value>Resize</value>
+  </data>
+  <data name="StructuredFilteringFilters" xml:space="preserve">
+    <value>Filters</value>
+  </data>
+  <data name="StructuredFilteringNoFilters" xml:space="preserve">
+    <value>No filters</value>
+  </data>
+  <data name="StructuredFilteringAddFilter" xml:space="preserve">
+    <value>Add filter</value>
+  </data>
+  <data name="LabelEmpty" xml:space="preserve">
+    <value>(Empty)</value>
+  </data>
+  <data name="LabelUnset" xml:space="preserve">
+    <value>(Unset)</value>
+  </data>
+  <data name="ActionsColumnHeader" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="ActionViewDetailsText" xml:space="preserve">
+    <value>View details</value>
+  </data>
+  <data name="ActionsButtonText" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="ActionStructuredLogsText" xml:space="preserve">
+    <value>Structured logs</value>
+  </data>
+  <data name="ResourceDetailsTypeHeader" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="ResourceDetailsReferences" xml:space="preserve">
+    <value>References</value>
+  </data>
+  <data name="ResourceDetailsBackReferences" xml:space="preserve">
+    <value>Back references</value>
+  </data>
+  <data name="VolumePathColumnHeader" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="VolumeMountTypeColumnHeader" xml:space="preserve">
+    <value>Mount type</value>
+  </data>
+  <data name="ClearAllResources" xml:space="preserve">
+    <value>Remove all</value>
+  </data>
+  <data name="ClearSelectedResource" xml:space="preserve">
+    <value>Remove for {0}</value>
+  </data>
+  <data name="ClearPendingSelectedResource" xml:space="preserve">
+    <value>Remove for resource</value>
   </data>
 </root>

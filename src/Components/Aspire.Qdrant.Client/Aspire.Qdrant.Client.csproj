@@ -1,21 +1,27 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentCommonPackageTags) qdrant</PackageTags>
     <Description>A Qdrant client that integrates with Aspire, including logging.</Description>
     <PackageIconFullPath>$(SharedDir)QdrantLogo_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <MinCodeCoverage>71</MinCodeCoverage>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
+    <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Qdrant.Client" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
   </ItemGroup>
   
 </Project>

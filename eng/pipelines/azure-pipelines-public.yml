@@ -8,13 +8,10 @@ trigger:
     include:
       - '*'
     exclude:
+      - '**.md'
       - eng/Version.Details.xml
       - .github/*
       - docs/*
-      - CODE_OF_CONDUCT.md
-      - CONTRIBUTING.md
-      - README.md
-      - SECURITY.md
       - LICENSE.TXT
       - PATENTS.TXT
       - THIRD-PARTY-NOTICES.TXT
@@ -29,13 +26,10 @@ pr:
     include:
       - '*'
     exclude:
+      - '**.md'
       - eng/Version.Details.xml
       - .github/*
       - docs/*
-      - CODE_OF_CONDUCT.md
-      - CONTRIBUTING.md
-      - README.md
-      - SECURITY.md
       - LICENSE.TXT
       - PATENTS.TXT
       - THIRD-PARTY-NOTICES.TXT
@@ -87,13 +81,13 @@ stages:
       artifacts:
         publish:
           artifacts: false
-          logs: true
+          logs:
+            name: 'Logs_Build_$(Agent.JobName)_$(_BuildConfig)'
           manifests: true
       enableMicrobuild: true
       enablePublishUsingPipelines: true
       publishAssetsImmediately: true
       enablePublishTestResults: true
-      enableSourceBuild: true
       testResultsFormat: vstest
       enableSourceIndex: false
       workspace:
@@ -101,64 +95,69 @@ stages:
 
       jobs:
 
-      - job: Windows
-        # timeout accounts for wait times for helix agents up to 30mins
-        timeoutInMinutes: 90
+      - ${{ each testVariant in split(',_helix_tests', ',') }}:
+        - job: Windows${{ testVariant }}
 
-        pool:
-          name: $(DncEngPublicBuildPool)
-          demands: ImageOverride -equals windows.vs2022preview.amd64.open
+          # timeout accounts for wait times for helix agents up to 30mins
+          timeoutInMinutes: 90
 
-        variables:
-          - name: _buildScript
-            value: $(Build.SourcesDirectory)/build.cmd -ci
+          pool:
+            name: $(DncEngPublicBuildPool)
+            demands: ImageOverride -equals windows.vs2022preview.amd64.open
 
-        preSteps:
-          - checkout: self
-            fetchDepth: 1
-            clean: true
+          variables:
+            - name: _buildScript
+              value: $(Build.SourcesDirectory)/build.cmd -ci
 
-        steps:
-          - template: /eng/pipelines/templates/BuildAndTest.yml
-            parameters:
-              runAsPublic: true
-              dotnetScript: $(Build.SourcesDirectory)/dotnet.cmd
-              buildScript: $(_buildScript)
-              buildConfig: $(_BuildConfig)
-              repoArtifactsPath: $(Build.Arcade.ArtifactsPath)
-              repoLogPath: $(Build.Arcade.LogsPath)
-              repoTestResultsPath: $(Build.Arcade.TestResultsPath)
-              isWindows: true
+          preSteps:
+            - checkout: self
+              fetchDepth: 1
+              clean: true
 
-      - job: Linux
-        # timeout accounts for wait times for helix agents up to 30mins
-        timeoutInMinutes: 90
+          steps:
+            - template: /eng/pipelines/templates/BuildAndTest.yml
+              parameters:
+                runAsPublic: true
+                dotnetScript: $(Build.SourcesDirectory)/dotnet.cmd
+                buildScript: $(_buildScript)
+                buildConfig: $(_BuildConfig)
+                repoArtifactsPath: $(Build.Arcade.ArtifactsPath)
+                repoLogPath: $(Build.Arcade.LogsPath)
+                repoTestResultsPath: $(Build.Arcade.TestResultsPath)
+                isWindows: true
+                runHelixTests: ${{ contains(testVariant, 'helix') }}
 
-        pool:
-          name: $(DncEngPublicBuildPool)
-          demands: ImageOverride -equals build.ubuntu.2004.amd64.open
+      - ${{ each testVariant in split(',_helix_tests', ',') }}:
+        - job: Linux${{ testVariant }}
 
-        variables:
-          - name: _buildScript
-            value: $(Build.SourcesDirectory)/build.sh --ci
+          # timeout accounts for wait times for helix agents up to 30mins
+          timeoutInMinutes: 90
 
-        preSteps:
-          - checkout: self
-            fetchDepth: 1
-            clean: true
+          pool:
+            name: $(DncEngPublicBuildPool)
+            demands: ImageOverride -equals build.ubuntu.2004.amd64.open
 
-        steps:
-        - template: /eng/pipelines/templates/BuildAndTest.yml
-          parameters:
-            runAsPublic: true
-            dotnetScript: $(Build.SourcesDirectory)/dotnet.sh
-            buildScript: $(_buildScript)
-            buildConfig: $(_BuildConfig)
-            repoArtifactsPath: $(Build.Arcade.ArtifactsPath)
-            repoLogPath: $(Build.Arcade.LogsPath)
-            repoTestResultsPath: $(Build.Arcade.TestResultsPath)
-            isWindows: false
+          variables:
+            - name: _buildScript
+              value: $(Build.SourcesDirectory)/build.sh --ci
 
+          preSteps:
+            - checkout: self
+              fetchDepth: 1
+              clean: true
+
+          steps:
+            - template: /eng/pipelines/templates/BuildAndTest.yml
+              parameters:
+                runAsPublic: true
+                dotnetScript: $(Build.SourcesDirectory)/dotnet.sh
+                buildScript: $(_buildScript)
+                buildConfig: $(_BuildConfig)
+                repoArtifactsPath: $(Build.Arcade.ArtifactsPath)
+                repoLogPath: $(Build.Arcade.LogsPath)
+                repoTestResultsPath: $(Build.Arcade.TestResultsPath)
+                isWindows: false
+                runHelixTests: ${{ contains(testVariant, 'helix') }}
 
 # ----------------------------------------------------------------
 # This stage performs quality gates checks
@@ -201,3 +200,6 @@ stages:
           displayName: Init toolset
 
         - template: /eng/pipelines/templates/VerifyCoverageReport.yml
+          parameters:
+            # matches what is used in the conditions for the build/test jobs
+            testVariants: ',_helix_tests'

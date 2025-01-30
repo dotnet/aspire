@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Security.Cryptography;
 using Aspire.Azure.Common;
 using Aspire.Azure.Messaging.EventHubs;
 using Azure.Core;
@@ -27,6 +28,9 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
     protected override TokenCredential? GetTokenCredential(TSettings settings)
         => settings.Credential;
 
+    protected override bool GetMetricsEnabled(TSettings settings)
+        => false;
+
     protected override bool GetTracingEnabled(TSettings settings)
         => !settings.DisableTracing;
 
@@ -46,17 +50,27 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
 
         try
         {
-            // extract the namespace from the connection string or qualified namespace
-            var fullyQualifiedNs = string.IsNullOrWhiteSpace(settings.FullyQualifiedNamespace) ?
-                EventHubsConnectionStringProperties.Parse(settings.ConnectionString).FullyQualifiedNamespace :
-                new Uri(settings.FullyQualifiedNamespace).Host;
+            // Extract the namespace from the connection string or qualified namespace
+            ns = string.IsNullOrWhiteSpace(settings.FullyQualifiedNamespace)
+                ? EventHubsConnectionStringProperties.Parse(settings.ConnectionString).Endpoint.Host
+                : new Uri(settings.FullyQualifiedNamespace).Host;
 
-            ns = fullyQualifiedNs[..fullyQualifiedNs.IndexOf('.')];
+            // This is likely to be similar to {yournamespace}.servicebus.windows.net or {yournamespace}.servicebus.chinacloudapi.cn
+            if (ns.Contains(".servicebus", StringComparison.OrdinalIgnoreCase))
+            {
+                ns = ns[..ns.IndexOf(".servicebus")];
+            }
+            else
+            {
+                // Use a random prefix if no meaningful name is found e.g., "localhost", "127.0.0.1".
+                // This is used to create blob containers names that are unique in the referenced storage account.
+                RandomNumberGenerator.GetHexString(12, true);
+            }
         }
         catch (Exception ex) when (ex is FormatException or IndexOutOfRangeException)
         {
             throw new InvalidOperationException(
-                $"A {typeof(TClient).Name} could not be configured. Please ensure that the ConnectionString or Namespace is well-formed.");
+                $"A {typeof(TClient).Name} could not be configured. Please ensure that the ConnectionString or FullyQualifiedNamespace is well-formed.");
         }
 
         return ns;
@@ -72,7 +86,7 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
         {
             throw new InvalidOperationException(
                 $"A {typeof(TClient).Name} could not be configured. Ensure valid connection information was provided in " +
-                $"'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'Namespace' in the '{configurationSectionName}' configuration section.");
+                $"'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'FullyQualifiedNamespace' in the '{configurationSectionName}' configuration section.");
         }
 
         // If we have a connection string, ensure there's an EntityPath if settings.EventHubName is missing

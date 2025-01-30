@@ -44,7 +44,7 @@ Then, in the _Program.cs_ file of `AppHost`, add an Azure Log Analytics workspac
 var laws = builder.AddAzureLogAnalyticsWorkspace("laws");
 
 var myService = builder.AddProject<Projects.MyService>()
-                       .WithEnvionment("LOG_ANALYTICS_WORKSPACE_ID", $"{laws.WorkspaceId}");
+                       .WithEnvironment("LOG_ANALYTICS_WORKSPACE_ID", $"{laws.WorkspaceId}");
 ```
 
 > NOTE: By default a log analytics workspace will be created automatically when deploying an Aspire application

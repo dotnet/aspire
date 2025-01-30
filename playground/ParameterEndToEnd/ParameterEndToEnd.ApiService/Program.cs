@@ -13,6 +13,7 @@ builder.AddSqlServerDbContext<MyDbContext>("db");
 
 var app = builder.Build();
 
+app.MapDefaultEndpoints();
 app.MapGet("/", async (MyDbContext context) =>
 {
     // You wouldn't normally do this on every call,

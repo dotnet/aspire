@@ -1,12 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <IsAotCompatible>true</IsAotCompatible>
     <Description>Provides abstractions for service discovery. Interfaces defined in this package are implemented in Microsoft.Extensions.ServiceDiscovery and other service discovery packages.</Description>
     <PackageIconFullPath>$(DefaultDotnetIconFullPath)</PackageIconFullPath>
     <RootNamespace>Microsoft.Extensions.ServiceDiscovery</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>82</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>

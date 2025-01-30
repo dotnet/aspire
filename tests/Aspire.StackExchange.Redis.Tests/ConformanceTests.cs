@@ -19,11 +19,13 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
-    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
+    protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
     protected override bool SupportsKeyedRegistrations => true;
 
     protected override string[] RequiredLogCategories => ["StackExchange.Redis.ConnectionMultiplexer"];
+
+    protected override string? ConfigurationSectionName => "Aspire:StackExchange:Redis";
 
     // https://github.com/open-telemetry/opentelemetry-dotnet-contrib/blob/e4cb523a4a3592e1a1adf30f3596025bfd8978e3/src/OpenTelemetry.Instrumentation.StackExchangeRedis/StackExchangeRedisConnectionInstrumentation.cs#L34
     protected override string ActivitySourceName => "OpenTelemetry.Instrumentation.StackExchangeRedis";
@@ -64,7 +66,7 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
     {
-        string connectionString = RequiresDockerTheoryAttribute.IsSupported
+        string connectionString = RequiresDockerAttribute.IsSupported
                                     ? _containerFixture.GetConnectionString()
                                     : "localhost";
         configuration.AddInMemoryCollection([

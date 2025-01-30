@@ -5,7 +5,12 @@ namespace Aspire.Hosting.Qdrant;
 
 internal static class QdrantContainerImageTags
 {
+    /// <remarks>docker.io</remarks>
     public const string Registry = "docker.io";
+
+    /// <remarks>qdrant/qdrant</remarks>
     public const string Image = "qdrant/qdrant";
-    public const string Tag = "v1.8.4";
+
+    /// <remarks>v1.12.1</remarks>
+    public const string Tag = "v1.12.1";
 }

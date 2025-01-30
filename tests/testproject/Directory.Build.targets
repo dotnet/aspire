@@ -1,4 +1,0 @@
-<Project>
-  <Import Project="Directory.Build.Helix.targets" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" />
-  <Import Project="..\Directory.Build.targets" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
-</Project>

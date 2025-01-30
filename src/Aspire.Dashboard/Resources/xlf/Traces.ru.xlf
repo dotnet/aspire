@@ -2,6 +2,16 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ru" original="../Traces.resx">
     <body>
+      <trans-unit id="MessageExceededLimitBody">
+        <source>A maximum of {0} traces are stored. Old traces are automatically removed.</source>
+        <target state="translated">Максимальное количество сохраняемых трассировок: {0}. Старые трассировки удаляются автоматически.</target>
+        <note>{0} is the max count</note>
+      </trans-unit>
+      <trans-unit id="MessageExceededLimitTitle">
+        <source>Exceeded trace limit</source>
+        <target state="translated">Превышено ограничение трассировок</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TracesFullName">
         <source>Name: {0}</source>
         <target state="translated">Имя: {0}</target>

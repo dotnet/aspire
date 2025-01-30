@@ -17,10 +17,10 @@ public sealed class NatsContainerFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        if (RequiresDockerTheoryAttribute.IsSupported)
+        if (RequiresDockerAttribute.IsSupported)
         {
             Container = new NatsBuilder()
-                .WithImage($"{NatsContainerImageTags.Image}:{NatsContainerImageTags.Tag}")
+                .WithImage($"{ComponentTestConstants.AspireTestContainerRegistry}/{NatsContainerImageTags.Image}:{NatsContainerImageTags.Tag}")
                 .Build();
             await Container.StartAsync();
         }

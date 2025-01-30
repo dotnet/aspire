@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.InteropServices;
 using Xunit;
 using Xunit.Abstractions;
 using Aspire.TestProject;
@@ -17,7 +16,7 @@ namespace Aspire.EndToEnd.Tests;
 /// </summary>
 public sealed class IntegrationServicesFixture : IAsyncLifetime
 {
-#if TESTS_RUNNING_OUTSIDE_OF_REPO
+#if BUILD_FOR_TESTS_RUNNING_OUTSIDE_OF_REPO
     public static bool TestsRunningOutsideOfRepo = true;
 #else
     public static bool TestsRunningOutsideOfRepo;
@@ -29,6 +28,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     private readonly IMessageSink _diagnosticMessageSink;
     private readonly TestOutputWrapper _testOutput;
     private AspireProject? _project;
+    private readonly string _testProjectPath;
 
     public BuildEnvironment BuildEnvironment { get; init; }
     public ProjectInfo IntegrationServiceA => Projects["integrationservicea"];
@@ -41,11 +41,10 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         BuildEnvironment = new(useSystemDotNet: !TestsRunningOutsideOfRepo);
         if (TestsRunningOutsideOfRepo)
         {
-            if (!BuildEnvironment.HasWorkloadFromArtifacts)
-            {
-                throw new InvalidOperationException("Expected to have sdk+workload from artifacts when running tests outside of the repo");
-            }
             BuildEnvironment.EnvVars["TestsRunningOutsideOfRepo"] = "true";
+            BuildEnvironment.EnvVars["RestoreAdditionalProjectSources"] = BuildEnvironment.BuiltNuGetsPath;
+            BuildEnvironment.EnvVars["SkipAspireWorkloadManifest"] = "true";
+            _testProjectPath = Path.Combine(BuildEnvironment.TestAssetsPath, "testproject");
         }
         else
         {
@@ -54,19 +53,13 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             {
                 throw new InvalidOperationException("These tests should be run from inside the repo when using `TestsRunningOutsideOfRepo=false`");
             }
-
-            BuildEnvironment.TestAssetsPath = Path.Combine(BuildEnvironment.RepoRoot.FullName, "tests");
-            if (!Directory.Exists(BuildEnvironment.TestAssetsPath))
-            {
-                throw new ArgumentException($"Cannot find TestAssetsPath={BuildEnvironment.TestAssetsPath}");
-            }
+            _testProjectPath = Path.Combine(BuildEnvironment.RepoRoot.FullName, "tests", "testproject");
         }
     }
 
     public async Task InitializeAsync()
     {
-        string testProjectPath = Path.Combine(BuildEnvironment.TestAssetsPath, "testproject");
-        _project = new AspireProject("TestProject", testProjectPath, _testOutput, BuildEnvironment);
+        _project = new AspireProject("TestProject", _testProjectPath, _testOutput, BuildEnvironment);
         if (TestsRunningOutsideOfRepo)
         {
             _testOutput.WriteLine("");
@@ -106,16 +99,8 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
         string component = resource switch
         {
-            TestResourceNames.cosmos => "cosmos",
-            TestResourceNames.kafka => "kafka",
-            TestResourceNames.mongodb => "mongodb",
-            TestResourceNames.mysql or TestResourceNames.efmysql => "mysql",
-            TestResourceNames.oracledatabase => "oracledatabase",
             TestResourceNames.postgres or TestResourceNames.efnpgsql => "postgres",
-            TestResourceNames.rabbitmq => "rabbitmq",
             TestResourceNames.redis => "redis",
-            TestResourceNames.garnet => "garnet",
-            TestResourceNames.sqlserver => "sqlserver",
             _ => throw new ArgumentException($"Unknown resource: {resource}")
         };
 
@@ -124,13 +109,9 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        if (Project?.AppHostProcess is not null)
+        if (_project is not null)
         {
-            await Project.DumpDockerInfoAsync(new TestOutputWrapper(null));
-        }
-        if (Project is not null)
-        {
-            await Project.DisposeAsync();
+            await _project.DisposeAsync();
         }
     }
 
@@ -149,38 +130,14 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     {
         TestResourceNames resourcesToInclude = TestScenario switch
         {
-            "oracle" => TestResourceNames.oracledatabase,
-            "cosmos" => TestResourceNames.cosmos,
-            "basicservices" => TestResourceNames.kafka
-                              | TestResourceNames.mongodb
-                              | TestResourceNames.rabbitmq
-                              | TestResourceNames.redis
-                              | TestResourceNames.garnet
+            "basicservices" => TestResourceNames.redis
                               | TestResourceNames.postgres
-                              | TestResourceNames.efnpgsql
-                              | TestResourceNames.mysql
-                              | TestResourceNames.efmysql
-                              | TestResourceNames.sqlserver,
+                              | TestResourceNames.efnpgsql,
             "" or null => TestResourceNames.All,
             _ => throw new ArgumentException($"Unknown test scenario '{TestScenario}'")
         };
 
         TestResourceNames resourcesToSkip = TestResourceNames.All & ~resourcesToInclude;
-
-        // always skip cosmos on macos/arm64
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
-        {
-            resourcesToSkip |= TestResourceNames.cosmos;
-        }
-        if (string.IsNullOrEmpty(TestScenario))
-        {
-            // no scenario specified
-            if (BuildEnvironment.IsRunningOnCI)
-            {
-                resourcesToSkip |= TestResourceNames.cosmos;
-                resourcesToSkip |= TestResourceNames.oracledatabase;
-            }
-        }
 
         // always skip the dashboard
         resourcesToSkip |= TestResourceNames.dashboard;

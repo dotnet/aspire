@@ -1,16 +1,24 @@
 #nullable enable
-Aspire.Hosting.Azure.AzureCosmosDBEmulatorResource
-Aspire.Hosting.Azure.AzureCosmosDBEmulatorResource.AzureCosmosDBEmulatorResource(Aspire.Hosting.AzureCosmosDBResource! innerResource) -> void
-Aspire.Hosting.AzureCosmosDBResource
-Aspire.Hosting.AzureCosmosDBResource.AzureCosmosDBResource(string! name, System.Action<Aspire.Hosting.ResourceModuleConstruct!>! configureConstruct) -> void
-Aspire.Hosting.AzureCosmosDBResource.ConnectionString.get -> Aspire.Hosting.Azure.BicepSecretOutputReference!
-Aspire.Hosting.AzureCosmosDBResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
-Aspire.Hosting.AzureCosmosDBResource.IsEmulator.get -> bool
-Aspire.Hosting.AzureCosmosExtensions
-override Aspire.Hosting.Azure.AzureCosmosDBEmulatorResource.Annotations.get -> Aspire.Hosting.ApplicationModel.ResourceAnnotationCollection!
-override Aspire.Hosting.Azure.AzureCosmosDBEmulatorResource.Name.get -> string!
-static Aspire.Hosting.AzureCosmosExtensions.AddAzureCosmosDB(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureCosmosDBResource!>!
-static Aspire.Hosting.AzureCosmosExtensions.AddAzureCosmosDB(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureCosmosDBResource!>!, Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.CosmosDB.CosmosDBAccount!, System.Collections.Generic.IEnumerable<Azure.Provisioning.CosmosDB.CosmosDBSqlDatabase!>!>? configureResource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureCosmosDBResource!>!
-static Aspire.Hosting.AzureCosmosExtensions.AddDatabase(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureCosmosDBResource!>! builder, string! databaseName) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureCosmosDBResource!>!
-static Aspire.Hosting.AzureCosmosExtensions.RunAsEmulator(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureCosmosDBResource!>! builder, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureCosmosDBEmulatorResource!>!>? configureContainer = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureCosmosDBResource!>!
-static Aspire.Hosting.AzureCosmosExtensions.WithGatewayPort(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureCosmosDBEmulatorResource!>! builder, int? port) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureCosmosDBEmulatorResource!>!
+*REMOVED*static Aspire.Hosting.AzureCosmosExtensions.AddAzureCosmosDB(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureCosmosDBResource!>!, Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.CosmosDB.CosmosDBAccount!, System.Collections.Generic.IEnumerable<Azure.Provisioning.CosmosDB.CosmosDBSqlDatabase!>!>? configureResource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureCosmosDBResource!>!
+*REMOVED*Aspire.Hosting.AzureCosmosDBResource.AzureCosmosDBResource(string! name, System.Action<Aspire.Hosting.ResourceModuleConstruct!>! configureConstruct) -> void
+Aspire.Hosting.Azure.CosmosDB.CosmosDBContainer
+Aspire.Hosting.Azure.CosmosDB.CosmosDBContainer.CosmosDBContainer(string! name, string! partitionKeyPath) -> void
+Aspire.Hosting.Azure.CosmosDB.CosmosDBContainer.Name.get -> string!
+Aspire.Hosting.Azure.CosmosDB.CosmosDBContainer.Name.set -> void
+Aspire.Hosting.Azure.CosmosDB.CosmosDBContainer.PartitionKeyPath.get -> string!
+Aspire.Hosting.Azure.CosmosDB.CosmosDBContainer.PartitionKeyPath.set -> void
+Aspire.Hosting.Azure.CosmosDB.CosmosDBDatabase
+Aspire.Hosting.Azure.CosmosDB.CosmosDBDatabase.Containers.get -> System.Collections.Generic.List<Aspire.Hosting.Azure.CosmosDB.CosmosDBContainer!>!
+Aspire.Hosting.Azure.CosmosDB.CosmosDBDatabase.CosmosDBDatabase(string! name) -> void
+Aspire.Hosting.Azure.CosmosDB.CosmosDBDatabase.Name.get -> string!
+Aspire.Hosting.Azure.CosmosDB.CosmosDBDatabase.Name.set -> void
+Aspire.Hosting.AzureCosmosDBResource.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string!, object!>! target, string! connectionName) -> void
+Aspire.Hosting.AzureCosmosDBResource.AzureCosmosDBResource(string! name, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureInfrastructure) -> void
+Aspire.Hosting.AzureCosmosDBResource.ConnectionStringOutput.get -> Aspire.Hosting.Azure.BicepOutputReference!
+Aspire.Hosting.AzureCosmosDBResource.UseAccessKeyAuthentication.get -> bool
+static Aspire.Hosting.AzureCosmosExtensions.RunAsPreviewEmulator(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureCosmosDBResource!>! builder, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureCosmosDBEmulatorResource!>!>? configureContainer = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureCosmosDBResource!>!
+static Aspire.Hosting.AzureCosmosExtensions.WithDataExplorer(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureCosmosDBEmulatorResource!>! builder, int? port = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureCosmosDBEmulatorResource!>!
+static Aspire.Hosting.AzureCosmosExtensions.WithAccessKeyAuthentication(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureCosmosDBResource!>! builder) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureCosmosDBResource!>!
+static Aspire.Hosting.AzureCosmosExtensions.WithDatabase(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureCosmosDBResource!>! builder, string! name, System.Action<Aspire.Hosting.Azure.CosmosDB.CosmosDBDatabase!>? configure = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AzureCosmosDBResource!>!
+static Aspire.Hosting.AzureCosmosExtensions.WithDataVolume(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureCosmosDBEmulatorResource!>! builder, string? name = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureCosmosDBEmulatorResource!>!
+static Aspire.Hosting.AzureCosmosExtensions.WithPartitionCount(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureCosmosDBEmulatorResource!>! builder, int count) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureCosmosDBEmulatorResource!>!

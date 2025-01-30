@@ -78,7 +78,15 @@ internal sealed class ExecutableReplicaSetStatus : V1Status
 
     // Last time the replica set was scaled up or down by the controller
     [JsonPropertyName("lastScaleTime")]
-    public DateTimeOffset? LastScaleTime { get; set; }
+    public DateTime? LastScaleTime { get; set; }
+
+    /// <summary>
+    /// The health status of the ExecutableReplicaSet <see cref="HealthStatus"/> for allowed values.
+    /// The replica set will be healthy if it has the desired number of healthy replicas, unhealthy if
+    /// it has no healthy replicas, and caution if it has some healthy replicas but not the desired number.
+    /// </summary>
+    [JsonPropertyName("healthStatus")]
+    public string? HealthStatus { get; set; }
 }
 
 internal sealed class ExecutableReplicaSet : CustomResource<ExecutableReplicaSetSpec, ExecutableReplicaSetStatus>

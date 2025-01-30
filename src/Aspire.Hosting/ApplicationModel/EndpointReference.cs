@@ -226,5 +226,5 @@ public enum EndpointProperty
     /// <summary>
     /// The target port of the endpoint.
     /// </summary>
-    TargetPort
+    TargetPort,
 }

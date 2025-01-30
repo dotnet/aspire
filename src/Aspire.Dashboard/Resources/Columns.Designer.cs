@@ -61,11 +61,11 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to None.
+        ///   Looks up a localized string similar to Endpoints.
         /// </summary>
-        public static string EndpointsColumnDisplayNone {
+        public static string EndpointsColumnDisplayOverflowTitle {
             get {
-                return ResourceManager.GetString("EndpointsColumnDisplayNone", resourceCulture);
+                return ResourceManager.GetString("EndpointsColumnDisplayOverflowTitle", resourceCulture);
             }
         }
         
@@ -79,11 +79,11 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Exception details.
+        ///   Looks up a localized string similar to This container is persistent and won&apos;t be stopped when the app host is shut down..
         /// </summary>
-        public static string LogMessageColumnExceptionDetailsTitle {
+        public static string PersistentContainerIconTooltip {
             get {
-                return ResourceManager.GetString("LogMessageColumnExceptionDetailsTitle", resourceCulture);
+                return ResourceManager.GetString("PersistentContainerIconTooltip", resourceCulture);
             }
         }
         
@@ -111,6 +111,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourceNameDisplayProcessIdText {
             get {
                 return ResourceManager.GetString("ResourceNameDisplayProcessIdText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resource is running but not in a healthy state. Click for details..
+        /// </summary>
+        public static string RunningAndUnhealthyResourceStateToolTip {
+            get {
+                return ResourceManager.GetString("RunningAndUnhealthyResourceStateToolTip", resourceCulture);
             }
         }
         
@@ -192,6 +201,16 @@ namespace Aspire.Dashboard.Resources {
         public static string SourceColumnSourceCopyFullPathToClipboard {
             get {
                 return ResourceManager.GetString("SourceColumnSourceCopyFullPathToClipboard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Container runtime was found but appears to be unhealthy. Ensure that it is running.
+        ///For more information, see https://aka.ms/dotnet/aspire/container-runtime-unhealthy.
+        /// </summary>
+        public static string StateColumnResourceContainerRuntimeUnhealthy {
+            get {
+                return ResourceManager.GetString("StateColumnResourceContainerRuntimeUnhealthy", resourceCulture);
             }
         }
         

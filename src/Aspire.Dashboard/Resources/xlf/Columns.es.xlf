@@ -2,9 +2,9 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="es" original="../Columns.resx">
     <body>
-      <trans-unit id="EndpointsColumnDisplayNone">
-        <source>None</source>
-        <target state="translated">Ninguno</target>
+      <trans-unit id="EndpointsColumnDisplayOverflowTitle">
+        <source>Endpoints</source>
+        <target state="translated">Puntos de conexión</target>
         <note />
       </trans-unit>
       <trans-unit id="EndpointsColumnDisplayPlaceholder">
@@ -12,9 +12,9 @@
         <target state="translated">Iniciando...</target>
         <note />
       </trans-unit>
-      <trans-unit id="LogMessageColumnExceptionDetailsTitle">
-        <source>Exception details</source>
-        <target state="translated">Detalles de la excepción</target>
+      <trans-unit id="PersistentContainerIconTooltip">
+        <source>This container is persistent and won't be stopped when the app host is shut down.</source>
+        <target state="translated">Este contenedor es persistente y no se detendrá cuando se apague el host de aplicaciones.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNameDisplayContainerIdText">
@@ -31,6 +31,11 @@
         <source>Process ID: {0}</source>
         <target state="translated">Id. de proceso: {0}</target>
         <note>{0} is a numeric id</note>
+      </trans-unit>
+      <trans-unit id="RunningAndUnhealthyResourceStateToolTip">
+        <source>Resource is running but not in a healthy state. Click for details.</source>
+        <target state="translated">El recurso se está ejecutando, pero no en un estado correcto. Haga clic aquí para obtener detalles.</target>
+        <note>Tool tip text explaining that the resource is running but not yet ready to receive requests.</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerArgsTitle">
         <source>Container args</source>
@@ -77,6 +82,13 @@
         <target state="translated">Copiar la ruta de acceso del archivo al Portapapeles</target>
         <note />
       </trans-unit>
+      <trans-unit id="StateColumnResourceContainerRuntimeUnhealthy">
+        <source>Container runtime was found but appears to be unhealthy. Ensure that it is running.
+For more information, see https://aka.ms/dotnet/aspire/container-runtime-unhealthy</source>
+        <target state="translated">Se encontró el runtime de contenedor, pero parece que está en un estado incorrecto. Asegúrese de que se está ejecutando.
+Para obtener más información, consulte https://aka.ms/dotnet/aspire/container-runtime-unhealthy</target>
+        <note>Contains a new line</note>
+      </trans-unit>
       <trans-unit id="StateColumnResourceExited">
         <source>{0} is no longer running</source>
         <target state="translated">{0} ya no se está ejecutando</target>
@@ -89,7 +101,7 @@
       </trans-unit>
       <trans-unit id="UnknownStateLabel">
         <source>Unknown</source>
-        <target state="new">Unknown</target>
+        <target state="translated">Desconocido</target>
         <note>This term is displayed in the "state" column of a grid, and reflects the case where we don't know what state a given resource is in.</note>
       </trans-unit>
       <trans-unit id="UnreadLogErrorsBadgeErrorLogs">

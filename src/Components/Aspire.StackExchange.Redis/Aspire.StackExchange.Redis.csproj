@@ -1,12 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentCachePackageTags) redis</PackageTags>
     <Description>A generic Redis® client that integrates with Aspire, including health checks, logging, and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)redis-cube-red_white-rgb.png</PackageIconFullPath>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>42</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>

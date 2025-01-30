@@ -34,7 +34,9 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
 
     protected override bool SupportsKeyedRegistrations => true;
 
-    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
+    protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
+
+    protected override string? ConfigurationSectionName => "Aspire:Npgsql";
 
     protected override string ValidJsonConfig => """
         {
@@ -58,7 +60,7 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
     public ConformanceTests(PostgreSQLContainerFixture? containerFixture)
     {
         _containerFixture = containerFixture;
-        ConnectionString = (_containerFixture is not null && RequiresDockerTheoryAttribute.IsSupported)
+        ConnectionString = (_containerFixture is not null && RequiresDockerAttribute.IsSupported)
                                         ? _containerFixture.GetConnectionString()
                                         : "Server=localhost;User ID=root;Password=password;Database=test_aspire_mysql";
     }
@@ -123,12 +125,14 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
         T? Resolve<T>() => key is null ? host.Services.GetService<T>() : host.Services.GetKeyedService<T>(key);
     }
 
-    [RequiresDockerFact]
+    [Fact]
+    [RequiresDocker]
     public void TracingEnablesTheRightActivitySource()
         => RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: null)),
                                  ConnectionString).Dispose();
 
-    [RequiresDockerFact]
+    [Fact]
+    [RequiresDocker]
     public void TracingEnablesTheRightActivitySource_Keyed()
         => RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: "key")),
                                  ConnectionString).Dispose();

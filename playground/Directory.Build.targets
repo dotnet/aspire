@@ -1,0 +1,31 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <!-- Skip dashboard when building outside the repo, like on helix. Or when
+        building on CI -->
+    <SkipDashboardProjectReference Condition="'$(SkipDashboardProjectReference)' == '' and ('$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true')">true</SkipDashboardProjectReference>
+    <!-- Skip emulators that don't start consistently when running in CI. -->
+    <SkipUnstableEmulators Condition="'$(SkipUnstableEmulators)' == '' and ('$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true' or '$(CODESPACES)' == 'true')">true</SkipUnstableEmulators>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(SkipDashboardProjectReference)' != 'true'">
+    <ProjectReference Include="$(RepoRoot)src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(RepoRoot)' != '' and '$(SkipAspireHostingAnalyzersReference)' != 'true'">
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" IsAspireProjectResource="false"
+                      PrivateAssets="all"
+                      ReferenceOutputAssembly="false"
+                      OutputItemType="Analyzer"
+                      SetTargetFramework="TargetFramework=netstandard2.0" />
+  </ItemGroup>
+
+  <!-- Import only when in-repo. For the out-of-repo case a parent Directory.Build.targets does the import -->
+  <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.targets" Condition="'$(RepoRoot)' != ''" />
+
+  <PropertyGroup >
+    <DefineConstants Condition="'$(SkipDashboardProjectReference)' == 'true'">SKIP_DASHBOARD_REFERENCE;$(DefineConstants)</DefineConstants>
+    <DefineConstants Condition="'$(SkipUnstableEmulators)' == 'true'">SKIP_UNSTABLE_EMULATORS;$(DefineConstants)</DefineConstants>
+  </PropertyGroup>
+</Project>

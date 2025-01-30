@@ -1,7 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
+using System.Globalization;
+using System.Reflection;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -17,6 +18,10 @@ namespace ConfigurationSchemaGenerator;
 
 internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation compilation)
 {
+    internal const string RootPathPrefix = "--empty--";
+    private static readonly string[] s_lineBreaks = ["\r\n", "\r", "\n"];
+    private static readonly JsonNodeOptions s_ignoreCaseNodeOptions = new() { PropertyNameCaseInsensitive = true };
+
     private static readonly JsonSerializerOptions s_serializerOptions = new()
     {
         WriteIndented = true,
@@ -31,15 +36,14 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
     private readonly Stack<TypeSpec> _visitedTypes = new();
     private readonly string[] _exclusionPaths = CreateExclusionPaths(spec.ExclusionPaths);
 
-    [GeneratedRegex(@"( *)\r?\n( *)")]
-    private static partial Regex Indentation();
+    [GeneratedRegex(@"(\s*)(?:\r?\n\s*\r?\n)(\s*)")]
+    private static partial Regex BlankLinesInDocComment();
 
     public string GenerateSchema()
     {
         var root = new JsonObject();
         GenerateLogCategories(root);
-        root["properties"] = GenerateGraph();
-        root["type"] = "object";
+        GenerateGraph(root);
 
         return JsonSerializer.Serialize(root, s_serializerOptions);
     }
@@ -52,29 +56,28 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             return;
         }
 
-        var propertiesNode = new JsonObject();
+        var propertiesNode = new JsonObject(s_ignoreCaseNodeOptions);
         for (var i = 0; i < categories.Count; i++)
         {
-            var catObj = new JsonObject();
-            catObj["$ref"] = "#/definitions/logLevelThreshold";
-            propertiesNode.Add(categories[i], catObj);
+            var categoryNode = new JsonObject();
+            categoryNode["$ref"] = "#/definitions/logLevelThreshold";
+            ReplaceNodeWithKeyCasingChange(propertiesNode, categories[i], categoryNode);
         }
 
         parent["definitions"] = new JsonObject
         {
-            ["logLevel"] = new JsonObject()
+            ["logLevel"] = new JsonObject
             {
                 ["properties"] = propertiesNode
             }
         };
     }
 
-    private JsonObject GenerateGraph()
+    private void GenerateGraph(JsonObject rootNode)
     {
-        var root = new JsonObject();
         if (spec.ConfigurationTypes.Count > 0)
         {
-            if (spec.ConfigurationTypes.Count != spec.ConfigurationPaths.Count)
+            if (spec.ConfigurationTypes.Count != spec.ConfigurationPaths?.Count)
             {
                 throw new InvalidOperationException("Ensure Types and ConfigurationPaths are the same length.");
             }
@@ -84,95 +87,293 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
                 var type = spec.ConfigurationTypes[i];
                 var path = spec.ConfigurationPaths[i];
 
-                GenerateProperties(root, type, path);
+                var pathSegments = new Queue<string>();
+                foreach (var segment in path.Split(':').Where(segment => !segment.StartsWith(RootPathPrefix)))
+                {
+                    pathSegments.Enqueue(segment);
+                }
+
+                GeneratePathSegment(rootNode, type, pathSegments);
             }
         }
-
-        return root;
     }
 
-    private void GenerateProperties(JsonObject parent, TypeSpec type, string path)
+    private bool GeneratePathSegment(JsonObject currentNode, TypeSpec type, Queue<string> pathSegments)
     {
-        var pathSegments = path.Split(':');
-        var currentNode = parent;
-        foreach (var segment in pathSegments)
+        if (pathSegments.Count == 0)
         {
-            if (currentNode[segment] is JsonObject child)
+            return GenerateType(currentNode, type);
+        }
+
+        var pathSegment = pathSegments.Dequeue();
+        var isAsterisk = pathSegment == "*";
+        var propertiesName = isAsterisk ? "additionalProperties" : "properties";
+
+        // While descending into the node tree, a container node is created or an existing one is reused, which is then passed to the subtree generator.
+        // Each generator is responsible for reverting to the original state of its children and return false, in case there's nothing to generate.
+        // The parent generator then removes the container node or restores it from a backup.
+        //
+        // This strategy ensures that generators don't affect the existing tree (potentially overwriting data) when they produce no output.
+        // For example, the generator here adds "type: object". But when generating the subtree results in no objects, that change needs to be reverted,
+        // so that an existing "type: string" is preserved. Or the schema remains empty if it was before.
+        var backupTypeNode = currentNode["type"];
+        currentNode["type"] = "object";
+
+        var ownsProperties = false;
+        if (currentNode[propertiesName] is not JsonObject propertiesNode)
+        {
+            propertiesNode = new JsonObject(s_ignoreCaseNodeOptions);
+            currentNode[propertiesName] = propertiesNode;
+            ownsProperties = true;
+        }
+
+        var ownsPathSegment = false;
+        string? backupCasingOfPathSegmentName = null;
+        if (propertiesNode[pathSegment] is not JsonObject pathSegmentNode)
+        {
+            if (isAsterisk)
             {
-                currentNode = child["properties"] as JsonObject;
-                Debug.Assert(currentNode is not null, "Didn't find a 'properties' child.");
+                pathSegmentNode = propertiesNode;
             }
             else
             {
-                var propertiesNode = new JsonObject();
-                currentNode[segment] = new JsonObject()
-                {
-                    ["type"] = "object",
-                    ["properties"] = propertiesNode
-                };
-                currentNode = propertiesNode;
+                pathSegmentNode = new JsonObject();
+                ReplaceNodeWithKeyCasingChange(propertiesNode, pathSegment, pathSegmentNode);
+                ownsPathSegment = true;
+            }
+        }
+        else
+        {
+            backupCasingOfPathSegmentName = propertiesNode[pathSegment].GetPropertyName();
+
+            if (backupCasingOfPathSegmentName != pathSegment)
+            {
+                ReplaceNodeWithKeyCasingChange(propertiesNode, pathSegment, pathSegmentNode);
+            }
+            else
+            {
+                backupCasingOfPathSegmentName = null;
             }
         }
 
-        GenerateProperties(currentNode, type);
-        GenerateTypeDocCommentsProperties(currentNode.Parent as JsonObject, type);
+        var hasGenerated = GeneratePathSegment(pathSegmentNode, type, pathSegments);
+        if (!hasGenerated)
+        {
+            RestoreBackup(backupTypeNode, "type", currentNode);
+
+            if (ownsProperties)
+            {
+                currentNode.Remove(propertiesName);
+            }
+            else if (ownsPathSegment)
+            {
+                propertiesNode.Remove(pathSegment);
+            }
+            else if (backupCasingOfPathSegmentName != null)
+            {
+                var existingValue = propertiesNode[pathSegment];
+                ReplaceNodeWithKeyCasingChange(propertiesNode, backupCasingOfPathSegmentName, existingValue);
+            }
+        }
+
+        return hasGenerated;
     }
 
-    private void GenerateProperties(JsonObject currentNode, TypeSpec type)
+    private bool GenerateType(JsonObject currentNode, TypeSpec type)
     {
-        if (_visitedTypes.Contains(type))
+        bool hasGenerated;
+
+        if (type is ParsableFromStringSpec parsable)
         {
-            return;
+            GenerateParsableFromString(currentNode, parsable);
+            hasGenerated = true;
         }
-        _visitedTypes.Push(type);
-
-        if (type is ObjectSpec objectSpec)
+        else if (type is NullableSpec nullable)
         {
-            var properties = objectSpec.Properties;
-            if (properties is not null)
+            var effectiveType = _typeIndex.GetTypeSpec(nullable.EffectiveTypeRef);
+            hasGenerated = GenerateType(currentNode, effectiveType);
+        }
+        else if (type is ObjectSpec objectSpec)
+        {
+            hasGenerated = GenerateObject(currentNode, objectSpec);
+        }
+        else if (type is DictionarySpec dictionary)
+        {
+            hasGenerated = GenerateCollection(currentNode, dictionary, "object", "additionalProperties");
+        }
+        else if (type is CollectionSpec collection)
+        {
+            hasGenerated = GenerateCollection(currentNode, collection, "array", "items");
+        }
+        else if (type is UnsupportedTypeSpec)
+        {
+            // skip unsupported types
+            hasGenerated = false;
+        }
+        else
+        {
+            throw new InvalidOperationException($"Unknown type {type}");
+        }
+
+        if (hasGenerated)
+        {
+            GenerateDescriptionForType(currentNode, type);
+        }
+
+        return hasGenerated;
+    }
+
+    private bool GenerateObject(JsonObject currentNode, ObjectSpec objectSpec)
+    {
+        if (_visitedTypes.Contains(objectSpec))
+        {
+            // Infinite recursion: keep all parent nodes, but suppress IntelliSense from here by not setting any type.
+            return true;
+        }
+        _visitedTypes.Push(objectSpec);
+
+        var hasGenerated = false;
+
+        var properties = objectSpec.Properties;
+        if (properties?.Count > 0)
+        {
+            var backupTypeNode = currentNode["type"];
+            currentNode["type"] = "object";
+
+            var ownsProperties = false;
+            if (currentNode["properties"] is not JsonObject propertiesNode)
             {
-                foreach (var property in properties)
+                propertiesNode = new JsonObject();
+                currentNode["properties"] = propertiesNode;
+                ownsProperties = true;
+            }
+
+            foreach (var property in properties)
+            {
+                if (_typeIndex.ShouldBindTo(property) && !IsExcluded(propertiesNode, property))
                 {
-                    if (_typeIndex.ShouldBindTo(property) && !IsExcluded(currentNode, property))
-                    {
-                        var propertyTypeSpec = _typeIndex.GetTypeSpec(property.TypeRef);
-                        var propertySymbol = GetPropertySymbol(type, property);
+                    var propertySymbol = GetPropertySymbol(objectSpec, property);
+                    hasGenerated |= GenerateProperty(propertiesNode, property, propertySymbol);
+                }
+            }
 
-                        var propertyNode = new JsonObject();
-                        currentNode[property.Name] = propertyNode;
+            if (!hasGenerated)
+            {
+                RestoreBackup(backupTypeNode, "type", currentNode);
 
-                        AppendTypeNodes(propertyNode, propertyTypeSpec);
-
-                        if (propertyTypeSpec is ComplexTypeSpec complexPropertyTypeSpec)
-                        {
-                            var innerPropertiesNode = new JsonObject();
-                            propertyNode["properties"] = innerPropertiesNode;
-
-                            GenerateProperties(innerPropertiesNode, complexPropertyTypeSpec);
-                            if (innerPropertiesNode.Count == 0)
-                            {
-                                propertyNode.Remove("properties");
-                            }
-                        }
-
-                        if (ShouldSkipProperty(propertyNode, property, propertyTypeSpec, propertySymbol))
-                        {
-                            currentNode.Remove(property.Name);
-                            continue;
-                        }
-
-                        var docComment = propertySymbol?.GetDocumentationCommentXml();
-                        if (!string.IsNullOrEmpty(docComment))
-                        {
-                            GenerateDocCommentsProperties(propertyNode, docComment);
-                        }
-                    }
+                if (ownsProperties)
+                {
+                    currentNode.Remove("properties");
                 }
             }
         }
 
         _visitedTypes.Pop();
+        return hasGenerated;
     }
+
+    private bool GenerateProperty(JsonObject currentNode, PropertySpec property, IPropertySymbol? propertySymbol)
+    {
+        var propertyType = _typeIndex.GetTypeSpec(property.TypeRef);
+
+        if (ShouldSkipProperty(property, propertyType, propertySymbol))
+        {
+            return false;
+        }
+
+        var backupPropertyNode = currentNode[property.ConfigurationKeyName];
+
+        var propertyNode = new JsonObject();
+        ReplaceNodeWithKeyCasingChange(currentNode, property.ConfigurationKeyName, propertyNode);
+
+        var hasGenerated = GenerateType(propertyNode, propertyType);
+        if (hasGenerated)
+        {
+            var docComment = GetDocComment(propertySymbol);
+            if (!string.IsNullOrEmpty(docComment))
+            {
+                GenerateDescriptionFromDocComment(propertyNode, docComment);
+            }
+        }
+        else
+        {
+            RestoreBackup(backupPropertyNode, property.ConfigurationKeyName, currentNode);
+        }
+
+        return hasGenerated;
+    }
+
+    private bool GenerateCollection(JsonObject currentNode, CollectionSpec collection, string typeName, string containerName)
+    {
+        if (collection.TypeRef.Equals(collection.ElementTypeRef) || _visitedTypes.Contains(collection))
+        {
+            // Infinite recursion: keep all parent nodes, but suppress IntelliSense from here by not setting any type.
+            return true;
+        }
+        _visitedTypes.Push(collection);
+
+        var backupTypeNode = currentNode["type"];
+        var backupContainerNode = currentNode[containerName];
+
+        currentNode["type"] = typeName;
+        var containerNode = new JsonObject();
+        currentNode[containerName] = containerNode;
+
+        var elementType = _typeIndex.GetTypeSpec(collection.ElementTypeRef);
+        var hasGenerated = GenerateType(containerNode, elementType);
+        if (!hasGenerated)
+        {
+            RestoreBackup(backupTypeNode, "type", currentNode);
+            RestoreBackup(backupContainerNode, containerName, currentNode);
+        }
+
+        _visitedTypes.Pop();
+        return hasGenerated;
+    }
+
+    private static void RestoreBackup(JsonNode? backupNode, string name, JsonObject parentNode)
+    {
+        if (backupNode == null)
+        {
+            parentNode.Remove(name);
+        }
+        else
+        {
+            ReplaceNodeWithKeyCasingChange(parentNode, name, backupNode);
+        }
+    }
+
+    private string? GetDocComment(ISymbol? symbol)
+    {
+        if (symbol != null)
+        {
+            // Support using <inheritdoc /> in code and external assemblies.
+            // Because roslyn provides no public API to expand inherited doc-comments (see https://github.com/dotnet/csharplang/issues/313),
+            // use the internal Microsoft.CodeAnalysis.Shared.Extensions.ISymbolExtensions.GetDocumentationComment method.
+            // This method behaves a bit odd though: If there's no doc-comment on a member, it internally assumes that the member contains "<doc><inheritdoc/></doc>"
+            // (which is completely invalid) and feeds that to itself. As a consequence, the method may return something wrapped in <doc>, instead of the expected
+            // <member> element.
+
+            object[] args = [symbol, _compilation, /*preferredCulture:*/ null, /*expandIncludes:*/ true, /*expandInheritdoc:*/ true, default(CancellationToken)];
+            var docComment = s_getDocumentationCommentMethodInfo.Invoke(null, args);
+            var xml = s_getFullXmlFragmentMethodInfo.Invoke(docComment, null) as string;
+
+            if (!string.IsNullOrEmpty(xml) && xml != "<doc />")
+            {
+                return XElement.Parse(xml).ToString(SaveOptions.None);
+            }
+        }
+
+        return null;
+    }
+
+    private static readonly MethodInfo s_getDocumentationCommentMethodInfo =
+        Type.GetType("Microsoft.CodeAnalysis.Shared.Extensions.ISymbolExtensions, Microsoft.CodeAnalysis.Workspaces")!
+            .GetMethod("GetDocumentationComment", BindingFlags.Public | BindingFlags.Static, [typeof(ISymbol), typeof(Compilation), typeof(CultureInfo), typeof(bool), typeof(bool), typeof(CancellationToken)])!;
+
+    private static readonly MethodInfo s_getFullXmlFragmentMethodInfo =
+        Type.GetType("Microsoft.CodeAnalysis.Shared.Utilities.DocumentationComment, Microsoft.CodeAnalysis.Workspaces")!
+            .GetMethod("get_FullXmlFragment", BindingFlags.Public | BindingFlags.Instance)!;
 
     private IPropertySymbol? GetPropertySymbol(TypeSpec type, PropertySpec property)
     {
@@ -187,22 +388,22 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         return propertySymbol;
     }
 
-    private static bool ShouldSkipProperty(JsonObject propertyNode, PropertySpec property, TypeSpec propertyTypeSpec, IPropertySymbol? propertySymbol)
+    private static bool ShouldSkipProperty(PropertySpec property, TypeSpec propertyType, IPropertySymbol? propertySymbol)
     {
-        // skip simple properties that can't be set
-        // TODO: this should allow for init properties set through the constructor. Need to figure out the correct rule here.
-        if (propertyTypeSpec is not ComplexTypeSpec &&
-            !property.CanSet)
+        if (propertyType is UnsupportedTypeSpec)
         {
             return true;
         }
 
-        // skip empty objects
-        if (propertyNode.Count == 0 ||
-            (propertyNode["type"] is JsonValue typeValue &&
-                typeValue.TryGetValue<string>(out var typeValueString) &&
-                typeValueString == "object" &&
-                propertyNode["properties"] is null))
+        if (property.IsStatic && !property.CanSet)
+        {
+            return true;
+        }
+
+        // skip simple properties that can't be set
+        // TODO: this should allow for init properties set through the constructor. Need to figure out the correct rule here.
+        if (propertyType is not ComplexTypeSpec &&
+            !property.CanSet)
         {
             return true;
         }
@@ -230,28 +431,25 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         return false;
     }
 
-    private static void GenerateDocCommentsProperties(JsonObject propertyNode, string docComment)
+    private static void GenerateDescriptionFromDocComment(JsonObject propertyNode, string docComment)
     {
         var doc = XDocument.Parse(docComment);
-        var memberRoot = doc.Element("member");
-        var summary = memberRoot.Element("summary");
+        var memberRoot = doc.Element("member") ?? doc.Element("doc");
+        var summary = memberRoot?.Element("summary");
         if (summary is not null)
         {
-            var builder = new StringBuilder();
-            foreach (var node in StripXmlElements(summary))
-            {
-                var value = node.ToString().Trim();
-                AppendSpaceIfNecessary(builder, value);
-                AppendUnindentedValue(builder, value);
-            }
+            var description = FormatDescription(summary);
 
-            propertyNode["description"] = builder.ToString();
+            if (description.Length > 0)
+            {
+                propertyNode["description"] = description;
+            }
         }
 
         var propertyNodeType = propertyNode["type"];
         if (propertyNodeType?.GetValueKind() == JsonValueKind.String && propertyNodeType.GetValue<string>() == "boolean")
         {
-            var value = memberRoot.Element("value")?.ToString();
+            var value = memberRoot?.Element("value")?.ToString();
             if (value?.Contains("default value is", StringComparison.OrdinalIgnoreCase) == true)
             {
                 var containsTrue = value.Contains("true", StringComparison.OrdinalIgnoreCase);
@@ -268,98 +466,63 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         }
     }
 
-    private void GenerateTypeDocCommentsProperties(JsonObject? currentNode, TypeSpec type)
+    internal static string FormatDescription(XElement element)
     {
-        if (currentNode is not null && currentNode["description"] is null)
+        // Because line breaks have no semantic meaning in XML text, we replace them with spaces.
+        // But we'd like to preserve blank lines for readability, so we substitute them with <br/> placeholders upfront.
+        // At the end, we convert all <br/> placeholders back to regular line breaks (accounting for inserted spaces around them).
+        //
+        // When <para> is used, it needs to be surrounded by line breaks, so we replace <para>text</para> with <br/>text<br/>.
+        // But when <para>one</para><para>two</para> is used, we now have two line breaks between them instead of one.
+        // So at the end, duplicate blank lines (\n\n\n\n) are reduced to a single blank line (\n\n).
+
+        var text = string.Join(string.Empty, element.Nodes().Select(GetNodeText));
+        var lines = text.Split(s_lineBreaks, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        return string.Join(' ', lines)
+            .Replace(" <br/> ", "\n")
+            .Replace(" <br/>", "\n")
+            .Replace("<br/> ", "\n")
+            .Replace("<br/>", "\n")
+            .Replace("\n\n\n\n", "\n\n")
+            .Trim('\n');
+    }
+
+    private void GenerateDescriptionForType(JsonObject currentNode, TypeSpec type)
+    {
+        var typeSymbol = _compilation.GetBestTypeByMetadataName(type.FullName);
+        if (typeSymbol is not null)
         {
-            var typeSymbol = _compilation.GetBestTypeByMetadataName(type.FullName);
-            if (typeSymbol is not null)
+            var docComment = GetDocComment(typeSymbol);
+            if (!string.IsNullOrEmpty(docComment))
             {
-                var docComment = typeSymbol.GetDocumentationCommentXml();
-                if (!string.IsNullOrEmpty(docComment))
-                {
-                    GenerateDocCommentsProperties(currentNode, docComment);
-                }
+                GenerateDescriptionFromDocComment(currentNode, docComment);
             }
         }
     }
 
-    private static IEnumerable<XNode> StripXmlElements(XContainer container)
+    private static string GetNodeText(XNode node)
     {
-        return container.Nodes().SelectMany(n => n switch
+        return node switch
         {
-            XText => [n],
-            XElement e => StripXmlElements(e),
-            _ => Enumerable.Empty<XNode>()
-        });
+            XText text => ConvertBlankLines(text.Value),
+            XElement element => GetElementText(element),
+            _ => string.Empty
+        };
     }
 
-    internal static IEnumerable<XNode> StripXmlElements(XElement element)
+    private static string ConvertBlankLines(string value)
     {
-        if (element.Nodes().Any())
-        {
-            return StripXmlElements((XContainer)element);
-        }
-        else if (element.HasAttributes)
-        {
-            // just get the first attribute value
-            // ex. <see cref="System.Diagnostics.Debug.Assert(bool)"/>
-            // ex. <see langword="true"/>
-            var attributeValue = element.FirstAttribute.Value;
-
-            // format the attribute value if it is an "ID string" representing a type or member
-            // by stripping the prefix.
-            // See https://learn.microsoft.com/dotnet/csharp/language-reference/xmldoc/#id-strings
-            var formattedValue = attributeValue switch
-            {
-                var s when
-                    s.StartsWith("T:", StringComparison.Ordinal) ||
-                    s.StartsWith("P:", StringComparison.Ordinal) ||
-                    s.StartsWith("M:", StringComparison.Ordinal) ||
-                    s.StartsWith("F:", StringComparison.Ordinal) ||
-                    s.StartsWith("N:", StringComparison.Ordinal) ||
-                    s.StartsWith("E:", StringComparison.Ordinal) => $"'{s.AsSpan(2)}'",
-                _ => attributeValue,
-            };
-
-            return [new XText(formattedValue)];
-        }
-
-        return Enumerable.Empty<XNode>();
-    }
-
-    /// <summary>
-    /// Add a space between nodes except if the next node starts with a period to end the previous sentence
-    /// </summary>
-    private static void AppendSpaceIfNecessary(StringBuilder builder, string value)
-    {
-        if (builder.Length > 0)
-        {
-            var nextNodeFinishesPreviousSentence =
-                // previous node didn't end with a period
-                builder[^1] != '.' &&
-                // next node starts with a period
-                (value == "." || value.StartsWith(". "));
-
-            if (!nextNodeFinishesPreviousSentence)
-            {
-                builder.Append(' ');
-            }
-        }
-    }
-
-    internal static void AppendUnindentedValue(StringBuilder builder, string value)
-    {
+        var builder = new StringBuilder();
         var index = 0;
 
-        foreach (var match in Indentation().EnumerateMatches(value))
+        foreach (var match in BlankLinesInDocComment().EnumerateMatches(value))
         {
             if (match.Index > index)
             {
                 builder.Append(value, index, match.Index - index);
             }
 
-            builder.Append('\n');
+            builder.Append("<br/><br/>");
             index = match.Index + match.Length;
         }
 
@@ -369,36 +532,47 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         {
             builder.Append(value, index, remaining);
         }
+
+        return builder.ToString();
     }
 
-    private void AppendTypeNodes(JsonObject propertyNode, TypeSpec propertyTypeSpec)
+    private static string GetElementText(XElement element)
     {
-        if (propertyTypeSpec is ParsableFromStringSpec parsable)
+        if (element.Name == "para" || element.Name == "p")
         {
-            AppendParsableFromString(propertyNode, parsable);
+            var innerText = string.Join(string.Empty, element.Nodes().Select(GetNodeText));
+            return $"<br/><br/>{innerText}<br/><br/>";
         }
-        else if (propertyTypeSpec is ObjectSpec)
+
+        if (element.Name == "br")
         {
-            propertyNode["type"] = "object";
+            return "<br/>";
         }
-        else if (propertyTypeSpec is EnumerableSpec)
+
+        if (element.HasAttributes && !element.Nodes().Any())
         {
-            // TODO: support enumerables correctly
-            propertyNode["type"] = "object";
+            // just get the first attribute value
+            // ex. <see cref="System.Diagnostics.Debug.Assert(bool)"/>
+            // ex. <see langword="true"/>
+            var attributeValue = element.FirstAttribute!.Value;
+
+            // format the attribute value if it is an "ID string" representing a type or member
+            // by stripping the prefix.
+            // See https://learn.microsoft.com/dotnet/csharp/language-reference/xmldoc/#id-strings
+            return attributeValue switch
+            {
+                var s when
+                    s.StartsWith("T:", StringComparison.Ordinal) ||
+                    s.StartsWith("P:", StringComparison.Ordinal) ||
+                    s.StartsWith("M:", StringComparison.Ordinal) ||
+                    s.StartsWith("F:", StringComparison.Ordinal) ||
+                    s.StartsWith("N:", StringComparison.Ordinal) ||
+                    s.StartsWith("E:", StringComparison.Ordinal) => $"'{s.AsSpan(2)}'",
+                _ => attributeValue
+            };
         }
-        else if (propertyTypeSpec is NullableSpec nullable)
-        {
-            AppendTypeNodes(propertyNode, _typeIndex.GetTypeSpec(nullable.EffectiveTypeRef));
-        }
-        else if (propertyTypeSpec is UnsupportedTypeSpec unsupported &&
-            unsupported.NotSupportedReason == NotSupportedReason.CollectionNotSupported)
-        {
-            // skip unsupported collections
-        }
-        else
-        {
-            throw new InvalidOperationException($"Unknown type {propertyTypeSpec}");
-        }
+
+        return element.Value;
     }
 
     const string NegativeOption = @"-?";
@@ -410,7 +584,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
     const string SecondsFractionOption = @"(\.\d{1,7})?";
     internal const string TimeSpanRegex = $"^{NegativeOption}({DaysAlone}|({DaysPrefixOption}({HourMinute}|{HourMinuteSecond}){SecondsFractionOption}))$";
 
-    private void AppendParsableFromString(JsonObject propertyNode, ParsableFromStringSpec parsable)
+    private void GenerateParsableFromString(JsonObject propertyNode, ParsableFromStringSpec parsable)
     {
         if (parsable.DisplayString == "TimeSpan")
         {
@@ -450,6 +624,26 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             propertyNode["type"] = "string";
             propertyNode["format"] = "uuid";
         }
+        else if (parsable.DisplayString == "byte[]")
+        {
+            // ConfigurationBinder supports base64-encoded string
+            propertyNode["oneOf"] = new JsonArray
+            {
+                new JsonObject
+                {
+                    ["type"] = "string",
+                    ["pattern"] = "^[-A-Za-z0-9+/]*={0,3}$"
+                },
+                new JsonObject
+                {
+                    ["type"] = "array",
+                    ["items"] = new JsonObject
+                    {
+                        ["type"] = "integer"
+                    }
+                }
+            };
+        }
         else
         {
             propertyNode["type"] = GetParsableTypeName(parsable);
@@ -476,22 +670,29 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         "DateTimeOffset" => "string",
         "DateOnly" => "string",
         "TimeOnly" => "string",
-        "object" => "string",
+        "object" => "object",
         "CultureInfo" => "string",
         _ => throw new InvalidOperationException($"Unknown parsable type {parsable.DisplayString}")
     };
 
     private bool IsExcluded(JsonObject currentNode, PropertySpec property)
     {
-        var currentPath = currentNode.GetPath();
-        foreach (var excludedPath in _exclusionPaths)
+        if (_exclusionPaths.Length > 0)
         {
-            if (excludedPath.StartsWith(currentPath) && excludedPath.EndsWith(property.Name))
+            var currentPath = currentNode.GetPath()
+                .Replace(".properties", "")
+                .Replace(".items", "")
+                .Replace(".additionalProperties", "");
+
+            foreach (var excludedPath in _exclusionPaths)
             {
-                var fullPath = $"{currentPath}.{property.Name}";
-                if (excludedPath == fullPath)
+                if (excludedPath.StartsWith(currentPath) && excludedPath.EndsWith(property.ConfigurationKeyName))
                 {
-                    return true;
+                    var fullPath = $"{currentPath}.{property.ConfigurationKeyName}";
+                    if (excludedPath == fullPath)
+                    {
+                        return true;
+                    }
                 }
             }
         }
@@ -509,9 +710,25 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         var result = new string[exclusionPaths.Count];
         for (var i = 0; i < exclusionPaths.Count; i++)
         {
-            result[i] = $"$.{exclusionPaths[i].Replace(":", ".properties.", StringComparison.Ordinal)}";
+            result[i] = $"$.{exclusionPaths[i].Replace(':', '.')}";
         }
         return result;
+    }
+
+    private static void ReplaceNodeWithKeyCasingChange(JsonObject jsonObject, string key, JsonNode value)
+    {
+        // In System.Text.Json v9, the casing of the new key is not adapted. See https://github.com/dotnet/runtime/issues/108790.
+        // So instead, remove the existing node and insert a new one with the updated key.
+        var index = jsonObject.IndexOf(key);
+        if (index != -1)
+        {
+            jsonObject.RemoveAt(index);
+            jsonObject.Insert(index, key, value);
+        }
+        else
+        {
+            jsonObject[key] = value;
+        }
     }
 
     private sealed class SchemaOrderJsonNodeConverter : JsonConverter<JsonNode>
