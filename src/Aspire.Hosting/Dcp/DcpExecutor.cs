@@ -24,8 +24,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
-using Polly.Retry;
-using Polly.Timeout;
 
 namespace Aspire.Hosting.Dcp;
 
@@ -51,6 +49,12 @@ internal sealed class DcpExecutor : IDcpExecutor
 
     private readonly DcpResourceState _resourceState;
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
+
+    // Internal for testing.
+    internal ResiliencePipeline DeleteResourceRetryPipeline { get; set; }
+    internal ResiliencePipeline CreateServiceRetryPipeline { get; set; }
+    internal ResiliencePipeline WatchResourceRetryPipeline { get; set; }
+
     private readonly ConcurrentDictionary<string, (CancellationTokenSource Cancellation, Task Task)> _logStreams = new();
     private DcpInfo? _dcpInfo;
     private Task? _resourceWatchTask;
@@ -86,6 +90,10 @@ internal sealed class DcpExecutor : IDcpExecutor
         _executionContext = executionContext;
         _resourceState = new(model.Resources.ToDictionary(r => r.Name));
         _snapshotBuilder = new(_resourceState);
+
+        DeleteResourceRetryPipeline = DcpPipelineBuilder.BuildDeleteRetryPipeline(logger);
+        CreateServiceRetryPipeline = DcpPipelineBuilder.BuildCreateServiceRetryPipeline(options.Value, logger);
+        WatchResourceRetryPipeline = DcpPipelineBuilder.BuildWatchResourcePipeline(logger);
     }
 
     private string DefaultContainerHostName => _configuration["AppHost:ContainerHostname"] ?? _dcpInfo?.Containers?.ContainerHostName ?? "host.docker.internal";
@@ -252,31 +260,10 @@ internal sealed class DcpExecutor : IDcpExecutor
 
         async Task WatchKubernetesResourceAsync<T>(Func<WatchEventType, T, Task> handler) where T : CustomResource
         {
-            var retryUntilCancelled = new RetryStrategyOptions()
-            {
-                ShouldHandle = new PredicateBuilder().HandleInner<EndOfStreamException>(),
-                BackoffType = DelayBackoffType.Exponential,
-                MaxRetryAttempts = int.MaxValue,
-                UseJitter = true,
-                MaxDelay = TimeSpan.FromSeconds(30),
-                OnRetry = (retry) =>
-                {
-                    _logger.LogDebug(
-                        retry.Outcome.Exception,
-                        "Long poll watch operation was ended by server after {LongPollDurationInMs} milliseconds (iteration {Iteration}).",
-                        retry.Duration.TotalMilliseconds,
-                        retry.AttemptNumber
-                        );
-                    return ValueTask.CompletedTask;
-                }
-            };
-
-            var pipeline = new ResiliencePipelineBuilder().AddRetry(retryUntilCancelled).Build();
-
             try
             {
                 _logger.LogDebug("Watching over DCP {ResourceType} resources.", typeof(T).Name);
-                await pipeline.ExecuteAsync(async (pipelineCancellationToken) =>
+                await WatchResourceRetryPipeline.ExecuteAsync(async (pipelineCancellationToken) =>
                 {
                     await foreach (var (eventType, resource) in _kubernetesService.WatchAsync<T>(cancellationToken: pipelineCancellationToken).ConfigureAwait<(global::k8s.WatchEventType, T)>(false))
                     {
@@ -585,33 +572,7 @@ internal sealed class DcpExecutor : IDcpExecutor
                 return;
             }
 
-            var withTimeout = new TimeoutStrategyOptions()
-            {
-                Timeout = _options.Value.ServiceStartupWatchTimeout
-            };
-
-            var tryTwice = new RetryStrategyOptions()
-            {
-                BackoffType = DelayBackoffType.Constant,
-                MaxDelay = TimeSpan.FromSeconds(1),
-                UseJitter = true,
-                MaxRetryAttempts = 1,
-                ShouldHandle = new PredicateBuilder().Handle<Exception>(),
-                OnRetry = (retry) =>
-                {
-                    _logger.LogDebug(
-                        retry.Outcome.Exception,
-                        "Watching for service port allocation ended with an error after {WatchDurationMs} (iteration {Iteration})",
-                        retry.Duration.TotalMilliseconds,
-                        retry.AttemptNumber
-                    );
-                    return ValueTask.CompletedTask;
-                }
-            };
-
-            var execution = new ResiliencePipelineBuilder().AddRetry(tryTwice).AddTimeout(withTimeout).Build();
-
-            await execution.ExecuteAsync(async (attemptCancellationToken) =>
+            await CreateServiceRetryPipeline.ExecuteAsync(async (attemptCancellationToken) =>
             {
                 var serviceChangeEnumerator = _kubernetesService.WatchAsync<Service>(cancellationToken: attemptCancellationToken);
                 await foreach (var (evt, updated) in serviceChangeEnumerator.ConfigureAwait(false))
@@ -1697,35 +1658,18 @@ internal sealed class DcpExecutor : IDcpExecutor
             // before resorting to more extreme measures.
             if (!resourceNotFound)
             {
-                var ensureDeleteRetryStrategy = new RetryStrategyOptions()
-                {
-                    BackoffType = DelayBackoffType.Exponential,
-                    Delay = TimeSpan.FromMilliseconds(200),
-                    UseJitter = true,
-                    MaxRetryAttempts = 10, // Cumulative time for all attempts amounts to about 15 seconds
-                    MaxDelay = TimeSpan.FromSeconds(3),
-                    ShouldHandle = new PredicateBuilder().Handle<Exception>(),
-                    OnRetry = (retry) =>
-                    {
-                        _logger.LogDebug("Retrying check for deleted resource '{ResourceName}'. Attempt: {Attempt}", resourceName, retry.AttemptNumber);
-                        return ValueTask.CompletedTask;
-                    }
-                };
-
-                var execution = new ResiliencePipelineBuilder().AddRetry(ensureDeleteRetryStrategy).Build();
-
-                await execution.ExecuteAsync(async (attemptCancellationToken) =>
+                await DeleteResourceRetryPipeline.ExecuteAsync(async (state, attemptCancellationToken) =>
                 {
                     try
                     {
-                        await _kubernetesService.GetAsync<T>(resource.Metadata.Name, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
-                        throw new DistributedApplicationException($"Failed to delete '{resource.Metadata.Name}' successfully before restart.");
+                        await _kubernetesService.GetAsync<T>(state, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
+                        throw new DistributedApplicationException($"Failed to delete '{state}' successfully before restart.");
                     }
                     catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
                         // Success.
                     }
-                }, cancellationToken).ConfigureAwait(false);
+                }, resource.Metadata.Name, cancellationToken).ConfigureAwait(false);
             }
 
             // Raise event after resource has been deleted. This is required because the event sets the status to "Starting" and resources being
