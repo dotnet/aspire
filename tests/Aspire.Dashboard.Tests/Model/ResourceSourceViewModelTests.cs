@@ -58,7 +58,21 @@ public class ResourceSourceViewModelTests
         data.Add(new TestData(
                 ResourceType: "Project",
                 ExecutablePath: "path/to/executable",
-                ExecutableArguments: ["arg1", "arg2"],
+                ExecutableArguments: ["run", "--no-build", "--project", "path/to/project", "--no-launch-profile", "arg1", "arg2"],
+                ProjectPath: "path/to/project",
+                ContainerImage: null,
+                SourceProperty: null),
+            new ResourceSourceViewModel(
+                value: "project",
+                contentAfterValue: "arg1 arg2",
+                valueToVisualize: "path/to/project arg1 arg2",
+                tooltip: "path/to/project arg1 arg2"));
+
+        // Project with executable arguments (dotnet watch)
+        data.Add(new TestData(
+                ResourceType: "Project",
+                ExecutablePath: "path/to/executable",
+                ExecutableArguments: ["watch", "--non-interactive", "--no-hot-reload", "--project", "path/to/project", "-c", "CONFIG", "--no-launch-profile", "arg1", "arg2"],
                 ProjectPath: "path/to/project",
                 ContainerImage: null,
                 SourceProperty: null),
