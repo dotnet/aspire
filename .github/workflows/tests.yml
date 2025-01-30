@@ -55,7 +55,7 @@ jobs:
         run: dotnet restore ${{ matrix.project }}
 
       - name: Build projects
-        run: dotnet build ${{ matrix.project }} /p:CI=false /p:SkipUnstableEmulators=true --no-restore
+        run: dotnet build ${{ matrix.project }} /p:CI=true --no-restore
 
       - name: Run tests
         id: run-tests
@@ -70,7 +70,7 @@ jobs:
             --results-directory testresults \
             --no-restore \
             --no-build \
-            /p:CI=false
+            /p:CI=true
 
       - name: Compress test results
         if: always()
