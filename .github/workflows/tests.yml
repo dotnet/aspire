@@ -52,10 +52,10 @@ jobs:
           sudo apt-get install -y azure-functions-core-tools-4
 
       - name: Run build script
-        run: ./build.sh -ci
+        run: ./build.sh
 
       - name: Build projects
-        run: ./build.sh -restore -build -ci ${{ matrix.project }} /bl
+        run: ./build.sh -restore -build ${{ matrix.project }} /bl
 
       - name: Run tests
         id: run-tests
