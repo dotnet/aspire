@@ -69,8 +69,7 @@ jobs:
             --blame-hang-timeout 7m \
             --results-directory testresults \
             --no-restore \
-            --no-build \
-            /p:ContinuousIntegrationBuild=true
+            --no-build
 
       - name: Compress test results
         if: always()
