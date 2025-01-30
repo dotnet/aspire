@@ -57,12 +57,12 @@ jobs:
 
       - name: Build test project
         run: |
-          export CI=false && ./build.sh -restore -ci -build -projects ${{ github.workspace }}/{{ matrix.project }} /bl
+          export CI=false && ./build.sh -restore -ci -build -projects ${{ github.workspace }}/${{ matrix.project }} /bl
 
       - name: Run tests
         id: run-tests
         run: |
-          export CI=false && ./build.sh -ci -test -projects ${{ github.workspace }}/{{ matrix.project }} \
+          export CI=false && ./build.sh -ci -test -projects ${{ github.workspace }}/${{ matrix.project }} \
             -s eng/testing/.runsettings \
             --logger "console;verbosity=normal" \
             --logger "trx" \
