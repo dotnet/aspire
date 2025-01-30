@@ -53,15 +53,15 @@ jobs:
 
       - name: Run build script
         run: |
-          export CI=false && ./build.sh /bl
+          export CI=false && ./build.sh -ci /bl
 
-      - name: Build projects
-        run: ./build.sh -restore -build ${{ matrix.project }} /bl
+      - name: Build test project
+        run: export CI=false && ./build.sh -restore -ci -build ${{ matrix.project }} /bl
 
       - name: Run tests
         id: run-tests
         run: |
-          ./build.sh -test ${{ matrix.project }} \
+          export CI=false && ./build.sh -ci -test ${{ matrix.project }} \
             -s eng/testing/.runsettings \
             --logger "console;verbosity=normal" \
             --logger "trx" \
