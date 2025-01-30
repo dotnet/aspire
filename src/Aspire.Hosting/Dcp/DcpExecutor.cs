@@ -27,7 +27,7 @@ using Polly;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed class DcpExecutor : IDcpExecutor
+internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
     private const string DefaultAspireNetworkName = "default-aspire-network";
@@ -58,6 +58,7 @@ internal sealed class DcpExecutor : IDcpExecutor
     private readonly ConcurrentDictionary<string, (CancellationTokenSource Cancellation, Task Task)> _logStreams = new();
     private DcpInfo? _dcpInfo;
     private Task? _resourceWatchTask;
+    private int _stopped;
 
     private readonly record struct LogInformationEntry(string ResourceName, bool? LogsAvailable, bool? HasSubscribers);
     private readonly Channel<LogInformationEntry> _logInformationChannel = Channel.CreateUnbounded<LogInformationEntry>(
@@ -136,6 +137,11 @@ internal sealed class DcpExecutor : IDcpExecutor
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
+        if (Interlocked.CompareExchange(ref _stopped, 1, 0) != 0)
+        {
+            return; // Already stopped/stop in progress.
+        }
+
         _shutdownCancellation.Cancel();
         var tasks = new List<Task>();
         if (_resourceWatchTask is { } resourceTask)
@@ -180,6 +186,11 @@ internal sealed class DcpExecutor : IDcpExecutor
         {
             _logger.LogDebug(ex, "Application orchestrator could not be stopped programmatically.");
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await StopAsync(CancellationToken.None).ConfigureAwait(false);
     }
 
     private void WatchResourceChanges()

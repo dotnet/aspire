@@ -767,7 +767,7 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync()).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout));
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
         Assert.Equal($"Resource '{testName}-servicea-{suffix}' uses multiple replicas and a proxy-less endpoint 'http'. These features do not work together.", ex.Message);
     }
@@ -787,7 +787,7 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync()).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout));
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
         Assert.Equal($"Service '{testName}-servicea-{suffix}' needs to specify a port for endpoint 'http' since it isn't using a proxy.", ex.Message);
     }
@@ -1020,7 +1020,7 @@ public class DistributedApplicationTests
 
         using var app = builder.Build();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync()).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout));
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
         Assert.Equal($"The endpoint 'tcp' for container resource '{testName}-redis-{suffix}' must specify the TargetPort value", ex.Message);
     }
