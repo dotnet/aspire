@@ -55,7 +55,7 @@ jobs:
         run: dotnet restore ${{ matrix.project }}
 
       - name: Build projects
-        run: dotnet build ${{ matrix.project }} /p:ContinuousIntegrationBuild=true --no-restore /bl
+        run: dotnet build ${{ matrix.project }} --no-restore /bl
 
       - name: Run tests
         id: run-tests
