@@ -64,7 +64,7 @@
       </trans-unit>
       <trans-unit id="ResourceFilterOptionEmpty">
         <source>(Unset)</source>
-        <target state="new">(Unset)</target>
+        <target state="translated">(Annulla)</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesActionsColumnHeader">
@@ -174,12 +174,12 @@
       </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
         <source>No filters</source>
-        <target state="new">No filters</target>
+        <target state="translated">Nessun filtro</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesResourceStatesHeader">
         <source>State</source>
-        <target state="new">State</target>
+        <target state="translated">Stato</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">
