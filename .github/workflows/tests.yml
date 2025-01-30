@@ -51,16 +51,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y azure-functions-core-tools-4
 
-      - name: Restore dependencies
-        run: dotnet restore ${{ matrix.project }}
+      - name: Run build script
+        run: ./build.sh -ci
 
       - name: Build projects
-        run: dotnet build ${{ matrix.project }} /p:ContinuousIntegrationBuild=true --no-restore /bl
+        run: ./build.sh -restore -build -ci ${{ matrix.project }} /bl
 
       - name: Run tests
         id: run-tests
         run: |
-          dotnet test ${{ matrix.project }} \
+          ./build.sh -test ${{ matrix.project }} \
             -s eng/testing/.runsettings \
             --logger "console;verbosity=normal" \
             --logger "trx" \
