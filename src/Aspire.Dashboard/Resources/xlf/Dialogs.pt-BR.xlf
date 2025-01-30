@@ -39,12 +39,12 @@
       </trans-unit>
       <trans-unit id="FieldRequired">
         <source>A value is required.</source>
-        <target state="new">A value is required.</target>
+        <target state="translated">Um valor é necessário.</target>
         <note>{0} is the literal, untranslated field name which we do not want to show, so it is missing.</note>
       </trans-unit>
       <trans-unit id="FieldTooLong">
         <source>A maximum length of {1} characters is allowed.</source>
-        <target state="new">A maximum length of {1} characters is allowed.</target>
+        <target state="translated">Um comprimento máximo de {1} caracteres é permitido.</target>
         <note>{0} is the field name, whereas {1} is the length. We don't want to show the field name, so it is missing.</note>
       </trans-unit>
       <trans-unit id="FilterDialogApplyFilterButtonText">
