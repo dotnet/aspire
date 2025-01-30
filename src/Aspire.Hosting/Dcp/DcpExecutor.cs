@@ -932,8 +932,7 @@ internal sealed class DcpExecutor : IDcpExecutor
                     {
                         if (er.ModelResource.TryGetAnnotationsOfType<ExplicitStartupAnnotation>(out _))
                         {
-                            var newState = "NotStarted";
-                            await _executorEvents.PublishAsync(new OnResourceChangedContext(cancellationToken, resourceType, resource, er.DcpResource.Metadata.Name, new ResourceStatus(newState, null, null), s => s with { State = new ResourceStateSnapshot(newState, null) })).ConfigureAwait(false);
+                            await _executorEvents.PublishAsync(new OnResourceChangedContext(cancellationToken, resourceType, resource, er.DcpResource.Metadata.Name, new ResourceStatus(KnownResourceStates.NotStarted, null, null), s => s with { State = new ResourceStateSnapshot(KnownResourceStates.NotStarted, null) })).ConfigureAwait(false);
                             continue;
                         }
 
@@ -1253,9 +1252,7 @@ internal sealed class DcpExecutor : IDcpExecutor
             {
                 if (cr.ModelResource.TryGetLastAnnotation<ExplicitStartupAnnotation>(out _))
                 {
-                    var newState = "NotStarted";
-                    await _executorEvents.PublishAsync(new OnResourceChangedContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName, new ResourceStatus(newState, null, null), s => s with { State = new ResourceStateSnapshot(newState, null) })).ConfigureAwait(false);
-
+                    await _executorEvents.PublishAsync(new OnResourceChangedContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName, new ResourceStatus(KnownResourceStates.NotStarted, null, null), s => s with { State = new ResourceStateSnapshot(KnownResourceStates.NotStarted, null) })).ConfigureAwait(false);
                     continue;
                 }
 

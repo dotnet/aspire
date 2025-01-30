@@ -284,6 +284,7 @@ static Aspire.Hosting.Utils.VolumeNameGenerator.Generate<T>(Aspire.Hosting.Appli
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Exited -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.FailedToStart -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Finished -> string!
+static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.NotStarted -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Running -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.RuntimeUnhealthy -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Starting -> string!
