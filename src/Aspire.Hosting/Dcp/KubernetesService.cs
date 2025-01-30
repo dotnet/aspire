@@ -270,38 +270,6 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
         {
             yield return item;
         }
-
-        /*
-        while (!cancellationToken.IsCancellationRequested)
-        {
-            using var watchCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            watchCancellationSource.CancelAfter(TimeSpan.FromMinutes(5));
-
-            var result = await ExecuteWithRetry(
-                DcpApiOperationType.Watch,
-                resourceType,
-                (kubernetes) =>
-                {
-                    var responseTask = string.IsNullOrEmpty(namespaceParameter)
-                        ? kubernetes.CustomObjects.ListClusterCustomObjectWithHttpMessagesAsync(
-                            GroupVersion.Group,
-                            GroupVersion.Version,
-                            resourceType,
-                            watch: true,
-                            cancellationToken: watchCancellationSource.Token)
-                        : kubernetes.CustomObjects.ListNamespacedCustomObjectWithHttpMessagesAsync(
-                            GroupVersion.Group,
-                            GroupVersion.Version,
-                            namespaceParameter,
-                            resourceType,
-                            watch: true,
-                            cancellationToken: watchCancellationSource.Token);
-
-                    return responseTask.WatchAsync<T, object>(null, watchCancellationSource.Token);
-                },
-                RetryOnConnectivityAndConflictErrors,
-                watchCancellationSource.Token).ConfigureAwait(false);
-        }*/
     }
 
     public Task<Stream> GetLogStreamAsync<T>(
