@@ -137,7 +137,11 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         OnBuilt(application);
     }
 
-    private void OnBuilderCreatingCore(DistributedApplicationOptions applicationOptions, HostApplicationBuilderSettings hostBuilderOptions)
+    internal static void PreConfigureBuilderOptions(
+        DistributedApplicationOptions applicationOptions,
+        HostApplicationBuilderSettings hostBuilderOptions,
+        string[] args,
+        Assembly entryPointAssembly)
     {
         hostBuilderOptions.Args = hostBuilderOptions.Args switch
         {
@@ -152,33 +156,48 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         };
 
         hostBuilderOptions.EnvironmentName = Environments.Development;
-        hostBuilderOptions.ApplicationName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
-        applicationOptions.AssemblyName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
+        hostBuilderOptions.ApplicationName = entryPointAssembly.GetName().Name ?? string.Empty;
+        applicationOptions.AssemblyName = entryPointAssembly.GetName().Name ?? string.Empty;
         applicationOptions.DisableDashboard = true;
         applicationOptions.EnableResourceLogging = true;
         var cfg = hostBuilderOptions.Configuration ??= new();
-        var additionalConfig = new Dictionary<string, string?>
-        {
-            ["DcpPublisher:ContainerRuntimeInitializationTimeout"] = "00:00:30",
-            ["DcpPublisher:RandomizePorts"] = "true",
-            ["DcpPublisher:DeleteResourcesOnShutdown"] = "true",
-            ["DcpPublisher:ResourceNameSuffix"] = $"{Random.Shared.Next():x}",
-        };
+        var additionalConfig = new Dictionary<string, string?>();
+        SetDefault("DcpPublisher:ContainerRuntimeInitializationTimeout", "00:00:30");
+        SetDefault("DcpPublisher:RandomizePorts", "true");
+        SetDefault("DcpPublisher:DeleteResourcesOnShutdown", "true");
+        SetDefault("DcpPublisher:ResourceNameSuffix", $"{Random.Shared.Next():x}");
 
-        var appHostProjectPath = ResolveProjectPath(_entryPoint.Assembly);
-        if (!string.IsNullOrEmpty(appHostProjectPath))
+        var appHostProjectPath = ResolveProjectPath(entryPointAssembly);
+        if (!string.IsNullOrEmpty(appHostProjectPath) && Directory.Exists(appHostProjectPath))
         {
             hostBuilderOptions.ContentRootPath = appHostProjectPath;
         }
 
+        // Populate the default launch profile name.
         var appHostLaunchSettings = GetLaunchSettings(appHostProjectPath);
-        if (appHostLaunchSettings?.Profiles.FirstOrDefault().Key is { } profileName)
+        if (appHostLaunchSettings?.Profiles.FirstOrDefault().Key is { } defaultLaunchProfileName)
         {
-            additionalConfig["AppHost:DefaultLaunchProfileName"] = profileName;
+            SetDefault("AppHost:DefaultLaunchProfileName", defaultLaunchProfileName);
         }
 
+        // Make sure we have a dashboard URL and OTLP endpoint URL.
+        SetDefault("ASPNETCORE_URLS", "http://localhost:8080");
+        SetDefault("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL", "http://localhost:4317");
         cfg.AddInMemoryCollection(additionalConfig);
+        void SetDefault(string key, string? value)
+        {
+            if (cfg[key] is null)
+            {
+                additionalConfig[key] = value;
+            }
+        }
+    }
 
+    internal void OnBuilderCreatingCore(
+        DistributedApplicationOptions applicationOptions,
+        HostApplicationBuilderSettings hostBuilderOptions)
+    {
+        PreConfigureBuilderOptions(applicationOptions, hostBuilderOptions, args, _entryPoint.Assembly);
         OnBuilderCreating(applicationOptions, hostBuilderOptions);
     }
 
@@ -228,14 +247,13 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
 
     private void OnBuilderCreatedCore(DistributedApplicationBuilder applicationBuilder)
     {
+        var services = applicationBuilder.Services;
+        services.AddHttpClient();
         OnBuilderCreated(applicationBuilder);
     }
 
     private void OnBuildingCore(DistributedApplicationBuilder applicationBuilder)
     {
-        var services = applicationBuilder.Services;
-        services.AddHttpClient();
-
         InterceptHostCreation(applicationBuilder);
 
         _builderTcs.TrySetResult(applicationBuilder);
