@@ -1240,6 +1240,11 @@ internal sealed class DcpExecutor : IDcpExecutor
 
             foreach (var cr in containerResources)
             {
+                if (cr.ModelResource.TryGetLastAnnotation<ExplicitStartupAnnotation>(out _))
+                {
+                    continue;
+                }
+
                 tasks.Add(CreateContainerAsyncCore(cr, cancellationToken));
             }
 
