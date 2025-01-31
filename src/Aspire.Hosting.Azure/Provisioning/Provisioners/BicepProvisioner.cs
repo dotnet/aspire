@@ -427,7 +427,11 @@ internal sealed class BicepProvisioner(
         // TODO: PERF Inefficient
 
         // Combine the parameter values with the bicep template to create a unique value
-        var input = parameters.ToJsonString() + resource.GetBicepTemplateString() + scope?.ToJsonString();
+        var input = parameters.ToJsonString() + resource.GetBicepTemplateString();
+        if (scope is not null)
+        {
+            input += scope.ToJsonString();
+        }
 
         // Hash the contents
         var hashedContents = Crc32.Hash(Encoding.UTF8.GetBytes(input));
@@ -443,22 +447,15 @@ internal sealed class BicepProvisioner(
         {
             return null;
         }
-        if (section["Scope"] is not string scopeString)
-        {
-            return null;
-        }
 
         try
         {
             var parameters = JsonNode.Parse(jsonString)?.AsObject();
-            var scope = JsonNode.Parse(scopeString)?.AsObject();
+            var scope = section["Scope"] is string scopeString
+                ? JsonNode.Parse(scopeString)?.AsObject()
+                : null;
 
             if (parameters is null)
-            {
-                return null;
-            }
-
-            if (scope is null)
             {
                 return null;
             }
@@ -467,7 +464,10 @@ internal sealed class BicepProvisioner(
             // This is important because the provisioner will fill in the known values and
             // generated values would change every time, so they can't be part of the checksum.
             await SetParametersAsync(parameters, resource, skipDynamicValues: true, cancellationToken: cancellationToken).ConfigureAwait(false);
-            await SetScopeAsync(scope, resource, cancellationToken).ConfigureAwait(false);
+            if (scope is not null)
+            {
+                await SetScopeAsync(scope, resource, cancellationToken).ConfigureAwait(false);
+            }
 
             // Get the checksum of the new values
             return GetChecksum(resource, parameters, scope);
