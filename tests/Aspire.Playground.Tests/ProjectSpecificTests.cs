@@ -8,7 +8,6 @@ using SamplesIntegrationTests;
 using SamplesIntegrationTests.Infrastructure;
 using Xunit;
 using Xunit.Abstractions;
-using System.Reflection;
 
 namespace Aspire.Playground.Tests;
 
@@ -57,15 +56,12 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
         await app.StopAsync();
     }
 
-    [Fact]
+    [Fact(Skip = "The project reference for this test is skipped in CI.")]
     [RequiresDocker]
     [RequiresTools(["func"])]
     public async Task AzureFunctionsTest()
     {
-        _testOutput.WriteLine($"**Debug: {Assembly.GetExecutingAssembly().Location}**");
-        var files = Directory.GetFiles(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!);
-        _testOutput.WriteLine($"**Debug: {string.Join(", ", files)}**");
-        var appHostPath = Directory.GetFiles(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "AzureFunctionsEndToEnd.AppHost.dll").Single();
+        var appHostPath = Directory.GetFiles(AppContext.BaseDirectory, "AzureFunctionsEndToEnd.AppHost.dll").Single();
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
         await using var app = await appHost.BuildAsync();
 
