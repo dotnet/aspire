@@ -62,6 +62,9 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     [RequiresTools(["func"])]
     public async Task AzureFunctionsTest()
     {
+        _testOutput.WriteLine($"**Debug: {Assembly.GetExecutingAssembly().Location}**");
+        var files = Directory.GetFiles(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!);
+        _testOutput.WriteLine($"**Debug: {string.Join(", ", files)}**");
         var appHostPath = Directory.GetFiles(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "AzureFunctionsEndToEnd.AppHost.dll").Single();
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
         await using var app = await appHost.BuildAsync();
