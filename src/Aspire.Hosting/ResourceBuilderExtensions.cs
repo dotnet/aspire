@@ -905,6 +905,7 @@ public static class ResourceBuilderExtensions
 
         var endpoint = builder.Resource.GetEndpoint(endpointName);
 
+        Uri? uri = null;
         builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((@event, ct) =>
         {
             if (!endpoint.Exists)
@@ -917,12 +918,6 @@ public static class ResourceBuilderExtensions
                 throw new DistributedApplicationException($"The endpoint '{endpointName}' on resource '{builder.Resource.Name}' was not using the '{desiredScheme}' scheme.");
             }
 
-            return Task.CompletedTask;
-        });
-
-        Uri? uri = null;
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, (@event, ct) =>
-        {
             var baseUri = new Uri(endpoint.Url, UriKind.Absolute);
             uri = new Uri(baseUri, path);
             return Task.CompletedTask;

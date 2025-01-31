@@ -463,7 +463,7 @@ public class AddPostgresTests
 
         using var app = builder.Build();
 
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
+        await builder.Eventing.PublishAsync<BeforeResourceStartedEvent>(new(pgadmin, app.Services));
 
         using var stream = File.OpenRead(volume.Source!);
         var document = JsonDocument.Parse(stream);
@@ -511,7 +511,7 @@ public class AddPostgresTests
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
+        await builder.Eventing.PublishAsync<BeforeResourceStartedEvent>(new(pgadmin, app.Services));
 
         var bookMarkFiles = Directory.GetFiles(volume.Source!).OrderBy(f => f).ToArray();
 
