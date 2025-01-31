@@ -81,6 +81,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresDocker]
     public async Task WaitingForParameterResourceCompletesImmediately()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
