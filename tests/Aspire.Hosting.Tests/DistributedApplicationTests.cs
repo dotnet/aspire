@@ -154,11 +154,12 @@ public class DistributedApplicationTests
     [Fact]
     public async Task ExplicitStart_StartResource()
     {
-        using var testProgram = CreateTestProgram();
+        const string testName = "explicit-start-resource";
+        using var testProgram = CreateTestProgram(testName);
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
-        var notStartedResourceName = "servicea";
-        var dependentResourceName = "serviceb";
+        var notStartedResourceName = $"{testName}-servicea";
+        var dependentResourceName = $"{testName}-serviceb";
 
         testProgram.ServiceABuilder.WithExplicitStart();
         testProgram.ServiceBBuilder.WaitFor(testProgram.ServiceABuilder);
