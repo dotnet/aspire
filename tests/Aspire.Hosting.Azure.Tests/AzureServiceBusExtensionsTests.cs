@@ -716,4 +716,13 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         Assert.Equal(lifetime, sbLifetimeAnnotation?.Lifetime);
         Assert.Equal(lifetime, sqlLifetimeAnnotation?.Lifetime);
     }
+
+    [Fact]
+    public void RunAsEmulator_CalledTwice_Throws()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var serviceBus = builder.AddAzureServiceBus("sb").RunAsEmulator();
+
+        Assert.Throws<InvalidOperationException>(() => serviceBus.RunAsEmulator());
+    }
 }

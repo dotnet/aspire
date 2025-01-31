@@ -1002,6 +1002,65 @@ public class DcpExecutorTests
         HasKnownCommandAnnotations(project.Resource);
     }
 
+    [Fact]
+    public async Task ResourcesPreparing_ProjectHasReplicas_EventRaisedOnce()
+    {
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
+        });
+
+        var resource = builder.AddProject<Projects.ServiceA>("ServiceA")
+            .WithReplicas(2).Resource;
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix" };
+
+        var startingEvents = new List<OnResourcesPreparingContext>();
+        var events = new DcpExecutorEvents();
+        events.Subscribe<OnResourcesPreparingContext>(context =>
+        {
+            startingEvents.Add(context);
+            return Task.CompletedTask;
+        });
+
+        var channel = Channel.CreateUnbounded<string>();
+        events.Subscribe<OnResourceChangedContext>(async (context) =>
+        {
+            if (context.Resource == resource)
+            {
+                await channel.Writer.WriteAsync(context.DcpResourceName);
+            }
+        });
+
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions, events: events);
+        await appExecutor.RunApplicationAsync();
+
+        var executables = kubernetesService.CreatedResources.OfType<Executable>().ToList();
+        Assert.Equal(2, executables.Count);
+
+        var e = Assert.Single(startingEvents);
+
+        var resourceIds = new HashSet<string>();
+        var watchResourceTask = Task.Run(async () =>
+        {
+            await foreach (var item in channel.Reader.ReadAllAsync())
+            {
+                resourceIds.Add(item);
+                if (resourceIds.Count == 2)
+                {
+                    break;
+                }
+            }
+        });
+        await watchResourceTask.DefaultTimeout();
+
+        Assert.Equal(2, resourceIds.Count);
+    }
     private static void HasKnownCommandAnnotations(IResource resource)
     {
         var commandAnnotations = resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();

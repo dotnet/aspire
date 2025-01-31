@@ -41,6 +41,7 @@ internal sealed class ApplicationOrchestrator
 
         dcpExecutorEvents.Subscribe<OnEndpointsAllocatedContext>(OnEndpointsAllocated);
         dcpExecutorEvents.Subscribe<OnResourceStartingContext>(OnResourceStarting);
+        dcpExecutorEvents.Subscribe<OnResourcesPreparingContext>(OnResourcesPreparing);
         dcpExecutorEvents.Subscribe<OnResourcesPreparedContext>(OnResourcesPrepared);
         dcpExecutorEvents.Subscribe<OnResourceChangedContext>(OnResourceChanged);
         dcpExecutorEvents.Subscribe<OnResourceFailedToStartContext>(OnResourceFailedToStart);
@@ -92,6 +93,12 @@ internal sealed class ApplicationOrchestrator
 
         var beforeResourceStartedEvent = new BeforeResourceStartedEvent(context.Resource, _serviceProvider);
         await _eventing.PublishAsync(beforeResourceStartedEvent, context.CancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task OnResourcesPreparing(OnResourcesPreparingContext context)
+    {
+        var beforeResourcePreparedEvent = new BeforeResourcesPreparedEvent();
+        await _eventing.PublishAsync(beforeResourcePreparedEvent, context.CancellationToken).ConfigureAwait(false);
     }
 
     private async Task OnResourcesPrepared(OnResourcesPreparedContext _)

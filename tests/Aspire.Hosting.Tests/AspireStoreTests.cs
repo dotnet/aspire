@@ -26,7 +26,7 @@ public class AspireStoreTests
         var store = AspireStore.Create(builder);
 
         var filename = "testfile1.txt";
-        var filePath = store.GetOrCreateFile(filename);
+        var filePath = store.GetFileName(filename);
 
         Assert.True(File.Exists(filePath));
     }
@@ -39,7 +39,7 @@ public class AspireStoreTests
 
         var filename = "testfile2.txt";
         var content = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("Test content"));
-        var filePath = store.GetOrCreateFileWithContent(filename, content);
+        var filePath = store.GetFileNameWithContent(filename, content);
 
         Assert.True(File.Exists(filePath));
         Assert.Equal("Test content", File.ReadAllText(filePath));
@@ -53,12 +53,12 @@ public class AspireStoreTests
 
         var filename = "testfile3.txt";
         var content = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("Test content"));
-        var filePath = store.GetOrCreateFileWithContent(filename, content);
+        var filePath = store.GetFileNameWithContent(filename, content);
 
         File.WriteAllText(filePath, "updated");
 
         content.Position = 0;
-        var filePath2 = store.GetOrCreateFileWithContent(filename, content);
+        var filePath2 = store.GetFileNameWithContent(filename, content);
         var content2 = File.ReadAllText(filePath2);
 
         Assert.Equal("updated", content2);

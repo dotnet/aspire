@@ -135,6 +135,8 @@ internal sealed class DcpExecutor : IDcpExecutor
 
         try
         {
+            await _executorEvents.PublishAsync(new OnResourcesPreparingContext(cancellationToken)).ConfigureAwait(false);
+
             PrepareServices();
             PrepareContainers();
             PrepareExecutables();

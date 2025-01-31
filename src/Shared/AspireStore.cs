@@ -86,7 +86,7 @@ internal sealed class AspireStore
     /// <param name="filename">A file name the to base the result on.</param>
     /// <param name="sourceFilename">An existing file.</param>
     /// <returns>A deterministic file path with the same content as <paramref name="sourceFilename"/>.</returns>
-    public string GetOrCreateFileWithContent(string filename, string sourceFilename)
+    public string GetFileNameWithContent(string filename, string sourceFilename)
     {
         ArgumentNullException.ThrowIfNullOrWhiteSpace(filename);
         ArgumentNullException.ThrowIfNullOrWhiteSpace(sourceFilename);
@@ -134,7 +134,7 @@ internal sealed class AspireStore
         return finalFilePath;
     }
 
-    public string GetOrCreateFileWithContent(string filename, Stream contentStream)
+    public string GetFileNameWithContent(string filename, Stream contentStream)
     {
         ArgumentNullException.ThrowIfNullOrWhiteSpace(filename);
         ArgumentNullException.ThrowIfNull(contentStream);
@@ -148,7 +148,7 @@ internal sealed class AspireStore
             contentStream.CopyTo(fileStream);
         }
 
-        var finalFilePath = GetOrCreateFileWithContent(filename, tempFileName);
+        var finalFilePath = GetFileNameWithContent(filename, tempFileName);
 
         File.Delete(tempFileName);
 
@@ -156,26 +156,18 @@ internal sealed class AspireStore
     }
 
     /// <summary>
-    /// Creates a file with the provided <paramref name="filename"/> if it does not exist.
+    /// Creates a file with the provided <paramref name="filename"/> in the store.
     /// </summary>
-    /// <param name="filename"></param>
-    /// <returns></returns>
-    public string GetOrCreateFile(string filename)
+    /// <param name="filename">The file name to use in the store.</param>
+    /// <returns>The absolute file name in the store.</returns>
+    public string GetFileName(string filename)
     {
         EnsureDirectory();
 
         // Strip any folder information from the filename.
         filename = Path.GetFileName(filename);
 
-        var finalFilePath = Path.Combine(_basePath, filename);
-
-        if (!File.Exists(finalFilePath))
-        {
-            var tempFileName = Path.GetTempFileName();
-            File.Move(tempFileName, finalFilePath, overwrite: false);
-        }
-
-        return finalFilePath;
+        return Path.Combine(_basePath, filename);
     }
 
     public void DeleteFile(string filename)
