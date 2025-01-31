@@ -73,7 +73,7 @@ internal static class PeriodicRestartAsyncEnumerable
     /// <param name="restartInterval">How often should we get a new enumerable from the factory</param>
     /// <param name="cancellationToken">Stop all enumeration once this is cancelled</param>
     /// <returns>An <see cref="IAsyncEnumerable{T}"/> of items returned by the inner iterables</returns>
-    public static async IAsyncEnumerable<T> CreateAsync<T>(Func<T?, CancellationToken, Task<IAsyncEnumerable<T>>> enumerableFactory, TimeSpan restartInterval, [EnumeratorCancellation] CancellationToken cancellationToken) where T : class
+    public static async IAsyncEnumerable<T> CreateAsync<T>(Func<T?, CancellationToken, Task<IAsyncEnumerable<T>>> enumerableFactory, TimeSpan restartInterval, [EnumeratorCancellation] CancellationToken cancellationToken) where T : class?
     {
         T? lastValue = null;
         while (!cancellationToken.IsCancellationRequested)
