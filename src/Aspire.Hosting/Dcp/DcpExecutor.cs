@@ -32,6 +32,11 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
     private const string DefaultAspireNetworkName = "default-aspire-network";
 
+    // Disposal of te DcpExecutor means shutting down watches and log streams,
+    // and asking DCP to start the shutdown process. If we cannot complete these tasks within 10 seconds,
+    // it probably means DCP crashed and there is no point trying further.
+    private static readonly TimeSpan s_disposeTimeout = TimeSpan.FromSeconds(10);
+
     private readonly ILogger<DistributedApplication> _distributedApplicationLogger;
     private readonly IKubernetesService _kubernetesService;
     private readonly IConfiguration _configuration;
@@ -190,7 +195,9 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        await StopAsync(CancellationToken.None).ConfigureAwait(false);
+        var disposeCts = new CancellationTokenSource();
+        disposeCts.CancelAfter(s_disposeTimeout);
+        await StopAsync(disposeCts.Token).ConfigureAwait(false);
     }
 
     private void WatchResourceChanges()
