@@ -27,6 +27,11 @@
         <target state="translated">Tracce</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceCollapseAllChildren">
+        <source>Collapse all nested resources</source>
+        <target state="new">Collapse all nested resources</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceCommandFailed">
         <source>{0} "{1}" failed</source>
         <target state="translated">{0} "{1}" non riuscito</target>
@@ -60,6 +65,11 @@
       <trans-unit id="ResourceDetailsViewConsoleLogs">
         <source>View console logs</source>
         <target state="translated">Visualizza log della console</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceExpandAllChildren">
+        <source>Expand all nested resources</source>
+        <target state="new">Expand all nested resources</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceFilterOptionEmpty">
@@ -168,13 +178,13 @@
         <note />
       </trans-unit>
       <trans-unit id="ResourcesFiltered">
-        <source>Has filters</source>
-        <target state="translated">Con filtri</target>
+        <source>Update filters</source>
+        <target state="needs-review-translation">Con filtri</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
-        <source>No filters</source>
-        <target state="translated">Nessun filtro</target>
+        <source>Add filters</source>
+        <target state="needs-review-translation">Nessun filtro</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesResourceStatesHeader">

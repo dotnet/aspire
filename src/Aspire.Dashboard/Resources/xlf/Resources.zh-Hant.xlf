@@ -27,6 +27,11 @@
         <target state="translated">追蹤</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceCollapseAllChildren">
+        <source>Collapse all nested resources</source>
+        <target state="new">Collapse all nested resources</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceCommandFailed">
         <source>{0} "{1}" failed</source>
         <target state="translated">{0}「{1}」失敗</target>
@@ -60,6 +65,11 @@
       <trans-unit id="ResourceDetailsViewConsoleLogs">
         <source>View console logs</source>
         <target state="translated">檢視主機記錄</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceExpandAllChildren">
+        <source>Expand all nested resources</source>
+        <target state="new">Expand all nested resources</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceFilterOptionEmpty">
@@ -168,13 +178,13 @@
         <note />
       </trans-unit>
       <trans-unit id="ResourcesFiltered">
-        <source>Has filters</source>
-        <target state="translated">有篩選</target>
+        <source>Update filters</source>
+        <target state="needs-review-translation">有篩選</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
-        <source>No filters</source>
-        <target state="translated">沒有篩選</target>
+        <source>Add filters</source>
+        <target state="needs-review-translation">沒有篩選</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesResourceStatesHeader">

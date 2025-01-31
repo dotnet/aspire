@@ -23,6 +23,9 @@ public partial class AspireMenuButton : FluentComponentBase
     public Icon? IconStart { get; set; }
 
     [Parameter]
+    public Icon? IconEnd { get; set; }
+
+    [Parameter]
     public Icon? Icon { get; set; }
 
     [Parameter]
@@ -40,7 +43,8 @@ public partial class AspireMenuButton : FluentComponentBase
     [Parameter]
     public string? Title { get; set; }
 
-    public string MenuButtonId { get; } = Identifier.NewId();
+    [Parameter]
+    public string MenuButtonId { get; set; } = Identifier.NewId();
 
     protected override void OnParametersSet()
     {

@@ -16,7 +16,7 @@
 }
 
 <div class="page-content-container">
-    <AspirePageContentLayout IsSummaryDetailsViewOpen="@showDetailsView">
+    <AspirePageContentLayout IsSummaryDetailsViewOpen="@showDetailsView" @ref="@_contentLayout">
         <PageTitleSection>
             <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Resources.ResourcesHeader)]</h1>
         </PageTitleSection>
@@ -32,28 +32,35 @@
             <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             @if (ViewportInformation.IsDesktop)
             {
-                <FluentButton id="resourceFilterButton" slot="end"
-                              Appearance="@(NoFiltersSet ? Appearance.Stealth : Appearance.Accent)"
-                              IconEnd="@(new Icons.Regular.Size20.Filter())"
-                              @onclick="() => _isFilterPopupVisible = !_isFilterPopupVisible"
-                              Title="@(NoFiltersSet ? Loc[nameof(Dashboard.Resources.Resources.ResourcesNotFiltered)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesFiltered)])"
-                              aria-label="@(NoFiltersSet ? Loc[nameof(Dashboard.Resources.Resources.ResourcesNotFiltered)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesFiltered)])" />
+                <AspireMenuButton ButtonAppearance="@(NoFiltersSet ? Appearance.Stealth : Appearance.Accent)"
+                                  IconEnd="@(new Icons.Regular.Size20.Settings())"
+                                  Items="@_resourcesMenuItems"
+                                  Title="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSettings)]"
+                                  MenuButtonId="resourceMenuButton"
+                                  slot="end" />
             }
             else
             {
+                var showExpandAllButton = _resourceNamesToExpanded.Values.Any(v => !v);
+
+                <FluentButton IconStart="@(showExpandAllButton ? new Icons.Regular.Size16.Eye() : new Icons.Regular.Size16.EyeOff())"
+                              OnClick="@(async () => { await OnToggleCollapseAll(); _contentLayout?.CloseMobileToolbarAsync(); })">
+                    @(showExpandAllButton ? Loc[nameof(Dashboard.Resources.Resources.ResourceExpandAllChildren)] : Loc[nameof(Dashboard.Resources.Resources.ResourceCollapseAllChildren)])
+                </FluentButton>
+
                 <div>
                     <ResourceFilters
                         ResourceStates="@ResourceStatesToVisibility"
                         ResourceTypes="@ResourceTypesToVisibility"
                         ResourceHealthStates="@ResourceHealthStatusesToVisibility"
                         OnAllFilterVisibilityCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
-                        OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync" />
+                        OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync"/>
                 </div>
             }
         </ToolbarSection>
 
         <MainSection>
-            <FluentPopover AnchorId="resourceFilterButton"
+            <FluentPopover AnchorId="resourceMenuButton"
                            @bind-Open="_isFilterPopupVisible"
                            AutoFocus="true"
                            FixedPlacement="true"

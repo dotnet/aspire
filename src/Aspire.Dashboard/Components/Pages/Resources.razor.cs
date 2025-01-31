@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -13,6 +14,7 @@ using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -69,6 +71,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly Dictionary<string, bool> _resourceNamesToExpanded = [];
+    private readonly Dictionary<string, bool> _resourceNamesToExpandInitialState = [];
     private string _filter = "";
     private bool _isFilterPopupVisible;
     private Task? _resourceSubscriptionTask;
@@ -77,6 +80,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private FluentDataGrid<ResourceGridViewModel> _dataGrid = null!;
     private GridColumnManager _manager = null!;
     private int _maxHighlightedCount;
+    private readonly List<MenuButtonItem> _resourcesMenuItems = new();
+    private AspirePageContentLayout? _contentLayout;
 
     private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
     private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
@@ -102,12 +107,14 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     {
         await ClearSelectedResourceAsync();
         await _dataGrid.SafeRefreshDataAsync();
+        UpdateMenuButtons();
     }
 
     private async Task OnResourceFilterVisibilityChangedAsync(string resourceType, bool isVisible)
     {
         await ClearSelectedResourceAsync();
         await _dataGrid.SafeRefreshDataAsync();
+        UpdateMenuButtons();
     }
 
     private async Task HandleSearchFilterChangedAsync()
@@ -140,7 +147,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             new GridColumn(Name: EndpointsColumn, DesktopWidth: "2.25fr", MobileWidth: "2fr"),
             new GridColumn(Name: ActionsColumn, DesktopWidth: "minmax(150px, 1.5fr)", MobileWidth: "1fr")
         ];
+
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
+        UpdateMenuButtons();
 
         if (DashboardClient.IsEnabled)
         {
@@ -149,7 +158,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             {
                 foreach (var (key, value) in settings.Value.ResourceNamesToExpanded)
                 {
-                    _resourceNamesToExpanded.Add(key, value);
+                    _resourceNamesToExpandInitialState.Add(key, value);
                 }
             }
 
@@ -255,7 +264,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             ResourceTypesToVisibility.TryAdd(resource.ResourceType, resourceTypeVisible(resource.ResourceType));
             ResourceStatesToVisibility.TryAdd(resource.State ?? string.Empty, stateVisible(resource.State ?? string.Empty));
             ResourceHealthStatusesToVisibility.TryAdd(resource.HealthStatus?.Humanize() ?? string.Empty, healthStatusVisible(resource.HealthStatus?.Humanize() ?? string.Empty));
-            _resourceNamesToExpanded.TryAdd(resource.Name, true);
+
+            _resourceNamesToExpanded.TryAdd(resource.Name, !_resourceNamesToExpandInitialState.TryGetValue(resource.Name, out var initialisExpanded) || initialisExpanded);
+            UpdateMenuButtons();
 
             return added;
         }
@@ -290,6 +301,49 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             .ToList();
 
         return ValueTask.FromResult(GridItemsProviderResult.From(query, orderedResources.Count));
+    }
+
+    private void UpdateMenuButtons()
+    {
+        _resourcesMenuItems.Clear();
+
+        _resourcesMenuItems.Add(new MenuButtonItem
+        {
+            IsDisabled = false,
+            OnClick = () =>
+            {
+                _isFilterPopupVisible = !_isFilterPopupVisible;
+                StateHasChanged();
+                return Task.CompletedTask;
+            },
+            Text = NoFiltersSet
+                ? Loc[nameof(Dashboard.Resources.Resources.ResourcesNotFiltered)]
+                : Loc[nameof(Dashboard.Resources.Resources.ResourcesFiltered)],
+            Icon = new Icons.Regular.Size20.Filter(),
+            // Used for ResourcesTests
+            AdditionalAttributes = new Dictionary<string, object> { { "id", "resourceFilterButton" } }
+        });
+
+        if (_resourceNamesToExpanded.Values.Any(v => !v))
+        {
+            _resourcesMenuItems.Add(new MenuButtonItem
+            {
+                IsDisabled = false,
+                OnClick = OnToggleCollapseAll,
+                Text = Loc[nameof(Dashboard.Resources.Resources.ResourceExpandAllChildren)],
+                Icon = new Icons.Regular.Size16.Eye()
+            });
+        }
+        else
+        {
+            _resourcesMenuItems.Add(new MenuButtonItem
+            {
+                IsDisabled = false,
+                OnClick = OnToggleCollapseAll,
+                Text = Loc[nameof(Dashboard.Resources.Resources.ResourceCollapseAllChildren)],
+                Icon = new Icons.Regular.Size16.EyeOff()
+            });
+        }
     }
 
     private void UpdateMaxHighlightedCount()
@@ -454,11 +508,24 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         // View model data is recreated if data updates.
         // Persist the collapsed state in a separate list.
         viewModel.IsCollapsed = !viewModel.IsCollapsed;
-
         _resourceNamesToExpanded[viewModel.Resource.Name] = !viewModel.IsCollapsed;
 
         await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ResourcesPageSettings, new ResourcesPageSettings(ResourceNamesToExpanded: _resourceNamesToExpanded));
         await _dataGrid.SafeRefreshDataAsync();
+        UpdateMenuButtons();
+    }
+
+    private async Task OnToggleCollapseAll()
+    {
+        var expandAll = _resourceNamesToExpanded.Values.Any(v => !v);
+        foreach (var resourceName in _resourceNamesToExpanded.Keys)
+        {
+            _resourceNamesToExpanded[resourceName] = expandAll;
+        }
+
+        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ResourcesPageSettings, new ResourcesPageSettings(ResourceNamesToExpanded: _resourceNamesToExpanded));
+        await _dataGrid.SafeRefreshDataAsync();
+        UpdateMenuButtons();
     }
 
     private static List<DisplayedEndpoint> GetDisplayedEndpoints(ResourceViewModel resource)

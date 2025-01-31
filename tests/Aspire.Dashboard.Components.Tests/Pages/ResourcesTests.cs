@@ -140,6 +140,11 @@ public partial class ResourcesTests : TestContext
         });
 
         // Open the resource filter
+        cut.Find("#resourceMenuButton").Click();
+        var menu = cut.FindComponents<FluentMenu>()
+            .First(menu => menu.Instance.Anchor == "resourceMenuButton");
+        // Required to disable menu service, as it will not render a menu in the test context
+        menu.SetParametersAndRender(builder => builder.Add(p => p.UseMenuService, false));
         cut.Find("#resourceFilterButton").Click();
 
         // Assert 1 (the correct filter options are shown)

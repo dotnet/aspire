@@ -27,6 +27,11 @@
         <target state="translated">Трассировки</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceCollapseAllChildren">
+        <source>Collapse all nested resources</source>
+        <target state="new">Collapse all nested resources</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceCommandFailed">
         <source>{0} "{1}" failed</source>
         <target state="translated">Сбой {0} "{1}"</target>
@@ -60,6 +65,11 @@
       <trans-unit id="ResourceDetailsViewConsoleLogs">
         <source>View console logs</source>
         <target state="translated">Просмотр журналов консоли</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceExpandAllChildren">
+        <source>Expand all nested resources</source>
+        <target state="new">Expand all nested resources</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceFilterOptionEmpty">
@@ -168,13 +178,13 @@
         <note />
       </trans-unit>
       <trans-unit id="ResourcesFiltered">
-        <source>Has filters</source>
-        <target state="translated">Содержит фильтры</target>
+        <source>Update filters</source>
+        <target state="needs-review-translation">Содержит фильтры</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
-        <source>No filters</source>
-        <target state="translated">Нет фильтров</target>
+        <source>Add filters</source>
+        <target state="needs-review-translation">Нет фильтров</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesResourceStatesHeader">
