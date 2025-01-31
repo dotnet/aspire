@@ -775,7 +775,7 @@ public class DistributedApplicationTests
         }).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }
 
-    [Fact]
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/4599")]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4599", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessAndProxiedEndpointBothWorkOnSameResource()
     {
