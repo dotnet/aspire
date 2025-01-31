@@ -1,95 +1,121 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.CompilerServices;
+
 namespace Aspire.Hosting.Utils;
 
-/// <summary>
-/// An <see cref="IAsyncEnumerable{T}"/> that periodically restarts an inner enumerable after a timeout.
-/// We specifically need this for the DCP resource watch enumerable, as the WatchAsync call can be
-/// unreliable when running long enough (30+ minutes). The watch stops receiving new events, but
-/// no cancellation (or other exception) is thrown. The simple fix is to periodically restart the watch
-/// with the only downside being that we'll receive a duplicate of the latest resource state every time
-/// we re-enable the watch.
-/// </summary>
-/// <typeparam name="T">The inner enumerated type</typeparam>
-internal sealed class PeriodicRestartAsyncEnumerable<T> : IAsyncEnumerable<T>
+internal static class PeriodicRestartAsyncEnumerable
 {
-    private readonly Func<CancellationToken, Task<IAsyncEnumerable<T>>> _enumerableFactory;
-    private readonly TimeSpan _restartTimeout;
-
     /// <summary>
-    /// Creates an <see cref="IAsyncEnumerable{T}"/> that wraps an inner enumerable factory with periodic restart of the inner enumerable.
+    /// Creates an async enumerable that wraps and periodically restarts an inner async enumeration. This is intended to keep long
+    /// running watch enumerations fresh and will recreate the watch enumeration on a set interval or if the inner enumerable terminates
+    /// unexpectedly. The goal is to ensure that we keep the wrapped enumeration active until the main token is cancelled.
     /// </summary>
-    /// <param name="enumerableFactory">A factory method that returns a new inner <see cref="IAsyncEnumerable{T}"/></param>
-    /// <param name="restartTimeout">How often should the inner enumerable be restarted</param>
-    public PeriodicRestartAsyncEnumerable(Func<CancellationToken, Task<IAsyncEnumerable<T>>> enumerableFactory, TimeSpan restartTimeout)
+    /// <typeparam name="T">The type the enumerable iterates over</typeparam>
+    /// <param name="enumerableFactory">Factory method that takes the last iterrated value (if one exists) and a <see cref="CancellationToken"/> and returns a fresh <see cref="IAsyncEnumerable{T}"/> to enumerate over</param>
+    /// <param name="restartInterval">How often should we get a new enumerable from the factory</param>
+    /// <param name="cancellationToken">Stop all enumeration once this is cancelled</param>
+    /// <returns>An <see cref="IAsyncEnumerable{T}"/> of items returned by the inner iterables</returns>
+    public static async IAsyncEnumerable<T> CreateAsync<T>(Func<T?, CancellationToken, Task<IAsyncEnumerable<T>>> enumerableFactory, TimeSpan restartInterval, [EnumeratorCancellation] CancellationToken cancellationToken) where T : struct
     {
-        _enumerableFactory = enumerableFactory;
-        _restartTimeout = restartTimeout;
-    }
-
-    public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
-    {
-        return new PeriodicRestartAsyncEnumerator(_enumerableFactory, _restartTimeout, cancellationToken);
-    }
-
-    public sealed class PeriodicRestartAsyncEnumerator : IAsyncEnumerator<T>
-    {
-        private readonly Func<CancellationToken, Task<IAsyncEnumerable<T>>> _enumerableFactory;
-        private readonly TimeSpan _restartTimeout;
-        private readonly CancellationToken _cancellationToken;
-        private IAsyncEnumerator<T>? _innerEnumerator;
-        private CancellationTokenSource? _restartCts;
-
-        public PeriodicRestartAsyncEnumerator(Func<CancellationToken, Task<IAsyncEnumerable<T>>> enumerableFactory, TimeSpan restartTimeout, CancellationToken cancellationToken)
+        T? lastValue = null;
+        while (!cancellationToken.IsCancellationRequested)
         {
-            _enumerableFactory = enumerableFactory;
-            _restartTimeout = restartTimeout;
-            _cancellationToken = cancellationToken;
-        }
+            // Outer loop retrieves a new enumerable/enumerator to process
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(restartInterval);
 
-        public T Current => _innerEnumerator!.Current;
-
-        public ValueTask DisposeAsync()
-        {
-            _restartCts?.Dispose();
-            _restartCts = null;
-            if (_innerEnumerator is not null)
-            {
-                return _innerEnumerator.DisposeAsync();
-            }
-            else
-            {
-                return ValueTask.CompletedTask;
-            }
-        }
-
-        private async Task<IAsyncEnumerator<T>> GetNextInnerEnumerator()
-        {
-            _restartCts?.Cancel();
-            _restartCts?.Dispose();
-            _restartCts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken);
-            _restartCts.CancelAfter(_restartTimeout);
-
-            var enumerable = await _enumerableFactory(_restartCts.Token).ConfigureAwait(false);
-            return enumerable.GetAsyncEnumerator(_restartCts.Token);
-        }
-
-        public async ValueTask<bool> MoveNextAsync()
-        {
-            _innerEnumerator ??= await GetNextInnerEnumerator().ConfigureAwait(false);
+            var enumerable = await enumerableFactory(lastValue, cts.Token).ConfigureAwait(false);
+            var enumerator = enumerable.GetAsyncEnumerator(cts.Token);
 
             try
             {
-                return await _innerEnumerator.MoveNextAsync().ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (!_cancellationToken.IsCancellationRequested)
-            {
-                await _innerEnumerator.DisposeAsync().ConfigureAwait(false);
-                _innerEnumerator = await GetNextInnerEnumerator().ConfigureAwait(false);
+                while (true)
+                {
+                    // Loop over the current enumerable until it is exhausted or we need to restart
+                    try
+                    {
+                        if (!await enumerator.MoveNextAsync().ConfigureAwait(false))
+                        {
+                            // For some reason our inner long running enumerable has exited; break out of the inner loop to get a fresh enumerable
+                            break;
+                        }
+                    }
+                    catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                    {
+                        // If the restart token threw a cancellation exception, we should resume the outer loop to get a new enumerable if necessary
+                        // If the main token is cancelled, we should just bubble up the exception
+                        break;
+                    }
 
-                return await _innerEnumerator.MoveNextAsync().ConfigureAwait(false);
+                    lastValue = enumerator.Current;
+
+                    yield return (T)lastValue;
+                }
+            }
+            finally
+            {
+                await enumerator.DisposeAsync().ConfigureAwait(false);
             }
         }
+
+        cancellationToken.ThrowIfCancellationRequested();
+    }
+
+    /// <summary>
+    /// Creates an async enumerable that wraps and periodically restarts an inner async enumeration. This is intended to keep long
+    /// running watch enumerations fresh and will recreate the watch enumeration on a set interval or if the inner enumerable terminates
+    /// unexpectedly. The goal is to ensure that we keep the wrapped enumeration active until the main token is cancelled.
+    /// </summary>
+    /// <typeparam name="T">The type the enumerable iterates over</typeparam>
+    /// <param name="enumerableFactory">Factory method that takes the last iterrated value (if one exists) and a <see cref="CancellationToken"/> and returns a fresh <see cref="IAsyncEnumerable{T}"/> to enumerate over</param>
+    /// <param name="restartInterval">How often should we get a new enumerable from the factory</param>
+    /// <param name="cancellationToken">Stop all enumeration once this is cancelled</param>
+    /// <returns>An <see cref="IAsyncEnumerable{T}"/> of items returned by the inner iterables</returns>
+    public static async IAsyncEnumerable<T> CreateAsync<T>(Func<T?, CancellationToken, Task<IAsyncEnumerable<T>>> enumerableFactory, TimeSpan restartInterval, [EnumeratorCancellation] CancellationToken cancellationToken) where T : class
+    {
+        T? lastValue = null;
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            // Outer loop retrieves a new enumerable/enumerator to process
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(restartInterval);
+
+            var enumerable = await enumerableFactory(lastValue, cts.Token).ConfigureAwait(false);
+            var enumerator = enumerable.GetAsyncEnumerator(cts.Token);
+
+            try
+            {
+                while (true)
+                {
+                    // Loop over the current enumerable until it is exhausted or we need to restart
+                    try
+                    {
+                        if (!await enumerator.MoveNextAsync().ConfigureAwait(false))
+                        {
+                            // For some reason our inner long running enumerable has exited; break out of the inner loop to get a fresh enumerable
+                            break;
+                        }
+                    }
+                    catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                    {
+                        // If the restart token threw a cancellation exception, we should resume the outer loop to get a new enumerable if necessary
+                        // If the main token is cancelled, we should just bubble up the exception
+                        break;
+                    }
+
+                    lastValue = enumerator.Current;
+
+                    yield return (T)lastValue;
+                }
+            }
+            finally
+            {
+                await enumerator.DisposeAsync().ConfigureAwait(false);
+            }
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
     }
 }

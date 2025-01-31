@@ -237,8 +237,8 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
         var resourceType = GetResourceFor<T>();
 
         // WatchAsync can become unresponsive if running long enough
-        // Periodically restart the watch to ensure we keep getting updates
-        var result = new PeriodicRestartAsyncEnumerable<(WatchEventType, T)>((CancellationToken restartCancellationToken) =>
+        // We use a helper to periodically restart the inner watch enumerable
+        var innerWatchFactory = ((WatchEventType, T)? lastValue, CancellationToken restartCancellationToken) =>
         {
             return ExecuteWithRetry(
                 DcpApiOperationType.Watch,
@@ -264,9 +264,9 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
                 },
                 RetryOnConnectivityAndConflictErrors,
                 restartCancellationToken);
-        }, TimeSpan.FromMinutes(5));
+        };
 
-        await foreach (var item in result.WithCancellation(cancellationToken).ConfigureAwait(false))
+        await foreach (var item in PeriodicRestartAsyncEnumerable.CreateAsync(innerWatchFactory, restartInterval: TimeSpan.FromMinutes(5), cancellationToken: cancellationToken).ConfigureAwait(false))
         {
             yield return item;
         }
