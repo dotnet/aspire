@@ -8,6 +8,7 @@ using SamplesIntegrationTests;
 using SamplesIntegrationTests.Infrastructure;
 using Xunit;
 using Xunit.Abstractions;
+using System.Reflection;
 
 namespace Aspire.Playground.Tests;
 
@@ -61,7 +62,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     [RequiresTools(["func"])]
     public async Task AzureFunctionsTest()
     {
-        var appHostPath = Directory.GetFiles(AppContext.BaseDirectory, "AzureFunctionsEndToEnd.AppHost.dll").Single();
+        var appHostPath = Directory.GetFiles(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "AzureFunctionsEndToEnd.AppHost.dll").Single();
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
         await using var app = await appHost.BuildAsync();
 
