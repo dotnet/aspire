@@ -220,6 +220,8 @@ internal sealed class BicepProvisioner(
         // Convert the parameters to a JSON object
         var parameters = new JsonObject();
         await SetParametersAsync(parameters, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var scope = new JsonObject();
+        await SetScopeAsync(scope, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         var sw = Stopwatch.StartNew();
 
@@ -301,7 +303,7 @@ internal sealed class BicepProvisioner(
         }
 
         // Save the checksum to the configuration
-        resourceConfig["CheckSum"] = GetChecksum(resource, parameters);
+        resourceConfig["CheckSum"] = GetChecksum(resource, parameters, scope);
 
         if (outputObj is not null)
         {
@@ -420,12 +422,12 @@ internal sealed class BicepProvisioner(
         return null;
     }
 
-    internal static string GetChecksum(AzureBicepResource resource, JsonObject parameters)
+    internal static string GetChecksum(AzureBicepResource resource, JsonObject parameters, JsonObject? scope = null)
     {
         // TODO: PERF Inefficient
 
         // Combine the parameter values with the bicep template to create a unique value
-        var input = parameters.ToJsonString() + resource.GetBicepTemplateString();
+        var input = parameters.ToJsonString() + resource.GetBicepTemplateString() + scope?.ToJsonString();
 
         // Hash the contents
         var hashedContents = Crc32.Hash(Encoding.UTF8.GetBytes(input));
@@ -441,12 +443,22 @@ internal sealed class BicepProvisioner(
         {
             return null;
         }
+        if (section["Scope"] is not string scopeString)
+        {
+            return null;
+        }
 
         try
         {
             var parameters = JsonNode.Parse(jsonString)?.AsObject();
+            var scope = JsonNode.Parse(scopeString)?.AsObject();
 
             if (parameters is null)
+            {
+                return null;
+            }
+
+            if (scope is null)
             {
                 return null;
             }
@@ -455,9 +467,10 @@ internal sealed class BicepProvisioner(
             // This is important because the provisioner will fill in the known values and
             // generated values would change every time, so they can't be part of the checksum.
             await SetParametersAsync(parameters, resource, skipDynamicValues: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await SetScopeAsync(scope, resource, cancellationToken).ConfigureAwait(false);
 
             // Get the checksum of the new values
-            return GetChecksum(resource, parameters);
+            return GetChecksum(resource, parameters, scope);
         }
         catch
         {
@@ -506,6 +519,20 @@ internal sealed class BicepProvisioner(
                     null => null,
                     _ => throw new NotSupportedException($"The parameter value type {parameterValue.GetType()} is not supported.")
                 }
+            };
+        }
+    }
+
+    internal static async Task SetScopeAsync(JsonObject scope, AzureBicepResource resource, CancellationToken cancellationToken = default)
+    {
+        foreach (var item in resource.Scope)
+        {
+            scope[item.Key] = item.Value switch
+            {
+                string s => s,
+                IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
+                null => null,
+                _ => throw new NotSupportedException($"The scope value type {item.Value.GetType()} is not supported.")
             };
         }
     }
