@@ -2,15 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.EventHubs;
 using Aspire.Hosting.Utils;
 using Azure.Messaging.EventHubs.Producer;
 using Azure.Provisioning;
-using AzureProvisioning = Azure.Provisioning.EventHubs;
 using Microsoft.Extensions.DependencyInjection;
-using System.Text.Json.Nodes;
+using AzureProvisioning = Azure.Provisioning.EventHubs;
 
 namespace Aspire.Hosting;
 
@@ -124,6 +124,7 @@ public static class AzureEventHubsExtensions
     /// </remarks>
     /// <param name="builder">The Azure Event Hubs resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
+    /// <param name="configureAzureStorageContainer">Callback that exposes underlying container used for azure storage emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// This version of the package defaults to the <inheritdoc cref="EventHubsEmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="EventHubsEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="EventHubsEmulatorContainerImageTags.Image"/> container image.
@@ -144,7 +145,7 @@ public static class AzureEventHubsExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<AzureEventHubsResource> RunAsEmulator(this IResourceBuilder<AzureEventHubsResource> builder, Action<IResourceBuilder<AzureEventHubsEmulatorResource>>? configureContainer = null)
+    public static IResourceBuilder<AzureEventHubsResource> RunAsEmulator(this IResourceBuilder<AzureEventHubsResource> builder, Action<IResourceBuilder<AzureEventHubsEmulatorResource>>? configureContainer = null, Action<IResourceBuilder<AzureStorageEmulatorResource>>? configureAzureStorageContainer = null)
     {
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
@@ -174,7 +175,7 @@ public static class AzureEventHubsExtensions
         // Create a separate storage emulator for the Event Hub one
         var storageResource = builder.ApplicationBuilder
                 .AddAzureStorage($"{builder.Resource.Name}-storage")
-                .RunAsEmulator();
+                .RunAsEmulator(configureAzureStorageContainer);
 
         var storage = storageResource.Resource;
 
@@ -365,7 +366,7 @@ public static class AzureEventHubsExtensions
     /// <param name="path">Path to the file on the AppHost where the emulator configuration is located.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureEventHubsEmulatorResource> WithConfigurationFile(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string path)
-    { 
+    {
         // Update the existing mount
         var configFileMount = builder.Resource.Annotations.OfType<ContainerMountAnnotation>().LastOrDefault(v => v.Target == AzureEventHubsEmulatorResource.EmulatorConfigJsonPath);
         if (configFileMount != null)
