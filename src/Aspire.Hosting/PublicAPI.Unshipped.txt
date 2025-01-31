@@ -189,6 +189,7 @@ Aspire.Hosting.ApplicationModel.WaitType.WaitForCompletion = 1 -> Aspire.Hosting
 Aspire.Hosting.ApplicationModel.WaitType.WaitUntilHealthy = 0 -> Aspire.Hosting.ApplicationModel.WaitType
 Aspire.Hosting.DistributedApplicationBuilder.AppHostPath.get -> string!
 Aspire.Hosting.DistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
+Aspire.Hosting.DistributedApplicationBuilderExtensions
 Aspire.Hosting.DistributedApplicationOptions.EnableResourceLogging.get -> bool
 Aspire.Hosting.DistributedApplicationOptions.EnableResourceLogging.set -> void
 Aspire.Hosting.Eventing.DistributedApplicationEventing
@@ -256,6 +257,7 @@ static Aspire.Hosting.ContainerResourceBuilderExtensions.WithImage<T>(this Aspir
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithImageRegistry<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string? registry) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithLifetime<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, Aspire.Hosting.ApplicationModel.ContainerLifetime lifetime) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithVolume<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string? name, string! target, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.DistributedApplicationBuilderExtensions.CreateResourceBuilder<T>(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ExecutableResourceBuilderExtensions.PublishAsDockerFile<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ExecutableResourceBuilderExtensions.PublishAsDockerFile<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ContainerResource!>!>? configure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ExecutableResourceBuilderExtensions.PublishAsDockerFile<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, System.Collections.Generic.IEnumerable<Aspire.Hosting.ApplicationModel.DockerBuildArg!>? buildArgs) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
