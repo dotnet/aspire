@@ -42,6 +42,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     public required BrowserTimeProvider TimeProvider { get; init; }
     [Inject]
     public required IJSRuntime JS { get; init; }
+    [Inject]
+    public required ILocalStorage LocalStorage { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
@@ -66,7 +68,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
-    private readonly HashSet<string> _expandedResourceNames = [];
+    private readonly Dictionary<string, bool> _resourceNamesToExpanded = [];
     private string _filter = "";
     private bool _isFilterPopupVisible;
     private Task? _resourceSubscriptionTask;
@@ -142,6 +144,15 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         if (DashboardClient.IsEnabled)
         {
+            var settings = await LocalStorage.GetUnprotectedAsync<ResourcesPageSettings>(BrowserStorageKeys.ResourcesPageSettings);
+            if (settings.Value is not null)
+            {
+                foreach (var (key, value) in settings.Value.ResourceNamesToExpanded)
+                {
+                    _resourceNamesToExpanded.Add(key, value);
+                }
+            }
+
             await SubscribeResourcesAsync();
         }
 
@@ -244,6 +255,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             ResourceTypesToVisibility.TryAdd(resource.ResourceType, resourceTypeVisible(resource.ResourceType));
             ResourceStatesToVisibility.TryAdd(resource.State ?? string.Empty, stateVisible(resource.State ?? string.Empty));
             ResourceHealthStatusesToVisibility.TryAdd(resource.HealthStatus?.Humanize() ?? string.Empty, healthStatusVisible(resource.HealthStatus?.Humanize() ?? string.Empty));
+            _resourceNamesToExpanded.TryAdd(resource.Name, true);
 
             return added;
         }
@@ -267,7 +279,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         // Rearrange resources based on parent information.
         // This must happen after resources are ordered so nested resources are in the right order.
         // Collapsed resources are filtered out of results.
-        var orderedResources = ResourceGridViewModel.OrderNestedResources(filteredResources.ToList(), r => !_expandedResourceNames.Contains(r.Name))
+        var orderedResources = ResourceGridViewModel.OrderNestedResources(filteredResources.ToList(), r => !_resourceNamesToExpanded[r.Name])
             .Where(r => !r.IsHidden)
             .ToList();
 
@@ -353,7 +365,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 {
                     if (_resourceByName.TryGetValue(value, out current))
                     {
-                        _expandedResourceNames.Add(value);
+                        _resourceNamesToExpanded[value] = true;
                         continue;
                     }
                 }
@@ -441,17 +453,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     {
         // View model data is recreated if data updates.
         // Persist the collapsed state in a separate list.
-        if (viewModel.IsCollapsed)
-        {
-            viewModel.IsCollapsed = false;
-            _expandedResourceNames.Add(viewModel.Resource.Name);
-        }
-        else
-        {
-            viewModel.IsCollapsed = true;
-            _expandedResourceNames.Remove(viewModel.Resource.Name);
-        }
+        viewModel.IsCollapsed = !viewModel.IsCollapsed;
 
+        _resourceNamesToExpanded[viewModel.Resource.Name] = !viewModel.IsCollapsed;
+
+        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ResourcesPageSettings, new ResourcesPageSettings(ResourceNamesToExpanded: _resourceNamesToExpanded));
         await _dataGrid.SafeRefreshDataAsync();
     }
 
@@ -468,4 +474,6 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);
     }
+
+    public record ResourcesPageSettings(Dictionary<string, bool> ResourceNamesToExpanded);
 }
