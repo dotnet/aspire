@@ -266,7 +266,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
                 restartCancellationToken);
         }, TimeSpan.FromMinutes(5));
 
-        await foreach (var item in result.ConfigureAwait(false))
+        await foreach (var item in result.WithCancellation(cancellationToken).ConfigureAwait(false))
         {
             yield return item;
         }
