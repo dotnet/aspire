@@ -891,6 +891,12 @@ internal sealed class DcpExecutor : IDcpExecutor
 
                     foreach (var er in executables)
                     {
+                        if (er.ModelResource.TryGetAnnotationsOfType<ExplicitStartupAnnotation>(out _))
+                        {
+                            await _executorEvents.PublishAsync(new OnResourceChangedContext(cancellationToken, resourceType, resource, er.DcpResource.Metadata.Name, new ResourceStatus(KnownResourceStates.NotStarted, null, null), s => s with { State = new ResourceStateSnapshot(KnownResourceStates.NotStarted, null) })).ConfigureAwait(false);
+                            continue;
+                        }
+
                         try
                         {
                             await CreateExecutableAsync(er, resourceLogger, cancellationToken).ConfigureAwait(false);
@@ -939,6 +945,8 @@ internal sealed class DcpExecutor : IDcpExecutor
 
     private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
     {
+        er.IsInitialized = true;
+
         ExecutableSpec spec;
         Func<Task<CustomResource>> createResource;
 
@@ -1162,7 +1170,7 @@ internal sealed class DcpExecutor : IDcpExecutor
         throw new DistributedApplicationException($"Couldn't find required instance ID for index {instanceIndex} on resource {resource.Name}.");
     }
 
-    private Task CreateContainersAsync(IEnumerable<AppResource> containerResources, CancellationToken cancellationToken)
+    private async Task CreateContainersAsync(IEnumerable<AppResource> containerResources, CancellationToken cancellationToken)
     {
         try
         {
@@ -1170,6 +1178,8 @@ internal sealed class DcpExecutor : IDcpExecutor
 
             async Task CreateContainerAsyncCore(AppResource cr, CancellationToken cancellationToken)
             {
+                cr.IsInitialized = true;
+
                 var logger = _loggerService.GetLogger(cr.ModelResource);
 
                 try
@@ -1181,12 +1191,12 @@ internal sealed class DcpExecutor : IDcpExecutor
                     // For this exception we don't want the noise of the stack trace, we've already
                     // provided more detail where we detected the issue (e.g. envvar name). To get
                     // more diagnostic information reduce logging level for DCP log category to Debug.
-                    await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResource.Metadata.Name)).ConfigureAwait(false);
+                    await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName)).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Failed to create container resource {ResourceName}", cr.ModelResource.Name);
-                    await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResource.Metadata.Name)).ConfigureAwait(false);
+                    await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName)).ConfigureAwait(false);
                 }
             }
 
@@ -1201,10 +1211,16 @@ internal sealed class DcpExecutor : IDcpExecutor
 
             foreach (var cr in containerResources)
             {
+                if (cr.ModelResource.TryGetLastAnnotation<ExplicitStartupAnnotation>(out _))
+                {
+                    await _executorEvents.PublishAsync(new OnResourceChangedContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName, new ResourceStatus(KnownResourceStates.NotStarted, null, null), s => s with { State = new ResourceStateSnapshot(KnownResourceStates.NotStarted, null) })).ConfigureAwait(false);
+                    continue;
+                }
+
                 tasks.Add(CreateContainerAsyncCore(cr, cancellationToken));
             }
 
-            return Task.WhenAll(tasks);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
         }
         finally
         {
@@ -1619,10 +1635,24 @@ internal sealed class DcpExecutor : IDcpExecutor
             switch (appResource.DcpResource)
             {
                 case Container c:
-                    await StartExecutableOrContainerAsync(c).ConfigureAwait(false);
+                    if (appResource.IsInitialized)
+                    {
+                        await StartExecutableOrContainerAsync(c).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await CreateContainerAsync(appResource, _loggerService.GetLogger(appResource.ModelResource), cancellationToken).ConfigureAwait(false);
+                    }
                     break;
                 case Executable e:
-                    await StartExecutableOrContainerAsync(e).ConfigureAwait(false);
+                    if (appResource.IsInitialized)
+                    {
+                        await StartExecutableOrContainerAsync(e).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await CreateExecutableAsync(appResource, _loggerService.GetLogger(appResource.ModelResource), cancellationToken).ConfigureAwait(false);
+                    }
                     break;
                 default:
                     throw new InvalidOperationException($"Unexpected resource type: {appResource.DcpResource.GetType().FullName}");
