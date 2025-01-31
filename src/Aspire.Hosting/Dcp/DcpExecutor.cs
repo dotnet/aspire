@@ -27,10 +27,15 @@ using Polly;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed class DcpExecutor : IDcpExecutor
+internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
     private const string DefaultAspireNetworkName = "default-aspire-network";
+
+    // Disposal of te DcpExecutor means shutting down watches and log streams,
+    // and asking DCP to start the shutdown process. If we cannot complete these tasks within 10 seconds,
+    // it probably means DCP crashed and there is no point trying further.
+    private static readonly TimeSpan s_disposeTimeout = TimeSpan.FromSeconds(10);
 
     private readonly ILogger<DistributedApplication> _distributedApplicationLogger;
     private readonly IKubernetesService _kubernetesService;
@@ -58,6 +63,7 @@ internal sealed class DcpExecutor : IDcpExecutor
     private readonly ConcurrentDictionary<string, (CancellationTokenSource Cancellation, Task Task)> _logStreams = new();
     private DcpInfo? _dcpInfo;
     private Task? _resourceWatchTask;
+    private int _stopped;
 
     private readonly record struct LogInformationEntry(string ResourceName, bool? LogsAvailable, bool? HasSubscribers);
     private readonly Channel<LogInformationEntry> _logInformationChannel = Channel.CreateUnbounded<LogInformationEntry>(
@@ -136,6 +142,11 @@ internal sealed class DcpExecutor : IDcpExecutor
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
+        if (Interlocked.CompareExchange(ref _stopped, 1, 0) != 0)
+        {
+            return; // Already stopped/stop in progress.
+        }
+
         _shutdownCancellation.Cancel();
         var tasks = new List<Task>();
         if (_resourceWatchTask is { } resourceTask)
@@ -180,6 +191,13 @@ internal sealed class DcpExecutor : IDcpExecutor
         {
             _logger.LogDebug(ex, "Application orchestrator could not be stopped programmatically.");
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        var disposeCts = new CancellationTokenSource();
+        disposeCts.CancelAfter(s_disposeTimeout);
+        await StopAsync(disposeCts.Token).ConfigureAwait(false);
     }
 
     private void WatchResourceChanges()
