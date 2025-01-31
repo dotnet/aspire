@@ -24,15 +24,18 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
-using Polly.Retry;
-using Polly.Timeout;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed class DcpExecutor : IDcpExecutor
+internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
     private const string DefaultAspireNetworkName = "default-aspire-network";
+
+    // Disposal of te DcpExecutor means shutting down watches and log streams,
+    // and asking DCP to start the shutdown process. If we cannot complete these tasks within 10 seconds,
+    // it probably means DCP crashed and there is no point trying further.
+    private static readonly TimeSpan s_disposeTimeout = TimeSpan.FromSeconds(10);
 
     private readonly ILogger<DistributedApplication> _distributedApplicationLogger;
     private readonly IKubernetesService _kubernetesService;
@@ -51,9 +54,16 @@ internal sealed class DcpExecutor : IDcpExecutor
 
     private readonly DcpResourceState _resourceState;
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
+
+    // Internal for testing.
+    internal ResiliencePipeline DeleteResourceRetryPipeline { get; set; }
+    internal ResiliencePipeline CreateServiceRetryPipeline { get; set; }
+    internal ResiliencePipeline WatchResourceRetryPipeline { get; set; }
+
     private readonly ConcurrentDictionary<string, (CancellationTokenSource Cancellation, Task Task)> _logStreams = new();
     private DcpInfo? _dcpInfo;
     private Task? _resourceWatchTask;
+    private int _stopped;
 
     private readonly record struct LogInformationEntry(string ResourceName, bool? LogsAvailable, bool? HasSubscribers);
     private readonly Channel<LogInformationEntry> _logInformationChannel = Channel.CreateUnbounded<LogInformationEntry>(
@@ -86,6 +96,10 @@ internal sealed class DcpExecutor : IDcpExecutor
         _executionContext = executionContext;
         _resourceState = new(model.Resources.ToDictionary(r => r.Name));
         _snapshotBuilder = new(_resourceState);
+
+        DeleteResourceRetryPipeline = DcpPipelineBuilder.BuildDeleteRetryPipeline(logger);
+        CreateServiceRetryPipeline = DcpPipelineBuilder.BuildCreateServiceRetryPipeline(options.Value, logger);
+        WatchResourceRetryPipeline = DcpPipelineBuilder.BuildWatchResourcePipeline(logger);
     }
 
     private string DefaultContainerHostName => _configuration["AppHost:ContainerHostname"] ?? _dcpInfo?.Containers?.ContainerHostName ?? "host.docker.internal";
@@ -128,6 +142,11 @@ internal sealed class DcpExecutor : IDcpExecutor
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
+        if (Interlocked.CompareExchange(ref _stopped, 1, 0) != 0)
+        {
+            return; // Already stopped/stop in progress.
+        }
+
         _shutdownCancellation.Cancel();
         var tasks = new List<Task>();
         if (_resourceWatchTask is { } resourceTask)
@@ -172,6 +191,13 @@ internal sealed class DcpExecutor : IDcpExecutor
         {
             _logger.LogDebug(ex, "Application orchestrator could not be stopped programmatically.");
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        var disposeCts = new CancellationTokenSource();
+        disposeCts.CancelAfter(s_disposeTimeout);
+        await StopAsync(disposeCts.Token).ConfigureAwait(false);
     }
 
     private void WatchResourceChanges()
@@ -252,31 +278,10 @@ internal sealed class DcpExecutor : IDcpExecutor
 
         async Task WatchKubernetesResourceAsync<T>(Func<WatchEventType, T, Task> handler) where T : CustomResource
         {
-            var retryUntilCancelled = new RetryStrategyOptions()
-            {
-                ShouldHandle = new PredicateBuilder().HandleInner<EndOfStreamException>(),
-                BackoffType = DelayBackoffType.Exponential,
-                MaxRetryAttempts = int.MaxValue,
-                UseJitter = true,
-                MaxDelay = TimeSpan.FromSeconds(30),
-                OnRetry = (retry) =>
-                {
-                    _logger.LogDebug(
-                        retry.Outcome.Exception,
-                        "Long poll watch operation was ended by server after {LongPollDurationInMs} milliseconds (iteration {Iteration}).",
-                        retry.Duration.TotalMilliseconds,
-                        retry.AttemptNumber
-                        );
-                    return ValueTask.CompletedTask;
-                }
-            };
-
-            var pipeline = new ResiliencePipelineBuilder().AddRetry(retryUntilCancelled).Build();
-
             try
             {
                 _logger.LogDebug("Watching over DCP {ResourceType} resources.", typeof(T).Name);
-                await pipeline.ExecuteAsync(async (pipelineCancellationToken) =>
+                await WatchResourceRetryPipeline.ExecuteAsync(async (pipelineCancellationToken) =>
                 {
                     await foreach (var (eventType, resource) in _kubernetesService.WatchAsync<T>(cancellationToken: pipelineCancellationToken).ConfigureAwait<(global::k8s.WatchEventType, T)>(false))
                     {
@@ -585,33 +590,7 @@ internal sealed class DcpExecutor : IDcpExecutor
                 return;
             }
 
-            var withTimeout = new TimeoutStrategyOptions()
-            {
-                Timeout = _options.Value.ServiceStartupWatchTimeout
-            };
-
-            var tryTwice = new RetryStrategyOptions()
-            {
-                BackoffType = DelayBackoffType.Constant,
-                MaxDelay = TimeSpan.FromSeconds(1),
-                UseJitter = true,
-                MaxRetryAttempts = 1,
-                ShouldHandle = new PredicateBuilder().Handle<Exception>(),
-                OnRetry = (retry) =>
-                {
-                    _logger.LogDebug(
-                        retry.Outcome.Exception,
-                        "Watching for service port allocation ended with an error after {WatchDurationMs} (iteration {Iteration})",
-                        retry.Duration.TotalMilliseconds,
-                        retry.AttemptNumber
-                    );
-                    return ValueTask.CompletedTask;
-                }
-            };
-
-            var execution = new ResiliencePipelineBuilder().AddRetry(tryTwice).AddTimeout(withTimeout).Build();
-
-            await execution.ExecuteAsync(async (attemptCancellationToken) =>
+            await CreateServiceRetryPipeline.ExecuteAsync(async (attemptCancellationToken) =>
             {
                 var serviceChangeEnumerator = _kubernetesService.WatchAsync<Service>(cancellationToken: attemptCancellationToken);
                 await foreach (var (evt, updated) in serviceChangeEnumerator.ConfigureAwait(false))
@@ -930,6 +909,12 @@ internal sealed class DcpExecutor : IDcpExecutor
 
                     foreach (var er in executables)
                     {
+                        if (er.ModelResource.TryGetAnnotationsOfType<ExplicitStartupAnnotation>(out _))
+                        {
+                            await _executorEvents.PublishAsync(new OnResourceChangedContext(cancellationToken, resourceType, resource, er.DcpResource.Metadata.Name, new ResourceStatus(KnownResourceStates.NotStarted, null, null), s => s with { State = new ResourceStateSnapshot(KnownResourceStates.NotStarted, null) })).ConfigureAwait(false);
+                            continue;
+                        }
+
                         try
                         {
                             await CreateExecutableAsync(er, resourceLogger, cancellationToken).ConfigureAwait(false);
@@ -978,6 +963,8 @@ internal sealed class DcpExecutor : IDcpExecutor
 
     private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
     {
+        er.IsInitialized = true;
+
         ExecutableSpec spec;
         Func<Task<CustomResource>> createResource;
 
@@ -1201,7 +1188,7 @@ internal sealed class DcpExecutor : IDcpExecutor
         throw new DistributedApplicationException($"Couldn't find required instance ID for index {instanceIndex} on resource {resource.Name}.");
     }
 
-    private Task CreateContainersAsync(IEnumerable<AppResource> containerResources, CancellationToken cancellationToken)
+    private async Task CreateContainersAsync(IEnumerable<AppResource> containerResources, CancellationToken cancellationToken)
     {
         try
         {
@@ -1209,6 +1196,8 @@ internal sealed class DcpExecutor : IDcpExecutor
 
             async Task CreateContainerAsyncCore(AppResource cr, CancellationToken cancellationToken)
             {
+                cr.IsInitialized = true;
+
                 var logger = _loggerService.GetLogger(cr.ModelResource);
 
                 try
@@ -1220,12 +1209,12 @@ internal sealed class DcpExecutor : IDcpExecutor
                     // For this exception we don't want the noise of the stack trace, we've already
                     // provided more detail where we detected the issue (e.g. envvar name). To get
                     // more diagnostic information reduce logging level for DCP log category to Debug.
-                    await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResource.Metadata.Name)).ConfigureAwait(false);
+                    await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName)).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Failed to create container resource {ResourceName}", cr.ModelResource.Name);
-                    await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResource.Metadata.Name)).ConfigureAwait(false);
+                    await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName)).ConfigureAwait(false);
                 }
             }
 
@@ -1240,10 +1229,16 @@ internal sealed class DcpExecutor : IDcpExecutor
 
             foreach (var cr in containerResources)
             {
+                if (cr.ModelResource.TryGetLastAnnotation<ExplicitStartupAnnotation>(out _))
+                {
+                    await _executorEvents.PublishAsync(new OnResourceChangedContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName, new ResourceStatus(KnownResourceStates.NotStarted, null, null), s => s with { State = new ResourceStateSnapshot(KnownResourceStates.NotStarted, null) })).ConfigureAwait(false);
+                    continue;
+                }
+
                 tasks.Add(CreateContainerAsyncCore(cr, cancellationToken));
             }
 
-            return Task.WhenAll(tasks);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
         }
         finally
         {
@@ -1658,10 +1653,24 @@ internal sealed class DcpExecutor : IDcpExecutor
             switch (appResource.DcpResource)
             {
                 case Container c:
-                    await StartExecutableOrContainerAsync(c).ConfigureAwait(false);
+                    if (appResource.IsInitialized)
+                    {
+                        await StartExecutableOrContainerAsync(c).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await CreateContainerAsync(appResource, _loggerService.GetLogger(appResource.ModelResource), cancellationToken).ConfigureAwait(false);
+                    }
                     break;
                 case Executable e:
-                    await StartExecutableOrContainerAsync(e).ConfigureAwait(false);
+                    if (appResource.IsInitialized)
+                    {
+                        await StartExecutableOrContainerAsync(e).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await CreateExecutableAsync(appResource, _loggerService.GetLogger(appResource.ModelResource), cancellationToken).ConfigureAwait(false);
+                    }
                     break;
                 default:
                     throw new InvalidOperationException($"Unexpected resource type: {appResource.DcpResource.GetType().FullName}");
@@ -1697,35 +1706,18 @@ internal sealed class DcpExecutor : IDcpExecutor
             // before resorting to more extreme measures.
             if (!resourceNotFound)
             {
-                var ensureDeleteRetryStrategy = new RetryStrategyOptions()
-                {
-                    BackoffType = DelayBackoffType.Exponential,
-                    Delay = TimeSpan.FromMilliseconds(200),
-                    UseJitter = true,
-                    MaxRetryAttempts = 10, // Cumulative time for all attempts amounts to about 15 seconds
-                    MaxDelay = TimeSpan.FromSeconds(3),
-                    ShouldHandle = new PredicateBuilder().Handle<Exception>(),
-                    OnRetry = (retry) =>
-                    {
-                        _logger.LogDebug("Retrying check for deleted resource '{ResourceName}'. Attempt: {Attempt}", resourceName, retry.AttemptNumber);
-                        return ValueTask.CompletedTask;
-                    }
-                };
-
-                var execution = new ResiliencePipelineBuilder().AddRetry(ensureDeleteRetryStrategy).Build();
-
-                await execution.ExecuteAsync(async (attemptCancellationToken) =>
+                await DeleteResourceRetryPipeline.ExecuteAsync(async (state, attemptCancellationToken) =>
                 {
                     try
                     {
-                        await _kubernetesService.GetAsync<T>(resource.Metadata.Name, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
-                        throw new DistributedApplicationException($"Failed to delete '{resource.Metadata.Name}' successfully before restart.");
+                        await _kubernetesService.GetAsync<T>(state, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
+                        throw new DistributedApplicationException($"Failed to delete '{state}' successfully before restart.");
                     }
                     catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
                         // Success.
                     }
-                }, cancellationToken).ConfigureAwait(false);
+                }, resource.Metadata.Name, cancellationToken).ConfigureAwait(false);
             }
 
             // Raise event after resource has been deleted. This is required because the event sets the status to "Starting" and resources being

@@ -13,6 +13,7 @@ public class TestProgram : IDisposable
     private const string AspireTestContainerRegistry = "netaspireci.azurecr.io";
 
     private TestProgram(
+        string testName,
         string[] args,
         string assemblyName,
         bool disableDashboard,
@@ -56,28 +57,29 @@ public class TestProgram : IDisposable
 
         AppBuilder = builder;
 
+        string testPrefix = string.IsNullOrEmpty(testName) ? "" : $"{testName}-";
         var serviceAPath = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\TestProject.ServiceA\TestProject.ServiceA.csproj");
 
-        ServiceABuilder = AppBuilder.AddProject("servicea", serviceAPath, launchProfileName: "http");
-        ServiceBBuilder = AppBuilder.AddProject<Projects.ServiceB>("serviceb", launchProfileName: "http");
-        ServiceCBuilder = AppBuilder.AddProject<Projects.ServiceC>("servicec", launchProfileName: "http");
-        WorkerABuilder = AppBuilder.AddProject<Projects.WorkerA>("workera");
+        ServiceABuilder = AppBuilder.AddProject($"{testPrefix}servicea", serviceAPath, launchProfileName: "http");
+        ServiceBBuilder = AppBuilder.AddProject<Projects.ServiceB>($"{testPrefix}serviceb", launchProfileName: "http");
+        ServiceCBuilder = AppBuilder.AddProject<Projects.ServiceC>($"{testPrefix}servicec", launchProfileName: "http");
+        WorkerABuilder = AppBuilder.AddProject<Projects.WorkerA>($"{testPrefix}workera");
 
         if (includeIntegrationServices)
         {
-            IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea");
+            IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>($"{testPrefix}integrationservicea");
             IntegrationServiceABuilder = IntegrationServiceABuilder.WithEnvironment("SKIP_RESOURCES", string.Join(',', resourcesToSkip));
 
             if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
             {
-                var redis = AppBuilder.AddRedis("redis")
+                var redis = AppBuilder.AddRedis($"{testPrefix}redis")
                     .WithImageRegistry(AspireTestContainerRegistry);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(redis);
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
             {
                 var postgresDbName = "postgresdb";
-                var postgres = AppBuilder.AddPostgres("postgres")
+                var postgres = AppBuilder.AddPostgres($"{testPrefix}postgres")
                     .WithImageRegistry(AspireTestContainerRegistry)
                     .WithEnvironment("POSTGRES_DB", postgresDbName)
                     .AddDatabase(postgresDbName);
@@ -90,6 +92,17 @@ public class TestProgram : IDisposable
     }
 
     public static TestProgram Create<T>(
+       string[]? args = null,
+       bool includeIntegrationServices = false,
+       bool disableDashboard = true,
+       bool allowUnsecuredTransport = true,
+       bool randomizePorts = true)
+    {
+        return Create<T>("", args, includeIntegrationServices, disableDashboard, allowUnsecuredTransport, randomizePorts);
+    }
+
+    public static TestProgram Create<T>(
+        string testName,
         string[]? args = null,
         bool includeIntegrationServices = false,
         bool disableDashboard = true,
@@ -97,6 +110,7 @@ public class TestProgram : IDisposable
         bool randomizePorts = true)
     {
         return new TestProgram(
+            testName,
             args ?? [],
             assemblyName: typeof(T).Assembly.FullName!,
             disableDashboard: disableDashboard,

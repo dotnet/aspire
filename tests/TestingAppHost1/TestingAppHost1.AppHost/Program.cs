@@ -5,6 +5,9 @@ using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+builder.Configuration["ConnectionStrings:cs"] = "testconnection";
+
+builder.AddConnectionString("cs");
 builder.AddRedis("redis1");
 builder.AddProject<Projects.TestingAppHost1_MyWebApp>("mywebapp1")
     .WithEndpoint("http", ea => ea.IsProxied = false)

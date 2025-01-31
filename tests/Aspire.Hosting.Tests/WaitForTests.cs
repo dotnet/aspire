@@ -368,12 +368,69 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    public async Task DependencyWithGreaterThan1ReplicaAnnotationCausesDependentResourceToFailToStart()
+    public async Task DependencyWithGreaterThan1ReplicaAnnotationWaitsForAll()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
 
         var dependency = builder.AddResource(new CustomResource("test"))
-                                .WithAnnotation(new ReplicaAnnotation(2));
+                                .WithAnnotation(new ReplicaAnnotation(2))
+                                .WithAnnotation(new DcpInstancesAnnotation([
+                                    new("test0", "", 0), new("test1", "", 1)
+                                ]));
+
+        var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
+                           .WithReference(dependency)
+                           .WaitFor(dependency);
+
+        using var app = builder.Build();
+
+        // StartAsync will currently block until the dependency resource moves
+        // into a Finished state, so rather than awaiting it we'll hold onto the
+        // task so we can inspect the state of the Nginx resource which should
+        // be in a waiting state if everything is working correctly.
+        var startupCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+        var startTask = app.StartAsync(startupCts.Token);
+
+        // We don't want to wait forever for Nginx to move into a waiting state,
+        // it should be super quick, but we'll allow 60 seconds just in case the
+        // CI machine is chugging (also useful when collecting code coverage).
+        var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+
+        // Publish the first replica as finished
+        await rns.PublishUpdateAsync(dependency.Resource, "test0", s => s with
+        {
+            State = KnownResourceStates.Running,
+        });
+
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+
+        // Publish the second replica as finished
+        await rns.PublishUpdateAsync(dependency.Resource, "test1", s => s with
+        {
+            State = KnownResourceStates.Running,
+        });
+
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, waitingStateCts.Token);
+
+        await startTask;
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task DependencyWithGreaterThan1ReplicaAnnotationWaitsForAllToComplete()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+
+        var dependency = builder.AddResource(new CustomResource("test"))
+                                .WithAnnotation(new ReplicaAnnotation(2))
+                                .WithAnnotation(new DcpInstancesAnnotation([
+                                    new("test0", "", 0), new("test1", "", 1)
+                                ]));
 
         var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                            .WithReference(dependency)
@@ -394,7 +451,23 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(nginx.Resource.Name, "FailedToStart", waitingStateCts.Token);
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+
+        // Publish the first replica as finished
+        await rns.PublishUpdateAsync(dependency.Resource, "test0", s => s with
+        {
+            State = KnownResourceStates.Finished,
+        });
+
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+
+        // Publish the second replica as finished
+        await rns.PublishUpdateAsync(dependency.Resource, "test1", s => s with
+        {
+            State = KnownResourceStates.Finished,
+        });
+
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, waitingStateCts.Token);
 
         await startTask;
 
