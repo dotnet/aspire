@@ -19,6 +19,11 @@ public sealed record CustomResourceSnapshot
     private readonly ResourceStateSnapshot? _state;
 
     /// <summary>
+    /// Monotonically increasing version number for the snapshot.
+    /// </summary>
+    internal long Version { get; init; }
+
+    /// <summary>
     /// The type of the resource.
     /// </summary>
     public required string ResourceType { get; init; }
@@ -60,6 +65,11 @@ public sealed record CustomResourceSnapshot
     /// The exit code of the resource.
     /// </summary>
     public int? ExitCode { get; init; }
+
+    /// <summary>
+    /// A snapshot of the event that indicates the resource is ready.
+    /// </summary>
+    internal EventSnapshot? ResourceReadyEvent { get; init; }
 
     /// <summary>
     /// Gets the health status of the resource.
@@ -129,6 +139,12 @@ public sealed record CustomResourceSnapshot
                 ?? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy;
     }
 }
+
+/// <summary>
+/// A snapshot of an event.
+/// </summary>
+/// <param name="EventTask">The task the represents the result of executing the event.</param>
+internal record EventSnapshot(Task EventTask);
 
 /// <summary>
 /// A snapshot of the resource state
@@ -305,9 +321,14 @@ public static class KnownResourceStates
     public static readonly string Running = nameof(Running);
 
     /// <summary>
-    /// The finished state. Useful for showing the resource has failed to start successfully.
+    /// The failed to start state. Useful for showing the resource has failed to start successfully.
     /// </summary>
     public static readonly string FailedToStart = nameof(FailedToStart);
+
+    /// <summary>
+    /// The runtime unhealthy state. Indicates that a resource could not be started because the runtime is not in a healthy state.
+    /// </summary>
+    public static readonly string RuntimeUnhealthy = nameof(RuntimeUnhealthy);
 
     /// <summary>
     /// The stopping state. Useful for showing the resource is stopping.
@@ -328,6 +349,11 @@ public static class KnownResourceStates
     /// The waiting state. Useful for showing the resource is waiting for a dependency.
     /// </summary>
     public static readonly string Waiting = nameof(Waiting);
+
+    /// <summary>
+    /// The not started state. Useful for showing the resource was created without being started.
+    /// </summary>
+    public static readonly string NotStarted = nameof(NotStarted);
 
     /// <summary>
     /// List of terminal states.

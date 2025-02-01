@@ -11,6 +11,6 @@ internal static class OracleContainerImageTags
     /// <remarks>database/free</remarks>
     public const string Image = "database/free";
 
-    /// <remarks>23.5.0.0</remarks>
-    public const string Tag = "23.5.0.0";
+    /// <remarks>23.6.0.0</remarks>
+    public const string Tag = "23.6.0.0";
 }

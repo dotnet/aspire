@@ -1,0 +1,123 @@
+name: Run Integration Tests
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60 
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Hosting projects
+          - project: tests/Aspire.Hosting.Analyzers.Tests/Aspire.Hosting.Analyzers.Tests.csproj
+            name: Analyzers
+          - project: tests/Aspire.Hosting.Azure.Tests/Aspire.Hosting.Azure.Tests.csproj
+            name: Azure
+          - project: tests/Aspire.Hosting.Containers.Tests/Aspire.Hosting.Containers.Tests.csproj
+            name: Containers
+          - project: tests/Aspire.Hosting.Elasticsearch.Tests/Aspire.Hosting.Elasticsearch.Tests.csproj
+            name: Elasticsearch
+          - project: tests/Aspire.Hosting.Garnet.Tests/Aspire.Hosting.Garnet.Tests.csproj
+            name: Garnet
+          - project: tests/Aspire.Hosting.Kafka.Tests/Aspire.Hosting.Kafka.Tests.csproj
+            name: Kafka
+          - project: tests/Aspire.Hosting.Keycloak.Tests/Aspire.Hosting.Keycloak.Tests.csproj
+            name: Keycloak
+          - project: tests/Aspire.Hosting.Milvus.Tests/Aspire.Hosting.Milvus.Tests.csproj
+            name: Milvus
+          - project: tests/Aspire.Hosting.MongoDB.Tests/Aspire.Hosting.MongoDB.Tests.csproj
+            name: MongoDB
+          - project: tests/Aspire.Hosting.MySql.Tests/Aspire.Hosting.MySql.Tests.csproj
+            name: MySQL
+          - project: tests/Aspire.Hosting.Nats.Tests/Aspire.Hosting.Nats.Tests.csproj
+            name: NATS
+          - project: tests/Aspire.Hosting.NodeJs.Tests/Aspire.Hosting.NodeJs.Tests.csproj
+            name: NodeJS
+          - project: tests/Aspire.Hosting.Oracle.Tests/Aspire.Hosting.Oracle.Tests.csproj
+            name: Oracle
+          - project: tests/Aspire.Hosting.PostgreSQL.Tests/Aspire.Hosting.PostgreSQL.Tests.csproj
+            name: PostgreSQL
+          - project: tests/Aspire.Hosting.Python.Tests/Aspire.Hosting.Python.Tests.csproj
+            name: Python
+          - project: tests/Aspire.Hosting.Qdrant.Tests/Aspire.Hosting.Qdrant.Tests.csproj
+            name: Qdrant
+          - project: tests/Aspire.Hosting.RabbitMQ.Tests/Aspire.Hosting.RabbitMQ.Tests.csproj
+            name: RabbitMQ
+          - project: tests/Aspire.Hosting.Redis.Tests/Aspire.Hosting.Redis.Tests.csproj
+            name: Redis
+          - project: tests/Aspire.Hosting.Sdk.Tests/Aspire.Hosting.Sdk.Tests.csproj
+            name: SDK
+          - project: tests/Aspire.Hosting.SqlServer.Tests/Aspire.Hosting.SqlServer.Tests.csproj
+            name: SQLServer
+          - project: tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj
+            name: Testing
+          - project: tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj
+            name: Hosting
+          - project: tests/Aspire.Hosting.Valkey.Tests/Aspire.Hosting.Valkey.Tests.csproj
+            name: Valkey
+          # Playground project
+          # - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
+          #   name: Playground
+          # Add more projects as needed
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.x
+            9.x
+
+      - name: Trust HTTPS development certificate
+        run: dotnet dev-certs https --trust
+
+      - name: Verify Docker is running
+        run: docker info
+
+      - name: Install Azure Functions Core Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y azure-functions-core-tools-4
+
+      - name: Build test project
+        run: |
+          export CI=false && ./build.sh -restore -ci -build -projects ${{ github.workspace }}/${{ matrix.project }} /bl
+
+      - name: Run tests
+        id: run-tests
+        run: |
+          export CI=false && ./dotnet.sh test ${{ github.workspace }}/${{ matrix.project }} \
+            /p:ContinuousIntegrationBuild=true \
+            -s eng/testing/.runsettings \
+            --logger "console;verbosity=normal" \
+            --logger "trx" \
+            --logger html \
+            --blame \
+            --blame-hang-timeout 7m \
+            --results-directory testresults \
+            --no-restore \
+            --no-build
+
+      - name: Compress test results
+        if: always()
+        run: zip -r testresults.zip testresults
+
+      - name: Upload bin log artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: binlog-${{ matrix.name }}
+          path: "**/*.binlog"
+
+      - name: Upload test results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testresults-${{ matrix.name }}
+          path: testresults.zip

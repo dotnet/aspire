@@ -11,7 +11,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="resource">The resource that is in a ready state.</param>
 /// <param name="services">The service provider for the app host.</param>
 /// <remarks>
-/// This event is only fired once per resource the first time it transitions to a ready state.
+/// This event is only fired the first time a resource transitions to a ready state after starting.
 /// </remarks>
 public class ResourceReadyEvent(IResource resource, IServiceProvider services) : IDistributedApplicationResourceEvent
 {

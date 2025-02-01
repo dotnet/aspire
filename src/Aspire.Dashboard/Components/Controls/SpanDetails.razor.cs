@@ -57,6 +57,9 @@ public partial class SpanDetails : IDisposable
     private bool _dataChanged;
     private SpanDetailsViewModel? _viewModel;
 
+    private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
+    private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
+
     private readonly CancellationTokenSource _cts = new();
 
     private bool ApplyFilter(TelemetryPropertyViewModel vm)
@@ -65,12 +68,22 @@ public partial class SpanDetails : IDisposable
             vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true;
     }
 
+    protected override void OnInitialized()
+    {
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(Loc);
+    }
+
     protected override void OnParametersSet()
     {
         if (!ReferenceEquals(ViewModel, _viewModel))
         {
+            // Only set data changed flag if the item being view changes.
+            if (!string.Equals(ViewModel.Span.SpanId, _viewModel?.Span.SpanId, StringComparisons.OtlpSpanId))
+            {
+                _dataChanged = true;
+            }
+
             _viewModel = ViewModel;
-            _dataChanged = true;
 
             _contextAttributes =
             [

@@ -18,6 +18,8 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureStorageExtensions
 {
+    private const string SkipApiVersionCheckArgument = "--skipApiVersionCheck";
+
     /// <summary>
     /// Adds an Azure Storage resource to the application model. This resource can be used to create Azure blob, table, and queue resources.
     /// </summary>
@@ -126,12 +128,15 @@ public static class AzureStorageExtensions
 
         builder.WithHealthCheck(healthCheckKey);
 
-        if (configureContainer != null)
-        {
-            var surrogate = new AzureStorageEmulatorResource(builder.Resource);
-            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
-            configureContainer(surrogateBuilder);
-        }
+        // The default arguments list is coming from https://github.com/Azure/Azurite/blob/c3f93445fbd8fd54d380eb265a5665166c460d2b/Dockerfile#L47C6-L47C106
+        // They need to be repeated in order to be able to add --skipApiVersionCheck
+
+        var surrogate = new AzureStorageEmulatorResource(builder.Resource);
+        var surrogateBuilder = builder.ApplicationBuilder
+            .CreateResourceBuilder(surrogate)
+            .WithArgs("azurite", "-l", "/data", "--blobHost", "0.0.0.0", "--queueHost", "0.0.0.0", "--tableHost", "0.0.0.0", SkipApiVersionCheckArgument);
+
+        configureContainer?.Invoke(surrogateBuilder);
 
         return builder;
 
@@ -201,12 +206,36 @@ public static class AzureStorageExtensions
     /// </summary>
     /// <param name="builder">Storage emulator resource builder.</param>
     /// <param name="port">Host port to use.</param>
-    /// <returns></returns>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureStorageEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureStorageEmulatorResource> WithTablePort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
     {
         return builder.WithEndpoint("table", endpoint =>
         {
             endpoint.Port = port;
+        });
+    }
+
+    /// <summary>
+    /// Ensures the emulator checks that the requested API version is valid.
+    /// </summary>
+    /// <param name="builder">Storage emulator resource builder.</param>
+    /// <param name="enable">Whether to enable API version check or not. Default is <lang>true</lang>.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureStorageEmulatorResource"/>.</returns>
+    public static IResourceBuilder<AzureStorageEmulatorResource> WithApiVersionCheck(this IResourceBuilder<AzureStorageEmulatorResource> builder, bool enable = true)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder
+            .WithArgs(context =>
+        {
+            context.Args.Remove(SkipApiVersionCheckArgument);
+
+            if (enable)
+            {
+                context.Args.Add(SkipApiVersionCheckArgument);
+            }
+
+            return Task.CompletedTask;
         });
     }
 

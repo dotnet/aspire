@@ -201,6 +201,7 @@ public static class AzureEventHubsExtensions
         // Create a separate storage emulator for the Event Hub one
         var storageResource = builder.ApplicationBuilder
                 .AddAzureStorage($"{builder.Resource.Name}-storage")
+                .WithParentRelationship(builder.Resource)
                 .RunAsEmulator();
 
         var storage = storageResource.Resource;

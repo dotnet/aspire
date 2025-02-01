@@ -38,6 +38,9 @@ public partial class ResourceDetails
     private ResourceViewModel? _resource;
     private readonly HashSet<string> _unmaskedItemNames = new();
 
+    private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
+    private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
+
     internal IQueryable<EnvironmentVariableViewModel> FilteredEnvironmentVariables =>
         Resource.Environment
             .Where(vm => (_showAll || vm.FromSpec) && ((IPropertyGridItem)vm).MatchesFilter(_filter))
@@ -96,15 +99,15 @@ public partial class ResourceDetails
     {
         if (!ReferenceEquals(Resource, _resource))
         {
-            // Reset masking when the resource changes.
+            // Reset masking and set data changed flag when the resource changes.
             if (!string.Equals(Resource.Name, _resource?.Name, StringComparisons.ResourceName))
             {
                 _isMaskAllChecked = true;
                 _unmaskedItemNames.Clear();
+                _dataChanged = true;
             }
 
             _resource = Resource;
-            _dataChanged = true;
 
             // Collapse details sections when they have no data.
             _isEndpointsExpanded = GetEndpoints().Any();
@@ -139,6 +142,11 @@ public partial class ResourceDetails
 
             _dataChanged = false;
         }
+    }
+
+    protected override void OnInitialized()
+    {
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlStringsLoc);
     }
 
     private IEnumerable<ResourceDetailRelationship> GetRelationships()

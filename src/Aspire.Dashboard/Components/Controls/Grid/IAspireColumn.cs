@@ -8,6 +8,4 @@ internal interface IAspireColumn
     public GridColumnManager? ColumnManager { get; set; }
 
     public string? ColumnId { get; set; }
-
-    public bool UseCustomHeaderTemplate { get; set; }
 }

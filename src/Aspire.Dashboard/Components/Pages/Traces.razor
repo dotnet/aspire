@@ -7,13 +7,21 @@
 @using Aspire.Dashboard.Utils
 @using System.Globalization
 @using Aspire.Dashboard.Components.Controls.Grid
+
 @inject IJSRuntime JS
 @inject IStringLocalizer<Dashboard.Resources.Traces> Loc
 @inject IStringLocalizer<StructuredFiltering> FilterLoc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
+@inject IStringLocalizer<Dialogs> DialogsLoc
+
 @implements IDisposable
 
-<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Traces.TracesPageTitle)" Loc="@Loc" /></PageTitle>
+<PageTitle>
+    <ApplicationName
+        AdditionalText="@PageViewModel.SelectedApplication.Id?.ReplicaSetName"
+        ResourceName="@nameof(Dashboard.Resources.Traces.TracesPageTitle)"
+        Loc="@Loc"/>
+</PageTitle>
 
 <div class="page-content-container">
     <AspirePageContentLayout AddNewlineOnToolbar="true" @ref="@_contentLayout">
@@ -72,7 +80,9 @@
             <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
                 <GridColumnManager @ref="_manager" Columns="@_gridColumns">
                     <FluentDataGrid @ref="_dataGrid"
-                                    ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
+                                    ColumnResizeLabels="@_resizeLabels"
+                                    ColumnSortLabels="@_sortLabels"
+                                    HeaderCellAsButtonWithMenu="true"
                                     ResizeType="DataGridResizeType.Discrete"
                                     Virtualize="true"
                                     GenerateHeader="GenerateHeaderOption.Sticky"

@@ -3,16 +3,18 @@
   "resources": {
     "redis": {
       "type": "container.v0",
-      "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
+      "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}",
       "image": "docker.io/library/redis:7.4",
       "args": [
+        "--requirepass",
+        "{redis-password.value}",
         "--save",
         "60",
         "1"
       ],
       "volumes": [
         {
-          "name": "redis.apphost-468a945e22-redis-data",
+          "name": "redis.apphost-7855b85e05-redis-data",
           "target": "/data",
           "readOnly": false
         }
@@ -40,7 +42,7 @@
       ],
       "volumes": [
         {
-          "name": "redis.apphost-468a945e22-garnet-data",
+          "name": "redis.apphost-7855b85e05-garnet-data",
           "target": "/data",
           "readOnly": false
         }
@@ -102,6 +104,21 @@
           "scheme": "https",
           "protocol": "tcp",
           "transport": "http"
+        }
+      }
+    },
+    "redis-password": {
+      "type": "parameter.v0",
+      "value": "{redis-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
         }
       }
     }

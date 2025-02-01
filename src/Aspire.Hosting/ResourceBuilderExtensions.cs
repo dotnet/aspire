@@ -467,6 +467,28 @@ public static class ResourceBuilderExtensions
     /// <param name="callback">Callback that modifies the endpoint.</param>
     /// <param name="createIfNotExists">Create endpoint if it does not exist.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="WithEndpoint{T}(IResourceBuilder{T}, string, Action{EndpointAnnotation}, bool)"/> method allows
+    /// developers to mutate any aspect of an endpoint annotation. Note that changing one value does not automatically change
+    /// other values to compatable/consistent values. For example setting the <see cref="EndpointAnnotation.Protocol"/> property
+    /// of the endpoint annotation in the callback will not automatically change the <see cref="EndpointAnnotation.UriScheme"/>.
+    /// All values should be set in the callback if the defaults are not acceptable.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Configure an endpoint to use UDP.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.Create(args);
+    /// var container = builder.AddContainer("mycontainer", "myimage")
+    ///                        .WithEndpoint("myendpoint", e => {
+    ///                          e.Port = 9998;
+    ///                          e.TargetPort = 9999;
+    ///                          e.Protocol = ProtocolType.Udp;
+    ///                          e.UriScheme = "udp";
+    ///                        });
+    /// </code>
+    /// </example>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
     public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, [EndpointName] string endpointName, Action<EndpointAnnotation> callback, bool createIfNotExists = true) where T : IResourceWithEndpoints
     {
@@ -709,6 +731,32 @@ public static class ResourceBuilderExtensions
         builder.WithRelationship(dependency.Resource, KnownRelationshipTypes.WaitFor);
 
         return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilHealthy));
+    }
+
+    /// <summary>
+    /// Adds a <see cref="ExplicitStartupAnnotation" /> annotation to the resource so it doesn't automatically start
+    /// with the app host startup.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>This method is useful when a resource shouldn't automatically start when the app host starts.</para>
+    /// </remarks>
+    /// <example>
+    /// The database clean up tool project isn't started with the app host.
+    /// The resource start command can be used to run it ondemand later.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var pgsql = builder.AddPostgres("postgres");
+    /// builder.AddProject&lt;Projects.CleanUpDatabase&gt;("dbcleanuptool")
+    ///        .WithReference(pgsql)
+    ///        .WithExplicitStart();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithExplicitStart<T>(this IResourceBuilder<T> builder) where T : IResource
+    {
+        return builder.WithAnnotation(new ExplicitStartupAnnotation());
     }
 
     /// <summary>
@@ -1041,5 +1089,35 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(type);
 
         return builder.WithAnnotation(new ResourceRelationshipAnnotation(resource, type));
+    }
+
+    /// <summary>
+    /// Adds a <see cref="ResourceRelationshipAnnotation"/> to the resource annotations to add a parent-child relationship.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="parent">The parent of <paramref name="builder"/>.</param>
+    /// <returns>A resource builder.</returns>
+    /// <remarks>
+    /// <para>
+    /// The <c>WithParentRelationship</c> method is used to add parent relationships to the resource. Relationships are used to link
+    /// resources together in UI.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// This example shows adding a relationship between two resources.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var backend = builder.AddProject&lt;Projects.Backend&gt;("backend");
+    /// 
+    /// var frontend = builder.AddProject&lt;Projects.Manager&gt;("frontend")
+    ///                      .WithParentRelationship(backend.Resource);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithParentRelationship<T>(
+        this IResourceBuilder<T> builder,
+        IResource parent) where T : IResource
+    {
+        return builder.WithRelationship(parent, KnownRelationshipTypes.Parent);
     }
 }

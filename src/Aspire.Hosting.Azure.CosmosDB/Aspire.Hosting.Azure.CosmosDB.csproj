@@ -20,7 +20,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <PackageReference Include="Azure.Identity" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" />
     <PackageReference Include="AspNetCore.HealthChecks.CosmosDb" />
+    <PackageReference Include="Newtonsoft.Json" /> <!-- Required by Microsoft.Azure.Cosmos -->
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.CosmosDB" />
   </ItemGroup>

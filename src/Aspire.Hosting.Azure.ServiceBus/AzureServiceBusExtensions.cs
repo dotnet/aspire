@@ -264,7 +264,8 @@ public static class AzureServiceBusExtensions
                 .WithImageRegistry(ServiceBusEmulatorContainerImageTags.AzureSqlEdgeRegistry)
                 .WithEndpoint(targetPort: 1433, name: "tcp")
                 .WithEnvironment("ACCEPT_EULA", "Y")
-                .WithEnvironment("MSSQL_SA_PASSWORD", password);
+                .WithEnvironment("MSSQL_SA_PASSWORD", password)
+                .WithParentRelationship(builder.Resource);
 
         builder.WithAnnotation(new EnvironmentCallbackAnnotation((EnvironmentCallbackContext context) =>
         {

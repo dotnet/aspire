@@ -320,7 +320,7 @@ public static class ResourceExtensions
     /// Gets the lifetime type of the container for the specified resource.
     /// Defaults to <see cref="ContainerLifetime.Session"/> if no <see cref="ContainerLifetimeAnnotation"/> is found.
     /// </summary>
-    /// <param name="resource">The resource to the get the ContainerLifetimeType for.</param>
+    /// <param name="resource">The resource to get the ContainerLifetimeType for.</param>
     /// <returns>
     /// The <see cref="ContainerLifetime"/> from the <see cref="ContainerLifetimeAnnotation"/> for the resource (if the annotation exists).
     /// Defaults to <see cref="ContainerLifetime.Session"/> if the annotation is not set.
@@ -333,6 +333,18 @@ public static class ResourceExtensions
         }
 
         return ContainerLifetime.Session;
+    }
+
+    /// <summary>
+    /// Determines whether a resource has proxy support enabled or not. Container resources may have a <see cref="ProxySupportAnnotation"/> setting that disables proxying for their
+    /// endpoints regardless of the endpoint proxy configuration.
+    /// </summary>
+    /// <param name="resource">The resource to get proxy support for.</param>
+    /// <returns>True if the resource supports proxied endpoints/services, false otherwise.</returns>
+    internal static bool SupportsProxy(this IResource resource)
+    {
+        // If the resource doesn't have a ProxySupportAnnotation or the ProxyEnabled property on the annotation is true, then the resource supports proxying.
+        return !resource.TryGetLastAnnotation<ProxySupportAnnotation>(out var proxySupportAnnotation) || proxySupportAnnotation.ProxyEnabled;
     }
 
     /// <summary>

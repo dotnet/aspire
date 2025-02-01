@@ -13,21 +13,23 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Azure SDK for .NET dependencies -->
-    <PackageVersion Include="Azure.AI.OpenAI" Version="2.1.0-beta.2" />
-    <PackageVersion Include="Azure.Data.Tables" Version="12.9.1" />
+    <PackageVersion Include="Azure.AI.OpenAI" Version="2.1.0" />
+    <PackageVersion Include="Azure.Data.Tables" Version="12.10.0" />
     <PackageVersion Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.3.2" />
     <PackageVersion Include="Azure.Messaging.EventHubs" Version="5.11.5" />
     <PackageVersion Include="Azure.Messaging.EventHubs.Processor" Version="5.11.5" />
-    <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.18.2" />
+    <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.18.3" />
     <PackageVersion Include="Azure.Search.Documents" Version="11.6.0" />
     <PackageVersion Include="Azure.Messaging.WebPubSub" Version="1.4.0" />
     <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.7.0" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.23.0" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.21.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.12" />
     <PackageVersion Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="8.0.0" />
-    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.45.0" />
-    <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.28.0" />
-    <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.8.0" />
+    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.46.1" />
+    <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.30.0" />
+    <PackageVersion Include="Microsoft.Azure.SignalR.Management" Version="1.30.0" />
+    <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.9.0" />
     <!-- Azure Management SDK for .NET dependencies -->
     <PackageVersion Include="Azure.Provisioning" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.AppConfiguration" Version="$(AzureProvisiongVersion)" />
@@ -50,23 +52,24 @@
     <PackageVersion Include="Azure.ResourceManager.KeyVault" Version="1.3.0" />
     <PackageVersion Include="Azure.ResourceManager.Resources" Version="1.9.0" />
     <!-- AspNetCore.HealthChecks dependencies (3rd party packages) -->
-    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Data.Tables" Version="8.0.1" />
-    <PackageVersion Include="AspNetCore.HealthChecks.Azure.KeyVault.Secrets" Version="8.0.1" />
-    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Messaging.EventHubs" Version="8.0.1" />
-    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Blobs" Version="8.0.1" />
-    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Queues" Version="8.0.1" />
-    <PackageVersion Include="AspNetCore.HealthChecks.AzureServiceBus" Version="8.0.1" />
-    <PackageVersion Include="AspNetCore.HealthChecks.CosmosDb" Version="8.0.1" />
-    <PackageVersion Include="AspNetCore.HealthChecks.Kafka" Version="8.0.1" />
-    <PackageVersion Include="AspNetCore.HealthChecks.MongoDb" Version="8.1.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.MySql" Version="8.0.1" />
-    <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.2" />
-    <PackageVersion Include="AspNetCore.HealthChecks.Oracle" Version="8.0.1" />
+    <PackageVersion Include="AspNetCore.HealthChecks.ApplicationStatus" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Data.Tables" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Azure.KeyVault.Secrets" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Messaging.EventHubs" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Blobs" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Queues" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.AzureServiceBus" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.CosmosDb" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Kafka" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.MongoDb" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.MySql" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Oracle" Version="9.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Rabbitmq" Version="9.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Rabbitmq.v6" Version="9.0.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="8.0.1" />
-    <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="8.0.2" />
-    <PackageVersion Include="AspNetCore.HealthChecks.Uris" Version="8.0.1" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Uris" Version="9.0.0" />
     <!-- dotnet/extensions dependencies-->
     <PackageVersion Include="Microsoft.Extensions.AI" Version="$(MicrosoftExtensionsAIVersion)" />
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="$(MicrosoftExtensionsAIVersion)" />
@@ -74,39 +77,39 @@
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsHttpResilienceVersion)" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(MicrosoftExtensionsTimeProviderTestingVersion)" />
     <!-- NuGet dependencies -->
-    <PackageVersion Include="NuGet.ProjectModel" Version="6.11.1" />
+    <PackageVersion Include="NuGet.ProjectModel" Version="6.12.1" />
     <!-- external dependencies -->
     <PackageVersion Include="Confluent.Kafka" Version="2.6.1" />
     <PackageVersion Include="Dapper" Version="2.1.44" />
     <PackageVersion Include="DnsClient" Version="1.8.0" />
-    <PackageVersion Include="Elastic.Clients.Elasticsearch" Version="8.15.10" />
-    <PackageVersion Include="Google.Protobuf" Version="3.28.2" />
+    <PackageVersion Include="Elastic.Clients.Elasticsearch" Version="8.17.1" />
+    <PackageVersion Include="Google.Protobuf" Version="3.29.3" />
     <PackageVersion Include="Grpc.AspNetCore" Version="2.67.0" />
     <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.67.0" />
     <PackageVersion Include="Grpc.Tools" Version="2.67.0" />
     <PackageVersion Include="Humanizer.Core" Version="2.14.1" />
     <PackageVersion Include="KubernetesClient" Version="15.0.1" />
     <PackageVersion Include="JsonPatch.Net" Version="3.2.3" />
-    <PackageVersion Include="Microsoft.Data.SqlClient" Version="5.2.2" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.10.3" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.10.3" />
+    <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.0.1" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.11.3" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.11.3" />
     <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1" />
-    <PackageVersion Include="MongoDB.Driver" Version="[2.30.0,3.0.0)" />
-    <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="1.5.0" />
+    <PackageVersion Include="MongoDB.Driver" Version="3.1.0" />
+    <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="2.0.0" />
     <PackageVersion Include="MySqlConnector.DependencyInjection" Version="2.3.6" />
     <PackageVersion Include="MySqlConnector.Logging.Microsoft.Extensions.Logging" Version="2.1.0" />
     <PackageVersion Include="NATS.Net" Version="2.5.3" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="9.0.2" />
-    <PackageVersion Include="OpenAI" Version="2.1.0-beta.2" />
+    <PackageVersion Include="OpenAI" Version="2.1.0" />
     <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.23.60" />
     <PackageVersion Include="Oracle.ManagedDataAccess.OpenTelemetry" Version="23.6.0" />
-    <PackageVersion Include="Polly.Core" Version="8.5.0" />
-    <PackageVersion Include="Polly.Extensions" Version="8.5.0" />
+    <PackageVersion Include="Polly.Core" Version="8.5.1" />
+    <PackageVersion Include="Polly.Extensions" Version="8.5.1" />
     <PackageVersion Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
     <PackageVersion Include="Qdrant.Client" Version="1.12.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="7.0.0" />
     <PackageVersion Include="StackExchange.Redis" Version="2.8.22" />
-    <PackageVersion Include="System.IO.Hashing" Version="8.0.0" />
+    <PackageVersion Include="System.IO.Hashing" Version="9.0.1" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.2.0" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="9.0.2" />
@@ -119,7 +122,7 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.9.0" />
     <!-- build dependencies -->
     <PackageVersion Include="MicroBuild.Plugins.SwixBuild.Dotnet" Version="1.1.87-gba258badda" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.11.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.12.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.4" />
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Workloads" Version="8.0.0-beta.23564.4" />
     <PackageVersion Include="Microsoft.Signed.Wix" Version="$(MicrosoftSignedWixVersion)" />
@@ -127,7 +130,7 @@
     <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.24528.1" />
     <!-- unit test dependencies -->
     <PackageVersion Include="bUnit" Version="1.33.3" />
-    <PackageVersion Include="JsonSchema.Net" Version="7.2.3" />
+    <PackageVersion Include="JsonSchema.Net" Version="7.3.1" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" Version="1.1.2" />
     <PackageVersion Include="Microsoft.DotNet.RemoteExecutor" Version="$(MicrosoftDotNetRemoteExecutorVersion)" />
     <PackageVersion Include="Microsoft.DotNet.XUnitExtensions" Version="$(MicrosoftDotNetXUnitExtensionsVersion)" />
@@ -159,12 +162,13 @@
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues" Version="5.5.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.22.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.EventHubs" Version="6.3.6" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.CosmosDb" Version="4.11.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.OpenTelemetry" Version="1.1.0-preview6" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.0" />
     <PackageVersion Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
     <!-- Pinned versions for Component Governance - Remove when root dependencies are updated -->
     <PackageVersion Include="Azure.Core" Version="1.44.1" />
-    <PackageVersion Include="Azure.Identity" Version="1.13.1" />
+    <PackageVersion Include="Azure.Identity" Version="1.13.2" />
     <!-- https://github.com/Azure/azure-cosmos-dotnet-v3/pull/3313 -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
@@ -208,7 +212,7 @@
     <PackageVersion Update="Microsoft.EntityFrameworkCore.Design" Version="$(MicrosoftEntityFrameworkCoreDesignVersion)" />
     <PackageVersion Update="Microsoft.EntityFrameworkCore.SqlServer" Version="$(MicrosoftEntityFrameworkCoreSqlServerVersion)" />
     <PackageVersion Update="Microsoft.EntityFrameworkCore.Tools" Version="$(MicrosoftEntityFrameworkCoreToolsVersion)" />
-    <PackageVersion Update="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0" />
+    <PackageVersion Update="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.3" />
     <!-- ASP.NET Core -->
     <PackageVersion Update="Microsoft.AspNetCore.Authentication.Certificate" Version="$(MicrosoftAspNetCoreAuthenticationCertificateVersion)" />
     <PackageVersion Update="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftAspNetCoreAuthenticationJwtBearerVersion)" />

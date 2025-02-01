@@ -5,9 +5,9 @@
       to avoid "package downgrade" build errors. This is only used when referencing Aspire.OpenAI and doesn't break
       compatibility with net8.0.
     -->
-    <PackageReference Include="Microsoft.Extensions.Primitives" VersionOverride="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" VersionOverride="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" VersionOverride="9.0.0" />
-    <PackageReference Include="System.Text.Json" VersionOverride="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Primitives" VersionOverride="9.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" VersionOverride="9.0.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" VersionOverride="9.0.1" />
+    <PackageReference Include="System.Text.Json" VersionOverride="9.0.1" />
   </ItemGroup>
 </Project>
