@@ -27,6 +27,34 @@ public static partial class AspireEFMySqlExtensions
     private const string DefaultConfigSectionName = "Aspire:Pomelo:EntityFrameworkCore:MySql";
     private const DynamicallyAccessedMemberTypes RequiredByEF = DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties;
 
+    /// <inheritdoc cref="AddMySqlDbContext{TContext}(IHostApplicationBuilder, string, Action{PomeloEntityFrameworkCoreMySqlSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    public static void AddMySqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+       this IHostApplicationBuilder builder,
+       string connectionName) where TContext : DbContext =>
+           AddMySqlDbContextInternal<TContext>(builder, connectionName, null, null);
+
+    /// <inheritdoc cref="AddMySqlDbContext{TContext}(IHostApplicationBuilder, string, Action{PomeloEntityFrameworkCoreMySqlSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    public static void AddMySqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<PomeloEntityFrameworkCoreMySqlSettings>? configureSettings) where TContext : DbContext =>
+            AddMySqlDbContextInternal<TContext>(builder, connectionName, configureSettings, null);
+
+    /// <inheritdoc cref="AddMySqlDbContext{TContext}(IHostApplicationBuilder, string, Action{PomeloEntityFrameworkCoreMySqlSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    public static void AddMySqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext =>
+            AddMySqlDbContextInternal<TContext>(builder, connectionName, null, (_, options) => configureDbContextOptions?.Invoke(options));
+
+    /// <inheritdoc cref="AddMySqlDbContext{TContext}(IHostApplicationBuilder, string, Action{PomeloEntityFrameworkCoreMySqlSettings}?, Action{IServiceProvider, DbContextOptionsBuilder}?)"/>
+    public static void AddMySqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<PomeloEntityFrameworkCoreMySqlSettings>? configureSettings,
+        Action<DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext =>
+            AddMySqlDbContextInternal<TContext>(builder, connectionName, configureSettings, (_, options) => configureDbContextOptions?.Invoke(options));
+
     /// <summary>
     /// Registers the given <see cref="DbContext" /> as a service in the services provided by the <paramref name="builder"/>.
     /// Enables db context pooling, retries, corresponding health check, logging and telemetry.
@@ -35,7 +63,7 @@ public static partial class AspireEFMySqlExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureDbContextOptions">An optional delegate to configure the <see cref="DbContextOptions"/> for the context.</param>
+    /// <param name="configureDbContextOptions">An optional delegate to configure the <see cref="DbContextOptions"/> for the context with access to the <see cref="IServiceProvider"/> to resolve services.</param>
     /// <remarks>
     /// <para>
     /// Reads the configuration from "Aspire:Pomelo:EntityFrameworkCore:MySql:{typeof(TContext).Name}" config section, or "Aspire:Pomelo:EntityFrameworkCore:MySql" if former does not exist.
@@ -49,8 +77,15 @@ public static partial class AspireEFMySqlExtensions
     public static void AddMySqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
         string connectionName,
-        Action<PomeloEntityFrameworkCoreMySqlSettings>? configureSettings = null,
-        Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
+        Action<PomeloEntityFrameworkCoreMySqlSettings>? configureSettings,
+        Action<IServiceProvider, DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext =>
+            AddMySqlDbContextInternal<TContext>(builder, connectionName, configureSettings, configureDbContextOptions);
+
+    private static void AddMySqlDbContextInternal<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        IHostApplicationBuilder builder,
+        string connectionName,
+        Action<PomeloEntityFrameworkCoreMySqlSettings>? configureSettings,
+        Action<IServiceProvider, DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -129,7 +164,7 @@ public static partial class AspireEFMySqlExtensions
                 }
             });
 
-            configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
+            configureDbContextOptions?.Invoke(serviceProvider, dbContextOptionsBuilder);
         }
     }
 

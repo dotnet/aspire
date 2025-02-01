@@ -16,5 +16,4 @@ Aspire.Pomelo.EntityFrameworkCore.MySql.PomeloEntityFrameworkCoreMySqlSettings.P
 Aspire.Pomelo.EntityFrameworkCore.MySql.PomeloEntityFrameworkCoreMySqlSettings.ServerVersion.get -> string?
 Aspire.Pomelo.EntityFrameworkCore.MySql.PomeloEntityFrameworkCoreMySqlSettings.ServerVersion.set -> void
 Microsoft.Extensions.Hosting.AspireEFMySqlExtensions
-static Microsoft.Extensions.Hosting.AspireEFMySqlExtensions.AddMySqlDbContext<TContext>(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Pomelo.EntityFrameworkCore.MySql.PomeloEntityFrameworkCoreMySqlSettings!>? configureSettings = null, System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>? configureDbContextOptions = null) -> void
 static Microsoft.Extensions.Hosting.AspireEFMySqlExtensions.EnrichMySqlDbContext<TContext>(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, System.Action<Aspire.Pomelo.EntityFrameworkCore.MySql.PomeloEntityFrameworkCoreMySqlSettings!>? configureSettings = null) -> void
