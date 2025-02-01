@@ -64,8 +64,7 @@ public static class AzureFunctionsProjectResourceExtensions
             }
             else
             {
-                storage = builder.AddAzureStorage(storageResourceName)
-                    .RunAsEmulator().Resource;
+                storage = builder.AddAzureStorage(storageResourceName).RunAsEmulator().Resource;
             }
         }
 
