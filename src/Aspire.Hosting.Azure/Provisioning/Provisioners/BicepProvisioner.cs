@@ -105,8 +105,17 @@ internal sealed class BicepProvisioner(
         return true;
     }
 
-    public override async Task GetOrCreateResourceAsync(AzureBicepResource resource, ProvisioningContext context, ResourceGroupResource resourceGroup, CancellationToken cancellationToken)
+    public override async Task GetOrCreateResourceAsync(AzureBicepResource resource, ProvisioningContext context,CancellationToken cancellationToken)
     {
+        var resourceGroup = context.ResourceGroup;
+        var resourceLogger = loggerService.GetLogger(resource);
+
+        if (resource.TryGetExistingAzureResourceAnnotation(out var existingResource) &&
+            existingResource.ResourceGroupParameter is { } resourceGroupParameter)
+        {
+            resourceGroup = await context.GetResourceGroup(resourceGroupParameter.Name, resourceLogger, cancellationToken).ConfigureAwait(false);
+        }
+
         await notificationService.PublishUpdateAsync(resource, state => state with
         {
             ResourceType = resource.GetType().Name,
@@ -118,8 +127,6 @@ internal sealed class BicepProvisioner(
                 new("azure.location", context.Location.ToString()),
             ]
         }).ConfigureAwait(false);
-
-        var resourceLogger = loggerService.GetLogger(resource);
 
         if (FindFullPathFromPath("az") is not { } azPath)
         {

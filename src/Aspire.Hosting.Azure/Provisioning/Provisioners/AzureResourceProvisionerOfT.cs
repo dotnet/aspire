@@ -10,6 +10,7 @@ using Azure.ResourceManager.Authorization.Models;
 using Azure.ResourceManager.Authorization;
 using Azure;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
@@ -35,6 +36,20 @@ internal sealed class ProvisioningContext(
     public AzureLocation Location => location;
     public UserPrincipal Principal => principal;
     public JsonObject UserSecrets => userSecrets;
+
+    public async Task<ResourceGroupResource> GetResourceGroup(string resourceGroupName, ILogger resourceLogger, CancellationToken cancellationToken)
+    {
+        var targetResourceGroup = ResourceGroup;
+        try
+        {
+            targetResourceGroup = await Subscription.GetResourceGroupAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
+        }
+        catch (RequestFailedException ex) when (ex.Status == 404)
+        {
+            resourceLogger.LogWarning("Resource group {ResourceGroupName} not found. Using default resource group.", resourceGroupName);
+        }
+        return targetResourceGroup;
+    }
 }
 
 internal interface IAzureResourceProvisioner
@@ -46,7 +61,6 @@ internal interface IAzureResourceProvisioner
     Task GetOrCreateResourceAsync(
         IAzureResource resource,
         ProvisioningContext context,
-        ResourceGroupResource resourceGroup,
         CancellationToken cancellationToken);
 }
 
@@ -62,9 +76,8 @@ internal abstract class AzureResourceProvisioner<TResource> : IAzureResourceProv
     Task IAzureResourceProvisioner.GetOrCreateResourceAsync(
         IAzureResource resource,
         ProvisioningContext context,
-        ResourceGroupResource resourceGroup,
         CancellationToken cancellationToken)
-        => GetOrCreateResourceAsync((TResource)resource, context, resourceGroup, cancellationToken);
+        => GetOrCreateResourceAsync((TResource)resource, context, cancellationToken);
 
     public abstract Task<bool> ConfigureResourceAsync(IConfiguration configuration, TResource resource, CancellationToken cancellationToken);
 
@@ -73,7 +86,6 @@ internal abstract class AzureResourceProvisioner<TResource> : IAzureResourceProv
     public abstract Task GetOrCreateResourceAsync(
         TResource resource,
         ProvisioningContext context,
-        ResourceGroupResource resourceGroup,
         CancellationToken cancellationToken);
 
     protected static ResourceIdentifier CreateRoleDefinitionId(SubscriptionResource subscription, string roleDefinitionId) =>
