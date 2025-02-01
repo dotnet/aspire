@@ -2,8 +2,8 @@ using System.Security.Cryptography;
 using System.Text;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
-using Azure.Messaging.ServiceBus;
 #if !SKIP_UNSTABLE_EMULATORS
+using Azure.Messaging.ServiceBus;
 using Microsoft.Azure.Cosmos;
 #endif
 using Azure.Storage.Blobs;
@@ -17,8 +17,8 @@ builder.AddServiceDefaults();
 builder.AddAzureQueueClient("queue");
 builder.AddAzureBlobClient("blob");
 builder.AddAzureEventHubProducerClient("eventhubs", static settings => settings.EventHubName = "myhub");
-builder.AddAzureServiceBusClient("messaging");
 #if !SKIP_UNSTABLE_EMULATORS
+builder.AddAzureServiceBusClient("messaging");
 builder.AddAzureCosmosClient("cosmosdb");
 #endif
 
@@ -59,6 +59,7 @@ app.MapGet("/publish/eventhubs", async (EventHubProducerClient client, Cancellat
     return Results.Ok("Message sent to Azure EventHubs.");
 });
 
+#if !SKIP_UNSTABLE_EMULATORS
 app.MapGet("/publish/asb", async (ServiceBusClient client, CancellationToken cancellationToken, int length = 20) =>
 {
     var sender = client.CreateSender("myqueue");
@@ -67,7 +68,6 @@ app.MapGet("/publish/asb", async (ServiceBusClient client, CancellationToken can
     return Results.Ok("Message sent to Azure Service Bus.");
 });
 
-#if !SKIP_UNSTABLE_EMULATORS
 app.MapGet("/publish/cosmosdb", async (CosmosClient cosmosClient) =>
 {
     var db = cosmosClient.GetDatabase("mydatabase");
