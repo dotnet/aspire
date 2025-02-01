@@ -8,6 +8,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 60 
+    concurrency: 25
     strategy:
       fail-fast: false
       matrix:
@@ -113,8 +114,6 @@ jobs:
             name: OpenAI
           - project: tests/Aspire.Oracle.EntityFrameworkCore.Tests/Aspire.Oracle.EntityFrameworkCore.Tests.csproj
             name: Oracle.EntityFrameworkCore
-          - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
-            name: Playground
           - project: tests/Aspire.Pomelo.EntityFrameworkCore.MySql.Tests/Aspire.Pomelo.EntityFrameworkCore.MySql.Tests.csproj
             name: Pomelo.EntityFrameworkCore.MySql
           - project: tests/Aspire.Qdrant.Client.Tests/Aspire.Qdrant.Client.Tests.csproj
@@ -160,6 +159,7 @@ jobs:
         run: docker info
 
       - name: Install Azure Functions Core Tools
+        if: contains(matrix.project, 'Playground') || contains(matrix.project, 'Azure')
         run: |
           sudo apt-get update
           sudo apt-get install -y azure-functions-core-tools-4
