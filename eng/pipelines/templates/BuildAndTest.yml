@@ -48,18 +48,14 @@ steps:
   # Non-helix tests are run only on the public pipeline
   - ${{ if and(eq(parameters.runAsPublic, 'true'), ne(parameters.runHelixTests, 'true')) }}:
     # non-helix tests
-    - ${{ if ne(parameters.isWindows, 'true') }}:
-      - script: mkdir ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
-                cd ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
-                wget https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/ubuntu-create-dotnet-devcert.sh &&
-                wget https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/common.sh &&
-                chmod +x ubuntu-create-dotnet-devcert.sh &&
-                ./ubuntu-create-dotnet-devcert.sh
-        displayName: Install devcerts
+    - script: dotnet dev-certs https
+      displayName: Install dev-certs
 
-    - ${{ if eq(parameters.isWindows, 'true') }}:
-      - script: dotnet dev-certs https
-        displayName: Install dev-certs
+    - script: |
+        docker container ls
+        docker network ls
+        docker network prune -f
+      displayName: List Docker containers and networks, and prune networks
 
     - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
               --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
