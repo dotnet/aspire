@@ -56,7 +56,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
         await app.StopAsync();
     }
 
-    [Fact(Skip = "The project reference for this test is skipped in CI.")]
+    [Fact]
     [RequiresDocker]
     [RequiresTools(["func"])]
     public async Task AzureFunctionsTest()

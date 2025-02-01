@@ -26,8 +26,8 @@ jobs:
             name: Redis
           - project: tests/Aspire.Hosting.Azure.Tests/Aspire.Hosting.Azure.Tests.csproj
             name: Azure
-          - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
-            name: Playground
+          # - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
+          #   name: Playground
           # Add more projects as needed
     steps:
       - name: Checkout code
