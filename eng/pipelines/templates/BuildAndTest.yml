@@ -67,6 +67,8 @@ steps:
         DISABLE_PLAYWRIGHT_TESTS: ${{ ne(parameters.isWindows, 'true') }}
         # https://github.com/dotnet/aspire/issues/5195#issuecomment-2271687822
         DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
+        DCP_DIAGNOSTICS_LOG_LEVEL: debug
+        DCP_DIAGNOSTICS_LOG_FOLDER: ${{ parameters.repoTestResultsPath }}
 
       displayName: Run non-helix tests
 
