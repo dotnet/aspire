@@ -33,15 +33,18 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     /// </summary>
     public ParameterResource? PasswordParameter { get; }
 
-    /// <summary>
-    /// Gets the parameter that contains the Redis server username.
-    /// </summary>
-    private ReferenceExpression ConnectionString =>
-        PasswordParameter is null
-            ? ReferenceExpression.Create(
-                $"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}")
-            : ReferenceExpression.Create(
-                $"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)},password={PasswordParameter}");
+    private ReferenceExpression BuildConnectionString()
+    {
+        var builder = new ReferenceExpressionBuilder();
+        builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+
+        if (PasswordParameter is not null)
+        {
+            builder.Append($",password={PasswordParameter}");
+        }
+
+        return builder.Build();
+    }
 
     /// <summary>
     /// Gets the connection string expression for the Redis server.
@@ -55,7 +58,7 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
                 return connectionStringAnnotation.Resource.ConnectionStringExpression;
             }
 
-            return ConnectionString;
+            return BuildConnectionString();
         }
     }
 
@@ -71,6 +74,6 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
             return connectionStringAnnotation.Resource.GetConnectionStringAsync(cancellationToken);
         }
 
-        return ConnectionString.GetValueAsync(cancellationToken);
+        return BuildConnectionString().GetValueAsync(cancellationToken);
     }
 }
