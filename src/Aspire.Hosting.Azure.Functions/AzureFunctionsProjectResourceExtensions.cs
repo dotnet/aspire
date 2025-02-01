@@ -65,7 +65,6 @@ public static class AzureFunctionsProjectResourceExtensions
             else
             {
                 storage = builder.AddAzureStorage(storageResourceName)
-                    .WithParentRelationship(resource)
                     .RunAsEmulator().Resource;
             }
         }
