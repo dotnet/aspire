@@ -311,9 +311,24 @@ internal sealed class AzureProvisioner(
             {
                 var provisioningContext = await provisioningContextLazy.Value.ConfigureAwait(false);
 
+                var targetResourceGroup = provisioningContext.ResourceGroup;
+                if (resource.AzureResource.TryGetExistingAzureResourceAnnotation(out var existingResourceAnnotation)
+                    && existingResourceAnnotation.ResourceGroupParameter is { } resourceGroupParameter)
+                {
+                    try
+                    {
+                        targetResourceGroup = await provisioningContext.Subscription.GetResourceGroupAsync(resourceGroupParameter.Value, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (RequestFailedException ex) when (ex.Status == 404)
+                    {
+                        resourceLogger.LogWarning("Resource group {ResourceGroupName} not found. Using default resource group.", resourceGroupParameter.Value);
+                    }
+                }
+
                 await provisioner.GetOrCreateResourceAsync(
                     resource.AzureResource,
                     provisioningContext,
+                    targetResourceGroup,
                     cancellationToken).ConfigureAwait(false);
 
                 resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();

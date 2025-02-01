@@ -46,6 +46,7 @@ internal interface IAzureResourceProvisioner
     Task GetOrCreateResourceAsync(
         IAzureResource resource,
         ProvisioningContext context,
+        ResourceGroupResource resourceGroup,
         CancellationToken cancellationToken);
 }
 
@@ -61,8 +62,9 @@ internal abstract class AzureResourceProvisioner<TResource> : IAzureResourceProv
     Task IAzureResourceProvisioner.GetOrCreateResourceAsync(
         IAzureResource resource,
         ProvisioningContext context,
+        ResourceGroupResource resourceGroup,
         CancellationToken cancellationToken)
-        => GetOrCreateResourceAsync((TResource)resource, context, cancellationToken);
+        => GetOrCreateResourceAsync((TResource)resource, context, resourceGroup, cancellationToken);
 
     public abstract Task<bool> ConfigureResourceAsync(IConfiguration configuration, TResource resource, CancellationToken cancellationToken);
 
@@ -71,6 +73,7 @@ internal abstract class AzureResourceProvisioner<TResource> : IAzureResourceProv
     public abstract Task GetOrCreateResourceAsync(
         TResource resource,
         ProvisioningContext context,
+        ResourceGroupResource resourceGroup,
         CancellationToken cancellationToken);
 
     protected static ResourceIdentifier CreateRoleDefinitionId(SubscriptionResource subscription, string roleDefinitionId) =>

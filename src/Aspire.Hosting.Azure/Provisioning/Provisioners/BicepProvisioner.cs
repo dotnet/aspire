@@ -105,7 +105,7 @@ internal sealed class BicepProvisioner(
         return true;
     }
 
-    public override async Task GetOrCreateResourceAsync(AzureBicepResource resource, ProvisioningContext context, CancellationToken cancellationToken)
+    public override async Task GetOrCreateResourceAsync(AzureBicepResource resource, ProvisioningContext context, ResourceGroupResource resourceGroup, CancellationToken cancellationToken)
     {
         await notificationService.PublishUpdateAsync(resource, state => state with
         {
@@ -113,7 +113,7 @@ internal sealed class BicepProvisioner(
             State = new("Starting", KnownResourceStateStyles.Info),
             Properties = [
                 new("azure.subscription.id", context.Subscription.Id.Name),
-                new("azure.resource.group", context.ResourceGroup.Id.Name),
+                new("azure.resource.group", resourceGroup.Id.Name),
                 new("azure.tenant.domain", context.Tenant.Data.DefaultDomain),
                 new("azure.location", context.Location.ToString()),
             ]
@@ -139,7 +139,7 @@ internal sealed class BicepProvisioner(
         {
             // This could be done as a bicep template that imports the other bicep template but this is
             // quick and dirty for now
-            var keyVaults = context.ResourceGroup.GetKeyVaults();
+            var keyVaults = resourceGroup.GetKeyVaults();
 
             // Check to see if there's a key vault for this resource already
             await foreach (var kv in keyVaults.GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
@@ -213,9 +213,9 @@ internal sealed class BicepProvisioner(
             throw new InvalidOperationException();
         }
 
-        var deployments = context.ResourceGroup.GetArmDeployments();
+        var deployments = resourceGroup.GetArmDeployments();
 
-        resourceLogger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, context.ResourceGroup.Data.Name);
+        resourceLogger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, resourceGroup.Data.Name);
 
         // Convert the parameters to a JSON object
         var parameters = new JsonObject();
@@ -243,7 +243,7 @@ internal sealed class BicepProvisioner(
         cancellationToken).ConfigureAwait(false);
 
         // Resolve the deployment URL before waiting for the operation to complete
-        var url = GetDeploymentUrl(context, resource.Name);
+        var url = GetDeploymentUrl(context, resourceGroup, resource.Name);
 
         resourceLogger.LogInformation("Deployment started: {Url}", url);
 
@@ -260,7 +260,7 @@ internal sealed class BicepProvisioner(
         await operation.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
 
         sw.Stop();
-        resourceLogger.LogInformation("Deployment of {Name} to {ResourceGroup} took {Elapsed}", resource.Name, context.ResourceGroup.Data.Name, sw.Elapsed);
+        resourceLogger.LogInformation("Deployment of {Name} to {ResourceGroup} took {Elapsed}", resource.Name, resourceGroup.Data.Name, sw.Elapsed);
 
         var deployment = operation.Value;
 
@@ -272,7 +272,7 @@ internal sealed class BicepProvisioner(
         }
         else
         {
-            throw new InvalidOperationException($"Deployment of {resource.Name} to {context.ResourceGroup.Data.Name} failed with {deployment.Data.Properties.ProvisioningState}");
+            throw new InvalidOperationException($"Deployment of {resource.Name} to {resourceGroup.Data.Name} failed with {deployment.Data.Properties.ProvisioningState}");
         }
 
         // e.g. {  "sqlServerName": { "type": "String", "value": "<value>" }}
@@ -544,12 +544,12 @@ internal sealed class BicepProvisioner(
 
     private const string PortalDeploymentOverviewUrl = "https://portal.azure.com/#view/HubsExtension/DeploymentDetailsBlade/~/overview/id";
 
-    private static string GetDeploymentUrl(ProvisioningContext provisioningContext, string deploymentName)
+    private static string GetDeploymentUrl(ProvisioningContext provisioningContext, ResourceGroupResource resourceGroup, string deploymentName)
     {
         var prefix = PortalDeploymentOverviewUrl;
 
         var subId = provisioningContext.Subscription.Data.Id.ToString();
-        var rgName = provisioningContext.ResourceGroup.Data.Name;
+        var rgName = resourceGroup.Data.Name;
         var subAndRg = $"{subId}/resourceGroups/{rgName}";
 
         var deployId = deploymentName;
