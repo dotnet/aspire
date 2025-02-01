@@ -20,13 +20,14 @@ public static class EnvironmentVariableEvaluator
         await resource.ProcessEnvironmentVariableValuesAsync(executionContext,
                         (key, unprocessed, value, ex) =>
                         {
-                            if (ex is null)
-                            {
-                                environmentVariables[key] = value!;
-                            }
-                            else
+                            if (ex is not null)
                             {
                                 ExceptionDispatchInfo.Throw(ex);
+                            }
+
+                            if (value is string s)
+                            {
+                                environmentVariables[key] = s;
                             }
                         },
                         default);
