@@ -30,7 +30,7 @@ public static class EnvironmentVariableEvaluator
                                 environmentVariables[key] = s;
                             }
                         },
-                        default);
+                        containerHostName: containerHostName);
 
         return environmentVariables;
     }
