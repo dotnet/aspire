@@ -293,6 +293,8 @@ public static class PostgresBuilderExtensions
 
             pgwebContainerBuilder.WithRelationship(builder.Resource, "PgWeb");
 
+            pgwebContainerBuilder.WithHttpHealthCheck();
+
             builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>(async (e, ct) =>
             {
                 var adminResource = builder.ApplicationBuilder.Resources.OfType<PgWebContainerResource>().Single();
@@ -302,6 +304,15 @@ public static class PostgresBuilderExtensions
                 if (!Directory.Exists(serverFileMount.Source!))
                 {
                     Directory.CreateDirectory(serverFileMount.Source!);
+                }
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    var mode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                               UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                               UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
+                    File.SetUnixFileMode(serverFileMount.Source!, mode);
                 }
 
                 foreach (var postgresDatabase in postgresInstances)
