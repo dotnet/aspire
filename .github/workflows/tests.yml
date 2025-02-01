@@ -162,7 +162,7 @@ jobs:
         run: docker info
 
       - name: Install Azure Functions Core Tools
-        if: contains(matrix.project, 'Playground') || contains(matrix.project, 'Azure')
+        if: matrix.name == 'Playground' || matrix.name == 'Azure'
         run: |
           sudo apt-get update
           sudo apt-get install -y azure-functions-core-tools-4
