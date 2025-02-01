@@ -8,7 +8,7 @@
   "symbols/AspireVersion/description": "La versión de .NET Aspire que se va a usar.",
   "symbols/AspireVersion/displayName": "Versión de .NET Aspire",
   "symbols/AspireVersion/choices/9.1/displayName": "9.1",
-  "symbols/AspireVersion/choices/9.1/description": "Elige .NET Aspire 9.1",
+  "symbols/AspireVersion/choices/9.1/description": "Elige .NET Pm 9.1",
   "symbols/AspireVersion/choices/9.0/displayName": "9.0",
   "symbols/AspireVersion/choices/9.0/description": "Elige .NET Aspire 9.0",
   "symbols/AspireVersion/choices/8.2/displayName": "8.2 (solo .NET 8.0)",
