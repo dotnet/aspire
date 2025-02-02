@@ -79,7 +79,7 @@ steps:
         # https://github.com/dotnet/aspire/issues/5195#issuecomment-2271687822
         DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
         DCP_DIAGNOSTICS_LOG_LEVEL: debug
-        DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/logs
+        DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log
       displayName: Run non-helix tests
 
   # Helix tests are run only on the public pipeline
