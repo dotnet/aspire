@@ -61,12 +61,12 @@ steps:
       - script: dotnet dev-certs https
         displayName: Install dev-certs
 
-
-    - script: |
-        docker container ls
-        docker network ls
-        docker network prune -f
-      displayName: List Docker containers and networks, and prune networks
+    - ${{ if ne(parameters.isWindows, 'true') }}:
+      - script: |
+          docker container ls
+          docker network ls
+          docker network prune -f
+        displayName: List Docker containers and networks, and prune networks
 
     - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
               --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
