@@ -3,13 +3,12 @@
 
 using System.Text.Json;
 using Aspire.Components.Common.Tests;
-using Aspire.Hosting.MongoDB;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.RabbitMQ;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -98,7 +97,7 @@ public class ManifestGenerationTests
         var redis = builder.AddContainer("redis", "redis");
         builder.Build().Run();
 
-        var redisManifest = await ManifestUtils.GetManifest(redis.Resource);
+        var redisManifest = await ManifestUtils.GetManifest(redis.Resource).DefaultTimeout();
         var expectedManifest = $$"""
             {
               "type": "container.v0",
@@ -106,39 +105,6 @@ public class ManifestGenerationTests
             }
             """;
         Assert.Equal(expectedManifest, redisManifest.ToString());
-    }
-
-    [Fact]
-    public void EnsureExecutablesWithDockerfileProduceDockerfilev0Manifest()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
-        program.NodeAppBuilder!.WithHttpsEndpoint(targetPort: 3000, env: "HTTPS_PORT")
-            .PublishAsDockerFile();
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        // NPM app should still be executable.v0
-        var npmapp = resources.GetProperty("npmapp");
-        Assert.Equal("executable.v0", npmapp.GetProperty("type").GetString());
-        Assert.DoesNotContain("\\", npmapp.GetProperty("workingDirectory").GetString());
-
-        // Node app should now be dockerfile.v0
-        var nodeapp = resources.GetProperty("nodeapp");
-        Assert.Equal("dockerfile.v0", nodeapp.GetProperty("type").GetString());
-        Assert.True(nodeapp.TryGetProperty("path", out _));
-        Assert.True(nodeapp.TryGetProperty("context", out _));
-        Assert.True(nodeapp.TryGetProperty("env", out var env));
-        Assert.True(nodeapp.TryGetProperty("bindings", out var bindings));
-
-        Assert.Equal(3000, bindings.GetProperty("https").GetProperty("targetPort").GetInt32());
-        Assert.Equal("https", bindings.GetProperty("https").GetProperty("scheme").GetString());
-        Assert.Equal("{nodeapp.bindings.https.targetPort}", env.GetProperty("HTTPS_PORT").GetString());
     }
 
     [Fact]
@@ -259,7 +225,7 @@ public class ManifestGenerationTests
 
         var container = resources.GetProperty("rediscontainer");
         Assert.Equal("container.v0", container.GetProperty("type").GetString());
-        Assert.Equal("{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port}", container.GetProperty("connectionString").GetString());
+        Assert.Equal("{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port},password={rediscontainer-password.value}", container.GetProperty("connectionString").GetString());
     }
 
     [Fact]
@@ -282,69 +248,6 @@ public class ManifestGenerationTests
 
         var db = resources.GetProperty("postgresdatabase");
         Assert.Equal("value.v0", db.GetProperty("type").GetString());
-    }
-
-    [Fact]
-    public void EnsureAllRabbitMQManifestTypesHaveVersion0Suffix()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddRabbitMQ("rabbitcontainer");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var server = resources.GetProperty("rabbitcontainer");
-        Assert.Equal("container.v0", server.GetProperty("type").GetString());
-    }
-
-    [Fact]
-    public void NodeAppIsExecutableResource()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddNodeApp("nodeapp", "..\\foo\\app.js")
-            .WithHttpEndpoint(port: 5031, env: "PORT");
-        program.AppBuilder.AddNpmApp("npmapp", "..\\foo")
-            .WithHttpEndpoint(port: 5032, env: "PORT");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var nodeApp = resources.GetProperty("nodeapp");
-        var npmApp = resources.GetProperty("npmapp");
-
-        static void AssertNodeResource(TestProgram program, string resourceName, JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
-        {
-            var s = jsonElement.ToString();
-            Assert.Equal("executable.v0", jsonElement.GetProperty("type").GetString());
-
-            var bindings = jsonElement.GetProperty("bindings");
-            var httpBinding = bindings.GetProperty("http");
-
-            Assert.Equal("http", httpBinding.GetProperty("scheme").GetString());
-
-            var env = jsonElement.GetProperty("env");
-            Assert.Equal($$"""{{{resourceName}}.bindings.http.targetPort}""", env.GetProperty("PORT").GetString());
-            Assert.Equal(program.AppBuilder.Environment.EnvironmentName.ToLowerInvariant(), env.GetProperty("NODE_ENV").GetString());
-
-            var command = jsonElement.GetProperty("command");
-            Assert.Equal(expectedCommand, command.GetString());
-            Assert.Equal(expectedArgs, jsonElement.GetProperty("args").EnumerateArray().Select(e => e.GetString()).ToArray());
-        }
-
-        AssertNodeResource(program, "nodeapp", nodeApp, "node", ["..\\foo\\app.js"]);
-        AssertNodeResource(program, "npmapp", npmApp, "npm", ["run", "start"]);
     }
 
     [Fact]
@@ -477,14 +380,8 @@ public class ManifestGenerationTests
                     "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
                     "HTTP_PORTS": "{integrationservicea.bindings.http.targetPort}",
                     "SKIP_RESOURCES": "None",
-                    "ConnectionStrings__tempdb": "{tempdb.connectionString}",
                     "ConnectionStrings__redis": "{redis.connectionString}",
-                    "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
-                    "ConnectionStrings__rabbitmq": "{rabbitmq.connectionString}",
-                    "ConnectionStrings__mymongodb": "{mymongodb.connectionString}",
-                    "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
-                    "ConnectionStrings__cosmos": "{cosmos.connectionString}",
-                    "ConnectionStrings__eventhubns": "{eventhubns.connectionString}"
+                    "ConnectionStrings__postgresdb": "{postgresdb.connectionString}"
                   },
                   "bindings": {
                     "http": {
@@ -499,31 +396,14 @@ public class ManifestGenerationTests
                     }
                   }
                 },
-                "sqlserver": {
-                  "type": "container.v0",
-                  "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver-password.value};TrustServerCertificate=true",
-                  "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}:{{SqlServerContainerImageTags.Tag}}",
-                  "env": {
-                    "ACCEPT_EULA": "Y",
-                    "MSSQL_SA_PASSWORD": "{sqlserver-password.value}"
-                  },
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 1433
-                    }
-                  }
-                },
-                "tempdb": {
-                  "type": "value.v0",
-                  "connectionString": "{sqlserver.connectionString};Database=tempdb"
-                },
                 "redis": {
                   "type": "container.v0",
-                  "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+                  "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}",
+                  "image": "{{ComponentTestConstants.AspireTestContainerRegistry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+                  "args": [
+                    "--requirepass",
+                    "{redis-password.value}"
+                  ],
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",
@@ -536,7 +416,7 @@ public class ManifestGenerationTests
                 "postgres": {
                   "type": "container.v0",
                   "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
+                  "image": "{{ComponentTestConstants.AspireTestContainerRegistry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
                   "env": {
                     "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
                     "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -557,98 +437,9 @@ public class ManifestGenerationTests
                   "type": "value.v0",
                   "connectionString": "{postgres.connectionString};Database=postgresdb"
                 },
-                "rabbitmq": {
-                  "type": "container.v0",
-                  "connectionString": "amqp://guest:{rabbitmq-password.value}@{rabbitmq.bindings.tcp.host}:{rabbitmq.bindings.tcp.port}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{RabbitMQContainerImageTags.Image}}:{{RabbitMQContainerImageTags.Tag}}",
-                  "env": {
-                    "RABBITMQ_DEFAULT_USER": "guest",
-                    "RABBITMQ_DEFAULT_PASS": "{rabbitmq-password.value}"
-                  },
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 5672
-                    }
-                  }
-                },
-                "mongodb": {
-                  "type": "container.v0",
-                  "connectionString": "mongodb://{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{MongoDBContainerImageTags.Image}}:{{MongoDBContainerImageTags.Tag}}",
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 27017
-                    }
-                  }
-                },
-                "mymongodb": {
-                  "type": "value.v0",
-                  "connectionString": "{mongodb.connectionString}/mymongodb"
-                },
-                "oracledatabase": {
-                  "type": "container.v0",
-                  "connectionString": "user id=system;password={oracledatabase-password.value};data source={oracledatabase.bindings.tcp.host}:{oracledatabase.bindings.tcp.port}",
-                  "image": "{{OracleContainerImageTags.Registry}}/{{OracleContainerImageTags.Image}}:{{OracleContainerImageTags.Tag}}",
-                  "env": {
-                    "ORACLE_PWD": "{oracledatabase-password.value}"
-                  },
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 1521
-                    }
-                  }
-                },
-                "freepdb1": {
-                  "type": "value.v0",
-                  "connectionString": "{oracledatabase.connectionString}/freepdb1"
-                },
-                "cosmos": {
-                  "type": "azure.bicep.v0",
-                  "connectionString": "{cosmos.secretOutputs.connectionString}",
-                  "path": "cosmos.module.bicep",
-                  "params": {
-                    "keyVaultName": ""
-                  }
-                },
-                "eventhubns": {
-                  "type": "azure.bicep.v0",
-                  "connectionString": "{eventhubns.outputs.eventHubsEndpoint}",
-                  "path": "eventhubns.module.bicep",
-                  "params": {
-                    "principalId": "",
-                    "principalType": ""
-                  }
-                },
-                "sqlserver-password": {
+                "redis-password": {
                   "type": "parameter.v0",
-                  "value": "{sqlserver-password.inputs.value}",
-                  "inputs": {
-                    "value": {
-                      "type": "string",
-                      "secret": true,
-                      "default": {
-                        "generate": {
-                          "minLength": 22,
-                          "minLower": 1,
-                          "minUpper": 1,
-                          "minNumeric": 1
-                        }
-                      }
-                    }
-                  }
-                },
-                "postgres-password": {
-                  "type": "parameter.v0",
-                  "value": "{postgres-password.inputs.value}",
+                  "value": "{redis-password.inputs.value}",
                   "inputs": {
                     "value": {
                       "type": "string",
@@ -661,25 +452,9 @@ public class ManifestGenerationTests
                     }
                   }
                 },
-                "rabbitmq-password": {
+                "postgres-password": {
                   "type": "parameter.v0",
-                  "value": "{rabbitmq-password.inputs.value}",
-                  "inputs": {
-                    "value": {
-                      "type": "string",
-                      "secret": true,
-                      "default": {
-                        "generate": {
-                          "minLength": 22,
-                          "special": false
-                        }
-                      }
-                    }
-                  }
-                },
-                "oracledatabase-password": {
-                  "type": "parameter.v0",
-                  "value": "{oracledatabase-password.inputs.value}",
+                  "value": "{postgres-password.inputs.value}",
                   "inputs": {
                     "value": {
                       "type": "string",
@@ -741,7 +516,7 @@ public class ManifestGenerationTests
             }
             """;
 
-        var manifest = await ManifestUtils.GetManifest(param.Resource);
+        var manifest = await ManifestUtils.GetManifest(param.Resource).DefaultTimeout();
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 

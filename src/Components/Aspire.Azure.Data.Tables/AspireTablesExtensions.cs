@@ -58,9 +58,7 @@ public static class AspireTablesExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        string configurationSectionName = TableServiceComponent.GetKeyedConfigurationSectionName(name, DefaultConfigSectionName);
-
-        new TableServiceComponent().AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+        new TableServiceComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
     }
 
     private sealed class TableServiceComponent : AzureComponent<AzureDataTablesSettings, TableServiceClient, TableClientOptions>
@@ -103,6 +101,9 @@ public static class AspireTablesExtensions
 
         protected override TokenCredential? GetTokenCredential(AzureDataTablesSettings settings)
             => settings.Credential;
+
+        protected override bool GetMetricsEnabled(AzureDataTablesSettings settings)
+            => false;
 
         protected override bool GetTracingEnabled(AzureDataTablesSettings settings)
             => !settings.DisableTracing;

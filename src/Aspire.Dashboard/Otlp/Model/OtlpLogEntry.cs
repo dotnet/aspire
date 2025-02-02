@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Model.Otlp;
 using OpenTelemetry.Proto.Logs.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
@@ -19,15 +19,18 @@ public class OtlpLogEntry
     public string TraceId { get; }
     public string ParentId { get; }
     public string? OriginalFormat { get; }
-    public OtlpApplication Application { get; }
+    public OtlpApplicationView ApplicationView { get; }
     public OtlpScope Scope { get; }
     public Guid InternalId { get; }
 
-    public OtlpLogEntry(LogRecord record, OtlpApplication logApp, OtlpScope scope, TelemetryLimitOptions options)
+    public OtlpLogEntry(LogRecord record, OtlpApplicationView logApp, OtlpScope scope, OtlpContext context)
     {
+        InternalId = Guid.NewGuid();
+        TimeStamp = ResolveTimeStamp(record);
+
         string? originalFormat = null;
         string? parentId = null;
-        Attributes = record.Attributes.ToKeyValuePairs(options, filter: attribute =>
+        Attributes = record.Attributes.ToKeyValuePairs(context, filter: attribute =>
         {
             switch (attribute.Key)
             {
@@ -46,18 +49,31 @@ public class OtlpLogEntry
             }
         });
 
-        TimeStamp = OtlpHelpers.UnixNanoSecondsToDateTime(record.TimeUnixNano);
         Flags = record.Flags;
         Severity = MapSeverity(record.SeverityNumber);
 
-        Message = OtlpHelpers.TruncateString(record.Body.GetString(), options.MaxAttributeLength);
+        Message = record.Body is { } body
+            ? OtlpHelpers.TruncateString(body.GetString(), context.Options.MaxAttributeLength)
+            : string.Empty;
         OriginalFormat = originalFormat;
         SpanId = record.SpanId.ToHexString();
         TraceId = record.TraceId.ToHexString();
         ParentId = parentId ?? string.Empty;
-        Application = logApp;
+        ApplicationView = logApp;
         Scope = scope;
-        InternalId = Guid.NewGuid();
+    }
+
+    private static DateTime ResolveTimeStamp(LogRecord record)
+    {
+        // From proto docs:
+        //
+        // For converting OpenTelemetry log data to formats that support only one timestamp or
+        // when receiving OpenTelemetry log data by recipients that support only one timestamp
+        // internally the following logic is recommended:
+        //   - Use time_unix_nano if it is present, otherwise use observed_time_unix_nano.
+        var resolvedTimeUnixNano = record.TimeUnixNano != 0 ? record.TimeUnixNano : record.ObservedTimeUnixNano;
+
+        return OtlpHelpers.UnixNanoSecondsToDateTime(resolvedTimeUnixNano);
     }
 
     private static LogLevel MapSeverity(SeverityNumber severityNumber) => severityNumber switch
@@ -88,4 +104,18 @@ public class OtlpLogEntry
         SeverityNumber.Fatal4 => LogLevel.Critical,
         _ => LogLevel.None
     };
+
+    public static string? GetFieldValue(OtlpLogEntry log, string field)
+    {
+        return field switch
+        {
+            KnownStructuredLogFields.MessageField => log.Message,
+            KnownStructuredLogFields.TraceIdField => log.TraceId,
+            KnownStructuredLogFields.SpanIdField => log.SpanId,
+            KnownStructuredLogFields.OriginalFormatField => log.OriginalFormat,
+            KnownStructuredLogFields.CategoryField => log.Scope.ScopeName,
+            KnownResourceFields.ServiceNameField => log.ApplicationView.Application.ApplicationName,
+            _ => log.Attributes.GetValue(field)
+        };
+    }
 }

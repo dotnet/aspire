@@ -47,9 +47,32 @@ public class RedisPublicApiTests
     }
 
     [Fact]
-    public void WithHostPortShouldThrowWhenBuilderIsNull()
+    public void WithRedisInsightResourceShouldThrowWhenBuilderIsNull()
+    {
+        IResourceBuilder<RedisResource> builder = null!;
+
+        var action = () => builder.WithRedisInsight();
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Fact]
+    public void RedisCommanderWithHostPortShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<RedisCommanderResource> builder = null!;
+        const int port = 777;
+
+        var action = () => builder.WithHostPort(port);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Fact]
+    public void RedisInsightResourceWithHostPortShouldThrowWhenBuilderIsNull()
+    {
+        IResourceBuilder<RedisInsightResource> builder = null!;
         const int port = 777;
 
         var action = () => builder.WithHostPort(port);
@@ -103,24 +126,6 @@ public class RedisPublicApiTests
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    #endregion
-
-    #region RedisCommanderConfigWriterHook
-
-    [Fact]
-    public async Task AfterEndpointsAllocatedAsyncShouldThrowWhenDistributedApplicationModelIsNull()
-    {
-        DistributedApplicationModel appModel = null!;
-        var cancellationToken = CancellationToken.None;
-
-        var instance = (RedisCommanderConfigWriterHook)Activator.CreateInstance(typeof(RedisCommanderConfigWriterHook), true)!;
-
-        async Task Action() => await instance.AfterEndpointsAllocatedAsync(appModel, cancellationToken);
-
-        var exception = await Assert.ThrowsAsync<ArgumentNullException>(Action);
-        Assert.Equal(nameof(appModel), exception.ParamName);
     }
 
     #endregion

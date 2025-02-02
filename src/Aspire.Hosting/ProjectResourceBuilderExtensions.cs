@@ -52,19 +52,22 @@ public static class ProjectResourceBuilderExtensions
     /// Example of adding a project to the application model.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice");
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name) where TProject : IProjectMetadata, new()
+    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name) where TProject : IProjectMetadata, new()
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         return builder.AddProject<TProject>(name, _ => { });
     }
 
     /// <summary>
-    /// Adds a .NET project to the application model. 
+    /// Adds a .NET project to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
@@ -82,14 +85,18 @@ public static class ProjectResourceBuilderExtensions
     /// Add a project to the app model via a project path.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// builder.AddProject("inventoryservice", @"..\InventoryService\InventoryService.csproj");
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath)
+    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(projectPath);
+
         return builder.AddProject(name, projectPath, _ => { });
     }
 
@@ -125,14 +132,17 @@ public static class ProjectResourceBuilderExtensions
     /// Example of adding a project to the application model.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice", launchProfileName: "otherLaunchProfile");
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name, string? launchProfileName) where TProject : IProjectMetadata, new()
+    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name, string? launchProfileName) where TProject : IProjectMetadata, new()
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         return builder.AddProject<TProject>(name, options =>
         {
             options.ExcludeLaunchProfile = launchProfileName is null;
@@ -160,14 +170,18 @@ public static class ProjectResourceBuilderExtensions
     /// Add a project to the app model via a project path.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// builder.AddProject("inventoryservice", @"..\InventoryService\InventoryService.csproj", launchProfileName: "otherLaunchProfile");
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath, string? launchProfileName)
+    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath, string? launchProfileName)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(projectPath);
+
         return builder.AddProject(name, projectPath, options =>
         {
             options.ExcludeLaunchProfile = launchProfileName is null;
@@ -205,14 +219,18 @@ public static class ProjectResourceBuilderExtensions
     /// Example of adding a project to the application model.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice", options => { options.LaunchProfileName = "otherLaunchProfile"; });
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name, Action<ProjectResourceOptions> configure) where TProject : IProjectMetadata, new()
+    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<ProjectResourceOptions> configure) where TProject : IProjectMetadata, new()
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(configure);
+
         var options = new ProjectResourceOptions();
         configure(options);
 
@@ -241,14 +259,19 @@ public static class ProjectResourceBuilderExtensions
     /// Add a project to the app model via a project path.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// builder.AddProject("inventoryservice", @"..\InventoryService\InventoryService.csproj", options => { options.LaunchProfileName = "otherLaunchProfile"; });
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath, Action<ProjectResourceOptions> configure)
+    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath, Action<ProjectResourceOptions> configure)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(projectPath);
+        ArgumentNullException.ThrowIfNull(configure);
+
         var options = new ProjectResourceOptions();
         configure(options);
 
@@ -335,7 +358,8 @@ public static class ProjectResourceBuilderExtensions
 
         // Helper to change the transport to http2 if needed
         var isHttp2ConfiguredInKestrelEndpointDefaults = config["Kestrel:EndpointDefaults:Protocols"] == nameof(HttpProtocols.Http2);
-        var adjustTransport = (EndpointAnnotation e, string? bindingLevelProtocols = null) => {
+        var adjustTransport = (EndpointAnnotation e, string? bindingLevelProtocols = null) =>
+        {
             if (bindingLevelProtocols != null)
             {
                 // If the Kestrel endpoint has an explicit protocol, use that and ignore any EndpointDefaults
@@ -371,6 +395,8 @@ public static class ProjectResourceBuilderExtensions
                         e.Port = endpoint.BindingAddress.Port;
                     }
                     e.UriScheme = endpoint.BindingAddress.Scheme;
+                    e.TargetHost = endpoint.BindingAddress.Host;
+
                     adjustTransport(e, endpoint.Protocols);
                     // Keep track of the host separately since EndpointAnnotation doesn't have a host property
                     builder.Resource.KestrelEndpointAnnotationHosts[e] = endpoint.BindingAddress.Host;
@@ -402,14 +428,31 @@ public static class ProjectResourceBuilderExtensions
             if (!kestrelEndpointsByScheme.Any())
             {
                 var urlsFromApplicationUrl = launchProfile.ApplicationUrl?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? [];
+                Dictionary<string, int> endpointCountByScheme = [];
                 foreach (var url in urlsFromApplicationUrl)
                 {
-                    var uri = new Uri(url);
+                    var bindingAddress = BindingAddress.Parse(url);
 
-                    builder.WithEndpoint(uri.Scheme, e =>
+                    // Keep track of how many endpoints we have for each scheme
+                    endpointCountByScheme.TryGetValue(bindingAddress.Scheme, out var count);
+                    endpointCountByScheme[bindingAddress.Scheme] = count + 1;
+
+                    // If we have multiple for the same scheme, we differentiate them by appending a number.
+                    // We only do this starting with the second endpoint, so that the first stays just http/https.
+                    // This allows us to keep the same behavior as "dotnet run".
+                    // Also, note that we only do this in Run mode, as in Publish mode those extra endpoints
+                    // with generic names would not be easily usable.
+                    var endpointName = bindingAddress.Scheme;
+                    if (endpointCountByScheme[bindingAddress.Scheme] > 1)
                     {
-                        e.Port = uri.Port;
-                        e.UriScheme = uri.Scheme;
+                        endpointName += endpointCountByScheme[bindingAddress.Scheme];
+                    }
+
+                    builder.WithEndpoint(endpointName, e =>
+                    {
+                        e.Port = bindingAddress.Port;
+                        e.TargetHost = bindingAddress.Host;
+                        e.UriScheme = bindingAddress.Scheme;
                         e.FromLaunchProfile = true;
                         adjustTransport(e);
                     },
@@ -520,6 +563,8 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> WithReplicas(this IResourceBuilder<ProjectResource> builder, int replicas)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.WithAnnotation(new ReplicaAnnotation(replicas));
         return builder;
     }
@@ -552,6 +597,8 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> DisableForwardedHeaders(this IResourceBuilder<ProjectResource> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.WithAnnotation<DisableForwardedHeadersAnnotation>(ResourceAnnotationMutationBehavior.Replace);
         return builder;
     }
@@ -566,9 +613,61 @@ public static class ProjectResourceBuilderExtensions
     public static IResourceBuilder<ProjectResource> WithEndpointsInEnvironment(
         this IResourceBuilder<ProjectResource> builder, Func<EndpointAnnotation, bool> filter)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(filter);
+
         builder.Resource.Annotations.Add(new EndpointEnvironmentInjectionFilterAnnotation(filter));
 
         return builder;
+    }
+
+    /// <summary>
+    /// Adds support for containerizing this <see cref="ProjectResource"/> during deployment.
+    /// The resulting container image is built, and when the optional <paramref name="configure"/> action is provided,
+    /// it is used to configure the container resource.
+    /// </summary>
+    /// <remarks>
+    /// When the executable resource is converted to a container resource, the arguments to the executable
+    /// are not used. This is because arguments to the project often contain physical paths that are not valid
+    /// in the container. The container can be set up with the correct arguments using the <paramref name="configure"/> action.
+    /// </remarks>
+    /// <typeparam name="T">Type of executable resource</typeparam>
+    /// <param name="builder">Resource builder</param>
+    /// <param name="configure">Optional action to configure the container resource</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> PublishAsDockerFile<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<ContainerResource>>? configure = null)
+        where T : ProjectResource
+    {
+        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
+
+        // The implementation here is less than ideal, but we don't have a clean way of building resource types
+        // that change their behavior based on the context. In this case, we want to change the behavior of the
+        // resource from a ProjectResource to a ContainerResource. We do this by removing the ProjectResource
+        // from the application model and adding a new ContainerResource in its place in publish mode.
+
+        // There are still dangling references to the original ProjectResource in the application model, but
+        // in publish mode, it won't be used. This is a limitation of the current design.
+        builder.ApplicationBuilder.Resources.Remove(builder.Resource);
+
+        var container = new ProjectContainerResource(builder.Resource);
+        var cb = builder.ApplicationBuilder.AddResource(container);
+        // WithImage makes this a container resource (adding the annotation)
+        cb.WithImage(builder.Resource.Name);
+        cb.WithDockerfile(contextPath: builder.Resource.GetProjectMetadata().ProjectPath);
+        // Arguments to the executable often contain physical paths that are not valid in the container
+        // Clear them out so that the container can be set up with the correct arguments
+        cb.WithArgs(c => c.Args.Clear());
+
+        configure?.Invoke(cb);
+
+        // Even through we're adding a ContainerResource
+        // update the manifest publishing callback on the original ProjectResource
+        // so that the container resource is written to the manifest
+        return builder.WithManifestPublishingCallback(context =>
+            context.WriteContainerAsync(container));
     }
 
     private static IConfiguration GetConfiguration(ProjectResource projectResource)
@@ -624,7 +723,10 @@ public static class ProjectResourceBuilderExtensions
                     processedHttpsPort = true;
                 }
 
-                aspnetCoreUrls.Append($"{e.Property(EndpointProperty.Scheme)}://localhost:{e.Property(EndpointProperty.TargetPort)}");
+                // If the endpoint is proxied, we will use localhost as the target host since DCP will be forwarding the traffic
+                var targetHost = e.EndpointAnnotation.IsProxied && builder.Resource.SupportsProxy() ? "localhost" : e.EndpointAnnotation.TargetHost;
+
+                aspnetCoreUrls.Append($"{e.Property(EndpointProperty.Scheme)}://{targetHost}:{e.Property(EndpointProperty.TargetPort)}");
                 first = false;
             }
 
@@ -708,5 +810,11 @@ public static class ProjectResourceBuilderExtensions
                 }
             }
         });
+    }
+
+    // Allows us to mirror annotations from ProjectContainerResource to ContainerResource
+    private sealed class ProjectContainerResource(ProjectResource pr) : ContainerResource(pr.Name)
+    {
+        public override ResourceAnnotationCollection Annotations => pr.Annotations;
     }
 }

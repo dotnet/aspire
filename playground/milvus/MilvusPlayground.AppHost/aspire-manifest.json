@@ -1,20 +1,10 @@
 {
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
-    "milvusauth": {
-      "type": "parameter.v0",
-      "value": "{milvusauth.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string",
-          "secret": true
-        }
-      }
-    },
     "milvus": {
       "type": "container.v0",
-      "connectionString": "Endpoint={milvus.bindings.grpc.url};Key={milvusauth.value}",
-      "image": "docker.io/milvusdb/milvus:2.3-latest",
+      "connectionString": "Endpoint={milvus.bindings.grpc.url};Key=root:{milvus-key.value}",
+      "image": "docker.io/milvusdb/milvus:v2.4.13",
       "args": [
         "milvus",
         "run",
@@ -31,7 +21,8 @@
         "COMMON_STORAGETYPE": "local",
         "ETCD_USE_EMBED": "true",
         "ETCD_DATA_DIR": "/var/lib/milvus/etcd",
-        "COMMON_SECURITY_AUTHORIZATIONENABLED": "true"
+        "COMMON_SECURITY_AUTHORIZATIONENABLED": "true",
+        "COMMON_SECURITY_DEFAULTROOTPASSWORD": "{milvus-key.value}"
       },
       "bindings": {
         "grpc": {
@@ -63,6 +54,21 @@
           "scheme": "https",
           "protocol": "tcp",
           "transport": "http"
+        }
+      }
+    },
+    "milvus-key": {
+      "type": "parameter.v0",
+      "value": "{milvus-key.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
         }
       }
     }

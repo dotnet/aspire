@@ -1,11 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -13,7 +13,7 @@ namespace Aspire.Dashboard.Components;
 
 public partial class ChartContainer : ComponentBase, IAsyncDisposable
 {
-    private OtlpInstrument? _instrument;
+    private OtlpInstrumentData? _instrument;
     private PeriodicTimer? _tickTimer;
     private Task? _tickTask;
     private IDisposable? _themeChangedSubscription;
@@ -45,14 +45,16 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     public string? PreviousMeterName { get; set; }
     public string? PreviousInstrumentName { get; set; }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        await ThemeManager.EnsureInitializedAsync();
+
         // Update the graph every 200ms. This displays the latest data and moves time forward.
         _tickTimer = new PeriodicTimer(TimeSpan.FromSeconds(0.2));
         _tickTask = Task.Run(UpdateDataAsync);
         _themeChangedSubscription = ThemeManager.OnThemeChanged(async () =>
         {
-            _instrumentViewModel.Theme = ThemeManager.Theme;
+            _instrumentViewModel.Theme = ThemeManager.EffectiveTheme;
             await InvokeAsync(StateHasChanged);
         });
     }
@@ -103,12 +105,12 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         await UpdateInstrumentDataAsync(_instrument);
     }
 
-    private async Task UpdateInstrumentDataAsync(OtlpInstrument instrument)
+    private async Task UpdateInstrumentDataAsync(OtlpInstrumentData instrument)
     {
-        var matchedDimensions = instrument.Dimensions.Values.Where(MatchDimension).ToList();
+        var matchedDimensions = instrument.Dimensions.Where(MatchDimension).ToList();
 
         // Only update data in plotly
-        await _instrumentViewModel.UpdateDataAsync(instrument, matchedDimensions);
+        await _instrumentViewModel.UpdateDataAsync(instrument.Summary, matchedDimensions);
     }
 
     private bool MatchDimension(DimensionScope dimension)
@@ -134,11 +136,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         var value = OtlpHelpers.GetValue(attributes, filter.Name);
         foreach (var item in filter.SelectedValues)
         {
-            if (item.Empty && string.IsNullOrEmpty(value))
-            {
-                return true;
-            }
-            if (item.Name == value)
+            if (item.Value == value)
             {
                 return true;
             }
@@ -168,7 +166,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         await UpdateInstrumentDataAsync(_instrument);
     }
 
-    private OtlpInstrument? GetInstrument()
+    private OtlpInstrumentData? GetInstrument()
     {
         var endDate = DateTime.UtcNow;
         // Get more data than is being displayed. Histogram graph uses some historical data to calculate bucket counts.
@@ -208,15 +206,20 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                     Name = item.Key
                 };
 
-                dimensionModel.Values.AddRange(item.Value.OrderBy(v => v).Select(v =>
+                dimensionModel.Values.AddRange(item.Value.Select(v =>
                 {
-                    var empty = string.IsNullOrEmpty(v);
+                    var text = v switch
+                    {
+                        null => Loc[nameof(ControlsStrings.LabelUnset)],
+                        { Length: 0 } => Loc[nameof(ControlsStrings.LabelEmpty)],
+                        _ => v
+                    };
                     return new DimensionValueViewModel
                     {
-                        Name = empty ? "(Empty)" : v,
-                        Empty = empty
+                        Text = text,
+                        Value = v
                     };
-                }));
+                }).OrderBy(v => v.Text));
 
                 filters.Add(dimensionModel);
             }
@@ -242,7 +245,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                         // Automatically select new incoming values if existing values are all selected.
                         var newSelectedValues = (existing.AreAllValuesSelected ?? false)
                             ? item.Values
-                            : item.Values.Where(newValue => existing.SelectedValues.Any(existingValue => existingValue.Name == newValue.Name));
+                            : item.Values.Where(newValue => existing.SelectedValues.Any(existingValue => existingValue.Value == newValue.Value));
 
                         foreach (var v in newSelectedValues)
                         {
@@ -269,8 +272,8 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         var id = newTab.Id?.Substring("tab-".Length);
 
         if (id is null
-            || !Enum.TryParse(typeof(Metrics.MetricViewKind), id, out var o)
-            || o is not Metrics.MetricViewKind viewKind)
+            || !Enum.TryParse(typeof(Pages.Metrics.MetricViewKind), id, out var o)
+            || o is not Pages.Metrics.MetricViewKind viewKind)
         {
             return Task.CompletedTask;
         }

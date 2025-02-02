@@ -11,6 +11,11 @@
     grid-template-rows: auto 1fr auto;
 }
 
+::deep.content-header {
+    grid-area: page-header;
+    word-break: break-all;
+}
+
 ::deep .title-toolbar-inline {
     padding-left: 0px;
     padding-top: 0px;

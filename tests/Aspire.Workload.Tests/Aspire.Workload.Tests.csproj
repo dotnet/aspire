@@ -1,9 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
 
-    <RunTestsOnHelix>true</RunTestsOnHelix>
     <TestUsingWorkloads>true</TestUsingWorkloads>
     <InstallWorkloadForTesting>true</InstallWorkloadForTesting>
 
@@ -18,6 +17,13 @@
     <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(ArchiveTests)' == 'true'">true</ExtractTestClassNamesForHelix>
     <ExtractTestClassNamesPrefix>Aspire.Workload.Tests</ExtractTestClassNamesPrefix>
   </PropertyGroup>
+
+  <!-- Skipping the following tests classes due to https://github.com/dotnet/aspire/issues/6193 -->
+  <ItemGroup>
+    <TestClassNamesToSkipTests Include="Aspire.Workload.Tests.NewUpAndBuildStandaloneTemplateTests"/>
+    <TestClassNamesToSkipTests Include="Aspire.Workload.Tests.NewUpAndBuildSupportProjectTemplates"/>
+    <TestClassNamesToSkipTests Include="Aspire.Workload.Tests.NewUpTemplatesWithAlternateName"/>
+  </ItemGroup>
 
   <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />
 

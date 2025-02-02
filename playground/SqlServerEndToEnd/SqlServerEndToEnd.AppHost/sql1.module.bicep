@@ -1,24 +1,14 @@
-targetScope = 'resourceGroup'
-
-@description('')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-@description('')
 param principalId string
 
-@description('')
 param principalName string
 
-
-resource sqlServer_x8iP8H24Z 'Microsoft.Sql/servers@2020-11-01-preview' = {
-  name: toLower(take('sql1${uniqueString(resourceGroup().id)}', 24))
+resource sql1 'Microsoft.Sql/servers@2021-11-01' = {
+  name: take('sql1-${uniqueString(resourceGroup().id)}', 63)
   location: location
-  tags: {
-    'aspire-resource-name': 'sql1'
-  }
   properties: {
-    version: '12.0'
-    publicNetworkAccess: 'Enabled'
     administrators: {
       administratorType: 'ActiveDirectory'
       login: principalName
@@ -26,24 +16,28 @@ resource sqlServer_x8iP8H24Z 'Microsoft.Sql/servers@2020-11-01-preview' = {
       tenantId: subscription().tenantId
       azureADOnlyAuthentication: true
     }
+    minimalTlsVersion: '1.2'
+    publicNetworkAccess: 'Enabled'
+    version: '12.0'
+  }
+  tags: {
+    'aspire-resource-name': 'sql1'
   }
 }
 
-resource sqlFirewallRule_9yJsWRmBv 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
-  parent: sqlServer_x8iP8H24Z
+resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
   name: 'AllowAllAzureIps'
   properties: {
-    startIpAddress: '0.0.0.0'
     endIpAddress: '0.0.0.0'
+    startIpAddress: '0.0.0.0'
   }
+  parent: sql1
 }
 
-resource sqlDatabase_9KOoL8JWT 'Microsoft.Sql/servers/databases@2020-11-01-preview' = {
-  parent: sqlServer_x8iP8H24Z
+resource db1 'Microsoft.Sql/servers/databases@2021-11-01' = {
   name: 'db1'
   location: location
-  properties: {
-  }
+  parent: sql1
 }
 
-output sqlServerFqdn string = sqlServer_x8iP8H24Z.properties.fullyQualifiedDomainName
+output sqlServerFqdn string = sql1.properties.fullyQualifiedDomainName

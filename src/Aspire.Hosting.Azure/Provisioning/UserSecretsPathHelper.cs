@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Provides helper methods for working with user secrets in a location outside of source control.
 /// </summary>
-internal sealed class UserSecretsPathHelper
+internal static class UserSecretsPathHelper
 {
     internal const string SecretsFileName = "secrets.json";
 

@@ -1,12 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting valkey</PackageTags>
+    <PackageTags>aspire integration hosting valkey</PackageTags>
     <Description>Valkey® support for .NET Aspire.</Description>
-    <!-- Disable package validation as this package hasn't shipped yet. -->
-    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -14,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
+    <PackageReference Include="AspNetCore.HealthChecks.Redis" />
   </ItemGroup>
 
   <ItemGroup>

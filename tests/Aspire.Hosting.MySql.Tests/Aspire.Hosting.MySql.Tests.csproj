@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
@@ -10,11 +10,6 @@
     <ProjectReference Include="..\..\src\Aspire.Hosting.MySql\Aspire.Hosting.MySql.csproj" />
     <ProjectReference Include="..\..\src\Components\Aspire.MySqlConnector\Aspire.MySqlConnector.csproj" />
     <ProjectReference Include="..\..\src\Components\Aspire.Pomelo.EntityFrameworkCore.MySql\Aspire.Pomelo.EntityFrameworkCore.MySql.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="$(SharedDir)SecretsStore.cs" Link="Utils\SecretsStore.cs" />
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Testing\ResourceLoggerForwarderService.cs" Link="Utils\ResourceLoggerForwarderService.cs" />
   </ItemGroup>
 
 </Project>

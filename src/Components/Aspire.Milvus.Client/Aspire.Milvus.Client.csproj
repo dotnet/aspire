@@ -1,15 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentCommonPackageTags) milvus database vector search</PackageTags>
     <Description>A Milvus client that integrates with Aspire, including logging.</Description>
     <PackageIconFullPath>$(SharedDir)Milvus_256x.png</PackageIconFullPath>
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- Milvus.Client packages are not signed -->
-    <!-- Disable package validation as this package hasn't shipped yet. -->
-    <EnablePackageValidation>false</EnablePackageValidation>
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
   <PropertyGroup>

@@ -4,54 +4,17 @@
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 
-@inject IJSRuntime JS
-@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
-@inject IStringLocalizer<Columns> Loc
+@inject IStringLocalizer<StructuredLogs> Loc
 
-<FluentStack Orientation="Orientation.Horizontal" Style="align-items: center;" HorizontalGap="0">
-    @if (_hasErrorInfo)
-    {
-        var iconId = Guid.NewGuid().ToString();
-        @*
-        * We don't want a browser tooltip to display when hovering over the error icon.
-        * Use alt instead of title for screen readers. Also, the column has a title set
-        * so add a whitespace title to prevent a browser tooltip from displaying.
-        *@
-        var title = " ";
-
-        <FluentIcon alt="@Loc[nameof(Columns.LogMessageColumnExceptionDetailsTitle)]"
-                    title="@title"
-                    Style="flex-shrink: 0"
-                    Id="@iconId"
-                    Icon="Icons.Filled.Size16.DocumentError"
-                    Color="Color.Accent"
-                    Class="severity-icon"/>
-
-        <FluentTooltip Anchor="@iconId" MaxWidth="650px">
-            <div style="padding: 10px">
-                <h4>@Loc[nameof(Columns.LogMessageColumnExceptionDetailsTitle)]</h4>
-
-                <pre style="white-space: pre-wrap; overflow-wrap: break-word; max-height: 300px; overflow: auto;">@_errorInfo</pre>
-
-                <div style="float: right; margin-bottom: 10px;">
-                    <FluentButton
-                        Id="@Guid.NewGuid().ToString()"
-                        Appearance="Appearance.Lightweight"
-                        AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(_errorInfo, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)].ToString(), ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)].ToString())">
-                        @ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]
-
-                        <FluentIcon Class="copy-icon align-text-bottom" Style="display:inline;" Icon="Icons.Regular.Size16.Copy"/>
-                        <FluentIcon Class="checkmark-icon align-text-bottom" Style="display:none;" Icon="Icons.Regular.Size16.Checkmark"/>
-                    </FluentButton>
-                </div>
-            </div>
-        </FluentTooltip>
-    }
-
-    <GridValue Value="@LogEntry.Message"
-               EnableHighlighting="true"
-               HighlightText="@FilterText"/>
-</FluentStack>
+<GridValue Value="@LogEntry.Message"
+           ValueDescription="@Loc[nameof(StructuredLogs.StructuredLogsMessageColumnHeader)]"
+           EnableHighlighting="true"
+           HighlightText="@FilterText"
+           StopClickPropagation="true">
+    <ContentInButtonArea>
+        <ExceptionDetails ExceptionText="@_exceptionText" />
+    </ContentInButtonArea>
+</GridValue>
 
 @code {
     [Parameter, EditorRequired]

@@ -12,7 +12,7 @@
       repo by adding appropriate `Directory.Build.{props,targets}`, and `Directory.Packages.props`
       - and using a custom `nuget.config` which resolves the Aspire packages from the locally built packages
       - and a `Directory.Packages.Versions.props` is generated with PackageVersions taken from the repo
-        - This also adds properties named in `@(PropertyForHelixRun)` from the repo, like `$(NetCurrent)`
+        - This also adds properties named in `@(PropertyForHelixRun)` from the repo, like `$(DefaultTargetFramework)`
 
     Public Properties:
       `TestsRunningOutsideOfRepo` - When `true`, `@(*ReferenceForTests)` are converted to `PackageReferences`. Else they become
@@ -33,6 +33,8 @@
     `AspireProjectOrPackageReference` - maps to projects in `src/` or `src/Components/`
   -->
 
+  <Import Project="Sdk.props" Sdk="Aspire.AppHost.Sdk" Version="$(PackageVersion)" Condition="'$(IsAspireHost)' == 'true' and '$(RepoRoot)' == '' and '$(TestsRunningOutsideOfRepo)' == 'true'" />
+
   <PropertyGroup>
     <!-- copy by default only when archiving tests, and for test projects that support running out of repo -->
     <DeployOutsideOfRepoSupportFiles Condition="'$(DeployOutsideOfRepoSupportFiles)' == '' and '$(ArchiveTests)' == 'true' and '$(IsTestProject)' == 'true'">true</DeployOutsideOfRepoSupportFiles>
@@ -44,7 +46,9 @@
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">
     <_CandidateProjectReference Include="@(AspireProjectOrPackageReference -> '$(RepoRoot)src\Components\%(Identity)\%(Identity).csproj')" />
     <_CandidateProjectReference Include="@(AspireProjectOrPackageReference -> '$(RepoRoot)src\%(Identity)\%(Identity).csproj')" />
-    <ProjectReference Include="@(_CandidateProjectReference->Exists())" />
+
+    <ProjectReference Include="@(_CandidateProjectReference->Exists())" Condition="'$(IsAspireHost)' == 'true'" IsAspireProjectResource="false" />
+    <ProjectReference Include="@(_CandidateProjectReference->Exists())" Condition="'$(IsAspireHost)' != 'true'" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
@@ -61,16 +65,6 @@
     <PackageReference Include="xunit.assert" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
-    <PackageReference Include="Microsoft.DotNet.XUnitAssert" />
-
-    <!-- And corresponding version properties used by `PackageVersion` items
-         in Directory.Packages.Helix.props -->
-    <PropertyForHelixRun Include="XunitVersion" />
-    <PropertyForHelixRun Include="XunitAnalyzersVersion" />
-    <PropertyForHelixRun Include="XunitRunnerVisualStudioVersion" />
-    <PropertyForHelixRun Include="MSTestTestAdapterVersion" />
-    <PropertyForHelixRun Include="MicrosoftNETTestSdkVersion" />
-    <PropertyForHelixRun Include="MicrosoftDotNetXUnitAssertVersion" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(DeployOutsideOfRepoSupportFiles)' == 'true'">
@@ -88,7 +82,14 @@
 
     <None Include="$(TestsSharedDir)\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
-    <PropertyForHelixRun Include="NetCurrent" />
+    <PropertyForHelixRun Include="DefaultTargetFramework" />
+    <PropertyForHelixRun Include="XunitVersion" />
+    <PropertyForHelixRun Include="XunitAnalyzersVersion" />
+    <PropertyForHelixRun Include="XunitRunnerVisualStudioVersion" />
+    <PropertyForHelixRun Include="MSTestTestAdapterVersion" />
+    <PropertyForHelixRun Include="MicrosoftNETTestSdkVersion" />
+    <PropertyForHelixRun Include="MicrosoftDotNetXUnitAssertVersion" />
+    <PropertyForHelixRun Include="PackageVersion" />
   </ItemGroup>
 
   <Target Name="_UpdateArchiveSourcePath" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true' and '$(DeployOutsideOfRepoSupportFilesRelativeDir)' != ''">
@@ -141,7 +142,14 @@
 
   <ImportGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'">
     <Import Project="$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets" Condition="Exists('$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets')" />
-    <Import Project="$(RepoRoot)src\Aspire.Hosting.Sdk\SDK\Sdk.targets" Condition="Exists('$(RepoRoot)src\Aspire.Hosting.Sdk\SDK\Sdk.targets')" />
+    <Import Project="$(RepoRoot)src\Aspire.AppHost.Sdk\SDK\Sdk.in.targets" Condition="Exists('$(RepoRoot)src\Aspire.AppHost.Sdk\SDK\Sdk.in.targets')" />
   </ImportGroup>
+
+  <PropertyGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'">
+    <!-- This is for in-repo testing and required for Aspire.Hosting.AppHost targets loading correctly. On real projects, this comes from SDK.props in Aspire.AppHost.SDK. -->
+    <AspireHostingSDKVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion)</AspireHostingSDKVersion>
+  </PropertyGroup>
+
+  <Import Project="Sdk.targets" Sdk="Aspire.AppHost.Sdk" Version="$(PackageVersion)" Condition="'$(IsAspireHost)' == 'true' and '$(RepoRoot)' == '' and '$(TestsRunningOutsideOfRepo)' == 'true'" />
 
 </Project>

@@ -6,6 +6,7 @@ using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -14,6 +15,47 @@ namespace Aspire.Hosting.Tests;
 
 public class ProjectResourceTests
 {
+    [Fact]
+    public async Task AddProjectWithInvalidLaunchSettingsShouldThrowSpecificError()
+    {
+        var projectDetails = await PrepareProjectWithMalformedLaunchSettingsAsync().DefaultTimeout();
+
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            var appBuilder = CreateBuilder();
+            appBuilder.AddProject("project", projectDetails.ProjectFilePath);
+        });
+
+        var expectedMessage = $"Failed to get effective launch profile for project resource 'project'. There is malformed JSON in the project's launch settings file at '{projectDetails.LaunchSettingsFilePath}'.";
+        Assert.Equal(expectedMessage, ex.Message);
+
+        async static Task<(string ProjectFilePath, string LaunchSettingsFilePath)> PrepareProjectWithMalformedLaunchSettingsAsync()
+        {
+            var csProjContent = """
+                                <Project Sdk="Microsoft.NET.Sdk.Web">
+                                <!-- Not a real project, just a stub for testing -->
+                                </Project>
+                                """;
+
+            var launchSettingsContent = """
+                                        this { is } { mal formed! >
+                                        """;
+
+            var projectDirectoryPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            var projectFilePath = Path.Combine(projectDirectoryPath, "Project.csproj");
+            var propertiesDirectoryPath = Path.Combine(projectDirectoryPath, "Properties");
+            var launchSettingsFilePath = Path.Combine(propertiesDirectoryPath, "launchSettings.json");
+
+            Directory.CreateDirectory(projectDirectoryPath);
+            await File.WriteAllTextAsync(projectFilePath, csProjContent).DefaultTimeout();
+
+            Directory.CreateDirectory(propertiesDirectoryPath);
+            await File.WriteAllTextAsync(launchSettingsFilePath, launchSettingsContent).DefaultTimeout();
+
+            return (projectFilePath, launchSettingsFilePath);
+        }
+    }
+
     [Fact]
     public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata()
     {
@@ -33,7 +75,7 @@ public class ProjectResourceTests
         var serviceMetadata = Assert.Single(resource.Annotations.OfType<IProjectMetadata>());
         Assert.IsType<TestProject>(serviceMetadata);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Collection(config,
             env =>
@@ -122,11 +164,6 @@ public class ProjectResourceTests
             {
                 Assert.Equal("LOGGING__CONSOLE__FORMATTERNAME", env.Key);
                 Assert.Equal("simple", env.Value);
-            },
-            env =>
-            {
-                Assert.Equal("LOGGING__CONSOLE__FORMATTEROPTIONS__TIMESTAMPFORMAT", env.Key);
-                Assert.Equal("yyyy-MM-ddTHH:mm:ss.fffffff ", env.Value);
             });
     }
 
@@ -149,7 +186,7 @@ public class ProjectResourceTests
         var resource = Assert.Single(projectResources);
         Assert.Equal("projectName", resource.Name);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         if (hasHeader)
         {
@@ -278,7 +315,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Publish);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Publish).DefaultTimeout();
 
         Assert.False(config.ContainsKey("ASPNETCORE_URLS"));
         Assert.False(config.ContainsKey("ASPNETCORE_HTTPS_PORT"));
@@ -321,7 +358,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("http://localhost:p0;https://localhost:p1", config["ASPNETCORE_URLS"]);
         Assert.Equal("5001", config["ASPNETCORE_HTTPS_PORT"]);
@@ -343,7 +380,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.False(config.ContainsKey("ASPNETCORE_URLS"));
         Assert.False(config.ContainsKey("ASPNETCORE_HTTPS_PORT"));
@@ -368,10 +405,39 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("http://localhost:p0", config["ASPNETCORE_URLS"]);
         Assert.False(config.ContainsKey("ASPNETCORE_HTTPS_PORT"));
+    }
+
+    [Fact]
+    public async Task ProjectWithMultipleLaunchProfileAppUrlsGetsAllUrls()
+    {
+        var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
+
+        var builder = appBuilder.AddProject<TestProjectWithManyAppUrlsInLaunchSettings>("projectName");
+
+        // Need to allocated all the endpoints we get from the launch profile applicationUrl
+        var index = 0;
+        foreach (var q in new[] { "http", "http2", "https", "https2", "https3" })
+        {
+            builder.WithEndpoint(q, e =>
+            {
+                e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: $"p{index++}");
+            });
+        }
+
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var projectResources = appModel.GetProjectResources();
+        var resource = Assert.Single(projectResources);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        Assert.Equal("https://localhost:p2;http://localhost:p0;http://localhost:p1;https://localhost:p3;https://localhost:p4", config["ASPNETCORE_URLS"]);
+
+        // The first https port is the one that should be used for ASPNETCORE_HTTPS_PORT
+        Assert.Equal("7144", config["ASPNETCORE_HTTPS_PORT"]);
     }
 
     [Fact]
@@ -412,7 +478,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var manifest = await ManifestUtils.GetManifest(resource);
+        var manifest = await ManifestUtils.GetManifest(resource).DefaultTimeout();
 
         var fordwardedHeadersEnvVar = disableForwardedHeaders
             ? ""
@@ -462,7 +528,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var manifest = await ManifestUtils.GetManifest(resource);
+        var manifest = await ManifestUtils.GetManifest(resource).DefaultTimeout();
 
         var expectedManifest = $$"""
             {
@@ -518,11 +584,57 @@ public class ProjectResourceTests
 
         using var app = appBuilder.Build();
 
-        var args = await ArgumentEvaluator.GetArgumentListAsync(project.Resource);
+        var args = await ArgumentEvaluator.GetArgumentListAsync(project.Resource).DefaultTimeout();
 
         Assert.Collection(args,
             arg => Assert.Equal("arg1", arg),
             arg => Assert.Equal("http://localhost:1234", arg));
+    }
+
+    [Theory]
+    [InlineData(true, "localhost")]
+    [InlineData(false, "*")]
+    public async Task AddProjectWithWildcardUrlInLaunchSettings(bool isProxied, string expectedHost)
+    {
+        var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
+
+        appBuilder.AddProject<TestProjectWithWildcardUrlInLaunchSettings>("projectName")
+            .WithEndpoint("http", e =>
+            {
+                Assert.Equal("*", e.TargetHost);
+                e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p0");
+                e.IsProxied = isProxied;
+            })
+            .WithEndpoint("https", e =>
+            {
+                Assert.Equal("*", e.TargetHost);
+                e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p1");
+                e.IsProxied = isProxied;
+            });
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        var http = resource.GetEndpoint("http");
+        var https = resource.GetEndpoint("https");
+
+        if (isProxied)
+        {
+            // When the end point is proxied, the host should be localhost and the port should match the targetPortExpression
+            Assert.Equal($"http://{expectedHost}:p0;https://{expectedHost}:p1", config["ASPNETCORE_URLS"]);
+        }
+        else
+        {
+            Assert.Equal($"http://{expectedHost}:{http.TargetPort};https://{expectedHost}:{https.TargetPort}", config["ASPNETCORE_URLS"]);
+        }
+
+        Assert.Equal(https.Port.ToString(), config["ASPNETCORE_HTTPS_PORT"]);
     }
 
     internal static IDistributedApplicationBuilder CreateBuilder(string[]? args = null, DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)
@@ -568,12 +680,54 @@ public class ProjectResourceTests
         {
             Profiles = new()
             {
-                ["http"] = new ()
+                ["http"] = new()
                 {
                     CommandName = "Project",
                     CommandLineArgs = "arg1 arg2",
                     LaunchBrowser = true,
                     ApplicationUrl = "http://localhost:5031",
+                    EnvironmentVariables = new()
+                    {
+                        ["ASPNETCORE_ENVIRONMENT"] = "Development"
+                    }
+                }
+            };
+        }
+    }
+
+    private sealed class TestProjectWithManyAppUrlsInLaunchSettings : BaseProjectWithProfileAndConfig
+    {
+        public TestProjectWithManyAppUrlsInLaunchSettings()
+        {
+            Profiles = new()
+            {
+                ["https"] = new()
+                {
+                    CommandName = "Project",
+                    CommandLineArgs = "arg1 arg2",
+                    LaunchBrowser = true,
+                    ApplicationUrl = "https://localhost:7144;http://localhost:5193;http://localhost:5194;https://localhost:7145;https://localhost:7146",
+                    EnvironmentVariables = new()
+                    {
+                        ["ASPNETCORE_ENVIRONMENT"] = "Development"
+                    }
+                }
+            };
+        }
+    }
+
+    private sealed class TestProjectWithWildcardUrlInLaunchSettings : BaseProjectWithProfileAndConfig
+    {
+        public TestProjectWithWildcardUrlInLaunchSettings()
+        {
+            Profiles = new()
+            {
+                ["https"] = new()
+                {
+                    CommandName = "Project",
+                    CommandLineArgs = "arg1 arg2",
+                    LaunchBrowser = true,
+                    ApplicationUrl = "http://*:5031;https://*:5033",
                     EnvironmentVariables = new()
                     {
                         ["ASPNETCORE_ENVIRONMENT"] = "Development"

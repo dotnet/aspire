@@ -1,8 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
-    <RunTestsOnHelix>true</RunTestsOnHelix>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+
+    <!-- Issue: https://github.com/dotnet/aspire/issues/5634 -->
+    <SkipTests Condition="'$(ContinuousIntegrationBuild)' == 'true'">true</SkipTests>
+    <RunTestsOnHelix>false</RunTestsOnHelix>
   </PropertyGroup>
 
   <ItemGroup>

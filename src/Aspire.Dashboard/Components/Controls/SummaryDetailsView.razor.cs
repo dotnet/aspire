@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
@@ -10,6 +9,8 @@ using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
+
+public sealed record SummaryDetailsSize(Orientation Orientation, float Panel1Fraction);
 
 public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
 {
@@ -26,10 +27,13 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
     public string? DetailsTitle { get; set; }
 
     [Parameter]
-    public Orientation Orientation { get; set; } = Orientation.Vertical;
+    public Orientation Orientation { get; set; } = Orientation.Horizontal;
 
     [Parameter]
     public EventCallback OnDismiss { get; set; }
+
+    [Parameter]
+    public EventCallback<SummaryDetailsSize> OnResize { get; set; }
 
     [Parameter]
     public bool RememberSize { get; set; } = true;
@@ -66,10 +70,22 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
+    private float _panel1Fraction;
+
     private string _panel1Size { get; set; } = "1fr";
     private string _panel2Size { get; set; } = "1fr";
     private bool _internalShowDetails;
     private FluentSplitter? _splitterRef;
+
+    public string EffectivePanel1Size => ViewportInformation.IsDesktop ? _panel1Size : "0fr";
+    public string EffectivePanel2Size => ViewportInformation.IsDesktop ? _panel2Size : "1fr";
+
+    public string PanelMinimumSize => ViewportInformation.IsDesktop ? "150px" : "0";
+
+    protected override void OnInitialized()
+    {
+        ResetPanelSizes();
+    }
 
     protected override void OnAfterRender(bool firstRender)
     {
@@ -81,33 +97,44 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
 
     protected override async Task OnParametersSetAsync()
     {
-        // If show details is changing from false to true, read saved state.
-        if (ShowDetails && !_internalShowDetails)
+        // Is visible state changing?
+        if (ShowDetails != _internalShowDetails)
         {
-            if (RememberOrientation)
+            // If show details is changing from false to true, read saved state.
+            if (ShowDetails)
             {
-                var orientationResult = await LocalStore.SafeGetAsync<Orientation>(GetOrientationStorageKey());
-                if (orientationResult.Success)
+                if (RememberOrientation)
                 {
-                    Orientation = orientationResult.Value;
+                    var orientationResult = await LocalStore.GetUnprotectedAsync<Orientation>(GetOrientationStorageKey());
+                    if (orientationResult.Success)
+                    {
+                        Orientation = orientationResult.Value;
+                    }
+                }
+
+                if (RememberSize)
+                {
+                    var panel1FractionResult = await LocalStore.GetUnprotectedAsync<float>(GetSizeStorageKey());
+                    if (panel1FractionResult.Success)
+                    {
+                        var fraction = Math.Clamp(panel1FractionResult.Value, 0, 1);
+                        SetPanelSizes(fraction);
+                    }
                 }
             }
 
-            if (RememberSize)
-            {
-                var panel1FractionResult = await LocalStore.SafeGetAsync<float>(GetSizeStorageKey());
-                if (panel1FractionResult.Success)
-                {
-                    SetPanelSizes(panel1FractionResult.Value);
-                }
-            }
+            await RaiseOnResizeAsync();
         }
 
         // Bind visibility to internal bool that is set after reading from local store.
         // This is required because we only want to show details after resolving size and orientation
         // to avoid a flash of content in the wrong location.
         _internalShowDetails = ShowDetails;
-        SetPanelToFullScreenOnMobile();
+    }
+
+    private async Task RaiseOnResizeAsync()
+    {
+        await OnResize.InvokeAsync(new SummaryDetailsSize(Orientation, ShowDetails ? _panel1Fraction : 1));
     }
 
     private async Task HandleDismissAsync()
@@ -128,16 +155,16 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
 
         if (RememberOrientation)
         {
-            await LocalStore.SetAsync(GetOrientationStorageKey(), Orientation);
+            await LocalStore.SetUnprotectedAsync(GetOrientationStorageKey(), Orientation);
         }
 
         if (RememberSize)
         {
-            var panel1FractionResult = await LocalStore.SafeGetAsync<float>(GetSizeStorageKey());
+            var panel1FractionResult = await LocalStore.GetUnprotectedAsync<float>(GetSizeStorageKey());
             if (panel1FractionResult.Success)
             {
-                SetPanelSizes(panel1FractionResult.Value);
-
+                var fraction = Math.Clamp(panel1FractionResult.Value, 0, 1);
+                SetPanelSizes(fraction);
             }
             else
             {
@@ -148,6 +175,8 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
         {
             ResetPanelSizes();
         }
+
+        await RaiseOnResizeAsync();
 
         // The FluentSplitter control will render during the async calls above, but with the wrong values.
         // We need to force a re-render to get the correct values.
@@ -166,33 +195,29 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
         {
             await SaveSizeToStorage(panel1Fraction);
         }
+
+        await RaiseOnResizeAsync();
     }
 
     private async Task SaveSizeToStorage(float panel1Fraction)
     {
-        await LocalStore.SetAsync(GetSizeStorageKey(), panel1Fraction);
+        await LocalStore.SetUnprotectedAsync(GetSizeStorageKey(), Math.Round(panel1Fraction, 3));
     }
 
     private void ResetPanelSizes()
     {
-        _panel1Size = "1fr";
-        _panel2Size = "1fr";
+        _panel1Fraction = 0.5f;
+        _panel1Size = "0.5fr";
+        _panel2Size = "0.5fr";
     }
 
     private void SetPanelSizes(float panel1Fraction)
     {
+        _panel1Fraction = panel1Fraction;
+
         // These need to not use culture-specific formatting because it needs to be a valid CSS value
         _panel1Size = string.Create(CultureInfo.InvariantCulture, $"{panel1Fraction:F3}fr");
         _panel2Size = string.Create(CultureInfo.InvariantCulture, $"{(1 - panel1Fraction):F3}fr");
-    }
-
-    private void SetPanelToFullScreenOnMobile()
-    {
-        if (!ViewportInformation.IsDesktop)
-        {
-            // panel 1 will have a height of 0, so its fraction of 1 is also 0
-            SetPanelSizes(panel1Fraction: 0);
-        }
     }
 
     public IReadOnlySet<AspireKeyboardShortcut> SubscribedShortcuts { get; } = new HashSet<AspireKeyboardShortcut>
@@ -262,7 +287,12 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
         }
 
         await SaveSizeToStorage(newPanel1Fraction.Value);
-        await InvokeAsync(StateHasChanged);
+        await InvokeAsync(async () =>
+        {
+            await RaiseOnResizeAsync();
+
+            StateHasChanged();
+        });
 
         return;
 
@@ -293,13 +323,13 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
     private string GetSizeStorageKey()
     {
         var viewKey = ViewKey ?? NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-        return $"SplitterSize_{Orientation}_{viewKey}";
+        return BrowserStorageKeys.SplitterSizeKey(viewKey, Orientation);
     }
 
     private string GetOrientationStorageKey()
     {
         var viewKey = ViewKey ?? NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-        return $"SplitterOrientation_{viewKey}";
+        return BrowserStorageKeys.SplitterOrientationKey(viewKey);
     }
 
     public void Dispose()

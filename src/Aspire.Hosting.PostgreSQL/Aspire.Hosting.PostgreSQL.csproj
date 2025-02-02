@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting postgresql postgres npgsql sql</PackageTags>
+    <PackageTags>aspire integration hosting postgresql postgres npgsql sql</PackageTags>
     <Description>PostgreSQL® support for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)PostgreSQL_logo.3colors.540x557.png</PackageIconFullPath>
   </PropertyGroup>
@@ -14,7 +14,10 @@
 
   <ItemGroup>
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
-    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AspNetCore.HealthChecks.NpgSql" />
   </ItemGroup>
 
   <ItemGroup>

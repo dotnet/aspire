@@ -163,7 +163,7 @@ public class AspireElasticClientExtensionsTest : IClassFixture<ElasticsearchCont
             var activity = activityList[0];
             Assert.Equal("ping", activity.OperationName);
             Assert.Contains(activity.Tags, kvp => kvp.Key == "db.system" && kvp.Value == "elasticsearch");
-        }, DefaultConnectionString).Dispose();
+        }, DefaultConnectionString, new RemoteInvokeOptions { TimeOut = 120_000 }).Dispose();
     }
 
     private static HostApplicationBuilder CreateBuilder(string connectionString)

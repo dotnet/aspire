@@ -2,17 +2,18 @@
 
 @inject IStringLocalizer<Layout> LayoutLoc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
+@inject IStringLocalizer<Dialogs> DialogsLoc
 
 <div class="content-layout">
     <!-- Toolbar -->
     @if (ViewportInformation.IsDesktop)
     {
-        <header style="grid-area: page-header; @HeaderStyle" aria-label="@ControlsStringsLoc[nameof(ControlsStrings.PageToolbarLandmark)]">
+        <header class="content-header" style="@HeaderStyle" aria-label="@ControlsStringsLoc[nameof(ControlsStrings.PageToolbarLandmark)]">
             @if (AddNewlineOnToolbar)
             {
                 @PageTitleSection
 
-                <FluentToolbar Orientation="Orientation.Horizontal">
+                <FluentToolbar Class="main-toolbar" Orientation="Orientation.Horizontal">
                     @ToolbarSection
                 </FluentToolbar>
             }
@@ -27,7 +28,7 @@
     }
     else if (!IsSummaryDetailsViewOpen)
     {
-        <header style="grid-area: page-header">
+        <header class="content-header">
             <FluentToolbar Orientation="Orientation.Horizontal" Style="@HeaderStyle">
                 @PageTitleSection
 
@@ -39,7 +40,7 @@
 
             @if (AddNewlineOnToolbar)
             {
-                <div style="padding: calc(var(--design-unit) * 2.5px)">@MobilePageTitleToolbarSection</div>
+                <div style="padding-left: calc(var(--design-unit) * 4.5px)">@MobilePageTitleToolbarSection</div>
             }
         </header>
     }

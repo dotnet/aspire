@@ -1,13 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
-using Aspire.Dashboard.Configuration;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
-using OpenTelemetry.Proto.Resource.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
 
@@ -20,56 +21,20 @@ public class OtlpApplication
 
     public string ApplicationName { get; }
     public string InstanceId { get; }
+    public OtlpContext Context { get; }
 
     public ApplicationKey ApplicationKey => new ApplicationKey(ApplicationName, InstanceId);
 
     private readonly ReaderWriterLockSlim _metricsLock = new();
     private readonly Dictionary<string, OtlpMeter> _meters = new();
     private readonly Dictionary<OtlpInstrumentKey, OtlpInstrument> _instruments = new();
+    private readonly ConcurrentDictionary<KeyValuePair<string, string>[], OtlpApplicationView> _applicationViews = new(ApplicationViewKeyComparer.Instance);
 
-    private readonly ILogger _logger;
-    private readonly TelemetryLimitOptions _options;
-
-    public KeyValuePair<string, string>[] Properties { get; }
-
-    public OtlpApplication(string name, string instanceId, Resource resource, ILogger logger, TelemetryLimitOptions options)
+    public OtlpApplication(string name, string instanceId, OtlpContext context)
     {
-        var properties = new List<KeyValuePair<string, string>>();
-        foreach (var attribute in resource.Attributes)
-        {
-            switch (attribute.Key)
-            {
-                case SERVICE_NAME:
-                case SERVICE_INSTANCE_ID:
-                    // Values passed in via ctor and set to members. Don't add to properties collection.
-                    break;
-                default:
-                    properties.Add(new KeyValuePair<string, string>(attribute.Key, attribute.Value.GetString()));
-                    break;
-
-            }
-        }
-        Properties = properties.ToArray();
-
         ApplicationName = name;
         InstanceId = instanceId;
-
-        _logger = logger;
-        _options = options;
-    }
-
-    public Dictionary<string, string> AllProperties()
-    {
-        var props = new Dictionary<string, string>();
-        props.Add(SERVICE_NAME, ApplicationName);
-        props.Add(SERVICE_INSTANCE_ID, InstanceId);
-
-        foreach (var kv in Properties)
-        {
-            props.TryAdd(kv.Key, kv.Value);
-        }
-
-        return props;
+        Context = context;
     }
 
     public void AddMetrics(AddContext context, RepeatedField<ScopeMetrics> scopeMetrics)
@@ -85,31 +50,128 @@ public class OtlpApplication
             {
                 foreach (var metric in sm.Metrics)
                 {
+                    OtlpInstrument instrument;
+
                     try
                     {
-                        var instrumentKey = new OtlpInstrumentKey(sm.Scope.Name, metric.Name);
-                        if (!_instruments.TryGetValue(instrumentKey, out var instrument))
+                        if (string.IsNullOrEmpty(metric.Name))
                         {
-                            _instruments.Add(instrumentKey, instrument = new OtlpInstrument
+                            throw new InvalidOperationException("Instrument name is required.");
+                        }
+
+                        var instrumentKey = new OtlpInstrumentKey(sm.Scope.Name, metric.Name);
+                        ref var instrumentRef = ref CollectionsMarshal.GetValueRefOrAddDefault(_instruments, instrumentKey, out _);
+                        // Adds to dictionary if not present.
+                        instrumentRef ??= new OtlpInstrument
+                        {
+                            Summary = new OtlpInstrumentSummary
                             {
                                 Name = metric.Name,
                                 Description = metric.Description,
                                 Unit = metric.Unit,
                                 Type = MapMetricType(metric.DataCase),
-                                Parent = GetMeter(sm.Scope),
-                                Options = _options
-                            });
-                        }
+                                Parent = GetMeter(sm.Scope)
+                            },
+                            Context = Context
+                        };
 
-                        instrument.AddMetrics(metric, ref tempAttributes);
+                        instrument = instrumentRef;
+                    }
+                    catch (Exception ex)
+                    {
+                        // If we can't create the instrument then all data points for it are failures.
+                        context.FailureCount += GetMetricDataPointCount(metric);
+                        Context.Logger.LogInformation(ex, "Error adding metric instrument {MetricName}.", metric.Name);
+                        continue;
+                    }
+
+                    AddMetrics(instrument, metric, context, ref tempAttributes);
+                }
+            }
+        }
+        finally
+        {
+            _metricsLock.ExitWriteLock();
+        }
+    }
+
+    private static int GetMetricDataPointCount(Metric metric)
+    {
+        return metric.DataCase switch
+        {
+            Metric.DataOneofCase.Gauge => metric.Gauge.DataPoints.Count,
+            Metric.DataOneofCase.Sum => metric.Sum.DataPoints.Count,
+            Metric.DataOneofCase.Histogram => metric.Histogram.DataPoints.Count,
+            Metric.DataOneofCase.Summary => metric.Summary.DataPoints.Count,
+            Metric.DataOneofCase.ExponentialHistogram => metric.ExponentialHistogram.DataPoints.Count,
+            _ => 0,
+        };
+    }
+
+    private void AddMetrics(OtlpInstrument instrument, Metric metric, AddContext context, ref KeyValuePair<string, string>[]? tempAttributes)
+    {
+        switch (metric.DataCase)
+        {
+            case Metric.DataOneofCase.Gauge:
+                foreach (var d in metric.Gauge.DataPoints)
+                {
+                    try
+                    {
+                        instrument.FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Context);
                     }
                     catch (Exception ex)
                     {
                         context.FailureCount++;
-                        _logger.LogInformation(ex, "Error adding metric.");
+                        Context.Logger.LogInformation(ex, "Error adding metric.");
                     }
                 }
-            }
+                break;
+            case Metric.DataOneofCase.Sum:
+                foreach (var d in metric.Sum.DataPoints)
+                {
+                    try
+                    {
+                        instrument.FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Context);
+                    }
+                    catch (Exception ex)
+                    {
+                        context.FailureCount++;
+                        Context.Logger.LogInformation(ex, "Error adding metric.");
+                    }
+                }
+                break;
+            case Metric.DataOneofCase.Histogram:
+                foreach (var d in metric.Histogram.DataPoints)
+                {
+                    try
+                    {
+                        instrument.FindScope(d.Attributes, ref tempAttributes).AddHistogramValue(d, Context);
+                    }
+                    catch (Exception ex)
+                    {
+                        context.FailureCount++;
+                        Context.Logger.LogInformation(ex, "Error adding metric.");
+                    }
+                }
+                break;
+            case Metric.DataOneofCase.Summary:
+                context.FailureCount += metric.Summary.DataPoints.Count;
+                Context.Logger.LogInformation("Error adding summary metrics. Summary is not supported.");
+                break;
+            case Metric.DataOneofCase.ExponentialHistogram:
+                context.FailureCount += metric.ExponentialHistogram.DataPoints.Count;
+                Context.Logger.LogInformation("Error adding exponential histogram metrics. Exponential histogram is not supported.");
+                break;
+        }
+    }
+
+    public void ClearMetrics()
+    {
+        _metricsLock.EnterWriteLock();
+
+        try
+        {
+            _instruments.Clear();
         }
         finally
         {
@@ -130,10 +192,10 @@ public class OtlpApplication
 
     private OtlpMeter GetMeter(InstrumentationScope scope)
     {
-        if (!_meters.TryGetValue(scope.Name, out var meter))
-        {
-            _meters.Add(scope.Name, meter = new OtlpMeter(scope, _options));
-        }
+        ref var meter = ref CollectionsMarshal.GetValueRefOrAddDefault(_meters, scope.Name, out _);
+        // Adds to dictionary if not present.
+        meter ??= new OtlpMeter(scope, Context);
+
         return meter;
     }
 
@@ -156,16 +218,16 @@ public class OtlpApplication
         }
     }
 
-    public List<OtlpInstrument> GetInstrumentsSummary()
+    public List<OtlpInstrumentSummary> GetInstrumentsSummary()
     {
         _metricsLock.EnterReadLock();
 
         try
         {
-            var instruments = new List<OtlpInstrument>(_instruments.Count);
+            var instruments = new List<OtlpInstrumentSummary>(_instruments.Count);
             foreach (var instrument in _instruments)
             {
-                instruments.Add(OtlpInstrument.Clone(instrument.Value, cloneData: false, valuesStart: null, valuesEnd: null));
+                instruments.Add(instrument.Value.Summary);
             }
             return instruments;
         }
@@ -181,6 +243,9 @@ public class OtlpApplication
             .GroupBy(application => application.ApplicationName, StringComparers.ResourceName)
             .ToDictionary(grouping => grouping.Key, grouping => grouping.ToList());
     }
+
+    public static string GetResourceName(OtlpApplicationView app, List<OtlpApplication> allApplications) =>
+        GetResourceName(app.Application, allApplications);
 
     public static string GetResourceName(OtlpApplication app, List<OtlpApplication> allApplications)
     {
@@ -212,5 +277,70 @@ public class OtlpApplication
         }
 
         return app.ApplicationName;
+    }
+
+    internal List<OtlpApplicationView> GetViews() => _applicationViews.Values.ToList();
+
+    internal OtlpApplicationView GetView(RepeatedField<KeyValue> attributes)
+    {
+        // Inefficient to create this to possibly throw it away.
+        var view = new OtlpApplicationView(this, attributes);
+
+        if (_applicationViews.TryGetValue(view.Properties, out var applicationView))
+        {
+            return applicationView;
+        }
+
+        return _applicationViews.GetOrAdd(view.Properties, view);
+    }
+
+    /// <summary>
+    /// Application views are equal when all properties are equal.
+    /// </summary>
+    private sealed class ApplicationViewKeyComparer : IEqualityComparer<KeyValuePair<string, string>[]>
+    {
+        public static readonly ApplicationViewKeyComparer Instance = new();
+
+        public bool Equals(KeyValuePair<string, string>[]? x, KeyValuePair<string, string>[]? y)
+        {
+            if (x == y)
+            {
+                return true;
+            }
+            if (x == null || y == null)
+            {
+                return false;
+            }
+            if (x.Length != y.Length)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < x.Length; i++)
+            {
+                if (!string.Equals(x[i].Key, y[i].Key, StringComparisons.OtlpAttribute))
+                {
+                    return false;
+                }
+                if (!string.Equals(x[i].Value, y[i].Value, StringComparisons.OtlpAttribute))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public int GetHashCode([DisallowNull] KeyValuePair<string, string>[] obj)
+        {
+            var hashCode = new HashCode();
+            for (var i = 0; i < obj.Length; i++)
+            {
+                hashCode.Add(StringComparers.OtlpAttribute.GetHashCode(obj[i].Key));
+                hashCode.Add(StringComparers.OtlpAttribute.GetHashCode(obj[i].Value));
+            }
+
+            return hashCode.ToHashCode();
+        }
     }
 }

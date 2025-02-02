@@ -4,7 +4,7 @@
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Aspire.Dashboard.Authentication.OtlpApiKey;
-using Aspire.Dashboard.Authentication.OtlpConnection;
+using Aspire.Dashboard.Authentication.Connection;
 using Aspire.Dashboard.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Certificate;
@@ -39,7 +39,7 @@ public sealed class OtlpCompositeAuthenticationHandler(
 
         IEnumerable<string> GetRelevantAuthenticationSchemes()
         {
-            yield return OtlpConnectionAuthenticationDefaults.AuthenticationScheme;
+            yield return ConnectionTypeAuthenticationDefaults.AuthenticationSchemeOtlp;
 
             if (options.Otlp.AuthMode is OtlpAuthMode.ApiKey)
             {

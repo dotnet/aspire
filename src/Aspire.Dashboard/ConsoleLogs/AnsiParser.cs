@@ -9,6 +9,7 @@ public class AnsiParser
 {
     private const char EscapeChar = '\x1B';
     private const char ParametersSeparatorChar = ';';
+    private const char DisplayAttributesFinalByte = 'm';
     private const int ResetCode = 0;
     private const int IncreasedIntensityCode = 1;
     private const int ItalicCode = 3;
@@ -19,6 +20,49 @@ public class AnsiParser
     private const int DefaultBackgroundCode = 49;
     private const int XtermForegroundSequenceCode = 38;
     private const int XtermBackgroundSequenceCode = 48;
+
+    public static string StripControlSequences(string text)
+    {
+        StringBuilder? outputBuilder = null;
+        var span = text.AsSpan();
+        var currentPos = 0;
+        var lastWritePos = 0;
+
+        while (currentPos < text.Length)
+        {
+            var nextEscapeIndex = text.IndexOf(EscapeChar, currentPos);
+            if (nextEscapeIndex == -1)
+            {
+                if (outputBuilder != null)
+                {
+                    // Write remaining text.
+                    outputBuilder.Append(text[lastWritePos..]);
+                    break;
+                }
+
+                // No escape sequence found, and no text has been escaped. Return the original text.
+                return text;
+            }
+
+            if (IsConEmuSequence(span[currentPos..], ref currentPos) ||
+                IsControlSequence(span[currentPos..], ref currentPos, out _, out _) ||
+                IsLinkControlSequence(span[currentPos..], ref currentPos, out _))
+            {
+                // Append text before the escape sequence, then advance the cursor past the escape sequence
+                outputBuilder ??= new StringBuilder(text.Length);
+                outputBuilder.Append(text[lastWritePos..nextEscapeIndex]);
+
+                currentPos++;
+                lastWritePos = currentPos;
+            }
+            else
+            {
+                currentPos++;
+            }
+        }
+
+        return outputBuilder?.ToString() ?? text;
+    }
 
     public static ConversionResult ConvertToHtml(string? text, ParserState? priorResidualState = null)
     {
@@ -39,7 +83,7 @@ public class AnsiParser
 
         for (var i = 0; i < span.Length; i++)
         {
-            if (IsControlSequence(span[i..], ref i, out var parameters))
+            if (IsConEmuSequence(span[i..], ref i))
             {
                 // If we have a control sequence, but have found some text already,
                 // we need to write out the new styles (if applicable) and that text
@@ -55,8 +99,6 @@ public class AnsiParser
                     textStartIndex = -1;
                     textLength = 0;
                 }
-
-                ProcessParameters(ref newState, parameters);
 
                 continue;
             }
@@ -78,8 +120,35 @@ public class AnsiParser
                     textLength = 0;
                 }
 
-                // Apppend the URL unformatted, the Url matcher will convert to link later.
+                // Append the URL unformatted, the Url matcher will convert to link later.
                 outputBuilder.Append(url);
+
+                continue;
+            }
+
+            if (IsControlSequence(span[i..], ref i, out var finalByte, out var parameters))
+            {
+                // If we have a control sequence, but have found some text already,
+                // we need to write out the new styles (if applicable) and that text
+                // before we continue
+                if (textStartIndex != -1)
+                {
+                    if (newState != currentState)
+                    {
+                        outputBuilder.Append(ProcessStateChange(currentState, newState));
+                        currentState = newState;
+                    }
+                    outputBuilder.Append(text[textStartIndex..(textStartIndex + textLength)]);
+                    textStartIndex = -1;
+                    textLength = 0;
+                }
+
+                // The only sequences we care about are display sequences.
+                // Ignore everything else and don't write sequence to the output.
+                if (finalByte == DisplayAttributesFinalByte)
+                {
+                    ProcessParameters(ref newState, parameters);
+                }
 
                 continue;
             }
@@ -196,23 +265,26 @@ public class AnsiParser
         }
     }
 
-    private static bool IsControlSequence(ReadOnlySpan<char> span, ref int position, out int[] parameters)
+    private static bool IsControlSequence(ReadOnlySpan<char> span, ref int position, out char finalByte, out int[] parameters)
     {
         // If we're at \x1B[
         if (span.Length <= 2 || (span[0] != EscapeChar || span[1] != '['))
         {
             parameters = [];
+            finalByte = default;
             return false;
         }
 
-        // Find the index of the next 'm' character
-        var paramsEndPosition = span.IndexOf('m');
+        // Find the index of the final byte. Char in range of: @A–Z[\]^_`a–z{|}~
+        var paramsEndPosition = span.Slice(2).IndexOfAnyInRange('@', '~');
         if (paramsEndPosition < 0)
         {
-            // No end of escape with 'm' code, cannot parse params.
+            // No end of escape with final byte, cannot parse params.
             parameters = [];
+            finalByte = default;
             return false;
         }
+        paramsEndPosition += 2;
 
         // Find the index of the next escape character
         var nextEscapePosition = SubIndexOfSpan(span, EscapeChar, 1);
@@ -220,6 +292,7 @@ public class AnsiParser
         {
             // Current sequence is not finished before the next escape sequence starts.
             parameters = [];
+            finalByte = default;
             return false;
         }
 
@@ -251,6 +324,52 @@ public class AnsiParser
         // Advance the position in the span to the end of the control sequence
         position += paramsEndPosition;
         parameters = [.. ret];
+        finalByte = span[paramsEndPosition];
+
+        return true;
+    }
+
+    private static bool IsConEmuSequence(ReadOnlySpan<char> span, ref int position)
+    {
+        // If we're at \x1B]
+        if (span.Length <= 2 || (span[0] != EscapeChar || span[1] != ']'))
+        {
+            return false;
+        }
+
+        // Find the index of the end character.
+        // End character can be either \x1B (ESC) or \x07 (BELL)
+        var endEscPosition = span.IndexOf("\x1B\\");
+        var endBellPosition = span.IndexOf("\x07");
+
+        int paramsEndPosition;
+        if (endEscPosition != -1 && endBellPosition != -1)
+        {
+            if (endEscPosition < endBellPosition)
+            {
+                paramsEndPosition = endEscPosition + 1;
+            }
+            else
+            {
+                paramsEndPosition = endBellPosition;
+            }
+        }
+        else if (endEscPosition != -1)
+        {
+            paramsEndPosition = endEscPosition + 1;
+        }
+        else if (endBellPosition != -1)
+        {
+            paramsEndPosition = endBellPosition;
+        }
+        else
+        {
+            // No end of escape, cannot parse params.
+            return false;
+        }
+
+        // Advance the position in the span to the end of the control sequence
+        position += paramsEndPosition;
 
         return true;
     }
@@ -275,7 +394,7 @@ public class AnsiParser
             return false;
         }
 
-        // Find the positon where the url section ends
+        // Find the position where the url section ends
         var urlEndEscapePosition = SubIndexOfSpan(span, EscapeChar, 4);
         if (urlEndEscapePosition < 0 || span.Length < urlEndEscapePosition + 1 || span[urlEndEscapePosition + 1] != '\\')
         {
@@ -283,7 +402,7 @@ public class AnsiParser
         }
 
         // Find the position where the url-text section ends
-        // Continue to search untill the following char is ']', could be color/mode formatting escape sequences mixed in
+        // Continue to search until the following char is ']', could be color/mode formatting escape sequences mixed in
         var linkEndEscapePosition = SubIndexOfSpan(span, EscapeChar, urlEndEscapePosition + 1);
         while (linkEndEscapePosition != -1 && span.Length > (linkEndEscapePosition + 2) && span[linkEndEscapePosition + 1] != ']')
         {

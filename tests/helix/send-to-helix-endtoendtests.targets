@@ -5,6 +5,11 @@
     <NeedsWorkload>true</NeedsWorkload>
   </PropertyGroup>
 
+  <ItemGroup>
+    <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="cp $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/Aspire.EndToEnd.Tests-${TEST_SCENARIO}.trx" />
+    <HelixPostCommand Condition="'$(OS)' == 'Windows_NT'" Include="copy &quot;$(_HelixLogsPath)\TestResults.trx&quot; &quot;$(_HelixLogsPath)\Aspire.EndToEnd.Tests-%TEST_SCENARIO%.trx&quot;" />
+  </ItemGroup>
+
   <Target Name="BuildHelixWorkItemsForEnd2EndTests">
     <PropertyGroup>
       <_E2ETestsArchivePath>$(TestArchiveTestsDirForEndToEndTests)Aspire.EndToEnd.Tests.zip</_E2ETestsArchivePath>
@@ -24,6 +29,7 @@
 
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
+      <_TestRunCommand Condition="'$(HelixPerWorkItemPreCommand)' != ''">$(HelixPerWorkItemPreCommand) $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
     </PropertyGroup>
 
     <ItemGroup>
@@ -46,7 +52,7 @@
         <Timeout>$(_workItemTimeout)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
-        <DownloadFilesFromResults>logs/Aspire.EndToEnd.Tests-%(Identity).cobertura.xml</DownloadFilesFromResults>
+        <DownloadFilesFromResults>logs/Aspire.EndToEnd.Tests-%(Identity).cobertura.xml;logs/Aspire.EndToEnd.Tests-%(Identity).trx</DownloadFilesFromResults>
       </HelixWorkItem>
     </ItemGroup>
   </Target>

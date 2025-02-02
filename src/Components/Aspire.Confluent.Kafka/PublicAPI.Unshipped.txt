@@ -1,4 +1,8 @@
 #nullable enable
+Aspire.Confluent.Kafka.KafkaConsumerSettings.DisableTracing.get -> bool
+Aspire.Confluent.Kafka.KafkaConsumerSettings.DisableTracing.set -> void
+Aspire.Confluent.Kafka.KafkaProducerSettings.DisableTracing.get -> bool
+Aspire.Confluent.Kafka.KafkaProducerSettings.DisableTracing.set -> void
 static Microsoft.Extensions.Hosting.AspireKafkaConsumerExtensions.AddKafkaConsumer<TKey, TValue>(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName) -> void
 static Microsoft.Extensions.Hosting.AspireKafkaConsumerExtensions.AddKafkaConsumer<TKey, TValue>(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Confluent.Kafka.KafkaConsumerSettings!>? configureSettings) -> void
 *REMOVED*static Microsoft.Extensions.Hosting.AspireKafkaConsumerExtensions.AddKafkaConsumer<TKey, TValue>(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Confluent.Kafka.KafkaConsumerSettings!>? configureSettings = null, System.Action<Confluent.Kafka.ConsumerBuilder<TKey, TValue>!>? configureBuilder = null) -> void

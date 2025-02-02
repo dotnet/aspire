@@ -13,8 +13,8 @@ else
 {
     <div class="metrics-chart">
         <div class="metrics-chart-header">
-            <h3>@_instrument.Name</h3>
-            <p>@_instrument.Description</p>
+            <h3>@_instrument.Summary.Name</h3>
+            <p>@_instrument.Summary.Description</p>
         </div>
         <FluentTabs ActiveTabId="@($"tab-{ActiveView}")" OnTabChange="@OnTabChangeAsync">
             <FluentTab LabelClass="tab-label"
@@ -31,7 +31,7 @@ else
                        Id="@($"tab-{Metrics.MetricViewKind.Table}")"
                        Label="@Loc[nameof(ControlsStrings.ChartContainerTableTab)]"
                        Icon="@(new Icons.Regular.Size24.Table())">
-                <div class="metric-tab">
+                <div class="metrics-chart-container metric-tab">
                     <MetricTable InstrumentViewModel="_instrumentViewModel" Duration="Duration" Applications="Applications" />
                     <ChartFilters InstrumentViewModel="_instrumentViewModel" Instrument="_instrument" DimensionFilters="@DimensionFilters"/>
                 </div>

@@ -9,15 +9,36 @@ internal static class FileUtil
 {
     public static string? FindFullPathFromPath(string command) => FindFullPathFromPath(command, Environment.GetEnvironmentVariable("PATH"), Path.PathSeparator, File.Exists);
 
-    internal static string? FindFullPathFromPath(string command, string? pathVariable, char pathSeparator, Func<string, bool> fileExists)
+    private static string? FindFullPathFromPath(string command, string? pathVariable, char pathSeparator, Func<string, bool> fileExists)
     {
         Debug.Assert(!string.IsNullOrWhiteSpace(command));
 
-        if (OperatingSystem.IsWindows() && !command.EndsWith(".exe"))
+        var fullPath = FindFullPath(command, pathVariable, pathSeparator, fileExists);
+        if (fullPath is not null)
         {
-            command += ".exe";
+            return fullPath;
         }
 
+        if (OperatingSystem.IsWindows())
+        {
+            // On Windows, we need to check for the command with all possible extensions.
+            foreach (var extension in Environment.GetEnvironmentVariable("PATHEXT")?.Split(';') ?? Array.Empty<string>())
+            {
+                var fileName = command.EndsWith(extension, StringComparison.OrdinalIgnoreCase) ? command : command + extension;
+
+                fullPath = FindFullPath(fileName, pathVariable, pathSeparator, fileExists);
+                if (fullPath is not null)
+                {
+                    return fullPath;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static string? FindFullPath(string command, string? pathVariable, char pathSeparator, Func<string, bool> fileExists)
+    {
         foreach (var directory in (pathVariable ?? string.Empty).Split(pathSeparator))
         {
             var fullPath = Path.Combine(directory, command);

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Dialogs;
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
@@ -23,6 +22,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     private IJSObjectReference? _jsModule;
     private IJSObjectReference? _keyboardHandlers;
     private DotNetObjectReference<ShortcutManager>? _shortcutManagerReference;
+    private DotNetObjectReference<MainLayout>? _layoutReference;
     private IDialogReference? _openPageDialog;
 
     private const string SettingsDialogId = "SettingsDialog";
@@ -62,6 +62,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     [Inject]
     public required IOptionsMonitor<DashboardOptions> Options { get; init; }
 
+    [Inject]
+    public required ILocalStorage LocalStorage { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
@@ -73,9 +76,10 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         {
             if (_jsModule is not null)
             {
-                var newValue = ThemeManager.Theme!;
+                var newValue = ThemeManager.SelectedTheme!;
 
-                await _jsModule.InvokeVoidAsync("updateTheme", newValue);
+                var effectiveTheme = await _jsModule.InvokeAsync<string>("updateTheme", newValue);
+                ThemeManager.EffectiveTheme = effectiveTheme;
             }
         });
 
@@ -99,22 +103,32 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         if (Options.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
         {
-            // ShowMessageBarAsync must come after an await. Otherwise it will NRE.
-            // I think this order allows the message bar provider to be fully initialized.
-            await MessageService.ShowMessageBarAsync(options =>
+            var dismissedResult = await LocalStorage.GetUnprotectedAsync<bool>(BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey);
+            var skipMessage = dismissedResult.Success && dismissedResult.Value;
+
+            if (!skipMessage)
             {
-                options.Title = Loc[nameof(Resources.Layout.MessageTelemetryTitle)];
-                options.Body = Loc[nameof(Resources.Layout.MessageTelemetryBody)];
-                options.Link = new()
+                // ShowMessageBarAsync must come after an await. Otherwise it will NRE.
+                // I think this order allows the message bar provider to be fully initialized.
+                await MessageService.ShowMessageBarAsync(options =>
                 {
-                    Text = Loc[nameof(Resources.Layout.MessageTelemetryLink)],
-                    Href = "https://aka.ms/dotnet/aspire/telemetry-unsecured",
-                    Target = "_blank"
-                };
-                options.Intent = MessageIntent.Warning;
-                options.Section = MessageBarSection;
-                options.AllowDismiss = true;
-            });
+                    options.Title = Loc[nameof(Resources.Layout.MessageTelemetryTitle)];
+                    options.Body = Loc[nameof(Resources.Layout.MessageTelemetryBody)];
+                    options.Link = new()
+                    {
+                        Text = Loc[nameof(Resources.Layout.MessageTelemetryLink)],
+                        Href = "https://aka.ms/dotnet/aspire/telemetry-unsecured",
+                        Target = "_blank"
+                    };
+                    options.Intent = MessageIntent.Warning;
+                    options.Section = MessageBarSection;
+                    options.AllowDismiss = true;
+                    options.OnClose = async m =>
+                    {
+                        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey, true);
+                    };
+                });
+            }
         }
     }
 
@@ -124,6 +138,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         {
             _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/app-theme.js");
             _shortcutManagerReference = DotNetObjectReference.Create(ShortcutManager);
+            _layoutReference = DotNetObjectReference.Create(this);
             _keyboardHandlers = await JS.InvokeAsync<IJSObjectReference>("window.registerGlobalKeydownListener", _shortcutManagerReference);
             ShortcutManager.AddGlobalKeydownListener(this);
         }
@@ -143,6 +158,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         DialogParameters parameters = new()
         {
             Title = Loc[nameof(Resources.Layout.MainLayoutAspireDashboardHelpLink)],
+            DismissTitle = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
             PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)],
             PrimaryActionEnabled = true,
             SecondaryAction = null,
@@ -175,11 +191,11 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     public async Task LaunchSettingsAsync()
     {
-        DialogParameters parameters = new()
+        var parameters = new DialogParameters
         {
             Title = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogTitle)],
-            PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)],
-            PrimaryActionEnabled = true,
+            DismissTitle = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
+            PrimaryAction =  Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)].Value,
             SecondaryAction = null,
             TrapFocus = true,
             Modal = true,
@@ -200,7 +216,17 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             await _openPageDialog.CloseAsync();
         }
 
-        _openPageDialog = await DialogService.ShowPanelAsync<SettingsDialog>(parameters).ConfigureAwait(true);
+        // Ensure the currently set theme is immediately available to display in settings dialog.
+        await ThemeManager.EnsureInitializedAsync();
+
+        if (ViewportInformation.IsDesktop)
+        {
+            _openPageDialog = await DialogService.ShowPanelAsync<SettingsDialog>(parameters).ConfigureAwait(true);
+        }
+        else
+        {
+            _openPageDialog = await DialogService.ShowDialogAsync<SettingsDialog>(parameters).ConfigureAwait(true);
+        }
     }
 
     public IReadOnlySet<AspireKeyboardShortcut> SubscribedShortcuts { get; } = new HashSet<AspireKeyboardShortcut>
@@ -251,21 +277,22 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         _shortcutManagerReference?.Dispose();
+        _layoutReference?.Dispose();
         _themeChangedSubscription?.Dispose();
         _locationChangingRegistration?.Dispose();
         ShortcutManager.RemoveGlobalKeydownListener(this);
 
-        if (_keyboardHandlers is { } h)
+        try
         {
-            try
+            if (_keyboardHandlers is { } h)
             {
                 await JS.InvokeVoidAsync("window.unregisterGlobalKeydownListener", h);
             }
-            catch (JSDisconnectedException)
-            {
-                // Per https://learn.microsoft.com/aspnet/core/blazor/javascript-interoperability/?view=aspnetcore-7.0#javascript-interop-calls-without-a-circuit
-                // this is one of the calls that will fail if the circuit is disconnected, and we just need to catch the exception so it doesn't pollute the logs
-            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // Per https://learn.microsoft.com/aspnet/core/blazor/javascript-interoperability/?view=aspnetcore-7.0#javascript-interop-calls-without-a-circuit
+            // this is one of the calls that will fail if the circuit is disconnected, and we just need to catch the exception so it doesn't pollute the logs
         }
 
         await JSInteropHelpers.SafeDisposeAsync(_jsModule);

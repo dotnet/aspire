@@ -9,23 +9,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CosmosDB" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.EventHubs" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.MongoDB" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.MySql" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.NodeJs" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Oracle" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.PostgreSQL" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.RabbitMQ" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Redis" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.SqlServer" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.PostgreSQL" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Redis" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="..\Common\TestResourceNames.cs" />
-
     <ProjectReference Include="..\TestProject.IntegrationServiceA\TestProject.IntegrationServiceA.csproj" AspireProjectMetadataTypeName="IntegrationServiceA" />
     <ProjectReference Include="..\TestProject.ServiceA\TestProject.ServiceA.csproj" AspireProjectMetadataTypeName="ServiceA" />
     <ProjectReference Include="..\TestProject.ServiceB\TestProject.ServiceB.csproj" AspireProjectMetadataTypeName="ServiceB" />

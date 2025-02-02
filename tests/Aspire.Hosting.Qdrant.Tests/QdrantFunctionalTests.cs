@@ -2,12 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Grpc.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Polly;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
@@ -30,7 +31,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
             .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<RpcException>() })
             .Build();
 
-        var builder = CreateDistributedApplicationBuilder();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var qdrant = builder.AddQdrant("qdrant");
 
@@ -99,16 +100,16 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = CreateDistributedApplicationBuilder();
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var qdrant1 = builder1.AddQdrant("qdrant");
 
             if (useVolume)
             {
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
-                volumeName = VolumeNameGenerator.CreateVolumeName(qdrant1, nameof(WithDataShouldPersistStateBetweenUsages));
+                volumeName = VolumeNameGenerator.Generate(qdrant1, nameof(WithDataShouldPersistStateBetweenUsages));
 
-                // if the volume already exists (because of a crashing previous run), try to delete it
-                DockerUtils.AttemptDeleteDockerVolume(volumeName);
+                // if the volume already exists (because of a crashing previous run), delete it
+                DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
                 qdrant1.WithDataVolume(volumeName);
             }
             else
@@ -150,7 +151,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = CreateDistributedApplicationBuilder();
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var qdrant2 = builder2.AddQdrant("qdrant");
 
             if (useVolume)
@@ -218,10 +219,43 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
         }
     }
 
-    private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWaitForOnQdrantBlocksDependentResources()
     {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
-        builder.Services.AddXunitLogging(testOutputHelper);
-        return builder;
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
+        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
+        {
+            return healthCheckTcs.Task;
+        });
+
+        var resource = builder.AddQdrant("resource")
+                              .WithHealthCheck("blocking_check");
+
+        var dependentResource = builder.AddQdrant("dependentresource")
+                                       .WaitFor(resource);
+
+        using var app = builder.Build();
+
+        var pendingStart = app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+
+        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
+
+        await rns.WaitForResourceAsync(resource.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await pendingStart;
+
+        await app.StopAsync();
     }
 }

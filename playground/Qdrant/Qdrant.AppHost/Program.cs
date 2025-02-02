@@ -8,6 +8,7 @@ var qdrant = builder.AddQdrant("qdrant")
 
 builder.AddProject<Projects.Qdrant_ApiService>("apiservice")
     .WithExternalHttpEndpoints()
-    .WithReference(qdrant);
+    .WithReference(qdrant)
+    .WaitFor(qdrant);
 
 builder.Build().Run();

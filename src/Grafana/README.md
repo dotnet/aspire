@@ -25,7 +25,7 @@ See [Export metrics from .NET](#export-metrics-from-net) for information on conf
 The dashboards use built-in .NET APIs and OSS cloud-native tools:
 
 * [System.Diagnostics.Metrics](https://learn.microsoft.com/dotnet/core/diagnostics/compare-metric-apis#systemdiagnosticsmetrics) is the modern .NET metrics API. Libraries and apps use the API to create instruments and record values. ASP.NET Core and other .NET frameworks have built-in instruments for recording important information.
-* [.NET OpenTelemetry SDK](https://github.com/open-telemetry/opentelemetry-dotnet) collects values from `System.Diaganostics.Metrics` instruments and exports values to Prometheus. OpenTelemetry needs to be configured in an application.
+* [.NET OpenTelemetry SDK](https://github.com/open-telemetry/opentelemetry-dotnet) collects values from `System.Diagnostics.Metrics` instruments and exports values to Prometheus. OpenTelemetry needs to be configured in an application.
 * [Prometheus](https://prometheus.io/) is a metrics database. Prometheus scrapes metrics values from apps and then stores them in a database. Prometheus provides an API to query values.
 * [Grafana](https://grafana.com/) is a visualization and report tool for building dashboards and sending alerts. Grafana uses Prometheus as its data source.
 

@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.InteropServices;
 using Xunit;
 using Xunit.Abstractions;
 using Aspire.TestProject;
@@ -42,11 +41,9 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         BuildEnvironment = new(useSystemDotNet: !TestsRunningOutsideOfRepo);
         if (TestsRunningOutsideOfRepo)
         {
-            if (!BuildEnvironment.HasWorkloadFromArtifacts)
-            {
-                throw new InvalidOperationException("Expected to have sdk+workload from artifacts when running tests outside of the repo");
-            }
             BuildEnvironment.EnvVars["TestsRunningOutsideOfRepo"] = "true";
+            BuildEnvironment.EnvVars["RestoreAdditionalProjectSources"] = BuildEnvironment.BuiltNuGetsPath;
+            BuildEnvironment.EnvVars["SkipAspireWorkloadManifest"] = "true";
             _testProjectPath = Path.Combine(BuildEnvironment.TestAssetsPath, "testproject");
         }
         else
@@ -102,14 +99,8 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
         string component = resource switch
         {
-            TestResourceNames.cosmos or TestResourceNames.efcosmos => "cosmos",
-            TestResourceNames.eventhubs => "eventhubs",
-            TestResourceNames.mongodb => "mongodb",
-            TestResourceNames.oracledatabase => "oracledatabase",
             TestResourceNames.postgres or TestResourceNames.efnpgsql => "postgres",
-            TestResourceNames.rabbitmq => "rabbitmq",
             TestResourceNames.redis => "redis",
-            TestResourceNames.sqlserver or TestResourceNames.efsqlserver => "sqlserver",
             _ => throw new ArgumentException($"Unknown resource: {resource}")
         };
 
@@ -139,36 +130,14 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     {
         TestResourceNames resourcesToInclude = TestScenario switch
         {
-            "oracle" => TestResourceNames.oracledatabase,
-            "cosmos" => TestResourceNames.cosmos | TestResourceNames.efcosmos,
-            "eventhubs" => TestResourceNames.eventhubs,
-            "basicservices" => TestResourceNames.mongodb
-                              | TestResourceNames.rabbitmq
-                              | TestResourceNames.redis
+            "basicservices" => TestResourceNames.redis
                               | TestResourceNames.postgres
-                              | TestResourceNames.efnpgsql
-                              | TestResourceNames.sqlserver
-                              | TestResourceNames.efsqlserver,
+                              | TestResourceNames.efnpgsql,
             "" or null => TestResourceNames.All,
             _ => throw new ArgumentException($"Unknown test scenario '{TestScenario}'")
         };
 
         TestResourceNames resourcesToSkip = TestResourceNames.All & ~resourcesToInclude;
-
-        // always skip cosmos on macos/arm64
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
-        {
-            resourcesToSkip |= TestResourceNames.cosmos;
-        }
-        if (string.IsNullOrEmpty(TestScenario))
-        {
-            // no scenario specified
-            if (BuildEnvironment.IsRunningOnCI)
-            {
-                resourcesToSkip |= TestResourceNames.cosmos;
-                resourcesToSkip |= TestResourceNames.oracledatabase;
-            }
-        }
 
         // always skip the dashboard
         resourcesToSkip |= TestResourceNames.dashboard;

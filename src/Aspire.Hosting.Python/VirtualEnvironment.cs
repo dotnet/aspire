@@ -4,9 +4,9 @@
 namespace Aspire.Hosting.Python;
 
 /// <summary>
-/// Handles location of files within the virtual environment of a python project.
+/// Handles location of files within the virtual environment of a python app.
 /// </summary>
-/// <param name="virtualEnvironmentPath">The path to the directory containing the python project files.</param>
+/// <param name="virtualEnvironmentPath">The path to the directory containing the python app files.</param>
 internal sealed class VirtualEnvironment(string virtualEnvironmentPath)
 {
     /// <summary>
@@ -52,7 +52,7 @@ internal sealed class VirtualEnvironment(string virtualEnvironmentPath)
     public string GetRequiredExecutable(string name)
     {
         return GetExecutable(name) ?? throw new DistributedApplicationException(
-            $"The executable {name} could not be found in the virtual environment. " +
+            $"The executable {name} could not be found in the virtual environment at '{virtualEnvironmentPath}' . " +
             "Make sure the virtual environment is initialized and the executable is installed.");
     }
 }

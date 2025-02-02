@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <!--
       CS8002: Referenced assembly does not have a strong name
     -->
@@ -12,6 +12,17 @@
     <ProjectReference Include="..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
     
     <PackageReference Include="bUnit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(TestsSharedDir)AsyncTestHelpers.cs" Link="shared/AsyncTestHelpers.cs" />
+    <Compile Include="$(TestsSharedDir)Telemetry\*.cs" LinkBase="shared/Telemetry" />
+    <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
+    <Compile Include="$(TestsSharedDir)DashboardModel\*.cs" LinkBase="shared/DashboardModel" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Aspire.Dashboard.Tests\Model\MockKnownPropertyLookup.cs" Link="Shared\MockKnownPropertyLookup.cs" />
   </ItemGroup>
 
 </Project>

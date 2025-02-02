@@ -3,7 +3,7 @@
 
 namespace Aspire.Dashboard.Otlp.Storage;
 
-public readonly record struct ApplicationKey(string Name, string InstanceId) : IComparable<ApplicationKey>
+public readonly record struct ApplicationKey(string Name, string? InstanceId) : IComparable<ApplicationKey>
 {
     public int CompareTo(ApplicationKey other)
     {
@@ -23,23 +23,32 @@ public readonly record struct ApplicationKey(string Name, string InstanceId) : I
             return false;
         }
 
-        // Composite name has the format "{Name}-{InstanceId}".
-        if (name.Length != Name.Length + InstanceId.Length + 1)
+        if (InstanceId != null)
         {
-            return false;
-        }
+            // Composite name has the format "{Name}-{InstanceId}".
+            if (name.Length != Name.Length + InstanceId.Length + 1)
+            {
+                return false;
+            }
 
-        if (!name.AsSpan(0, Name.Length).Equals(Name, StringComparisons.ResourceName))
-        {
-            return false;
+            if (!name.AsSpan(0, Name.Length).Equals(Name, StringComparisons.ResourceName))
+            {
+                return false;
+            }
+            if (name[Name.Length] != '-')
+            {
+                return false;
+            }
+            if (!name.AsSpan(Name.Length + 1, InstanceId.Length).Equals(InstanceId, StringComparisons.ResourceName))
+            {
+                return false;
+            }
         }
-        if (name[Name.Length] != '-')
+        else
         {
-            return false;
-        }
-        if (!name.AsSpan(Name.Length + 1, InstanceId.Length).Equals(InstanceId, StringComparisons.ResourceName))
-        {
-            return false;
+            // InstanceId is null so just match on name.
+            // This is used to match all instances of an app with the matching name.
+            return string.Equals(Name, name, StringComparisons.ResourceName);
         }
 
         return true;

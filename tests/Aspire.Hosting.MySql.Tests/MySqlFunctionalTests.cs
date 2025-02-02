@@ -3,15 +3,16 @@
 
 using System.Data;
 using Aspire.Components.Common.Tests;
-using Aspire.Hosting.Testing;
+using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using MySqlConnector;
 using Polly;
 using Xunit;
@@ -21,6 +22,48 @@ namespace Aspire.Hosting.MySql.Tests;
 
 public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 {
+    private static readonly Predicate<string> s_mySqlReadyText = log => log.Contains("ready for connections") && log.Contains("port: 3306");
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWaitForOnMySqlBlocksDependentResources()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
+        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
+        {
+            return healthCheckTcs.Task;
+        });
+
+        var resource = builder.AddMySql("resource")
+                              .WithHealthCheck("blocking_check");
+
+        var dependentResource = builder.AddMySql("dependentresource")
+                                       .WaitFor(resource);
+
+        using var app = builder.Build();
+
+        var pendingStart = app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+
+        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
+
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await pendingStart;
+
+        await app.StopAsync();
+    }
+
     [Fact]
     [RequiresDocker]
     public async Task VerifyMySqlResource()
@@ -30,7 +73,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
             .Build();
 
-        var builder = CreateDistributedApplicationBuilder();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var mySqlDbName = "db1";
 
@@ -40,6 +83,8 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
 
         await app.StartAsync();
+
+        await app.WaitForTextAsync(s_mySqlReadyText).WaitAsync(TimeSpan.FromMinutes(2));
 
         var hb = Host.CreateApplicationBuilder();
 
@@ -84,7 +129,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = CreateDistributedApplicationBuilder();
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
             var mysql1 = builder1.AddMySql("mysql").WithEnvironment("MYSQL_DATABASE", mySqlDbName);
             var password = mysql1.Resource.PasswordParameter.Value;
@@ -94,10 +139,10 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             if (useVolume)
             {
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
-                volumeName = VolumeNameGenerator.CreateVolumeName(mysql1, nameof(WithDataShouldPersistStateBetweenUsages));
+                volumeName = VolumeNameGenerator.Generate(mysql1, nameof(WithDataShouldPersistStateBetweenUsages));
 
-                // If the volume already exists (because of a crashing previous run), try to delete it
-                DockerUtils.AttemptDeleteDockerVolume(volumeName);
+                // if the volume already exists (because of a crashing previous run), delete it
+                DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
                 mysql1.WithDataVolume(volumeName);
             }
             else
@@ -109,6 +154,8 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             using (var app = builder1.Build())
             {
                 await app.StartAsync();
+
+                await app.WaitForTextAsync(s_mySqlReadyText).WaitAsync(TimeSpan.FromMinutes(2));
 
                 try
                 {
@@ -158,9 +205,8 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = CreateDistributedApplicationBuilder();
-            var passwordParameter2 = builder2.AddParameter("pwd");
-            builder2.Configuration["Parameters:pwd"] = password;
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            var passwordParameter2 = builder2.AddParameter("pwd", password);
 
             var mysql2 = builder2.AddMySql("mysql", passwordParameter2);
             var db2 = mysql2.AddDatabase(mySqlDbName);
@@ -177,6 +223,9 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             using (var app = builder2.Build())
             {
                 await app.StartAsync();
+
+                await app.WaitForTextAsync(s_mySqlReadyText).WaitAsync(TimeSpan.FromMinutes(2));
+
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
@@ -270,7 +319,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
                 INSERT INTO cars (brand) VALUES ('BatMobile');
             """);
 
-            var builder = CreateDistributedApplicationBuilder();
+            using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
             var mySqlDbName = "db1";
 
@@ -282,6 +331,8 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             using var app = builder.Build();
 
             await app.StartAsync();
+
+            await app.WaitForTextAsync(s_mySqlReadyText).WaitAsync(TimeSpan.FromMinutes(2));
 
             var hb = Host.CreateApplicationBuilder();
 
@@ -340,7 +391,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
             .Build();
 
-        var builder = CreateDistributedApplicationBuilder();
+        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var mySqlDbName = "db1";
 
@@ -350,6 +401,8 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
 
         await app.StartAsync();
+
+        await app.WaitForTextAsync(s_mySqlReadyText).WaitAsync(TimeSpan.FromMinutes(2));
 
         var hb = Host.CreateApplicationBuilder();
 
@@ -394,13 +447,5 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             Assert.Single(cars);
             Assert.Equal("BatMobile", cars[0].Brand);
         }, cts.Token);
-    }
-
-    private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
-    {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
-        builder.Services.AddXunitLogging(testOutputHelper);
-        builder.Services.AddHostedService<ResourceLoggerForwarderService>();
-        return builder;
     }
 }

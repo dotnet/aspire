@@ -1,38 +1,39 @@
-targetScope = 'resourceGroup'
-
-@description('')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-@description('')
-param keyVaultName string
+param principalId string
 
+param principalName string
 
-resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
-  name: keyVaultName
-}
-
-resource redisCache_enclX3umP 'Microsoft.Cache/Redis@2020-06-01' = {
-  name: toLower(take('cache${uniqueString(resourceGroup().id)}', 24))
+resource cache 'Microsoft.Cache/redis@2024-03-01' = {
+  name: take('cache-${uniqueString(resourceGroup().id)}', 63)
   location: location
-  tags: {
-    'aspire-resource-name': 'cache'
-  }
   properties: {
-    enableNonSslPort: false
-    minimumTlsVersion: '1.2'
     sku: {
       name: 'Basic'
       family: 'C'
       capacity: 1
     }
+    enableNonSslPort: false
+    disableAccessKeyAuthentication: true
+    minimumTlsVersion: '1.2'
+    redisConfiguration: {
+      'aad-enabled': 'true'
+    }
+  }
+  tags: {
+    'aspire-resource-name': 'cache'
   }
 }
 
-resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
-  parent: keyVault_IeF8jZvXV
-  name: 'connectionString'
-  location: location
+resource cache_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
+  name: take('cachecontributor${uniqueString(resourceGroup().id)}', 24)
   properties: {
-    value: '${redisCache_enclX3umP.properties.hostName},ssl=true,password=${redisCache_enclX3umP.listKeys(redisCache_enclX3umP.apiVersion).primaryKey}'
+    accessPolicyName: 'Data Contributor'
+    objectId: principalId
+    objectIdAlias: principalName
   }
+  parent: cache
 }
+
+output connectionString string = '${cache.properties.hostName},ssl=true'

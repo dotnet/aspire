@@ -129,7 +129,7 @@ public class AddGarnetTests
 
         var volumeAnnotation = garnet.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
-        Assert.Equal("Aspire.Hosting.Tests-myGarnet-data", volumeAnnotation.Source);
+        Assert.Equal($"{builder.GetVolumePrefix()}-myGarnet-data", volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
@@ -176,7 +176,7 @@ public class AddGarnetTests
             argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
         }
 
-        Assert.Equal("--save 60 1".Split(" "), args);
+        Assert.Equal("--checkpointdir /data/checkpoints --recover --aof --aof-commit-freq 60000".Split(" "), args);
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public class AddGarnetTests
             argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
         }
 
-        Assert.Equal("--save 60 1".Split(" "), args);
+        Assert.Equal("--checkpointdir /data/checkpoints --recover --aof --aof-commit-freq 60000".Split(" "), args);
     }
 
     [Fact]
@@ -228,7 +228,7 @@ public class AddGarnetTests
         using var builder = TestDistributedApplicationBuilder.Create();
         var garnet = builder.AddGarnet("myGarnet")
                            .WithDataVolume()
-                           .WithPersistence(TimeSpan.FromSeconds(10), 2);
+                           .WithPersistence(TimeSpan.FromSeconds(10));
 
         Assert.True(garnet.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
@@ -239,7 +239,7 @@ public class AddGarnetTests
             argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
         }
 
-        Assert.Equal("--save 10 2".Split(" "), args);
+        Assert.Equal("--checkpointdir /data/checkpoints --recover --aof --aof-commit-freq 10000".Split(" "), args);
     }
 
     [Fact]

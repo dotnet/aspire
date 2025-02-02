@@ -23,7 +23,12 @@ public static class ServiceDiscoveryDnsServiceCollectionExtensions
     /// DNS SRV queries are able to provide port numbers for endpoints and can support multiple named endpoints per service.
     /// However, not all environment support DNS SRV queries, and in some environments, additional configuration may be required.
     /// </remarks>
-    public static IServiceCollection AddDnsSrvServiceEndpointProvider(this IServiceCollection services) => services.AddDnsSrvServiceEndpointProvider(_ => { });
+    public static IServiceCollection AddDnsSrvServiceEndpointProvider(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        return services.AddDnsSrvServiceEndpointProvider(_ => { });
+    }
 
     /// <summary>
     /// Adds DNS SRV service discovery to the <see cref="IServiceCollection"/>.
@@ -37,6 +42,9 @@ public static class ServiceDiscoveryDnsServiceCollectionExtensions
     /// </remarks>
     public static IServiceCollection AddDnsSrvServiceEndpointProvider(this IServiceCollection services, Action<DnsSrvServiceEndpointProviderOptions> configureOptions)
     {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configureOptions);
+
         services.AddServiceDiscoveryCore();
         services.TryAddSingleton<IDnsQuery, LookupClient>();
         services.AddSingleton<IServiceEndpointProviderFactory, DnsSrvServiceEndpointProviderFactory>();
@@ -53,7 +61,12 @@ public static class ServiceDiscoveryDnsServiceCollectionExtensions
     /// <remarks>
     /// DNS A/AAAA queries are widely available but are not able to provide port numbers for endpoints and cannot support multiple named endpoints per service.
     /// </remarks>
-    public static IServiceCollection AddDnsServiceEndpointProvider(this IServiceCollection services) => services.AddDnsServiceEndpointProvider(_ => { });
+    public static IServiceCollection AddDnsServiceEndpointProvider(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        return services.AddDnsServiceEndpointProvider(_ => { });
+    }
 
     /// <summary>
     /// Adds DNS service discovery to the <see cref="IServiceCollection"/>.
@@ -66,6 +79,9 @@ public static class ServiceDiscoveryDnsServiceCollectionExtensions
     /// </remarks>
     public static IServiceCollection AddDnsServiceEndpointProvider(this IServiceCollection services, Action<DnsServiceEndpointProviderOptions> configureOptions)
     {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configureOptions);
+
         services.AddServiceDiscoveryCore();
         services.AddSingleton<IServiceEndpointProviderFactory, DnsServiceEndpointProviderFactory>();
         var options = services.AddOptions<DnsServiceEndpointProviderOptions>();

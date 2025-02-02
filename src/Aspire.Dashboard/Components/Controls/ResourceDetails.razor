@@ -1,12 +1,18 @@
-﻿@using Aspire.Dashboard.Model
+﻿@using Aspire.Dashboard.Components.Controls.Grid
+@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
+@using Humanizer
+@using Microsoft.Extensions.Diagnostics.HealthChecks
+
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
+@inject IStringLocalizer<Resources> Loc
 
 <div class="resource-details-layout">
 
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(Resource?.Name)" slot="end">View logs</FluentAnchor>
+        <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(Resource?.Name)" slot="end">@Loc[nameof(Resources.ResourceDetailsViewConsoleLogs)]</FluentAnchor>
 
         @if (ShowSpecOnlyToggle)
         {
@@ -20,13 +26,14 @@
                               slot="end"/>
         }
 
-        <FluentIconSwitch @bind-Value="@_areEnvironmentVariablesMasked"
+        <FluentIconSwitch @bind-Value="@IsMaskAllChecked"
                           Appearance="Appearance.Lightweight"
                           CheckedTitle="@ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesShowVariableValues)]"
                           UncheckedTitle="@ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesHideVariableValues)]"
-                          OnToggle="@ToggleMaskState"
+                          OnToggle="@OnMaskAllCheckedChanged"
                           CheckedIcon="@(new Icons.Regular.Size16.Eye())"
                           UncheckedIcon="@(new Icons.Regular.Size16.EyeOff())"
+                          class="mask-all-switch"
                           slot="end" />
 
         <FluentSearch Placeholder="@ControlStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
@@ -40,73 +47,232 @@
             <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsResourceHeader)]" Expanded="true">
                 <div slot="end">
                     <FluentBadge Appearance="Appearance.Neutral" Circular="true">
-                        @FilteredResourceValues.Count()
+                        @FilteredResourceProperties.Count()
                     </FluentBadge>
                 </div>
-                <FluentDataGrid Items="@FilteredResourceValues"
-                                ResizableColumns="true"
-                                Style="width:100%"
-                                GenerateHeader="GenerateHeaderOption.Sticky"
-                                GridTemplateColumns="1fr 1.5fr"
-                                ShowHover="true">
-                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
-                        <GridValue Value="@(context.KnownProperty?.DisplayName ?? context.Key)" ToolTip="@context.Key" />
-                    </TemplateColumn>
-                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn">
-                        <GridValue Value="@GetDisplayedValue(TimeProvider, context)" ToolTip="@context.Tooltip" />
-                    </TemplateColumn>
-                </FluentDataGrid>
+                <PropertyGrid
+                    TItem="ResourcePropertyViewModel"
+                    Items="@FilteredResourceProperties"
+                    IsValueSortable="false"
+                    IsValueMaskedChanged="@OnValueMaskedChanged"
+                    HighlightText="@_filter"
+                    GridTemplateColumns="1fr 1.5fr" />
             </FluentAccordionItem>
-            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsEndpointsHeader)]" Expanded="true">
+            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsEndpointsHeader)]" Expanded="@_isEndpointsExpanded">
                 <div slot="end">
                     <FluentBadge Appearance="Appearance.Neutral" Circular="true">
                         @FilteredEndpoints.Count()
                     </FluentBadge>
                 </div>
-                <FluentDataGrid Items="@FilteredEndpoints"
+                <PropertyGrid
+                    TItem="DisplayedEndpoint"
+                    Items="@FilteredEndpoints"
+                    ContentAfterValue="(vm) => GetContentAfterValue(vm)"
+                    ValueSort="_endpointValueSort"
+                    IsValueMaskedChanged="@OnValueMaskedChanged"
+                    HighlightText="@_filter"
+                    GridTemplateColumns="1fr 1.5fr" />
+            </FluentAccordionItem>
+            @if (Resource.IsContainer())
+            {
+                <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsVolumesHeader)]" Expanded="@_isVolumesExpanded">
+                    <div slot="end">
+                        <FluentBadge Appearance="Appearance.Neutral" Circular="true">
+                            @FilteredVolumes.Count()
+                        </FluentBadge>
+                    </div>
+
+                    <FluentDataGrid TGridItem="VolumeViewModel"
+                                    ItemKey="@(vm => ((IPropertyGridItem)vm).Key)"
+                                    Items="@FilteredVolumes"
+                                    ColumnResizeLabels="@_resizeLabels"
+                                    ColumnSortLabels="@_sortLabels"
+                                    HeaderCellAsButtonWithMenu="true"
+                                    ResizableColumns="true"
+                                    ResizeType="DataGridResizeType.Discrete"
+                                    Style="width:100%"
+                                    RowSize="DataGridRowSize.Medium"
+                                    GridTemplateColumns="1fr 1fr 0.5fr"
+                                    ShowHover="true">
+                        <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<VolumeViewModel>.ByAscending(i => i.Source))" Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]">
+                            <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]"
+                                       Value="@context.Source"
+                                       EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
+                                       HighlightText="@_filter" />
+                        </AspireTemplateColumn>
+                        <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<VolumeViewModel>.ByAscending(i => i.Target))" Title="@ControlStringsLoc[nameof(ControlsStrings.VolumePathColumnHeader)]">
+                            <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.VolumePathColumnHeader)]"
+                                       Value="@context.Target"
+                                       EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
+                                       HighlightText="@_filter" />
+                        </AspireTemplateColumn>
+                        <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<VolumeViewModel>.ByAscending(i => i.MountType))" Title="@ControlStringsLoc[nameof(ControlsStrings.VolumeMountTypeColumnHeader)]">
+                            <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.VolumeMountTypeColumnHeader)]"
+                                       Value="@context.MountType.Humanize()">
+                                <ContentBeforeValue>
+                                    @if (context.IsReadOnly)
+                                    {
+                                        <FluentIcon Value="@(new Icons.Regular.Size16.LockClosed())" Class="volume-mount-type-icon" />
+                                    }
+                                </ContentBeforeValue>
+                            </GridValue>
+                        </AspireTemplateColumn>
+                    </FluentDataGrid>
+                </FluentAccordionItem>
+            }
+            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsReferences)]" Expanded="@_isRelationshipsExpanded">
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
+                        @FilteredRelationships.Count()
+                    </FluentBadge>
+                </div>
+                <FluentDataGrid ColumnResizeLabels="@_resizeLabels"
+                                ColumnSortLabels="@_sortLabels"
+                                HeaderCellAsButtonWithMenu="true"
+                                ResizeType="DataGridResizeType.Discrete"
+                                TGridItem="ResourceDetailRelationship"
+                                Items="@FilteredRelationships"
+                                ItemKey="r => r.ResourceName"
                                 ResizableColumns="true"
                                 Style="width:100%"
-                                GenerateHeader="GenerateHeaderOption.Sticky"
-                                GridTemplateColumns="1fr 1.5fr"
+                                RowSize="DataGridRowSize.Medium"
+                                GridTemplateColumns="1fr 1fr 0.5fr"
                                 ShowHover="true">
-                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
-                        <GridValue Value="@context.Name" />
+                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsResourceHeader)]">
+                        @context.ResourceName
                     </TemplateColumn>
-                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn">
-                        <GridValue Value="@context.Text" MaxDisplayLength="0">
-                            <ContentAfterValue>
-                                @if (context.Url != null)
-                                {
-                                    <a href="@context.Url" target="_blank">@context.Url</a>
-                                }
-                                else
-                                {
-                                    @context.Text
-                                }
-                            </ContentAfterValue>
-                        </GridValue>
+                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsTypeHeader)]" TooltipText="@(c => string.Join(", ", c.Types))">
+                        @string.Join(", ", context.Types)
+                    </TemplateColumn>
+                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]" Class="no-ellipsis">
+                        <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewRelationshipAsync(context))">@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
                     </TemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
-            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsEnvironmentVariablesHeader)]" Expanded="true">
+            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsBackReferences)]" Expanded="@_isBackRelationshipsExpanded">
                 <div slot="end">
                     <FluentBadge Appearance="Appearance.Neutral" Circular="true">
-                        @FilteredItems.Count()
+                        @FilteredBackRelationships.Count()
+                    </FluentBadge>
+                </div>
+                <FluentDataGrid ColumnResizeLabels="@_resizeLabels"
+                                ColumnSortLabels="@_sortLabels"
+                                HeaderCellAsButtonWithMenu="true"
+                                ResizeType="DataGridResizeType.Discrete"
+                                TGridItem="ResourceDetailRelationship"
+                                Items="@FilteredBackRelationships"
+                                ItemKey="r => r.ResourceName"
+                                ResizableColumns="true"
+                                Style="width:100%"
+                                RowSize="DataGridRowSize.Medium"
+                                GridTemplateColumns="1fr 1fr 0.5fr"
+                                ShowHover="true">
+                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsResourceHeader)]">
+                        @context.ResourceName
+                    </TemplateColumn>
+                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsTypeHeader)]" TooltipText="@(c => string.Join(", ", c.Types))">
+                        @string.Join(", ", context.Types)
+                    </TemplateColumn>
+                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]" Class="no-ellipsis">
+                        <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewRelationshipAsync(context))">@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                    </TemplateColumn>
+                </FluentDataGrid>
+            </FluentAccordionItem>
+            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceHealthChecksHeader)]" Expanded="@_isHealthChecksExpanded">
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
+                        @FilteredHealthReports.Count()
+                    </FluentBadge>
+                </div>
+
+                <FluentDataGrid ColumnResizeLabels="@_resizeLabels"
+                                ColumnSortLabels="@_sortLabels"
+                                HeaderCellAsButtonWithMenu="true"
+                                ResizeType="DataGridResizeType.Discrete"
+                                Items="@FilteredHealthReports"
+                                ItemKey="r => r.Name"
+                                ResizableColumns="true"
+                                Style="width:100%"
+                                RowSize="DataGridRowSize.Medium"
+                                GridTemplateColumns="1fr 1fr 1.5fr"
+                                ShowHover="true">
+                    <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
+                        <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]"
+                                   Value="@context.Name"
+                                   EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
+                                   HighlightText="@_filter" />
+                    </AspireTemplateColumn>
+                    <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.StateColumnHeader)]" Class="stateColumn">
+                        <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.StateColumnHeader)]"
+                                   Value="@(context.HealthStatus?.Humanize() ?? Loc[nameof(Resources.WaitingHealthDataStatusMessage)])"
+                                   EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
+                                   HighlightText="@_filter"
+                                   TextVisualizerTitle="@context.Name">
+                            <ContentBeforeValue>
+                                @if (context.HealthStatus is null)
+                                {
+                                    <FluentProgressRing Width="16px" Style="display: inline-block;" Class="severity-icon" />
+                                }
+                                else
+                                {
+                                    // Browse the icon library at: https://aka.ms/fluentui-system-icons
+                                    (Icon? icon, Color color) = context.HealthStatus switch
+                                    {
+                                        HealthStatus.Healthy => ((Icon)new Icons.Filled.Size16.Heart(), Color.Success),
+                                        HealthStatus.Degraded => (new Icons.Filled.Size16.HeartBroken(), Color.Warning),
+                                        HealthStatus.Unhealthy => (new Icons.Filled.Size16.HeartBroken(), Color.Error),
+                                        _ => (new Icons.Regular.Size16.CircleHint(), Color.Info)
+                                    };
+
+                                    <FluentIcon Value="@icon" Color="@color" Class="severity-icon"/>
+                                }
+                            </ContentBeforeValue>
+                        </GridValue>
+                    </AspireTemplateColumn>
+                    <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="detailsColumn">
+                        <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]"
+                                   Value="@(context.HealthStatus is null ? Loc[nameof(Resources.WaitingForHealthDataMessage)] : context.DisplayedDescription)"
+                                   EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
+                                   HighlightText="@_filter"
+                                   TextVisualizerTitle="@context.Name">
+                            <ContentInButtonArea>
+                                <ExceptionDetails ExceptionText="@context.ExceptionText" />
+                            </ContentInButtonArea>
+                        </GridValue>
+                    </AspireTemplateColumn>
+                </FluentDataGrid>
+            </FluentAccordionItem>
+            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsEnvironmentVariablesHeader)]" Expanded="@_isEnvironmentVariablesExpanded">
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
+                        @FilteredEnvironmentVariables.Count()
                     </FluentBadge>
                 </div>
                 <PropertyGrid TItem="EnvironmentVariableViewModel"
-                              Items="@FilteredItems"
-                              NameColumnValue="(vm) => vm.Name"
-                              ValueColumnValue="(vm) => vm.Value"
-                              NameSort="_nameSort"
-                              ValueSort="_valueSort"
-                              EnableValueMasking="true"
-                              GetIsItemMasked="(vm) => vm.IsValueMasked"
-                              SetIsItemMasked="(vm, newValue) => vm.IsValueMasked = newValue"
-                              IsMaskedChanged="@CheckAllMaskStates"
+                              Items="@FilteredEnvironmentVariables"
+                              IsValueMaskedChanged="@OnValueMaskedChanged"
                               HighlightText="@_filter"
-                              GridTemplateColumns="1fr 1.5fr" />
+                              GridTemplateColumns="1fr 1.5fr"
+                              Class="env-var-properties" />
             </FluentAccordionItem>
         </FluentAccordion>
     </div>
 </div>
+
+@code {
+    private static RenderFragment GetContentAfterValue(DisplayedEndpoint vm)
+    {
+        if (vm.Url is null)
+        {
+            return @<span>@vm.Text</span>;
+        }
+        else if (string.Equals(vm.Url, vm.Text, StringComparison.Ordinal))
+        {
+            return @<a href="@vm.Url" target="_blank">@vm.Url</a>;
+        }
+        else
+        {
+            return @<a href="@vm.Url" title="@vm.Url" target="_blank">@vm.Text</a>;
+        }
+    }
+}

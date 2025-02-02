@@ -11,10 +11,4 @@
     <Using Include="Aspire.Hosting.ApplicationModel" />
   </ItemGroup>
 
-  <ItemDefinitionGroup>
-    <ProjectReference>
-      <Watch>false</Watch>
-    </ProjectReference>
-  </ItemDefinitionGroup>
-
 </Project>

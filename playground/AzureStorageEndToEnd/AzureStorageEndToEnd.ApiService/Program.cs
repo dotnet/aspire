@@ -2,16 +2,19 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Azure.Storage.Blobs;
+using Azure.Storage.Queues;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
 builder.AddAzureBlobClient("blobs");
+builder.AddAzureQueueClient("queues");
 
 var app = builder.Build();
 
-app.MapGet("/", async (BlobServiceClient bsc) =>
+app.MapDefaultEndpoints();
+app.MapGet("/", async (BlobServiceClient bsc, QueueServiceClient qsc) =>
 {
     var container = bsc.GetBlobContainerClient("mycontainer");
     await container.CreateIfNotExistsAsync();
@@ -27,6 +30,10 @@ app.MapGet("/", async (BlobServiceClient bsc) =>
     {
         blobNames.Add(blob.Name);
     }
+
+    var queue = qsc.GetQueueClient("myqueue");
+    await queue.CreateIfNotExistsAsync();
+    await queue.SendMessageAsync("Hello, world!");
 
     return blobNames;
 });

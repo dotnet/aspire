@@ -1,12 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.InteropServices;
 using Xunit;
 using Xunit.Abstractions;
 using Aspire.TestProject;
 using Aspire.Workload.Tests;
-using Microsoft.DotNet.XUnitExtensions;
 
 namespace Aspire.EndToEnd.Tests;
 
@@ -23,13 +21,9 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
 
     [Theory]
     [Trait("scenario", "basicservices")]
-    [InlineData(TestResourceNames.mongodb)]
     [InlineData(TestResourceNames.postgres)]
     [InlineData(TestResourceNames.efnpgsql)]
-    [InlineData(TestResourceNames.rabbitmq)]
     [InlineData(TestResourceNames.redis)]
-    [InlineData(TestResourceNames.sqlserver)]
-    [InlineData(TestResourceNames.efsqlserver)]
     public Task VerifyComponentWorks(TestResourceNames resourceName)
         => RunTestAsync(async () =>
         {
@@ -49,34 +43,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
         });
 
     [Fact]
-    [Trait("scenario", "eventhubs")]
-    public Task VerifyAzureEventHubsComponentWorks()
-        => VerifyComponentWorks(TestResourceNames.eventhubs);
-
-    [ConditionalFact]
-    [SkipOnCI("https://github.com/dotnet/aspire/issues/3161")]
-    [Trait("scenario", "oracle")]
-    public Task VerifyOracleComponentWorks()
-        => VerifyComponentWorks(TestResourceNames.oracledatabase);
-
-    [ConditionalTheory]
-    [Trait("scenario", "cosmos")]
-    [InlineData(TestResourceNames.cosmos)]
-    [InlineData(TestResourceNames.efcosmos)]
-    public Task VerifyCosmosComponentWorks(TestResourceNames resourceName)
-    {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
-        {
-            throw new SkipTestException($"Skipping 'cosmos' test because the emulator isn't supported on macOS ARM64.");
-        }
-
-        return VerifyComponentWorks(resourceName);
-    }
-
-    [Fact]
-    // Include all the scenarios here so this test gets run for all of them.
-    [Trait("scenario", "cosmos")]
-    [Trait("scenario", "oracle")]
     [Trait("scenario", "basicservices")]
     public Task VerifyHealthyOnIntegrationServiceA()
         => RunTestAsync(async () =>

@@ -2,11 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using Xunit;
 using Xunit.Abstractions;
@@ -19,7 +21,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyValkeyResource()
     {
-        var builder = CreateDistributedApplicationBuilder();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var valkey = builder.AddValkey("valkey");
 
@@ -39,6 +41,8 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
         using var host = hb.Build();
 
         await host.StartAsync();
+
+        await app.WaitForHealthyAsync(valkey).WaitAsync(TimeSpan.FromMinutes(2));
 
         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -62,16 +66,16 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = CreateDistributedApplicationBuilder();
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var valkey1 = builder1.AddValkey("valkey");
 
             if (useVolume)
             {
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
-                volumeName = VolumeNameGenerator.CreateVolumeName(valkey1, nameof(WithDataShouldPersistStateBetweenUsages));
+                volumeName = VolumeNameGenerator.Generate(valkey1, nameof(WithDataShouldPersistStateBetweenUsages));
 
-                // if the volume already exists (because of a crashing previous run), try to delete it
-                DockerUtils.AttemptDeleteDockerVolume(volumeName);
+                // if the volume already exists (because of a crashing previous run), delete it
+                DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
                 valkey1.WithDataVolume(volumeName);
             }
             else
@@ -99,6 +103,8 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
+                        await app.WaitForHealthyAsync(valkey1).WaitAsync(TimeSpan.FromMinutes(2));
+
                         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
                         var db = redisClient.GetDatabase();
@@ -118,7 +124,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = CreateDistributedApplicationBuilder();
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var valkey2 = builder2.AddValkey("valkey");
 
             if (useVolume)
@@ -147,6 +153,8 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
+
+                        await app.WaitForHealthyAsync(valkey2).WaitAsync(TimeSpan.FromMinutes(2));
 
                         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -185,10 +193,43 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
         }
     }
 
-    private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWaitForOnValkeyBlocksDependentResources()
     {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
-        builder.Services.AddXunitLogging(testOutputHelper);
-        return builder;
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
+        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
+        {
+            return healthCheckTcs.Task;
+        });
+
+        var resource = builder.AddValkey("resource")
+                              .WithHealthCheck("blocking_check");
+
+        var dependentResource = builder.AddValkey("dependentresource")
+                                       .WaitFor(resource);
+
+        using var app = builder.Build();
+
+        var pendingStart = app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+
+        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
+
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await pendingStart;
+
+        await app.StopAsync();
     }
 }

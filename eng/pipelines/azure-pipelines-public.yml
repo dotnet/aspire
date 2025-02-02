@@ -88,7 +88,6 @@ stages:
       enablePublishUsingPipelines: true
       publishAssetsImmediately: true
       enablePublishTestResults: true
-      enableSourceBuild: true
       testResultsFormat: vstest
       enableSourceIndex: false
       workspace:

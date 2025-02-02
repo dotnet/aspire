@@ -1,8 +1,6 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var token = builder.AddParameter("milvusauth", true);
-
-var milvusdb = builder.AddMilvus("milvus", token)
+var milvusdb = builder.AddMilvus("milvus")
     .WithDataVolume("milvus-data")
     .WithAttu();
 

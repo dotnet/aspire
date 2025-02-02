@@ -23,6 +23,12 @@ public class AnsiParserTests
 
     [Theory]
     [InlineData("\x1B[2m", "")]
+    [InlineData("\x1B[2A", "")]
+    [InlineData("\x1B[u", "")]
+    [InlineData("\x1B[2@", "")]
+    [InlineData("\x1B[2~", "")]
+    [InlineData("\x1B[?25h", "")]
+    [InlineData("\x1B[?25l", "")]
     [InlineData("\x1B[23m", "")]
     [InlineData("\x1B[2m\x1B[23m", "")]
     [InlineData("Real Text Before\x1B[2m\x1B[23m", "Real Text Before")]
@@ -30,6 +36,20 @@ public class AnsiParserTests
     [InlineData("\x1B[2mReal Text Between\x1B[23m", "Real Text Between")]
     [InlineData("Real Text Before\x1B[2mReal Text Between\x1B[23mReal Text After", "Real Text BeforeReal Text BetweenReal Text After")]
     public void ConvertToHtml_IgnoresUnsupportedButValidCodes(string input, string expectedOutput)
+    {
+        var result = AnsiParser.ConvertToHtml(input);
+
+        Assert.Equal(expectedOutput, result.ConvertedText);
+        Assert.Equal(default, result.ResidualState);
+    }
+
+    [Theory]
+    [InlineData("\x1b]9;4;3;\x1b\\", "")]
+    [InlineData("\x1b]9;4;3;\x07", "")]
+    [InlineData("Real Text Before\x1b]9;4;3;\x1b\\", "Real Text Before")]
+    [InlineData("\x1b]9;4;3;\x1b\\Real Text After", "Real Text After")]
+    [InlineData("\u001b]9;4;3;\u001b\\Real Text Between\u001b]9;4;3;\u001b\\", "Real Text Between")]
+    public void ConvertToHtml_IgnoresUnsupportedConEmuCodes(string input, string expectedOutput)
     {
         var result = AnsiParser.ConvertToHtml(input);
 
@@ -53,6 +73,17 @@ public class AnsiParserTests
     public void ConvertToHtml_ColorOpenedAndClosed()
     {
         var input = "\x1B[32mThis is some green text\x1B[39m";
+        var expectedOutput = "<span class=\"ansi-fg-green\">This is some green text</span>";
+        var result = AnsiParser.ConvertToHtml(input);
+
+        Assert.Equal(expectedOutput, result.ConvertedText);
+        Assert.Equal(default, result.ResidualState);
+    }
+
+    [Fact]
+    public void ConvertToHtml_ColorOpenedAndClosedWithIgnoredSequencesInMiddle()
+    {
+        var input = "\x1B[32mThis is \x1B[?25hsome green\u001b]9;4;3;\u001b\\ text\x1B[39m";
         var expectedOutput = "<span class=\"ansi-fg-green\">This is some green text</span>";
         var result = AnsiParser.ConvertToHtml(input);
 
@@ -281,5 +312,38 @@ public class AnsiParserTests
         var result = AnsiParser.ConvertToHtml(input);
 
         Assert.Equal(expectedOutput, result.ConvertedText);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("This is some text without any codes")]
+    [InlineData("This is some text \x1B with an invalid code")]
+    [InlineData("\x1B This is some text that starts with an invalid code")]
+    [InlineData("This is some text that ends with an invalid code \x1B")]
+    [InlineData("\x1B Multiple \x1B invalid \x1B\x1B codes \x1B")]
+    [InlineData("!\x1B!\x1B!\x1B\x1B!!\x1B!")]
+    public void StripControlSequences_ReturnsInputUnchangedIfNoCodesPresent(string input)
+    {
+        var expectedOutput = input;
+        var result = AnsiParser.StripControlSequences(input);
+
+        Assert.Equal(expectedOutput, result);
+    }
+
+    [Theory]
+    [InlineData("\x1B[31mError:\x1B[0m \x1B[1m\x1B[4mFile not found\x1B[0m in directory \x1B[34m/home/user/docs\x1B[0m", "Error: File not found in directory /home/user/docs")]
+    [InlineData("\x1B[32mSuccess:\x1B[0m \x1B[1m\x1B[3mOperation completed successfully\x1B[0m", "Success: Operation completed successfully")]
+    [InlineData("\x1B[33mWarning:\x1B[0m \x1B[4mLow disk space\x1B[0m on drive \x1B[35mC:\x1B[0m", "Warning: Low disk space on drive C:")]
+    [InlineData("\x1B[36mInfo:\x1B[0m \x1B[1m\x1B[3mBackup completed\x1B[0m at \x1B[32m12:00 PM\x1B[0m", "Info: Backup completed at 12:00 PM")]
+    [InlineData("\x1B[36m", "")]
+    [InlineData("Ends \x1B[36m", "Ends ")]
+    [InlineData("\x1B[36m Starts", " Starts")]
+    [InlineData("\x1B[36m\x1B[36m", "")]
+    [InlineData("1\x1B[36m2\x1B[36m3", "123")]
+    public void StripControlSequences_StripsCorrectly(string input, string expectedOutput)
+    {
+        var result = AnsiParser.StripControlSequences(input);
+        Assert.Equal(expectedOutput, result);
     }
 }

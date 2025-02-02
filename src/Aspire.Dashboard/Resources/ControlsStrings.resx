@@ -160,6 +160,9 @@
   <data name="GridValueCopyToClipboard" xml:space="preserve">
     <value>Copy to clipboard</value>
   </data>
+  <data name="ExceptionDetailsTitle" xml:space="preserve">
+    <value>Exception details</value>
+  </data>
   <data name="GridValueCopied" xml:space="preserve">
     <value>Copied!</value>
   </data>
@@ -180,6 +183,9 @@
   </data>
   <data name="PropertyGridValueColumnHeader" xml:space="preserve">
     <value>Value</value>
+  </data>
+  <data name="StateColumnHeader" xml:space="preserve">
+    <value>State</value>
   </data>
   <data name="SpanDetailsResource" xml:space="preserve">
     <value>Resource &lt;strong&gt;{0}&lt;/strong&gt;</value>
@@ -215,7 +221,7 @@
   <data name="ViewAction" xml:space="preserve">
     <value>View</value>
   </data>
-  <data name="All" xml:space="preserve">
+  <data name="LabelAll" xml:space="preserve">
     <value>(All)</value>
   </data>
   <data name="ChartContainerAllTags" xml:space="preserve">
@@ -230,7 +236,7 @@
   <data name="ChartContainerShowCountLabel" xml:space="preserve">
     <value>Show count</value>
   </data>
-  <data name="None" xml:space="preserve">
+  <data name="LabelNone" xml:space="preserve">
     <value>(None)</value>
   </data>
   <data name="MetricTableStartColumnHeader" xml:space="preserve">
@@ -296,6 +302,12 @@
   <data name="ResourceDetailsEnvironmentVariablesHeader" xml:space="preserve">
     <value>Environment variables</value>
   </data>
+  <data name="ResourceDetailsVolumesHeader" xml:space="preserve">
+    <value>Volumes</value>
+  </data>
+  <data name="ResourceHealthChecksHeader" xml:space="preserve">
+    <value>Health checks</value>
+  </data>
   <data name="ResourceDetailsResourceHeader" xml:space="preserve">
     <value>Resource</value>
   </data>
@@ -358,5 +370,71 @@
   </data>
   <data name="PageToolbarLandmark" xml:space="preserve">
     <value>Page toolbar</value>
-    </data>
+  </data>
+  <data name="FluentDataGridHeaderCellResizeLabel" xml:space="preserve">
+    <value>Column width (in pixels)</value>
+  </data>
+  <data name="FluentDataGridHeaderCellSortButtonText" xml:space="preserve">
+    <value>Sort</value>
+  </data>
+  <data name="FluentDataGridHeaderCellSortAscendingButtonText" xml:space="preserve">
+    <value>Sort (ascending)</value>
+  </data>
+  <data name="FluentDataGridHeaderCellSortDescendingButtonText" xml:space="preserve">
+    <value>Sort (descending)</value>
+  </data>
+  <data name="FluentDataGridHeaderCellResizeButtonText" xml:space="preserve">
+    <value>Resize</value>
+  </data>
+  <data name="StructuredFilteringFilters" xml:space="preserve">
+    <value>Filters</value>
+  </data>
+  <data name="StructuredFilteringNoFilters" xml:space="preserve">
+    <value>No filters</value>
+  </data>
+  <data name="StructuredFilteringAddFilter" xml:space="preserve">
+    <value>Add filter</value>
+  </data>
+  <data name="LabelEmpty" xml:space="preserve">
+    <value>(Empty)</value>
+  </data>
+  <data name="LabelUnset" xml:space="preserve">
+    <value>(Unset)</value>
+  </data>
+  <data name="ActionsColumnHeader" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="ActionViewDetailsText" xml:space="preserve">
+    <value>View details</value>
+  </data>
+  <data name="ActionsButtonText" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="ActionStructuredLogsText" xml:space="preserve">
+    <value>Structured logs</value>
+  </data>
+  <data name="ResourceDetailsTypeHeader" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="ResourceDetailsReferences" xml:space="preserve">
+    <value>References</value>
+  </data>
+  <data name="ResourceDetailsBackReferences" xml:space="preserve">
+    <value>Back references</value>
+  </data>
+  <data name="VolumePathColumnHeader" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="VolumeMountTypeColumnHeader" xml:space="preserve">
+    <value>Mount type</value>
+  </data>
+  <data name="ClearAllResources" xml:space="preserve">
+    <value>Remove all</value>
+  </data>
+  <data name="ClearSelectedResource" xml:space="preserve">
+    <value>Remove for {0}</value>
+  </data>
+  <data name="ClearPendingSelectedResource" xml:space="preserve">
+    <value>Remove for resource</value>
+  </data>
 </root>

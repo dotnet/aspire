@@ -148,6 +148,12 @@
     <value>Version: {0}</value>
     <comment>{0} is the dashboard version string</comment>
   </data>
+  <data name="SettingsDialogLanguage" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="SettingsDialogLanguagePageReloads" xml:space="preserve">
+    <value>The page will reload on language change.</value>
+  </data>
   <data name="FilterDialogParameterInputLabel" xml:space="preserve">
     <value>Parameter</value>
   </data>
@@ -205,7 +211,7 @@
   <data name="HelpDialogKeyboardShortcutsTitle" xml:space="preserve">
     <value>Keyboard Shortcuts</value>
   </data>
-  <data name="ExemplarsDialogCloseButtonText" xml:space="preserve">
+  <data name="DialogCloseButtonText" xml:space="preserve">
     <value>Close</value>
   </data>
   <data name="ExemplarsDialogTitle" xml:space="preserve">
@@ -232,5 +238,28 @@
   </data>
   <data name="OpenTraceDialogCancelButtonText" xml:space="preserve">
     <value>Cancel</value>
+  </data>
+  <data name="TextVisualizerDialogPlaintextFormat" xml:space="preserve">
+    <value>Unformatted</value>
+  </data>
+  <data name="TextVisualizerDialogJsonFormat" xml:space="preserve">
+    <value>Format JSON</value>
+  </data>
+  <data name="TextVisualizerDialogXmlFormat" xml:space="preserve">
+    <value>Format XML</value>
+  </data>
+  <data name="TextVisualizerSelectFormatType" xml:space="preserve">
+    <value>Select format</value>
+  </data>
+  <data name="OpenInTextVisualizer" xml:space="preserve">
+    <value>Open in text visualizer</value>
+  </data>
+  <data name="FieldRequired" xml:space="preserve">
+    <value>A value is required.</value>
+    <comment>{0} is the literal, untranslated field name which we do not want to show, so it is missing.</comment>
+  </data>
+  <data name="FieldTooLong" xml:space="preserve">
+    <value>A maximum length of {1} characters is allowed.</value>
+    <comment>{0} is the field name, whereas {1} is the length. We don't want to show the field name, so it is missing.</comment>
   </data>
 </root>

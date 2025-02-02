@@ -3,6 +3,7 @@
 
 using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -69,6 +70,11 @@ public interface IDistributedApplicationBuilder
 
     /// <inheritdoc cref="HostApplicationBuilder.Services" />
     public IServiceCollection Services { get; }
+
+    /// <summary>
+    /// Eventing infrastructure for AppHost lifecycle.
+    /// </summary>
+    public IDistributedApplicationEventing Eventing { get; }
 
     /// <summary>
     /// Execution context for this invocation of the AppHost.
@@ -138,7 +144,7 @@ public interface IDistributedApplicationBuilder
     /// method. Other extension methods (such as <see cref="ContainerResourceBuilderExtensions.WithImage{T}(IResourceBuilder{T}, string, string)"/>
     /// in this case) can be chained to configure the resource as desired.
     /// <code lang="csharp">
-    /// public static IResourceBuilder&lt;ContainerResource&gt; AddContainer(this IDistributedApplicationBuilder builder, string name, string image, string tag)
+    /// public static IResourceBuilder&lt;ContainerResource&gt; AddContainer(this IDistributedApplicationBuilder builder, [ResourceName] string name, string image, string tag)
     /// {
     ///     var container = new ContainerResource(name);
     ///     return builder.AddResource(container)
@@ -188,7 +194,7 @@ public interface IDistributedApplicationBuilder
     /// another resource to the application model.
     /// </para>
     /// <code lang="csharp">
-    /// public static IResourceBuilder&lt;IResourceWithConnectionString&gt; AddConnectionString(this IDistributedApplicationBuilder builder, string name, string? environmentVariableName = null)
+    /// public static IResourceBuilder&lt;IResourceWithConnectionString&gt; AddConnectionString(this IDistributedApplicationBuilder builder, [ResourceName] string name, string? environmentVariableName = null)
     /// {
     ///     var parameterBuilder = builder.AddParameter(name, _ =>
     ///     {

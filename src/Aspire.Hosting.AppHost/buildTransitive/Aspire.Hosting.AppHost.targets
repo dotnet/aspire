@@ -1,3 +1,0 @@
-<Project>
-  <Import Project="..\build\Aspire.Hosting.AppHost.targets" />
-</Project>

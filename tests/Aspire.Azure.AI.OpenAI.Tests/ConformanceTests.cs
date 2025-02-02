@@ -25,6 +25,8 @@ public class ConformanceTests : ConformanceTests<AzureOpenAIClient, AzureOpenAIS
 
     protected override bool SupportsKeyedRegistrations => true;
 
+    protected override string? ConfigurationSectionName => "Aspire:Azure:AI:OpenAI";
+
     protected override string ValidJsonConfig => """
         {
           "Aspire": {
@@ -33,6 +35,7 @@ public class ConformanceTests : ConformanceTests<AzureOpenAIClient, AzureOpenAIS
                 "OpenAI": {
                   "Endpoint": "http://YOUR_URI",
                   "DisableTracing": false,
+                  "DisableMetrics": false,
                   "ClientOptions": {
                     "NetworkTimeout": "00:00:02"
                   }
@@ -80,24 +83,28 @@ public class ConformanceTests : ConformanceTests<AzureOpenAIClient, AzureOpenAIS
     }
 
     [Fact]
-    [ActiveIssue("OpenAI library doesn't support tracing yet - https://github.com/openai/openai-dotnet/pull/107/")]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
+        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null), EnableTelemetry()).Dispose();
 
     [Fact]
-    [ActiveIssue("OpenAI library doesn't support tracing yet - https://github.com/openai/openai-dotnet/pull/107/")]
     public void TracingEnablesTheRightActivitySource_Keyed()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
+        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key"), EnableTelemetry()).Dispose();
 
     protected override void SetHealthCheck(AzureOpenAISettings options, bool enabled)
         => throw new NotImplementedException();
 
     protected override void SetMetrics(AzureOpenAISettings options, bool enabled)
-        => throw new NotImplementedException();
+        => options.DisableMetrics = !enabled;
 
     protected override void SetTracing(AzureOpenAISettings options, bool enabled)
         => options.DisableTracing = !enabled;
 
     protected override void TriggerActivity(AzureOpenAIClient service)
         => service.GetChatClient("dummy").CompleteChat("dummy gpt");
+
+    private static RemoteInvokeOptions EnableTelemetry()
+        => new()
+        {
+            RuntimeConfigurationOptions = { { "OpenAI.Experimental.EnableOpenTelemetry", true } }
+        };
 }

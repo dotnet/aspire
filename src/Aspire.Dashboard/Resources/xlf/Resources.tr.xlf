@@ -2,19 +2,49 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="tr" original="../Resources.resx">
     <body>
+      <trans-unit id="ResourceActionConsoleLogsText">
+        <source>Console logs</source>
+        <target state="translated">Konsol günlükleri</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionMetricsText">
+        <source>Metrics</source>
+        <target state="translated">Ölçümler</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionStructuredLogsText">
+        <source>Structured logs</source>
+        <target state="translated">Yapılandırılmış günlükler</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionTelemetryTooltip">
+        <source>No telemetry found for this resource.</source>
+        <target state="translated">Bu kaynak için telemetri bulunamadı.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionTracesText">
+        <source>Traces</source>
+        <target state="translated">İzlemeler</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceCommandFailed">
-        <source>"{0}" command failed</source>
-        <target state="translated">"{0}" komutu başarısız oldu</target>
-        <note>{0} is the display name of the command that failed</note>
+        <source>{0} "{1}" failed</source>
+        <target state="translated">{0} "{1}" başarısız</target>
+        <note>{0} is the resource. {1} is the display name of the command.</note>
+      </trans-unit>
+      <trans-unit id="ResourceCommandStarting">
+        <source>{0} "{1}" starting</source>
+        <target state="translated">{0} "{1}" başlatılıyor</target>
+        <note>{0} is the resource. {1} is the display name of the command.</note>
       </trans-unit>
       <trans-unit id="ResourceCommandSuccess">
-        <source>"{0}" command succeeded</source>
-        <target state="translated">"{0}" komutu başarılı oldu</target>
-        <note>{0} is the display name of the command that succeeded</note>
+        <source>{0} "{1}" succeeded</source>
+        <target state="translated">{0} "{1}" başarılı</target>
+        <note>{0} is the resource. {1} is the display name of the command.</note>
       </trans-unit>
       <trans-unit id="ResourceCommandToastViewLogs">
-        <source>View Logs</source>
-        <target state="translated">Günlükleri Görüntüle</target>
+        <source>View console logs</source>
+        <target state="translated">Konsol günlüklerini görüntüle</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointUrl">
@@ -27,14 +57,19 @@
         <target state="translated">Ara sunucu URL'si</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesCommandsColumnHeader">
-        <source>Commands</source>
-        <target state="translated">Komutlar</target>
+      <trans-unit id="ResourceDetailsViewConsoleLogs">
+        <source>View console logs</source>
+        <target state="translated">Konsol günlüklerini görüntüle</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesDetailsColumnHeader">
-        <source>Details</source>
-        <target state="translated">Ayrıntılar</target>
+      <trans-unit id="ResourceFilterOptionEmpty">
+        <source>(Unset)</source>
+        <target state="translated">(Ayarı Kaldır)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesActionsColumnHeader">
+        <source>Actions</source>
+        <target state="translated">Eylemler</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerArgumentsProperty">
@@ -55,6 +90,11 @@
       <trans-unit id="ResourcesDetailsContainerImageProperty">
         <source>Container image</source>
         <target state="translated">Kapsayıcı görüntüsü</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsContainerLifetimeProperty">
+        <source>Container lifetime</source>
+        <target state="translated">Kapsayıcı ömrü</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerPortsProperty">
@@ -92,6 +132,11 @@
         <target state="translated">Çıkış kodu</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsHealthStateProperty">
+        <source>Health state</source>
+        <target state="translated">İşlevsel durum</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
         <source>Project path</source>
         <target state="translated">Proje yolu</target>
@@ -107,6 +152,11 @@
         <target state="translated">Durum</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsStopTimeProperty">
+        <source>Stop time</source>
+        <target state="translated">Durdurma zamanı</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesEndpointsColumnHeader">
         <source>Endpoints</source>
         <target state="translated">Uç Noktalar</target>
@@ -117,9 +167,19 @@
         <target state="translated">Ortam</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesLogsColumnHeader">
-        <source>Logs</source>
-        <target state="translated">Günlükler</target>
+      <trans-unit id="ResourcesFiltered">
+        <source>Has filters</source>
+        <target state="translated">Filtreleri var</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesNotFiltered">
+        <source>No filters</source>
+        <target state="translated">Filtre mevcut değil</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesResourceStatesHeader">
+        <source>State</source>
+        <target state="translated">Durum</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">
@@ -172,15 +232,15 @@
         <target state="translated">Tür</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesTypeFilterAllVisible">
-        <source>Type filter: All types visible</source>
-        <target state="translated">Tür filtresi: Tüm türler görünür</target>
-        <note />
+      <trans-unit id="WaitingForHealthDataMessage">
+        <source>Waiting for health data...</source>
+        <target state="translated">Sistem durumu verileri bekleniyor...</target>
+        <note>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
       </trans-unit>
-      <trans-unit id="ResourcesTypeFiltered">
-        <source>Type filter: Filtered</source>
-        <target state="translated">Tür filtresi: Filtrelendi</target>
-        <note />
+      <trans-unit id="WaitingHealthDataStatusMessage">
+        <source>Waiting...</source>
+        <target state="translated">Bekleniyor...</target>
+        <note>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
       </trans-unit>
     </body>
   </file>

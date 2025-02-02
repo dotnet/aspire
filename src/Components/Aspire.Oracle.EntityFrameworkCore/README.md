@@ -78,7 +78,8 @@ The .NET Aspire Oracle EntityFrameworkCore component supports [Microsoft.Extensi
   "Aspire": {
     "Oracle": {
       "EntityFrameworkCore": {
-        "DisableHealthChecks": true
+        "DisableHealthChecks": true,
+        "DisableTracing": true
       }
     }
   }

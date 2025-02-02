@@ -14,11 +14,36 @@ if (firstUndefinedElement) {
     document.body.classList.remove("before-upgrade");
 }
 
+function isElementTagName(element, tagName) {
+    return element.tagName.toLowerCase() === tagName;
+}
+
+function getFluentMenuItemForTarget(element) {
+    // User could have clicked on either a path or svg (the image on the item) or the item itself
+    if (isElementTagName(element, "path")) {
+        return getFluentMenuItemForTarget(element.parentElement);
+    }
+
+    // in between the svg and fluent-menu-item is a span for the icon slot
+    const possibleMenuItem = element.parentElement?.parentElement;
+    if (isElementTagName(element, "svg") && possibleMenuItem && isElementTagName(possibleMenuItem, "fluent-menu-item")) {
+        return element.parentElement.parentElement;
+    }
+
+    if (isElementTagName(element, "fluent-menu-item")) {
+        return element;
+    }
+
+    return null;
+}
+
 // Register a global click event listener to handle copy button clicks.
 // Required because an "onclick" attribute is denied by CSP.
 document.addEventListener("click", function (e) {
-    if (e.target.type === "button" && e.target.getAttribute("data-copybutton")) {
-        buttonCopyTextToClipboard(e.target);
+    // The copy 'button' could either be a button or a menu item.
+    const targetElement = isElementTagName(e.target, "fluent-button") ? e.target : getFluentMenuItemForTarget(e.target)
+    if (targetElement && targetElement.getAttribute("data-copybutton")) {
+        buttonCopyTextToClipboard(targetElement);
         e.stopPropagation();
     }
 });
@@ -108,6 +133,7 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
 
     const copyIcon = button.querySelector('.copy-icon');
     const checkmarkIcon = button.querySelector('.checkmark-icon');
+
     const anchoredTooltip = document.querySelector(`fluent-tooltip[anchor="${id}"]`);
     const tooltipDiv = anchoredTooltip ? anchoredTooltip.children[0] : null;
     navigator.clipboard.writeText(text)
@@ -115,8 +141,10 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
             if (tooltipDiv) {
                 tooltipDiv.innerText = postcopy;
             }
-            copyIcon.style.display = 'none';
-            checkmarkIcon.style.display = 'inline';
+            if (copyIcon && checkmarkIcon) {
+                copyIcon.style.display = 'none';
+                checkmarkIcon.style.display = 'inline';
+            }
         })
         .catch(() => {
             if (tooltipDiv) {
@@ -129,17 +157,13 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
             tooltipDiv.innerText = precopy;
         }
 
-        copyIcon.style.display = 'inline';
-        checkmarkIcon.style.display = 'none';
+        if (copyIcon && checkmarkIcon) {
+            copyIcon.style.display = 'inline';
+            checkmarkIcon.style.display = 'none';
+        }
         delete button.dataset.copyTimeout;
    }, 1500);
 };
-
-window.updateFluentSelectDisplayValue = function (fluentSelect) {
-    if (fluentSelect) {
-        fluentSelect.updateDisplayValue();
-    }
-}
 
 function isActiveElementInput() {
     const currentElement = document.activeElement;
@@ -250,8 +274,8 @@ window.registerGlobalKeydownListener = function(shortcutManager) {
     }
 }
 
-window.unregisterGlobalKeydownListener = function (keydownListener) {
-    window.document.removeEventListener('keydown', keydownListener);
+window.unregisterGlobalKeydownListener = function (obj) {
+    window.document.removeEventListener('keydown', obj.keydownListener);
 }
 
 window.getBrowserTimeZone = function () {
@@ -299,3 +323,39 @@ window.listenToWindowResize = function(dotnetHelper) {
 
     window.addEventListener('resize', throttledResizeListener);
 }
+
+window.setCellTextClickHandler = function (id) {
+    var cellTextElement = document.getElementById(id);
+    if (!cellTextElement) {
+        return;
+    }
+
+    cellTextElement.addEventListener('click', e => {
+        // Propagation behavior:
+        // - Link click stops. Link will open in a new window.
+        // - Any other text allows propagation. Potentially opens details view.
+        if (isElementTagName(e.target, 'a')) {
+            e.stopPropagation();
+        }
+    });
+};
+
+window.scrollToTop = function (selector) {
+    var element = document.querySelector(selector);
+    if (element) {
+        element.scrollTop = 0;
+    }
+};
+
+// taken from https://learn.microsoft.com/en-us/aspnet/core/blazor/file-downloads?view=aspnetcore-8.0#download-from-a-stream
+window.downloadStreamAsFile = async function (fileName, contentStreamReference) {
+    const arrayBuffer = await contentStreamReference.arrayBuffer();
+    const blob = new Blob([arrayBuffer]);
+    const url = URL.createObjectURL(blob);
+    const anchorElement = document.createElement('a');
+    anchorElement.href = url;
+    anchorElement.download = fileName ?? '';
+    anchorElement.click();
+    anchorElement.remove();
+    URL.revokeObjectURL(url);
+};

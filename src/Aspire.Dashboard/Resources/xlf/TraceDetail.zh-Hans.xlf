@@ -14,7 +14,12 @@
       </trans-unit>
       <trans-unit id="TraceDetailMobileToolbarButtonText">
         <source>Trace details</source>
-        <target state="new">Trace details</target>
+        <target state="translated">跟踪详细信息</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TraceDetailNameHeader">
+        <source>Name</source>
+        <target state="translated">名称</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailPageTitle">

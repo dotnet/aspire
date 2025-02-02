@@ -20,6 +20,17 @@ In summary we encourage and are excited to accept contributions of components, b
 
 Each component is in its own NuGet package, and can version independently, including declaring itself in a preview state using the standard SemVer and NuGet mechanisms. However we expect the major and minor version of components to follow the core Aspire packages to make it easier to reason about dependencies. We expect to typically push updates to all components at the same time we update the core Aspire packages, but we have the ability to push an updated component at any other time if necessary, for example where changes to the underlying client library makes it necessary.
 
+### Target Framework(s)
+
+The Aspire component must support the [latest LTS version of .NET](https://dotnet.microsoft.com/platform/support/policy/dotnet-core) and may optionally support a higher STS version, if one exists. For example:
+
+| .NET Aspire Version | Targets                         |
+|---------------------|---------------------------------|
+| 8.x                 | `net8.0`                        |
+| 9.x                 | `net8.0` (+`net9.0` optional)   |
+| 10.x                | `net10.0`                       |
+| 11.x                | `net10.0` (+`net11.0` optional) |
+
 ### Dependency Versioning
 
 Applications usually have a direct reference to an Aspire component package (e.g `Aspire.StackExchange.Redis`) but have indirect references to the associated client libraries (e.g. `StackExchange.Redis`). This means that the version of the client libraries used by the application is derived from what the component package is built against.
@@ -64,6 +75,7 @@ Where the component represents some client technology that has a widely recogniz
 - When a new instance of the settings type is created, its properties should return the recommended/default values (so when they are bound to an empty config they still return the right values).
 - Settings should be bound to a section of `IConfiguration` exposed by `IHostApplicationBuilder.Configuration`.
 - Each component should determine a constant configuration section name for its settings under the `Aspire` config section.
+- Each component should support binding arguments from the configuration section and from named configuration as defined below. Settings bound from named configuration should override those bound from integration-specific configuration.
 - All configuration knobs exposed by the settings type should be public and mutable, so they can be changed in the config and applied without a need for re-compiling the application.
 - Each component should expose an optional lambda that accepts an instance of given settings type. By doing that, we provide the users with a possibility to override the bound config values (make final changes).
 - When a mandatory config property is missing, an exception should be thrown, and it should contain information about the config path that was used to read it.

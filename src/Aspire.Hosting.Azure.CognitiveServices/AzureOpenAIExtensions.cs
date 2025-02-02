@@ -1,12 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.CognitiveServices;
-using Azure.ResourceManager.CognitiveServices.Models;
+using static Azure.Provisioning.Expressions.BicepFunction;
 
 namespace Aspire.Hosting;
 
@@ -21,51 +20,69 @@ public static class AzureOpenAIExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, string name)
-    {
-#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.AddAzureOpenAI(name, null);
-#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    }
-
-    /// <summary>
-    /// Adds an Azure OpenAI resource to the application model.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.CognitiveServices.CognitiveServicesAccount"/> resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureOpenAIResource>, ResourceModuleConstruct, CognitiveServicesAccount, IEnumerable<CognitiveServicesAccountDeployment>>? configureResource)
+    public static IResourceBuilder<AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var cogServicesAccount = new CognitiveServicesAccount(construct, "OpenAI", name: name);
-            cogServicesAccount.AssignProperty(x => x.Properties.CustomSubDomainName, $"toLower(take(concat('{name}', uniqueString(resourceGroup().id)), 24))");
-            cogServicesAccount.AssignProperty(x => x.Properties.PublicNetworkAccess, "'Enabled'");
-            cogServicesAccount.AddOutput("connectionString", """'Endpoint=${{{0}}}'""", x => x.Properties.Endpoint);
+            var cogServicesAccount = new CognitiveServicesAccount(infrastructure.AspireResource.GetBicepIdentifier())
+            {
+                Kind = "OpenAI",
+                Sku = new CognitiveServicesSku()
+                {
+                    Name = "S0"
+                },
+                Properties = new CognitiveServicesAccountProperties()
+                {
+                    CustomSubDomainName = ToLower(Take(Concat(infrastructure.AspireResource.Name, GetUniqueString(GetResourceGroup().Id)), 24)),
+                    PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
+                    // Disable local auth for AOAI since managed identity is used
+                    DisableLocalAuth = true
+                },
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+            };
+            infrastructure.Add(cogServicesAccount);
 
-            var roleAssignment = cogServicesAccount.AssignRole(RoleDefinition.CognitiveServicesOpenAIContributor);
-            roleAssignment.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
-            roleAssignment.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);
+            infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
+            {
+                 Value = Interpolate($"Endpoint={cogServicesAccount.Properties.Endpoint}")
+            });
 
-            var resource = (AzureOpenAIResource)construct.Resource;
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            infrastructure.Add(principalTypeParameter);
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalIdParameter);
+
+            infrastructure.Add(cogServicesAccount.CreateRoleAssignment(CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor, principalTypeParameter, principalIdParameter));
+
+            var resource = (AzureOpenAIResource)infrastructure.AspireResource;
 
             CognitiveServicesAccountDeployment? dependency = null;
 
             var cdkDeployments = new List<CognitiveServicesAccountDeployment>();
             foreach (var deployment in resource.Deployments)
             {
-                var model = new CognitiveServicesAccountDeploymentModel();
-                model.Name = deployment.ModelName;
-                model.Version = deployment.ModelVersion;
-                model.Format = "OpenAI";
-
-                var cdkDeployment = new CognitiveServicesAccountDeployment(construct, model, parent: cogServicesAccount, name: deployment.Name);
-                cdkDeployment.AssignProperty(x => x.Sku.Name, $"'{deployment.SkuName}'");
-                cdkDeployment.AssignProperty(x => x.Sku.Capacity, $"{deployment.SkuCapacity}");
+                var cdkDeployment = new CognitiveServicesAccountDeployment(Infrastructure.NormalizeBicepIdentifier(deployment.Name))
+                {
+                    Name = deployment.Name,
+                    Parent = cogServicesAccount,
+                    Properties = new CognitiveServicesAccountDeploymentProperties()
+                    {
+                        Model = new CognitiveServicesAccountDeploymentModel()
+                        {
+                            Name = deployment.ModelName,
+                            Version = deployment.ModelVersion,
+                            Format = "OpenAI"
+                        }
+                    },
+                    Sku = new CognitiveServicesSku()
+                    {
+                        Name = deployment.SkuName,
+                        Capacity = deployment.SkuCapacity
+                    }
+                };
+                infrastructure.Add(cdkDeployment);
                 cdkDeployments.Add(cdkDeployment);
 
                 // Subsequent deployments need an explicit dependency on the previous one
@@ -74,20 +91,15 @@ public static class AzureOpenAIExtensions
 
                 if (dependency != null)
                 {
-                    cdkDeployment.AddDependency(dependency);
+                    cdkDeployment.DependsOn.Add(dependency);
                 }
 
                 dependency = cdkDeployment;
             }
-
-            var resourceBuilder = builder.CreateResourceBuilder(resource);
-            configureResource?.Invoke(resourceBuilder, construct, cogServicesAccount, cdkDeployments);
         };
 
-        var resource = new AzureOpenAIResource(name, configureConstruct);
+        var resource = new AzureOpenAIResource(name, configureInfrastructure);
         return builder.AddResource(resource)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 

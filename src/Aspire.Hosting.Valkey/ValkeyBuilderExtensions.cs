@@ -5,6 +5,7 @@ using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Valkey;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -18,6 +19,9 @@ public static class ValkeyBuilderExtensions
     /// <summary>
     /// Adds a Valkey container to the application model.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="ValkeyContainerImageTags.Tag"/> tag of the <inheritdoc cref="ValkeyContainerImageTags.Image"/> container image.
+    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port to bind the underlying container to.</param>
@@ -29,8 +33,8 @@ public static class ValkeyBuilderExtensions
     /// var valkey = builder.AddValkey("valkey");
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api)
     ///                  .WithReference(valkey);
-    ///  
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     /// <example>
@@ -41,7 +45,7 @@ public static class ValkeyBuilderExtensions
     ///
     /// var multiplexer = builder.Services.BuildServiceProvider()
     ///                                   .GetRequiredService&lt;IConnectionMultiplexer&gt;();
-    /// 
+    ///
     /// var db = multiplexer.GetDatabase();
     /// db.HashSet("key", [new HashEntry("hash", "value")]);
     /// var value = db.HashGet("key", "hash");
@@ -56,10 +60,28 @@ public static class ValkeyBuilderExtensions
         ArgumentNullException.ThrowIfNull(name);
 
         var valkey = new ValkeyResource(name);
+
+        string? connectionString = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(valkey, async (@event, ct) =>
+        {
+            connectionString = await valkey.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString is null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{valkey.Name}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks()
+            .AddRedis(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+
         return builder.AddResource(valkey)
             .WithEndpoint(port: port, targetPort: 6379, name: ValkeyResource.PrimaryEndpointName)
             .WithImage(ValkeyContainerImageTags.Image, ValkeyContainerImageTags.Tag)
-            .WithImageRegistry(ValkeyContainerImageTags.Registry);
+            .WithImageRegistry(ValkeyContainerImageTags.Registry)
+            .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -85,7 +107,8 @@ public static class ValkeyBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), ValkeyContainerDataDirectory,
+        builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), ValkeyContainerDataDirectory,
+
             isReadOnly);
         if (!isReadOnly)
         {

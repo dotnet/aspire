@@ -11,7 +11,7 @@ This provides support for running tests outside of the repo, for example on a he
     repo by adding appropriate `Directory.Build.{props,targets}`, and `Directory.Packages.props`
             - and using a custom `nuget.config` which resolves the Aspire packages from the locally built packages
             - and a `Directory.Packages.Versions.props` is generated with PackageVersions taken from the repo
-        - This also adds properties named in `@(PropertyForHelixRun)` from the repo, like `$(NetCurrent)`.
+        - This also adds properties named in `@(PropertyForHelixRun)` from the repo, like `$(DefaultTargetFramework)`.
 
 ## Adding new package versions
 

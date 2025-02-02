@@ -19,6 +19,8 @@ namespace Aspire.Dashboard.Components;
 
 public partial class PlotlyChart : ChartBase
 {
+    private static int s_nextChartId;
+
     [Inject]
     public required IJSRuntime JS { get; init; }
 
@@ -27,6 +29,11 @@ public partial class PlotlyChart : ChartBase
 
     [Inject]
     public required IDialogService DialogService { get; init; }
+
+    public string ChartDivId { get; } = $"plotly-chart-container-{Interlocked.Increment(ref s_nextChartId)}";
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
 
     private DotNetObjectReference<ChartInterop>? _chartInteropReference;
     private IJSObjectReference? _jsModule;
@@ -75,8 +82,9 @@ public partial class PlotlyChart : ChartBase
             _chartInteropReference?.Dispose();
             _chartInteropReference = DotNetObjectReference.Create(new ChartInterop(this));
 
-            await _jsModule.InvokeVoidAsync("initializeChart",
-                "plotly-chart-container",
+            await _jsModule.InvokeVoidAsync(
+                "initializeChart",
+                ChartDivId,
                 traceDtos,
                 exemplarTraceDto,
                 TimeProvider.ToLocal(inProgressDataTime),
@@ -86,8 +94,9 @@ public partial class PlotlyChart : ChartBase
         }
         else
         {
-            await _jsModule.InvokeVoidAsync("updateChart",
-                "plotly-chart-container",
+            await _jsModule.InvokeVoidAsync(
+                "updateChart",
+                ChartDivId,
                 traceDtos,
                 exemplarTraceDto,
                 TimeProvider.ToLocal(inProgressDataTime),

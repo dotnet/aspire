@@ -8,7 +8,7 @@ namespace Aspire.Hosting;
 
 internal static class LoggingHelpers
 {
-    public static void WriteDashboardUrl(ILogger logger, string? dashboardUrls, string? token)
+    public static void WriteDashboardUrl(ILogger logger, string? dashboardUrls, string? token, bool isContainer)
     {
         if (string.IsNullOrEmpty(token))
         {
@@ -17,7 +17,10 @@ internal static class LoggingHelpers
 
         if (StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
         {
-            logger.LogInformation("Login to the dashboard at {DashboardLoginUrl}", $"{firstDashboardUrl.GetLeftPart(UriPartial.Authority)}/login?t={token}");
+            var message = !isContainer
+                ? "Login to the dashboard at {DashboardLoginUrl}"
+                : "Login to the dashboard at {DashboardLoginUrl}. The URL may need changes depending on how network access to the container is configured.";
+            logger.LogInformation(message, $"{firstDashboardUrl.GetLeftPart(UriPartial.Authority)}/login?t={token}");
         }
     }
 }

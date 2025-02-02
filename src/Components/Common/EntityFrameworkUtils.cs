@@ -18,25 +18,20 @@ internal static class EntityFrameworkUtils
         where TSettings : new()
     {
         TSettings settings = new();
-        var typeSpecificSectionName = $"{defaultConfigSectionName}:{typeof(TContext).Name}";
-        var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
+        var configurationSection = builder.Configuration.GetSection(defaultConfigSectionName);
+        bindSettings(settings, configurationSection);
+        var typeSpecificConfigurationSection = configurationSection.GetSection(typeof(TContext).Name);
         if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
         {
             bindSettings(settings, typeSpecificConfigurationSection);
         }
-        else
-        {
-            var section = builder.Configuration.GetSection(defaultConfigSectionName);
-            bindSettings(settings, section);
-        }
 
         return settings;
     }
-
     /// <summary>
-    /// Enriches the DbContext options service descriptor with custom alterations.
+    /// Ensures a <see cref="DbContext"/> is registered in DI.
     /// </summary>
-    public static void PatchServiceDescriptor<TContext>(this IHostApplicationBuilder builder, Action<DbContextOptionsBuilder<TContext>>? configureDbContextOptions = null, [CallerMemberName] string memberName = "")
+    public static ServiceDescriptor CheckDbContextRegistered<TContext>(this IHostApplicationBuilder builder, [CallerMemberName] string memberName = "")
         where TContext : DbContext
     {
         // Resolving DbContext<TContextService> will resolve DbContextOptions<TContextImplementation>.
@@ -50,6 +45,17 @@ internal static class EntityFrameworkUtils
             throw new InvalidOperationException($"DbContext<{typeof(TContext).Name}> was not registered. Ensure you have registered the DbContext in DI before calling {memberName}.");
         }
 
+        return oldDbContextOptionsDescriptor;
+    }
+
+    /// <summary>
+    /// Enriches the DbContext options service descriptor with custom alterations.
+    /// </summary>
+    public static void PatchServiceDescriptor<TContext>(this IHostApplicationBuilder builder, Action<DbContextOptionsBuilder<TContext>>? configureDbContextOptions = null, [CallerMemberName] string memberName = "")
+        where TContext : DbContext
+    {
+        var oldDbContextOptionsDescriptor = builder.CheckDbContextRegistered<TContext>(memberName);
+
         if (configureDbContextOptions == null)
         {
             return;
@@ -62,9 +68,7 @@ internal static class EntityFrameworkUtils
             oldDbContextOptionsDescriptor.ServiceKey,
             factory: (sp, key) =>
             {
-                var dbContextOptions = oldDbContextOptionsDescriptor.ImplementationFactory?.Invoke(sp) as DbContextOptions<TContext>;
-
-                if (dbContextOptions is null)
+                if (oldDbContextOptionsDescriptor.ImplementationFactory?.Invoke(sp) is not DbContextOptions<TContext> dbContextOptions)
                 {
                     throw new InvalidOperationException($"DbContext<{typeof(TContext).Name}> was not configured. Ensure you have registered the DbContext in DI before calling {memberName}.");
                 }

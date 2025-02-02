@@ -40,7 +40,7 @@ public static class AspireRabbitMQExtensions
         string connectionName,
         Action<RabbitMQClientSettings>? configureSettings = null,
         Action<ConnectionFactory>? configureConnectionFactory = null)
-        => AddRabbitMQClient(builder, DefaultConfigSectionName, configureSettings, configureConnectionFactory, connectionName, serviceKey: null);
+        => AddRabbitMQClient(builder, configureSettings, configureConnectionFactory, connectionName, serviceKey: null);
 
     /// <summary>
     /// Registers <see cref="IConnection"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
@@ -59,12 +59,11 @@ public static class AspireRabbitMQExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddRabbitMQClient(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureConnectionFactory, connectionName: name, serviceKey: name);
+        AddRabbitMQClient(builder, configureSettings, configureConnectionFactory, connectionName: name, serviceKey: name);
     }
 
     private static void AddRabbitMQClient(
         IHostApplicationBuilder builder,
-        string configurationSectionName,
         Action<RabbitMQClientSettings>? configureSettings,
         Action<ConnectionFactory>? configureConnectionFactory,
         string connectionName,
@@ -72,10 +71,12 @@ public static class AspireRabbitMQExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var configSection = builder.Configuration.GetSection(configurationSectionName);
+        var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
 
         var settings = new RabbitMQClientSettings();
         configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -92,7 +93,9 @@ public static class AspireRabbitMQExtensions
             var factory = new ConnectionFactory();
 
             var configurationOptionsSection = configSection.GetSection("ConnectionFactory");
+            var namedConfigurationOptionsSection = namedConfigSection.GetSection("ConnectionFactory");
             configurationOptionsSection.Bind(factory);
+            namedConfigurationOptionsSection.Bind(factory);
 
             // the connection string from settings should win over the one from the ConnectionFactory section
             var connectionString = settings.ConnectionString;
@@ -121,10 +124,16 @@ public static class AspireRabbitMQExtensions
 
         if (!settings.DisableTracing)
         {
-            // Note that RabbitMQ.Client v6.6 doesn't have built-in support for tracing. See https://github.com/rabbitmq/rabbitmq-dotnet-client/pull/1261
-
             builder.Services.AddOpenTelemetry()
-                .WithTracing(traceBuilder => traceBuilder.AddSource(ActivitySourceName));
+                .WithTracing(traceBuilder =>
+                    traceBuilder
+                        .AddSource(ActivitySourceName)
+#if RABBITMQ_V6
+                        // Note that RabbitMQ.Client v6.x doesn't have built-in support for tracing. See https://github.com/rabbitmq/rabbitmq-dotnet-client/pull/1261
+#else
+                        .AddSource("RabbitMQ.Client.*")
+#endif
+                );
         }
 
         if (!settings.DisableHealthChecks)
@@ -136,9 +145,14 @@ public static class AspireRabbitMQExtensions
                     try
                     {
                         // if the IConnection can't be resolved, make a health check that will fail
+                        var connection = serviceKey is null ? sp.GetRequiredService<IConnection>() : sp.GetRequiredKeyedService<IConnection>(serviceKey);
+#if RABBITMQ_V6
                         var options = new RabbitMQHealthCheckOptions();
-                        options.Connection = serviceKey is null ? sp.GetRequiredService<IConnection>() : sp.GetRequiredKeyedService<IConnection>(serviceKey);
+                        options.Connection = connection;
                         return new RabbitMQHealthCheck(options);
+#else
+                        return new RabbitMQHealthCheck(connection);
+#endif
                     }
                     catch (Exception ex)
                     {
@@ -178,6 +192,7 @@ public static class AspireRabbitMQExtensions
         using var activity = s_activitySource.StartActivity("rabbitmq connect", ActivityKind.Client);
         AddRabbitMQTags(activity, factory.Uri);
 
+#if RABBITMQ_V6
         return resiliencePipeline.Execute(static factory =>
         {
             using var connectAttemptActivity = s_activitySource.StartActivity("rabbitmq connect attempt", ActivityKind.Client);
@@ -189,19 +204,27 @@ public static class AspireRabbitMQExtensions
             }
             catch (Exception ex)
             {
-                if (connectAttemptActivity is not null)
-                {
-                    connectAttemptActivity.AddTag("exception.message", ex.Message);
-                    // Note that "exception.stacktrace" is the full exception detail, not just the StackTrace property.
-                    // See https://opentelemetry.io/docs/specs/semconv/attributes-registry/exception/
-                    // and https://github.com/open-telemetry/opentelemetry-specification/pull/697#discussion_r453662519
-                    connectAttemptActivity.AddTag("exception.stacktrace", ex.ToString());
-                    connectAttemptActivity.AddTag("exception.type", ex.GetType().FullName);
-                    connectAttemptActivity.SetStatus(ActivityStatusCode.Error);
-                }
+                AddRabbitMQExceptionTags(connectAttemptActivity, ex);
                 throw;
             }
         }, factory);
+#else
+        return resiliencePipeline.ExecuteAsync(static async (factory, cancellationToken) =>
+        {
+            using var connectAttemptActivity = s_activitySource.StartActivity("rabbitmq connect attempt", ActivityKind.Client);
+            AddRabbitMQTags(connectAttemptActivity, factory.Uri, "connect");
+
+            try
+            {
+                return await factory.CreateConnectionAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                AddRabbitMQExceptionTags(connectAttemptActivity, ex);
+                throw;
+            }
+        }, factory).AsTask().GetAwaiter().GetResult(); // see https://github.com/dotnet/aspire/issues/565
+#endif
     }
 
     private static void AddRabbitMQTags(Activity? activity, Uri address, string? operation = null)
@@ -218,5 +241,21 @@ public static class AspireRabbitMQExtensions
         {
             activity.AddTag("messaging.operation", operation);
         }
+    }
+
+    private static void AddRabbitMQExceptionTags(Activity? connectAttemptActivity, Exception ex)
+    {
+        if (connectAttemptActivity is null)
+        {
+            return;
+        }
+
+        connectAttemptActivity.AddTag("exception.message", ex.Message);
+        // Note that "exception.stacktrace" is the full exception detail, not just the StackTrace property.
+        // See https://opentelemetry.io/docs/specs/semconv/attributes-registry/exception/
+        // and https://github.com/open-telemetry/opentelemetry-specification/pull/697#discussion_r453662519
+        connectAttemptActivity.AddTag("exception.stacktrace", ex.ToString());
+        connectAttemptActivity.AddTag("exception.type", ex.GetType().FullName);
+        connectAttemptActivity.SetStatus(ActivityStatusCode.Error);
     }
 }

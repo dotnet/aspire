@@ -12,6 +12,7 @@ builder.AddElasticsearchClient("elasticsearch");
 
 var app = builder.Build();
 
+app.MapDefaultEndpoints();
 app.MapGet("/get", async (ElasticsearchClient elasticClient) =>
 {
     var response = await elasticClient.GetAsync<Person>("people", "1");

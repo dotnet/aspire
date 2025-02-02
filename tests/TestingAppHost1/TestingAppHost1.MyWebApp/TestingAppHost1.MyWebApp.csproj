@@ -7,11 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
-    <PackageReference Include="Swashbuckle.AspNetCore" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\TestingAppHost1.ServiceDefaults\TestingAppHost1.ServiceDefaults.csproj" />
   </ItemGroup>
 

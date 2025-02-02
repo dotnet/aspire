@@ -53,7 +53,7 @@
         grid-area: head;
     }
 
-    ::deep.layout > .nav-menu-container {
+    ::deep.layout > .fluent-appbar {
         grid-area: nav;
         overflow-y: auto;
         background: var(--neutral-layer-4);
@@ -165,7 +165,7 @@
         grid-area: head;
     }
 
-    ::deep.layout > .nav-menu-container {
+    ::deep.layout > .fluent-appbar {
         grid-area: nav;
         overflow-y: auto;
         background: var(--neutral-layer-4);
@@ -232,4 +232,12 @@
     ::deep.layout > header > .header-gutters {
         margin-left: 0;
     }
+}
+
+::deep .desktop-nav-menu > .fluent-appbar-item > .fluentui-counterbadge-container > a > .stack-vertical {
+    /* FluentAppBarItems have a default width. However, we have a wide range of widths
+       in content depending on the language (ie, from traces to seguimientos).
+       Remove the default horizontal padding to allow for more text  */
+    padding-left: 0;
+    padding-right: 0;
 }

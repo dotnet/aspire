@@ -6,6 +6,7 @@
 @using Aspire.Dashboard.Utils
 @using Aspire.Dashboard.Extensions
 @using System.Globalization
+@using Aspire.Dashboard.Components.Controls.Grid
 @using Dialogs = Aspire.Dashboard.Resources.Dialogs
 @implements IDialogContentComponent<ExemplarsDialogViewModel>
 
@@ -13,7 +14,7 @@
 
 <div style="max-height: 44vh; overflow-y: auto;">
     <FluentDataGrid Items="@MetricView"
-                    ItemSize="46"
+                    RowSize="DataGridRowSize.Medium"
                     GridTemplateColumns="2fr 1fr 1fr 1fr"
                     TGridItem="ChartExemplar">
         <ChildContent>

@@ -26,7 +26,7 @@ public sealed class ResourceServiceClientOptions
 
     public string? Url { get; set; }
     public ResourceClientAuthMode? AuthMode { get; set; }
-    public ResourceServiceClientCertificateOptions ClientCertificates { get; set; } = new();
+    public ResourceServiceClientCertificateOptions ClientCertificate { get; set; } = new();
     public string? ApiKey { get; set; }
 
     public Uri? GetUri() => _parsedUrl;
@@ -61,11 +61,16 @@ public sealed class ResourceServiceClientCertificateOptions
     public StoreLocation? Location { get; set; }
 }
 
+public sealed class AllowedCertificateRule
+{
+    public string? Thumbprint { get; set; }
+}
+
 // Don't set values after validating/parsing options.
 public sealed class OtlpOptions
 {
-    private Uri? _parsedGrpcEndpointUrl;
-    private Uri? _parsedHttpEndpointUrl;
+    private BindingAddress? _parsedGrpcEndpointAddress;
+    private BindingAddress? _parsedHttpEndpointAddress;
     private byte[]? _primaryApiKeyBytes;
     private byte[]? _secondaryApiKeyBytes;
 
@@ -76,14 +81,16 @@ public sealed class OtlpOptions
 
     public string? HttpEndpointUrl { get; set; }
 
-    public Uri? GetGrpcEndpointUri()
+    public List<AllowedCertificateRule> AllowedCertificates { get; set; } = new();
+
+    public BindingAddress? GetGrpcEndpointAddress()
     {
-        return _parsedGrpcEndpointUrl;
+        return _parsedGrpcEndpointAddress;
     }
 
-    public Uri? GetHttpEndpointUri()
+    public BindingAddress? GetHttpEndpointAddress()
     {
-        return _parsedHttpEndpointUrl;
+        return _parsedHttpEndpointAddress;
     }
 
     public byte[] GetPrimaryApiKeyBytes()
@@ -94,6 +101,8 @@ public sealed class OtlpOptions
 
     public byte[]? GetSecondaryApiKeyBytes() => _secondaryApiKeyBytes;
 
+    public OtlpCors Cors { get; set; } = new();
+
     internal bool TryParseOptions([NotNullWhen(false)] out string? errorMessage)
     {
         if (string.IsNullOrEmpty(GrpcEndpointUrl) && string.IsNullOrEmpty(HttpEndpointUrl))
@@ -102,15 +111,21 @@ public sealed class OtlpOptions
             return false;
         }
 
-        if (!string.IsNullOrEmpty(GrpcEndpointUrl) && !Uri.TryCreate(GrpcEndpointUrl, UriKind.Absolute, out _parsedGrpcEndpointUrl))
+        if (!string.IsNullOrEmpty(GrpcEndpointUrl) && !OptionsHelpers.TryParseBindingAddress(GrpcEndpointUrl, out _parsedGrpcEndpointAddress))
         {
             errorMessage = $"Failed to parse OTLP gRPC endpoint URL '{GrpcEndpointUrl}'.";
             return false;
         }
 
-        if (!string.IsNullOrEmpty(HttpEndpointUrl) && !Uri.TryCreate(HttpEndpointUrl, UriKind.Absolute, out _parsedHttpEndpointUrl))
+        if (!string.IsNullOrEmpty(HttpEndpointUrl) && !OptionsHelpers.TryParseBindingAddress(HttpEndpointUrl, out _parsedHttpEndpointAddress))
         {
             errorMessage = $"Failed to parse OTLP HTTP endpoint URL '{HttpEndpointUrl}'.";
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(HttpEndpointUrl) && !string.IsNullOrEmpty(Cors.AllowedOrigins))
+        {
+            errorMessage = $"CORS configured without an OTLP HTTP endpoint. Either remove CORS configuration or specify a {DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName} value.";
             return false;
         }
 
@@ -122,10 +137,19 @@ public sealed class OtlpOptions
     }
 }
 
+public sealed class OtlpCors
+{
+    public string? AllowedOrigins { get; set; }
+    public string? AllowedHeaders { get; set; }
+
+    [MemberNotNullWhen(true, nameof(AllowedOrigins))]
+    public bool IsCorsEnabled => !string.IsNullOrEmpty(AllowedOrigins);
+}
+
 // Don't set values after validating/parsing options.
 public sealed class FrontendOptions
 {
-    private List<Uri>? _parsedEndpointUrls;
+    private List<BindingAddress>? _parsedEndpointAddresses;
     private byte[]? _browserTokenBytes;
 
     public string? EndpointUrls { get; set; }
@@ -145,40 +169,59 @@ public sealed class FrontendOptions
 
     public byte[]? GetBrowserTokenBytes() => _browserTokenBytes;
 
-    public IReadOnlyList<Uri> GetEndpointUris()
+    public IReadOnlyList<BindingAddress> GetEndpointAddresses()
     {
-        Debug.Assert(_parsedEndpointUrls is not null, "Should have been parsed during validation.");
-        return _parsedEndpointUrls;
+        Debug.Assert(_parsedEndpointAddresses is not null, "Should have been parsed during validation.");
+        return _parsedEndpointAddresses;
     }
 
     internal bool TryParseOptions([NotNullWhen(false)] out string? errorMessage)
     {
         if (string.IsNullOrEmpty(EndpointUrls))
         {
-            errorMessage = "One or more frontend endpoint URLs are not configured. Specify a Dashboard:Frontend:EndpointUrls value.";
+            errorMessage = $"One or more frontend endpoint URLs are not configured. Specify an {DashboardConfigNames.DashboardFrontendUrlName.ConfigKey} value.";
             return false;
         }
         else
         {
             var parts = EndpointUrls.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            var uris = new List<Uri>(parts.Length);
+            var addresses = new List<BindingAddress>(parts.Length);
             foreach (var part in parts)
             {
-                if (!Uri.TryCreate(part, UriKind.Absolute, out var uri))
+                if (OptionsHelpers.TryParseBindingAddress(part, out var bindingAddress))
+                {
+                    addresses.Add(bindingAddress);
+                }
+                else
                 {
                     errorMessage = $"Failed to parse frontend endpoint URLs '{EndpointUrls}'.";
                     return false;
                 }
-
-                uris.Add(uri);
             }
-            _parsedEndpointUrls = uris;
+            _parsedEndpointAddresses = addresses;
         }
 
         _browserTokenBytes = BrowserToken != null ? Encoding.UTF8.GetBytes(BrowserToken) : null;
 
         errorMessage = null;
         return true;
+    }
+}
+
+public static class OptionsHelpers
+{
+    public static bool TryParseBindingAddress(string address, [NotNullWhen(true)] out BindingAddress? bindingAddress)
+    {
+        try
+        {
+            bindingAddress = BindingAddress.Parse(address);
+            return true;
+        }
+        catch
+        {
+            bindingAddress = null;
+            return false;
+        }
     }
 }
 

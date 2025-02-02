@@ -11,6 +11,7 @@ using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
@@ -22,7 +23,7 @@ public partial class MetricTable : ChartBase
     private string _unitColumnHeader = string.Empty;
     private IJSObjectReference? _jsModule;
 
-    private OtlpInstrument? _instrument;
+    private OtlpInstrumentSummary? _instrument;
     private bool _showCount;
     private DateTimeOffset? _lastUpdate;
 
@@ -101,7 +102,7 @@ public partial class MetricTable : ChartBase
         var parameters = new DialogParameters
         {
             Title = DialogsLoc[nameof(Resources.Dialogs.ExemplarsDialogTitle)],
-            PrimaryAction = DialogsLoc[nameof(Resources.Dialogs.ExemplarsDialogCloseButtonText)],
+            PrimaryAction = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
             SecondaryAction = string.Empty,
             Width = "800px",
             Height = "auto"

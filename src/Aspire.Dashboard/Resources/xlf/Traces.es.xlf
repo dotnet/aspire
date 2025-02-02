@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="MessageExceededLimitBody">
         <source>A maximum of {0} traces are stored. Old traces are automatically removed.</source>
-        <target state="new">A maximum of {0} traces are stored. Old traces are automatically removed.</target>
+        <target state="translated">Se almacena un máximo de {0} seguimientos. Los seguimientos antiguos se quitan automáticamente.</target>
         <note>{0} is the max count</note>
       </trans-unit>
       <trans-unit id="MessageExceededLimitTitle">
         <source>Exceeded trace limit</source>
-        <target state="new">Exceeded trace limit</target>
+        <target state="translated">Se superó el límite de seguimiento</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesFullName">

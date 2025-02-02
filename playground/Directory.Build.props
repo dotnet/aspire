@@ -1,6 +1,9 @@
 <Project>
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
+  <!-- Import only when in-repo. For out-of-repo a parent Directory.Build.props does the import -->
+  <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.props" Condition="'$(RepoRoot)' != ''" />
+
   <PropertyGroup>
     <!--
       Playground projects don't need XML docs

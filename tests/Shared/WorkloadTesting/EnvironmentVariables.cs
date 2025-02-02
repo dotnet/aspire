@@ -10,10 +10,9 @@ public static class EnvironmentVariables
     public static readonly string? SkipProjectCleanup        = Environment.GetEnvironmentVariable("SKIP_PROJECT_CLEANUP");
     public static readonly string? BuiltNuGetsPath           = Environment.GetEnvironmentVariable("BUILT_NUGETS_PATH");
     public static readonly bool    ShowBuildOutput           = Environment.GetEnvironmentVariable("SHOW_BUILD_OUTPUT") is "true";
-    public static readonly string? SdkDirName                = Environment.GetEnvironmentVariable("SDK_DIR_NAME");
     public static readonly bool    IsRunningOnCI             = Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is not null;
     public static readonly bool    TestsRunningOutsideOfRepo     = Environment.GetEnvironmentVariable("TestsRunningOutsideOfRepo") is "true";
     public static readonly string  BuildConfiguration        = Environment.GetEnvironmentVariable("BUILD_CONFIGURATION") ?? "Debug";
     public static readonly string? TestScenario              = Environment.GetEnvironmentVariable("TEST_SCENARIO");
-    public static readonly string? BrowserPath               = Environment.GetEnvironmentVariable(PlaywrightProvider.BrowserPathEnvironmentVariableName);
+    public static readonly string? DefaultTFMForTesting      = Environment.GetEnvironmentVariable("DEFAULT_TFM_FOR_TESTING");
 }

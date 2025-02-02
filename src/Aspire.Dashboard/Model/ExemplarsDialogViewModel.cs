@@ -10,5 +10,5 @@ public sealed class ExemplarsDialogViewModel
 {
     public required List<ChartExemplar> Exemplars { get; init; }
     public required List<OtlpApplication> Applications { get; init; }
-    public required OtlpInstrument Instrument { get; init; }
+    public required OtlpInstrumentSummary Instrument { get; init; }
 }

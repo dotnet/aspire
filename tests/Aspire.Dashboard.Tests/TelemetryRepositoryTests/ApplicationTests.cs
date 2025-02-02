@@ -6,7 +6,7 @@ using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
-using static Aspire.Dashboard.Tests.TelemetryRepositoryTests.TestHelpers;
+using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
 
 namespace Aspire.Dashboard.Tests.TelemetryRepositoryTests;
 
@@ -52,6 +52,44 @@ public class ApplicationTests
         Assert.Equal(applications[1], app2);
 
         Assert.Null(notFound);
+    }
+
+    [Fact]
+    public void GetApplications_WithNameAndNoKey()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        AddResource(repository, "app2");
+        AddResource(repository, "app1", instanceId: "123");
+        AddResource(repository, "app1", instanceId: "456");
+
+        // Act 1
+        var applications1 = repository.GetApplications(new ApplicationKey("app1", InstanceId: null));
+
+        // Assert 1
+        Assert.Collection(applications1,
+            app =>
+            {
+                Assert.Equal("app1", app.ApplicationName);
+                Assert.Equal("123", app.InstanceId);
+            },
+            app =>
+            {
+                Assert.Equal("app1", app.ApplicationName);
+                Assert.Equal("456", app.InstanceId);
+            });
+
+        // Act 2
+        var applications2 = repository.GetApplications(new ApplicationKey("app2", InstanceId: null));
+
+        // Assert 2
+        Assert.Collection(applications2,
+            app =>
+            {
+                Assert.Equal("app2", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+            });
     }
 
     [Fact]

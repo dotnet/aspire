@@ -47,7 +47,7 @@ public sealed class DashboardOptionsTests
         var result = new ValidateDashboardOptions().Validate(null, options);
 
         Assert.False(result.Succeeded);
-        Assert.Equal("One or more frontend endpoint URLs are not configured. Specify a Dashboard:Frontend:EndpointUrls value.", result.FailureMessage);
+        Assert.Equal("One or more frontend endpoint URLs are not configured. Specify an ASPNETCORE_URLS value.", result.FailureMessage);
     }
 
     [Fact]
@@ -124,13 +124,13 @@ public sealed class DashboardOptionsTests
         var options = GetValidOptions();
         options.ResourceServiceClient.Url = "http://localhost";
         options.ResourceServiceClient.AuthMode = ResourceClientAuthMode.Certificate;
-        options.ResourceServiceClient.ClientCertificates.Source = DashboardClientCertificateSource.File;
-        options.ResourceServiceClient.ClientCertificates.FilePath = "";
+        options.ResourceServiceClient.ClientCertificate.Source = DashboardClientCertificateSource.File;
+        options.ResourceServiceClient.ClientCertificate.FilePath = "";
 
         var result = new ValidateDashboardOptions().Validate(null, options);
 
         Assert.False(result.Succeeded);
-        Assert.Equal("Dashboard:ResourceServiceClient:ClientCertificate:Source is \"File\", but no Dashboard:ResourceServiceClient:ClientCertificate:FilePath is configured.", result.FailureMessage);
+        Assert.Equal($"{DashboardConfigNames.ResourceServiceClientCertificateSourceName.ConfigKey} is \"File\", but no {DashboardConfigNames.ResourceServiceClientCertificateFilePathName.ConfigKey} is configured.", result.FailureMessage);
     }
 
     [Fact]
@@ -139,13 +139,13 @@ public sealed class DashboardOptionsTests
         var options = GetValidOptions();
         options.ResourceServiceClient.Url = "http://localhost";
         options.ResourceServiceClient.AuthMode = ResourceClientAuthMode.Certificate;
-        options.ResourceServiceClient.ClientCertificates.Source = DashboardClientCertificateSource.KeyStore;
-        options.ResourceServiceClient.ClientCertificates.Subject = "";
+        options.ResourceServiceClient.ClientCertificate.Source = DashboardClientCertificateSource.KeyStore;
+        options.ResourceServiceClient.ClientCertificate.Subject = "";
 
         var result = new ValidateDashboardOptions().Validate(null, options);
 
         Assert.False(result.Succeeded);
-        Assert.Equal("Dashboard:ResourceServiceClient:ClientCertificate:Source is \"KeyStore\", but no Dashboard:ResourceServiceClient:ClientCertificate:Subject is configured.", result.FailureMessage);
+        Assert.Equal($"{DashboardConfigNames.ResourceServiceClientCertificateSourceName.ConfigKey} is \"KeyStore\", but no {DashboardConfigNames.ResourceServiceClientCertificateSubjectName.ConfigKey} is configured.", result.FailureMessage);
     }
 
     [Fact]
@@ -154,12 +154,12 @@ public sealed class DashboardOptionsTests
         var options = GetValidOptions();
         options.ResourceServiceClient.Url = "http://localhost";
         options.ResourceServiceClient.AuthMode = ResourceClientAuthMode.Certificate;
-        options.ResourceServiceClient.ClientCertificates.Source = null;
+        options.ResourceServiceClient.ClientCertificate.Source = null;
 
         var result = new ValidateDashboardOptions().Validate(null, options);
 
         Assert.False(result.Succeeded);
-        Assert.Equal($"The resource service client is configured to use certificates, but no certificate source is specified. Specify Dashboard:ResourceServiceClient:ClientCertificate:Source. Possible values: {string.Join(", ", typeof(DashboardClientCertificateSource).GetEnumNames())}", result.FailureMessage);
+        Assert.Equal($"The resource service client is configured to use certificates, but no certificate source is specified. Specify {DashboardConfigNames.ResourceServiceClientCertificateSourceName.ConfigKey}. Possible values: {string.Join(", ", typeof(DashboardClientCertificateSource).GetEnumNames())}", result.FailureMessage);
     }
 
     [Fact]
@@ -168,12 +168,12 @@ public sealed class DashboardOptionsTests
         var options = GetValidOptions();
         options.ResourceServiceClient.Url = "http://localhost";
         options.ResourceServiceClient.AuthMode = ResourceClientAuthMode.Certificate;
-        options.ResourceServiceClient.ClientCertificates.Source = (DashboardClientCertificateSource)int.MaxValue;
+        options.ResourceServiceClient.ClientCertificate.Source = (DashboardClientCertificateSource)int.MaxValue;
 
         var result = new ValidateDashboardOptions().Validate(null, options);
 
         Assert.False(result.Succeeded);
-        Assert.Equal($"Unexpected resource service client certificate source: {options.ResourceServiceClient.ClientCertificates.Source}", result.FailureMessage);
+        Assert.Equal($"Unexpected resource service client certificate source: {options.ResourceServiceClient.ClientCertificate.Source}", result.FailureMessage);
     }
 
     [Fact]

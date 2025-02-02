@@ -115,10 +115,30 @@ Project launch configuration contains details for launching programs that have p
 | `type` | Launch configuration type indicator; must be `project`. | Required |
 | `project_path` | Path to the project file for the program that is being launched. | Required |
 | `mode` | Specifies the launch mode. Currently supported modes are `Debug` (run the project under the debugger) and `NoDebug` (run the project without debugging). | Optional, defaults to `Debug`. |
-| `launch_profile` | The name of the launch profile to be used for project execution. | Optional |
-| `disable_launch_profile` | If set to true, the project will be launched without a launch profile and the value of "launch_profile" parameter is disregarded. | Optional |
+| `launch_profile` | The name of the launch profile to be used for project execution. See below for more details on how the launch profile should be processed. | Optional |
+| `disable_launch_profile` | If set to `true`, the project will be launched without a launch profile and the value of "launch_profile" parameter is disregarded. | Optional |
 
 > In Aspire version 1 release only a single launch configuration instance, of type `project`, can be used as part of a run session request issued to Visual Studio. Other types of launch configurations may be added in future releases.
+
+### Launch profile processing (project launch configuration)
+
+Launch profiles should be applied to service run sessions according to the following rules:
+
+1. The values of `launch_profile` and `disable_launch_profile` properties determine the **base profile** used for the service run session. The base profile may be nonexistent (empty), or it might be that one of the launch profiles defined for the service project serves as the base profile, see point 3 below.
+
+2. Environment variable values (`env` property) and invocation arguments (`args` property) specified by the run session request always take precedence over settings present in the launch profile. Specifically:
+
+    a. Environment variable values **override** (are applied on top of) the environment variable values from the base profile.
+    
+    b. **If present**, invocation arguments from the run session request **completely replace** invocation arguments from the base profile. In particular, an empty array (`[]`) specified in the request means no invocation arguments should be used at all, even if base profile is present and has some invocation arguments specified. On the other hand, if the `args` run session request property is absent, or set to `null`, it means the run session request does not specify any invocation arguments for the service, and thus if the base profile exists and contains invocation arguments, those from the base profile should be used.
+
+3. The base profile is determined according to following rules:
+
+    a. If `disable_launch_profile` property is set to `true` in project launch configuration, there is no base profile, regardless of the value of `launch_profile` property.
+
+    b. If the `launch_profile` property is set, the IDE should check whether the service project has a launch profile with the name equal to the value of `launch_profile` property. If such profile is found, it should serve as the base profile. If not, there is no base profile.
+
+    b. If `launch_profile` property is absent, the IDE should check whether the service project has a launch profile with the same name as the profile used to launch Aspire application host project. If such profile is found, it should serve as the base profile. Otherwise there is no base profile.
 
 ### Stop session request
 

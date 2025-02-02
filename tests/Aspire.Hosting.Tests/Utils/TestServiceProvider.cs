@@ -6,9 +6,11 @@ using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Tests.Dcp;
 
 namespace Aspire.Hosting.Tests.Utils;
+
 public sealed class TestServiceProvider : IServiceProvider
 {
     private readonly ServiceContainer _serviceContainer = new ServiceContainer();
+
     private TestServiceProvider()
     {
         _serviceContainer.AddService(typeof(IDcpDependencyCheckService), new TestDcpDependencyCheckService());

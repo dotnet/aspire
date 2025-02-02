@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <UserSecretsId>16965dbf-c1f8-4682-b7d8-e250ac520544</UserSecretsId>
     <LangVersion>preview</LangVersion>
     <ContainerRegistry>localhost:5001</ContainerRegistry>
@@ -14,14 +14,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
-    <PackageReference Include="Swashbuckle.AspNetCore" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\CatalogModel\CatalogModel.csproj" />
-    <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
+    <ProjectReference Include="..\TestShop.ServiceDefaults\TestShop.ServiceDefaults.csproj" />
+
+    <!-- Npgsql EF needs to match the same major version as the underlying Npgsql assemblies. -->
+    <PackageReference Include="Npgsql.DependencyInjection" VersionOverride="$(Npgsql8Version)" />
+    <PackageReference Include="Npgsql.OpenTelemetry" VersionOverride="$(Npgsql8Version)" />
   </ItemGroup>
 
 </Project>

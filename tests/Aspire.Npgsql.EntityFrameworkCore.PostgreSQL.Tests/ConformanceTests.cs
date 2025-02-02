@@ -91,7 +91,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
-        => builder.AddNpgsqlDbContext<TestDbContext>("postgres", configure);
+        => builder.AddNpgsqlDbContext<TestDbContext>(key ?? "postgres", configure);
 
     protected override void SetHealthCheck(NpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
         => options.DisableHealthChecks = !enabled;

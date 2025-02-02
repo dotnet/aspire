@@ -12,7 +12,7 @@ internal sealed class ContainerNetworkSpec
     [JsonPropertyName("networkName")]
     public string? NetworkName { get; set; }
 
-    // Shouild IPv6 be enabled for the network?
+    // Should IPv6 be enabled for the network?
     [JsonPropertyName("ipv6")]
     public bool? IPV6 { get; set; }
 
@@ -84,7 +84,7 @@ internal sealed class ContainerNetwork : CustomResource<ContainerNetworkSpec, Co
 
     public static ContainerNetwork Create(string name, bool useIpV6 = false)
     {
-        var c = new ContainerNetwork(new ContainerNetworkSpec { NetworkName = name, IPV6 = useIpV6 });
+        var c = new ContainerNetwork(new ContainerNetworkSpec { IPV6 = useIpV6 });
 
         c.Kind = Dcp.ContainerNetworkKind;
         c.ApiVersion = Dcp.GroupVersion.ToString();

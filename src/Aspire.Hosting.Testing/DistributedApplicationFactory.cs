@@ -137,7 +137,11 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         OnBuilt(application);
     }
 
-    private void OnBuilderCreatingCore(DistributedApplicationOptions applicationOptions, HostApplicationBuilderSettings hostBuilderOptions)
+    internal static void PreConfigureBuilderOptions(
+        DistributedApplicationOptions applicationOptions,
+        HostApplicationBuilderSettings hostBuilderOptions,
+        string[] args,
+        Assembly entryPointAssembly)
     {
         hostBuilderOptions.Args = hostBuilderOptions.Args switch
         {
@@ -152,31 +156,48 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         };
 
         hostBuilderOptions.EnvironmentName = Environments.Development;
-        hostBuilderOptions.ApplicationName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
-        applicationOptions.AssemblyName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
+        hostBuilderOptions.ApplicationName = entryPointAssembly.GetName().Name ?? string.Empty;
+        applicationOptions.AssemblyName = entryPointAssembly.GetName().Name ?? string.Empty;
         applicationOptions.DisableDashboard = true;
+        applicationOptions.EnableResourceLogging = true;
         var cfg = hostBuilderOptions.Configuration ??= new();
-        var additionalConfig = new Dictionary<string, string?>
-        {
-            ["DcpPublisher:RandomizePorts"] = "true",
-            ["DcpPublisher:DeleteResourcesOnShutdown"] = "true",
-            ["DcpPublisher:ResourceNameSuffix"] = $"{Random.Shared.Next():x}",
-        };
+        var additionalConfig = new Dictionary<string, string?>();
+        SetDefault("DcpPublisher:ContainerRuntimeInitializationTimeout", "00:00:30");
+        SetDefault("DcpPublisher:RandomizePorts", "true");
+        SetDefault("DcpPublisher:DeleteResourcesOnShutdown", "true");
+        SetDefault("DcpPublisher:ResourceNameSuffix", $"{Random.Shared.Next():x}");
 
-        var appHostProjectPath = ResolveProjectPath(_entryPoint.Assembly);
-        if (!string.IsNullOrEmpty(appHostProjectPath))
+        var appHostProjectPath = ResolveProjectPath(entryPointAssembly);
+        if (!string.IsNullOrEmpty(appHostProjectPath) && Directory.Exists(appHostProjectPath))
         {
             hostBuilderOptions.ContentRootPath = appHostProjectPath;
         }
 
+        // Populate the default launch profile name.
         var appHostLaunchSettings = GetLaunchSettings(appHostProjectPath);
-        if (appHostLaunchSettings?.Profiles.FirstOrDefault().Key is { } profileName)
+        if (appHostLaunchSettings?.Profiles.FirstOrDefault().Key is { } defaultLaunchProfileName)
         {
-            additionalConfig["AppHost:DefaultLaunchProfileName"] = profileName;
+            SetDefault("AppHost:DefaultLaunchProfileName", defaultLaunchProfileName);
         }
 
+        // Make sure we have a dashboard URL and OTLP endpoint URL.
+        SetDefault("ASPNETCORE_URLS", "http://localhost:8080");
+        SetDefault("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL", "http://localhost:4317");
         cfg.AddInMemoryCollection(additionalConfig);
+        void SetDefault(string key, string? value)
+        {
+            if (cfg[key] is null)
+            {
+                additionalConfig[key] = value;
+            }
+        }
+    }
 
+    internal void OnBuilderCreatingCore(
+        DistributedApplicationOptions applicationOptions,
+        HostApplicationBuilderSettings hostBuilderOptions)
+    {
+        PreConfigureBuilderOptions(applicationOptions, hostBuilderOptions, args, _entryPoint.Assembly);
         OnBuilderCreating(applicationOptions, hostBuilderOptions);
     }
 
@@ -212,21 +233,27 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         }
 
         using var stream = File.OpenRead(launchSettingsFilePath);
-        var settings = JsonSerializer.Deserialize(stream, LaunchSettingsSerializerContext.Default.LaunchSettings);
-        return settings;
+        try
+        {
+            var settings = JsonSerializer.Deserialize(stream, LaunchSettingsSerializerContext.Default.LaunchSettings);
+            return settings;
+        }
+        catch (JsonException ex)
+        {
+            var message = $"Failed to get effective launch profile for project '{appHostPath}'. There is malformed JSON in the project's launch settings file at '{launchSettingsFilePath}'.";
+            throw new DistributedApplicationException(message, ex);
+        }
     }
 
     private void OnBuilderCreatedCore(DistributedApplicationBuilder applicationBuilder)
     {
+        var services = applicationBuilder.Services;
+        services.AddHttpClient();
         OnBuilderCreated(applicationBuilder);
     }
 
     private void OnBuildingCore(DistributedApplicationBuilder applicationBuilder)
     {
-        var services = applicationBuilder.Services;
-        services.AddHostedService<ResourceLoggerForwarderService>();
-        services.AddHttpClient();
-
         InterceptHostCreation(applicationBuilder);
 
         _builderTcs.TrySetResult(applicationBuilder);
@@ -241,7 +268,10 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
             {
                 if (!_entryPointStarted)
                 {
-                    EnsureDepsFile(_entryPoint);
+                    if (entryPoint.Assembly.EntryPoint == null)
+                    {
+                        throw new InvalidOperationException($"Assembly of specified type {entryPoint.Name} does not have an entry point.");
+                    }
 
                     // This helper launches the target assembly's entry point and hooks into the lifecycle
                     // so we can intercept execution at key stages.
@@ -317,21 +347,6 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         if (!_startedTcs.Task.IsCompletedSuccessfully)
         {
             throw new InvalidOperationException("The application has not been initialized.");
-        }
-    }
-
-    private static void EnsureDepsFile(Type entryPoint)
-    {
-        if (entryPoint.Assembly.EntryPoint == null)
-        {
-            throw new InvalidOperationException($"Assembly of specified type {entryPoint.Name} does not have an entry point.");
-        }
-
-        var depsFileName = $"{entryPoint.Assembly.GetName().Name}.deps.json";
-        var depsFile = new FileInfo(Path.Combine(AppContext.BaseDirectory, depsFileName));
-        if (!depsFile.Exists)
-        {
-            throw new InvalidOperationException($"Missing deps file '{Path.GetFileName(depsFile.FullName)}'. Make sure the project has been built.");
         }
     }
 

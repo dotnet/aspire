@@ -42,7 +42,7 @@ internal sealed partial class DnsSrvServiceEndpointProvider(
         }
 
         var lookupMapping = new Dictionary<string, DnsResourceRecord>();
-        foreach (var record in result.Additionals)
+        foreach (var record in result.Additionals.Where(x => x is AddressRecord or CNameRecord))
         {
             ttl = MinTtl(record, ttl);
             lookupMapping[record.DomainName] = record;

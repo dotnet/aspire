@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- Milvus.Client packages are not signed -->
   </PropertyGroup>
 
@@ -14,8 +14,4 @@
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Milvus\MilvusContainerImageTags.cs" />
-    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
-  </ItemGroup>
 </Project>

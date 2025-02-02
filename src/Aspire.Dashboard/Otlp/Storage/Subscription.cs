@@ -1,10 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+
 namespace Aspire.Dashboard.Otlp.Storage;
 
+[DebuggerDisplay("Name = {Name}, ApplicationKey = {ApplicationKey}, SubscriptionId = {SubscriptionId}")]
 public sealed class Subscription : IDisposable
 {
+    private static int s_subscriptionId;
+
     private readonly Func<Task> _callback;
     private readonly ExecutionContext? _executionContext;
     private readonly TelemetryRepository _telemetryRepository;
@@ -12,10 +17,12 @@ public sealed class Subscription : IDisposable
     private readonly CancellationToken _cancellationToken;
     private readonly Action _unsubscribe;
     private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
-    private ILogger Logger => _telemetryRepository._logger;
+    private ILogger Logger => _telemetryRepository._otlpContext.Logger;
+    private readonly int _subscriptionId = Interlocked.Increment(ref s_subscriptionId);
 
     private DateTime? _lastExecute;
 
+    public int SubscriptionId => _subscriptionId;
     public ApplicationKey? ApplicationKey { get; }
     public SubscriptionType SubscriptionType { get; }
     public string Name { get; }
@@ -47,14 +54,16 @@ public sealed class Subscription : IDisposable
             var lastExecute = _lastExecute;
             if (lastExecute != null)
             {
-                var s = lastExecute.Value.Add(_telemetryRepository._subscriptionMinExecuteInterval) - DateTime.UtcNow;
+                var minExecuteInterval = _telemetryRepository._subscriptionMinExecuteInterval;
+                var s = lastExecute.Value.Add(minExecuteInterval) - DateTime.UtcNow;
                 if (s > TimeSpan.Zero)
                 {
-                    Logger.LogTrace("Subscription '{Name}' minimum execute interval hit. Waiting {DelayInterval}.", Name, s);
+                    Logger.LogTrace("Subscription '{Name}' minimum execute interval of {MinExecuteInterval} hit. Waiting {DelayInterval}.", Name, minExecuteInterval, s);
                     await Task.Delay(s, cancellationToken).ConfigureAwait(false);
                 }
             }
 
+            _lastExecute = DateTime.UtcNow;
             return true;
         }
         finally
@@ -91,7 +100,6 @@ public sealed class Subscription : IDisposable
 
                 Logger.LogTrace("Subscription '{Name}' executing.", Name);
                 await _callback().ConfigureAwait(false);
-                _lastExecute = DateTime.UtcNow;
             }
             catch (Exception ex)
             {

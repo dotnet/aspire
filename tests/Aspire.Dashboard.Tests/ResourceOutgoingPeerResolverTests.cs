@@ -1,11 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Frozen;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Dashboard.Model;
-using Google.Protobuf.WellKnownTypes;
+using Aspire.Tests.Shared.DashboardModel;
+using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests;
@@ -14,21 +14,10 @@ public class ResourceOutgoingPeerResolverTests
 {
     private static ResourceViewModel CreateResource(string name, string? serviceAddress = null, int? servicePort = null, string? displayName = null)
     {
-        return new ResourceViewModel
-        {
-            Name = name,
-            ResourceType = "Container",
-            DisplayName = displayName ?? name,
-            Uid = Guid.NewGuid().ToString(),
-            CreationTimeStamp = DateTime.UtcNow,
-            Environment = [],
-            Properties = FrozenDictionary<string, Value>.Empty,
-            Urls = servicePort is null || servicePort is null ? [] : [new UrlViewModel(name, new($"http://{serviceAddress}:{servicePort}"), isInternal: false)],
-            State = null,
-            KnownState = null,
-            StateStyle = null,
-            Commands = []
-        };
+        return ModelTestHelpers.CreateResource(
+            appName: name,
+            displayName: displayName,
+            urls: serviceAddress is null || servicePort is null ? [] : [new UrlViewModel(name, new($"http://{serviceAddress}:{servicePort}"), isInternal: false)]);
     }
 
     [Fact]
@@ -150,17 +139,17 @@ public class ResourceOutgoingPeerResolverTests
             GetChanges()));
 
         // Assert 1
-        readValue = await resultChannel.Reader.ReadAsync();
+        readValue = await resultChannel.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(1, readValue);
 
         // Act 2
         await sourceChannel.Writer.WriteAsync(new ResourceViewModelChange(ResourceViewModelChangeType.Upsert, CreateResource("test2")));
 
         // Assert 2
-        readValue = await resultChannel.Reader.ReadAsync();
+        readValue = await resultChannel.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(2, readValue);
 
-        await resolver.DisposeAsync();
+        await resolver.DisposeAsync().DefaultTimeout();
 
         async IAsyncEnumerable<IReadOnlyList<ResourceViewModelChange>> GetChanges([EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
@@ -215,7 +204,7 @@ public class ResourceOutgoingPeerResolverTests
         public string ApplicationName => "ApplicationName";
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
         public Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>>? SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken) => subscribeResult;
     }
 }
