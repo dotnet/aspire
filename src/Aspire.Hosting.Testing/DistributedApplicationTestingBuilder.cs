@@ -287,7 +287,8 @@ public static class DistributedApplicationTestingBuilder
         {
             var builder = TestingBuilderFactory.CreateBuilder(args, onConstructing: (applicationOptions, hostBuilderOptions) =>
             {
-                DistributedApplicationFactory.ConfigureBuilder(args, applicationOptions, hostBuilderOptions, FindApplicationAssembly(), configureBuilder);
+                DistributedApplicationFactory.PreConfigureBuilderOptions(applicationOptions, hostBuilderOptions, args, FindApplicationAssembly());
+                configureBuilder(applicationOptions, hostBuilderOptions);
             });
 
             if (!builder.Configuration.GetValue("ASPIRE_TESTING_DISABLE_HTTP_CLIENT", false))
