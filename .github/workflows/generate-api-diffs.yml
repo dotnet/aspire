@@ -1,0 +1,30 @@
+name: GenerateAPIDiffs
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 16 * * *' # 8am PST (16:00 UTC)
+
+jobs:
+  generate-and-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore and build
+        run: |
+          set +e
+
+          for proj in $(find src -name '*.csproj' ! -path 'src/Aspire.ProjectTemplates/**/*.csproj'); do
+            export CI=false && ./dotnet.sh build "$proj" -f net8.0 --configuration Release --no-incremental /t:"Build;GenAPIGenerateReferenceAssemblySource"
+          done
+        continue-on-error: true
+
+      - name: Create or update pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: update-api-diffs
+          base: main
+          title: "Update API Diffs"
+          body: "Auto-generated update to the API surface."
