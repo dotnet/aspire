@@ -26,6 +26,7 @@ internal static class KnownProperties
         public const string Source = "resource.source";
         public const string HealthState = "resource.healthState";
         public const string ConnectionString = "resource.connectionString";
+        public const string ParentName = "resource.parentName";
     }
 
     public static class Container
@@ -35,6 +36,7 @@ internal static class KnownProperties
         public const string Ports = "container.ports";
         public const string Command = "container.command";
         public const string Args = "container.args";
+        public const string Lifetime = "container.lifetime";
     }
 
     public static class Executable

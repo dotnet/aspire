@@ -16,7 +16,7 @@ public class TracesViewModel
     private ApplicationKey? _applicationKey;
     private string _filterText = string.Empty;
     private int _startIndex;
-    private int? _count;
+    private int _count;
 
     public TracesViewModel(TelemetryRepository telemetryRepository)
     {
@@ -26,7 +26,7 @@ public class TracesViewModel
     public ApplicationKey? ApplicationKey { get => _applicationKey; set => SetValue(ref _applicationKey, value); }
     public string FilterText { get => _filterText; set => SetValue(ref _filterText, value); }
     public int StartIndex { get => _startIndex; set => SetValue(ref _startIndex, value); }
-    public int? Count { get => _count; set => SetValue(ref _count, value); }
+    public int Count { get => _count; set => SetValue(ref _count, value); }
     public TimeSpan MaxDuration { get; private set; }
     public IReadOnlyList<TelemetryFilter> Filters => _filters;
 

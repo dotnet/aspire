@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
@@ -9,30 +10,41 @@ namespace Aspire.Hosting.Azure;
 /// Represents an resource for Azure Postgres Flexible Server.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="configureConstruct">Callback to configure construct.</param>
-public class AzurePostgresFlexibleServerResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
-    AzureConstructResource(name, configureConstruct),
+/// <param name="configureInfrastructure">Callback to configure infrastructure.</param>
+public class AzurePostgresFlexibleServerResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
+    AzureProvisioningResource(name, configureInfrastructure),
     IResourceWithConnectionString
 {
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
 
     /// <summary>
     /// Gets the "connectionString" output reference from the bicep template for the Azure Postgres Flexible Server.
+    /// 
+    /// This is used when Entra ID authentication is used. The connection string is an output of the bicep template.
     /// </summary>
     private BicepOutputReference ConnectionStringOutput => new("connectionString", this);
 
     /// <summary>
     /// Gets the "connectionString" secret output reference from the bicep template for the Azure Postgres Flexible Server.
+    ///
+    /// This is set when password authentication is used. The connection string is stored in a secret in the Azure Key Vault.
     /// </summary>
     internal BicepSecretOutputReference? ConnectionStringSecretOutput { get; set; }
+    /// <summary>
+    /// Gets a value indicating whether the resource uses password authentication.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(ConnectionStringSecretOutput))]
+    public bool UsePasswordAuthentication => ConnectionStringSecretOutput is not null;
 
     /// <summary>
-    /// Gets the connection template for the manifest for the Azure Postgres Flexible Server.
+    /// Gets the inner PostgresServerResource resource.
+    /// 
+    /// This is set when RunAsContainer is called on the AzurePostgresFlexibleServerResource resource to create a local PostgreSQL container.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression =>
-        InnerResource?.ConnectionStringExpression ??
-            (ConnectionStringSecretOutput is not null ? ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
-            ReferenceExpression.Create($"{ConnectionStringOutput}"));
+    internal PostgresServerResource? InnerResource { get; private set; }
+
+    /// <inheritdoc />
+    public override ResourceAnnotationCollection Annotations => InnerResource?.Annotations ?? base.Annotations;
 
     /// <summary>
     /// Gets or sets the parameter that contains the PostgreSQL server user name.
@@ -45,6 +57,15 @@ public class AzurePostgresFlexibleServerResource(string name, Action<ResourceMod
     internal ParameterResource? PasswordParameter { get; set; }
 
     /// <summary>
+    /// Gets the connection template for the manifest for the Azure Postgres Flexible Server.
+    /// </summary>
+    public ReferenceExpression ConnectionStringExpression =>
+        InnerResource?.ConnectionStringExpression ??
+            (UsePasswordAuthentication ?
+                ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
+                ReferenceExpression.Create($"{ConnectionStringOutput}"));
+
+    /// <summary>
     /// A dictionary where the key is the resource name and the value is the database name.
     /// </summary>
     public IReadOnlyDictionary<string, string> Databases => _databases;
@@ -54,5 +75,28 @@ public class AzurePostgresFlexibleServerResource(string name, Action<ResourceMod
         _databases.TryAdd(name, databaseName);
     }
 
-    internal PostgresServerResource? InnerResource { get; set; }
+    internal void SetInnerResource(PostgresServerResource innerResource)
+    {
+        // Copy the annotations to the inner resource before making it the inner resource
+        foreach (var annotation in Annotations)
+        {
+            innerResource.Annotations.Add(annotation);
+        }
+
+        InnerResource = innerResource;
+    }
+
+    internal ReferenceExpression GetDatabaseConnectionString(string databaseResourceName, string databaseName)
+    {
+        // If the server resource is using a secret output, then the database should also use a secret output as well.
+        // Note that the bicep template puts each database's connection string in a KeyVault secret.
+        if (InnerResource is null && ConnectionStringSecretOutput is not null)
+        {
+            return ReferenceExpression.Create($"{new BicepSecretOutputReference(GetDatabaseKeyVaultSecretName(databaseResourceName), this)}");
+        }
+
+        return ReferenceExpression.Create($"{this};Database={databaseName}");
+    }
+
+    internal static string GetDatabaseKeyVaultSecretName(string databaseResourceName) => $"{databaseResourceName}-connectionString";
 }

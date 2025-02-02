@@ -84,7 +84,7 @@ public class AddRabbitMQTests
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(RabbitMQContainerImageTags.Image, containerAnnotation.Image);
-        Assert.Equal(withManagementPlugin ? RabbitMQContainerImageTags.TagManagement : RabbitMQContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(withManagementPlugin ? RabbitMQContainerImageTags.ManagementTag : RabbitMQContainerImageTags.Tag, containerAnnotation.Tag);
         Assert.Equal(RabbitMQContainerImageTags.Registry, containerAnnotation.Registry);
     }
 
@@ -92,9 +92,8 @@ public class AddRabbitMQTests
     public async Task RabbitMQCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:pass"] = "p@ssw0rd1";
 
-        var pass = appBuilder.AddParameter("pass");
+        var pass = appBuilder.AddParameter("pass", "p@ssw0rd1");
         appBuilder
             .AddRabbitMQ("rabbit", password: pass)
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27011));
@@ -112,7 +111,7 @@ public class AddRabbitMQTests
     }
 
     [Theory]
-    [InlineData(null, RabbitMQContainerImageTags.TagManagement)]
+    [InlineData(null, RabbitMQContainerImageTags.ManagementTag)]
     [InlineData("3", "3-management")]
     [InlineData("3.12", "3.12-management")]
     [InlineData("3.12.0", "3.12.0-management")]
@@ -163,7 +162,6 @@ public class AddRabbitMQTests
     }
 
     [Theory]
-    [InlineData(" ")]
     [InlineData("notrabbitmq")]
     [InlineData("not-supported")]
     public void WithManagementPluginThrowsForUnsupportedContainerImageName(string imageName)
@@ -204,7 +202,7 @@ public class AddRabbitMQTests
         }
         var manifest = await ManifestUtils.GetManifest(rabbit.Resource);
 
-        var expectedTag = withManagementPlugin ? RabbitMQContainerImageTags.TagManagement : RabbitMQContainerImageTags.Tag;
+        var expectedTag = withManagementPlugin ? RabbitMQContainerImageTags.ManagementTag : RabbitMQContainerImageTags.Tag;
         var managementBinding = withManagementPlugin
             ? """
             ,

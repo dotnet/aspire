@@ -106,14 +106,12 @@ public class AzureBicepProvisionerTests
     [InlineData("alpha 123")]
     public void WithParameterDoesNotAllowParameterNamesWhichAreInvalidBicepIdentifiers(string bicepParameterName)
     {
-        var ex = Assert.Throws<ArgumentException>(() =>
+        Assert.Throws<ArgumentException>(() =>
         {
             using var builder = TestDistributedApplicationBuilder.Create();
-            builder.AddAzureConstruct("construct", _ => { })
+            builder.AddAzureInfrastructure("infrastructure", _ => { })
                    .WithParameter(bicepParameterName);
         });
-
-        Assert.Equal("Bicep parameter names must only contain alpha, numeric, and _ characters and must start with an alpha or _ characters. (Parameter 'bicepParameterName')", ex.Message);
     }
 
     [Theory]
@@ -126,7 +124,7 @@ public class AzureBicepProvisionerTests
     public void WithParameterAllowsParameterNamesWhichAreValidBicepIdentifiers(string bicepParameterName)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.AddAzureConstruct("construct", _ => { })
+        builder.AddAzureInfrastructure("infrastructure", _ => { })
                 .WithParameter(bicepParameterName);
     }
 

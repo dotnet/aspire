@@ -8,7 +8,7 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// A resource that represents a PostgreSQL database. This is a child resource of a <see cref="AzurePostgresFlexibleServerResource"/>.
+/// A resource that represents an Azure PostgreSQL database. This is a child resource of an <see cref="AzurePostgresFlexibleServerResource"/>.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="databaseName">The database name.</param>
@@ -24,14 +24,34 @@ public class AzurePostgresFlexibleServerDatabaseResource(string name, string dat
     /// <summary>
     /// Gets the connection string expression for the Postgres database.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression =>
-       ReferenceExpression.Create($"{Parent};Database={DatabaseName}");
+    public ReferenceExpression ConnectionStringExpression => Parent.GetDatabaseConnectionString(Name, databaseName);
 
     /// <summary>
     /// Gets the database name.
     /// </summary>
     public string DatabaseName { get; } = ThrowIfNull(databaseName);
 
+    /// <summary>
+    /// Gets the inner PostgresDatabaseResource resource.
+    /// 
+    /// This is set when RunAsContainer is called on the AzurePostgresFlexibleServerResource resource to create a local PostgreSQL container.
+    /// </summary>
+    internal PostgresDatabaseResource? InnerResource { get; private set; }
+
+    /// <inheritdoc />
+    public override ResourceAnnotationCollection Annotations => InnerResource?.Annotations ?? base.Annotations;
+
     private static T ThrowIfNull<T>([NotNull] T? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
         => argument ?? throw new ArgumentNullException(paramName);
+
+    internal void SetInnerResource(PostgresDatabaseResource innerResource)
+    {
+        // Copy the annotations to the inner resource before making it the inner resource
+        foreach (var annotation in Annotations)
+        {
+            innerResource.Annotations.Add(annotation);
+        }
+
+        InnerResource = innerResource;
+    }
 }

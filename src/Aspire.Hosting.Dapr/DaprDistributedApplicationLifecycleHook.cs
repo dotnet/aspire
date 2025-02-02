@@ -15,6 +15,7 @@ using static Aspire.Hosting.Dapr.CommandLineArgs;
 
 namespace Aspire.Hosting.Dapr;
 
+[Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", error: false)]
 internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedApplicationLifecycleHook, IDisposable
 {
     private readonly IConfiguration _configuration;
@@ -72,8 +73,16 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
             var componentReferenceAnnotations = resource.Annotations.OfType<DaprComponentReferenceAnnotation>();
 
+            var waitAnnotationsToCopyToDaprCli = new List<WaitAnnotation>();
+
             foreach (var componentReferenceAnnotation in componentReferenceAnnotations)
             {
+                // Whilst we are passing over each component annotations collect the list of annotations to copy to the Dapr CLI.
+                if (componentReferenceAnnotation.Component.TryGetAnnotationsOfType<WaitAnnotation>(out var componentWaitAnnotations))
+                {
+                    waitAnnotationsToCopyToDaprCli.AddRange(componentWaitAnnotations);
+                }
+
                 if (componentReferenceAnnotation.Component.Options?.LocalPath is not null)
                 {
                     var localPathDirectory = Path.GetDirectoryName(NormalizePath(componentReferenceAnnotation.Component.Options.LocalPath));
@@ -93,6 +102,9 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                     }
                 }
             }
+
+            // It is possible that we have duplicate wate annotations so we just dedupe them here.
+            var distinctWaitAnnotationsToCopyToDaprCli = waitAnnotationsToCopyToDaprCli.DistinctBy(w => (w.Resource, w.WaitType));
 
             var daprAppPortArg = (int? port) => ModelNamedArg("--app-port", port);
             var daprGrpcPortArg = (object port) => ModelNamedObjectArg("--dapr-grpc-port", port);
@@ -131,11 +143,15 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         ModelNamedArg("--resources-path", aggregateResourcesPaths),
                         ModelNamedArg("--run-file", NormalizePath(sidecarOptions?.RunFile)),
                         ModelNamedArg("--runtime-path", NormalizePath(sidecarOptions?.RuntimePath)),
+                        ModelNamedArg("--scheduler-host-address", sidecarOptions?.SchedulerHostAddress),
                         ModelNamedArg("--unix-domain-socket", sidecarOptions?.UnixDomainSocket),
                         PostOptionsArgs(Args(sidecarOptions?.Command)));
 
             var daprCliResourceName = $"{daprSidecar.Name}-cli";
             var daprCli = new ExecutableResource(daprCliResourceName, fileName, appHostDirectory);
+
+            // Add all the unique wait annotations to the CLI.
+            daprCli.Annotations.AddRange(distinctWaitAnnotationsToCopyToDaprCli);
 
             resource.Annotations.Add(
                 new EnvironmentCallbackAnnotation(
@@ -176,12 +192,10 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                     {
                         updatedArgs.AddRange(daprCommandLine.Arguments);
                         var endPoint = GetEndpointReference(sidecarOptions, resource);
-                        if (endPoint is not null)
+
+                        if (sidecarOptions?.AppPort is null && endPoint is { appEndpoint.IsAllocated: true })
                         {
-                            if (endPoint.Value.appEndpoint.IsAllocated && sidecarOptions?.AppPort is null)
-                            {
-                                updatedArgs.AddRange(daprAppPortArg(endPoint.Value.appEndpoint.Port)());
-                            }
+                            updatedArgs.AddRange(daprAppPortArg(endPoint.Value.appEndpoint.Port)());
                         }
 
                         var grpc = daprCli.GetEndpoint("grpc");
@@ -199,11 +213,11 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                             updatedArgs.AddRange(daprProfilePortArg(profiling.Property(EndpointProperty.TargetPort))());
                         }
 
-                        if (sidecarOptions?.AppChannelAddress is null && endPoint is not null)
+                        if (sidecarOptions?.AppChannelAddress is null && endPoint is { appEndpoint.IsAllocated: true })
                         {
                             updatedArgs.AddRange(daprAppChannelAddressArg(endPoint.Value.appEndpoint.Host)());
                         }
-                        if (sidecarOptions?.AppProtocol is null && endPoint is not null)
+                        if (sidecarOptions?.AppProtocol is null && endPoint is { appEndpoint.IsAllocated: true })
                         {
                             updatedArgs.AddRange(daprAppProtocol(endPoint.Value.protocol)());
                         }
@@ -250,6 +264,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         context.Writer.TryWriteStringArray("resourcesPath", sidecarOptions?.ResourcesPaths.Select(path => context.GetManifestRelativePath(path)));
                         context.Writer.TryWriteString("runFile", context.GetManifestRelativePath(sidecarOptions?.RunFile));
                         context.Writer.TryWriteString("runtimePath", context.GetManifestRelativePath(sidecarOptions?.RuntimePath));
+                        context.Writer.TryWriteString("schedulerHostAddress", sidecarOptions?.SchedulerHostAddress);
                         context.Writer.TryWriteString("unixDomainSocket", sidecarOptions?.UnixDomainSocket);
 
                         context.Writer.WriteEndObject();
@@ -315,7 +330,10 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             yield return Path.Combine(homePath, "dapr", "dapr");
 
             // Linux & MacOS path:
-            yield return Path.Combine("/usr", "local", "bin", "dapr");
+            yield return "/usr/local/bin/dapr";
+
+            // Arch Linux path:
+            yield return "/usr/bin/dapr";
 
             // MacOS Homebrew path:
             if (OperatingSystem.IsMacOS() && Environment.GetEnvironmentVariable("HOMEBREW_PREFIX") is string homebrewPrefix)

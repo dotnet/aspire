@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ja" original="../StructuredLogs.resx">
     <body>
+      <trans-unit id="ActionLogMessageText">
+        <source>Log message</source>
+        <target state="translated">ログ メッセージ</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MessageExceededLimitBody">
         <source>A maximum of {0} structured logs are stored. Old structured logs are automatically removed.</source>
         <target state="translated">最大 {0} 件の構造化ログが格納されます。古い構造化ログは自動的に削除されます。</target>

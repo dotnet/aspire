@@ -38,7 +38,7 @@ public static class AspireMongoDBDriverExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
-        builder.AddMongoDBClient(DefaultConfigSectionName, configureSettings, configureClientSettings, connectionName, serviceKey: null);
+        builder.AddMongoDBClient(configureSettings, configureClientSettings, connectionName, serviceKey: null);
     }
 
     /// <summary>
@@ -61,7 +61,6 @@ public static class AspireMongoDBDriverExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         builder.AddMongoDBClient(
-            $"{DefaultConfigSectionName}:{name}",
             configureSettings,
             configureClientSettings,
             connectionName: name,
@@ -70,7 +69,6 @@ public static class AspireMongoDBDriverExtensions
 
     private static void AddMongoDBClient(
         this IHostApplicationBuilder builder,
-        string configurationSectionName,
         Action<MongoDBSettings>? configureSettings,
         Action<MongoClientSettings>? configureClientSettings,
         string connectionName,
@@ -80,13 +78,11 @@ public static class AspireMongoDBDriverExtensions
 
         var settings = builder.GetMongoDBSettings(
             connectionName,
-            configurationSectionName,
             configureSettings);
 
         builder.AddMongoClient(
             settings,
             connectionName,
-            configurationSectionName,
             configureClientSettings,
             serviceKey);
 
@@ -99,7 +95,8 @@ public static class AspireMongoDBDriverExtensions
 
         builder.AddMongoDatabase(settings.ConnectionString, serviceKey);
         builder.AddHealthCheck(
-            serviceKey is null ? "MongoDB.Driver" : $"MongoDB.Driver_{connectionName}",
+            connectionName,
+            serviceKey,
             settings);
     }
 
@@ -107,7 +104,6 @@ public static class AspireMongoDBDriverExtensions
         this IHostApplicationBuilder builder,
         MongoDBSettings mongoDbSettings,
         string connectionName,
-        string configurationSectionName,
         Action<MongoClientSettings>? configureClientSettings,
         object? serviceKey)
     {
@@ -115,13 +111,13 @@ public static class AspireMongoDBDriverExtensions
         {
             builder
                 .Services
-                .AddSingleton<IMongoClient>(sp => sp.CreateMongoClient(connectionName, configurationSectionName, mongoDbSettings, configureClientSettings));
+                .AddSingleton<IMongoClient>(sp => sp.CreateMongoClient(connectionName, mongoDbSettings, configureClientSettings));
             return;
         }
 
         builder
             .Services
-            .AddKeyedSingleton<IMongoClient>(serviceKey, (sp, _) => sp.CreateMongoClient(connectionName, configurationSectionName, mongoDbSettings, configureClientSettings));
+            .AddKeyedSingleton<IMongoClient>(serviceKey, (sp, _) => sp.CreateMongoClient(connectionName, mongoDbSettings, configureClientSettings));
     }
 
     private static void AddMongoDatabase(
@@ -163,7 +159,8 @@ public static class AspireMongoDBDriverExtensions
 
     private static void AddHealthCheck(
         this IHostApplicationBuilder builder,
-        string healthCheckName,
+        string connectionName,
+        object? serviceKey,
         MongoDBSettings settings)
     {
         if (settings.DisableHealthChecks || string.IsNullOrWhiteSpace(settings.ConnectionString))
@@ -171,10 +168,18 @@ public static class AspireMongoDBDriverExtensions
             return;
         }
 
+        var healthCheckName = serviceKey is null ? "MongoDB.Driver" : $"MongoDB.Driver_{connectionName}";
         builder.TryAddHealthCheck(
             healthCheckName,
             healthCheck => healthCheck.AddMongoDb(
+#if MONGODB_V2
                 settings.ConnectionString,
+#else
+                serviceKey is null
+                    ? sp => sp.GetRequiredService<IMongoClient>()
+                    : sp => sp.GetRequiredKeyedService<IMongoClient>(serviceKey),
+                _ => MongoUrl.Create(settings.ConnectionString).DatabaseName,
+#endif
                 healthCheckName,
                 null,
                 null,
@@ -184,11 +189,10 @@ public static class AspireMongoDBDriverExtensions
     private static MongoClient CreateMongoClient(
         this IServiceProvider serviceProvider,
         string connectionName,
-        string configurationSectionName,
         MongoDBSettings mongoDbSettings,
         Action<MongoClientSettings>? configureClientSettings)
     {
-        mongoDbSettings.ValidateSettings(connectionName, configurationSectionName);
+        mongoDbSettings.ValidateSettings(connectionName);
 
         var clientSettings = MongoClientSettings.FromConnectionString(mongoDbSettings.ConnectionString);
 
@@ -201,20 +205,30 @@ public static class AspireMongoDBDriverExtensions
 
         clientSettings.LoggingSettings ??= new LoggingSettings(serviceProvider.GetService<ILoggerFactory>());
 
+        var aspireVersion = typeof(MongoDBSettings).Assembly.GetName().Version?.ToString();
+        if (clientSettings.LibraryInfo != null)
+        {
+            clientSettings.LibraryInfo = new LibraryInfo($"{clientSettings.LibraryInfo.Name}|aspire", $"{clientSettings.LibraryInfo.Version}|{aspireVersion}");
+        }
+        else
+        {
+            clientSettings.LibraryInfo = new LibraryInfo("aspire", aspireVersion);
+        }
+
         return new MongoClient(clientSettings);
     }
 
     private static MongoDBSettings GetMongoDBSettings(
         this IHostApplicationBuilder builder,
         string connectionName,
-        string configurationSectionName,
         Action<MongoDBSettings>? configureSettings)
     {
         var settings = new MongoDBSettings();
 
-        builder.Configuration
-            .GetSection(configurationSectionName)
-            .Bind(settings);
+        var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
+        configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -228,9 +242,8 @@ public static class AspireMongoDBDriverExtensions
 
     private static void ValidateSettings(
         this MongoDBSettings settings,
-        string connectionName,
-        string configurationSectionName)
+        string connectionName)
     {
-        ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, configurationSectionName);
+        ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName);
     }
 }

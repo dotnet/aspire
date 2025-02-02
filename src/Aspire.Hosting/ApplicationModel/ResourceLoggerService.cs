@@ -47,7 +47,79 @@ public class ResourceLoggerService
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        return GetResourceLoggerState(resource.Name).Logger;
+        var resourceNames = resource.GetResolvedResourceNames();
+        if (resourceNames.Length > 1)
+        {
+            // If a resource has multiple replicas then return a composite logger that writes to multiple.
+            var loggers = new List<ILogger>();
+            foreach (var resourceName in resourceNames)
+            {
+                loggers.Add(GetResourceLoggerState(resourceName).Logger);
+            }
+
+            return new CompositeLogger(loggers);
+        }
+        else
+        {
+            return GetResourceLoggerState(resourceNames[0]).Logger;
+        }
+    }
+
+    private sealed class CompositeLogger(List<ILogger> innerLoggers) : ILogger
+    {
+        private readonly List<ILogger> _innerLoggers = innerLoggers;
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull
+        {
+            var scopes = new List<IDisposable>();
+            foreach (var logger in _innerLoggers)
+            {
+                if (logger.BeginScope(state) is { } scope)
+                {
+                    scopes.Add(scope);
+                }
+            }
+
+            if (scopes.Count == 0)
+            {
+                return null;
+            }
+            else if (scopes.Count == 1)
+            {
+                return scopes[0];
+            }
+            else
+            {
+                return new CompositeDisposable(scopes);
+            }
+        }
+
+        private sealed class CompositeDisposable(List<IDisposable> disposables) : IDisposable
+        {
+            private readonly List<IDisposable> _disposables = disposables;
+
+            public void Dispose()
+            {
+                foreach (var disposable in _disposables)
+                {
+                    disposable.Dispose();
+                }
+            }
+        }
+
+        public bool IsEnabled(LogLevel logLevel)
+        {
+            // All loggers have the same log level.
+            return _innerLoggers[0].IsEnabled(logLevel);
+        }
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            foreach (var logger in _innerLoggers)
+            {
+                logger.Log(logLevel, eventId, state, exception, formatter);
+            }
+        }
     }
 
     /// <summary>
@@ -83,7 +155,46 @@ public class ResourceLoggerService
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        return WatchAsync(resource.Name);
+        var resourceNames = resource.GetResolvedResourceNames();
+        if (resourceNames.Length > 1)
+        {
+            return WatchMultipleAsync(resourceNames, WatchAsync);
+        }
+        else
+        {
+            return WatchAsync(resourceNames[0]);
+        }
+
+        static async IAsyncEnumerable<IReadOnlyList<LogLine>> WatchMultipleAsync(string[] resourceNames, Func<string, IAsyncEnumerable<IReadOnlyList<LogLine>>> watch)
+        {
+            var channel = Channel.CreateUnbounded<IReadOnlyList<LogLine>>();
+            var readTasks = resourceNames.Select(async (name) =>
+            {
+                await foreach (var logLines in watch(name).ConfigureAwait(false))
+                {
+                    channel.Writer.TryWrite(logLines);
+                }
+            });
+
+            var completionTask = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.WhenAll(readTasks).ConfigureAwait(false);
+                }
+                finally
+                {
+                    channel.Writer.Complete();
+                }
+            });
+
+            await foreach (var item in channel.Reader.ReadAllAsync().ConfigureAwait(false))
+            {
+                yield return item;
+            }
+
+            await completionTask.ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -142,9 +253,13 @@ public class ResourceLoggerService
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        if (_loggers.TryGetValue(resource.Name, out var logger))
+        var resourceNames = resource.GetResolvedResourceNames();
+        foreach (var resourceName in resourceNames)
         {
-            logger.Complete();
+            if (_loggers.TryGetValue(resourceName, out var logger))
+            {
+                logger.Complete();
+            }
         }
     }
 
@@ -184,6 +299,7 @@ public class ResourceLoggerService
             return state;
         },
         this);
+    internal Dictionary<string, ResourceLoggerState> Loggers => _loggers.ToDictionary();
 
     /// <summary>
     /// A logger for the resource to write to.

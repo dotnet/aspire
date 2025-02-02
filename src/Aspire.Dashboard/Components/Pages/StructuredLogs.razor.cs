@@ -26,11 +26,12 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private const string TimestampColumn = nameof(TimestampColumn);
     private const string MessageColumn = nameof(MessageColumn);
     private const string TraceColumn = nameof(TraceColumn);
-    private const string DetailsColumn = nameof(DetailsColumn);
+    private const string ActionsColumn = nameof(ActionsColumn);
 
     private SelectViewModel<ResourceTypeDetails> _allApplication = default!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
+    private int _totalItemsCount;
     private List<OtlpApplication> _applications = default!;
     private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
     private List<SelectViewModel<LogLevel?>> _logLevels = default!;
@@ -43,6 +44,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private FluentDataGrid<OtlpLogEntry> _dataGrid = null!;
     private GridColumnManager _manager = null!;
     private IList<GridColumn> _gridColumns = null!;
+
+    private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
+    private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
 
     public string BasePath => DashboardUrls.StructuredLogsBasePath;
     public string SessionStorageKey => BrowserStorageKeys.StructuredLogsPageState;
@@ -105,7 +109,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private async ValueTask<GridItemsProviderResult<OtlpLogEntry>> GetData(GridItemsProviderRequest<OtlpLogEntry> request)
     {
         ViewModel.StartIndex = request.StartIndex;
-        ViewModel.Count = request.Count;
+        ViewModel.Count = request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount;
 
         var logs = ViewModel.GetLogs();
 
@@ -123,8 +127,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
 
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
-        // The workaround is to put the count inside a control and explicitly update and refresh the control.
-        _totalItemsFooter.SetTotalItemCount(logs.TotalItemCount);
+        // The workaround is to explicitly update and refresh the control.
+        _totalItemsCount = logs.TotalItemCount;
+        _totalItemsFooter.UpdateDisplayedCount(_totalItemsCount);
 
         TelemetryRepository.MarkViewedErrorLogs(ViewModel.ApplicationKey);
 
@@ -133,13 +138,15 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     protected override Task OnInitializedAsync()
     {
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
+
         _gridColumns = [
             new GridColumn(Name: ResourceColumn, DesktopWidth: "2fr", MobileWidth: "1fr"),
             new GridColumn(Name: LogLevelColumn, DesktopWidth: "1fr"),
             new GridColumn(Name: TimestampColumn, DesktopWidth: "1.5fr"),
             new GridColumn(Name: MessageColumn, DesktopWidth: "5fr", "2.5fr"),
             new GridColumn(Name: TraceColumn, DesktopWidth: "1fr"),
-            new GridColumn(Name: DetailsColumn, DesktopWidth: "1fr", MobileWidth: "0.8fr")
+            new GridColumn(Name: ActionsColumn, DesktopWidth: "1fr", MobileWidth: "0.8fr")
         ];
 
         if (!string.IsNullOrEmpty(TraceId))
@@ -210,7 +217,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         _applicationChanged = true;
 
-        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
+        return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
     private async Task HandleSelectedLogLevelChangedAsync()
@@ -218,7 +225,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         _applicationChanged = true;
 
         await ClearSelectedLogEntryAsync();
-        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
     private void UpdateSubscription()
@@ -278,6 +285,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         {
             OnDialogResult = DialogService.CreateDialogCallback(this, HandleFilterDialog),
             Title = title,
+            DismissTitle = DialogsLoc[nameof(Dashboard.Resources.Dialogs.DialogCloseButtonText)],
             Alignment = HorizontalAlignment.Right,
             PrimaryAction = null,
             SecondaryAction = null,
@@ -308,7 +316,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             }
         }
 
-        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
     private async Task HandleAfterFilterBindAsync()
@@ -421,6 +429,12 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
 
         await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
+    }
+
+    private Task ClearStructureLogs(ApplicationKey? key)
+    {
+        TelemetryRepository.ClearStructuredLogs(key);
+        return Task.CompletedTask;
     }
 
     public class StructuredLogsPageViewModel

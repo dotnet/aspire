@@ -77,7 +77,12 @@
       <_AppHostVersion>%(_AppHostPackageReference.Version)</_AppHostVersion>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(_AppHostVersion)' != '' and $([MSBuild]::VersionLessThan('$(_AppHostVersion)', '8.2.0'))">
+    <PropertyGroup Condition="'$(_AppHostVersion)' != ''">
+      <!-- Check if the version is in the format major.minor.patch -->
+      <_IsValidVersion>$([System.Text.RegularExpressions.Regex]::IsMatch('$(_AppHostVersion)', '^\d+\.\d+\.\d+$'))</_IsValidVersion>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(_AppHostVersion)' != '' and '$(_IsValidVersion)' == 'true' and $([MSBuild]::VersionLessThan('$(_AppHostVersion)', '8.2.0'))">
       <!-- If we find the version to Aspire.Hosting.AppHost package but it is lower than 8.2.0, then we fall back
       to use the Dashboard and DCP packages that match the version of the installed workload for backwards compatibility.
       This results in the same behavior that we had before moving Dashboard and DCP out of the workload, since the version

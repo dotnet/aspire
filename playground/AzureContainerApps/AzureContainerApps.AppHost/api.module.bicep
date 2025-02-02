@@ -5,12 +5,15 @@ param api_containerport string
 
 param storage_outputs_blobendpoint string
 
-param account_secretoutputs string
+@secure()
+param cache_password_value string
 
-param outputs_azure_container_registry_managed_identity_id string
+param account_outputs_connectionstring string
 
 @secure()
 param secretparam_value string
+
+param outputs_azure_container_registry_managed_identity_id string
 
 param outputs_managed_identity_client_id string
 
@@ -20,14 +23,9 @@ param outputs_azure_container_registry_endpoint string
 
 param api_containerimage string
 
-resource account_secretoutputs_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-  name: account_secretoutputs
-}
+param certificateName string
 
-resource account_secretoutputs_kv_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
-  name: 'connectionString'
-  parent: account_secretoutputs_kv
-}
+param customDomain string
 
 resource api 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'api'
@@ -36,9 +34,8 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
     configuration: {
       secrets: [
         {
-          name: 'connectionstrings--account'
-          identity: outputs_azure_container_registry_managed_identity_id
-          keyVaultUrl: account_secretoutputs_kv_connectionString.properties.secretUri
+          name: 'connectionstrings--cache'
+          value: 'cache:6379,password=${cache_password_value}'
         }
         {
           name: 'value'
@@ -50,6 +47,13 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
         external: true
         targetPort: api_containerport
         transport: 'http'
+        customDomains: [
+          {
+            name: customDomain
+            bindingType: (certificateName != '') ? 'SniEnabled' : 'Disabled'
+            certificateId: (certificateName != '') ? '${outputs_azure_container_apps_environment_id}/managedCertificates/${certificateName}' : null
+          }
+        ]
       }
       registries: [
         {
@@ -91,11 +95,11 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               name: 'ConnectionStrings__cache'
-              value: 'cache:6379'
+              secretRef: 'connectionstrings--cache'
             }
             {
               name: 'ConnectionStrings__account'
-              secretRef: 'connectionstrings--account'
+              value: account_outputs_connectionstring
             }
             {
               name: 'VALUE'

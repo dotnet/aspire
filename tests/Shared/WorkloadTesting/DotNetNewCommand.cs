@@ -7,21 +7,24 @@ namespace Aspire.Workload.Tests;
 
 public class DotNetNewCommand : DotNetCommand
 {
-    private string? _customHive;
+    private readonly string _customHive;
 
-    public DotNetNewCommand(ITestOutputHelper _testOutput, bool useDefaultArgs = true, BuildEnvironment? buildEnv = null, string label = "dotnet-new")
+    public DotNetNewCommand(
+        ITestOutputHelper _testOutput,
+        bool useDefaultArgs = true,
+        BuildEnvironment? buildEnv = null,
+        string? hiveDirectory = null,
+        string label = "dotnet-new")
             : base(_testOutput, useDefaultArgs, buildEnv, label)
     {
-        WithCustomHive(_buildEnvironment.TemplatesHomeDirectory);
-    }
-
-    public DotNetNewCommand WithCustomHive(string hiveDirectory)
-    {
-        _customHive = hiveDirectory;
-        return this;
+        string? hiveDir = hiveDirectory ?? _buildEnvironment.TemplatesCustomHive?.CustomHiveDirectory;
+        if (hiveDir is null)
+        {
+            throw new ArgumentException("No custom hive directory was provided, and the BuildEnvironment does not have one set either");
+        }
+        _customHive = hiveDir;
     }
 
     protected override string GetFullArgs(params string[] args)
-        => $"new {base.GetFullArgs(args)}"
-                + (_customHive is not null ? $" --debug:custom-hive \"{_customHive}\"" : "");
+        => $"new {base.GetFullArgs(args)} --debug:custom-hive \"{_customHive}\"";
 }

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Reflection;
 
 namespace Stress.ApiService;
 
@@ -9,15 +10,33 @@ public class TraceCreator
 {
     public const string ActivitySourceName = "CustomTraceSpan";
 
+    public bool IncludeBrokenLinks { get; set; }
+
     private static readonly ActivitySource s_activitySource = new(ActivitySourceName);
 
     private readonly List<Activity> _allActivities = new List<Activity>();
 
-    public async Task CreateTraceAsync(int count, bool createChildren)
+    public Activity? CreateActivity(string name, string? spandId)
+    {
+        var activity = s_activitySource.StartActivity(name, ActivityKind.Client);
+        if (activity != null)
+        {
+            if (spandId != null)
+            {
+                // Gross but it's the only way.
+                typeof(Activity).GetField("_spanId", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(activity, spandId);
+                typeof(Activity).GetField("_traceId", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(activity, activity.TraceId.ToString());
+            }
+        }
+
+        return activity;
+    }
+
+    public async Task CreateTraceAsync(int count, bool createChildren, string? rootName = null)
     {
         var activityStack = new Stack<Activity>();
 
-        for (var i = 0; i < 10; i++)
+        for (var i = 0; i < count; i++)
         {
             if (i > 0)
             {
@@ -25,7 +44,7 @@ public class TraceCreator
             }
 
             var name = $"Span-{i}";
-            using var activity = s_activitySource.StartActivity(name, ActivityKind.Client);
+            using var activity = s_activitySource.StartActivity(rootName ?? name, ActivityKind.Client);
             if (activity == null)
             {
                 continue;
@@ -37,8 +56,6 @@ public class TraceCreator
             {
                 await CreateChildActivityAsync(name);
             }
-
-            await Task.Delay(Random.Shared.Next(10, 50));
         }
 
         while (activityStack.Count > 0)
@@ -106,7 +123,7 @@ public class TraceCreator
             // Create the activity link. There is a 50% chance the activity link goes to an activity
             // that doesn't exist. This logic is here to ensure incomplete links are handled correctly.
             ActivityContext activityContext;
-            if (Random.Shared.Next() % 2 == 0)
+            if (!IncludeBrokenLinks || Random.Shared.Next() % 2 == 0)
             {
                 var a = _allActivities[Random.Shared.Next(0, _allActivities.Count)];
                 activityContext = a.Context;

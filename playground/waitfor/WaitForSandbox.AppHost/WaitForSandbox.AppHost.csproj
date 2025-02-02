@@ -18,6 +18,7 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.PostgreSQL" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.SqlServer" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.PostgreSQL" />
+    <ProjectReference Include="..\WaitFor.Frontend\WaitFor.Frontend.csproj" />
 
     <ProjectReference Include="..\WaitForSandbox.ApiService\WaitForSandbox.ApiService.csproj" />
 

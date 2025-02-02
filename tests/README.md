@@ -10,4 +10,4 @@ The helix CI job builds `tests/helix/send-to-helix-ci.proj`, which in turns buil
 1. `.\build.cmd -pack`
 2. `dotnet build tests\workloads.proj`
 
-.. which results in `artifacts\bin\dotnet-latest` which has a sdk (version from `global.json`) with the `aspire` workload installed using packs from `artifacts/packages`.
+.. which results in `artifacts\bin\dotnet-tests` which has a sdk (version from `global.json`) with the `aspire` workload installed using packs from `artifacts/packages`.

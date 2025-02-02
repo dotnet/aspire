@@ -9,35 +9,41 @@ namespace Aspire.Hosting.Tests;
 public class ResourceCommandAnnotationTests
 {
     [Theory]
-    [InlineData(CommandsConfigurationExtensions.StartType, "Starting", ResourceCommandState.Disabled)]
-    [InlineData(CommandsConfigurationExtensions.StartType, "Stopping", ResourceCommandState.Hidden)]
-    [InlineData(CommandsConfigurationExtensions.StartType, "Running", ResourceCommandState.Hidden)]
-    [InlineData(CommandsConfigurationExtensions.StartType, "Exited", ResourceCommandState.Enabled)]
-    [InlineData(CommandsConfigurationExtensions.StartType, "Finished", ResourceCommandState.Enabled)]
-    [InlineData(CommandsConfigurationExtensions.StartType, "FailedToStart", ResourceCommandState.Enabled)]
-    [InlineData(CommandsConfigurationExtensions.StartType, "Waiting", ResourceCommandState.Disabled)]
-    [InlineData(CommandsConfigurationExtensions.StopType, "Starting", ResourceCommandState.Hidden)]
-    [InlineData(CommandsConfigurationExtensions.StopType, "Stopping", ResourceCommandState.Disabled)]
-    [InlineData(CommandsConfigurationExtensions.StopType, "Running", ResourceCommandState.Enabled)]
-    [InlineData(CommandsConfigurationExtensions.StopType, "Exited", ResourceCommandState.Hidden)]
-    [InlineData(CommandsConfigurationExtensions.StopType, "Finished", ResourceCommandState.Hidden)]
-    [InlineData(CommandsConfigurationExtensions.StopType, "FailedToStart", ResourceCommandState.Hidden)]
-    [InlineData(CommandsConfigurationExtensions.StopType, "Waiting", ResourceCommandState.Hidden)]
-    [InlineData(CommandsConfigurationExtensions.RestartType, "Starting", ResourceCommandState.Disabled)]
-    [InlineData(CommandsConfigurationExtensions.RestartType, "Stopping", ResourceCommandState.Disabled)]
-    [InlineData(CommandsConfigurationExtensions.RestartType, "Running", ResourceCommandState.Enabled)]
-    [InlineData(CommandsConfigurationExtensions.RestartType, "Exited", ResourceCommandState.Disabled)]
-    [InlineData(CommandsConfigurationExtensions.RestartType, "Finished", ResourceCommandState.Disabled)]
-    [InlineData(CommandsConfigurationExtensions.RestartType, "FailedToStart", ResourceCommandState.Disabled)]
-    [InlineData(CommandsConfigurationExtensions.RestartType, "Waiting", ResourceCommandState.Disabled)]
-    public void LifeCycleCommands_CommandState(string commandType, string resourceState, ResourceCommandState commandState)
+    [InlineData(CommandsConfigurationExtensions.StartCommandName, "Starting", ResourceCommandState.Disabled)]
+    [InlineData(CommandsConfigurationExtensions.StartCommandName, "Stopping", ResourceCommandState.Hidden)]
+    [InlineData(CommandsConfigurationExtensions.StartCommandName, "Running", ResourceCommandState.Hidden)]
+    [InlineData(CommandsConfigurationExtensions.StartCommandName, "Exited", ResourceCommandState.Enabled)]
+    [InlineData(CommandsConfigurationExtensions.StartCommandName, "Finished", ResourceCommandState.Enabled)]
+    [InlineData(CommandsConfigurationExtensions.StartCommandName, "FailedToStart", ResourceCommandState.Enabled)]
+    [InlineData(CommandsConfigurationExtensions.StartCommandName, "Unknown", ResourceCommandState.Enabled)]
+    [InlineData(CommandsConfigurationExtensions.StartCommandName, "Waiting", ResourceCommandState.Enabled)]
+    [InlineData(CommandsConfigurationExtensions.StartCommandName, "RuntimeUnhealthy", ResourceCommandState.Disabled)]
+    [InlineData(CommandsConfigurationExtensions.StopCommandName, "Starting", ResourceCommandState.Hidden)]
+    [InlineData(CommandsConfigurationExtensions.StopCommandName, "Stopping", ResourceCommandState.Disabled)]
+    [InlineData(CommandsConfigurationExtensions.StopCommandName, "Running", ResourceCommandState.Enabled)]
+    [InlineData(CommandsConfigurationExtensions.StopCommandName, "Exited", ResourceCommandState.Hidden)]
+    [InlineData(CommandsConfigurationExtensions.StopCommandName, "Finished", ResourceCommandState.Hidden)]
+    [InlineData(CommandsConfigurationExtensions.StopCommandName, "FailedToStart", ResourceCommandState.Hidden)]
+    [InlineData(CommandsConfigurationExtensions.StopCommandName, "Unknown", ResourceCommandState.Hidden)]
+    [InlineData(CommandsConfigurationExtensions.StopCommandName, "Waiting", ResourceCommandState.Hidden)]
+    [InlineData(CommandsConfigurationExtensions.StopCommandName, "RuntimeUnhealthy", ResourceCommandState.Hidden)]
+    [InlineData(CommandsConfigurationExtensions.RestartCommandName, "Starting", ResourceCommandState.Disabled)]
+    [InlineData(CommandsConfigurationExtensions.RestartCommandName, "Stopping", ResourceCommandState.Disabled)]
+    [InlineData(CommandsConfigurationExtensions.RestartCommandName, "Running", ResourceCommandState.Enabled)]
+    [InlineData(CommandsConfigurationExtensions.RestartCommandName, "Exited", ResourceCommandState.Disabled)]
+    [InlineData(CommandsConfigurationExtensions.RestartCommandName, "Finished", ResourceCommandState.Disabled)]
+    [InlineData(CommandsConfigurationExtensions.RestartCommandName, "FailedToStart", ResourceCommandState.Disabled)]
+    [InlineData(CommandsConfigurationExtensions.RestartCommandName, "Unknown", ResourceCommandState.Disabled)]
+    [InlineData(CommandsConfigurationExtensions.RestartCommandName, "Waiting", ResourceCommandState.Disabled)]
+    [InlineData(CommandsConfigurationExtensions.RestartCommandName, "RuntimeUnhealthy", ResourceCommandState.Disabled)]
+    public void LifeCycleCommands_CommandState(string commandName, string resourceState, ResourceCommandState commandState)
     {
         // Arrange
         var builder = DistributedApplication.CreateBuilder();
         var resourceBuilder = builder.AddContainer("name", "image");
         resourceBuilder.Resource.AddLifeCycleCommands();
 
-        var startCommand = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().Single(a => a.Type == commandType);
+        var startCommand = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().Single(a => a.Name == commandName);
 
         // Act
         var state = startCommand.UpdateState(new UpdateCommandStateContext

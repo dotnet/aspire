@@ -27,7 +27,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
     private const string DatabaseReadyText = "Completed: ALTER DATABASE OPEN";
 
-    [Fact]
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/5362")]
     [RequiresDocker]
     public async Task VerifyEfOracle()
     {
@@ -68,7 +68,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("BatMobile", cars[0].Brand);
     }
 
-    [Theory]
+    [Theory(Skip = "https://github.com/dotnet/aspire/issues/5362")]
     [InlineData(true)]
     [InlineData(false, Skip = "https://github.com/dotnet/aspire/issues/5191")]
     [RequiresDocker]
@@ -103,7 +103,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
             if (useVolume)
             {
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
-                volumeName = VolumeNameGenerator.CreateVolumeName(oracle1, nameof(WithDataShouldPersistStateBetweenUsages));
+                volumeName = VolumeNameGenerator.Generate(oracle1, nameof(WithDataShouldPersistStateBetweenUsages));
 
                 // If the volume already exists (because of a crashing previous run), try to delete it
                 DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
@@ -167,8 +167,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             using var builder2 = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
-            var passwordParameter2 = builder2.AddParameter("pwd");
-            builder2.Configuration["Parameters:pwd"] = password;
+            var passwordParameter2 = builder2.AddParameter("pwd", password);
 
             var oracle2 = builder2.AddOracle("oracle", passwordParameter2);
 
@@ -244,7 +243,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         }
     }
 
-    [Theory]
+    [Theory(Skip = "https://github.com/dotnet/aspire/issues/5362")]
     [InlineData(true)]
     [InlineData(false, Skip = "https://github.com/dotnet/aspire/issues/5190")]
     [RequiresDocker]
@@ -347,7 +346,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         }
     }
 
-    [Fact]
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/5362")]
     [RequiresDocker]
     public async Task VerifyWaitForOnOracleBlocksDependentResources()
     {

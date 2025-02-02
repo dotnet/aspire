@@ -16,7 +16,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// This API supports analyzers in Aspire.Hosting.Analyzers.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false)]
-public class EndpointNameAttribute : Attribute, IModelNameParameter
+public sealed class EndpointNameAttribute : Attribute, IModelNameParameter
 {
 
 }

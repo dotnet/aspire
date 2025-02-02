@@ -40,7 +40,7 @@ public abstract class ConformanceTests<TService, TOptions>
 
     protected virtual bool CanConnectToServer => false;
 
-    protected virtual bool SupportsNamedConfig => false;
+    protected virtual bool SupportsNamedConfig => true;
     protected virtual string? ConfigurationSectionName => null;
 
     protected virtual bool SupportsKeyedRegistrations => false;
@@ -371,9 +371,10 @@ public abstract class ConformanceTests<TService, TOptions>
     }
 
     [ConditionalFact]
-    public void FavorsNamedConfigurationOverTopLevelConfigurationWhenBothProvided()
+    public void FavorsNamedConfigurationOverTopLevelConfigurationWhenBothProvided_DisableTracing()
     {
         SkipIfNamedConfigNotSupported();
+        SkipIfTracingIsNotSupported();
 
         var key = "target-service";
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -389,6 +390,28 @@ public abstract class ConformanceTests<TService, TOptions>
 
         // Trace provider is not configured because DisableTracing is set to true in the named configuration
         Assert.Null(host.Services.GetService<TracerProvider>());
+    }
+
+    [ConditionalFact]
+    public void FavorsNamedConfigurationOverTopLevelConfigurationWhenBothProvided_DisableHealthChecks()
+    {
+        SkipIfNamedConfigNotSupported();
+        SkipIfHealthChecksAreNotSupported();
+
+        var key = "target-service";
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>($"{ConfigurationSectionName}:DisableHealthChecks", "false"),
+            new KeyValuePair<string, string?>($"{ConfigurationSectionName}:{key}:DisableHealthChecks", "true"),
+        ]);
+
+        RegisterComponent(builder, key: key);
+
+        using var host = builder.Build();
+
+        // HealthChecksService is not configured because DisableHealthChecks is set to true in the named configuration
+        Assert.Null(host.Services.GetService<HealthCheckService>());
     }
 
     protected virtual void SetupConnectionInformationIsDelayValidated() { }

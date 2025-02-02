@@ -26,7 +26,7 @@
     <None Include="templates\**\*" />
   </ItemGroup>
 
-  <!-- When building a package, this target will run to copy all the templates into the intermediate directory, 
+  <!-- When building a package, this target will run to copy all the templates into the intermediate directory,
        replaces the package versions, and adds them to the package.-->
   <Target Name="AddTemplatesToPackageAsContent"
           DependsOnTargets="ReplacePackageVersionOnTemplates">
@@ -37,7 +37,7 @@
       <_TemplatesForPackage Include="$(IntermediateOutputPath)\content\templates\**\*" />
     </ItemGroup>
     <ItemGroup>
-      <Content Include="%(_TemplatesForPackage.Identity)" 
+      <Content Include="%(_TemplatesForPackage.Identity)"
               PackagePath="content/templates/%(_TemplatesForPackage.RecursiveDir)" />
     </ItemGroup>
   </Target>
@@ -45,7 +45,7 @@
   <!-- Replaces the versions referenced by the templates projects to use the version of the packages being live-built -->
   <Target Name="ReplacePackageVersionOnTemplates"
           DependsOnTargets="CopyTemplatesToIntermediateOutputPath">
-    
+
     <ItemGroup>
       <TemplateProjectFiles Include="templates\**\*.csproj" />
       <TemplateProjectFiles>
@@ -56,7 +56,8 @@
     <WriteLinesToFile File="%(TemplateProjectFiles.DestinationFile)"
                       Lines="$([System.IO.File]::ReadAllText('%(TemplateProjectFiles.FullPath)')
                                                  .Replace('!!REPLACE_WITH_LATEST_VERSION!!', '$(PackageVersion)')
-                                                 .Replace('!!REPLACE_WITH_EXTENSIONS_VERSION!!', '$(MicrosoftExtensionsHttpResiliencePackageVersion)'))"
+                                                 .Replace('!!REPLACE_WITH_ASPNETCORE_9_VERSION!!', '$(MicrosoftAspNetCorePackageVersionForNet9)')
+                                                 .Replace('!!REPLACE_WITH_DOTNET_EXTENSIONS_VERSION!!', '$(MicrosoftExtensionsHttpResilienceVersion)'))"
                       Overwrite="true" />
   </Target>
 

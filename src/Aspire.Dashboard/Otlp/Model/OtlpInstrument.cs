@@ -3,11 +3,10 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Dashboard.Configuration;
+using System.Runtime.InteropServices;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
-using OpenTelemetry.Proto.Metrics.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
 
@@ -34,67 +33,46 @@ public class OtlpInstrumentData
 public class OtlpInstrument
 {
     public required OtlpInstrumentSummary Summary { get; init; }
-    public required TelemetryLimitOptions Options { get; init; }
+    public required OtlpContext Context { get; init; }
 
     public Dictionary<ReadOnlyMemory<KeyValuePair<string, string>>, DimensionScope> Dimensions { get; } = new(ScopeAttributesComparer.Instance);
     public Dictionary<string, List<string?>> KnownAttributeValues { get; } = new();
 
-    public void AddMetrics(Metric metric, ref KeyValuePair<string, string>[]? tempAttributes)
-    {
-        switch (metric.DataCase)
-        {
-            case Metric.DataOneofCase.Gauge:
-                foreach (var d in metric.Gauge.DataPoints)
-                {
-                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Options);
-                }
-                break;
-            case Metric.DataOneofCase.Sum:
-                foreach (var d in metric.Sum.DataPoints)
-                {
-                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Options);
-                }
-                break;
-            case Metric.DataOneofCase.Histogram:
-                foreach (var d in metric.Histogram.DataPoints)
-                {
-                    FindScope(d.Attributes, ref tempAttributes).AddHistogramValue(d, Options);
-                }
-                break;
-        }
-    }
-
-    private DimensionScope FindScope(RepeatedField<KeyValue> attributes, ref KeyValuePair<string, string>[]? tempAttributes)
+    public DimensionScope FindScope(RepeatedField<KeyValue> attributes, ref KeyValuePair<string, string>[]? tempAttributes)
     {
         // We want to find the dimension scope that matches the attributes, but we don't want to allocate.
         // Copy values to a temporary reusable array.
         //
         // A meter can have attributes. Merge these with the data point attributes when creating a dimension.
-        OtlpHelpers.CopyKeyValuePairs(attributes, Summary.Parent.Attributes, Options, out var copyCount, ref tempAttributes);
+        OtlpHelpers.CopyKeyValuePairs(attributes, Summary.Parent.Attributes, Context, out var copyCount, ref tempAttributes);
         Array.Sort(tempAttributes, 0, copyCount, KeyValuePairComparer.Instance);
 
         var comparableAttributes = tempAttributes.AsMemory(0, copyCount);
 
+        // Can't use CollectionsMarshal.GetValueRefOrAddDefault here because comparableAttributes is a view over mutable data.
+        // Need to add dimensions using durable attributes instance after scope is created.
         if (!Dimensions.TryGetValue(comparableAttributes, out var dimension))
         {
-            dimension = AddDimensionScope(comparableAttributes);
+            dimension = CreateDimensionScope(comparableAttributes);
+            Dimensions.Add(dimension.Attributes, dimension);
         }
         return dimension;
     }
 
-    private DimensionScope AddDimensionScope(Memory<KeyValuePair<string, string>> comparableAttributes)
+    private DimensionScope CreateDimensionScope(Memory<KeyValuePair<string, string>> comparableAttributes)
     {
         var isFirst = Dimensions.Count == 0;
         var durableAttributes = comparableAttributes.ToArray();
-        var dimension = new DimensionScope(Options.MaxMetricsCount, durableAttributes);
-        Dimensions.Add(durableAttributes, dimension);
+        var dimension = new DimensionScope(Context.Options.MaxMetricsCount, durableAttributes);
 
         var keys = KnownAttributeValues.Keys.Union(durableAttributes.Select(a => a.Key)).Distinct();
         foreach (var key in keys)
         {
-            if (!KnownAttributeValues.TryGetValue(key, out var values))
+            ref var values = ref CollectionsMarshal.GetValueRefOrAddDefault(KnownAttributeValues, key, out _);
+            // Adds to dictionary if not present.
+            if (values == null)
             {
-                KnownAttributeValues.Add(key, values = new List<string?>());
+                values = new List<string?>();
 
                 // If the key is new and there are already dimensions, add an empty value because there are dimensions without this key.
                 if (!isFirst)
@@ -123,7 +101,7 @@ public class OtlpInstrument
         var newInstrument = new OtlpInstrument
         {
             Summary = instrument.Summary,
-            Options = instrument.Options,
+            Context = instrument.Context
         };
 
         if (cloneData)

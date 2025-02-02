@@ -7,8 +7,6 @@
     <Description>A client for Azure Event Hubs that integrates with Aspire, including logging and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzureEventHubs_256x.png</PackageIconFullPath>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
-    <!-- This package hasn't shipped stable, so package validation runs against previously shipped version of it. -->
-    <PackageValidationBaselineVersion>8.0.1-preview.8.24267.1</PackageValidationBaselineVersion>
   </PropertyGroup>
 
   <PropertyGroup>

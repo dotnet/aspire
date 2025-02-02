@@ -9,7 +9,7 @@ param administratorLoginPassword string
 param keyVaultName string
 
 resource postgres2 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
-  name: take('postgres${uniqueString(resourceGroup().id)}', 24)
+  name: take('postgres2-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
     administratorLogin: administratorLogin
@@ -62,6 +62,14 @@ resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   name: 'connectionString'
   properties: {
     value: 'Host=${postgres2.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
+  }
+  parent: keyVault
+}
+
+resource db2_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  name: 'db2-connectionString'
+  properties: {
+    value: 'Host=${postgres2.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword};Database=db2'
   }
   parent: keyVault
 }

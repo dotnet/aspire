@@ -3,7 +3,9 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting azure functions</PackageTags>
+    <!-- Azure Functions support is in preview until the full experience is implemented. -->
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <PackageTags>aspire integration hosting azure functions</PackageTags>
     <Description>Azure Functions resource types for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)Azure_256x.png</PackageIconFullPath>
   </PropertyGroup>

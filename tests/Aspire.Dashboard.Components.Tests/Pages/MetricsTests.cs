@@ -31,6 +31,7 @@ public partial class MetricsTests : TestContext
         ChangeResourceAndAssertInstrument(
             app1InstrumentName: "test1",
             app2InstrumentName: "test1",
+            expectedMeterNameAfterChange: "test-meter",
             expectedInstrumentNameAfterChange: "test1");
     }
 
@@ -40,6 +41,7 @@ public partial class MetricsTests : TestContext
         ChangeResourceAndAssertInstrument(
             app1InstrumentName: "test1",
             app2InstrumentName: "test2",
+            expectedMeterNameAfterChange: null,
             expectedInstrumentNameAfterChange: null);
     }
 
@@ -117,7 +119,7 @@ public partial class MetricsTests : TestContext
         Assert.Equal(MetricViewKind.Table.ToString(), query["view"]);
     }
 
-    private void ChangeResourceAndAssertInstrument(string app1InstrumentName, string app2InstrumentName, string? expectedInstrumentNameAfterChange)
+    private void ChangeResourceAndAssertInstrument(string app1InstrumentName, string app2InstrumentName, string? expectedMeterNameAfterChange, string? expectedInstrumentNameAfterChange)
     {
         // Arrange
         MetricsSetupHelpers.SetupMetricsPage(this);
@@ -167,6 +169,17 @@ public partial class MetricsTests : TestContext
             builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
         });
 
+        navigationManager.LocationChanged += (sender, e) =>
+        {
+            var expectedUrl = DashboardUrls.MetricsUrl(resource: "TestApp2", meter: expectedMeterNameAfterChange, instrument: expectedInstrumentNameAfterChange, duration: 720, view: "Table");
+            Assert.EndsWith(expectedUrl, e.Location);
+
+            cut.SetParametersAndRender(builder =>
+            {
+                builder.Add(m => m.ApplicationName, "TestApp2");
+            });
+        };
+
         var viewModel = cut.Instance.PageViewModel;
 
         // Assert 1
@@ -181,11 +194,7 @@ public partial class MetricsTests : TestContext
         cut.WaitForAssertion(() => Assert.Equal("TestApp2", viewModel.SelectedApplication.Name), TestConstants.WaitTimeout);
 
         Assert.Equal(expectedInstrumentNameAfterChange, viewModel.SelectedInstrument?.Name);
-        if (expectedInstrumentNameAfterChange != null)
-        {
-            // Meter is cleared if instrument is cleared.
-            Assert.Equal("test-meter", viewModel.SelectedMeter!.MeterName);
-        }
+        Assert.Equal(expectedMeterNameAfterChange, viewModel.SelectedMeter?.MeterName);
 
         Assert.Equal(MetricViewKind.Table, viewModel.SelectedViewKind);
         Assert.Equal(TimeSpan.FromMinutes(720), viewModel.SelectedDuration.Id);

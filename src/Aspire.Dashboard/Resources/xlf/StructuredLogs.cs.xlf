@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="cs" original="../StructuredLogs.resx">
     <body>
+      <trans-unit id="ActionLogMessageText">
+        <source>Log message</source>
+        <target state="translated">Zpráva protokolu</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MessageExceededLimitBody">
         <source>A maximum of {0} structured logs are stored. Old structured logs are automatically removed.</source>
         <target state="translated">Ukládá se maximálně tento počet strukturovaných protokolů: {0}. Staré strukturované protokoly se automaticky odeberou.</target>

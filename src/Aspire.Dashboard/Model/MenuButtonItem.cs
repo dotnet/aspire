@@ -13,4 +13,5 @@ public class MenuButtonItem
     public Icon? Icon { get; set; }
     public Func<Task>? OnClick { get; set; }
     public bool IsDisabled { get; set; }
+    public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
 }

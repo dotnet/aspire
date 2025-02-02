@@ -6,17 +6,11 @@
     <PackageTags>aspire integration hosting garnet</PackageTags>
     <Description>Garnet® support for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)garnet-cube-red_white-rgb.png</PackageIconFullPath>
-    <!-- Disable package validation as this package hasn't shipped yet. -->
-    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <PropertyGroup>
     <MinCodeCoverage>92</MinCodeCoverage>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.Redis" />

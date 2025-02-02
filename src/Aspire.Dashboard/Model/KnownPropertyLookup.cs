@@ -22,38 +22,39 @@ public sealed class KnownPropertyLookup : IKnownPropertyLookup
     {
         _resourceProperties =
         [
-            new(KnownProperties.Resource.DisplayName, loc[ResourcesDetailsDisplayNameProperty]),
-            new(KnownProperties.Resource.State, loc[ResourcesDetailsStateProperty]),
-            new(KnownProperties.Resource.StartTime, loc[ResourcesDetailsStartTimeProperty]),
-            new(KnownProperties.Resource.StopTime, loc[ResourcesDetailsStopTimeProperty]),
-            new(KnownProperties.Resource.ExitCode, loc[ResourcesDetailsExitCodeProperty]),
-            new(KnownProperties.Resource.HealthState, loc[ResourcesDetailsHealthStateProperty])
+            new(KnownProperties.Resource.DisplayName, loc[nameof(ResourcesDetailsDisplayNameProperty)]),
+            new(KnownProperties.Resource.State, loc[nameof(ResourcesDetailsStateProperty)]),
+            new(KnownProperties.Resource.StartTime, loc[nameof(ResourcesDetailsStartTimeProperty)]),
+            new(KnownProperties.Resource.StopTime, loc[nameof(ResourcesDetailsStopTimeProperty)]),
+            new(KnownProperties.Resource.ExitCode, loc[nameof(ResourcesDetailsExitCodeProperty)]),
+            new(KnownProperties.Resource.HealthState, loc[nameof(ResourcesDetailsHealthStateProperty)])
         ];
 
         _projectProperties =
         [
             .. _resourceProperties,
-            new(KnownProperties.Project.Path, loc[ResourcesDetailsProjectPathProperty]),
-            new(KnownProperties.Executable.Pid, loc[ResourcesDetailsExecutableProcessIdProperty]),
+            new(KnownProperties.Project.Path, loc[nameof(ResourcesDetailsProjectPathProperty)]),
+            new(KnownProperties.Executable.Pid, loc[nameof(ResourcesDetailsExecutableProcessIdProperty)]),
         ];
 
         _executableProperties =
         [
             .. _resourceProperties,
-            new(KnownProperties.Executable.Path, loc[ResourcesDetailsExecutablePathProperty]),
-            new(KnownProperties.Executable.WorkDir, loc[ResourcesDetailsExecutableWorkingDirectoryProperty]),
-            new(KnownProperties.Executable.Args, loc[ResourcesDetailsExecutableArgumentsProperty]),
-            new(KnownProperties.Executable.Pid, loc[ResourcesDetailsExecutableProcessIdProperty]),
+            new(KnownProperties.Executable.Path, loc[nameof(ResourcesDetailsExecutablePathProperty)]),
+            new(KnownProperties.Executable.WorkDir, loc[nameof(ResourcesDetailsExecutableWorkingDirectoryProperty)]),
+            new(KnownProperties.Executable.Args, loc[nameof(ResourcesDetailsExecutableArgumentsProperty)]),
+            new(KnownProperties.Executable.Pid, loc[nameof(ResourcesDetailsExecutableProcessIdProperty)]),
         ];
 
         _containerProperties =
         [
             .. _resourceProperties,
-            new(KnownProperties.Container.Image, loc[ResourcesDetailsContainerImageProperty]),
-            new(KnownProperties.Container.Id, loc[ResourcesDetailsContainerIdProperty]),
-            new(KnownProperties.Container.Command, loc[ResourcesDetailsContainerCommandProperty]),
-            new(KnownProperties.Container.Args, loc[ResourcesDetailsContainerArgumentsProperty]),
-            new(KnownProperties.Container.Ports, loc[ResourcesDetailsContainerPortsProperty]),
+            new(KnownProperties.Container.Image, loc[nameof(ResourcesDetailsContainerImageProperty)]),
+            new(KnownProperties.Container.Id, loc[nameof(ResourcesDetailsContainerIdProperty)]),
+            new(KnownProperties.Container.Command, loc[nameof(ResourcesDetailsContainerCommandProperty)]),
+            new(KnownProperties.Container.Args, loc[nameof(ResourcesDetailsContainerArgumentsProperty)]),
+            new(KnownProperties.Container.Ports, loc[nameof(ResourcesDetailsContainerPortsProperty)]),
+            new(KnownProperties.Container.Lifetime, loc[nameof(ResourcesDetailsContainerLifetimeProperty)]),
         ];
     }
 

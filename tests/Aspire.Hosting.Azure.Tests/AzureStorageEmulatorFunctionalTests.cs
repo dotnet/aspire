@@ -36,8 +36,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
         var queues = storage.AddQueues("queues");
         var tables = storage.AddTables("tables");
 
-        var dependentResource = builder.AddAzureCosmosDB("dependentresource")
-                                       .RunAsEmulator()
+        var dependentResource = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                                        .WaitFor(blobs)
                                        .WaitFor(queues)
                                        .WaitFor(tables);

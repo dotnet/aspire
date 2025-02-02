@@ -25,6 +25,8 @@ public class ConformanceTests : ConformanceTests<AzureOpenAIClient, AzureOpenAIS
 
     protected override bool SupportsKeyedRegistrations => true;
 
+    protected override string? ConfigurationSectionName => "Aspire:Azure:AI:OpenAI";
+
     protected override string ValidJsonConfig => """
         {
           "Aspire": {

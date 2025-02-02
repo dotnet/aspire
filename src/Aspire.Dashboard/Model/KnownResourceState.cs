@@ -14,5 +14,7 @@ public enum KnownResourceState
     Hidden,
     Waiting,
     Stopping,
-    Unknown
+    Unknown,
+    RuntimeUnhealthy,
+    NotStarted
 }

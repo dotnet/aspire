@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
 
 namespace Aspire.Hosting;
 
@@ -22,4 +23,12 @@ public static class AzureResourceExtensions
         ParameterResourceBuilderExtensions.ConfigureConnectionStringManifestPublisher((IResourceBuilder<IResourceWithConnectionString>)builder);
         return builder;
     }
+
+    /// <summary>
+    /// Gets the Bicep identifier for the Azure resource.
+    /// </summary>
+    /// <param name="resource">The Azure resource.</param>
+    /// <returns>A valid Bicep identifier.</returns>
+    public static string GetBicepIdentifier(this IAzureResource resource) =>
+        Infrastructure.NormalizeBicepIdentifier(resource.Name);
 }

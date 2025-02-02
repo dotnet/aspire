@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.ContainerApps" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.AppContainers" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CosmosDB" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Redis" />
@@ -22,6 +22,10 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Redis" />
 
     <ProjectReference Include="..\AzureContainerApps.ApiService\AzureContainerApps.ApiService.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="AppWithDocker\" />
   </ItemGroup>
 
 </Project>

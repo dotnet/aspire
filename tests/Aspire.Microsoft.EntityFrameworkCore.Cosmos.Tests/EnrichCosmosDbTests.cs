@@ -5,8 +5,10 @@ using Aspire.Components.Common.Tests;
 using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Cosmos.Infrastructure.Internal;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OpenTelemetry.Trace;
 using Xunit;
 
 namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests;
@@ -132,5 +134,27 @@ public class EnrichCosmosDbTests : ConformanceTests
 
         var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
         Assert.Equal("Conflicting values for 'RequestTimeout' were found in EntityFrameworkCoreCosmosSettings and set in DbContextOptions<TestDbContext>.", exception.Message);
+    }
+
+    [Fact]
+    public void EnrichWithNamedAndNonNamedUsesBoth()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:Cosmos:DisableTracing", "false"),
+            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:Cosmos:TestDbContext:DisableTracing", "true")
+        ]);
+
+        builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
+        {
+            optionsBuilder.UseCosmos(ConnectionString, DatabaseName);
+        });
+
+        builder.EnrichCosmosDbContext<TestDbContext>();
+
+        using var host = builder.Build();
+
+        var tracerProvider = host.Services.GetService<TracerProvider>();
+        Assert.Null(tracerProvider);
     }
 }

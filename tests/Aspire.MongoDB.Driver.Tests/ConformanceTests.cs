@@ -23,6 +23,8 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
 
     protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
+    protected override string? ConfigurationSectionName => "Aspire:MongoDB:Driver";
+
     protected override string ValidJsonConfig => """
         {
           "Aspire": {

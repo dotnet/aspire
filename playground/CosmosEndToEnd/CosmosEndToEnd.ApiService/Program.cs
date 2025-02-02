@@ -19,8 +19,8 @@ var app = builder.Build();
 app.MapDefaultEndpoints();
 app.MapGet("/", async (CosmosClient cosmosClient) =>
 {
-    var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync("db")).Database;
-    var container = (await db.CreateContainerIfNotExistsAsync("entries", "/Id")).Container;
+    var db = cosmosClient.GetDatabase("db");
+    var container = db.GetContainer("entries");
 
     // Add an entry to the database on each request.
     var newEntry = new Entry() { Id = Guid.NewGuid().ToString() };
@@ -69,6 +69,12 @@ public class Entry
 public class TestCosmosContext(DbContextOptions<TestCosmosContext> options) : DbContext(options)
 {
     public DbSet<EntityFrameworkEntry> Entries { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<EntityFrameworkEntry>()
+            .HasPartitionKey(e => e.Id);
+    }
 }
 
 public class EntityFrameworkEntry

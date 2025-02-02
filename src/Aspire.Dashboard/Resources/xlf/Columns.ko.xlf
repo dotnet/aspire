@@ -2,11 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ko" original="../Columns.resx">
     <body>
-      <trans-unit id="EndpointsColumnDisplayNone">
-        <source>None</source>
-        <target state="translated">없음</target>
-        <note />
-      </trans-unit>
       <trans-unit id="EndpointsColumnDisplayOverflowTitle">
         <source>Endpoints</source>
         <target state="translated">엔드포인트</target>
@@ -17,9 +12,9 @@
         <target state="translated">시작 중...</target>
         <note />
       </trans-unit>
-      <trans-unit id="LogMessageColumnExceptionDetailsTitle">
-        <source>Exception details</source>
-        <target state="translated">예외 세부 정보</target>
+      <trans-unit id="PersistentContainerIconTooltip">
+        <source>This container is persistent and won't be stopped when the app host is shut down.</source>
+        <target state="translated">이 컨테이너는 영구적이며 앱 호스트가 종료될 때 중지되지 않습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNameDisplayContainerIdText">
@@ -36,6 +31,11 @@
         <source>Process ID: {0}</source>
         <target state="translated">프로세스 ID: {0}</target>
         <note>{0} is a numeric id</note>
+      </trans-unit>
+      <trans-unit id="RunningAndUnhealthyResourceStateToolTip">
+        <source>Resource is running but not in a healthy state. Click for details.</source>
+        <target state="translated">리소스가 실행 중이지만 정상 상태가 아닙니다. 자세한 내용을 보려면 클릭하세요.</target>
+        <note>Tool tip text explaining that the resource is running but not yet ready to receive requests.</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerArgsTitle">
         <source>Container args</source>
@@ -81,6 +81,13 @@
         <source>Copy file path to clipboard</source>
         <target state="translated">파일 경로를 클립보드에 복사</target>
         <note />
+      </trans-unit>
+      <trans-unit id="StateColumnResourceContainerRuntimeUnhealthy">
+        <source>Container runtime was found but appears to be unhealthy. Ensure that it is running.
+For more information, see https://aka.ms/dotnet/aspire/container-runtime-unhealthy</source>
+        <target state="translated">컨테이너 런타임을 찾았지만 비정상 상태인 것 같습니다. 실행 중인지 확인하세요.
+자세한 내용은 https://aka.ms/dotnet/aspire/container-runtime-unhealthy 페이지를 참조하세요.</target>
+        <note>Contains a new line</note>
       </trans-unit>
       <trans-unit id="StateColumnResourceExited">
         <source>{0} is no longer running</source>

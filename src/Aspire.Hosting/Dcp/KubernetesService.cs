@@ -5,7 +5,9 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.Dcp.Model;
+using Aspire.Hosting.Utils;
 using k8s;
+using k8s.Autorest;
 using k8s.Exceptions;
 using k8s.Models;
 using Microsoft.Extensions.Logging;
@@ -24,7 +26,8 @@ internal enum DcpApiOperationType
     Watch = 4,
     GetLogSubresource = 5,
     Get = 6,
-    Patch = 7
+    Patch = 7,
+    ServerStop = 8,
 }
 
 internal interface IKubernetesService
@@ -49,6 +52,7 @@ internal interface IKubernetesService
         bool? follow = true,
         bool? timestamps = false,
         CancellationToken cancellationToken = default) where T : CustomResource;
+    Task StopServerAsync(string resourceCleanup = ResourceCleanup.Full, CancellationToken cancellation = default);
 }
 
 internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOptions<DcpOptions> dcpOptions, Locations locations) : IKubernetesService, IDisposable
@@ -90,6 +94,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
                 return KubernetesJson.Deserialize<T>(response.Body.ToString());
             },
+            RetryOnConnectivityAndConflictErrors,
             cancellationToken);
     }
 
@@ -122,6 +127,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
                return KubernetesJson.Deserialize<T>(response.Body.ToString());
            },
+           RetryOnConnectivityErrors,
            cancellationToken);
     }
 
@@ -156,6 +162,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
                return KubernetesJson.Deserialize<T>(response.Body.ToString());
            },
+           RetryOnConnectivityErrors,
            cancellationToken);
     }
 
@@ -185,6 +192,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
                 return KubernetesJson.Deserialize<CustomResourceList<T>>(response.Body.ToString()).Items;
             },
+            RetryOnConnectivityAndConflictErrors,
             cancellationToken);
     }
 
@@ -216,6 +224,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
                 return KubernetesJson.Deserialize<T>(response.Body.ToString());
             },
+            RetryOnConnectivityAndConflictErrors,
             cancellationToken);
     }
 
@@ -226,31 +235,38 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var resourceType = GetResourceFor<T>();
-        var result = await ExecuteWithRetry(
-            DcpApiOperationType.Watch,
-            resourceType,
-            (kubernetes) =>
-            {
-                var responseTask = string.IsNullOrEmpty(namespaceParameter)
-                    ? kubernetes.CustomObjects.ListClusterCustomObjectWithHttpMessagesAsync(
-                        GroupVersion.Group,
-                        GroupVersion.Version,
-                        resourceType,
-                        watch: true,
-                        cancellationToken: cancellationToken)
-                    : kubernetes.CustomObjects.ListNamespacedCustomObjectWithHttpMessagesAsync(
-                        GroupVersion.Group,
-                        GroupVersion.Version,
-                        namespaceParameter,
-                        resourceType,
-                        watch: true,
-                        cancellationToken: cancellationToken);
 
-                return responseTask.WatchAsync<T, object>(null, cancellationToken);
-            },
-            cancellationToken).ConfigureAwait(false);
+        // WatchAsync can become unresponsive if running long enough
+        // We use a helper to periodically restart the inner watch enumerable
+        var innerWatchFactory = ((WatchEventType, T)? lastValue, CancellationToken restartCancellationToken) =>
+        {
+            return ExecuteWithRetry(
+                DcpApiOperationType.Watch,
+                resourceType,
+                (kubernetes) =>
+                {
+                    var responseTask = string.IsNullOrEmpty(namespaceParameter)
+                        ? kubernetes.CustomObjects.ListClusterCustomObjectWithHttpMessagesAsync(
+                            GroupVersion.Group,
+                            GroupVersion.Version,
+                            resourceType,
+                            watch: true,
+                            cancellationToken: restartCancellationToken)
+                        : kubernetes.CustomObjects.ListNamespacedCustomObjectWithHttpMessagesAsync(
+                            GroupVersion.Group,
+                            GroupVersion.Version,
+                            namespaceParameter,
+                            resourceType,
+                            watch: true,
+                            cancellationToken: restartCancellationToken);
 
-        await foreach (var item in result.ConfigureAwait(false))
+                    return responseTask.WatchAsync<T, object>(null, restartCancellationToken);
+                },
+                RetryOnConnectivityAndConflictErrors,
+                restartCancellationToken);
+        };
+
+        await foreach (var item in PeriodicRestartAsyncEnumerable.CreateAsync(innerWatchFactory, restartInterval: TimeSpan.FromMinutes(5), cancellationToken: cancellationToken).ConfigureAwait(false))
         {
             yield return item;
         }
@@ -290,6 +306,31 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
                 return response.Body;
             },
+            RetryOnConnectivityAndConflictErrors,
+            cancellationToken
+        );
+    }
+
+    public Task StopServerAsync(string resourceCleanup = ResourceCleanup.Full, CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        return ExecuteWithRetry(
+            DcpApiOperationType.ServerStop,
+            "Execution",
+            async (kubernetes) =>
+            {
+                await kubernetes.PatchExecutionDocumentAsync(
+                    new ApiServerExecution
+                    {
+                        ApiServerStatus = ApiServerStatus.Stopping,
+                        ShutdownResourceCleanup = ResourceCleanup.Full
+                    },
+                    cancellationToken
+                    ).ConfigureAwait(false);
+                return (object?)null;
+            },
+            RetryOnConnectivityErrors,
             cancellationToken
         );
     }
@@ -315,12 +356,14 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
         DcpApiOperationType operationType,
         string resourceType,
         Func<DcpKubernetesClient, TResult> operation,
+        Func<Exception, bool> isRetryable,
         CancellationToken cancellationToken)
     {
         return ExecuteWithRetry<TResult>(
             operationType,
             resourceType,
             (DcpKubernetesClient kubernetes) => Task.FromResult(operation(kubernetes)),
+            isRetryable,
             cancellationToken);
     }
 
@@ -328,6 +371,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
         DcpApiOperationType operationType,
         string resourceType,
         Func<DcpKubernetesClient, Task<TResult>> operation,
+        Func<Exception, bool> isRetryable,
         CancellationToken cancellationToken)
     {
         var currentTimestamp = DateTime.UtcNow;
@@ -344,7 +388,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
                     await EnsureKubernetesAsync(cancellationToken).ConfigureAwait(false);
                     return await operation(_kubernetes!).ConfigureAwait(false);
                 }
-                catch (Exception e) when (IsRetryable(e))
+                catch (Exception e) when (isRetryable(e))
                 {
                     if (DateTime.UtcNow.Subtract(currentTimestamp) > MaxRetryDuration)
                     {
@@ -364,7 +408,11 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
         }
     }
 
-    private static bool IsRetryable(Exception ex) => ex is HttpRequestException || ex is KubeConfigException;
+    private static bool RetryOnConnectivityErrors(Exception ex) => ex is HttpRequestException || ex is KubeConfigException;
+    private static bool RetryOnConnectivityAndConflictErrors(Exception ex) =>
+        ex is HttpRequestException ||
+        ex is KubeConfigException ||
+        (ex is HttpOperationException hoe && hoe.Response.StatusCode == System.Net.HttpStatusCode.Conflict);
 
     private ResiliencePipeline GetReadKubeconfigResiliencePipeline()
     {

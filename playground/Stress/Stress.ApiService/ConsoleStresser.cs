@@ -78,6 +78,11 @@ public static class ConsoleStresser
         Console.WriteLine("https://www.example.com/path/with/percent%25encoded");
         Console.WriteLine("https://www.example.com/path/with/dollar$sign");
         Console.WriteLine("https://www.example.com/path/with/exclamation!mark");
+        Console.WriteLine("https://www.example.com/;path/");
+        Console.WriteLine("https://www.example.com/path/?query;string");
+        Console.WriteLine("https://;www.example.com/");
+        Console.WriteLine("https://www;.example.com/");
+        Console.WriteLine("https://www.exa;mple.com/");
 
         Console.Write("\x1b[0m"); // reset color
 

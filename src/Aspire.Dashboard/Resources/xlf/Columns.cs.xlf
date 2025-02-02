@@ -2,11 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="cs" original="../Columns.resx">
     <body>
-      <trans-unit id="EndpointsColumnDisplayNone">
-        <source>None</source>
-        <target state="translated">Žádné</target>
-        <note />
-      </trans-unit>
       <trans-unit id="EndpointsColumnDisplayOverflowTitle">
         <source>Endpoints</source>
         <target state="translated">Koncové body</target>
@@ -17,9 +12,9 @@
         <target state="translated">Spouštění…</target>
         <note />
       </trans-unit>
-      <trans-unit id="LogMessageColumnExceptionDetailsTitle">
-        <source>Exception details</source>
-        <target state="translated">Podrobnosti o výjimce</target>
+      <trans-unit id="PersistentContainerIconTooltip">
+        <source>This container is persistent and won't be stopped when the app host is shut down.</source>
+        <target state="translated">Tento kontejner je trvalý a po vypnutí hostitele aplikace se nezastaví.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNameDisplayContainerIdText">
@@ -36,6 +31,11 @@
         <source>Process ID: {0}</source>
         <target state="translated">ID procesu: {0}</target>
         <note>{0} is a numeric id</note>
+      </trans-unit>
+      <trans-unit id="RunningAndUnhealthyResourceStateToolTip">
+        <source>Resource is running but not in a healthy state. Click for details.</source>
+        <target state="translated">Prostředek je spuštěný, ale není v pořádku. Kliknutím zobrazíte podrobnosti.</target>
+        <note>Tool tip text explaining that the resource is running but not yet ready to receive requests.</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerArgsTitle">
         <source>Container args</source>
@@ -81,6 +81,13 @@
         <source>Copy file path to clipboard</source>
         <target state="translated">Zkopírovat cestu k souboru do schránky</target>
         <note />
+      </trans-unit>
+      <trans-unit id="StateColumnResourceContainerRuntimeUnhealthy">
+        <source>Container runtime was found but appears to be unhealthy. Ensure that it is running.
+For more information, see https://aka.ms/dotnet/aspire/container-runtime-unhealthy</source>
+        <target state="translated">Modul runtime kontejneru byl nalezen, ale zdá se, že není v pořádku. Ujistěte se, že je spuštěný.
+Další informace najdete na https://aka.ms/dotnet/aspire/container-runtime-unhealthy.</target>
+        <note>Contains a new line</note>
       </trans-unit>
       <trans-unit id="StateColumnResourceExited">
         <source>{0} is no longer running</source>

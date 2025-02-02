@@ -1,6 +1,24 @@
 {
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
+    "customDomain": {
+      "type": "parameter.v0",
+      "value": "{customDomain.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "certificateName": {
+      "type": "parameter.v0",
+      "value": "{certificateName.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
     "secretparam": {
       "type": "parameter.v0",
       "value": "{secretparam.inputs.value}",
@@ -13,7 +31,7 @@
     },
     "cache": {
       "type": "container.v1",
-      "connectionString": "{cache.bindings.tcp.host}:{cache.bindings.tcp.port}",
+      "connectionString": "{cache.bindings.tcp.host}:{cache.bindings.tcp.port},password={cache-password.value}",
       "image": "docker.io/library/redis:7.4",
       "deployment": {
         "type": "azure.bicep.v0",
@@ -22,17 +40,20 @@
           "cache_volumes_0_storage": "{cache.volumes.0.storage}",
           "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
           "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+          "cache_password_value": "{cache-password.value}",
           "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
         }
       },
       "args": [
+        "--requirepass",
+        "{cache-password.value}",
         "--save",
         "60",
         "1"
       ],
       "volumes": [
         {
-          "name": "azurecontainerapps.apphost-b5fb0098a7-cache-data",
+          "name": "azurecontainerapps.apphost-a01ec9bc8d-cache-data",
           "target": "/data",
           "readOnly": false
         }
@@ -48,23 +69,42 @@
     },
     "account": {
       "type": "azure.bicep.v0",
-      "connectionString": "{account.secretOutputs.connectionString}",
+      "connectionString": "{account.outputs.connectionString}",
       "path": "account.module.bicep",
       "params": {
-        "keyVaultName": ""
+        "principalType": "",
+        "principalId": ""
       }
     },
     "storage": {
       "type": "azure.bicep.v0",
       "path": "storage.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "principalId": ""
       }
     },
     "blobs": {
       "type": "value.v0",
       "connectionString": "{storage.outputs.blobEndpoint}"
+    },
+    "pythonapp": {
+      "type": "container.v1",
+      "build": {
+        "context": "AppWithDocker",
+        "dockerfile": "AppWithDocker/Dockerfile"
+      },
+      "deployment": {
+        "type": "azure.bicep.v0",
+        "path": "pythonapp.module.bicep",
+        "params": {
+          "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+          "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+          "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+          "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+          "pythonapp_containerimage": "{pythonapp.containerImage}"
+        }
+      }
     },
     "api": {
       "type": "project.v1",
@@ -75,13 +115,16 @@
         "params": {
           "api_containerport": "{api.containerPort}",
           "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
-          "account_secretoutputs": "{account.secretOutputs}",
-          "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+          "cache_password_value": "{cache-password.value}",
+          "account_outputs_connectionstring": "{account.outputs.connectionString}",
           "secretparam_value": "{secretparam.value}",
+          "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
           "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
           "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
           "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
-          "api_containerimage": "{api.containerImage}"
+          "api_containerimage": "{api.containerImage}",
+          "certificateName": "{certificateName.value}",
+          "customDomain": "{customDomain.value}"
         }
       },
       "env": {
@@ -107,6 +150,21 @@
           "protocol": "tcp",
           "transport": "http",
           "external": true
+        }
+      }
+    },
+    "cache-password": {
+      "type": "parameter.v0",
+      "value": "{cache-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
         }
       }
     }

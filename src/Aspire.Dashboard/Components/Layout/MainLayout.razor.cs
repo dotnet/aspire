@@ -21,7 +21,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     private IDisposable? _locationChangingRegistration;
     private IJSObjectReference? _jsModule;
     private IJSObjectReference? _keyboardHandlers;
-    private IJSObjectReference? _textVisualizerHandler;
     private DotNetObjectReference<ShortcutManager>? _shortcutManagerReference;
     private DotNetObjectReference<MainLayout>? _layoutReference;
     private IDialogReference? _openPageDialog;
@@ -77,7 +76,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         {
             if (_jsModule is not null)
             {
-                var newValue = ThemeManager.Theme!;
+                var newValue = ThemeManager.SelectedTheme!;
 
                 var effectiveTheme = await _jsModule.InvokeAsync<string>("updateTheme", newValue);
                 ThemeManager.EffectiveTheme = effectiveTheme;
@@ -141,7 +140,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             _shortcutManagerReference = DotNetObjectReference.Create(ShortcutManager);
             _layoutReference = DotNetObjectReference.Create(this);
             _keyboardHandlers = await JS.InvokeAsync<IJSObjectReference>("window.registerGlobalKeydownListener", _shortcutManagerReference);
-            _textVisualizerHandler = await JS.InvokeAsync<IJSObjectReference>("window.registerOpenTextVisualizerOnClick", _layoutReference);
             ShortcutManager.AddGlobalKeydownListener(this);
         }
     }
@@ -160,6 +158,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         DialogParameters parameters = new()
         {
             Title = Loc[nameof(Resources.Layout.MainLayoutAspireDashboardHelpLink)],
+            DismissTitle = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
             PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)],
             PrimaryActionEnabled = true,
             SecondaryAction = null,
@@ -192,11 +191,11 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     public async Task LaunchSettingsAsync()
     {
-        DialogParameters parameters = new()
+        var parameters = new DialogParameters
         {
             Title = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogTitle)],
-            PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)],
-            PrimaryActionEnabled = true,
+            DismissTitle = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
+            PrimaryAction =  Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)].Value,
             SecondaryAction = null,
             TrapFocus = true,
             Modal = true,
@@ -217,7 +216,17 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             await _openPageDialog.CloseAsync();
         }
 
-        _openPageDialog = await DialogService.ShowPanelAsync<SettingsDialog>(parameters).ConfigureAwait(true);
+        // Ensure the currently set theme is immediately available to display in settings dialog.
+        await ThemeManager.EnsureInitializedAsync();
+
+        if (ViewportInformation.IsDesktop)
+        {
+            _openPageDialog = await DialogService.ShowPanelAsync<SettingsDialog>(parameters).ConfigureAwait(true);
+        }
+        else
+        {
+            _openPageDialog = await DialogService.ShowDialogAsync<SettingsDialog>(parameters).ConfigureAwait(true);
+        }
     }
 
     public IReadOnlySet<AspireKeyboardShortcut> SubscribedShortcuts { get; } = new HashSet<AspireKeyboardShortcut>
@@ -265,26 +274,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         StateHasChanged();
     }
 
-    [JSInvokable]
-    public async Task OpenTextVisualizerAsync(IJSStreamReference valueStream, string valueDescription)
-    {
-        var width = ViewportInformation.IsDesktop ? "75vw" : "100vw";
-        var parameters = new DialogParameters
-        {
-            Title = valueDescription,
-            Width = $"min(1000px, {width})",
-            TrapFocus = true,
-            Modal = true,
-            PreventScroll = true,
-        };
-
-        await using var referenceStream = await valueStream.OpenReadStreamAsync();
-        using var reader = new StreamReader(referenceStream);
-        var value = await reader.ReadToEndAsync();
-
-        await DialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(value, valueDescription), parameters);
-    }
-
     public async ValueTask DisposeAsync()
     {
         _shortcutManagerReference?.Dispose();
@@ -299,11 +288,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             {
                 await JS.InvokeVoidAsync("window.unregisterGlobalKeydownListener", h);
             }
-
-            if (_textVisualizerHandler is not null)
-            {
-                await JS.InvokeVoidAsync("window.unregisterOpenTextVisualizerOnClick", _textVisualizerHandler);
-            }
         }
         catch (JSDisconnectedException)
         {
@@ -313,6 +297,5 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         await JSInteropHelpers.SafeDisposeAsync(_jsModule);
         await JSInteropHelpers.SafeDisposeAsync(_keyboardHandlers);
-        await JSInteropHelpers.SafeDisposeAsync(_textVisualizerHandler);
     }
 }

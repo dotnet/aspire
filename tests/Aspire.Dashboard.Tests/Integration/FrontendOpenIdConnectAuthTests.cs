@@ -5,6 +5,7 @@ using System.Net;
 using System.Web;
 using Aspire.Dashboard.Authentication;
 using Aspire.Hosting;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Logging.Testing;
 using Xunit;
 using Xunit.Abstractions;
@@ -16,7 +17,7 @@ public class FrontendOpenIdConnectAuthTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task Get_Unauthenticated_RedirectsToAuthority()
     {
-        await using var authority = await MockOpenIdAuthority.CreateAsync();
+        await using var authority = await MockOpenIdAuthority.CreateAsync().DefaultTimeout();
 
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(
             testOutputHelper,
@@ -25,7 +26,7 @@ public class FrontendOpenIdConnectAuthTests(ITestOutputHelper testOutputHelper)
                 ConfigureOpenIdConnect(config, authority);
             });
 
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         var handler = new HttpClientHandler()
         {
@@ -36,7 +37,7 @@ public class FrontendOpenIdConnectAuthTests(ITestOutputHelper testOutputHelper)
         using var client = new HttpClient(handler) { BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}") };
 
         // Act
-        var response = await client.GetAsync("/");
+        var response = await client.GetAsync("/").DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -53,13 +54,13 @@ public class FrontendOpenIdConnectAuthTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("code", query.Get("response_type"));
         Assert.Equal("openid profile", query.Get("scope"));
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]
     public async Task Get_Unauthenticated_OtlpHttpConnection_Denied()
     {
-        await using var authority = await MockOpenIdAuthority.CreateAsync();
+        await using var authority = await MockOpenIdAuthority.CreateAsync().DefaultTimeout();
 
         var testSink = new TestSink();
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(
@@ -70,7 +71,7 @@ public class FrontendOpenIdConnectAuthTests(ITestOutputHelper testOutputHelper)
             },
             testSink: testSink);
 
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         var handler = new HttpClientHandler()
         {
@@ -81,7 +82,7 @@ public class FrontendOpenIdConnectAuthTests(ITestOutputHelper testOutputHelper)
         using var client = new HttpClient(handler) { BaseAddress = new Uri($"http://{app.OtlpServiceHttpEndPointAccessor().EndPoint}") };
 
         // Act
-        var response = await client.GetAsync("/");
+        var response = await client.GetAsync("/").DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -89,7 +90,7 @@ public class FrontendOpenIdConnectAuthTests(ITestOutputHelper testOutputHelper)
         var log = testSink.Writes.Single(s => s.LoggerName == typeof(FrontendCompositeAuthenticationHandler).FullName && s.EventId.Name == "AuthenticationSchemeNotAuthenticatedWithFailure");
         Assert.Equal("FrontendComposite was not authenticated. Failure message: Connection type Frontend is not enabled on this connection.", log.Message);
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
     }
 
     private static void ConfigureOpenIdConnect(Dictionary<string, string?> config, MockOpenIdAuthority.Authority authority)

@@ -4,6 +4,7 @@
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -23,22 +24,22 @@ public class DistributedApplicationBuilderEventingTests
         builder.Eventing.Subscribe<DummyEvent>(async (@event, ct) =>
         {
             blockAssertionTcs.SetResult();
-            hitCount++;
+            Interlocked.Increment(ref hitCount);
             await blockFirstSubscriptionTcs.Task;
         });
 
         builder.Eventing.Subscribe<DummyEvent>((@event, ct) =>
         {
-            hitCount++;
+            Interlocked.Increment(ref hitCount);
             return Task.CompletedTask;
         });
 
         var pendingPublish = builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.BlockingSequential);
 
-        await blockAssertionTcs.Task;
+        await blockAssertionTcs.Task.DefaultTimeout();
         Assert.Equal(1, hitCount);
         blockFirstSubscriptionTcs.SetResult();
-        await pendingPublish;
+        await pendingPublish.DefaultTimeout();
         Assert.Equal(2, hitCount);
     }
 
@@ -54,24 +55,24 @@ public class DistributedApplicationBuilderEventingTests
 
         builder.Eventing.Subscribe<DummyEvent>(async (@event, ct) =>
         {
-            hitCount++;
+            Interlocked.Increment(ref hitCount);
             blockAssertionSub1.SetResult();
             await blockSubscriptionCompletion.Task;
         });
 
         builder.Eventing.Subscribe<DummyEvent>(async (@event, ct) =>
         {
-            hitCount++;
+            Interlocked.Increment(ref hitCount);
             blockAssertionSub2.SetResult();
             await blockSubscriptionCompletion.Task;
         });
 
         var pendingPublish = builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.BlockingConcurrent);
 
-        await Task.WhenAll(blockAssertionSub1.Task, blockAssertionSub2.Task);
+        await Task.WhenAll(blockAssertionSub1.Task, blockAssertionSub2.Task).DefaultTimeout();
         Assert.Equal(2, hitCount);
         blockSubscriptionCompletion.SetResult();
-        await pendingPublish;
+        await pendingPublish.DefaultTimeout();
     }
 
     [Fact]
@@ -87,22 +88,21 @@ public class DistributedApplicationBuilderEventingTests
         builder.Eventing.Subscribe<DummyEvent>(async (@event, ct) =>
         {
             await blockSubscriptionExecution.Task;
-            hitCount++;
+            Interlocked.Increment(ref hitCount);
             blockAssertionSub1.SetResult();
         });
 
         builder.Eventing.Subscribe<DummyEvent>(async (@event, ct) =>
         {
             await blockSubscriptionExecution.Task;
-            hitCount++;
+            Interlocked.Increment(ref hitCount);
             blockAssertionSub2.SetResult();
         });
 
-        var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10)); // Should be way more than we need!
-        await builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.NonBlockingConcurrent, timeoutCts.Token);
+        await builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.NonBlockingConcurrent).DefaultTimeout();
 
         blockSubscriptionExecution.SetResult();
-        await Task.WhenAll(blockAssertionSub1.Task, blockAssertionSub2.Task);
+        await Task.WhenAll(blockAssertionSub1.Task, blockAssertionSub2.Task).DefaultTimeout();
         Assert.Equal(2, hitCount);
     }
 
@@ -122,24 +122,23 @@ public class DistributedApplicationBuilderEventingTests
         {
             blockAssert1.SetResult();
             await blockEventSub1.Task;
-            hitCount++;
+            Interlocked.Increment(ref hitCount);
             blockAssert2.SetResult();
             await blockEventSub2.Task;
         });
 
         builder.Eventing.Subscribe<DummyEvent>((@event, ct) =>
         {
-            hitCount++;
+            Interlocked.Increment(ref hitCount);
             blockAssert3.SetResult();
             return Task.CompletedTask;
         });
 
-        var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10)); // Should be way more than we need!
-        await builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.NonBlockingSequential, timeoutCts.Token);
+        await builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.NonBlockingSequential).DefaultTimeout();
 
         // Make sure that we are zero when we enter
         // the first handler.
-        await blockAssert1.Task;
+        await blockAssert1.Task.DefaultTimeout();
         Assert.Equal(0, hitCount);
 
         // Give the second handler a chance to run,
@@ -152,13 +151,13 @@ public class DistributedApplicationBuilderEventingTests
         // we update the hit count and verify
         // that it has moved to 1.
         blockEventSub1.SetResult();
-        await blockAssert2.Task;
+        await blockAssert2.Task.DefaultTimeout();
         Assert.Equal(1, hitCount);
         blockEventSub2.SetResult();
 
         // Now block until the second handler has
         // run and make sure it has incremented.
-        await blockAssert3.Task;
+        await blockAssert3.Task.DefaultTimeout();
         Assert.Equal(2, hitCount);
     }
 
@@ -175,7 +174,7 @@ public class DistributedApplicationBuilderEventingTests
     [RequiresDocker]
     public async Task ResourceEventsForContainersFireForSpecificResources()
     {
-        var beforeResourceStartedEvent = new ManualResetEventSlim();
+        var beforeResourceStartedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("redis");
@@ -184,17 +183,16 @@ public class DistributedApplicationBuilderEventingTests
         {
             Assert.NotNull(e.Services);
             Assert.NotNull(e.Resource);
-            beforeResourceStartedEvent.Set();
+            beforeResourceStartedTcs.TrySetResult();
             return Task.CompletedTask;
         });
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
-        var fired = beforeResourceStartedEvent.Wait(TimeSpan.FromSeconds(10));
+        await beforeResourceStartedTcs.Task.DefaultTimeout();
 
-        Assert.True(fired);
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]

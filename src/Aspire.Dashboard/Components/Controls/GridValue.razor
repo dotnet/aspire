@@ -3,77 +3,64 @@
 @inject IStringLocalizer<Dialogs> DialogsLoc
 
 <div class="@GetContainerClass()" style="width: inherit;">
+
+    @* Value area *@
+
     @if (EnableMasking && IsMasked)
     {
-        <span class="cellText">
+        <span class="grid-value masked" id="@_cellTextId">
             &#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;
-        </span>
-    }
-    else if (EnableHighlighting)
-    {
-        <span class="cellText" title="@(ToolTip ?? Value)">
-            <FluentHighlighter HighlightedText="@HighlightText"
-                               Text="@Value" />
-            @ContentAfterValue
         </span>
     }
     else
     {
-        <span class="cellText" title="@(ToolTip ?? Value)">
-            @(MaxDisplayLength.HasValue ? TrimLength(Value) : Value)
-            @ContentAfterValue
+        <span class="grid-value" title="@(ToolTip ?? Value)" id="@_cellTextId">
+            @if (ContentBeforeValue == null && ContentAfterValue == null && string.IsNullOrEmpty(Value))
+            {
+                <span class="empty-data"></span>
+            }
+            else
+            {
+                @ContentBeforeValue
+                if (EnableHighlighting && !string.IsNullOrEmpty(HighlightText))
+                {
+                    <FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />
+                }
+                else if (_formattedValue != null)
+                {
+                    @((MarkupString)_formattedValue)
+                }
+                @ContentAfterValue
+            }            
         </span>
     }
 
-    @{
-        (string, object)[] uncapturedCopyAttributes = [
-            ("alt", PreCopyToolTip),
-            ("title", string.Empty),
-            ("aria-label", Loc[nameof(ControlsStrings.GridValueCopyToClipboard)]),
-            ("tabindex", "0")
-        ];
-    }
+    @* Button area *@
 
-    <div @onclick:stopPropagation="true" class="defaultHidden">
-        <FluentButton Appearance="Appearance.Lightweight"
-                      Id="@_menuAnchorId"
-                      Class="defaultHidden"
-                      Style="float: right; flex-shrink: 0"
-                      OnClick="@ToggleMenuOpen">
-            <FluentIcon Style="display:inline;" Icon="Icons.Regular.Size16.MoreVertical" />
-        </FluentButton>
+    <div @onclick:stopPropagation="true" class="button-container">
 
-        <FluentMenu Anchor="@_menuAnchorId" @bind-Open="_isMenuOpen" VerticalThreshold="170" HorizontalPosition="HorizontalPosition.End">
-            <FluentMenuItem
-                Id="@_copyId"
-                AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, uncapturedCopyAttributes)">
-                <span slot="start">
-                    <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
-                    <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
-                </span>
-                @PreCopyToolTip
-            </FluentMenuItem>
+        <span class="defaultHidden">
+            <FluentButton Appearance="Appearance.Lightweight"
+                          Disabled="@(ValueToVisualize is null && Value is null)"
+                          OnClick="OpenTextVisualizerAsync">
+                <FluentIcon Icon="Icons.Regular.Size16.SlideSearch" />
+            </FluentButton>
+        </span>
 
-            <FluentMenuItem
-                Disabled="@(Value is null)"
-                AdditionalAttributes="@FluentUIExtensions.GetOpenTextVisualizerAdditionalAttributes(Value!, !string.IsNullOrEmpty(TextVisualizerTitle) ? TextVisualizerTitle : ValueDescription)">
-                <span slot="start">
-                    <FluentIcon Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Open" Slot="start"/>
-                </span>
+        @if (ContentInButtonArea is not null)
+        {
+            @ContentInButtonArea
+        }
 
-                @DialogsLoc[nameof(Dialogs.OpenInTextVisualizer)]
-            </FluentMenuItem>
-        </FluentMenu>
-    </div>
-
-    @if (EnableMasking)
-    {
-        <div @onclick:stopPropagation="true">
+        @if (EnableMasking)
+        {
             <FluentButton Appearance="Appearance.Lightweight"
                           IconEnd="@(IsMasked ? _unmaskIcon : _maskIcon)"
                           Title="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])"
                           OnClick="ToggleMaskStateAsync"
-                          aria-label="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])" />
-        </div>
-    }
+                          aria-label="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])"
+                          Class="grid-value-mask-button" />
+        }
+
+    </div>
 </div>

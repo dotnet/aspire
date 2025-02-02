@@ -16,8 +16,11 @@ public static class MySqlBuilderExtensions
     private const string PasswordEnvVarName = "MYSQL_ROOT_PASSWORD";
 
     /// <summary>
-    /// Adds a MySQL server resource to the application model. For local development a container is used. This version of the package defaults to the <inheritdoc cref="MySqlContainerImageTags.Tag"/> tag of the <inheritdoc cref="MySqlContainerImageTags.Image"/> container image
+    /// Adds a MySQL server resource to the application model. For local development a container is used.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="MySqlContainerImageTags.Tag"/> tag of the <inheritdoc cref="MySqlContainerImageTags.Image"/> container image.
+    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="password">The parameter used to provide the root password for the MySQL resource. If <see langword="null"/> a random password will be generated.</param>
@@ -79,8 +82,11 @@ public static class MySqlBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a phpMyAdmin administration and development platform for MySql to the application model. This version of the package defaults to the <inheritdoc cref="MySqlContainerImageTags.PhpMyAdminTag"/> tag of the <inheritdoc cref="MySqlContainerImageTags.PhpMyAdminImage"/> container image
+    /// Adds a phpMyAdmin administration and development platform for MySql to the application model.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="MySqlContainerImageTags.PhpMyAdminTag"/> tag of the <inheritdoc cref="MySqlContainerImageTags.PhpMyAdminImage"/> container image.
+    /// </remarks>
     /// <param name="builder">The MySql server resource builder.</param>
     /// <param name="configureContainer">Callback to configure PhpMyAdmin container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
@@ -197,7 +203,7 @@ public static class MySqlBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/mysql", isReadOnly);
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/var/lib/mysql", isReadOnly);
     }
 
     /// <summary>

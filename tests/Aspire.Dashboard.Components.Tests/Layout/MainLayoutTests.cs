@@ -130,7 +130,7 @@ public partial class MainLayoutTests : TestContext
         Services.AddSingleton<IDialogService, DialogService>();
         Services.AddSingleton<IDashboardClient, TestDashboardClient>();
         Services.AddSingleton<ILocalStorage>(localStorage ?? new TestLocalStorage());
-        Services.AddSingleton<IEffectiveThemeResolver, TestEffectiveThemeResolver>();
+        Services.AddSingleton<IThemeResolver, TestThemeResolver>();
         Services.AddSingleton<ShortcutManager>();
         Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
         Services.AddSingleton<IMessageService>(messageService ?? new MessageService());

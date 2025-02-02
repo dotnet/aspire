@@ -6,8 +6,8 @@
       "connectionString": "{search.outputs.connectionString}",
       "path": "search.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "principalId": ""
       }
     },
     "api": {

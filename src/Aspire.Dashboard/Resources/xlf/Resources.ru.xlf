@@ -7,29 +7,44 @@
         <target state="translated">Журналы консоли</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceActionViewDetailsText">
-        <source>View details</source>
-        <target state="translated">Показать подробности</target>
+      <trans-unit id="ResourceActionMetricsText">
+        <source>Metrics</source>
+        <target state="translated">Метрики</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionStructuredLogsText">
+        <source>Structured logs</source>
+        <target state="translated">Структурированные журналы</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionTelemetryTooltip">
+        <source>No telemetry found for this resource.</source>
+        <target state="translated">Телеметрия для этого ресурса не найдена.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionTracesText">
+        <source>Traces</source>
+        <target state="translated">Трассировки</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceCommandFailed">
         <source>{0} "{1}" failed</source>
-        <target state="new">{0} "{1}" failed</target>
+        <target state="translated">Сбой {0} "{1}"</target>
         <note>{0} is the resource. {1} is the display name of the command.</note>
       </trans-unit>
       <trans-unit id="ResourceCommandStarting">
         <source>{0} "{1}" starting</source>
-        <target state="new">{0} "{1}" starting</target>
+        <target state="translated">Запуск {0} "{1}"</target>
         <note>{0} is the resource. {1} is the display name of the command.</note>
       </trans-unit>
       <trans-unit id="ResourceCommandSuccess">
         <source>{0} "{1}" succeeded</source>
-        <target state="new">{0} "{1}" succeeded</target>
+        <target state="translated">{0} "{1}" успешно выполнено</target>
         <note>{0} is the resource. {1} is the display name of the command.</note>
       </trans-unit>
       <trans-unit id="ResourceCommandToastViewLogs">
         <source>View console logs</source>
-        <target state="needs-review-translation">Просмотреть журналы</target>
+        <target state="translated">Просмотр журналов консоли</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointUrl">
@@ -47,9 +62,9 @@
         <target state="translated">Просмотр журналов консоли</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceResourceActions">
-        <source>Resource actions</source>
-        <target state="new">Resource actions</target>
+      <trans-unit id="ResourceFilterOptionEmpty">
+        <source>(Unset)</source>
+        <target state="translated">(Удалить)</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesActionsColumnHeader">
@@ -75,6 +90,11 @@
       <trans-unit id="ResourcesDetailsContainerImageProperty">
         <source>Container image</source>
         <target state="translated">Образ контейнера</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsContainerLifetimeProperty">
+        <source>Container lifetime</source>
+        <target state="translated">Время существования контейнера</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerPortsProperty">
@@ -113,8 +133,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsHealthStateProperty">
-        <source>Health State</source>
-        <target state="new">Health State</target>
+        <source>Health state</source>
+        <target state="translated">Состояние работоспособности</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
@@ -145,6 +165,21 @@
       <trans-unit id="ResourcesEnvironmentColumnHeader">
         <source>Environment</source>
         <target state="translated">Среда</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesFiltered">
+        <source>Has filters</source>
+        <target state="translated">Содержит фильтры</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesNotFiltered">
+        <source>No filters</source>
+        <target state="translated">Нет фильтров</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesResourceStatesHeader">
+        <source>State</source>
+        <target state="translated">Состояние</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">
@@ -197,15 +232,15 @@
         <target state="translated">Тип</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesTypeFilterAllVisible">
-        <source>Type filter: All types visible</source>
-        <target state="translated">Фильтр типов: все типы видимы</target>
-        <note />
+      <trans-unit id="WaitingForHealthDataMessage">
+        <source>Waiting for health data...</source>
+        <target state="translated">Ожидание данных о работоспособности...</target>
+        <note>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
       </trans-unit>
-      <trans-unit id="ResourcesTypeFiltered">
-        <source>Type filter: Filtered</source>
-        <target state="translated">Фильтр типов: отфильтрованный</target>
-        <note />
+      <trans-unit id="WaitingHealthDataStatusMessage">
+        <source>Waiting...</source>
+        <target state="translated">Ожидание...</target>
+        <note>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
       </trans-unit>
     </body>
   </file>

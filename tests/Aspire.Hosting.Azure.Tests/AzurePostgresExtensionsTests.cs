@@ -17,15 +17,15 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create(publishMode ? DistributedApplicationOperation.Publish : DistributedApplicationOperation.Run);
 
-        var postgres = builder.AddAzurePostgresFlexibleServer("postgres");
+        var postgres = builder.AddAzurePostgresFlexibleServer("postgres-data");
 
         var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
 
         var expectedManifest = """
             {
               "type": "azure.bicep.v0",
-              "connectionString": "{postgres.outputs.connectionString}",
-              "path": "postgres.module.bicep",
+              "connectionString": "{postgres-data.outputs.connectionString}",
+              "path": "postgres-data.module.bicep",
               "params": {
                 "principalId": "",
                 "principalType": "",
@@ -47,7 +47,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
                     endIpAddress: '255.255.255.255'
                     startIpAddress: '0.0.0.0'
                   }
-                  parent: postgres
+                  parent: postgres_data
                 }
             
                 """;
@@ -68,8 +68,8 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
 
             param principalName string
 
-            resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
-              name: take('postgres${uniqueString(resourceGroup().id)}', 24)
+            resource postgres_data 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
+              name: take('postgresdata-${uniqueString(resourceGroup().id)}', 63)
               location: location
               properties: {
                 authConfig: {
@@ -94,7 +94,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
                 tier: 'Burstable'
               }
               tags: {
-                'aspire-resource-name': 'postgres'
+                'aspire-resource-name': 'postgres-data'
               }
             }
 
@@ -104,23 +104,23 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
                 endIpAddress: '0.0.0.0'
                 startIpAddress: '0.0.0.0'
               }
-              parent: postgres
+              parent: postgres_data
             }
             {{allowAllIpsFirewall}}
-            resource postgres_admin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = {
+            resource postgres_data_admin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = {
               name: principalId
               properties: {
                 principalName: principalName
                 principalType: principalType
               }
-              parent: postgres
+              parent: postgres_data
               dependsOn: [
-                postgres
+                postgres_data
                 postgreSqlFirewallRule_AllowAllAzureIps{{allowAllIpsDependsOn}}
               ]
             }
 
-            output connectionString string = 'Host=${postgres.properties.fullyQualifiedDomainName};Username=${principalName}'
+            output connectionString string = 'Host=${postgres_data.properties.fullyQualifiedDomainName};Username=${principalName}'
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
@@ -138,20 +138,22 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         var userName = specifyUserName ? builder.AddParameter("user") : null;
         var password = specifyPassword ? builder.AddParameter("password") : null;
 
-        var postgres = builder.AddAzurePostgresFlexibleServer("postgres")
+        var postgres = builder.AddAzurePostgresFlexibleServer("postgres-data")
             .WithPasswordAuthentication(userName, password);
+
+        postgres.AddDatabase("db1", "db1Name");
 
         var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
 
         var expectedManifest = $$"""
             {
               "type": "azure.bicep.v0",
-              "connectionString": "{postgres.secretOutputs.connectionString}",
-              "path": "postgres.module.bicep",
+              "connectionString": "{postgres-data.secretOutputs.connectionString}",
+              "path": "postgres-data.module.bicep",
               "params": {
-                "keyVaultName": "",
-                "administratorLogin": "{{{userName?.Resource.Name ?? "postgres-username"}}.value}",
-                "administratorLoginPassword": "{{{password?.Resource.Name ?? "postgres-password"}}.value}"
+                "administratorLogin": "{{{userName?.Resource.Name ?? "postgres-data-username"}}.value}",
+                "administratorLoginPassword": "{{{password?.Resource.Name ?? "postgres-data-password"}}.value}",
+                "keyVaultName": ""
               }
             }
             """;
@@ -168,8 +170,8 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
 
             param keyVaultName string
 
-            resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
-              name: take('postgres${uniqueString(resourceGroup().id)}', 24)
+            resource postgres_data 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
+              name: take('postgresdata-${uniqueString(resourceGroup().id)}', 63)
               location: location
               properties: {
                 administratorLogin: administratorLogin
@@ -196,7 +198,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
                 tier: 'Burstable'
               }
               tags: {
-                'aspire-resource-name': 'postgres'
+                'aspire-resource-name': 'postgres-data'
               }
             }
 
@@ -206,7 +208,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
                 endIpAddress: '0.0.0.0'
                 startIpAddress: '0.0.0.0'
               }
-              parent: postgres
+              parent: postgres_data
             }
 
             resource postgreSqlFirewallRule_AllowAllIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
@@ -215,7 +217,12 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
                 endIpAddress: '255.255.255.255'
                 startIpAddress: '0.0.0.0'
               }
-              parent: postgres
+              parent: postgres_data
+            }
+
+            resource db1 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
+              name: 'db1Name'
+              parent: postgres_data
             }
 
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
@@ -225,7 +232,15 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
               name: 'connectionString'
               properties: {
-                value: 'Host=${postgres.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
+                value: 'Host=${postgres_data.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
+              }
+              parent: keyVault
+            }
+
+            resource db1_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'db1-connectionString'
+              properties: {
+                value: 'Host=${postgres_data.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword};Database=db1Name'
               }
               parent: keyVault
             }
@@ -241,7 +256,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var postgres = builder.AddAzurePostgresFlexibleServer("postgres");
+        var postgres = builder.AddAzurePostgresFlexibleServer("postgres-data");
 
         IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource> db1 = null!;
         IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource> db2 = null!;
@@ -262,7 +277,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
             db2 = postgres.AddDatabase("db2", "db2Name");
         }
 
-        Assert.False(postgres.Resource.IsContainer(), "The resource should still be the Azure Resource.");
+        Assert.True(postgres.Resource.IsContainer(), "The resource should now be a container resource.");
         Assert.StartsWith("Host=localhost;Port=12455;Username=postgres;Password=", await postgres.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
 
         var db1ConnectionString = await db1.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
@@ -284,7 +299,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         var usr = builder.AddParameter("usr", "user");
         var pwd = builder.AddParameter("pwd", "p@ssw0rd1", secret: true);
 
-        var postgres = builder.AddAzurePostgresFlexibleServer("postgres");
+        var postgres = builder.AddAzurePostgresFlexibleServer("postgres-data");
 
         if (before)
         {
@@ -305,5 +320,73 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         var db2 = postgres.AddDatabase("db2", "db2Name");
 
         Assert.Equal("Host=localhost;Port=12455;Username=user;Password=p@ssw0rd1", await postgres.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+        Assert.Equal("Host=localhost;Port=12455;Username=user;Password=p@ssw0rd1;Database=db1", await db1.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+        Assert.Equal("Host=localhost;Port=12455;Username=user;Password=p@ssw0rd1;Database=db2Name", await db2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+    }
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public void RunAsContainerAppliesAnnotationsCorrectly(bool annotationsBefore, bool addDatabaseBefore)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var postgres = builder.AddAzurePostgresFlexibleServer("postgres-data");
+        IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource>? db = null;
+
+        if (addDatabaseBefore)
+        {
+            db = postgres.AddDatabase("db1");
+        }
+
+        if (annotationsBefore)
+        {
+            postgres.WithAnnotation(new Dummy1Annotation());
+            db?.WithAnnotation(new Dummy1Annotation());
+        }
+
+        postgres.RunAsContainer(c =>
+        {
+            c.WithAnnotation(new Dummy2Annotation());
+        });
+
+        if (!addDatabaseBefore)
+        {
+            db = postgres.AddDatabase("db1");
+
+            if (annotationsBefore)
+            {
+                // need to add the annotation here in this case becuase it has to be added after the DB is created
+                db!.WithAnnotation(new Dummy1Annotation());
+            }
+        }
+
+        if (!annotationsBefore)
+        {
+            postgres.WithAnnotation(new Dummy1Annotation());
+            db!.WithAnnotation(new Dummy1Annotation());
+        }
+
+        var postgresResourceInModel = builder.Resources.Single(r => r.Name == "postgres-data");
+        var dbResourceInModel = builder.Resources.Single(r => r.Name == "db1");
+
+        Assert.True(postgresResourceInModel.TryGetAnnotationsOfType<Dummy1Annotation>(out var postgresAnnotations1));
+        Assert.Single(postgresAnnotations1);
+
+        Assert.True(postgresResourceInModel.TryGetAnnotationsOfType<Dummy2Annotation>(out var postgresAnnotations2));
+        Assert.Single(postgresAnnotations2);
+
+        Assert.True(dbResourceInModel.TryGetAnnotationsOfType<Dummy1Annotation>(out var dbAnnotations));
+        Assert.Single(dbAnnotations);
+    }
+
+    private sealed class Dummy1Annotation : IResourceAnnotation
+    {
+    }
+
+    private sealed class Dummy2Annotation : IResourceAnnotation
+    {
     }
 }

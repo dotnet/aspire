@@ -72,7 +72,7 @@ The .NET Aspire OpenAI library supports [Microsoft.Extensions.Configuration](htt
     "OpenAI": {
       "DisableTracing": false,
       "ClientOptions": {
-        "ApplicationId": "myapp"
+        "UserAgentApplicationId": "myapp"
       }
     }
   }

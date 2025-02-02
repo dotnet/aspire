@@ -6,10 +6,6 @@
     <PackageTags>aspire integration hosting azure webpubsub pubsub websocket</PackageTags>
     <Description>Azure WebPubSub resource types for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)AzureWebPubSub_256x.png</PackageIconFullPath>
-    <!-- This library can't ship stable until Azure.Provisioning.WebPubSub ships stable. -->
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
-    <!-- Disable package validation as this package hasn't shipped yet. -->
-    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <PropertyGroup>

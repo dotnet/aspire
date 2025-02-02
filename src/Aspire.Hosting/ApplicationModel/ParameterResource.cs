@@ -6,7 +6,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a parameter resource.
 /// </summary>
-public sealed class ParameterResource : Resource, IManifestExpressionProvider, IValueProvider
+public class ParameterResource : Resource, IManifestExpressionProvider, IValueProvider
 {
     private string? _value;
     private bool _hasValue;
