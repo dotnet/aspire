@@ -51,7 +51,6 @@ public class TestProgram : IDisposable
             EnableResourceLogging = true
         });
 
-        builder.Configuration["DcpPublisher:DeleteResourcesOnShutdown"] = "true";
         builder.Configuration["DcpPublisher:ResourceNameSuffix"] = $"{Random.Shared.Next():x}";
         builder.Configuration["DcpPublisher:RandomizePorts"] = randomizePorts.ToString(CultureInfo.InvariantCulture);
 
