@@ -48,7 +48,7 @@ steps:
   # Non-helix tests are run only on the public pipeline
   - ${{ if and(eq(parameters.runAsPublic, 'true'), ne(parameters.runHelixTests, 'true')) }}:
     # non-helix tests
-    - script: dotnet dev-certs https --trust
+    - script: sudo dotnet dev-certs https --trust
       displayName: Install and Trust dev-certs
 
     - script: |
