@@ -48,8 +48,19 @@ steps:
   # Non-helix tests are run only on the public pipeline
   - ${{ if and(eq(parameters.runAsPublic, 'true'), ne(parameters.runHelixTests, 'true')) }}:
     # non-helix tests
-    - script: sudo dotnet dev-certs https --trust
-      displayName: Install and Trust dev-certs
+    - ${{ if ne(parameters.isWindows, 'true') }}:
+      - script: mkdir ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
+                cd ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
+                wget https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/ubuntu-create-dotnet-devcert.sh &&
+                wget https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/common.sh &&
+                chmod +x ubuntu-create-dotnet-devcert.sh &&
+                ./ubuntu-create-dotnet-devcert.sh
+        displayName: Install devcerts
+
+    - ${{ if eq(parameters.isWindows, 'true') }}:
+      - script: dotnet dev-certs https
+        displayName: Install dev-certs
+
 
     - script: |
         docker container ls
