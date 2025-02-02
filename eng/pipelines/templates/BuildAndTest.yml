@@ -61,7 +61,6 @@ steps:
       - script: dotnet dev-certs https
         displayName: Install dev-certs
 
-
     - script: |
         docker container ls
         docker network ls
