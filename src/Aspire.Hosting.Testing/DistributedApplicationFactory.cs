@@ -164,7 +164,6 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         var additionalConfig = new Dictionary<string, string?>();
         SetDefault("DcpPublisher:ContainerRuntimeInitializationTimeout", "00:00:30");
         SetDefault("DcpPublisher:RandomizePorts", "true");
-        SetDefault("DcpPublisher:DeleteResourcesOnShutdown", "true");
         SetDefault("DcpPublisher:ResourceNameSuffix", $"{Random.Shared.Next():x}");
 
         var appHostProjectPath = ResolveProjectPath(entryPointAssembly);
