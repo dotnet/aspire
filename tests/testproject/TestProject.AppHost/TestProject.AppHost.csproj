@@ -9,9 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CosmosDB" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.EventHubs" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.PostgreSQL" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Redis" />
@@ -19,11 +16,6 @@
 
   <ItemGroup>
     <Compile Include="..\Common\TestResourceNames.cs" />
-
-    <!-- on helix, the file will be in the source directory, so it will get
-      picked up by msbuild by default -->
-    <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)src\Aspire.Hosting.Testing\ResourceLoggerForwarderService.cs" Link="Utils\ResourceLoggerForwarderService.cs" />
-
     <ProjectReference Include="..\TestProject.IntegrationServiceA\TestProject.IntegrationServiceA.csproj" AspireProjectMetadataTypeName="IntegrationServiceA" />
     <ProjectReference Include="..\TestProject.ServiceA\TestProject.ServiceA.csproj" AspireProjectMetadataTypeName="ServiceA" />
     <ProjectReference Include="..\TestProject.ServiceB\TestProject.ServiceB.csproj" AspireProjectMetadataTypeName="ServiceB" />

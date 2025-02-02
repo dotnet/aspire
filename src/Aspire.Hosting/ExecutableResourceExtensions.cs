@@ -17,6 +17,8 @@ public static class ExecutableResourceExtensions
     /// <returns>An enumerable collection of executable resources.</returns>
     public static IEnumerable<ExecutableResource> GetExecutableResources(this DistributedApplicationModel model)
     {
+        ArgumentNullException.ThrowIfNull(model);
+
         return model.Resources.OfType<ExecutableResource>();
     }
 }

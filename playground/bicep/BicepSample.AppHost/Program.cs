@@ -42,7 +42,7 @@ var pg = builder.AddAzurePostgresFlexibleServer("postgres2")
                 .AddDatabase("db2");
 
 var cosmosDb = builder.AddAzureCosmosDB("cosmos")
-                      .AddDatabase("db3");
+                      .WithDatabase("db3");
 
 var logAnalytics = builder.AddAzureLogAnalyticsWorkspace("lawkspc");
 var appInsights = builder.AddAzureApplicationInsights("ai", logAnalytics);
@@ -54,9 +54,9 @@ builder.AddAzureApplicationInsights("aiwithoutlaw");
 var redis = builder.AddAzureRedis("redis");
 
 var serviceBus = builder.AddAzureServiceBus("sb")
-                        .AddQueue("queue1")
-                        .AddTopic("topic1", ["subscription1", "subscription2"])
-                        .AddTopic("topic2", ["subscription1"]);
+                        .WithQueue("queue1")
+                        .WithTopic("topic1", topic => topic.Subscriptions.AddRange([new("subscription1"), new("subscription2")]))
+                        .WithTopic("topic2", topic => topic.Subscriptions.Add(new("subscription1")));
 var signalr = builder.AddAzureSignalR("signalr");
 var webpubsub = builder.AddAzureWebPubSub("wps");
 builder.AddProject<Projects.BicepSample_ApiService>("api")

@@ -6,8 +6,8 @@
     <PackageTags>$(ComponentCommonPackageTags) ai openai</PackageTags>
     <Description>A client for OpenAI that integrates with Aspire, including metrics and telemetry.</Description>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
-    <!-- Disable package validation as this package hasn't shipped stable yet. -->
-    <EnablePackageValidation>false</EnablePackageValidation>
+    <!-- In preview until the public API is validated and the Microsoft.Extensions.AI integration is designed. -->
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -19,9 +19,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="OpenAI" />
+    <PackageReference Include="Microsoft.Extensions.AI" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
+
+  <Import Project="MEAIPackageOverrides.targets" />
 
 </Project>

@@ -72,10 +72,7 @@
 
     <FluentDialogProvider/>
     <FluentTooltipProvider />
-    @* Temporary work around for https://github.com/microsoft/fluentui-blazor/issues/2736 *@
-    <div style="position: fixed; bottom: 0; z-index: 9900;">
-        <FluentMenuProvider />
-    </div>
+    <FluentMenuProvider />
     <div id="blazor-error-ui">
         @Loc[nameof(Layout.MainLayoutUnhandledErrorMessage)]
         <a href="" class="reload">@Loc[nameof(Layout.MainLayoutUnhandledErrorReload)]</a>

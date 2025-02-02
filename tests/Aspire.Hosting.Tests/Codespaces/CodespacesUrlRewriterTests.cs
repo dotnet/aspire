@@ -15,6 +15,10 @@ public class CodespacesUrlRewriterTests(ITestOutputHelper testOutputHelper)
     public async Task VerifyUrlsRewriterStopsWhenNotInCodespaces()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        // Explicitly disable codespace behavior for this test.
+        builder.Configuration["CODESPACES"] = "false";
+
         builder.Services.AddLogging(logging =>
         {
             logging.AddFakeLogging();
@@ -50,6 +54,7 @@ public class CodespacesUrlRewriterTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/6648")]
     public async Task VerifyUrlsRewrittenWhenInCodespaces()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);

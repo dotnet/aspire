@@ -15,13 +15,14 @@
   <ItemGroup>
     <Compile Include="..\Shared\Cosmos\CosmosConstants.cs" Link="Shared\CosmosConstants.cs" />
     <Compile Include="..\Shared\Cosmos\CosmosUtils.cs" Link="Shared\CosmosUtils.cs" />
-    <Compile Include="..\Shared\VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <PackageReference Include="Azure.Identity" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" />
     <PackageReference Include="AspNetCore.HealthChecks.CosmosDb" />
+    <PackageReference Include="Newtonsoft.Json" /> <!-- Required by Microsoft.Azure.Cosmos -->
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.CosmosDB" />
   </ItemGroup>

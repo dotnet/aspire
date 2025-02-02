@@ -5,17 +5,17 @@
 @inject IStringLocalizer<Resources> ResourcesLoc
 
 <GridValue Value="@Value"
-            ValueToCopy="@ValueToCopy"
-            ValueDescription="@ResourcesLoc[nameof(Resources.ResourcesSourceColumnHeader)]"
-            EnableHighlighting="true"
-            HighlightText="@FilterText"
-            PreCopyToolTip="@Loc[nameof(Columns.SourceColumnDisplayCopyCommandToClipboard)]"
-            ToolTip="@Tooltip"
-            StopClickPropagation="true">
+           ValueToVisualize="@ValueToVisualize"
+           ValueDescription="@ResourcesLoc[nameof(Resources.ResourcesSourceColumnHeader)]"
+           EnableHighlighting="true"
+           HighlightText="@FilterText"
+           PreCopyToolTip="@Loc[nameof(Columns.SourceColumnDisplayCopyCommandToClipboard)]"
+           ToolTip="@Tooltip"
+           StopClickPropagation="true">
     <ContentAfterValue>
         @if (ContentAfterValue is not null)
         {
-            <span class="subtext">@ContentAfterValue</span>
+            <span class="subtext">&nbsp;@ContentAfterValue</span>
         }
     </ContentAfterValue>
 </GridValue>
@@ -31,7 +31,7 @@
     public required string? ContentAfterValue { get; set; }
 
     [Parameter, EditorRequired]
-    public required string ValueToCopy { get; set; }
+    public required string ValueToVisualize { get; set; }
 
     [Parameter, EditorRequired]
     public required string Tooltip { get; set; }

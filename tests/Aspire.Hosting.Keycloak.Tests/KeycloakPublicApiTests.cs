@@ -107,26 +107,92 @@ public class KeycloakPublicApiTests
     }
 
     [Fact]
-    public void WithRealmImportShouldThrowWhenImportDirectoryIsNull()
+    public void WithRealmImportShouldThrowWhenImportIsNull()
     {
         var builder = TestDistributedApplicationBuilder.Create();
         var keycloak = builder.AddKeycloak("Keycloak");
-        string importDirectory = null!;
+        string import = null!;
 
-        var action = () => keycloak.WithRealmImport(importDirectory);
+        var action = () => keycloak.WithRealmImport(import);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(importDirectory), exception.ParamName);
+        Assert.Equal(nameof(import), exception.ParamName);
     }
 
     [Fact]
-    public void WithRealmImportShouldThrowWhenImportDirectoryDoesNotExist()
+    public void WithRealmImportShouldThrowWhenImportDoesNotExist()
     {
         var builder = TestDistributedApplicationBuilder.Create();
         var keycloak = builder.AddKeycloak("Keycloak");
 
         var action = () => keycloak.WithRealmImport("does-not-exist");
 
-        Assert.Throws<DirectoryNotFoundException>(action);
+        Assert.Throws<InvalidOperationException>(action);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithRealmImportDirectoryAddsBindMountAnnotation(bool? isReadOnly)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(tempDirectory);
+
+        var resourceName = "keycloak";
+        var keycloak = builder.AddKeycloak(resourceName);
+
+        if (isReadOnly.HasValue)
+        {
+            keycloak.WithRealmImport(tempDirectory, isReadOnly: isReadOnly.Value);
+        }
+        else
+        {
+            keycloak.WithRealmImport(tempDirectory);
+        }
+
+        var containerAnnotation = keycloak.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        Assert.Equal(tempDirectory, containerAnnotation.Source);
+        Assert.Equal("/opt/keycloak/data/import", containerAnnotation.Target);
+        Assert.Equal(ContainerMountType.BindMount, containerAnnotation.Type);
+        Assert.Equal(isReadOnly ?? false, containerAnnotation.IsReadOnly);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithRealmImportFileAddsBindMountAnnotation(bool? isReadOnly)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(tempDirectory);
+
+        var file = "realm.json";
+        var filePath = Path.Combine(tempDirectory, file);
+        File.WriteAllText(filePath, string.Empty);
+
+        var resourceName = "keycloak";
+        var keycloak = builder.AddKeycloak(resourceName);
+
+        if (isReadOnly.HasValue)
+        {
+            keycloak.WithRealmImport(filePath, isReadOnly: isReadOnly.Value);
+        }
+        else
+        {
+            keycloak.WithRealmImport(filePath);
+        }
+
+        var containerAnnotation = keycloak.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        Assert.Equal(filePath, containerAnnotation.Source);
+        Assert.Equal($"/opt/keycloak/data/import/{file}", containerAnnotation.Target);
+        Assert.Equal(ContainerMountType.BindMount, containerAnnotation.Type);
+        Assert.Equal(isReadOnly ?? false, containerAnnotation.IsReadOnly);
     }
 }

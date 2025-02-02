@@ -24,7 +24,15 @@ public static class ParameterResourceBuilderExtensions
     /// <exception cref="DistributedApplicationException"></exception>
     public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, [ResourceName] string name, bool secret = false)
     {
-        return builder.AddParameter(name, parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault), secret: secret);
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
+        return builder.AddParameter(
+                new ParameterResource(
+                    name,
+                    parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault),
+                    secret)
+                );
     }
 
     /// <summary>
@@ -41,6 +49,10 @@ public static class ParameterResourceBuilderExtensions
                                                      Justification = "third parameters are mutually exclusive.")]
     public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, [ResourceName] string name, string value, bool publishValueAsDefault = false, bool secret = false)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(value);
+
         return builder.AddParameter(name, () => value, publishValueAsDefault, secret);
     }
 
@@ -58,6 +70,10 @@ public static class ParameterResourceBuilderExtensions
                                                      Justification = "third parameters are mutually exclusive.")]
     public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, Func<string> valueGetter, bool publishValueAsDefault = false, bool secret = false)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(valueGetter);
+
         // We don't allow a parameter to be both secret and published, as that would write the secret to the manifest.
         if (publishValueAsDefault && secret)
         {
@@ -67,10 +83,14 @@ public static class ParameterResourceBuilderExtensions
         // If publishValueAsDefault is set, we wrap the valueGetter in a ConstantParameterDefault, which gives
         // us both the runtime value and the value to publish to the manifest.
         // Otherwise, we just use the valueGetter directly, which only gives us the runtime value.
-        return builder.AddParameter(name,
-            parameterDefault => parameterDefault != null ? parameterDefault.GetDefaultValue() : valueGetter(),
-            secret: secret,
-            parameterDefault: publishValueAsDefault ? new ConstantParameterDefault(valueGetter) : null);
+        return builder.AddParameter(
+                new ParameterResource(
+                    name,
+                    parameterDefault => parameterDefault != null ? parameterDefault.GetDefaultValue() : valueGetter(),
+                    secret)
+                {
+                    Default = publishValueAsDefault ? new ConstantParameterDefault(valueGetter) : null
+                });
     }
 
     /// <summary>
@@ -83,11 +103,16 @@ public static class ParameterResourceBuilderExtensions
     /// <returns>Resource builder for the parameter.</returns>
     public static IResourceBuilder<ParameterResource> AddParameterFromConfiguration(this IDistributedApplicationBuilder builder, string name, string configurationKey, bool secret = false)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(configurationKey);
+
         return builder.AddParameter(
-            name,
-            parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault, configurationKey),
-            secret,
-            configurationKey: configurationKey);
+                new ParameterResource(
+                    name,
+                    parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault, configurationKey),
+                    secret),
+                configurationKey);
     }
 
     /// <summary>
@@ -106,6 +131,10 @@ public static class ParameterResourceBuilderExtensions
                                                      Justification = "third parameters are mutually exclusive.")]
     public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, [ResourceName] string name, ParameterDefault value, bool secret = false, bool persist = false)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(value);
+
         // If it needs persistence, wrap it in a UserSecretsParameterDefault
         if (persist && builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null)
         {
@@ -113,10 +142,10 @@ public static class ParameterResourceBuilderExtensions
         }
 
         return builder.AddParameter(
-            name,
-            parameterDefault => parameterDefault!.GetDefaultValue(),
-            secret: secret,
-            parameterDefault: value);
+            new ParameterResource(name, p => p!.GetDefaultValue(), secret)
+            {
+                Default = value
+            });
     }
 
     private static string GetParameterValue(IConfiguration configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
@@ -127,19 +156,13 @@ public static class ParameterResourceBuilderExtensions
             ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing and the Parameter has no default value."); ;
     }
 
-    internal static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder,
-                                                                     string name,
-                                                                     Func<ParameterDefault?, string> callback,
-                                                                     bool secret = false,
-                                                                     bool connectionString = false,
-                                                                     ParameterDefault? parameterDefault = null,
-                                                                     string? configurationKey = null)
+    internal static IResourceBuilder<T> AddParameter<T>(this IDistributedApplicationBuilder builder,
+                                                        T resource,
+                                                        string? configurationKey = null)
+        where T : ParameterResource
     {
-        var resource = new ParameterResource(name, callback, secret);
-        resource.IsConnectionString = connectionString;
-        resource.Default = parameterDefault;
-
-        configurationKey ??= connectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}";
+        var name = resource.Name;
+        configurationKey ??= resource.IsConnectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}";
 
         var state = new CustomResourceSnapshot()
         {
@@ -147,14 +170,14 @@ public static class ParameterResourceBuilderExtensions
             // hide parameters by default
             State = KnownResourceStates.Hidden,
             Properties = [
-                new("parameter.secret", secret.ToString()),
-                new(CustomResourceKnownProperties.Source, configurationKey) { IsSensitive = secret }
+                new("parameter.secret", resource.Secret.ToString()),
+                new(CustomResourceKnownProperties.Source, configurationKey) { IsSensitive = resource.Secret }
             ]
         };
 
         try
         {
-            state = state with { Properties = [.. state.Properties, new("Value", resource.Value) { IsSensitive = secret }] };
+            state = state with { Properties = [.. state.Properties, new("Value", resource.Value) { IsSensitive = resource.Secret }] };
         }
         catch (DistributedApplicationException ex)
         {
@@ -197,15 +220,16 @@ public static class ParameterResourceBuilderExtensions
     /// <exception cref="DistributedApplicationException"></exception>
     public static IResourceBuilder<IResourceWithConnectionString> AddConnectionString(this IDistributedApplicationBuilder builder, [ResourceName] string name, string? environmentVariableName = null)
     {
-        var parameterBuilder = builder.AddParameter(name, _ =>
-        {
-            return builder.Configuration.GetConnectionString(name) ?? throw new DistributedApplicationException($"Connection string parameter resource could not be used because connection string '{name}' is missing.");
-        },
-        secret: true,
-        connectionString: true);
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
 
-        var surrogate = new ResourceWithConnectionStringSurrogate(parameterBuilder.Resource, environmentVariableName);
-        return builder.CreateResourceBuilder(surrogate);
+        return builder.AddParameter(
+                new ResourceWithConnectionStringSurrogate(
+                    name,
+                    _ => builder.Configuration.GetConnectionString(name) ??
+                        throw new DistributedApplicationException($"Connection string parameter resource could not be used because connection string '{name}' is missing."),
+                    environmentVariableName)
+                );
     }
 
     /// <summary>
@@ -217,6 +241,8 @@ public static class ParameterResourceBuilderExtensions
     public static IResourceBuilder<T> PublishAsConnectionString<T>(this IResourceBuilder<T> builder)
         where T : ContainerResource, IResourceWithConnectionString
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         ConfigureConnectionStringManifestPublisher(builder);
         return builder;
     }
@@ -227,6 +253,8 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/>.</param>
     public static void ConfigureConnectionStringManifestPublisher(IResourceBuilder<IResourceWithConnectionString> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         // Create a parameter resource that we use to write to the manifest
         var parameter = new ParameterResource(builder.Resource.Name, _ => "", secret: true);
         parameter.IsConnectionString = true;
@@ -257,6 +285,9 @@ public static class ParameterResourceBuilderExtensions
         bool lower = true, bool upper = true, bool numeric = true, bool special = true,
         int minLower = 0, int minUpper = 0, int minNumeric = 0, int minSpecial = 0)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         var generatedPassword = new GenerateParameterDefault
         {
             MinLength = 22, // enough to give 128 bits of entropy when using the default 67 possible characters. See remarks in GenerateParameterDefault
@@ -287,6 +318,9 @@ public static class ParameterResourceBuilderExtensions
     public static ParameterResource CreateGeneratedParameter(
         IDistributedApplicationBuilder builder, string name, bool secret, GenerateParameterDefault parameterDefault)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         var parameterResource = new ParameterResource(name, defaultValue => GetParameterValue(builder.Configuration, name, defaultValue), secret)
         {
             Default = parameterDefault

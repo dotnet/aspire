@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
-using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -35,7 +34,8 @@ public sealed class ResourceViewModel
     public required ImmutableArray<EnvironmentVariableViewModel> Environment { get; init; }
     public required ImmutableArray<UrlViewModel> Urls { get; init; }
     public required ImmutableArray<VolumeViewModel> Volumes { get; init; }
-    public required FrozenDictionary<string, ResourcePropertyViewModel> Properties { get; init; }
+    public required ImmutableArray<RelationshipViewModel> Relationships { get; init; }
+    public required ImmutableDictionary<string, ResourcePropertyViewModel> Properties { get; init; }
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
     /// <summary>The health status of the resource. <see langword="null"/> indicates that health status is expected but not yet available.</summary>
     public HealthStatus? HealthStatus { get; private set; }
@@ -64,6 +64,19 @@ public sealed class ResourceViewModel
     {
         // TODO let ResourceType define the additional data values we include in searches
         return Name.Contains(filter, StringComparisons.UserTextSearch);
+    }
+
+    public string? GetResourcePropertyValue(string propertyName)
+    {
+        if (Properties.TryGetValue(propertyName, out var value))
+        {
+            if (value.Value.TryConvertToString(out var s))
+            {
+                return s;
+            }
+        }
+
+        return null;
     }
 
     internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportViewModel> healthReports, KnownResourceState? state)
@@ -187,12 +200,12 @@ public sealed class CommandViewModel
     {
         try
         {
-            icon = Icons.GetInstance(new IconInfo
+            icon = (new IconInfo
             {
                 Name = key.IconName,
                 Variant = key.IconVariant,
                 Size = size
-            });
+            }).GetInstance();
             return true;
         }
         catch
@@ -366,5 +379,21 @@ public sealed record class HealthReportViewModel(string Name, HealthStatus? Heal
             Name?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
             Description?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
             _humanizedHealthStatus?.Contains(filter, StringComparison.OrdinalIgnoreCase) is true;
+    }
+}
+
+[DebuggerDisplay("ResourceName = {ResourceName}, Type = {Type}")]
+public sealed class RelationshipViewModel
+{
+    public string ResourceName { get; }
+    public string Type { get; }
+
+    public RelationshipViewModel(string resourceName, string type)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(resourceName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(type);
+
+        ResourceName = resourceName;
+        Type = type;
     }
 }

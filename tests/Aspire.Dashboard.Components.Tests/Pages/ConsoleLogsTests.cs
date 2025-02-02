@@ -162,6 +162,7 @@ public partial class ConsoleLogsTests : TestContext
         Services.AddSingleton<ILoggerFactory>(loggerFactory);
         Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
         Services.AddSingleton<IMessageService, MessageService>();
+        Services.AddSingleton<IToastService, ToastService>();
         Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));
         Services.AddSingleton<DimensionManager>();
         Services.AddSingleton<IDialogService, DialogService>();
@@ -171,6 +172,7 @@ public partial class ConsoleLogsTests : TestContext
         Services.AddSingleton<LibraryConfiguration>();
         Services.AddSingleton<IKeyCodeService, KeyCodeService>();
         Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient());
+        Services.AddSingleton<DashboardCommandExecutor>();
     }
 
     private static string GetFluentFile(string filePath, Version version)

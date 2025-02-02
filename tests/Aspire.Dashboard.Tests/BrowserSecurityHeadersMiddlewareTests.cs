@@ -4,6 +4,7 @@
 using Aspire.Dashboard.Authentication.Connection;
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Primitives;
@@ -21,7 +22,7 @@ public class BrowserSecurityHeadersMiddlewareTests
         var httpContext = new DefaultHttpContext();
 
         // Act
-        await middleware.InvokeAsync(httpContext);
+        await middleware.InvokeAsync(httpContext).DefaultTimeout();
 
         // Assert
         Assert.NotEqual(StringValues.Empty, httpContext.Response.Headers.ContentSecurityPolicy);
@@ -36,7 +37,7 @@ public class BrowserSecurityHeadersMiddlewareTests
         var httpContext = new DefaultHttpContext();
 
         // Act
-        await middleware.InvokeAsync(httpContext);
+        await middleware.InvokeAsync(httpContext).DefaultTimeout();
 
         // Assert
         Assert.NotEqual(StringValues.Empty, httpContext.Response.Headers.ContentSecurityPolicy);
@@ -54,7 +55,7 @@ public class BrowserSecurityHeadersMiddlewareTests
         httpContext.Request.Scheme = scheme;
 
         // Act
-        await middleware.InvokeAsync(httpContext);
+        await middleware.InvokeAsync(httpContext).DefaultTimeout();
 
         // Assert
         Assert.NotEqual(StringValues.Empty, httpContext.Response.Headers.ContentSecurityPolicy);
@@ -70,7 +71,7 @@ public class BrowserSecurityHeadersMiddlewareTests
         httpContext.Features.Set<IConnectionTypeFeature>(new TestConnectionTypeFeature { ConnectionTypes = [ConnectionType.Otlp] });
 
         // Act
-        await middleware.InvokeAsync(httpContext);
+        await middleware.InvokeAsync(httpContext).DefaultTimeout();
 
         // Assert
         Assert.Equal(StringValues.Empty, httpContext.Response.Headers.ContentSecurityPolicy);

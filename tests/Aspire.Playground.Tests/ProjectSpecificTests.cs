@@ -31,6 +31,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/6867")]
     public async Task KafkaTest()
     {
         var appHostPath = Directory.GetFiles(AppContext.BaseDirectory, "KafkaBasic.AppHost.dll").Single();
@@ -71,7 +72,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
         // that the Functions host has initialized correctly
         await WaitForAllTextAsync(app,
             [
-                "Job host started"
+                "Worker process started and initialized."
             ],
             resourceName: "funcapp",
             timeoutSecs: 160);
@@ -113,7 +114,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             resourceName: "funcapp",
             timeoutSecs: 160);
 
-#if !SKIP_PROVISIONED_AZURE_RESOURCE
+#if !SKIP_UNSTABLE_EMULATORS // https://github.com/dotnet/aspire/issues/7066
         // Assert that ServiceBus triggers work correctly
         await apiServiceClient.GetAsync("/publish/asb");
         await WaitForAllTextAsync(app,

@@ -16,7 +16,7 @@ namespace Aspire.Hosting.NodeJs.Tests;
 /// </summary>
 public class NodeAppFixture(IMessageSink diagnosticMessageSink) : IAsyncLifetime
 {
-    private TestDistributedApplicationBuilder? _builder;
+    private IDistributedApplicationTestingBuilder? _builder;
     private DistributedApplication? _app;
     private string? _nodeAppPath;
 

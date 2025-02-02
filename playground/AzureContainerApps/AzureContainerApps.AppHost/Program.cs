@@ -19,7 +19,7 @@ var redis = builder.AddRedis("cache")
 // Testing secret outputs
 var cosmosDb = builder.AddAzureCosmosDB("account")
                       .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent))
-                      .AddDatabase("db");
+                      .WithDatabase("db");
 
 // Testing a connection string
 var blobs = builder.AddAzureStorage("storage")
@@ -42,7 +42,7 @@ builder.AddProject<Projects.AzureContainerApps_ApiService>("api")
            app.ConfigureCustomDomain(customDomain, certificateName);
 
            // Scale to 0
-           app.Template.Value!.Scale.Value!.MinReplicas = 0;
+           app.Template.Scale.MinReplicas = 0;
        });
 
 #if !SKIP_DASHBOARD_REFERENCE

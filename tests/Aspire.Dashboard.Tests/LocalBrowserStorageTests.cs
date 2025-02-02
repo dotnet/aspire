@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Model.BrowserStorage;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.JSInterop;
 using Xunit;
@@ -32,7 +33,7 @@ public class LocalBrowserStorageTests
         var localStorage = CreateBrowserLocalStorage(testJsonRuntime);
 
         // Act
-        await localStorage.SetUnprotectedAsync("MyKey", value);
+        await localStorage.SetUnprotectedAsync("MyKey", value).DefaultTimeout();
 
         // Assert
         Assert.Equal("localStorage.setItem", identifier);
@@ -57,7 +58,7 @@ public class LocalBrowserStorageTests
         var localStorage = CreateBrowserLocalStorage(testJsonRuntime);
 
         // Act
-        var result = await localStorage.GetUnprotectedAsync<int>("MyKey");
+        var result = await localStorage.GetUnprotectedAsync<int>("MyKey").DefaultTimeout();
 
         // Assert
         Assert.True(result.Success);
@@ -83,7 +84,7 @@ public class LocalBrowserStorageTests
         var localStorage = CreateBrowserLocalStorage(testJsonRuntime);
 
         // Act
-        var result = await localStorage.GetUnprotectedAsync<int>("MyKey");
+        var result = await localStorage.GetUnprotectedAsync<int>("MyKey").DefaultTimeout();
 
         // Assert
         Assert.False(result.Success);
@@ -108,7 +109,7 @@ public class LocalBrowserStorageTests
         var localStorage = CreateBrowserLocalStorage(testJsonRuntime);
 
         // Act
-        var result = await localStorage.GetUnprotectedAsync<int>("MyKey");
+        var result = await localStorage.GetUnprotectedAsync<int>("MyKey").DefaultTimeout();
 
         // Assert
         Assert.False(result.Success);

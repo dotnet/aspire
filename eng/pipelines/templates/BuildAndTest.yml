@@ -61,6 +61,13 @@ steps:
       - script: dotnet dev-certs https
         displayName: Install dev-certs
 
+    - ${{ if ne(parameters.isWindows, 'true') }}:
+      - script: |
+          docker container ls
+          docker network ls
+          docker network prune -f
+        displayName: List Docker containers and networks, and prune networks
+
     - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
               --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
               --output ${{ parameters.repoTestResultsPath }}/NonHelix.cobertura.xml
@@ -71,7 +78,10 @@ steps:
         DISABLE_PLAYWRIGHT_TESTS: ${{ ne(parameters.isWindows, 'true') }}
         # https://github.com/dotnet/aspire/issues/5195#issuecomment-2271687822
         DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
-
+        DCP_DIAGNOSTICS_LOG_LEVEL: debug
+        DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
+        DCP_SESSION_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp/session
+        DCP_PRESERVE_EXECUTABLE_LOGS: 1
       displayName: Run non-helix tests
 
   # Helix tests are run only on the public pipeline

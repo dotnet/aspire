@@ -57,9 +57,12 @@ app.MapGet("/increment-counter", (TestMetrics metrics) =>
 
 app.MapGet("/big-trace", async () =>
 {
-    var bigTraceCreator = new TraceCreator();
+    var traceCreator = new TraceCreator
+    {
+        IncludeBrokenLinks = true
+    };
 
-    await bigTraceCreator.CreateTraceAsync(count: 10, createChildren: true);
+    await traceCreator.CreateTraceAsync(count: 10, createChildren: true);
 
     return "Big trace created";
 });
@@ -70,11 +73,11 @@ app.MapGet("/trace-limit", async () =>
 
     var current = Activity.Current;
     Activity.Current = null;
-    var bigTraceCreator = new TraceCreator();
+    var traceCreator = new TraceCreator();
 
     for (var i = 0; i < TraceCount; i++)
     {
-        await bigTraceCreator.CreateTraceAsync(count: 1, createChildren: false);
+        await traceCreator.CreateTraceAsync(count: 1, createChildren: false);
     }
 
     Activity.Current = current;
@@ -95,13 +98,19 @@ app.MapGet("/http-client-requests", async (HttpClient client) =>
     return $"Sent requests to {string.Join(';', urls)}";
 });
 
-app.MapGet("/log-message-limit", ([FromServices] ILogger<Program> logger) =>
+app.MapGet("/log-message-limit", async ([FromServices] ILogger<Program> logger) =>
 {
-    const int LogCount = 20_000;
+    const int LogCount = 10_000;
+    const int BatchSize = 10;
 
-    for (var i = 0; i < LogCount; i++)
+    for (var i = 0; i < LogCount / BatchSize; i++)
     {
-        logger.LogInformation("Log entry {LogEntryIndex}", i);
+        for (var j = 0; j < BatchSize; j++)
+        {
+            logger.LogInformation("Log entry {BatchIndex}-{LogEntryIndex}", i, j);
+        }
+
+        await Task.Delay(100);
     }
 
     return $"Created {LogCount} logs.";
@@ -223,6 +232,35 @@ Whitespace content: {WhitespaceContent}
 Null content: {NullContent}", xmlLarge, xmlWithComments, xmlWithUrl, jsonLarge, jsonWithComments, jsonWithUrl, sb.ToString(), "http://localhost:8080", "", "   ", null);
 
     return "Log with formatted data";
+});
+
+app.MapGet("/duplicate-spanid", async () =>
+{
+    var traceCreator = new TraceCreator();
+    var span1 = traceCreator.CreateActivity("Test 1", "0485b1947fe788bb");
+    await Task.Delay(1000);
+    span1?.Stop();
+    var span2 = traceCreator.CreateActivity("Test 2", "0485b1947fe788bb");
+    await Task.Delay(1000);
+    span2?.Stop();
+    return $"Created duplicate span IDs.";
+});
+
+app.MapGet("/multiple-traces-linked", async () =>
+{
+    const int TraceCount = 2;
+
+    var current = Activity.Current;
+    Activity.Current = null;
+    var traceCreator = new TraceCreator();
+
+    await traceCreator.CreateTraceAsync(count: 1, createChildren: true, rootName: "LinkedTrace1");
+    await traceCreator.CreateTraceAsync(count: 1, createChildren: true, rootName: "LinkedTrace2");
+    await traceCreator.CreateTraceAsync(count: 1, createChildren: true, rootName: "LinkedTrace3");
+
+    Activity.Current = current;
+
+    return $"Created {TraceCount} traces.";
 });
 
 app.Run();
