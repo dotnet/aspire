@@ -1,4 +1,8 @@
 #nullable enable
+Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext.ExecutionContext.get -> Aspire.Hosting.DistributedApplicationExecutionContext!
+Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext.ExecutionContext.init -> void
+Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext.Logger.get -> Microsoft.Extensions.Logging.ILogger!
+Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext.Logger.init -> void
 Aspire.Hosting.ApplicationModel.ContainerLifetime.Session = 0 -> Aspire.Hosting.ApplicationModel.ContainerLifetime
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.get -> Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus?
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Relationships.get -> System.Collections.Immutable.ImmutableArray<Aspire.Hosting.ApplicationModel.RelationshipSnapshot!>
@@ -243,6 +247,7 @@ Aspire.Hosting.LaunchSettings.Profiles.get -> System.Collections.Generic.Diction
 Aspire.Hosting.LaunchSettings.Profiles.set -> void
 Aspire.Hosting.Utils.VolumeNameGenerator
 static Aspire.Hosting.ApplicationModel.CommandResults.Success() -> Aspire.Hosting.ApplicationModel.ExecuteCommandResult!
+static Aspire.Hosting.ApplicationModel.ResourceExtensions.GetArgumentValuesAsync(this Aspire.Hosting.ApplicationModel.IResourceWithArgs! resource, Aspire.Hosting.DistributedApplicationOperation applicationOperation = Aspire.Hosting.DistributedApplicationOperation.Run) -> System.Threading.Tasks.ValueTask<string![]!>
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.GetEnvironmentVariableValuesAsync(this Aspire.Hosting.ApplicationModel.IResourceWithEnvironment! resource, Aspire.Hosting.DistributedApplicationOperation applicationOperation = Aspire.Hosting.DistributedApplicationOperation.Run) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.Dictionary<string!, string!>!>
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, string? targetState = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Collections.Generic.IEnumerable<string!>! targetStates, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!

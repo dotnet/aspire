@@ -54,22 +54,6 @@ resource mycontainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/contain
   parent: mydatabase
 }
 
-resource leases 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
-  name: 'leases'
-  location: location
-  properties: {
-    resource: {
-      id: 'leases'
-      partitionKey: {
-        paths: [
-          '/id'
-        ]
-      }
-    }
-  }
-  parent: mydatabase
-}
-
 resource cosmosdb_roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-08-15' existing = {
   name: '00000000-0000-0000-0000-000000000002'
   parent: cosmosdb
