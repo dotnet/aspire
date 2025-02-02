@@ -1,4 +1,4 @@
-name: GenerateAPIDiffs
+name: Generate API Diffs
 
 on:
   workflow_dispatch:
@@ -21,10 +21,10 @@ jobs:
         continue-on-error: true
 
       - name: Create or update pull request
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@67ccf781d68cd99b580ae25a5c18a1cc84ffff1f
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: update-api-diffs
           base: main
-          title: "Update API Diffs"
-          body: "Auto-generated update to the API surface."
+          title: "[Automated] Update API Surface Area"
+          body: "Auto-generated update to the API surface to compare current surface vs latest release. This should only be merged once this surface area ships in a new release."
