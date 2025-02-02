@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -10,15 +9,10 @@ builder.Configuration["ConnectionStrings:cs"] = "testconnection";
 
 builder.AddConnectionString("cs");
 builder.AddRedis("redis1");
-var webApp = builder.AddProject<Projects.TestingAppHost1_MyWebApp>("mywebapp1")
-    .WithEnvironment("APP_HOST_ARG", builder.Configuration["APP_HOST_ARG"])
-    .WithEnvironment("LAUNCH_PROFILE_VAR_FROM_APP_HOST", builder.Configuration["LAUNCH_PROFILE_VAR_FROM_APP_HOST"]);
-
-if (builder.Configuration.GetValue("USE_HTTPS", false))
-{
-    webApp.WithExternalHttpEndpoints();
-}
-
+builder.AddProject<Projects.TestingAppHost1_MyWebApp>("mywebapp1")
+    .WithEndpoint("http", ea => ea.IsProxied = false)
+    .WithEndpoint("https", ea => ea.IsProxied = false)
+    .WithExternalHttpEndpoints();
 builder.AddProject<Projects.TestingAppHost1_MyWorker>("myworker1")
     .WithEndpoint(name: "myendpoint1");
 builder.AddPostgres("postgres1");
