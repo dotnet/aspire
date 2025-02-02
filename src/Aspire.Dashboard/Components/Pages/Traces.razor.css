@@ -1,7 +1,12 @@
+::deep table.main-grid {
+    margin-bottom: 1px !important; /* make bottom table row border visible when scrolling */
+}
+
 .trace-id {
     color: var(--foreground-subtext-rest);
     padding-left: 0.5rem;
     font-size: 12px;
+    font-weight: normal;
 }
 
 .trace-tag {
@@ -17,36 +22,6 @@
 .trace-service-tag {
     border-left-width: 15px;
     margin-right: 7px;
-}
-
-::deep.traces-layout {
-    display: grid;
-    grid-template-rows: auto auto 1fr auto;
-    height: 100%;
-    width: 100%;
-    grid-template-areas:
-        "head"
-        "toolbar"
-        "main"
-        "foot";
-    gap: calc(var(--design-unit) * 2px);
-}
-
-::deep.traces-layout > h1 {
-    grid-area: head;
-}
-
-::deep.traces-layout > fluent-toolbar {
-    grid-area: toolbar;
-    padding: var(--layout-toolbar-padding);
-}
-
-::deep.traces-layout > .datagrid-overflow-area {
-    grid-area: main;
-}
-
-::deep.traces-layout > .total-items-footer {
-    grid-area: foot;
 }
 
 ::deep fluent-progress-ring::part(background) {

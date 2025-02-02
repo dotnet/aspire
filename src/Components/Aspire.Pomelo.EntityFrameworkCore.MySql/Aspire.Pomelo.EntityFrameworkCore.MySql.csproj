@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentEfCorePackageTags) pomelo mysql sql</PackageTags>
     <Description>A MySQL provider for Entity Framework Core that integrates with Aspire, including connection pooling, health checks, logging, and telemetry.</Description>

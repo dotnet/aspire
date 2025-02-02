@@ -1,9 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
 
-    <RunTestsOnHelix>true</RunTestsOnHelix>
     <TestUsingWorkloads>true</TestUsingWorkloads>
     <InstallWorkloadForTesting>true</InstallWorkloadForTesting>
 
@@ -16,41 +15,22 @@
     <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(OS)' == 'Windows_NT' and '$(ContinuousIntegrationBuild)' != 'true'">true</InstallBrowsersForPlaywright>
 
     <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(ArchiveTests)' == 'true'">true</ExtractTestClassNamesForHelix>
+    <ExtractTestClassNamesPrefix>Aspire.Workload.Tests</ExtractTestClassNamesPrefix>
   </PropertyGroup>
+
+  <!-- Skipping the following tests classes due to https://github.com/dotnet/aspire/issues/6193 -->
+  <ItemGroup>
+    <TestClassNamesToSkipTests Include="Aspire.Workload.Tests.NewUpAndBuildStandaloneTemplateTests"/>
+    <TestClassNamesToSkipTests Include="Aspire.Workload.Tests.NewUpAndBuildSupportProjectTemplates"/>
+    <TestClassNamesToSkipTests Include="Aspire.Workload.Tests.NewUpTemplatesWithAlternateName"/>
+  </ItemGroup>
 
   <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />
 
   <ItemGroup>
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Redis\RedisContainerImageTags.cs" />
 
-    <None Include="data\**\*" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)eng\helix\runtests.*" CopyToOutputDirectory="PreserveNewest" />
-
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
   </ItemGroup>
-
-  <!-- Used for running one helix job per test class -->
-  <Target Name="_ExtractTestClassNames"
-          Condition="'$(ExtractTestClassNamesForHelix)' == 'true'"
-          BeforeTargets="ZipTestArchive">
-
-    <Exec Command="&quot;$(DotNetTool)&quot; test --no-build -c $(Configuration) -s $(RunSettingsFilePath) --list-tests --nologo -v:q -p:VsTestUseMSBuildOutput=false" ConsoleToMSBuild="true">
-      <Output TaskParameter="ConsoleOutput" ItemName="_ListOfTestsLines" />
-    </Exec>
-
-    <PropertyGroup>
-      <_Regex>^\s*(Aspire.Workload.Tests[^\($]+)</_Regex>
-    </PropertyGroup>
-    <ItemGroup>
-      <_TestLines0 Include="$([System.Text.RegularExpressions.Regex]::Match('%(_ListOfTestsLines.Identity)', '$(_Regex)'))" />
-      <TestClassName Include="$([System.IO.Path]::GetFileNameWithoutExtension('%(_TestLines0.Identity)'))" />
-    </ItemGroup>
-
-    <Error Text="No Aspire.Workload.Tests test classes found!" Condition="'@(TestClassName)' == ''" />
-
-    <WriteLinesToFile File="$(TestArchiveTestsDir)$(MSBuildProjectName).tests.list"
-                      Lines="@(TestClassName->Distinct())"
-                      Overwrite="true" />
-  </Target>
 </Project>

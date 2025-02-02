@@ -2,6 +2,51 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="it" original="../Dialogs.resx">
     <body>
+      <trans-unit id="DialogCloseButtonText">
+        <source>Close</source>
+        <target state="translated">Chiudi</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExemplarsDialogDetailsColumnHeader">
+        <source>Details</source>
+        <target state="translated">Dettagli</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExemplarsDialogTimestampColumnHeader">
+        <source>Timestamp</source>
+        <target state="translated">Timestamp</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExemplarsDialogTitle">
+        <source>Exemplars</source>
+        <target state="translated">Esemplari</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExemplarsDialogTrace">
+        <source>Trace</source>
+        <target state="translated">Traccia</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExemplarsDialogTraceColumnHeader">
+        <source>Trace</source>
+        <target state="translated">Traccia</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExemplarsDialogValueColumnHeader">
+        <source>Value</source>
+        <target state="translated">Valore</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FieldRequired">
+        <source>A value is required.</source>
+        <target state="translated">È necessario specificare un valore.</target>
+        <note>{0} is the literal, untranslated field name which we do not want to show, so it is missing.</note>
+      </trans-unit>
+      <trans-unit id="FieldTooLong">
+        <source>A maximum length of {1} characters is allowed.</source>
+        <target state="translated">È consentita una lunghezza massima di {1} caratteri.</target>
+        <note>{0} is the field name, whereas {1} is the length. We don't want to show the field name, so it is missing.</note>
+      </trans-unit>
       <trans-unit id="FilterDialogApplyFilterButtonText">
         <source>Apply filter</source>
         <target state="translated">Applica filtro</target>
@@ -12,14 +57,19 @@
         <target state="translated">Annulla</target>
         <note />
       </trans-unit>
-      <trans-unit id="FilterDialogConditionSelectLabel">
-        <source>Select a filter condition</source>
-        <target state="translated">Seleziona una condizione di filtro</target>
+      <trans-unit id="FilterDialogConditionInputLabel">
+        <source>Condition</source>
+        <target state="translated">Condizione</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
         <source>Field</source>
         <target state="translated">Campo</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogParameterInputLabel">
+        <source>Parameter</source>
+        <target state="translated">Parametro</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogRemoveFilterButtonText">
@@ -117,9 +167,34 @@
         <target state="translated">Attiva/Disattiva orientamento del pannello</target>
         <note />
       </trans-unit>
+      <trans-unit id="OpenInTextVisualizer">
+        <source>Open in text visualizer</source>
+        <target state="translated">Apri nel visualizzatore di testo</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OpenTraceDialogCancelButtonText">
+        <source>Cancel</source>
+        <target state="translated">Annulla</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OpenTraceDialogMessage">
+        <source>Waiting for trace {0} to load...</source>
+        <target state="translated">In attesa del caricamento della traccia {0}...</target>
+        <note>{0} is a trace ID</note>
+      </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>
         <target state="translated">Scuro</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogLanguage">
+        <source>Language</source>
+        <target state="translated">Lingua</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogLanguagePageReloads">
+        <source>The page will reload on language change.</source>
+        <target state="translated">La pagina verrà ricaricata in base alla modifica della lingua.</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">
@@ -141,6 +216,26 @@
         <source>Version: {0}</source>
         <target state="translated">Versione: {0}</target>
         <note>{0} is the dashboard version string</note>
+      </trans-unit>
+      <trans-unit id="TextVisualizerDialogJsonFormat">
+        <source>Format JSON</source>
+        <target state="translated">Formato JSON</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerDialogPlaintextFormat">
+        <source>Unformatted</source>
+        <target state="translated">Non formattato</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerDialogXmlFormat">
+        <source>Format XML</source>
+        <target state="translated">Formatta XML</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerSelectFormatType">
+        <source>Select format</source>
+        <target state="translated">Selezionare formato</target>
+        <note />
       </trans-unit>
     </body>
   </file>

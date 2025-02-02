@@ -5,7 +5,7 @@ using System.Collections;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace Aspire.Dashboard.Otlp.Storage;
+namespace Aspire;
 
 /// <summary>
 /// The circular buffer starts with an empty list and grows to a maximum size.
@@ -19,6 +19,8 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
     internal readonly List<T> _buffer;
     internal int _start;
     internal int _end;
+
+    public event Action<T>? ItemRemovedForCapacity;
 
     public CircularBuffer(int capacity) : this(new List<T>(), capacity, start: 0, end: 0)
     {
@@ -81,7 +83,12 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
             if (index == 0)
             {
                 // When full, the item inserted at 0 is always the "last" in the buffer and is removed.
+                ItemRemovedForCapacity?.Invoke(item);
                 return;
+            }
+            else
+            {
+                ItemRemovedForCapacity?.Invoke(this[0]);
             }
 
             var internalIndex = InternalIndex(index);
@@ -105,6 +112,10 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
                     data.Slice(0, _end).CopyTo(data.Slice(1));
                 }
                 data[0] = overflowItem;
+            }
+            else if (internalIndex < _end && _end < _buffer.Count - 1)
+            {
+                data.Slice(internalIndex, _end - internalIndex).CopyTo(data.Slice(_end));
             }
             else
             {
@@ -181,6 +192,8 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
     {
         if (IsFull)
         {
+            ItemRemovedForCapacity?.Invoke(this[0]);
+
             _buffer[_end] = item;
             Increment(ref _end);
             _start = _end;

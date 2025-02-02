@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>dfbd0a65-25cf-4318-b377-813f4f6efeea</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\KnownResourceNames.cs" Link="KnownResourceNames.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Redis" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Garnet" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Valkey" />
+    <ProjectReference Include="..\Redis.ApiService\Redis.ApiService.csproj" />
+  </ItemGroup>
+
+</Project>

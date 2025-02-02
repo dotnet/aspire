@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="fr" original="../StructuredFiltering.resx">
+    <body>
+      <trans-unit id="AddFilter">
+        <source>Add filter</source>
+        <target state="translated">Ajouter un filtre</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConditionContains">
+        <source>contains</source>
+        <target state="translated">contient</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConditionNotContains">
+        <source>not contains</source>
+        <target state="translated">ne contient pas</target>
+        <note>corresponds to A !contains B</note>
+      </trans-unit>
+      <trans-unit id="DialogTitleAddFilter">
+        <source>Add filter</source>
+        <target state="translated">Ajouter un filtre</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DialogTitleEditFilter">
+        <source>Edit filter</source>
+        <target state="translated">Modifier le filtre</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Filters">
+        <source>Filters</source>
+        <target state="translated">Filtres</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoFilters">
+        <source>No filters</source>
+        <target state="translated">Aucun filtre</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

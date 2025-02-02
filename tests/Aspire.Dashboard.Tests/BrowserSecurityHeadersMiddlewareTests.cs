@@ -1,9 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Authentication.OtlpConnection;
+using Aspire.Dashboard.Authentication.Connection;
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Primitives;
@@ -21,7 +22,7 @@ public class BrowserSecurityHeadersMiddlewareTests
         var httpContext = new DefaultHttpContext();
 
         // Act
-        await middleware.InvokeAsync(httpContext);
+        await middleware.InvokeAsync(httpContext).DefaultTimeout();
 
         // Assert
         Assert.NotEqual(StringValues.Empty, httpContext.Response.Headers.ContentSecurityPolicy);
@@ -36,7 +37,7 @@ public class BrowserSecurityHeadersMiddlewareTests
         var httpContext = new DefaultHttpContext();
 
         // Act
-        await middleware.InvokeAsync(httpContext);
+        await middleware.InvokeAsync(httpContext).DefaultTimeout();
 
         // Assert
         Assert.NotEqual(StringValues.Empty, httpContext.Response.Headers.ContentSecurityPolicy);
@@ -54,7 +55,7 @@ public class BrowserSecurityHeadersMiddlewareTests
         httpContext.Request.Scheme = scheme;
 
         // Act
-        await middleware.InvokeAsync(httpContext);
+        await middleware.InvokeAsync(httpContext).DefaultTimeout();
 
         // Assert
         Assert.NotEqual(StringValues.Empty, httpContext.Response.Headers.ContentSecurityPolicy);
@@ -67,17 +68,18 @@ public class BrowserSecurityHeadersMiddlewareTests
         // Arrange
         var middleware = CreateMiddleware(environmentName: "Production");
         var httpContext = new DefaultHttpContext();
-        httpContext.Features.Set<IOtlpConnectionFeature>(new OtlpConnectionFeature());
+        httpContext.Features.Set<IConnectionTypeFeature>(new TestConnectionTypeFeature { ConnectionTypes = [ConnectionType.Otlp] });
 
         // Act
-        await middleware.InvokeAsync(httpContext);
+        await middleware.InvokeAsync(httpContext).DefaultTimeout();
 
         // Assert
         Assert.Equal(StringValues.Empty, httpContext.Response.Headers.ContentSecurityPolicy);
     }
 
-    private sealed class OtlpConnectionFeature : IOtlpConnectionFeature
+    private sealed class TestConnectionTypeFeature : IConnectionTypeFeature
     {
+        public required List<ConnectionType> ConnectionTypes { get; init; }
     }
 
     private static BrowserSecurityHeadersMiddleware CreateMiddleware(string environmentName) =>

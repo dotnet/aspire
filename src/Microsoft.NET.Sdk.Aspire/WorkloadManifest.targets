@@ -1,8 +1,0 @@
-<Project>
-
-  <Import
-    Project="WorkloadManifest.Aspire.targets"
-    Condition=" '$(IsAspireHost)' == 'true' and '$(SkipAspireWorkloadManifest)' != 'true' "
-  />
-
-</Project>

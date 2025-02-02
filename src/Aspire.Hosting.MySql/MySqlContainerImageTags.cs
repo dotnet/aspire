@@ -5,7 +5,18 @@ namespace Aspire.Hosting.MySql;
 
 internal static class MySqlContainerImageTags
 {
+    /// <remarks>docker.io</remarks>
     public const string Registry = "docker.io";
+
+    /// <remarks>library/mysql</remarks>
     public const string Image = "library/mysql";
-    public const string Tag = "8.3";
+
+    /// <remarks>9.1</remarks>
+    public const string Tag = "9.1";
+
+    /// <remarks>library/phpmyadmin</remarks>
+    public const string PhpMyAdminImage = "library/phpmyadmin";
+
+    /// <remarks>5.2</remarks>
+    public const string PhpMyAdminTag = "5.2";
 }

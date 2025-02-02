@@ -35,8 +35,8 @@ See https://aka.ms/dotnet/aspire/containers for more details on supported contai
         <note />
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
-        <source>Application orchestrator dependency check had an unexpected error {0}.</source>
-        <target state="translated">응용 프로그램 오케스트레이터 종속성 검사에서 예기치 않은 오류 {0}(이)가 발생했습니다.</target>
+        <source>Application orchestrator dependency check returned an error: {0}</source>
+        <target state="translated">애플리케이션 오케스트레이터 종속성 검사에서 오류를 반환했습니다. {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">

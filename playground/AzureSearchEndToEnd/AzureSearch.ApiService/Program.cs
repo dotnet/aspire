@@ -125,7 +125,7 @@ static async Task RunQueriesAsync(ILogger logger, SearchClient searchClient, Can
     options = new SearchOptions();
     options.SearchFields.Add("HotelName");
 
-    //Adding details to select, because "Location" is not supported yet when deserialize search result to "Hotel"
+    // Adding details to select, because "Location" is not supported yet when deserializing search result to "Hotel"
     options.Select.Add("HotelId");
     options.Select.Add("HotelName");
     options.Select.Add("Description");

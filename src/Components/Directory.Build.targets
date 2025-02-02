@@ -71,7 +71,8 @@
 
   <Target Name="CalculateConfigurationSchemaGeneratorPath">
     <MSBuild Projects="$(ConfigurationSchemaGeneratorProjectPath)"
-             Targets="GetTargetPath">
+             Targets="GetTargetPath"
+             RemoveProperties="TargetFramework">
       <Output TaskParameter="TargetOutputs" PropertyName="ConfigurationSchemaGeneratorPath" />
     </MSBuild>
   </Target>
@@ -85,8 +86,8 @@
           Outputs="$(GeneratedConfigurationSchemaOutputPath)">
     <PropertyGroup>
 
-      <GeneratorCommandLine>"$(DotNetTool)" exec $(ConfigurationSchemaGeneratorPath)</GeneratorCommandLine>
-      <GeneratorCommandLine>$(GeneratorCommandLine) @$(ConfigurationSchemaGeneratorRspPath)</GeneratorCommandLine>
+      <GeneratorCommandLine>"$(DotNetTool)" exec "$(ConfigurationSchemaGeneratorPath)"</GeneratorCommandLine>
+      <GeneratorCommandLine>$(GeneratorCommandLine) @"$(ConfigurationSchemaGeneratorRspPath)"</GeneratorCommandLine>
     </PropertyGroup>
 
     <Exec Command="$(GeneratorCommandLine)" />
@@ -114,7 +115,7 @@
     </PropertyGroup>
 
     <Error Condition="'$(CurrentConfigurationSchemaFileContent)' != '$(GeneratedConfigurationSchemaFileContent)'"
-           Text="ConfigurationSchema.json is out of date. Run 'dotnet build --no-incremental /p:UpdateConfigurationSchema=true' to update it." />
+           Text="ConfigurationSchema.json is out of date for $(MSBuildProjectFile). Run 'dotnet build --no-incremental /p:UpdateConfigurationSchema=true' to update it." />
   </Target>
 
 </Project>

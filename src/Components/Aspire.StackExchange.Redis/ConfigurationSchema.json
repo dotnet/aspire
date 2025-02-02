@@ -83,19 +83,23 @@
                     "HeartbeatInterval": {
                       "type": "string",
                       "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
-                      "description": "Controls how often the connection heartbeats. A heartbeat includes: - Evaluating if any messages have timed out - Evaluating connection status (checking for failures) - Sending a server message to keep the connection alive if needed"
+                      "description": "Controls how often the connection heartbeats. A heartbeat includes: - Evaluating if any messages have timed out. - Evaluating connection status (checking for failures). - Sending a server message to keep the connection alive if needed."
+                    },
+                    "HighIntegrity": {
+                      "type": "boolean",
+                      "description": "A Boolean value that specifies whether to use per-command validation of strict protocol validity. This sends an additional command after EVERY command which incurs measurable overhead."
                     },
                     "IncludeDetailInExceptions": {
                       "type": "boolean",
-                      "description": "Should exceptions include identifiable details? (key names, additional .Data annotations)"
+                      "description": "Whether exceptions include identifiable details (key names, additional .Data annotations)."
                     },
                     "IncludePerformanceCountersInExceptions": {
                       "type": "boolean",
-                      "description": "Should exceptions include performance counter details?"
+                      "description": "Whether exceptions include performance counter details."
                     },
                     "KeepAlive": {
                       "type": "integer",
-                      "description": "Specifies the time in seconds at which connections should be pinged to ensure validity. -1 Defaults to 60 Seconds"
+                      "description": "Specifies the time in seconds at which connections should be pinged to ensure validity. -1 Defaults to 60 Seconds."
                     },
                     "LibraryName": {
                       "type": "string",
@@ -110,7 +114,7 @@
                         "Resp2",
                         "Resp3"
                       ],
-                      "description": "Specify the redis protocol type"
+                      "description": "Specify the redis protocol type."
                     },
                     "Proxy": {
                       "enum": [

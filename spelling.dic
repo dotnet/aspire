@@ -15,6 +15,7 @@ brightwhite
 brightyellow
 chmod
 consolelogs
+cors
 csproj
 dbug
 dcpctrl
@@ -44,6 +45,7 @@ orleans
 otel
 otlp
 pgadmin
+plotly
 postgre
 postgres
 protoc
@@ -61,3 +63,5 @@ upsert
 uris
 urls
 kubernetes
+Pgweb
+elasticsearch

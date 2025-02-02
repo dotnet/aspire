@@ -7,7 +7,7 @@ using System.Text;
 using Aspire.Dashboard.Authentication.OtlpApiKey;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Http;
-using Aspire.Dashboard.Tests.TelemetryRepositoryTests;
+using Aspire.Tests.Shared.Telemetry;
 using Aspire.Hosting;
 using Google.Protobuf;
 using Microsoft.AspNetCore.InternalTesting;
@@ -34,7 +34,7 @@ public class OtlpHttpServiceTests
     {
         // Arrange
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper);
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.OtlpServiceHttpEndPointAccessor().EndPoint}");
 
@@ -44,10 +44,10 @@ public class OtlpHttpServiceTests
         content.Headers.TryAddWithoutValidation("content-type", OtlpHttpEndpointsBuilder.ProtobufContentType);
 
         // Act
-        var responseMessage = await httpClient.PostAsync("/v1/logs", content);
+        var responseMessage = await httpClient.PostAsync("/v1/logs", content).DefaultTimeout(TestConstants.LongTimeoutDuration);
         responseMessage.EnsureSuccessStatusCode();
 
-        var response = ExportLogsServiceResponse.Parser.ParseFrom(await responseMessage.Content.ReadAsByteArrayAsync());
+        var response = ExportLogsServiceResponse.Parser.ParseFrom(await responseMessage.Content.ReadAsByteArrayAsync().DefaultTimeout());
 
         // Assert
         Assert.Equal(OtlpHttpEndpointsBuilder.ProtobufContentType, responseMessage.Content.Headers.GetValues("content-type").Single());
@@ -60,7 +60,7 @@ public class OtlpHttpServiceTests
     {
         // Arrange
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper);
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.OtlpServiceHttpEndPointAccessor().EndPoint}");
 
@@ -70,7 +70,7 @@ public class OtlpHttpServiceTests
         content.Headers.TryAddWithoutValidation("content-type", OtlpHttpEndpointsBuilder.ProtobufContentType);
 
         // Act
-        var responseMessage = await httpClient.PostAsync("/v1/logs", content);
+        var responseMessage = await httpClient.PostAsync("/v1/logs", content).DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, responseMessage.StatusCode);
@@ -80,17 +80,17 @@ public class OtlpHttpServiceTests
     {
         var scopeLogs = new ScopeLogs
         {
-            Scope = TestHelpers.CreateScope("TestLogger")
+            Scope = TelemetryTestHelpers.CreateScope("TestLogger")
         };
         for (var i = 0; i < logRecordsCount; i++)
         {
-            scopeLogs.LogRecords.Add(TestHelpers.CreateLogRecord(message: $"This is the test log message {i}. The quick brown fox jumped over the lazy dog. Peter Pipper picked a patch of pickled peppers."));
+            scopeLogs.LogRecords.Add(TelemetryTestHelpers.CreateLogRecord(message: $"This is the test log message {i}. The quick brown fox jumped over the lazy dog. Peter Pipper picked a patch of pickled peppers."));
         }
 
         var request = new ExportLogsServiceRequest();
         request.ResourceLogs.Add(new ResourceLogs
         {
-            Resource = TestHelpers.CreateResource(),
+            Resource = TelemetryTestHelpers.CreateResource(),
             ScopeLogs = { scopeLogs }
         });
         return request;
@@ -106,7 +106,7 @@ public class OtlpHttpServiceTests
             config[DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey] = OtlpAuthMode.ApiKey.ToString();
             config[DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.ConfigKey] = apiKey;
         });
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.OtlpServiceHttpEndPointAccessor().EndPoint}");
 
@@ -114,7 +114,7 @@ public class OtlpHttpServiceTests
         content.Headers.TryAddWithoutValidation("content-type", OtlpHttpEndpointsBuilder.ProtobufContentType);
 
         // Act
-        var responseMessage = await httpClient.PostAsync("/v1/logs", content);
+        var responseMessage = await httpClient.PostAsync("/v1/logs", content).DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.Unauthorized, responseMessage.StatusCode);
@@ -130,7 +130,7 @@ public class OtlpHttpServiceTests
             config[DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey] = OtlpAuthMode.ApiKey.ToString();
             config[DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.ConfigKey] = apiKey;
         });
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.OtlpServiceHttpEndPointAccessor().EndPoint}");
 
@@ -142,7 +142,7 @@ public class OtlpHttpServiceTests
         requestMessage.Headers.TryAddWithoutValidation(OtlpApiKeyAuthenticationHandler.ApiKeyHeaderName, "WRONG");
 
         // Act
-        var responseMessage = await httpClient.SendAsync(requestMessage);
+        var responseMessage = await httpClient.SendAsync(requestMessage).DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.Unauthorized, responseMessage.StatusCode);
@@ -158,7 +158,7 @@ public class OtlpHttpServiceTests
             config[DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey] = OtlpAuthMode.ApiKey.ToString();
             config[DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.ConfigKey] = apiKey;
         });
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.OtlpServiceHttpEndPointAccessor().EndPoint}");
 
@@ -170,10 +170,10 @@ public class OtlpHttpServiceTests
         requestMessage.Headers.TryAddWithoutValidation(OtlpApiKeyAuthenticationHandler.ApiKeyHeaderName, apiKey);
 
         // Act
-        var responseMessage = await httpClient.SendAsync(requestMessage);
+        var responseMessage = await httpClient.SendAsync(requestMessage).DefaultTimeout();
         responseMessage.EnsureSuccessStatusCode();
 
-        var response = ExportLogsServiceResponse.Parser.ParseFrom(await responseMessage.Content.ReadAsByteArrayAsync());
+        var response = ExportLogsServiceResponse.Parser.ParseFrom(await responseMessage.Content.ReadAsByteArrayAsync().DefaultTimeout());
 
         // Assert
         Assert.Equal(OtlpHttpEndpointsBuilder.ProtobufContentType, responseMessage.Content.Headers.GetValues("content-type").Single());
@@ -192,9 +192,9 @@ public class OtlpHttpServiceTests
             // Change dashboard to HTTPS so the caller can negotiate a HTTP/2 connection.
             config[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "https://127.0.0.1:0";
         });
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
-        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"https://{app.FrontendEndPointAccessor().EndPoint}",
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"https://{app.FrontendSingleEndPointAccessor().EndPoint}",
             validationCallback: cert =>
             {
                 clientCallbackCert = cert;
@@ -204,7 +204,7 @@ public class OtlpHttpServiceTests
         content.Headers.TryAddWithoutValidation("content-type", OtlpHttpEndpointsBuilder.ProtobufContentType);
 
         // Act
-        var responseMessage = await httpClient.PostAsync("/v1/logs", content);
+        var responseMessage = await httpClient.PostAsync("/v1/logs", content).DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.Unauthorized, responseMessage.StatusCode);
@@ -222,7 +222,7 @@ public class OtlpHttpServiceTests
         {
             dictionary[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://127.0.0.1:0";
         });
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         var endpoint = app.OtlpServiceHttpEndPointAccessor();
         using var client = new HttpClient { BaseAddress = new Uri($"http://{endpoint.EndPoint}") };
@@ -234,7 +234,7 @@ public class OtlpHttpServiceTests
         }
 
         // Act
-        var responseMessage = await client.PostAsync("/v1/logs", content);
+        var responseMessage = await client.PostAsync("/v1/logs", content).DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.UnsupportedMediaType, responseMessage.StatusCode);
@@ -243,7 +243,6 @@ public class OtlpHttpServiceTests
     [Theory]
     [InlineData("PUT")]
     [InlineData("DELETE")]
-    [InlineData("GET")]
     public async Task CallService_OtlpHttpEndPoint_UnsupportedMethods_Failure(string method)
     {
         // Arrange
@@ -251,7 +250,7 @@ public class OtlpHttpServiceTests
         {
             dictionary[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://127.0.0.1:0";
         });
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         var endpoint = app.OtlpServiceHttpEndPointAccessor();
         using var client = new HttpClient { BaseAddress = new Uri($"http://{endpoint.EndPoint}") };
@@ -262,7 +261,7 @@ public class OtlpHttpServiceTests
         requestMessage.Content = content;
 
         // Act
-        var responseMessage = await client.SendAsync(requestMessage);
+        var responseMessage = await client.SendAsync(requestMessage).DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, responseMessage.StatusCode);
@@ -276,7 +275,7 @@ public class OtlpHttpServiceTests
         {
             dictionary[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://127.0.0.1:0";
         });
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         var endpoint = app.OtlpServiceHttpEndPointAccessor();
         using var client = new HttpClient { BaseAddress = new Uri($"http://{endpoint.EndPoint}") };
@@ -285,7 +284,7 @@ public class OtlpHttpServiceTests
         using var content = new ByteArrayContent(request.ToByteArray());
         content.Headers.TryAddWithoutValidation("content-type", OtlpHttpEndpointsBuilder.ProtobufContentType);
 
-        var responseMessage = await client.PostAsync("/v1/logs", content);
+        var responseMessage = await client.PostAsync("/v1/logs", content).DefaultTimeout();
         responseMessage.EnsureSuccessStatusCode();
 
         // Act
@@ -305,7 +304,7 @@ public class OtlpHttpServiceTests
         {
             dictionary[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://127.0.0.1:0";
         });
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         var endpoint = app.OtlpServiceHttpEndPointAccessor();
         using var client = new HttpClient { BaseAddress = new Uri($"http://{endpoint.EndPoint}") };
@@ -314,11 +313,11 @@ public class OtlpHttpServiceTests
         using var content = new ByteArrayContent(request.ToByteArray());
         content.Headers.TryAddWithoutValidation("content-type", OtlpHttpEndpointsBuilder.ProtobufContentType);
 
-        var responseMessage = await client.PostAsync("/v1/traces", content);
+        var responseMessage = await client.PostAsync("/v1/traces", content).DefaultTimeout();
         responseMessage.EnsureSuccessStatusCode();
 
         // Act
-        var response = ExportTraceServiceResponse.Parser.ParseFrom(await responseMessage.Content.ReadAsByteArrayAsync());
+        var response = ExportTraceServiceResponse.Parser.ParseFrom(await responseMessage.Content.ReadAsByteArrayAsync().DefaultTimeout());
 
         // Assert
         Assert.Equal(OtlpHttpEndpointsBuilder.ProtobufContentType, responseMessage.Content.Headers.GetValues("content-type").Single());
@@ -334,7 +333,7 @@ public class OtlpHttpServiceTests
         {
             dictionary[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://127.0.0.1:0";
         });
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout();
 
         var endpoint = app.OtlpServiceHttpEndPointAccessor();
         using var client = new HttpClient { BaseAddress = new Uri($"http://{endpoint.EndPoint}") };
@@ -343,11 +342,11 @@ public class OtlpHttpServiceTests
         using var content = new ByteArrayContent(request.ToByteArray());
         content.Headers.TryAddWithoutValidation("content-type", OtlpHttpEndpointsBuilder.ProtobufContentType);
 
-        var responseMessage = await client.PostAsync("/v1/metrics", content);
+        var responseMessage = await client.PostAsync("/v1/metrics", content).DefaultTimeout();
         responseMessage.EnsureSuccessStatusCode();
 
         // Act
-        var response = ExportMetricsServiceResponse.Parser.ParseFrom(await responseMessage.Content.ReadAsByteArrayAsync());
+        var response = ExportMetricsServiceResponse.Parser.ParseFrom(await responseMessage.Content.ReadAsByteArrayAsync().DefaultTimeout());
 
         // Assert
         Assert.Equal(OtlpHttpEndpointsBuilder.ProtobufContentType, responseMessage.Content.Headers.GetValues("content-type").Single());

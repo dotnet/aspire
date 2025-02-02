@@ -6,19 +6,17 @@
     <NeedsPlaywright>true</NeedsPlaywright>
 
     <TestProjectName>Aspire.Workload.Tests</TestProjectName>
-
-    <_CleanupProcessesCommand Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; get-ciminstance win32_process | where-object ExecutablePath -Match 'dotnet-latest|dcp.exe|dcpctrl.exe' | foreach-object { echo $_.ProcessId $_.ExecutablePath %3B stop-process -id $_.ProcessId -force -ErrorAction SilentlyContinue }"</_CleanupProcessesCommand>
-
-    <_CleanupProcessesCommand Condition="'$(OS)' != 'Windows_NT'">pgrep -lf "dotnet-latest|dcp.exe|dcpctrl.exe" | awk '{print %3B system("kill -9 "$1)}'</_CleanupProcessesCommand>
   </PropertyGroup>
 
   <ItemGroup>
     <HelixPreCommand Include="$(_EnvVarSetKeyword) TEST_NAME=$(TestProjectName)" />
-    <!-- xunit diagnostic output doesn't show up on windows, so use SHOW_BUILD_OUTPUT=true -->
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="$(_EnvVarSetKeyword) SHOW_BUILD_OUTPUT=true" />
-    <HelixPreCommand Include="$(_CleanupProcessesCommand)" />
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) SHOW_BUILD_OUTPUT=true" />
 
-    <HelixPostCommand Include="$(_CleanupProcessesCommand)" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="rm ~/.templateengine/packages/Aspire*" />
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="del %USERPROFILE%\.templateengine\Aspire*" />
+
+    <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="mv $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/$(TestProjectName)-${TEST_NAME_SUFFIX}.trx" />
+    <HelixPostCommand Condition="'$(OS)' == 'Windows_NT'" Include="move &quot;$(_HelixLogsPath)\TestResults.trx&quot; &quot;$(_HelixLogsPath)\$(TestProjectName)-%TEST_NAME_SUFFIX%.trx&quot;" />
   </ItemGroup>
 
   <Target Name="BuildHelixWorkItemsForWorkloadTests">
@@ -30,6 +28,7 @@
     <PropertyGroup>
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
+      <_TestRunCommand Condition="'$(HelixPerWorkItemPreCommand)' != ''">$(HelixPerWorkItemPreCommand) $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
     </PropertyGroup>
 
     <ReadLinesFromFile File="$(TestArchiveTestsDirForWorkloadTests)$(TestProjectName).tests.list">
@@ -40,6 +39,10 @@
            Text="No workload test class names found" />
 
     <ItemGroup>
+      <!-- the default dotnet-tests sdk is added by inner.proj . Add the rest here -->
+      <HelixCorrelationPayload Include="$(ArtifactsBinDir)dotnet-8" Destination="dotnet-8" />
+      <HelixCorrelationPayload Include="$(ArtifactsBinDir)dotnet-9" Destination="dotnet-9" />
+
       <!-- PreCommands="" needed for batching below -->
       <_WorkloadTestsClassNames TestNameSuffix="$([System.String]::Copy('%(Identity)').Replace('Aspire.Workload.Tests.', ''))" PreCommands="" />
 
@@ -48,6 +51,7 @@
 
         <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(TestNameSuffix)&quot;</PreCommands>
+        <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TEST_NAME_SUFFIX=%(TestNameSuffix)&quot;</PreCommands>
 
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) set &quot;TEST_ARGS=--filter category^^!=failing^&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) export &quot;TEST_ARGS=--filter category!=failing&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
@@ -56,7 +60,7 @@
         <Timeout>$(_workItemTimeout)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
-        <DownloadFilesFromResults>logs/$(TestProjectName)-%(TestNameSuffix).cobertura.xml</DownloadFilesFromResults>
+        <DownloadFilesFromResults>logs/$(TestProjectName)-%(TestNameSuffix).cobertura.xml;logs/$(TestProjectName)-%(TestNameSuffix).trx</DownloadFilesFromResults>
       </HelixWorkItem>
     </ItemGroup>
   </Target>

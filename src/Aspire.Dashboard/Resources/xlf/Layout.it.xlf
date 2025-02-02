@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
-        <source>Launch settings</source>
-        <target state="translated">Impostazioni di avvio</target>
+        <source>Settings</source>
+        <target state="translated">Impostazioni</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutSettingsDialogClose">
@@ -85,6 +85,11 @@
       <trans-unit id="NavMenuTracesTab">
         <source>Traces</source>
         <target state="translated">Tracce</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PageLayoutViewFilters">
+        <source>View filters</source>
+        <target state="translated">Visualizza filtri</target>
         <note />
       </trans-unit>
     </body>

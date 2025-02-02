@@ -5,9 +5,9 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Properties;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dcp;
@@ -17,26 +17,22 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
     [GeneratedRegex("[^\\d\\.].*$")]
     private static partial Regex VersionRegex();
 
-    private readonly DistributedApplicationModel _applicationModel;
     private readonly DcpOptions _dcpOptions;
     private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
     private DcpInfo? _dcpInfo;
     private bool _checkDone;
 
-    public DcpDependencyCheck(
-        DistributedApplicationModel applicationModel,
-        IOptions<DcpOptions> dcpOptions)
+    public DcpDependencyCheck(IOptions<DcpOptions> dcpOptions)
     {
-        _applicationModel = applicationModel;
         _dcpOptions = dcpOptions.Value;
     }
 
-    public async Task<DcpInfo?> GetDcpInfoAsync(CancellationToken cancellationToken = default)
+    public async Task<DcpInfo?> GetDcpInfoAsync(bool force = false, CancellationToken cancellationToken = default)
     {
         await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (_checkDone)
+            if (_checkDone && !force)
             {
                 return _dcpInfo;
             }
@@ -52,34 +48,45 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
 
             IAsyncDisposable? processDisposable = null;
             Task<ProcessResult> task;
+            var outputStringBuilder = new StringBuilder();
+            var errorStringBuilder = new StringBuilder();
 
             try
             {
-                var outputStringBuilder = new StringBuilder();
-
                 var arguments = "info";
                 if (!string.IsNullOrEmpty(containerRuntime))
                 {
                     arguments += $" --container-runtime {containerRuntime}";
                 }
 
-                // Run `dcp version`
                 var processSpec = new ProcessSpec(dcpPath)
                 {
                     Arguments = arguments,
                     OnOutputData = s => outputStringBuilder.Append(s),
+                    OnErrorData = s => errorStringBuilder.Append(s),
+                    ThrowOnNonZeroReturnCode = false
                 };
 
                 (task, processDisposable) = ProcessUtil.Run(processSpec);
+                ProcessResult processResult;
 
                 // Disable timeout if DependencyCheckTimeout is set to zero or a negative value
                 if (_dcpOptions.DependencyCheckTimeout > 0)
                 {
-                    await task.WaitAsync(TimeSpan.FromSeconds(_dcpOptions.DependencyCheckTimeout), cancellationToken).ConfigureAwait(false);
+                    processResult = await task.WaitAsync(TimeSpan.FromSeconds(_dcpOptions.DependencyCheckTimeout), cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
-                    await task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    processResult = await task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                }
+
+                if (processResult.ExitCode != 0)
+                {
+                    throw new DistributedApplicationException(string.Format(
+                        CultureInfo.InvariantCulture,
+                        Resources.DcpDependencyCheckFailedMessage,
+                        $"'dcp {arguments}' returned exit code {processResult.ExitCode}. {errorStringBuilder.ToString()}{Environment.NewLine}{outputStringBuilder.ToString()}"
+                    ));
                 }
 
                 // Parse the output as JSON
@@ -96,7 +103,6 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
                 }
 
                 EnsureDcpVersion(dcpInfo);
-                EnsureDcpContainerRuntime(dcpInfo);
                 _dcpInfo = dcpInfo;
                 return dcpInfo;
             }
@@ -105,14 +111,18 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
                 throw new DistributedApplicationException(string.Format(
                     CultureInfo.InvariantCulture,
                     Resources.DcpDependencyCheckFailedMessage,
-                    ex.ToString()
+                    $"{ex.Message} {errorStringBuilder.ToString()}{Environment.NewLine}{outputStringBuilder.ToString()}"
                 ));
             }
             finally
             {
                 if (processDisposable != null)
                 {
-                    await processDisposable.DisposeAsync().ConfigureAwait(false);
+                    try
+                    {
+                        await processDisposable.DisposeAsync().ConfigureAwait(false);
+                    }
+                    catch { } // Dispose (dcp info process termination) is best effort.
                 }
             }
         }
@@ -162,53 +172,54 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
         }
     }
 
-    private void EnsureDcpContainerRuntime(DcpInfo dcpInfo)
+    internal static void CheckDcpInfoAndLogErrors(ILogger logger, DcpOptions options, DcpInfo dcpInfo, bool throwIfUnhealthy = false)
     {
-        // If we don't have any resources that need a container then we
-        // don't need to check for a healthy container runtime.
-        if (!_applicationModel.Resources.Any(c => c.IsContainer()))
+        var containerRuntime = options.ContainerRuntime;
+        if (string.IsNullOrEmpty(containerRuntime))
         {
-            return;
+            // Default runtime is Docker
+            containerRuntime = "docker";
         }
+        var installed = dcpInfo.Containers?.Installed ?? false;
+        var running = dcpInfo.Containers?.Running ?? false;
+        var error = dcpInfo.Containers?.Error;
 
-        AspireEventSource.Instance.ContainerRuntimeHealthCheckStart();
-
-        try
+        if (!installed)
         {
-            var containerRuntime = _dcpOptions.ContainerRuntime;
-            if (string.IsNullOrEmpty(containerRuntime))
-            {
-                // Default runtime is Docker
-                containerRuntime = "docker";
-            }
-            var installed = dcpInfo.Containers?.Installed ?? false;
-            var running = dcpInfo.Containers?.Running ?? false;
-            var error = dcpInfo.Containers?.Error;
+            logger.LogWarning("Container runtime '{Runtime}' could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.", containerRuntime);
 
-            if (!installed)
+            logger.LogDebug("The error from the container runtime check was: {Error}", error);
+            if (throwIfUnhealthy)
             {
-                throw new DistributedApplicationException(string.Format(
-                    CultureInfo.InvariantCulture,
-                    Resources.ContainerRuntimePrerequisiteMissingExceptionMessage,
-                    containerRuntime,
-                    error
-                ));
+                throw new DistributedApplicationException($"Container runtime '{containerRuntime}' could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.");
             }
-            else if (!running)
-            {
-                throw new DistributedApplicationException(string.Format(
-                    CultureInfo.InvariantCulture,
-                    Resources.ContainerRuntimeUnhealthyExceptionMessage,
-                    containerRuntime,
-                    error
-                ));
-            }
-
-            // If we get to here all is good!
         }
-        finally
+        else if (!running)
         {
-            AspireEventSource.Instance?.ContainerRuntimeHealthCheckStop();
+            var messageFormat = new StringBuilder();
+            messageFormat.Append("Container runtime '{Runtime}' was found but appears to be unhealthy. ");
+
+            if (string.Equals(containerRuntime, "docker", StringComparison.OrdinalIgnoreCase))
+            {
+                messageFormat.Append("Ensure that Docker is running and that the Docker daemon is accessible. ");
+                messageFormat.Append("If Resource Saver mode is enabled, containers may not run. For more information, visit: https://docs.docker.com/desktop/use-desktop/resource-saver/");
+            }
+            else if (string.Equals(containerRuntime, "podman", StringComparison.OrdinalIgnoreCase))
+            {
+                messageFormat.Append("Ensure that Podman is running.");
+            }
+            else
+            {
+                messageFormat.Append("Ensure that the container runtime is running.");
+            }
+
+            logger.LogWarning(messageFormat.ToString(), containerRuntime);
+
+            logger.LogDebug("The error from the container runtime check was: {Error}", error);
+            if (throwIfUnhealthy)
+            {
+                throw new DistributedApplicationException(messageFormat.Replace("{Runtime}", containerRuntime).ToString());
+            }
         }
     }
 }

@@ -8,10 +8,11 @@ using MongoDB.Driver;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.AddMongoDBClient("mongo");
+builder.AddMongoDBClient("db");
 
 var app = builder.Build();
 
+app.MapDefaultEndpoints();
 app.MapGet("/", async (IMongoClient mongoClient) =>
 {
     const string collectionName = "entries";

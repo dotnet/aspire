@@ -45,7 +45,7 @@ public class YarpServiceDiscoveryTests
 
         var result = await yarpResolver.ResolveDestinationsAsync(destinationConfigs, CancellationToken.None);
 
-        Assert.Equal(1, result.Destinations.Count);
+        Assert.Single(result.Destinations);
         Assert.Collection(result.Destinations.Select(d => d.Value.Address),
             a => Assert.Equal("https://my-svc/", a));
     }
@@ -76,7 +76,7 @@ public class YarpServiceDiscoveryTests
 
         var result = await yarpResolver.ResolveDestinationsAsync(destinationConfigs, CancellationToken.None);
 
-        Assert.Equal(1, result.Destinations.Count);
+        Assert.Single(result.Destinations);
         Assert.Collection(result.Destinations.Select(d => d.Value.Address),
             a => Assert.Equal("https://localhost:8888/", a));
     }
@@ -106,7 +106,7 @@ public class YarpServiceDiscoveryTests
 
         var result = await yarpResolver.ResolveDestinationsAsync(destinationConfigs, CancellationToken.None);
 
-        Assert.Equal(1, result.Destinations.Count);
+        Assert.Single(result.Destinations);
         Assert.Collection(result.Destinations.Select(d => d.Value.Address),
             a => Assert.Equal("http://localhost:1111/", a));
     }
@@ -188,8 +188,7 @@ public class YarpServiceDiscoveryTests
                 }
                 else
                 {
-                    // For non-localhost values, fallback to the input address.
-                    Assert.Equal("basket", a.Host);
+                    Assert.Null(a.Host);
                 }
             });
     }
@@ -226,7 +225,7 @@ public class YarpServiceDiscoveryTests
         var result = await yarpResolver.ResolveDestinationsAsync(destinationConfigs, CancellationToken.None);
 
         // No results: there are no 'https' endpoints in config and 'http' is disallowed.
-        Assert.Equal(0, result.Destinations.Count);
+        Assert.Empty(result.Destinations);
     }
 
     [Fact]

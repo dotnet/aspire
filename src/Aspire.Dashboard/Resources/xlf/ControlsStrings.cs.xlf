@@ -2,9 +2,29 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="cs" original="../ControlsStrings.resx">
     <body>
-      <trans-unit id="All">
-        <source>All</source>
-        <target state="translated">Vše</target>
+      <trans-unit id="ActionStructuredLogsText">
+        <source>Structured logs</source>
+        <target state="translated">Strukturované protokoly</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ActionViewDetailsText">
+        <source>View details</source>
+        <target state="translated">Zobrazit podrobnosti</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ActionsButtonText">
+        <source>Actions</source>
+        <target state="translated">Akce</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ActionsColumnHeader">
+        <source>Actions</source>
+        <target state="translated">Akce</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ApplicationLower">
+        <source>application</source>
+        <target state="translated">aplikace</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerAllTags">
@@ -32,11 +52,6 @@
         <target state="translated">Graf</target>
         <note />
       </trans-unit>
-      <trans-unit id="ChartContainerNoneSelected">
-        <source>(None)</source>
-        <target state="translated">(žádné)</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
         <source>Options</source>
         <target state="translated">Možnosti</target>
@@ -62,6 +77,21 @@
         <target state="translated">Graf nelze zobrazit.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ClearAllResources">
+        <source>Remove all</source>
+        <target state="translated">Odebrat vše</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ClearPendingSelectedResource">
+        <source>Remove for resource</source>
+        <target state="translated">Odebrat pro prostředek</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ClearSelectedResource">
+        <source>Remove for {0}</source>
+        <target state="translated">Odebrat pro {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">Podrobnosti</target>
@@ -75,6 +105,11 @@
       <trans-unit id="EventColumnHeader">
         <source>Event</source>
         <target state="translated">Událost</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExceptionDetailsTitle">
+        <source>Exception details</source>
+        <target state="translated">Podrobnosti o výjimce</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
@@ -102,6 +137,31 @@
         <target state="translated">Zobrazit hodnoty</target>
         <note />
       </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellResizeButtonText">
+        <source>Resize</source>
+        <target state="translated">Změnit velikost</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellResizeLabel">
+        <source>Column width (in pixels)</source>
+        <target state="translated">Šířka sloupce (v pixelech)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellSortAscendingButtonText">
+        <source>Sort (ascending)</source>
+        <target state="translated">Seřadit (vzestupně)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellSortButtonText">
+        <source>Sort</source>
+        <target state="translated">Seřadit</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellSortDescendingButtonText">
+        <source>Sort (descending)</source>
+        <target state="translated">Seřadit (sestupně)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GridValueCopied">
         <source>Copied!</source>
         <target state="translated">Zkopírováno!</target>
@@ -122,9 +182,34 @@
         <target state="translated">Zobrazit hodnotu</target>
         <note />
       </trans-unit>
+      <trans-unit id="LabelAll">
+        <source>(All)</source>
+        <target state="translated">(vše)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LabelEmpty">
+        <source>(Empty)</source>
+        <target state="translated">(prázdné)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LabelNone">
+        <source>(None)</source>
+        <target state="translated">(žádné)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LabelUnset">
+        <source>(Unset)</source>
+        <target state="translated">(nenastaveno)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Loading">
         <source>Loading...</source>
         <target state="translated">Načítání…</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricTableExemplarsColumnHeader">
+        <source>Exemplars</source>
+        <target state="translated">Příklady</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableNoMetricsFound">
@@ -162,9 +247,19 @@
         <target state="translated">Hodnota se nezměnila.</target>
         <note />
       </trans-unit>
+      <trans-unit id="MetricTableViewExemplarsLabel">
+        <source>View exemplars</source>
+        <target state="translated">Zobrazit příklady</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NameColumnHeader">
         <source>Name</source>
         <target state="translated">Název</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PageToolbarLandmark">
+        <source>Page toolbar</source>
+        <target state="translated">Panel nástrojů stránky</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -172,10 +267,25 @@
         <target state="translated">Počet</target>
         <note>Count is the name of a plot y-axis label</note>
       </trans-unit>
+      <trans-unit id="PlotlyChartExemplars">
+        <source>Exemplars</source>
+        <target state="translated">Příklady</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartLength">
         <source>Length</source>
         <target state="translated">Délka</target>
         <note>Length is the name of a plot y-axis label</note>
+      </trans-unit>
+      <trans-unit id="PlotlyChartTime">
+        <source>Time</source>
+        <target state="translated">Čas</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PlotlyChartTrace">
+        <source>Trace</source>
+        <target state="translated">Trasování</target>
+        <note />
       </trans-unit>
       <trans-unit id="PlotlyChartValue">
         <source>Value</source>
@@ -187,9 +297,9 @@
         <target state="translated">Hodnota</target>
         <note />
       </trans-unit>
-      <trans-unit id="ReplicaSetLower">
-        <source>replica set</source>
-        <target state="translated">sada replik</target>
+      <trans-unit id="ResourceDetailsBackReferences">
+        <source>Back references</source>
+        <target state="translated">Zpětné odkazy</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointsHeader">
@@ -202,9 +312,24 @@
         <target state="translated">Proměnné prostředí</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceDetailsReferences">
+        <source>References</source>
+        <target state="translated">Odkazy</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceDetailsResourceHeader">
         <source>Resource</source>
         <target state="translated">Prostředek</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceDetailsTypeHeader">
+        <source>Type</source>
+        <target state="translated">Typ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceDetailsVolumesHeader">
+        <source>Volumes</source>
+        <target state="translated">Svazky</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDropdownReplicaAccessibleTitle">
@@ -212,14 +337,34 @@
         <target state="translated">{0} (replika sady {1})</target>
         <note>{0} is a resource name, {1} is a replica set name</note>
       </trans-unit>
-      <trans-unit id="SelectAResource">
-        <source>Select a resource</source>
-        <target state="translated">Vybrat prostředek</target>
+      <trans-unit id="ResourceHealthChecksHeader">
+        <source>Health checks</source>
+        <target state="translated">Kontroly stavu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceLabel">
+        <source>Resource</source>
+        <target state="translated">Prostředek</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">
         <source>Select an application</source>
         <target state="translated">Vybrat aplikaci</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsBacklinksHeader">
+        <source>Backlinks</source>
+        <target state="translated">Zpětné odkazy</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsContextHeader">
+        <source>Context</source>
+        <target state="translated">Kontext</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsDetailsColumnHeader">
+        <source>Details</source>
+        <target state="translated">Podrobnosti</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsDuration">
@@ -232,6 +377,11 @@
         <target state="translated">Události</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanDetailsLinksHeader">
+        <source>Links</source>
+        <target state="translated">Odkazy</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanDetailsResource">
         <source>Resource &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="translated">Prostředek &lt;strong&gt;{0}&lt;/strong&gt;</target>
@@ -242,7 +392,17 @@
         <target state="translated">Prostředek</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanDetailsSpanColumnHeader">
+        <source>Span</source>
+        <target state="translated">Rozpětí</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanDetailsSpanHeader">
+        <source>Span</source>
+        <target state="translated">Rozpětí</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsSpanPrefix">
         <source>Span</source>
         <target state="translated">Rozpětí</target>
         <note />
@@ -251,6 +411,26 @@
         <source>Start time &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="translated">Čas spuštění: &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="StateColumnHeader">
+        <source>State</source>
+        <target state="translated">Stav</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredFilteringAddFilter">
+        <source>Add filter</source>
+        <target state="translated">Přidat filtr</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredFilteringFilters">
+        <source>Filters</source>
+        <target state="translated">Filtry</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredFilteringNoFilters">
+        <source>No filters</source>
+        <target state="translated">Žádné filtry</target>
+        <note />
       </trans-unit>
       <trans-unit id="StructuredLogsDetailsContextHeader">
         <source>Context</source>
@@ -294,7 +474,7 @@
       </trans-unit>
       <trans-unit id="TraceDetailAttributesHeader">
         <source>Attributes</source>
-        <target state="new">Attributes</target>
+        <target state="translated">Atributy</target>
         <note />
       </trans-unit>
       <trans-unit id="ViewAction">
@@ -326,6 +506,16 @@
         <source>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</source>
         <target state="translated">Celkem: &lt;strong&gt;nalezené výsledky: {0} &lt;/strong&gt;</target>
         <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="VolumeMountTypeColumnHeader">
+        <source>Mount type</source>
+        <target state="translated">Typ připojení</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VolumePathColumnHeader">
+        <source>Path</source>
+        <target state="translated">Cesta</target>
+        <note />
       </trans-unit>
     </body>
   </file>

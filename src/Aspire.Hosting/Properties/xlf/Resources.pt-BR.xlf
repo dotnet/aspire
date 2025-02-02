@@ -35,8 +35,8 @@ Consulte https://aka.ms/dotnet/aspire/containers para obter mais detalhes sobre 
         <note />
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
-        <source>Application orchestrator dependency check had an unexpected error {0}.</source>
-        <target state="translated">A verificação de dependência do orquestrador de aplicativos teve um erro inesperado {0}.</target>
+        <source>Application orchestrator dependency check returned an error: {0}</source>
+        <target state="translated">A verificação de dependências do orquestrador de aplicativos retornou um erro: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">

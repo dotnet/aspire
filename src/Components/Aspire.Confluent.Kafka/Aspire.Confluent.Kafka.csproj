@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentCommonPackageTags) kafka</PackageTags>
     <Description>Confluent.Kafka based Kafka generic consumer and producer that integrates with Aspire, including healthchecks and metrics.</Description>
@@ -14,6 +14,10 @@
 
   <ItemGroup>
     <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(VendoringDir)OpenTelemetry.Instrumentation.ConfluentKafka\**\*.cs" LinkBase="OpenTelemetry.Instrumentation.ConfluentKafka" />
   </ItemGroup>
 
   <ItemGroup>

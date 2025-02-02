@@ -1,15 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>9c946452-f682-49a4-9209-29ed63174447</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Azure.Messaging.EventHubs\Aspire.Azure.Messaging.EventHubs.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Azure.Storage.Blobs\Aspire.Azure.Storage.Blobs.csproj" />
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Messaging.EventHubs" />
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Storage.Blobs" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
 

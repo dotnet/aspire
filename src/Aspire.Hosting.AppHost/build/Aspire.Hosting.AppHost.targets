@@ -12,6 +12,11 @@
     <ProjectCapability Include="Aspire" Condition=" '$(IsAspireHost)' == 'true' " />
   </ItemGroup>
 
+  <ItemGroup>
+    <JsonSchemaSegment Include="$(MSBuildThisFileDirectory)..\AspireAppHostConfiguration.json"
+                       FilePathPattern="appsettings\..*json" />
+  </ItemGroup>
+
   <Target Name="_CreateAspireProjectResources">
 
     <ItemGroup>
@@ -213,6 +218,10 @@ namespace Projects%3B
         <_Parameter1>apphostprojectpath</_Parameter1>
         <_Parameter2>$(MSBuildProjectDirectory)</_Parameter2>
       </AssemblyAttribute>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+        <_Parameter1>apphostprojectname</_Parameter1>
+        <_Parameter2>$(MSBuildProjectFile)</_Parameter2>
+      </AssemblyAttribute>
     </ItemGroup>
   </Target>
 
@@ -244,6 +253,12 @@ namespace Projects%3B
     </PropertyGroup>
 
     <MakeDir Directories="$(AspireManifestPublishOutputPath)" />
+  </Target>
+
+  <Target Name="__ErrorOnMininumSdkVersionMissing" BeforeTargets="PrepareForBuild"
+  Condition="'$(IsAspireHost)' == 'true' and ('$(AspireHostingSDKVersion)' == '' or $([MSBuild]::VersionLessThan('$(AspireHostingSDKVersion)', '9.0.0')))">
+    <Error Code="ASPIRE006"
+      Text="$(MSBuildProjectName) project requires a reference to &quot;Aspire.AppHost.Sdk&quot; with version &quot;9.0.0&quot; or greater to work correctly. Please add the following line after the Project declaration `&lt;Sdk Name=&quot;Aspire.AppHost.Sdk&quot; Version=&quot;9.0.0&quot; /&gt;`." />
   </Target>
 
   <!-- Entrypoint to allow for generation of an aspire manifest to a given location -->

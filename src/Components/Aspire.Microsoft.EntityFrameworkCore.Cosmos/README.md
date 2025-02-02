@@ -71,7 +71,7 @@ See the [ConnectionString documentation](https://learn.microsoft.com/azure/cosmo
 
 ### Use configuration providers
 
-The .NET Aspire Microsoft EntityFrameworkCore Cosmos component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `EntityFrameworkCoreCosmosSettings` from configuration by using the `Aspire:Microsaoft:EntityFrameworkCore:Cosmos` key. Example `appsettings.json` that configures some of the options:
+The .NET Aspire Microsoft EntityFrameworkCore Cosmos component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `EntityFrameworkCoreCosmosSettings` from configuration by using the `Aspire:Microsoft:EntityFrameworkCore:Cosmos` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {

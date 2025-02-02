@@ -1,38 +1,26 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <!--
+    Since this project uses both Npgsql and Npgsql.EntityFrameworkCore, we need to ensure they are both the same major version.
+    Aspire.Npgsql uses Npgsql v9, so we need to use Npgsql.EntityFrameworkCore v9 (by targeting net9.0) to match.
+    -->
+    <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- MongoDB.Driver package is unsigned, we ignore that warning on purpose  -->
-    <NoWarn>$(NoWarn);CS8002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <Using Include="Confluent.Kafka" />
-
     <Compile Include="..\Common\TestResourceNames.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <ComponentReferenceForTests Include="Aspire.Confluent.Kafka" />
-    <ComponentReferenceForTests Include="Aspire.Microsoft.Azure.Cosmos" />
-    <ComponentReferenceForTests Include="Aspire.Microsoft.Data.SqlClient" />
-    <ComponentReferenceForTests Include="Aspire.Milvus.Client" />
-    <ComponentReferenceForTests Include="Aspire.MongoDB.Driver" />
-    <ComponentReferenceForTests Include="Aspire.MySqlConnector" />
-    <ComponentReferenceForTests Include="Aspire.Npgsql" />
-    <ComponentReferenceForTests Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
-    <ComponentReferenceForTests Include="Aspire.Oracle.EntityFrameworkCore" />
-    <ComponentReferenceForTests Include="Aspire.Pomelo.EntityFrameworkCore.MySql" />
-    <ComponentReferenceForTests Include="Aspire.RabbitMQ.Client" />
-    <ComponentReferenceForTests Include="Aspire.StackExchange.Redis" />
-    <ComponentReferenceForTests Include="Aspire.Azure.Messaging.EventHubs" />
+    <AspireProjectOrPackageReference Include="Aspire.Npgsql" />
+    <AspireProjectOrPackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <AspireProjectOrPackageReference Include="Aspire.StackExchange.Redis" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" Include="@(ComponentReferenceForTests -> '$(RepoRoot)src\Components\%(Identity)\%(Identity).csproj')" />
-    <PackageReference Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" Include="@(ComponentReferenceForTests)" />
     <PackageReference Include="Polly.Core" />
   </ItemGroup>
 

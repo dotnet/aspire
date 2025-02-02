@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.StackExchange.Redis\Aspire.StackExchange.Redis.csproj" />
+    <AspireProjectOrPackageReference Include="Aspire.StackExchange.Redis" />
   </ItemGroup>
 
 </Project>

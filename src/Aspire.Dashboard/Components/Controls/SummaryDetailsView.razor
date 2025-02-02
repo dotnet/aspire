@@ -1,42 +1,51 @@
 ﻿@using Aspire.Dashboard.Resources
-@inject IStringLocalizer<ControlsStrings> Loc
 @typeparam T
 
 <div class="summary-details-container">
-    <FluentSplitter Orientation="@Orientation" Collapsed="@(!_internalShowDetails)"
-                    OnResized="HandleSplitterResize"
-                    Panel1Size="@_panel1Size" Panel2Size="@_panel2Size"
-                    Panel1MinSize="150px" Panel2MinSize="150px"
-                    BarSize="5"
-                    @ref="_splitterRef">
-        <Panel1>
+    @if (!ViewportInformation.IsDesktop)
+    {
+        @if (_internalShowDetails)
+        {
+            <DetailView
+                DetailsTitle="@DetailsTitle"
+                DetailsTitleTemplate="@(SelectedValue is not null ? DetailsTitleTemplate?.Invoke(SelectedValue) : null)"
+                HandleDismissAsync="@HandleDismissAsync"
+                HandleToggleOrientation="@HandleToggleOrientation"
+                Details="@(SelectedValue is not null ? Details?.Invoke(SelectedValue) : null)"
+                Orientation="@Orientation" />
+        }
+        else
+        {
             <div class="summary-container">
                 @Summary
             </div>
-        </Panel1>
-        <Panel2>
-            <div class="details-container">
-                <header Style="height: auto;">
-                    @if (DetailsTitle is not null)
-                    {
-                        <div class="details-header-title" title="@DetailsTitle">@DetailsTitle</div>
-                    }
-                    else if (DetailsTitleTemplate is not null)
-                    {
-                        <div class="details-header-title">@DetailsTitleTemplate</div>
-                    }
-                    <div class="header-actions">
-                        <FluentButton Appearance="Appearance.Stealth"
-                                      IconEnd="@(Orientation == Orientation.Horizontal ? _splitHorizontalIcon : _splitVerticalIcon)"
-                                      OnClick="HandleToggleOrientation"
-                                      Title="@(Orientation == Orientation.Horizontal ? Loc[nameof(ControlsStrings.SummaryDetailsViewSplitHorizontal)] : Loc[nameof(ControlsStrings.SummaryDetailsViewSplitVertical)])"
-                                      aria-label="@(Orientation == Orientation.Horizontal ? Loc[nameof(ControlsStrings.SummaryDetailsViewSplitHorizontal)] : Loc[nameof(ControlsStrings.SummaryDetailsViewSplitVertical)])" />
-                        <FluentButton Appearance="Appearance.Stealth" IconEnd="@(new Icons.Regular.Size16.Dismiss())"
-                                      OnClick="HandleDismissAsync" Title="@Loc[nameof(ControlsStrings.SummaryDetailsViewCloseView)]" aria-label="@Loc[nameof(ControlsStrings.SummaryDetailsViewCloseView)]" />
-                    </div>
-                </header>
-                @Details
-            </div>
-        </Panel2>
-    </FluentSplitter>
+        }
+    }
+    else
+    {
+        <FluentSplitter Orientation="@Orientation" Collapsed="@(!_internalShowDetails)"
+                        OnResized="HandleSplitterResize"
+                        Panel1Size="@EffectivePanel1Size" Panel2Size="@EffectivePanel2Size"
+                        Panel1MinSize="@PanelMinimumSize" Panel2MinSize="@PanelMinimumSize"
+                        BarSize="5"
+                        @ref="_splitterRef">
+            <Panel1>
+                <div class="summary-container">
+                    @Summary
+                </div>
+            </Panel1>
+            <Panel2>
+                @if (_internalShowDetails)
+                {
+                    <DetailView
+                        DetailsTitle="@DetailsTitle"
+                        DetailsTitleTemplate="@(SelectedValue is not null ? DetailsTitleTemplate?.Invoke(SelectedValue) : null)"
+                        HandleDismissAsync="@HandleDismissAsync"
+                        HandleToggleOrientation="@HandleToggleOrientation"
+                        Details="@(SelectedValue is not null ? Details?.Invoke(SelectedValue) : null)"
+                        Orientation="@Orientation"/>
+                }
+            </Panel2>
+        </FluentSplitter>
+    }
 </div>

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentAzurePackageTags) servicebus amqp</PackageTags>
     <Description>A client for Azure Service Bus that integrates with Aspire, including health checks, logging and telemetry.</Description>
@@ -21,7 +21,6 @@
 
   <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.AzureServiceBus" />
-    <PackageReference Include="Azure.Identity" />
     <PackageReference Include="Azure.Messaging.ServiceBus" />
     <PackageReference Include="Microsoft.Extensions.Azure" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />

@@ -69,6 +69,11 @@
                   "type": "boolean",
                   "description": "Gets or sets whether retries should be disabled.",
                   "default": false
+                },
+                "DisableTracing": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+                  "default": false
                 }
               },
               "description": "Provides the client configuration settings for connecting to a Oracle database using EntityFrameworkCore."

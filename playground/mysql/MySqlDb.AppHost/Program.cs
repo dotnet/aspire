@@ -12,6 +12,6 @@ var catalogDb = builder.AddMySql("mysql")
 
 builder.AddProject<Projects.MySql_ApiService>("apiservice")
     .WithExternalHttpEndpoints()
-    .WithReference(catalogDb);
+    .WithReference(catalogDb).WaitFor(catalogDb);
 
 builder.Build().Run();

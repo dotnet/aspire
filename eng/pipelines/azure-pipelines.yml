@@ -95,6 +95,9 @@ extends:
   template: v1/1ES.Official.PipelineTemplate.yml@1ESPipelineTemplates
   parameters:
     sdl:
+      policheck:
+        enabled: true
+        exclusionsFile: $(Build.SourcesDirectory)\.config\PoliCheckExclusions.xml
       eslint:
         enabled: false
         justificationForDisabling: 'see https://portal.microsofticm.com/imp/v3/incidents/incident/482258316/summary'
@@ -102,6 +105,8 @@ extends:
         name: NetCore1ESPool-Internal
         image: windows.vs2022preview.amd64
         os: windows
+      tsa:
+        enabled: true
     customBuildTags:
     - ES365AIMigrationTooling
 
@@ -121,8 +126,7 @@ extends:
           enablePublishUsingPipelines: true
           enablePublishBuildAssets: true
           enableTelemetry: true
-          enableSourceBuild: true
-          enableSourceIndex: false
+          enableSourceIndex: true
           publishAssetsImmediately: true
           # Publish build logs
           enablePublishBuildArtifacts: true

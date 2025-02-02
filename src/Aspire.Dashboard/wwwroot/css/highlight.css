@@ -1,0 +1,49 @@
+/*!
+  Theme: a11y-light/a11y-dark
+  Author: @ericwbailey
+  Maintainer: @ericwbailey
+
+  Based on the Tomorrow Night Eighties theme: https://github.com/isagalaev/highlight.js/blob/master/src/styles/tomorrow-night-eighties.css
+
+  Customized in Aspire to read colors from theme dependent variables.
+*/
+
+.hljs {
+    color: var(--hljs-default);
+}
+
+.hljs-comment, .hljs-quote {
+    color: var(--hljs-comment);
+}
+
+.hljs-deletion, .hljs-name, .hljs-regexp, .hljs-selector-class, .hljs-selector-id, .hljs-tag, .hljs-template-variable, .hljs-variable {
+    color: var(--hljs-variable);
+}
+
+.hljs-built_in, .hljs-link, .hljs-literal, .hljs-meta, .hljs-number, .hljs-params, .hljs-type {
+    color: var(--hljs-literal);
+}
+
+.hljs-attribute {
+    color: var(--hljs-attribute);
+}
+
+.hljs-addition, .hljs-bullet, .hljs-string, .hljs-symbol {
+    color: var(--hljs-string);
+}
+
+.hljs-section, .hljs-title {
+    color: var(--hljs-section);
+}
+
+.hljs-keyword, .hljs-selector-tag {
+    color: var(--hljs-keyword);
+}
+
+.hljs-emphasis {
+    font-style: italic;
+}
+
+.hljs-strong {
+    font-weight: 700;
+}

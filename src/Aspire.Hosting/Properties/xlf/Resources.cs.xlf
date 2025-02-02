@@ -35,8 +35,8 @@ Další podrobnosti o podporovaných modulech runtime kontejnerů najdete na htt
         <note />
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
-        <source>Application orchestrator dependency check had an unexpected error {0}.</source>
-        <target state="translated">Při kontrole závislosti orchestrátoru aplikace došlo k neočekávané chybě {0}.</target>
+        <source>Application orchestrator dependency check returned an error: {0}</source>
+        <target state="translated">Kontrola závislosti orchestrátoru aplikace vrátila chybu: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">

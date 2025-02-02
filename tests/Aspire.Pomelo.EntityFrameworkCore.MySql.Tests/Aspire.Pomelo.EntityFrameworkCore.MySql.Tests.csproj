@@ -1,8 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
-    <RunTestsOnHelix>true</RunTestsOnHelix>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Needed until Pomelo MySQL EF supports net9.0 - https://github.com/dotnet/aspire/pull/6948 -->
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" VersionOverride="$(MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreLTSVersion)" />
+
     <PackageReference Include="Testcontainers.MySql" />
 
     <ProjectReference Include="..\..\src\Components\Aspire.Pomelo.EntityFrameworkCore.MySql\Aspire.Pomelo.EntityFrameworkCore.MySql.csproj" />

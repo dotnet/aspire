@@ -1,0 +1,34 @@
+﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
+@inject IStringLocalizer<Layout> Loc
+@inject IDashboardClient DashboardClient
+
+<FluentAppBar PopoverShowSearch="false" Class="desktop-nav-menu">
+    @if (DashboardClient.IsEnabled)
+    {
+        <FluentAppBarItem
+            Href="@DashboardUrls.ResourcesUrl()"
+            Match="NavLinkMatch.All"
+            IconRest="ResourcesIcon()"
+            IconActive="ResourcesIcon(active: true)"
+            Text="@Loc[nameof(Layout.NavMenuResourcesTab)]" />
+        <FluentAppBarItem Href="@DashboardUrls.ConsoleLogsUrl()"
+            IconRest="ConsoleLogsIcon()"
+            IconActive="ConsoleLogsIcon(active: true)"
+            Text="@Loc[nameof(Layout.NavMenuConsoleLogsTab)]" />
+    }
+    <FluentAppBarItem Href="@DashboardUrls.StructuredLogsUrl()"
+        IconRest="StructuredLogsIcon()"
+        IconActive="StructuredLogsIcon(active: true)"
+        Text="@Loc[nameof(Layout.NavMenuStructuredLogsTab)]" />
+    <FluentAppBarItem Href="@DashboardUrls.TracesUrl()"
+        IconRest="TracesIcon()"
+        IconActive="TracesIcon(active: true)"
+        Text="@Loc[nameof(Layout.NavMenuTracesTab)]" />
+    <FluentAppBarItem
+        Href="@DashboardUrls.MetricsUrl()"
+        IconRest="MetricsIcon()"
+        IconActive="MetricsIcon(active: true)"
+        Text="@Loc[nameof(Layout.NavMenuMetricsTab)]" />
+</FluentAppBar>

@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <AzureFunctionsVersion>v4</AzureFunctionsVersion>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Blobs" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.EventHubs" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.CosmosDb" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.OpenTelemetry" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" />
+    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="host.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="local.settings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="System.Threading.ExecutionContext" Alias="ExecutionContext" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Storage.Blobs" />
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Storage.Queues" />
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Messaging.EventHubs" />
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Messaging.ServiceBus" />
+  </ItemGroup>
+</Project>

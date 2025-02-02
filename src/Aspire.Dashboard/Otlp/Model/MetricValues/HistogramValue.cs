@@ -46,7 +46,12 @@ public class HistogramValue : MetricValueBase
 
     protected override MetricValueBase Clone()
     {
-        return new HistogramValue(Values, Sum, Count, Start, End, ExplicitBounds);
+        var value = new HistogramValue(Values, Sum, Count, Start, End, ExplicitBounds);
+        if (HasExemplars)
+        {
+            value.Exemplars.AddRange(Exemplars);
+        }
+        return value;
     }
 
     public override bool Equals(object? obj)

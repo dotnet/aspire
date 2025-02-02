@@ -2,7 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Dcp.Model;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
@@ -24,10 +27,14 @@ public static class OtlpConfigurationExtensions
     /// <param name="environment">The host environment to check if the application is running in development mode.</param>
     public static void AddOtlpEnvironment(IResource resource, IConfiguration configuration, IHostEnvironment environment)
     {
+        ArgumentNullException.ThrowIfNull(resource);
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(environment);
+
         // Configure OpenTelemetry in projects using environment variables.
         // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/configuration/sdk-environment-variables.md
 
-        resource.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+        resource.Annotations.Add(new EnvironmentCallbackAnnotation(async context =>
         {
             if (context.ExecutionContext.IsPublishMode)
             {
@@ -56,8 +63,10 @@ public static class OtlpConfigurationExtensions
             }
 
             // Set the service name and instance id to the resource name and UID. Values are injected by DCP.
-            context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- .Name -}}";
-            context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- index .Annotations \"otel-service-name\" -}}";
+            var dcpDependencyCheckService = context.ExecutionContext.ServiceProvider.GetRequiredService<IDcpDependencyCheckService>();
+            var dcpInfo = await dcpDependencyCheckService.GetDcpInfoAsync(cancellationToken: context.CancellationToken).ConfigureAwait(false);
+            context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- index .Annotations \"" + CustomResource.OtelServiceInstanceIdAnnotation + "\" -}}";
+            context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- index .Annotations \"" + CustomResource.OtelServiceNameAnnotation + "\" -}}";
 
             if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
             {
@@ -76,6 +85,8 @@ public static class OtlpConfigurationExtensions
 
                 // Configure trace sampler to send all traces to the dashboard.
                 context.EnvironmentVariables["OTEL_TRACES_SAMPLER"] = "always_on";
+                // Configure metrics to include exemplars.
+                context.EnvironmentVariables["OTEL_METRICS_EXEMPLAR_FILTER"] = "trace_based";
             }
         }));
 
@@ -97,6 +108,8 @@ public static class OtlpConfigurationExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithOtlpExporter<T>(this IResourceBuilder<T> builder) where T : IResourceWithEnvironment
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         AddOtlpEnvironment(builder.Resource, builder.ApplicationBuilder.Configuration, builder.ApplicationBuilder.Environment);
         return builder;
     }

@@ -5,7 +5,12 @@ namespace Aspire.Hosting.Valkey;
 
 internal static class ValkeyContainerImageTags
 {
-    public const string Registry = "valkey";
-    public const string Image = "valkey";
-    public const string Tag = "7.2";
+    /// <remarks>docker.io</remarks>
+    public const string Registry = "docker.io";
+
+    /// <remarks>valkey/valkey</remarks>
+    public const string Image = "valkey/valkey";
+
+    /// <remarks>8.0</remarks>
+    public const string Tag = "8.0";
 }

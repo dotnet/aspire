@@ -1,17 +1,35 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <!--
+      CS8002: Referenced assembly does not have a strong name
+    -->
+    <NoWarn>$(NoWarn);CS8002</NoWarn>
+
+    <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(CODESPACES)' == 'true'">true</InstallBrowsersForPlaywright>
+    <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</InstallBrowsersForPlaywright>
+    <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(OS)' == 'Windows_NT' and '$(ContinuousIntegrationBuild)' != 'true'">true</InstallBrowsersForPlaywright>
+
+    <RunTestsOnHelix>false</RunTestsOnHelix>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Grpc.Tools" />
+    <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" />
+
     <ProjectReference Include="..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
 
+    <Compile Include="$(TestsSharedDir)AsyncTestHelpers.cs" Link="shared/AsyncTestHelpers.cs" />
     <Compile Include="$(TestsSharedDir)TestCertificateLoader.cs" Link="shared/TestCertificateLoader.cs" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
+    <Compile Include="$(TestsSharedDir)Telemetry\*.cs" LinkBase="shared/Telemetry" />
+    <Compile Include="$(TestsSharedDir)DashboardModel\*.cs" LinkBase="shared/DashboardModel" />
     <Content Include="$(TestsSharedDir)TestCertificates\*.pfx" LinkBase="shared/TestCertificates" CopyToOutputDirectory="PreserveNewest" />
 
     <Content Include="..\..\src\Aspire.Dashboard\wwwroot\**\*.*" LinkBase="wwwroot" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <Import Project="..\Shared\Playwright\Playwright.targets" />
 </Project>

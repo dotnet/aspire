@@ -8,7 +8,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Configuration;
 
 internal sealed partial class ConfigurationServiceEndpointProvider
 {
-    private sealed partial class Log
+    private static partial class Log
     {
         [LoggerMessage(1, LogLevel.Debug, "Skipping endpoint resolution for service '{ServiceName}': '{Reason}'.", EventName = "SkippedResolution")]
         public static partial void SkippedResolution(ILogger logger, string serviceName, string reason);

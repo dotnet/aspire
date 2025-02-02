@@ -1,26 +1,5 @@
-::deep.logs-layout {
-    display: grid;
-    grid-template-rows: auto auto 1fr;
-    height: 100%;
-    width: 100%;
-    grid-template-areas:
-        "head"
-        "toolbar"
-        "main";
-    gap: calc(var(--design-unit) * 2px);
-}
-
-::deep.logs-layout > h1 {
-    grid-area: head;
-}
-
-::deep.logs-layout > fluent-toolbar {
-    grid-area: toolbar;
-    padding: var(--layout-toolbar-padding);
-}
-
-::deep.logs-layout > .summary-details-container {
-    grid-area: main;
+::deep table.main-grid {
+    margin-bottom: 1px !important; /* make bottom table row border visible when scrolling */
 }
 
 ::deep .log-row-critical,
@@ -52,10 +31,6 @@
 ::deep .logs-summary-layout > .logs-grid-container {
     grid-area: main;
     overflow: auto;
-}
-
-::deep .logs-summary-layout > .total-items-footer {
-    grid-area: foot;
 }
 
 ::deep .wrap {

@@ -57,9 +57,7 @@ public static class AspireServiceBusExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        string configurationSectionName = MessageBusComponent.GetKeyedConfigurationSectionName(name, DefaultConfigSectionName);
-
-        new MessageBusComponent().AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+        new MessageBusComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
     }
 
     private sealed class MessageBusComponent : AzureComponent<AzureMessagingServiceBusSettings, ServiceBusClient, ServiceBusClientOptions>
@@ -114,6 +112,9 @@ public static class AspireServiceBusExtensions
 
         protected override TokenCredential? GetTokenCredential(AzureMessagingServiceBusSettings settings)
             => settings.Credential;
+
+        protected override bool GetMetricsEnabled(AzureMessagingServiceBusSettings settings)
+            => false;
 
         protected override bool GetTracingEnabled(AzureMessagingServiceBusSettings settings)
             => !settings.DisableTracing;

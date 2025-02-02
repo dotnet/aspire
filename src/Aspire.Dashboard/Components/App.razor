@@ -7,9 +7,10 @@
     <base href="/" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <link rel="stylesheet" href="_content/Microsoft.FluentUI.AspNetCore.Components/css/reboot.css" />
-    <link rel="stylesheet" href="_content/Microsoft.FluentUI.AspNetCore.Components/Microsoft.FluentUI.AspNetCore.Components.bundle.scp.css" />
     <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="css/highlight.css" />
     <link rel="stylesheet" href="Aspire.Dashboard.styles.css" />
+
     <HeadOutlet @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
     <!-- Make the body background dark if dark mode will be enabled to prevent a flash of white
          before fully rendered. This value is from --neutral-layer-2, but that custom
@@ -28,7 +29,13 @@
     <Routes @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
     <script src="_framework/blazor.web.js"></script>
     <script src="js/app.js"></script>
-    <script src="js/theme.js" type="module"></script>
-    <script src="js/plotly-2.26.0.min.js"></script>
+
+    @*
+        Directly reference theme and dependencies from HTML so they load quickly.
+        It's much faster to load them here than wait for module load from Blazor interop.
+        Load time is important here because the theme should be applied ASAP.
+    *@
+    <script src="js/app-theme.js" type="module"></script>
+    <script src="_content/Microsoft.FluentUI.AspNetCore.Components/Microsoft.FluentUI.AspNetCore.Components.lib.module.js" type="module"></script>
 </body>
 </html>

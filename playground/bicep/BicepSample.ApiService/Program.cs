@@ -179,7 +179,7 @@ app.MapGet("/queues", async (QueueServiceClient queueServiceClient, Cancellation
     var message = await queue.ReceiveMessageAsync(cancellationToken: cancellationToken);
     if (message != null)
     {
-        entries.Add(message.Value.Body.ToObjectFromJson<Entry>());
+        entries.Add(message.Value.Body.ToObjectFromJson<Entry>()!);
     }
 
     return entries;
@@ -199,7 +199,7 @@ app.MapGet("/servicebus", async (ServiceBusClient serviceBusClient, Cancellation
     var message = await receiver.ReceiveMessageAsync(cancellationToken: cancellationToken);
     if (message != null)
     {
-        entries.Add(message.Body.ToObjectFromJson<Entry>());
+        entries.Add(message.Body.ToObjectFromJson<Entry>()!);
     }
 
     return entries;

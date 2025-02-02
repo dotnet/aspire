@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting azure</PackageTags>
-    <Description>Azure Log Anlytics resource types for .NET Aspire.</Description>
+    <PackageTags>aspire integration hosting azure</PackageTags>
+    <Description>Azure Log Analytics resource types for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)AzureLogAnalytics_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
@@ -16,10 +16,6 @@
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.OperationalInsights" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
   </ItemGroup>
 
 </Project>

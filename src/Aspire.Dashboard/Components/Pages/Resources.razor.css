@@ -1,18 +1,5 @@
-::deep .resource-state-badge {
-    padding: 0 3px;
-    cursor: pointer;
-}
-
-::deep fluent-toolbar > h1 {
-    padding-left: calc(var(--design-unit) * 1.5px);
-}
-
-::deep.content-layout-with-toolbar > fluent-toolbar {
-    padding: var(--layout-toolbar-padding);
-}
-
 ::deep .unread-logs-errors-link {
-    vertical-align: middle;
+    vertical-align: super;
     --unread-logs-badge-color: #ffffff;
 }
 
@@ -33,8 +20,8 @@
    to set overflow-x: clip on the grid to prevent an odd visual
    glitch with the menu when it is at the far right of the viewport
 */
-::deep fluent-data-grid,
-::deep fluent-data-grid-row {
+::deep .fluent-data-grid,
+::deep .fluent-data-grid-row {
     min-width: min-content;
 }
 
@@ -42,6 +29,17 @@
    the right edge of the grid causing a visual flicker of
    the horizontal scrollbar appearing and disappearing
 */
-::deep fluent-data-grid {
+::deep .fluent-data-grid {
     overflow-x: clip;
+}
+
+::deep .resources-name-container {
+    height: 24px;
+    display: inline-flex;
+    vertical-align: middle;
+    align-items: center;
+}
+
+::deep tr.resource-row > :first-child {
+    padding-inline-start: 0;
 }

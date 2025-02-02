@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting python</PackageTags>
+    <PackageTags>aspire integration hosting python</PackageTags>
     <Description>Python support for .NET Aspire.</Description>
     <MinCodeCoverage>98</MinCodeCoverage>
   </PropertyGroup>

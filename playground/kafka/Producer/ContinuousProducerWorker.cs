@@ -9,7 +9,7 @@ internal sealed class ContinuousProducerWorker(IProducer<Null, string> producer,
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(10));
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
         long i = 0;
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {

@@ -5,7 +5,12 @@ namespace Aspire.Hosting;
 
 internal static class OracleContainerImageTags
 {
+    /// <remarks>container-registry.oracle.com</remarks>
     public const string Registry = "container-registry.oracle.com";
+
+    /// <remarks>database/free</remarks>
     public const string Image = "database/free";
-    public const string Tag = "23.3.0.0";
+
+    /// <remarks>23.6.0.0</remarks>
+    public const string Tag = "23.6.0.0";
 }

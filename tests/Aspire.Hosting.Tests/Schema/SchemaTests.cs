@@ -2,10 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
-using Amazon;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
+using Azure.Provisioning.KeyVault;
 using Json.Schema;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -107,15 +107,13 @@ public class SchemaTests
                     }
                 },
 
-                { "CdkResourceWithChildResource", (IDistributedApplicationBuilder builder) =>
-                    {
-                        builder.AddPostgres("postgres").PublishAsAzurePostgresFlexibleServer().AddDatabase("db");
-                    }
-                },
-
                 { "BasicDockerfile", (IDistributedApplicationBuilder builder) =>
                     {
-                        builder.AddExecutable("foo", "bar", "baz", "one", "two", "three").PublishAsDockerFile();
+                        var tempContextPath = Directory.CreateTempSubdirectory().FullName;
+                        var tempDockerfilePath = Path.Combine(tempContextPath, "Dockerfile");
+                        File.WriteAllText(tempDockerfilePath, "does not need to be valid dockerfile content here");
+
+                        builder.AddExecutable(name:"foo", command: "bar", workingDirectory: tempContextPath, "one", "two", "three").PublishAsDockerFile();
                     }
                 },
 
@@ -137,44 +135,57 @@ public class SchemaTests
                     }
                 },
 
-                { "AwsStack", (IDistributedApplicationBuilder builder) =>
+                { "VanillaProjectBasedContainerApp", (IDistributedApplicationBuilder builder) =>
                     {
-                        var awsSdkConfig = builder.AddAWSSDKConfig()
-                                                  .WithRegion(RegionEndpoint.USWest2)
-                                                  .WithProfile("test-profile");
+                        builder.AddProject<Projects.ServiceA>("project")
+                               .PublishAsAzureContainerApp((_, _) => { });
 
-                        builder.AddAWSCloudFormationStack("ExistingStack")
-                               .WithReference(awsSdkConfig);
                     }
                 },
 
-                { "AwsTemplate", (IDistributedApplicationBuilder builder) =>
+                { "CustomizedProjectBasedContainerApp", (IDistributedApplicationBuilder builder) =>
                     {
-                        var awsSdkConfig = builder.AddAWSSDKConfig()
-                                                  .WithRegion(RegionEndpoint.USWest2)
-                                                  .WithProfile("test-profile");
-
-                        builder.AddAWSCloudFormationTemplate("TemplateStack", "nonexistenttemplate")
-                               .WithReference(awsSdkConfig);
-                    }
-                },
-
-                { "DaprWithComponents", (IDistributedApplicationBuilder builder) =>
-                    {
-                        var dapr = builder.AddDapr(dopts =>
-                        {
-                            // Just to avoid dynamic discovery which will throw.
-                            dopts.DaprPath = "notrealpath";
-                        });
-                        var state = dapr.AddDaprStateStore("daprstate");
-                        var pubsub = dapr.AddDaprPubSub("daprpubsub");
+                        var minReplicas = builder.AddParameter("minReplicas");
 
                         builder.AddProject<Projects.ServiceA>("project")
-                               .WithDaprSidecar()
-                               .WithReference(state)
-                               .WithReference(pubsub);
+                               .PublishAsAzureContainerApp((infrastructure, app) =>
+                               {
+                                   app.Template.Scale.MinReplicas = minReplicas.AsProvisioningParameter(infrastructure);
+                               });
+
                     }
-                }
+                },
+
+                { "VanillaContainerBasedContainerApp", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddContainer("mycontainer", "myimage")
+                               .PublishAsAzureContainerApp((_, _) => { });
+
+                    }
+                },
+
+                { "CustomizedContainerBasedContainerApp", (IDistributedApplicationBuilder builder) =>
+                    {
+                        var minReplicas = builder.AddParameter("minReplicas");
+
+                        builder.AddContainer("mycontainer", "myimage")
+                               .PublishAsAzureContainerApp((infrastructure, app) =>
+                               {
+                                   app.Template.Scale.MinReplicas = minReplicas.AsProvisioningParameter(infrastructure);
+                               });
+
+                    }
+                },
+
+                { "VanillaBicepResource", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddAzureInfrastructure("infrastructure", infrastructure =>
+                        {
+                            var kv = KeyVaultService.FromExisting("doesnotexist");
+                            infrastructure.Add(kv);
+                        });
+                    }
+                },
             };
 
             return data;
@@ -199,9 +210,8 @@ public class SchemaTests
     [MemberData(nameof(ApplicationSamples))]
     public void ValidateApplicationSamples(string testCaseName, Action<IDistributedApplicationBuilder> configurator)
     {
-        _ = testCaseName;
-
-        var builder = TestDistributedApplicationBuilder.Create(["--publisher", "manifest", "--output-path", "not-used.json"]);
+        string manifestDir = Directory.CreateTempSubdirectory(testCaseName).FullName;
+        var builder = TestDistributedApplicationBuilder.Create(["--publisher", "manifest", "--output-path", Path.Combine(manifestDir, "not-used.json")]);
         builder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
         configurator(builder);
 
@@ -271,6 +281,25 @@ public class SchemaTests
                   "type": "value.v0",
                   "connectionString": "{valueresource.value}",
                   "value": "this.should.not.be.here"
+                }
+              }
+            }
+            """;
+
+        var manifestJson = JsonNode.Parse(manifestText);
+        var schema = GetSchema();
+        Assert.False(schema.Evaluate(manifestJson).IsValid);
+    }
+
+    [Fact]
+    public void InvalidBicepResourceFailsValidationToProveItIsntBeingIgnored()
+    {
+        var manifestText = """
+            {
+              "resources": {
+                "invalidbicepresource": {
+                  "type": "azure.bicep.v0",
+                  "invalidproperty": "invalidvalue"
                 }
               }
             }
@@ -365,6 +394,50 @@ public class SchemaTests
     }
 
     [Fact]
+    public void ManifestWithDockerfileV0ResourceAndBuildFieldAndArgsIsAccepted()
+    {
+        var manifestText = """
+            {
+              "resources": {
+                "mycontainer": {
+                  "type": "dockerfile.v0",
+                  "context": "relativepath",
+                  "path": "relativepath/Dockerfile",
+                  "buildArgs": {
+                    "ARG1": "an arg"
+                  }
+                }
+              }
+            }
+            """;
+
+        AssertValid(manifestText);
+    }
+
+    [Fact]
+    public void ManifestWithContainerV1ResourceAndBuildFieldAndArgsIsAccepted()
+    {
+        var manifestText = """
+            {
+              "resources": {
+                "mycontainer": {
+                  "type": "container.v1",
+                  "build": {
+                    "context": "relativepath",
+                    "dockerfile": "relativepath/Dockerfile",
+                    "args": {
+                      "ARG1": "an arg"
+                    }
+                  }
+                }
+              }
+            }
+            """;
+
+        AssertValid(manifestText);
+    }
+
+    [Fact]
     public void ManifestWithContainerV1ResourceAndImageFieldIsAccepted()
     {
         var manifestText = """
@@ -419,11 +492,37 @@ public class SchemaTests
                   "inputs": {
                     "value": {
                       "secret": true,
-                      "type": "string"
+                      "type": "string",
+                      "default": {
+                        "generate": {
+                          "minLength": 16,
+                          "lower": false,
+                          "upper": false,
+                          "numeric": false,
+                          "special": false,
+                          "minLower": 1,
+                          "minUpper": 2,
+                          "minNumeric": 3,
+                          "minSpecial": 4
+                        }
+                      }
                     }
                   },
                   "type": "parameter.v0",
                   "value": "{administratorLoginPassword.inputs.value}"
+                },
+                "administratorName": {
+                  "inputs": {
+                    "value": {
+                      "secret": true,
+                      "type": "string",
+                      "default": {
+                        "value": "David"
+                      }
+                    }
+                  },
+                  "type": "parameter.v0",
+                  "value": "{administratorName.inputs.value}"
                 },
                 "ai": {
                   "connectionString": "{ai.outputs.appInsightsConnectionString}",
@@ -614,6 +713,37 @@ public class SchemaTests
         AssertValid(manifestText);
     }
 
+    [Fact]
+    public void BothDefaultGenerateAndValueAreMutuallyExclusive()
+    {
+        // Trying to us both 'generate' and 'value' in the same parameter should be rejected.
+        var manifestText = """
+            {
+              "resources": {
+                "foo": {
+                  "inputs": {
+                    "value": {
+                      "secret": true,
+                      "type": "string",
+                      "default": {
+                        "generate": {
+                          "minLength": 16
+                        },
+                        "value": "some value"
+                      }
+                    }
+                  },
+                  "type": "parameter.v0",
+                  "value": "{foo.inputs.value}"
+                }
+              }
+            }
+
+            """;
+
+        AssertInvalid(manifestText);
+    }
+
     private static void AssertValid(string manifestText)
     {
         var manifestJson = JsonNode.Parse(manifestText);
@@ -625,5 +755,14 @@ public class SchemaTests
             var errorMessages = results.Details.Where(x => x.HasErrors).SelectMany(e => e.Errors!).Select(e => e.Value);
             Assert.True(results.IsValid, string.Join(Environment.NewLine, errorMessages ?? ["Schema failed validation with no errors"]));
         }
+    }
+
+    private static void AssertInvalid(string manifestText)
+    {
+        var manifestJson = JsonNode.Parse(manifestText);
+        var schema = GetSchema();
+        var results = schema.Evaluate(manifestJson);
+
+        Assert.False(results.IsValid);
     }
 }

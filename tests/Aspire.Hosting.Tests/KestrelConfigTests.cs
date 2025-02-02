@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -37,7 +38,7 @@ public class KestrelConfigTests
 
         AllocateTestEndpoints(resource);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         // When using Kestrel, we should not be setting ASPNETCORE_URLS at all
         Assert.False(config.ContainsKey("ASPNETCORE_URLS"));
@@ -75,7 +76,7 @@ public class KestrelConfigTests
 
         AllocateTestEndpoints(resource);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         // We're ignoring Kestrel, so we should be setting ASPNETCORE_URLS
         Assert.Equal("http://localhost:port_http;http://localhost:port_ExplicitHttp", config["ASPNETCORE_URLS"]);
@@ -140,7 +141,7 @@ public class KestrelConfigTests
 
         AllocateTestEndpoints(resource);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Collection(
             config.Where(envVar => envVar.Key.StartsWith("Kestrel__")),
@@ -173,7 +174,7 @@ public class KestrelConfigTests
     {
         var resource = CreateTestProjectResource<ProjectWithOnlyKestrelHttpEndpoint>();
 
-        var manifest = await ManifestUtils.GetManifest(resource);
+        var manifest = await ManifestUtils.GetManifest(resource).DefaultTimeout();
 
         var expectedManifest = """
             {
@@ -217,7 +218,7 @@ public class KestrelConfigTests
                 builder.WithHttpEndpoint(5018, name: "ExplicitNoProxyHttp", isProxied: false);
             });
 
-        var manifest = await ManifestUtils.GetManifest(resource);
+        var manifest = await ManifestUtils.GetManifest(resource).DefaultTimeout();
 
         // Note that unlike in Run mode, SecondHttpEndpoint is using host * instead of localhost
         var expectedManifest = """
@@ -274,12 +275,43 @@ public class KestrelConfigTests
     }
 
     [Fact]
+    public async Task VerifyKestrelEnvVariablesGetOmittedFromManifestIfExcluded()
+    {
+        var resource = CreateTestProjectResource<ProjectWithMultipleHttpKestrelEndpoints>(
+            operation: DistributedApplicationOperation.Publish,
+            callback: builder =>
+            {
+                builder.WithHttpEndpoint(5017, name: "ExplicitProxiedHttp")
+                    .WithHttpEndpoint(5018, name: "ExplicitNoProxyHttp", isProxied: false)
+                    // Exclude both a Kestrel endpoint and an explicit endpoint from environment injection
+                    // We do it as separate filters to ensure they are combined correctly
+                    .WithEndpointsInEnvironment(e => e.Name != "FirstHttpEndpoint")
+                    .WithEndpointsInEnvironment(e => e.Name != "ExplicitProxiedHttp");
+            });
+
+        var manifest = await ManifestUtils.GetManifest(resource).DefaultTimeout();
+
+        var expectedEnv = """
+            {
+              "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+              "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+              "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+              "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+              "Kestrel__Endpoints__SecondHttpEndpoint__Url": "http://*:{projectName.bindings.SecondHttpEndpoint.targetPort}",
+              "Kestrel__Endpoints__ExplicitNoProxyHttp__Url": "http://*:{projectName.bindings.ExplicitNoProxyHttp.targetPort}"
+            }
+            """;
+
+        Assert.Equal(expectedEnv, manifest["env"]!.ToString());
+    }
+
+    [Fact]
     public async Task VerifyEndpointLevelKestrelProtocol()
     {
         var resource = CreateTestProjectResource<ProjectWithKestrelEndpointsLevelProtocols>(
             operation: DistributedApplicationOperation.Publish);
 
-        var manifest = await ManifestUtils.GetManifest(resource);
+        var manifest = await ManifestUtils.GetManifest(resource).DefaultTimeout();
 
         var expectedBindings = """
             {

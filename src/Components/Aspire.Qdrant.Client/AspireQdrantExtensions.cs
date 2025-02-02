@@ -1,9 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire;
 using Aspire.Qdrant.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Qdrant.Client;
 
@@ -30,7 +32,7 @@ public static class AspireQdrantExtensions
         string connectionName,
         Action<QdrantClientSettings>? configureSettings = null)
     {
-        AddQdrant(builder, DefaultConfigSectionName, configureSettings, connectionName, serviceKey: null);
+        AddQdrant(builder, configureSettings, connectionName, serviceKey: null);
     }
 
     /// <summary>
@@ -47,12 +49,11 @@ public static class AspireQdrantExtensions
         string name,
         Action<QdrantClientSettings>? configureSettings = null)
     {
-        AddQdrant(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, connectionName: name, serviceKey: name);
+        AddQdrant(builder, configureSettings, connectionName: name, serviceKey: name);
     }
 
     private static void AddQdrant(
         this IHostApplicationBuilder builder,
-        string configurationSectionName,
         Action<QdrantClientSettings>? configureSettings,
         string connectionName,
         string? serviceKey)
@@ -60,7 +61,10 @@ public static class AspireQdrantExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         var settings = new QdrantClientSettings();
-        builder.Configuration.GetSection(configurationSectionName).Bind(settings);
+        var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
+        configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -78,6 +82,21 @@ public static class AspireQdrantExtensions
             builder.Services.AddKeyedSingleton(serviceKey, (sp, key) => ConfigureQdrant(sp));
         }
 
+        if (!settings.DisableHealthChecks)
+        {
+            var healthCheckName = serviceKey is null ? "Qdrant.Client" : $"Qdrant.Client_{connectionName}";
+
+            builder.TryAddHealthCheck(new HealthCheckRegistration(
+                healthCheckName,
+                sp => new QdrantHealthCheck(serviceKey is null ?
+                    sp.GetRequiredService<QdrantClient>() :
+                    sp.GetRequiredKeyedService<QdrantClient>(serviceKey)),
+                failureStatus: null,
+                tags: null,
+                timeout: settings.HealthCheckTimeout
+                ));
+        }
+
         QdrantClient ConfigureQdrant(IServiceProvider serviceProvider)
         {
             if (settings.Endpoint is not null)
@@ -89,7 +108,7 @@ public static class AspireQdrantExtensions
                 throw new InvalidOperationException(
                         $"A QdrantClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
                         $"{nameof(settings.Endpoint)} must be provided " +
-                        $"in the '{configurationSectionName}' configuration section.");
+                        $"in the '{DefaultConfigSectionName}' or '{DefaultConfigSectionName}:{connectionName}' configuration section.");
             }
         }
     }

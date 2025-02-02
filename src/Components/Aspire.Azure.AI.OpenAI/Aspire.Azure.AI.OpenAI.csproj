@@ -1,16 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <!-- This library can't ship stable until Azure.AI.OpenAI ships stable. -->
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <PackageTags>$(ComponentAzurePackageTags) ai openai</PackageTags>
     <Description>A client for Azure OpenAI that integrates with Aspire, including logging and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzureOpenAI_256x.png</PackageIconFullPath>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
-    <!-- This package hasn't shipped stable, so package validation runs against previously shipped version of it. -->
-    <PackageValidationBaselineVersion>8.0.1-preview.8.24267.1</PackageValidationBaselineVersion>
+    <!-- In preview until the public API is validated and the Microsoft.Extensions.AI integration is designed.. -->
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -24,7 +22,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Identity" />
     <PackageReference Include="Azure.AI.OpenAI" />
     <PackageReference Include="Microsoft.Extensions.Azure" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
@@ -32,5 +29,11 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.OpenAI\Aspire.OpenAI.csproj" />
+  </ItemGroup>
+
+  <Import Project="..\Aspire.OpenAI\MEAIPackageOverrides.targets" />
 
 </Project>

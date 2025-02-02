@@ -49,6 +49,8 @@ public partial class GeneratorTests
         MetadataReference.CreateFromFile(typeof(HttpContent).Assembly.Location)
     ];
 
+    private static readonly JsonSerializerOptions s_testSerializerOptions = new() { WriteIndented = true };
+
     [Theory]
     [InlineData("abc\n  def", "abc def")]
     [InlineData("\n  def", "def")]
@@ -121,6 +123,7 @@ public partial class GeneratorTests
     [InlineData("<see cref=\"M:System.Diagnostics.Debug.Assert(bool)\"/>", "'System.Diagnostics.Debug.Assert(bool)'")]
     [InlineData("<see cref=\"E:System.Windows.Input.ICommand.CanExecuteChanged\"/>", "'System.Windows.Input.ICommand.CanExecuteChanged'")]
     [InlineData("<exception cref=\"T:System.InvalidOperationException\" />", "'System.InvalidOperationException'")]
+    [InlineData("<para><exception cref=\"T:System.InvalidOperationException\" /></para>", "'System.InvalidOperationException'")]
     public void ShouldQuoteCrefAttributes(string input, string expected)
     {
         var summaryElement = ConvertToSummaryElement(input);
@@ -829,7 +832,7 @@ public partial class GeneratorTests
     }
 
     [Fact]
-    public void ShouldAllowEmptyComponentPath()
+    public void ShouldAllowEmptyConfigPath()
     {
         var source =
             """
@@ -866,7 +869,7 @@ public partial class GeneratorTests
     }
 
     [Fact]
-    public void ShouldAllowNestedComponentPath()
+    public void ShouldAllowNestedConfigPath()
     {
         var source =
             """
@@ -918,7 +921,7 @@ public partial class GeneratorTests
     }
 
     [Fact]
-    public void ShouldAllowSimpleTypeInComponentPath()
+    public void ShouldAllowSimpleTypeInConfigPath()
     {
         var source =
             """
@@ -951,7 +954,7 @@ public partial class GeneratorTests
     }
 
     [Fact]
-    public void MergesPropertiesAtSamePath()
+    public void MergesPropertiesAtSameConfigPath()
     {
         var source =
             """
@@ -997,7 +1000,147 @@ public partial class GeneratorTests
     }
 
     [Fact]
-    public void PreservesExistingComponentTypeWhenSkipped()
+    public void LastUsedCasingOfConfigPathWins()
+    {
+        var source =
+            """
+            [assembly: Aspire.ConfigurationSchema("ONE:two:THREE", typeof(TestSettings1))]
+            [assembly: Aspire.ConfigurationSchema("One:Two:Three", typeof(TestSettings2))]
+            [assembly: Aspire.ConfigurationSchema("one:TWO:three", typeof(Empty))]
+
+            public record TestSettings1
+            {
+                /// <summary>1</summary>
+                public string? TestProperty1 { get; set; }
+            }
+
+            public record TestSettings2
+            {
+                /// <summary>2</summary>
+                public int? TestProperty2 { get; set; }
+            }
+            
+            public record Empty;
+            """;
+
+        var schema = GenerateSchemaFromCode(source, []);
+
+        AssertIsJson(schema,
+            """
+            {
+              "type": "object",
+              "properties": {
+                "One": {
+                  "type": "object",
+                  "properties": {
+                    "Two": {
+                      "type": "object",
+                      "properties": {
+                        "Three": {
+                          "type": "object",
+                          "properties": {
+                            "TestProperty1": {
+                              "type": "string",
+                              "description": "1"
+                            },
+                            "TestProperty2": {
+                              "type": "integer",
+                              "description": "2"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """);
+    }
+
+    [Fact]
+    public void LastUsedTypeDocumentationWins()
+    {
+        var source =
+            """
+            [assembly: Aspire.ConfigurationSchema("TestComponent", typeof(testSETTINGS))]
+            [assembly: Aspire.ConfigurationSchema("TestComponent", typeof(TestSettings))]
+
+            /// <summary>Initial documentation.</summary>
+            public class testSETTINGS
+            {
+                public int TestProperty1 { get; set; }
+            }
+
+            /// <summary>Replaced documentation.</summary>
+            public class TestSettings
+            {
+                public bool TestProperty2 { get; set; }
+            }
+            """;
+
+        var schema = GenerateSchemaFromCode(source, []);
+
+        AssertIsJson(schema,
+            """
+            {
+              "type": "object",
+              "properties": {
+                "TestComponent": {
+                  "type": "object",
+                  "properties": {
+                    "TestProperty1": {
+                      "type": "integer"
+                    },
+                    "TestProperty2": {
+                      "type": "boolean"
+                    }
+                  },
+                  "description": "Replaced documentation."
+                }
+              }
+            }
+            """);
+    }
+
+    [Fact]
+    public void LastUsedCasingOfPropertyWins()
+    {
+        var source =
+            """
+            [assembly: Aspire.ConfigurationSchema("TestComponent", typeof(TestSettings))]
+
+            public class TestSettings
+            {
+                /// <summary>Discarded documentation.</summary>
+                public int testPROPERTY { get; set; }
+                
+                public string? TestProperty { get; set; }
+            }
+            """;
+
+        var schema = GenerateSchemaFromCode(source, []);
+
+        AssertIsJson(schema,
+            """
+            {
+              "type": "object",
+              "properties": {
+                "TestComponent": {
+                  "type": "object",
+                  "properties": {
+                    "TestProperty": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+            """);
+    }
+
+    [Fact]
+    public void PreservesExistingTypeWhenConfigPathSkipped()
     {
         var source =
             """
@@ -1297,6 +1440,122 @@ public partial class GeneratorTests
             """);
     }
 
+    [Fact]
+    public void LastUsedCasingOfLogCategoryWins()
+    {
+        var source =
+            """
+            [assembly: Aspire.LoggingCategories("ONE", "one.TWO.three", "One.Two.Three")]
+            """;
+
+        var schema = GenerateSchemaFromCode(source, []);
+
+        AssertIsJson(schema,
+            """
+            {
+              "definitions": {
+                "logLevel": {
+                  "properties": {
+                    "ONE": {
+                      "$ref": "#/definitions/logLevelThreshold"
+                    },
+                    "One.Two.Three": {
+                      "$ref": "#/definitions/logLevelThreshold"
+                    }
+                  }
+                }
+              }
+            }
+            """);
+    }
+
+    [Fact]
+    public void GeneratesSchemaForNamedOptionsOnAsterisk()
+    {
+        var source =
+            """
+            [assembly: Aspire.ConfigurationSchema("Certificates:*", typeof(CertificateSettings))]
+            
+            public class CertificateSettings
+            {
+                /// <summary>
+                /// The private key of the certificate, in base64 format.
+                /// </summary>
+                public string? PrivateKey { get; set; }
+            }
+            """;
+
+        var schema = GenerateSchemaFromCode(source, []);
+
+        AssertIsJson(schema,
+            """
+            {
+              "type": "object",
+              "properties": {
+                "Certificates": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "PrivateKey": {
+                        "type": "string",
+                        "description": "The private key of the certificate, in base64 format."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """);
+    }
+
+    [Fact]
+    public void CanGenerateSchemaForNamedOptionsWithDefaultOptions()
+    {
+        var source =
+            """
+            [assembly: Aspire.ConfigurationSchema("Certificates", typeof(CertificateSettings))]
+            [assembly: Aspire.ConfigurationSchema("Certificates:*", typeof(CertificateSettings))]
+
+            public class CertificateSettings
+            {
+                /// <summary>
+                /// The private key of the certificate, in base64 format.
+                /// </summary>
+                public string? PrivateKey { get; set; }
+            }
+            """;
+
+        var schema = GenerateSchemaFromCode(source, []);
+
+        AssertIsJson(schema,
+            """
+            {
+              "type": "object",
+              "properties": {
+                "Certificates": {
+                  "type": "object",
+                  "properties": {
+                    "PrivateKey": {
+                      "type": "string",
+                      "description": "The private key of the certificate, in base64 format."
+                    }
+                  },
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "PrivateKey": {
+                        "type": "string",
+                        "description": "The private key of the certificate, in base64 format."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """);
+    }
+
     private static string GenerateSchemaFromCode(string sourceText, IEnumerable<MetadataReference> references)
     {
         var sourceSyntaxTree = SyntaxFactory.ParseSyntaxTree(SourceText.From(sourceText));
@@ -1320,9 +1579,8 @@ public partial class GeneratorTests
         var actualJson = JsonNode.Parse(actual)!;
         var expectedJson = JsonNode.Parse(expected)!;
 
-        var serializerOptions = new JsonSerializerOptions { WriteIndented = true };
-        var expectedText = expectedJson.ToJsonString(serializerOptions);
-        var actualText = actualJson.ToJsonString(serializerOptions);
+        var expectedText = expectedJson.ToJsonString(s_testSerializerOptions);
+        var actualText = actualJson.ToJsonString(s_testSerializerOptions);
 
         Assert.Equal(expectedText, actualText);
     }

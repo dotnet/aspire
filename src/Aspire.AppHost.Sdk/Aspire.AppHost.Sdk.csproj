@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.Build.NoTargets">
+
+  <Import Project="$(SharedDir)Workload.targets" />
+
+  <PropertyGroup>
+    <PackageTags>aspire apphost sdk</PackageTags>
+    <Description>.NET Aspire AppHost SDK. Must be referenced by .NET Aspire AppHost projects.</Description>
+    <TargetsForTfmSpecificContentInPackage>_PublishAndPackRIDTool;$(TargetsForTfmSpecificContentInPackage)</TargetsForTfmSpecificContentInPackage>
+    <EnablePackageValidation>false</EnablePackageValidation>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>100</MinCodeCoverage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <TextReplacementValue Include="DefaultTargetFramework" NewValue="$(DefaultTargetFramework)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\Aspire.Hosting\build\*.targets" Link="SDK\%(Filename)%(Extension)" Pack="true" PackagePath="Sdk\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="SDK\AutoImport.props;SDK\*.targets" Pack="true" PackagePath="Sdk\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="SDK\Sdk.in.props" Pack="true" PerformTextReplacement="True" PackagePath="Sdk\Sdk.props" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="SDK\Sdk.in.targets" Pack="true" PerformTextReplacement="True" PackagePath="Sdk\Sdk.targets" />
+
+    <!-- Adding a project reference to the tool to avoid MSBuild having clashes when building this project before the other. -->
+    <ProjectReference Include="Aspire.RuntimeIdentifier.Tool\Aspire.RuntimeIdentifier.Tool.csproj"
+                      ReferenceOutputAssembly="false"
+                      SkipTargetFrameworkProperties="true"
+                      ExcludeAssets="all"
+                      Private="false" />
+  </ItemGroup>
+
+  <Target Name="_PublishAndPackRIDTool">
+    <MSBuild Projects="$(MSBuildThisFileDirectory)Aspire.RuntimeIdentifier.Tool\Aspire.RuntimeIdentifier.Tool.csproj" 
+             Targets="Publish" 
+             Properties="Configuration=$(Configuration);Platform=$(Platform)" />
+
+    <ItemGroup>
+      <_publishContentToPackage Include="$(DotNetOutputPath)Aspire.RuntimeIdentifier.Tool/$(Configuration)/$(DefaultTargetFramework)/publish/**/*" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="@(_publishContentToPackage)"
+                              PackagePath="tools/$(DefaultTargetFramework)/%(_publishContentToPackage.RecursiveDir)" />
+    </ItemGroup>
+
+  </Target>
+
+</Project>

@@ -1,26 +1,53 @@
 ﻿@namespace Aspire.Dashboard.Components
+@using System.Collections.Immutable
 @using Aspire.Dashboard.Model
 @using Microsoft.FluentUI.AspNetCore.Components.DesignTokens
 @inherits FluentComponentBase
-@typeparam TItem
 
-<div class="aspire-menubutton-container" style="width:100px;">
-    <FluentButton Id="@_buttonId" Appearance="@ButtonAppearance" aria-haspopup="true" aria-expanded="@_visible" @onclick="ToggleMenu" @onkeydown="OnKeyDown" Disabled="@(!Items.Any())">
-        @if (string.IsNullOrWhiteSpace(Text))
+@{
+    var additionalButtonAttributes = new Dictionary<string, object>(AdditionalAttributes ?? ImmutableDictionary<string, object>.Empty)
+    {
+        { "aria-haspopup", "true" },
+        { "aria-expanded", _visible },
+        { "onkeydown", (KeyboardEventArgs args) => OnKeyDown(args) }
+    };
+}
+
+<FluentButton Id="@MenuButtonId" Title="@Title" Appearance="@ButtonAppearance" IconStart="@IconStart" @onclick="ToggleMenu" Disabled="@(!Items.Where(i => !i.IsDivider).Any())" AdditionalAttributes="@additionalButtonAttributes" Class="@ButtonClass">
+    @if (string.IsNullOrWhiteSpace(Text))
+    {
+        <FluentIcon Value="@_icon" Color="@IconColor" />
+    }
+    else
+    {
+        @Text
+        <FluentIcon Value="@_icon" Color="@IconColor" Slot="end" />
+    }
+</FluentButton>
+
+<FluentMenu Anchor="@MenuButtonId" aria-labelledby="button" @bind-Open="@_visible" VerticalThreshold="200">
+    @foreach (var item in Items)
+    {
+        @if (item.IsDivider)
         {
-            <FluentIcon Value="@_icon" />
+            <FluentDivider />
         }
         else
         {
-            @Text
-            <FluentIcon Value="@_icon" Slot="end" />
-        }
-    </FluentButton>
+            var additionalMenuItemAttributes = new Dictionary<string, object>(item.AdditionalAttributes ?? ImmutableDictionary<string, object>.Empty)
+            {
+                { "title", item.Tooltip ?? string.Empty }
+            };
 
-    <FluentMenu Anchor="@_buttonId" aria-labelledby="button" @bind-Open="@_visible" VerticalThreshold="200">
-        @foreach (TItem command in Items)
-        {
-            <FluentMenuItem OnClick="() => HandleItemClicked(command)">@ItemText(command)</FluentMenuItem>
+            <FluentMenuItem OnClick="() => HandleItemClicked(item)" Disabled="@item.IsDisabled" AdditionalAttributes="@additionalMenuItemAttributes">
+                @item.Text
+                @if (item.Icon != null)
+                {
+                    <span slot="start">
+                        <FluentIcon Value="@item.Icon" Style="vertical-align: text-bottom;" Width="16px" />
+                    </span>
+                }
+            </FluentMenuItem>
         }
-    </FluentMenu>
-</div>
+    }
+</FluentMenu>

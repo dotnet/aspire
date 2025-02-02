@@ -2,10 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Utils;
+using Aspire.Hosting.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -16,80 +15,75 @@ namespace Aspire.Dashboard.Components;
 /// </summary>
 public sealed partial class LogViewer
 {
-    private readonly CancellationSeries _cancellationSeries = new();
-    private bool _convertTimestampsFromUtc;
-    private bool _applicationChanged;
+    private readonly bool _convertTimestampsFromUtc = true;
+    private LogEntries? _logEntries;
+    private bool _logsChanged;
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
 
+    [Inject]
+    public required DimensionManager DimensionManager { get; init; }
+
+    [Inject]
+    public required ILogger<LogViewer> Logger { get; init; }
+
+    [Parameter]
+    public LogEntries? LogEntries { get; set; } = null!;
+
+    [Parameter]
+    public bool ShowTimestamp { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (_logEntries != LogEntries)
+        {
+            Logger.LogDebug("Log entries changed.");
+
+            _logsChanged = true;
+            _logEntries = LogEntries;
+        }
+
+        base.OnParametersSet();
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_applicationChanged)
+        if (_logsChanged)
         {
             await JS.InvokeVoidAsync("resetContinuousScrollPosition");
-            _applicationChanged = false;
+            _logsChanged = false;
         }
         if (firstRender)
         {
+            Logger.LogDebug("Initializing log viewer.");
+
             await JS.InvokeVoidAsync("initializeContinuousScroll");
+            DimensionManager.OnViewportInformationChanged += OnBrowserResize;
         }
     }
 
-    private readonly LogEntries _logEntries = new();
-
-    internal async Task SetLogSourceAsync(IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> batches, bool convertTimestampsFromUtc)
+    private void OnBrowserResize(object? o, EventArgs args)
     {
-        _convertTimestampsFromUtc = convertTimestampsFromUtc;
-
-        var cancellationToken = await _cancellationSeries.NextAsync();
-        var logParser = new LogParser();
-
-        // This needs to stay on the UI thread since we raise StateHasChanged() in the loop (hence the ConfigureAwait(true)).
-        await foreach (var batch in batches.WithCancellation(cancellationToken).ConfigureAwait(true))
+        InvokeAsync(async () =>
         {
-            if (batch.Count is 0)
-            {
-                continue;
-            }
-
-            foreach (var (lineNumber, content, isErrorOutput) in batch)
-            {
-                // Keep track of the base line number to ensure that we can calculate the line number of each log entry.
-                // This becomes important when the total number of log entries exceeds the limit and is truncated.
-                if (_logEntries.BaseLineNumber is null)
-                {
-                    _logEntries.BaseLineNumber = lineNumber;
-                }
-
-                _logEntries.InsertSorted(logParser.CreateLogEntry(content, isErrorOutput));
-            }
-
-            StateHasChanged();
-        }
+            await JS.InvokeVoidAsync("resetContinuousScrollPosition");
+            await JS.InvokeVoidAsync("initializeContinuousScroll");
+        });
     }
 
     private string GetDisplayTimestamp(DateTimeOffset timestamp)
     {
-        if (_convertTimestampsFromUtc)
-        {
-            timestamp = TimeProvider.ToLocal(timestamp);
-        }
+        var date = _convertTimestampsFromUtc ? TimeProvider.ToLocal(timestamp) : timestamp.DateTime;
 
-        return timestamp.ToString(KnownFormats.ConsoleLogsTimestampFormat, CultureInfo.InvariantCulture);
+        return date.ToString(KnownFormats.ConsoleLogsUITimestampFormat, CultureInfo.InvariantCulture);
     }
 
-    internal async Task ClearLogsAsync()
+    public ValueTask DisposeAsync()
     {
-        await _cancellationSeries.ClearAsync();
+        Logger.LogDebug("Disposing log viewer.");
 
-        _applicationChanged = true;
-        _logEntries.Clear();
-        StateHasChanged();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _cancellationSeries.ClearAsync();
+        DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
+        return ValueTask.CompletedTask;
     }
 }

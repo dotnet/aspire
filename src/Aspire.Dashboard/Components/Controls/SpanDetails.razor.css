@@ -18,8 +18,15 @@
     margin-bottom: 0;
 }
 
-::deep .event-attributes-header {
-    font-weight: bold;
-    margin: 5px 0;
+::deep .spanlink-container {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: calc((6 + (var(--design-unit) * var(--density))) * 1px);
+    align-items: center;
 }
 
+::deep .spanlink-text {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}

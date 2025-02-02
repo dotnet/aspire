@@ -12,7 +12,7 @@ namespace Microsoft.Extensions.SecretManager.Tools.Internal;
 /// <summary>
 /// Adapted from dotnet user-secrets at https://github.com/dotnet/aspnetcore/blob/482730a4c773ee4b3ae9525186d10999c89b556d/src/Tools/dotnet-user-secrets/src/Internal/SecretsStore.cs
 /// </summary>
-internal class SecretsStore
+internal sealed class SecretsStore
 {
     private readonly string _secretsFilePath;
     private readonly Dictionary<string, string?> _secrets;

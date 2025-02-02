@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting MySQL</PackageTags>
+    <PackageTags>aspire integration hosting MySQL</PackageTags>
     <Description>MySQL support for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)MySQL_logo.png</PackageIconFullPath>
   </PropertyGroup>
@@ -14,7 +14,6 @@
 
   <ItemGroup>
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
-    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -22,7 +21,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
+    <PackageReference Include="AspNetCore.HealthChecks.MySql" />
+  </ItemGroup>
+
+    <ItemGroup>
+    <!-- Required for PhpMyAdminConfigWriterHook -->
+    <InternalsVisibleTo Include="Aspire.Hosting.MySql.Tests" />
   </ItemGroup>
 
 </Project>

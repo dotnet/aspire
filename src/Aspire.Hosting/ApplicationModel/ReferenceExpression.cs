@@ -112,7 +112,9 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         /// <param name="value">The formatted string to be appended to the interpolated string.</param>
         public readonly void AppendFormatted(string? value)
         {
-            _builder.Append(value);
+            // The value that comes in is a literal string that is not meant to be interpreted.
+            // But the _builder later gets treated as a format string, so we just need to escape the braces.
+            _builder.Append(value?.Replace("{", "{{").Replace("}", "}}"));
         }
 
         /// <summary>

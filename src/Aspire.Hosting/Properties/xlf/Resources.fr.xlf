@@ -36,8 +36,8 @@ Pour plus d’informations sur les runtimes de conteneur pris en charge, consult
         <note />
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
-        <source>Application orchestrator dependency check had an unexpected error {0}.</source>
-        <target state="translated">La vérification de dépendance de l’orchestrateur d’application a rencontré une erreur inattendue {0}.</target>
+        <source>Application orchestrator dependency check returned an error: {0}</source>
+        <target state="translated">La vérification des dépendances de l’orchestrateur d’application a renvoyé une erreur : {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">

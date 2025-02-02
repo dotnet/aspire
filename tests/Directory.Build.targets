@@ -1,14 +1,18 @@
 <Project>
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
 
+  <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.targets" />
+
   <PropertyGroup>
     <!-- forward the settings file path to RunTests target in arcade -->
     <VSTestRunSettingsFile Condition="'$(VSTestRunSettingsFile)' == ''">$(RunSettingsFilePath)</VSTestRunSettingsFile>
 
     <DeployRunSettingsFile Condition="'$(DeployRunSettingsFile)' == ''">true</DeployRunSettingsFile>
+    <!-- Use a separate xunit.runner.json for helix that disables parallel test runs -->
+    <XunitRunnerJson Condition="'$(XunitRunnerJson)' == '' and '$(ArchiveTests)' == 'true'">$(RepoRoot)tests\helix\xunit.runner.json</XunitRunnerJson>
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == ''">$(RepositoryEngineeringDir)testing\xunit.runner.json</XunitRunnerJson>
 
-    <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == ''">false</RunTestsOnHelix>
+    <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestSupportProject)' != 'true')">true</RunTestsOnHelix>
     <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestSupportProject)' == 'true' or '$(RunTestsOnHelix)' == 'true')">true</SkipTests>
   </PropertyGroup>
 
@@ -17,14 +21,50 @@
     <None Include="$(XunitRunnerJson)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <Target Name="ZipTestArchive" AfterTargets="Build" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true'">
+  <Target Name="ZipTestArchive" AfterTargets="Build" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true' and '$(IsCrossTargetingBuild)' != 'true'">
     <Error Condition="'$(TestArchiveTestsDir)' == ''" Text="TestArchiveTestsDir property to archive the test folder must be set." />
+    <PropertyGroup>
+      <TestsArchiveSourceDir Condition="'$(TestsArchiveSourceDir)' == ''">$(OutDir)</TestsArchiveSourceDir>
+      <ZipTestArchiveTfm></ZipTestArchiveTfm>
+      <ZipTestArchiveTfm Condition="'$(TargetFramework)' != '$(DefaultTargetFramework)'">-$(TargetFramework)</ZipTestArchiveTfm>
+    </PropertyGroup>
 
     <MakeDir Directories="$(TestArchiveTestsDir)" />
-    <ZipDirectory SourceDirectory="$(OutDir)"
-                  DestinationFile="$([MSBuild]::NormalizePath('$(TestArchiveTestsDir)', '$(MSBuildProjectName).zip'))"
+    <ZipDirectory SourceDirectory="$(TestsArchiveSourceDir)"
+                  DestinationFile="$([MSBuild]::NormalizePath($(TestArchiveTestsDir), '$(MSBuildProjectName)$(ZipTestArchiveTfm).zip'))"
                   Overwrite="true" />
   </Target>
 
-  <Import Project="Shared\Aspire.Workload.Testing.targets" Condition="'$(IsWorkloadTestProject)' == 'true'" />
+  <!-- Used for running one helix job per test class -->
+  <Target Name="_ExtractTestClassNames"
+          Condition="'$(ExtractTestClassNamesForHelix)' == 'true' and '$(ArchiveTests)' == 'true'"
+          BeforeTargets="ZipTestArchive">
+
+    <Error Condition="'$(ExtractTestClassNamesPrefix)' == ''"
+           Text="%24(ExtractTestClassNamesPrefix) should be set, for example - Aspire.Workload.Tests" />
+
+    <Exec Command="&quot;$(DotNetTool)&quot; test --no-build -c $(Configuration) -s $(RunSettingsFilePath) --list-tests --nologo -v:q -p:VsTestUseMSBuildOutput=false" ConsoleToMSBuild="true">
+      <Output TaskParameter="ConsoleOutput" ItemName="_ListOfTestsLines" />
+    </Exec>
+
+    <PropertyGroup>
+      <_Regex>^\s*($(ExtractTestClassNamesPrefix)[^\($]+)</_Regex>
+    </PropertyGroup>
+    <ItemGroup>
+      <_TestLines0 Include="$([System.Text.RegularExpressions.Regex]::Match('%(_ListOfTestsLines.Identity)', '$(_Regex)'))" />
+      <TestClassName Include="$([System.IO.Path]::GetFileNameWithoutExtension('%(_TestLines0.Identity)'))" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <UniqueTestClassNamesFiltered Include="@(TestClassName->Distinct())" Exclude="@(TestClassNamesToSkipTests)" />
+    </ItemGroup>
+
+    <Error Text="No $(ExtractTestClassNamesPrefix) test classes found!" Condition="'@(TestClassName)' == ''" />
+
+    <WriteLinesToFile File="$(TestArchiveTestsDir)$(MSBuildProjectName).tests.list"
+                      Lines="@(UniqueTestClassNamesFiltered)"
+                      Overwrite="true" />
+  </Target>
+
+  <Import Project="$(TestsSharedDir)Aspire.Workload.Testing.targets" Condition="'$(IsWorkloadTestProject)' == 'true'" />
 </Project>

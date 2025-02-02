@@ -1,13 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.csproj" />
+    <AspireProjectOrPackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <!-- Npgsql EF needs to match the same major version as the underlying Npgsql assemblies. -->
+    <PackageReference Include="Npgsql.DependencyInjection" VersionOverride="$(Npgsql8Version)" />
+    <PackageReference Include="Npgsql.OpenTelemetry" VersionOverride="$(Npgsql8Version)" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
 

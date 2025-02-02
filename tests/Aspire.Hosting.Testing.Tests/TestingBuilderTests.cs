@@ -2,7 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Http.Json;
+using System.Reflection;
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.Tests;
+using Aspire.Hosting.Tests.Utils;
+using Aspire.TestProject;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -12,6 +16,91 @@ namespace Aspire.Hosting.Testing.Tests;
 
 public class TestingBuilderTests
 {
+    [Fact]
+    public void TestingBuilderHasAllPropertiesFromRealBuilder()
+    {
+        var realBuilderProperties = typeof(IDistributedApplicationBuilder).GetProperties().Select(p => p.Name).ToList();
+        var testBuilderProperties = typeof(IDistributedApplicationTestingBuilder).GetProperties().Select(p => p.Name).ToList();
+        var missingProperties = realBuilderProperties.Except(testBuilderProperties).ToList();
+        Assert.Empty(missingProperties);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task CanLoadFromDirectoryOutsideOfAppContextBaseDirectory()
+    {
+        // This test depends on the TestProject.AppHost not being in `AppContext.BaseDirectory` for the tests assembly.
+        var unexpectedAppHostFiles = Directory.GetFiles(AppContext.BaseDirectory, "TestProject.AppHost.*");
+        if (unexpectedAppHostFiles.Length > 0)
+        {
+            // The test requires that the TestProject.AppHost* files not be present in the test directory
+            // This is a defensive check to ensure that the test is not run in an unexpected environment due
+            // to build changes
+            throw new InvalidOperationException($"Found unexpected AppHost files in {AppContext.BaseDirectory}: {string.Join(", ", unexpectedAppHostFiles)}");
+        }
+
+        var testProjectAssemblyPath = Directory.GetFiles(
+            Path.Combine(MSBuildUtils.GetRepoRoot(), "artifacts", "bin", "TestProject.AppHost"),
+            "TestProject.AppHost.dll",
+            SearchOption.AllDirectories).FirstOrDefault();
+
+        Assert.True(File.Exists(testProjectAssemblyPath), $"TestProject.AppHost.dll not found at {testProjectAssemblyPath}.");
+
+        var appHostAssembly = Assembly.LoadFrom(Path.Combine(AppContext.BaseDirectory, testProjectAssemblyPath));
+        var appHostType = appHostAssembly.GetTypes().FirstOrDefault(t => t.Name.EndsWith("_AppHost"))
+            ?? throw new InvalidOperationException("Generated AppHost type not found.");
+
+        TestResourceNames resourcesToSkip = ~TestResourceNames.redis;
+        var appHost = await DistributedApplicationTestingBuilder.CreateAsync(appHostType, ["--skip-resources", resourcesToSkip.ToCSVString()]);
+        await using var app = await appHost.BuildAsync();
+        await app.StartAsync();
+
+        // Sanity check that the app is running as expected
+        // Get an endpoint from a resource
+        var serviceAHttpEndpoint = app.GetEndpoint("servicea", "http");
+        Assert.NotNull(serviceAHttpEndpoint);
+        Assert.True(serviceAHttpEndpoint.Host.Length > 0);
+    }
+
+    [Fact]
+    public async Task ThrowsForAssemblyWithoutAnEntrypoint()
+    {
+        var ioe = await Assert.ThrowsAsync<InvalidOperationException>(() => DistributedApplicationTestingBuilder.CreateAsync(typeof(Microsoft.Extensions.Logging.ConsoleLoggerExtensions)));
+        Assert.Contains("does not have an entry point", ioe.Message);
+    }
+
+    [Theory]
+    [RequiresDocker]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CreateAsyncWithOptions(bool genericEntryPoint)
+    {
+        var nonExistantRegistry = "non-existant-registry-azurecr.io";
+        var testEnvironmentName = "TestFooEnvironment";
+        Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder = (options, settings) =>
+        {
+            options.ContainerRegistryOverride = nonExistantRegistry;
+            settings.EnvironmentName = testEnvironmentName;
+        };
+
+        var appHost = await (genericEntryPoint
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>([], configureBuilder)
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), [], configureBuilder));
+        Assert.Equal(testEnvironmentName, appHost.Environment.EnvironmentName);
+
+        await using var app = await appHost.BuildAsync();
+        await app.StartAsync();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        foreach (var resource in appModel.GetContainerResources())
+        {
+            var containerImageAnnotation = resource.Annotations.OfType<ContainerImageAnnotation>().FirstOrDefault();
+            Assert.NotNull(containerImageAnnotation);
+
+            Assert.Equal(nonExistantRegistry, containerImageAnnotation!.Registry);
+        }
+    }
+
     [Theory]
     [RequiresDocker]
     [InlineData(false)]
@@ -65,6 +154,9 @@ public class TestingBuilderTests
         await using var app = await appHost.BuildAsync();
         await app.StartAsync();
 
+        // Wait for the application to be ready
+        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+
         var httpClient = app.CreateHttpClientWithResilience("mywebapp1");
         var result1 = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
         Assert.NotNull(result1);
@@ -114,6 +206,9 @@ public class TestingBuilderTests
         var profileName = config["AppHost:DefaultLaunchProfileName"];
         Assert.Equal("https", profileName);
 
+        // Wait for the application to be ready
+        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+
         // Explicitly get the HTTPS endpoint - this is only available on the "https" launch profile.
         var httpClient = app.CreateHttpClient("mywebapp1", "https");
         var result = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
@@ -143,8 +238,7 @@ public class TestingBuilderTests
         {
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             genericEntryPoint ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>([$"--crash-{crashArg}"], cts.Token).WaitAsync(cts.Token)
-                                : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), [$"--crash-{crashArg}"], cts.Token).WaitAsync(cts.Token))
-                .ConfigureAwait(false);
+                                : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), [$"--crash-{crashArg}"], cts.Token).WaitAsync(cts.Token));
             Assert.Contains(crashArg, exception.Message);
             return;
         }
@@ -156,7 +250,7 @@ public class TestingBuilderTests
         }
 
         cts.CancelAfter(timeout);
-        app = await appHost.BuildAsync().WaitAsync(cts.Token).ConfigureAwait(false);
+        app = await appHost.BuildAsync().WaitAsync(cts.Token);
 
         cts.CancelAfter(timeout);
         if (crashArg == "after-build")
