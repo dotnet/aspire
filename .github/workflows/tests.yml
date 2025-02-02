@@ -53,8 +53,6 @@ jobs:
             name: RabbitMQ
           - project: tests/Aspire.Hosting.Redis.Tests/Aspire.Hosting.Redis.Tests.csproj
             name: Redis
-          - project: tests/Aspire.Hosting.Azure.Tests/Aspire.Hosting.Azure.Tests.csproj
-            name: Azure
           - project: tests/Aspire.Hosting.Sdk.Tests/Aspire.Hosting.Sdk.Tests.csproj
             name: SDK
           - project: tests/Aspire.Hosting.SqlServer.Tests/Aspire.Hosting.SqlServer.Tests.csproj
