@@ -241,7 +241,7 @@ public static class AzureServiceBusExtensions
         // Add emulator container
 
         // The password must be at least 8 characters long and contain characters from three of the following four sets: Uppercase letters, Lowercase letters, Base 10 digits, and Symbols
-        var passwordParameter = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder.ApplicationBuilder, $"{builder.Resource.Name}-sqledge-pwd", minLower: 1, minUpper: 1, minNumeric: 1);
+        var passwordParameter = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder.ApplicationBuilder, $"{builder.Resource.Name}-sql-pwd", minLower: 1, minUpper: 1, minNumeric: 1);
 
         builder
             .WithEndpoint(name: "emulator", targetPort: 5672)
