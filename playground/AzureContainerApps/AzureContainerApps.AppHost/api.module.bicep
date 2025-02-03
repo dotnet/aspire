@@ -5,6 +5,9 @@ param api_containerport string
 
 param storage_outputs_blobendpoint string
 
+@secure()
+param cache_password_value string
+
 param account_outputs_connectionstring string
 
 @secure()
@@ -30,6 +33,10 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
   properties: {
     configuration: {
       secrets: [
+        {
+          name: 'connectionstrings--cache'
+          value: 'cache:6379,password=${cache_password_value}'
+        }
         {
           name: 'value'
           value: secretparam_value
@@ -88,7 +95,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               name: 'ConnectionStrings__cache'
-              value: 'cache:6379'
+              secretRef: 'connectionstrings--cache'
             }
             {
               name: 'ConnectionStrings__account'

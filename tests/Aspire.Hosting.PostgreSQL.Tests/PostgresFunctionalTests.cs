@@ -162,11 +162,13 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
+        var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
+
         await app.StartAsync();
 
-        await app.WaitForTextAsync("Starting server...", resourceName: pgWebBuilder.Resource.Name);
-
         var client = app.CreateHttpClient(pgWebBuilder.Resource.Name, "http");
+
+        await resourceNotificationService.WaitForResourceHealthyAsync(pgWebBuilder.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         var httpContent = new MultipartFormDataContent
         {
@@ -177,6 +179,9 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var response = await client.PostAsync("/api/connect", httpContent);
         var d = await response.Content.ReadAsStringAsync();
+
+        testOutputHelper.WriteLine("RESPONSE: \r\n" + d);
+
         response.EnsureSuccessStatusCode();
     }
 
@@ -203,10 +208,8 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             var username = "postgres";
             var password = "p@ssw0rd1";
 
-            var usernameParameter = builder1.AddParameter("user");
-            var passwordParameter = builder1.AddParameter("pwd");
-            builder1.Configuration["Parameters:user"] = username;
-            builder1.Configuration["Parameters:pwd"] = password;
+            var usernameParameter = builder1.AddParameter("user", username);
+            var passwordParameter = builder1.AddParameter("pwd", password, secret: true);
             var postgres1 = builder1.AddPostgres("pg", usernameParameter, passwordParameter).WithEnvironment("POSTGRES_DB", postgresDbName);
 
             var db1 = postgres1.AddDatabase(postgresDbName);
@@ -228,7 +231,11 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder1.Build())
             {
+                var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
                 await app.StartAsync();
+
+                await rns.WaitForResourceHealthyAsync(db1.Resource.Name, cts.Token);
 
                 try
                 {
@@ -271,10 +278,8 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-            usernameParameter = builder2.AddParameter("user");
-            passwordParameter = builder2.AddParameter("pwd");
-            builder2.Configuration["Parameters:user"] = username;
-            builder2.Configuration["Parameters:pwd"] = password;
+            usernameParameter = builder2.AddParameter("user", username);
+            passwordParameter = builder2.AddParameter("pwd", password, secret: true);
 
             var postgres2 = builder2.AddPostgres("pg", usernameParameter, passwordParameter);
             var db2 = postgres2.AddDatabase(postgresDbName);
@@ -290,7 +295,12 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder2.Build())
             {
+                var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
                 await app.StartAsync();
+
+                await rns.WaitForResourceHealthyAsync(db2.Resource.Name, cts.Token);
+
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();

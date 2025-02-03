@@ -43,9 +43,9 @@
             {
                 <div>
                     <ResourceFilters
-                        ResourceStates="@_resourceStatesToVisibility"
-                        ResourceTypes="@_resourceTypesToVisibility"
-                        ResourceHealthStates="@_resourceHealthStatusesToVisibility"
+                        ResourceStates="@ResourceStatesToVisibility"
+                        ResourceTypes="@ResourceTypesToVisibility"
+                        ResourceHealthStates="@ResourceHealthStatusesToVisibility"
                         OnAllFilterVisibilityCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
                         OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync" />
                 </div>
@@ -60,9 +60,9 @@
                            Class="resources-filter-popup">
                 <Body>
                 <ResourceFilters
-                        ResourceStates="@_resourceStatesToVisibility"
-                        ResourceTypes="@_resourceTypesToVisibility"
-                        ResourceHealthStates="@_resourceHealthStatusesToVisibility"
+                        ResourceStates="@ResourceStatesToVisibility"
+                        ResourceTypes="@ResourceTypesToVisibility"
+                        ResourceHealthStates="@ResourceHealthStatusesToVisibility"
                         OnAllFilterVisibilityCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
                         OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync" />
                 </Body>

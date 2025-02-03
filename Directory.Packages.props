@@ -103,8 +103,8 @@
     <PackageVersion Include="OpenAI" Version="2.1.0" />
     <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.23.60" />
     <PackageVersion Include="Oracle.ManagedDataAccess.OpenTelemetry" Version="23.6.0" />
-    <PackageVersion Include="Polly.Core" Version="8.5.0" />
-    <PackageVersion Include="Polly.Extensions" Version="8.5.0" />
+    <PackageVersion Include="Polly.Core" Version="8.5.1" />
+    <PackageVersion Include="Polly.Extensions" Version="8.5.1" />
     <PackageVersion Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
     <PackageVersion Include="Qdrant.Client" Version="1.12.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="7.0.0" />
@@ -127,6 +127,7 @@
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Workloads" Version="8.0.0-beta.23564.4" />
     <PackageVersion Include="Microsoft.Signed.Wix" Version="$(MicrosoftSignedWixVersion)" />
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Installers" Version="8.0.0-beta.23564.4" />
+    <PackageVersion Include="Microsoft.DotNet.GenAPI.Task" Version="9.0.103-servicing.25065.25" />
     <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.24528.1" />
     <!-- unit test dependencies -->
     <PackageVersion Include="bUnit" Version="1.33.3" />

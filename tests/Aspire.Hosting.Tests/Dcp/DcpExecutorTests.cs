@@ -14,6 +14,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Polly;
 using Xunit;
 
 namespace Aspire.Hosting.Tests.Dcp;
@@ -972,11 +973,17 @@ public class DcpExecutorTests
         });
 
         var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, events: dcpEvents);
+
+        // Set a custom pipeline without retries or delays to avoid waiting.
+        appExecutor.DeleteResourceRetryPipeline = new ResiliencePipelineBuilder().Build();
+
         await appExecutor.RunApplicationAsync();
 
         var dcpCtr = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
 
-        var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () => await appExecutor.StartResourceAsync(dcpCtr.Metadata.Name, CancellationToken.None));
+        var resourceReference = appExecutor.GetResource(dcpCtr.Metadata.Name);
+
+        var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () => await appExecutor.StartResourceAsync(resourceReference, CancellationToken.None));
         Assert.Equal($"Failed to delete '{dcpCtr.Metadata.Name}' successfully before restart.", ex.Message);
 
         // Verify failed to start event.

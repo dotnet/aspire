@@ -40,14 +40,14 @@ internal class ResourceSnapshotBuilder
             State = state,
             // Map a container exit code of -1 (unknown) to null
             ExitCode = container.Status?.ExitCode is null or Conventions.UnknownExitCode ? null : container.Status.ExitCode,
-            Properties = [
+            Properties = previous.Properties.SetResourcePropertyRange([
                 new(KnownProperties.Container.Image, container.Spec.Image),
                 new(KnownProperties.Container.Id, containerId),
                 new(KnownProperties.Container.Command, container.Spec.Command),
                 new(KnownProperties.Container.Args, container.Status?.EffectiveArgs ?? []) { IsSensitive = true },
                 new(KnownProperties.Container.Ports, GetPorts()),
                 new(KnownProperties.Container.Lifetime, GetContainerLifetime()),
-            ],
+            ]),
             EnvironmentVariables = environment,
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToUniversalTime(),
             StartTimeStamp = container.Status?.StartupTimestamp?.ToUniversalTime(),
@@ -111,13 +111,13 @@ internal class ResourceSnapshotBuilder
                 ResourceType = KnownResourceTypes.Project,
                 State = state,
                 ExitCode = executable.Status?.ExitCode,
-                Properties = [
+                Properties = previous.Properties.SetResourcePropertyRange([
                     new(KnownProperties.Executable.Path, executable.Spec.ExecutablePath),
                     new(KnownProperties.Executable.WorkDir, executable.Spec.WorkingDirectory),
                     new(KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []) { IsSensitive = true },
                     new(KnownProperties.Executable.Pid, executable.Status?.ProcessId),
                     new(KnownProperties.Project.Path, projectPath)
-                ],
+                ]),
                 EnvironmentVariables = environment,
                 CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToUniversalTime(),
                 StartTimeStamp = executable.Status?.StartupTimestamp?.ToUniversalTime(),
@@ -132,12 +132,12 @@ internal class ResourceSnapshotBuilder
             ResourceType = KnownResourceTypes.Executable,
             State = state,
             ExitCode = executable.Status?.ExitCode,
-            Properties = [
+            Properties = previous.Properties.SetResourcePropertyRange([
                 new(KnownProperties.Executable.Path, executable.Spec.ExecutablePath),
                 new(KnownProperties.Executable.WorkDir, executable.Spec.WorkingDirectory),
                 new(KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []) { IsSensitive = true },
                 new(KnownProperties.Executable.Pid, executable.Status?.ProcessId)
-            ],
+            ]),
             EnvironmentVariables = environment,
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToUniversalTime(),
             StartTimeStamp = executable.Status?.StartupTimestamp?.ToUniversalTime(),

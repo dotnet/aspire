@@ -16,7 +16,7 @@ internal sealed class ApplicationOrchestrator
 {
     private readonly IDcpExecutor _dcpExecutor;
     private readonly DistributedApplicationModel _model;
-    private readonly ILookup<IResource?, IResourceWithParent> _parentChildLookup;
+    private readonly ILookup<IResource, IResource> _parentChildLookup;
     private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks;
     private readonly ResourceNotificationService _notificationService;
     private readonly IDistributedApplicationEventing _eventing;
@@ -33,7 +33,7 @@ internal sealed class ApplicationOrchestrator
     {
         _dcpExecutor = dcpExecutor;
         _model = model;
-        _parentChildLookup = GetParentChildLookup(model);
+        _parentChildLookup = RelationshipEvaluator.GetParentChildLookup(model);
         _lifecycleHooks = lifecycleHooks.ToArray();
         _notificationService = notificationService;
         _eventing = eventing;
@@ -45,6 +45,43 @@ internal sealed class ApplicationOrchestrator
         dcpExecutorEvents.Subscribe<OnResourcesPreparedContext>(OnResourcesPrepared);
         dcpExecutorEvents.Subscribe<OnResourceChangedContext>(OnResourceChanged);
         dcpExecutorEvents.Subscribe<OnResourceFailedToStartContext>(OnResourceFailedToStart);
+
+        // Implement WaitFor functionality using BeforeResourceStartedEvent.
+        _eventing.Subscribe<BeforeResourceStartedEvent>(WaitForInBeforeResourceStartedEvent);
+    }
+
+    private async Task WaitForInBeforeResourceStartedEvent(BeforeResourceStartedEvent @event, CancellationToken cancellationToken)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        var waitForDependenciesTask = _notificationService.WaitForDependenciesAsync(@event.Resource, cts.Token);
+        if (waitForDependenciesTask.IsCompletedSuccessfully)
+        {
+            // Nothing to wait for. Return immediately.
+            return;
+        }
+
+        // Wait for either dependencies to be ready or for someone to move the resource out of a waiting state.
+        // This happens when resource start command is run, which forces the status to "Starting".
+        var waitForNonWaitingStateTask = _notificationService.WaitForResourceAsync(
+            @event.Resource.Name,
+            e => e.Snapshot.State?.Text != KnownResourceStates.Waiting,
+            cts.Token);
+
+        try
+        {
+            var completedTask = await Task.WhenAny(waitForDependenciesTask, waitForNonWaitingStateTask).ConfigureAwait(false);
+            if (completedTask.IsFaulted)
+            {
+                // Make error visible from completed task.
+                await completedTask.ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            // Ensure both wait tasks are cancelled.
+            cts.Cancel();
+        }
     }
 
     private async Task OnEndpointsAllocated(OnEndpointsAllocatedContext context)
@@ -71,6 +108,8 @@ internal sealed class ApplicationOrchestrator
                     HealthReports = GetInitialHealthReports(context.Resource)
                 })
                 .ConfigureAwait(false);
+
+                await SetExecutableChildResourceAsync(context.Resource).ConfigureAwait(false);
                 break;
             case KnownResourceTypes.Container:
                 await _notificationService.PublishUpdateAsync(context.Resource, s => s with
@@ -155,28 +194,36 @@ internal sealed class ApplicationOrchestrator
 
     public async Task StartResourceAsync(string resourceName, CancellationToken cancellationToken)
     {
-        await _dcpExecutor.StartResourceAsync(resourceName, cancellationToken).ConfigureAwait(false);
+        var resourceReference = _dcpExecutor.GetResource(resourceName);
+
+        // Figure out if the resource is waiting or not using PublishUpdateAsync, and if it is then set the
+        // state to "Starting" to force waiting to complete.
+        var isWaiting = false;
+        await _notificationService.PublishUpdateAsync(
+            resourceReference.ModelResource,
+            s =>
+            {
+                if (s.State?.Text == KnownResourceStates.Waiting)
+                {
+                    isWaiting = true;
+                    return s with { State = KnownResourceStates.Starting };
+                }
+
+                return s;
+            }).ConfigureAwait(false);
+
+        // A waiting resource is already trying to start up and asking DCP to start it will result in a conflict.
+        // We only want to ask the DCP to start the resource if it wasn't.
+        if (!isWaiting)
+        {
+            await _dcpExecutor.StartResourceAsync(resourceReference, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     public async Task StopResourceAsync(string resourceName, CancellationToken cancellationToken)
     {
-        await _dcpExecutor.StopResourceAsync(resourceName, cancellationToken).ConfigureAwait(false);
-    }
-
-    private static ILookup<IResource?, IResourceWithParent> GetParentChildLookup(DistributedApplicationModel model)
-    {
-        static IResource? SelectParentContainerResource(IResource resource) => resource switch
-        {
-            IResourceWithParent rp => SelectParentContainerResource(rp.Parent),
-            IResource r when r.IsContainer() => r,
-            _ => null
-        };
-
-        // parent -> children lookup
-        return model.Resources.OfType<IResourceWithParent>()
-                              .Select(x => (Child: x, Root: SelectParentContainerResource(x.Parent)))
-                              .Where(x => x.Root is not null)
-                              .ToLookup(x => x.Root, x => x.Child);
+        var resourceReference = _dcpExecutor.GetResource(resourceName);
+        await _dcpExecutor.StopResourceAsync(resourceReference, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task SetChildResourceAsync(IResource resource, string parentName, string? state, DateTime? startTimeStamp, DateTime? stopTimeStamp)
@@ -188,6 +235,21 @@ internal sealed class ApplicationOrchestrator
                 State = state,
                 StartTimeStamp = startTimeStamp,
                 StopTimeStamp = stopTimeStamp,
+                Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, parentName)
+            }).ConfigureAwait(false);
+        }
+    }
+
+    private async Task SetExecutableChildResourceAsync(IResource resource)
+    {
+        // the parent name needs to be an instance name, not the resource name.
+        // parent the children under the first resource instance.
+        var parentName = resource.GetResolvedResourceNames()[0];
+
+        foreach (var child in _parentChildLookup[resource])
+        {
+            await _notificationService.PublishUpdateAsync(child, s => s with
+            {
                 Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, parentName)
             }).ConfigureAwait(false);
         }
@@ -232,7 +294,8 @@ internal sealed class ApplicationOrchestrator
         // we need to dispatch the event for the children.
         if (_parentChildLookup[resource] is { } children)
         {
-            foreach (var child in children.OfType<IResourceWithConnectionString>())
+            // only dispatch the event for children that have a connection string and are IResourceWithParent, not parented by annotations.
+            foreach (var child in children.OfType<IResourceWithConnectionString>().Where(c => c is IResourceWithParent))
             {
                 var childConnectionStringAvailableEvent = new ConnectionStringAvailableEvent(child, _serviceProvider);
                 await _eventing.PublishAsync(childConnectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);

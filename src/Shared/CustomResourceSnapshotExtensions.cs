@@ -30,4 +30,37 @@ internal static class CustomResourceSnapshotExtensions
         // Add property.
         return [.. properties, new ResourcePropertySnapshot(name, value)];
     }
+
+    internal static ImmutableArray<ResourcePropertySnapshot> SetResourcePropertyRange(this ImmutableArray<ResourcePropertySnapshot> properties, IEnumerable<ResourcePropertySnapshot> newValues)
+    {
+        var existingProperties = new List<ResourcePropertySnapshot>(properties);
+        var propertiesToAdd = new List<ResourcePropertySnapshot>();
+
+        foreach (var newValue in newValues)
+        {
+            var found = false;
+            for (var i = 0; i < existingProperties.Count; i++)
+            {
+                var existingProperty = existingProperties[i];
+
+                if (string.Equals(existingProperty.Name, newValue.Name, StringComparisons.ResourcePropertyName))
+                {
+                    if (existingProperty.Value != newValue.Value)
+                    {
+                        existingProperties[i] = existingProperty with { Value = newValue.Value };
+                    }
+
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                propertiesToAdd.Add(newValue);
+            }
+        }
+
+        return [.. existingProperties, .. propertiesToAdd];
+    }
 }

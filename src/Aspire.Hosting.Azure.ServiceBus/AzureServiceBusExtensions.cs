@@ -262,7 +262,8 @@ public static class AzureServiceBusExtensions
                 .WithEnvironment(context =>
                 {
                     context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = passwordParameter;
-                });
+                })
+                .WithParentRelationship(builder.Resource);
 
         builder.WithAnnotation(new EnvironmentCallbackAnnotation((EnvironmentCallbackContext context) =>
         {
