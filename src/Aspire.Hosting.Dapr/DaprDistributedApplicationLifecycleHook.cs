@@ -15,6 +15,7 @@ using static Aspire.Hosting.Dapr.CommandLineArgs;
 
 namespace Aspire.Hosting.Dapr;
 
+[Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", error: false)]
 internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedApplicationLifecycleHook, IDisposable
 {
     private readonly IConfiguration _configuration;
@@ -142,6 +143,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         ModelNamedArg("--resources-path", aggregateResourcesPaths),
                         ModelNamedArg("--run-file", NormalizePath(sidecarOptions?.RunFile)),
                         ModelNamedArg("--runtime-path", NormalizePath(sidecarOptions?.RuntimePath)),
+                        ModelNamedArg("--scheduler-host-address", sidecarOptions?.SchedulerHostAddress),
                         ModelNamedArg("--unix-domain-socket", sidecarOptions?.UnixDomainSocket),
                         PostOptionsArgs(Args(sidecarOptions?.Command)));
 
@@ -215,7 +217,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         {
                             updatedArgs.AddRange(daprAppChannelAddressArg(endPoint.Value.appEndpoint.Host)());
                         }
-                        if (sidecarOptions?.AppProtocol is null && endPoint is { appEndpoint.IsAllocated: true }) 
+                        if (sidecarOptions?.AppProtocol is null && endPoint is { appEndpoint.IsAllocated: true })
                         {
                             updatedArgs.AddRange(daprAppProtocol(endPoint.Value.protocol)());
                         }
@@ -262,6 +264,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         context.Writer.TryWriteStringArray("resourcesPath", sidecarOptions?.ResourcesPaths.Select(path => context.GetManifestRelativePath(path)));
                         context.Writer.TryWriteString("runFile", context.GetManifestRelativePath(sidecarOptions?.RunFile));
                         context.Writer.TryWriteString("runtimePath", context.GetManifestRelativePath(sidecarOptions?.RuntimePath));
+                        context.Writer.TryWriteString("schedulerHostAddress", sidecarOptions?.SchedulerHostAddress);
                         context.Writer.TryWriteString("unixDomainSocket", sidecarOptions?.UnixDomainSocket);
 
                         context.Writer.WriteEndObject();
@@ -327,7 +330,10 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             yield return Path.Combine(homePath, "dapr", "dapr");
 
             // Linux & MacOS path:
-            yield return Path.Combine("/usr", "local", "bin", "dapr");
+            yield return "/usr/local/bin/dapr";
+
+            // Arch Linux path:
+            yield return "/usr/bin/dapr";
 
             // MacOS Homebrew path:
             if (OperatingSystem.IsMacOS() && Environment.GetEnvironmentVariable("HOMEBREW_PREFIX") is string homebrewPrefix)

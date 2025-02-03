@@ -10,21 +10,36 @@ namespace Aspire.Hosting.Tests;
 public class ResourceExtensionsTests
 {
     [Fact]
-    public void TryGetAnnotationOfTypeReturnsFalseWhenNoAnnotations()
+    public void TryGetAnnotationsOfTypeReturnsFalseWhenNoAnnotations()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var parent = builder.AddResource(new ParentResource("parent"));
 
-        Assert.False(parent.Resource.TryGetAnnotationsOfType<DummyAnnotation>(out _));
+        Assert.False(parent.Resource.HasAnnotationOfType<DummyAnnotation>());
+        Assert.False(parent.Resource.TryGetAnnotationsOfType<DummyAnnotation>(out var annotations));
+        Assert.Null(annotations);
     }
 
     [Fact]
-    public void TryGetAnnotationOfTypeReturnsTrueWhenNoAnnotations()
+    public void TryGetAnnotationsOfTypeReturnsFalseWhenOnlyAnnotationsOfOtherTypes()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var parent = builder.AddResource(new ParentResource("parent"))
+                            .WithAnnotation(new AnotherDummyAnnotation());
+
+        Assert.False(parent.Resource.HasAnnotationOfType<DummyAnnotation>());
+        Assert.False(parent.Resource.TryGetAnnotationsOfType<DummyAnnotation>(out var annotations));
+        Assert.Null(annotations);
+    }
+
+    [Fact]
+    public void TryGetAnnotationsOfTypeReturnsTrueWhenNoAnnotations()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var parent = builder.AddResource(new ParentResource("parent"))
                             .WithAnnotation(new DummyAnnotation());
 
+        Assert.True(parent.Resource.HasAnnotationOfType<DummyAnnotation>());
         Assert.True(parent.Resource.TryGetAnnotationsOfType<DummyAnnotation>(out var annotations));
         Assert.Single(annotations);
     }
@@ -36,8 +51,47 @@ public class ResourceExtensionsTests
         var parent = builder.AddResource(new ParentResource("parent"))
                             .WithAnnotation(new DummyAnnotation());
 
+        Assert.True(parent.Resource.HasAnnotationIncludingAncestorsOfType<DummyAnnotation>());
         Assert.True(parent.Resource.TryGetAnnotationsIncludingAncestorsOfType<DummyAnnotation>(out var annotations));
         Assert.Single(annotations);
+    }
+
+    [Fact]
+    public void TryGetAnnotationIncludingAncestorsOfTypeReturnsFalseWhenNoAnnotations()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var parent = builder.AddResource(new ParentResource("parent"));
+
+        Assert.False(parent.Resource.HasAnnotationIncludingAncestorsOfType<DummyAnnotation>());
+        Assert.False(parent.Resource.TryGetAnnotationsIncludingAncestorsOfType<DummyAnnotation>(out var annotations));
+        Assert.Null(annotations);
+    }
+
+    [Fact]
+    public void TryGetAnnotationIncludingAncestorsOfTypeReturnsFalseWhenOnlyAnnotationsOfOtherTypes()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var parent = builder.AddResource(new ParentResource("parent"))
+                            .WithAnnotation(new AnotherDummyAnnotation());
+
+        Assert.False(parent.Resource.HasAnnotationIncludingAncestorsOfType<DummyAnnotation>());
+        Assert.False(parent.Resource.TryGetAnnotationsIncludingAncestorsOfType<DummyAnnotation>(out var annotations));
+        Assert.Null(annotations);
+    }
+
+    [Fact]
+    public void TryGetAnnotationIncludingAncestorsOfTypeReturnsFalseWhenOnlyAnnotationsOfOtherTypesIncludingParent()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var parent = builder.AddResource(new ParentResource("parent"))
+                            .WithAnnotation(new AnotherDummyAnnotation());
+
+        var child = builder.AddResource(new ChildResource("child", parent.Resource))
+                           .WithAnnotation(new AnotherDummyAnnotation());
+
+        Assert.False(parent.Resource.HasAnnotationIncludingAncestorsOfType<DummyAnnotation>());
+        Assert.False(child.Resource.TryGetAnnotationsIncludingAncestorsOfType<DummyAnnotation>(out var annotations));
+        Assert.Null(annotations);
     }
 
     [Fact]
@@ -49,6 +103,7 @@ public class ResourceExtensionsTests
 
         var child = builder.AddResource(new ChildResource("child", parent.Resource));
 
+        Assert.True(parent.Resource.HasAnnotationIncludingAncestorsOfType<DummyAnnotation>());
         Assert.True(child.Resource.TryGetAnnotationsIncludingAncestorsOfType<DummyAnnotation>(out var annotations));
         Assert.Single(annotations);
     }
@@ -63,8 +118,27 @@ public class ResourceExtensionsTests
         var child = builder.AddResource(new ChildResource("child", parent.Resource))
                            .WithAnnotation(new DummyAnnotation());
 
+        Assert.True(parent.Resource.HasAnnotationIncludingAncestorsOfType<DummyAnnotation>());
         Assert.True(child.Resource.TryGetAnnotationsIncludingAncestorsOfType<DummyAnnotation>(out var annotations));
         Assert.Equal(2, annotations.Count());
+    }
+
+    [Fact]
+    public void TryGetAnnotationsIncludingAncestorsOfTypeCombinesAnnotationsFromParentAndChildAndGrandchild()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var parent = builder.AddResource(new ParentResource("parent"))
+                            .WithAnnotation(new DummyAnnotation());
+
+        var child = builder.AddResource(new ChildResource("child", parent: parent.Resource))
+                           .WithAnnotation(new DummyAnnotation());
+
+        var grandchild = builder.AddResource(new ChildResource("grandchild", parent: child.Resource))
+                                .WithAnnotation(new DummyAnnotation());
+
+        Assert.True(parent.Resource.HasAnnotationIncludingAncestorsOfType<DummyAnnotation>());
+        Assert.True(grandchild.Resource.TryGetAnnotationsIncludingAncestorsOfType<DummyAnnotation>(out var annotations));
+        Assert.Equal(3, annotations.Count());
     }
 
     [Fact]
@@ -190,12 +264,17 @@ public class ResourceExtensionsTests
 
     }
 
-    private sealed class ChildResource(string name, ParentResource parent) : Resource(name), IResourceWithParent<ParentResource>
+    private sealed class ChildResource(string name, Resource parent) : Resource(name), IResourceWithParent<Resource>
     {
-        public ParentResource Parent => parent;
+        public Resource Parent => parent;
     }
 
     private sealed class DummyAnnotation : IResourceAnnotation
+    {
+
+    }
+
+    private sealed class AnotherDummyAnnotation : IResourceAnnotation
     {
 
     }

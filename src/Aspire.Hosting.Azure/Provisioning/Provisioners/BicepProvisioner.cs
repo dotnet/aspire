@@ -111,17 +111,15 @@ internal sealed class BicepProvisioner(
         {
             ResourceType = resource.GetType().Name,
             State = new("Starting", KnownResourceStateStyles.Info),
-            Properties = [
+            Properties = state.Properties.SetResourcePropertyRange([
                 new("azure.subscription.id", context.Subscription.Id.Name),
                 new("azure.resource.group", context.ResourceGroup.Id.Name),
                 new("azure.tenant.domain", context.Tenant.Data.DefaultDomain),
                 new("azure.location", context.Location.ToString()),
-            ]
+            ])
         }).ConfigureAwait(false);
 
         var resourceLogger = loggerService.GetLogger(resource);
-
-        PopulateWellKnownParameters(resource, context);
 
         if (FindFullPathFromPath("az") is not { } azPath)
         {
@@ -129,8 +127,11 @@ internal sealed class BicepProvisioner(
         }
 
         var template = resource.GetBicepTemplateFile();
-
         var path = template.Path;
+
+        // GetBicepTemplateFile may have added new well-known parameters, so we need
+        // to populate them only after calling GetBicepTemplateFile.
+        PopulateWellKnownParameters(resource, context);
 
         KeyVaultResource? keyVault = null;
 

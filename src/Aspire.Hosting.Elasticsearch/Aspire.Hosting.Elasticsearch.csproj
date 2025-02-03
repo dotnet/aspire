@@ -6,6 +6,7 @@
     <PackageTags>aspire integration hosting elasticsearch</PackageTags>
     <Description>Elasticsearch support for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)Elastic_logo.png</PackageIconFullPath>
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
   <PropertyGroup>

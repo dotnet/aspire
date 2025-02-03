@@ -6,7 +6,7 @@
 
 @inject IStringLocalizer<Columns> Loc
 
-<span title="@FormatName(Resource)"><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)" /></span>
+<span class="resource-name-text" title="@FormatName(Resource)"><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)" /></span>
 
 @if (Resource.Properties.TryGetValue(KnownProperties.Container.Lifetime, out var value) &&
     value.Value.HasStringValue &&

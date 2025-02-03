@@ -12,8 +12,14 @@
 @inject IStringLocalizer<Dashboard.Resources.StructuredLogs> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 @inject IStringLocalizer<StructuredFiltering> FilterLoc
+@inject IStringLocalizer<Dialogs> DialogsLoc
 
-<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle)" Loc="@Loc" /></PageTitle>
+<PageTitle>
+    <ApplicationName
+        AdditionalText="@PageViewModel.SelectedApplication.Id?.ReplicaSetName"
+        ResourceName="@nameof(Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle)"
+        Loc="@Loc"/>
+</PageTitle>
 
 <div class="page-content-container">
     <AspirePageContentLayout @ref="@_contentLayout"
@@ -28,7 +34,12 @@
                             AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
                             @bind-SelectedResource="PageViewModel.SelectedApplication"
                             @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync"
-                            CanSelectGrouping="true" />
+                            CanSelectGrouping="true"
+                            LabelClass="toolbar-left" />
+
+            <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
+                                HandleClearSignal="ClearStructureLogs" />
+
             <FluentSearch @bind-Value="_filter"
                           @bind-Value:after="HandleAfterFilterBindAsync"
                           Immediate="true"
@@ -77,12 +88,12 @@
             <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             @if (ViewportInformation.IsDesktop)
             {
-                <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="@FilterLoc[nameof(StructuredFiltering.AddFilter)]" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
+                <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="@FilterLoc[nameof(StructuredFiltering.AddFilter)]" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size20.Filter())" /></FluentButton>
             }
             else
             {
                 <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="@FilterLoc[nameof(StructuredFiltering.AddFilter)]" OnClick="() => OpenFilterAsync(null)">
-                    <FluentIcon Class="align-text-bottom" Value="@(new Icons.Regular.Size16.Filter())" /> @FilterLoc[nameof(StructuredFiltering.AddFilter)]
+                    <FluentIcon Class="align-text-bottom" Value="@(new Icons.Regular.Size20.Filter())" /> @FilterLoc[nameof(StructuredFiltering.AddFilter)]
                 </FluentButton>
             }
         </ToolbarSection>
@@ -111,7 +122,9 @@
                         <div class="logs-grid-container continuous-scroll-overflow">
                             <GridColumnManager @ref="_manager" Columns="@_gridColumns">
                                 <FluentDataGrid @ref="_dataGrid"
-                                                ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
+                                                ColumnResizeLabels="@_resizeLabels"
+                                                ColumnSortLabels="@_sortLabels"
+                                                HeaderCellAsButtonWithMenu="true"
                                                 ResizeType="DataGridResizeType.Discrete"
                                                 Virtualize="true"
                                                 RowClass="@GetRowClass"
@@ -124,7 +137,7 @@
                                                 ShowHover="true"
                                                 ItemKey="@(r => r.InternalId)"
                                                 OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, buttonId: null)))"
-                                                Class="enable-row-click">
+                                                Class="main-grid enable-row-click">
                                     <ChildContent>
                                         <AspireTemplateColumn ColumnId="@ResourceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsResourceColumnHeader)]" Tooltip="true" TooltipText="@(e => GetResourceName(e.ApplicationView))">
                                             <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.ApplicationView)));">
@@ -143,7 +156,7 @@
                                         <AspireTemplateColumn ColumnId="@TraceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTraceColumnHeader)]">
                                             @if (!string.IsNullOrEmpty(context.TraceId))
                                             {
-                                                <a href="@DashboardUrls.TraceDetailUrl(context.TraceId)" class="long-inner-content" @onclick:stopPropagation="true">
+                                                <a href="@DashboardUrls.TraceDetailUrl(context.TraceId, context.SpanId)" class="long-inner-content" @onclick:stopPropagation="true">
                                                     @OtlpHelpers.ToShortenedId(context.TraceId)
                                                 </a>
                                             }
@@ -177,7 +190,7 @@
         </MainSection>
 
         <FooterSection>
-            <TotalItemsFooter @ref="_totalItemsFooter" />
+            <TotalItemsFooter @ref="_totalItemsFooter" TotalItemCount="@_totalItemsCount" />
         </FooterSection>
     </AspirePageContentLayout>
 </div>

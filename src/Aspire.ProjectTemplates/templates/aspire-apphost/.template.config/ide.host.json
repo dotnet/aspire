@@ -5,7 +5,17 @@
   "disableHttpsSymbol": "NoHttps",
   "symbolInfo": [
     {
+      "id": "AspireVersionCli",
+      "isVisible": false
+    },
+    {
       "id": "AspireVersion",
+      "isVisible": true,
+      "persistenceScope": "shared",
+      "persistenceScopeName": "aspireTemplates"
+    },
+    {
+      "id": "AspireVersionNet9",
       "isVisible": true,
       "persistenceScope": "shared",
       "persistenceScopeName": "aspireTemplates"

@@ -9,7 +9,12 @@
 @inject IStringLocalizer<Dashboard.Resources.TraceDetail> Loc
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
 
-<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.TraceDetail.TraceDetailPageTitle)" Loc="@Loc" /></PageTitle>
+<PageTitle>
+    <ApplicationName
+        AdditionalText="@GetPageTitle()"
+        ResourceName="@nameof(Dashboard.Resources.TraceDetail.TraceDetailPageTitle)"
+        Loc="@Loc"/>
+</PageTitle>
 
 <div class="page-content-container">
     @if (_trace is { } trace)
@@ -19,18 +24,15 @@
             MobileToolbarButtonText="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailMobileToolbarButtonText)]"
             IsSummaryDetailsViewOpen="@(SelectedSpan is not null)">
             <PageTitleSection>
-                @{
-                    var headerSpan = trace.RootSpan ?? trace.FirstSpan;
-                }
                 <div class="page-header">
                     <h1>
-                        <span>@GetResourceName(headerSpan.Source): @headerSpan.Name</span>
+                        <span>@GetPageTitle()</span>
                         <span class="trace-id">@OtlpHelpers.ToShortenedId(trace.TraceId)</span>
-                    </h1>                    
+                    </h1>
                 </div>
             </PageTitleSection>
             <ToolbarSection>
-                <div>
+                <div class="toolbar-left">
                     @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong title="@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Full)">@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Truncated)</strong>
                 </div>
                 <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
@@ -70,25 +72,25 @@
                             <FluentDataGrid @ref="_dataGrid"
                                             Virtualize="true"
                                             GenerateHeader="GenerateHeaderOption.Sticky"
-                                            Class="trace-view-grid enable-row-click"
+                                            Class="main-grid trace-view-grid enable-row-click"
                                             ResizableColumns="true"
                                             ItemsProvider="@GetData"
                                             TGridItem="SpanWaterfallViewModel"
                                             RowClass="@GetRowClass"
                                             GridTemplateColumns="@_manager.GetGridTemplateColumns()"
+                                            RowSize="DataGridRowSize.Small"
                                             ShowHover="true"
                                             ItemKey="@(r => r.Span.SpanId)"
                                             OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, buttonId: null)))">
-                                <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" UseCustomHeaderTemplate="false" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailNameHeader)]">
-                                    <div class="col-long-content" title="@context.GetTooltip(_applications)">
-                                        @{
-                                            var isServerOrConsumer = context.Span.Kind == OtlpSpanKind.Server || context.Span.Kind == OtlpSpanKind.Consumer;
-                                            // Indent the span name based on the depth of the span.
-                                            var marginLeft = (context.Depth - 1) * 15;
+                                <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailNameHeader)]" Tooltip="true" TooltipText="@(c => c.GetTooltip(_applications))" Class="expand-col">
+                                    @{
+                                        var isServerOrConsumer = context.Span.Kind == OtlpSpanKind.Server || context.Span.Kind == OtlpSpanKind.Consumer;
+                                        // Indent the span name based on the depth of the span.
+                                        var marginLeft = (context.Depth - 1) * 15;
 
-                                            // We want to have consistent margin for both client and server spans.
-                                            string spanNameContainerStyle;
-                                            if (!isServerOrConsumer)
+                                        // We want to have consistent margin for both client and server spans.
+                                        string spanNameContainerStyle;
+                                        if (!isServerOrConsumer)
                                             {
                                                 // Client span has 19px extra content:
                                                 // - 5px extra margin-left
@@ -96,68 +98,69 @@
                                                 // - 9px padding-left
                                                 spanNameContainerStyle = $"margin-left: 5px; border-left-color: {ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source))}; border-left-width: 5px; border-left-style: solid; padding-left: 9px;";
                                             }
-                                            else
-                                            {
-                                                // Span with icon has 19px extra content:
-                                                // - 16px icon
-                                                // - 3px padding-left
-                                                spanNameContainerStyle = string.Empty;
-                                            }
+                                        else
+                                        {
+                                            // Span with icon has 19px extra content:
+                                            // - 16px icon
+                                            // - 3px padding-left
+                                            spanNameContainerStyle = string.Empty;
                                         }
+                                    }
 
-                                        <span style="margin-left: @(marginLeft)px;">
-                                            <span class="span-collapse-symbol" @onclick="() => OnToggleCollapse(context)" @onclick:stopPropagation="true">
-                                                @if (context.Children.Count > 0)
-                                                {
-                                                    @(context.IsCollapsed ? '+' : '-')
-                                                }
-                                            </span>
-                                            <span class="span-name-container" style="@spanNameContainerStyle">
-                                                @if (isServerOrConsumer)
-                                                {
-                                                    <FluentIcon Class="span-kind-icon"
-                                                                Color="Color.Custom"
-                                                                CustomColor="@ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source))"
-                                                                Value="@GetSpanIcon(context.Span)"/>
-                                                }
-
-                                                @if (context.IsError)
-                                                {
-                                                    <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon"/>
-                                                }
-                                                @GetResourceName(context.Span.Source)
-                                                @if (context.HasUninstrumentedPeer)
-                                                {
-                                                    <span class="uninstrumented-peer">
-                                                        @{
-                                                            Icon icon;
-                                                            if (context.Span.Attributes.HasKey("db.system"))
-                                                            {
-                                                                icon = new Icons.Filled.Size16.Database();
-                                                            }
-                                                            else if (context.Span.Attributes.HasKey("messaging.system"))
-                                                            {
-                                                                icon = new Icons.Filled.Size16.Mail();
-                                                            }
-                                                            else
-                                                            {
-                                                                // Everything else.
-                                                                icon = new Icons.Filled.Size16.ArrowCircleRight();
-                                                            }
-                                                        }
-                                                        <FluentIcon
-                                                            Style="@($"fill: {ColorGenerator.Instance.GetColorHexByKey(context.UninstrumentedPeer)};")"
-                                                            Value="icon"
-                                                            Class="uninstrumented-peer-icon"/>
-                                                        @context.UninstrumentedPeer
-                                                    </span>
-                                                }
-                                                <span class="span-row-name">@SpanWaterfallViewModel.GetDisplaySummary(context.Span)</span>
-                                            </span>
+                                    <span class="span-overview-container" style="margin-left: @(marginLeft)px;">
+                                        <span @onclick:stopPropagation="true" class="main-grid-expand-container @(context.IsCollapsed ? "main-grid-collapsed" : "main-grid-expanded")">
+                                            @if (context.Children.Count > 0)
+                                            {
+                                                <FluentButton Appearance="Appearance.Lightweight" Class="main-grid-expand-button" OnClick="@(() => OnToggleCollapse(context))">
+                                                    <FluentIcon Icon="Icons.Regular.Size12.ChevronRight" Color="Color.Neutral" />
+                                                </FluentButton>
+                                            }
                                         </span>
-                                    </div>
+                                        <span class="span-name-container" style="@spanNameContainerStyle">
+                                            @if (isServerOrConsumer)
+                                            {
+                                                <FluentIcon Class="span-kind-icon"
+                                                            Color="Color.Custom"
+                                                            CustomColor="@ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source))"
+                                                            Value="@GetSpanIcon(context.Span)"/>
+                                            }
+
+                                            @if (context.IsError)
+                                            {
+                                                <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon"/>
+                                            }
+                                            @GetResourceName(context.Span.Source)
+                                            @if (context.HasUninstrumentedPeer)
+                                            {
+                                                <span class="uninstrumented-peer">
+                                                    @{
+                                                        Icon icon;
+                                                        if (context.Span.Attributes.HasKey("db.system"))
+                                                        {
+                                                            icon = new Icons.Filled.Size16.Database();
+                                                        }
+                                                        else if (context.Span.Attributes.HasKey("messaging.system"))
+                                                        {
+                                                            icon = new Icons.Filled.Size16.Mail();
+                                                        }
+                                                        else
+                                                        {
+                                                            // Everything else.
+                                                            icon = new Icons.Filled.Size16.ArrowCircleRight();
+                                                        }
+                                                    }
+                                                    <FluentIcon
+                                                        Style="@($"fill: {ColorGenerator.Instance.GetColorHexByKey(context.UninstrumentedPeer)};")"
+                                                        Value="icon"
+                                                        Class="uninstrumented-peer-icon"/>
+                                                    @context.UninstrumentedPeer
+                                                </span>
+                                            }
+                                            <span class="span-row-name">@SpanWaterfallViewModel.GetDisplaySummary(context.Span)</span>
+                                        </span>
+                                    </span>
                                 </AspireTemplateColumn>
-                                <AspireTemplateColumn ColumnId="@TicksColumn" ColumnManager="@_manager" UseCustomHeaderTemplate="false">
+                                <AspireTemplateColumn ColumnId="@TicksColumn" ColumnManager="@_manager">
                                     <HeaderCellItemTemplate>
                                         <div class="ticks">
                                             @* First column starts at 0. We don't want to display the smallest unit (0μs) because that looks odd. Use the unit from the next column *@
@@ -198,7 +201,7 @@
                                         </div>
                                     </ChildContent>
                                 </AspireTemplateColumn>
-                                <AspireTemplateColumn ColumnId="@ActionsColumn" ColumnManager="@_manager" UseCustomHeaderTemplate="false" Title="@ControlStringsLoc[nameof(ControlsStrings.ActionsColumnHeader)]" Class="no-ellipsis">
+                                <AspireTemplateColumn ColumnId="@ActionsColumn" ColumnManager="@_manager" Title="@ControlStringsLoc[nameof(ControlsStrings.ActionsColumnHeader)]" Class="no-ellipsis">
                                     @{
                                         var id = context.Span.SpanId;
                                     }

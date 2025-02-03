@@ -56,7 +56,10 @@ public static class AzureWebPubSubExtensions
             infrastructure.Add(new ProvisioningOutput("endpoint", typeof(string)) { Value = BicepFunction.Interpolate($"https://{service.HostName}") });
 
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            infrastructure.Add(principalTypeParameter);
             var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalIdParameter);
+
             infrastructure.Add(service.CreateRoleAssignment(WebPubSubBuiltInRole.WebPubSubServiceOwner, principalTypeParameter, principalIdParameter));
 
             var resource = (AzureWebPubSubResource)infrastructure.AspireResource;
@@ -108,8 +111,6 @@ public static class AzureWebPubSubExtensions
 
         var resource = new AzureWebPubSubResource(name, configureInfrastructure);
         return builder.AddResource(resource)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 

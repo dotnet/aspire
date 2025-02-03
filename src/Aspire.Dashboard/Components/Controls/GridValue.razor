@@ -15,59 +15,36 @@
     else
     {
         <span class="grid-value" title="@(ToolTip ?? Value)" id="@_cellTextId">
-            @ContentBeforeValue
-            @if (EnableHighlighting && !string.IsNullOrEmpty(HighlightText))
+            @if (ContentBeforeValue == null && ContentAfterValue == null && string.IsNullOrEmpty(Value))
             {
-                <FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />
+                <span class="empty-data"></span>
             }
-            else if (_formattedValue != null)
+            else
             {
-                @((MarkupString)_formattedValue)
-            }
-            @ContentAfterValue
+                @ContentBeforeValue
+                if (EnableHighlighting && !string.IsNullOrEmpty(HighlightText))
+                {
+                    <FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />
+                }
+                else if (_formattedValue != null)
+                {
+                    @((MarkupString)_formattedValue)
+                }
+                @ContentAfterValue
+            }            
         </span>
-    }
-
-    @{
-        (string, object)[] uncapturedCopyAttributes = [
-            ("alt", PreCopyToolTip),
-            ("title", string.Empty),
-            ("aria-label", Loc[nameof(ControlsStrings.GridValueCopyToClipboard)]),
-            ("tabindex", "0")
-        ];
     }
 
     @* Button area *@
 
-    <div @onclick:stopPropagation="true">
+    <div @onclick:stopPropagation="true" class="button-container">
 
         <span class="defaultHidden">
             <FluentButton Appearance="Appearance.Lightweight"
-                          Id="@_menuAnchorId"
-                          OnClick="@ToggleMenuOpen">
-                <FluentIcon Icon="Icons.Regular.Size16.MoreHorizontal" />
+                          Disabled="@(ValueToVisualize is null && Value is null)"
+                          OnClick="OpenTextVisualizerAsync">
+                <FluentIcon Icon="Icons.Regular.Size16.SlideSearch" />
             </FluentButton>
-
-            <FluentMenu Anchor="@_menuAnchorId" @bind-Open="_isMenuOpen" VerticalThreshold="170" HorizontalPosition="HorizontalPosition.End">
-                <FluentMenuItem
-                    Id="@_copyId"
-                    AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, uncapturedCopyAttributes)">
-                    <span slot="start">
-                        <FluentIcon Style="vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" />
-                    </span>
-                    @PreCopyToolTip
-                </FluentMenuItem>
-
-                <FluentMenuItem
-                    Disabled="@(ValueToVisualize is null && Value is null)"
-                    AdditionalAttributes="@FluentUIExtensions.GetOpenTextVisualizerAdditionalAttributes(ValueToVisualize ?? Value!, !string.IsNullOrEmpty(TextVisualizerTitle) ? TextVisualizerTitle : ValueDescription)">
-                    <span slot="start">
-                        <FluentIcon Style="vertical-align: text-bottom" Icon="Icons.Regular.Size16.Open" />
-                    </span>
-
-                    @DialogsLoc[nameof(Dialogs.OpenInTextVisualizer)]
-                </FluentMenuItem>
-            </FluentMenu>
         </span>
 
         @if (ContentInButtonArea is not null)
@@ -81,7 +58,8 @@
                           IconEnd="@(IsMasked ? _unmaskIcon : _maskIcon)"
                           Title="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])"
                           OnClick="ToggleMaskStateAsync"
-                          aria-label="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])" />
+                          aria-label="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])"
+                          Class="grid-value-mask-button" />
         }
 
     </div>

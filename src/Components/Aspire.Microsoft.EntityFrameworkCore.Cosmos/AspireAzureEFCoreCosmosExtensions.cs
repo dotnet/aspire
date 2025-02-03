@@ -3,7 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire;
-using Aspire.Hosting.Azure.Cosmos;
+using Aspire.Hosting.Azure.CosmosDB;
 using Aspire.Microsoft.EntityFrameworkCore.Cosmos;
 using Azure.Identity;
 using Microsoft.Azure.Cosmos;

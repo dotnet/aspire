@@ -7,6 +7,9 @@ param outputs_azure_container_registry_managed_identity_id string
 
 param outputs_managed_identity_client_id string
 
+@secure()
+param cache_password_value string
+
 param outputs_azure_container_apps_environment_id string
 
 resource cache 'Microsoft.App/containerApps@2024-03-01' = {
@@ -28,6 +31,8 @@ resource cache 'Microsoft.App/containerApps@2024-03-01' = {
           image: 'docker.io/library/redis:7.4'
           name: 'cache'
           args: [
+            '--requirepass'
+            cache_password_value
             '--save'
             '60'
             '1'

@@ -3,10 +3,13 @@
 
 using System.Globalization;
 using System.Text.RegularExpressions;
+using System.Threading.Channels;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Testing.Tests;
 using Aspire.Hosting.Tests.Helpers;
@@ -15,6 +18,7 @@ using Aspire.Hosting.Utils;
 using k8s.Models;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -41,7 +45,7 @@ public class DistributedApplicationTests
     {
         var exceptionMessage = "Exception from lifecycle hook to prove it ran!";
 
-        using var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram("lifecycle-hook-executed-async");
         testProgram.AppBuilder.Services.AddLifecycleHook((sp) =>
         {
             return new CallbackLifecycleHook((appModel, cancellationToken) =>
@@ -57,7 +61,7 @@ public class DistributedApplicationTests
             var cts = new CancellationTokenSource();
             cts.CancelAfter(TimeSpan.FromMinutes(1));
             await testProgram.RunAsync(cts.Token);
-        }).DefaultTimeout();
+        }).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         Assert.Equal(exceptionMessage, ex.Message);
     }
@@ -69,7 +73,7 @@ public class DistributedApplicationTests
 
         var signal = (FirstHookExecuted: false, SecondHookExecuted: false);
 
-        using var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram("multiple-lifecycle-hooks");
 
         // Lifecycle hook 1
         testProgram.AppBuilder.Services.AddLifecycleHook((sp) =>
@@ -98,7 +102,7 @@ public class DistributedApplicationTests
             var cts = new CancellationTokenSource();
             cts.CancelAfter(TimeSpan.FromMinutes(1));
             await testProgram.RunAsync(cts.Token);
-        }).DefaultTimeout();
+        }).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         Assert.Equal(exceptionMessage, ex.Message);
         Assert.True(signal.FirstHookExecuted);
@@ -106,11 +110,96 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    public async Task StartResourceForcesStart()
+    {
+        using var testProgram = CreateTestProgram("force-resource-start");
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+        testProgram.AppBuilder.Services.AddHealthChecks().AddCheck("dummy_healthcheck", () => HealthCheckResult.Unhealthy());
+
+        var dependentResourceName = "force-resource-start-serviceb";
+
+        testProgram.ServiceABuilder.WithHealthCheck("dummy_healthcheck");
+        testProgram.ServiceBBuilder.WaitFor(testProgram.ServiceABuilder);
+
+        using var app = testProgram.Build();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        var orchestrator = app.Services.GetRequiredService<ApplicationOrchestrator>();
+        var logger = app.Services.GetRequiredService<ILogger<DistributedApplicationTests>>();
+
+        var startTask = app.StartAsync();
+
+        var resourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        logger.LogInformation("Force resource to start.");
+        await orchestrator.StartResourceAsync(resourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        logger.LogInformation("Stop resource.");
+        await orchestrator.StopResourceAsync(resourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Finished).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        logger.LogInformation("Start resource (into waiting state)");
+        var restartResourceTask = orchestrator.StartResourceAsync(resourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        logger.LogInformation("Force resource to start.");
+        await orchestrator.StartResourceAsync(resourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        await restartResourceTask.DefaultTimeout(TestConstants.LongTimeoutDuration);
+        await startTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.StopAsync().DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+    }
+
+    [Fact]
+    public async Task ExplicitStart_StartResource()
+    {
+        const string testName = "explicit-start-resource";
+        using var testProgram = CreateTestProgram(testName);
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        var notStartedResourceName = $"{testName}-servicea";
+        var dependentResourceName = $"{testName}-serviceb";
+
+        testProgram.ServiceABuilder.WithExplicitStart();
+        testProgram.ServiceBBuilder.WaitFor(testProgram.ServiceABuilder);
+
+        using var app = testProgram.Build();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        var orchestrator = app.Services.GetRequiredService<ApplicationOrchestrator>();
+        var logger = app.Services.GetRequiredService<ILogger<DistributedApplicationTests>>();
+
+        var startTask = app.StartAsync();
+
+        // On start, one resource won't be started and the other is waiting on it.
+        var notStartedResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.NotStarted).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var dependentResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        logger.LogInformation("Start explicit start resource.");
+        await orchestrator.StartResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        // Dependent resource should now run.
+        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        logger.LogInformation("Stop resource.");
+        await orchestrator.StopResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Finished).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        logger.LogInformation("Start resource again");
+        await orchestrator.StartResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        await startTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.StopAsync().DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+    }
+
+    [Fact]
     public void RegisteredLifecycleHookIsExecutedWhenRunSynchronously()
     {
         var exceptionMessage = "Exception from lifecycle hook to prove it ran!";
 
-        using var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram("lifecycle-hook-executed-sync");
         testProgram.AppBuilder.Services.AddLifecycleHook((sp) =>
         {
             return new CallbackLifecycleHook((appModel, cancellationToken) =>
@@ -129,7 +218,7 @@ public class DistributedApplicationTests
     [Fact]
     public void TryAddWillNotAddTheSameLifecycleHook()
     {
-        using var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram("lifecycle-hook-duplicates");
 
         var callback1 = (IServiceProvider sp) => new DummyLifecycleHook();
         testProgram.AppBuilder.Services.TryAddLifecycleHook(callback1);
@@ -147,15 +236,15 @@ public class DistributedApplicationTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task AllocatedPortsAssignedAfterHookRuns()
     {
-        using var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram("ports-assigned-after-hook-runs");
         var tcs = new TaskCompletionSource<DistributedApplicationModel>(TaskCreationOptions.RunContinuationsAsynchronously);
         testProgram.AppBuilder.Services.AddLifecycleHook(sp => new CheckAllocatedEndpointsLifecycleHook(tcs));
 
         await using var app = testProgram.Build();
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
-        var appModel = await tcs.Task.DefaultTimeout();
+        var appModel = await tcs.Task.DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         foreach (var item in appModel.Resources)
         {
@@ -182,7 +271,7 @@ public class DistributedApplicationTests
     {
         var replicaCount = 3;
 
-        using var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram("multi-replica-svcs");
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.ServiceBBuilder.WithReplicas(replicaCount);
@@ -191,13 +280,13 @@ public class DistributedApplicationTests
 
         var logger = app.Services.GetRequiredService<ILogger<DistributedApplicationTests>>();
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         logger.LogInformation("Make sure services A and C are running");
         using var clientA = app.CreateHttpClient(testProgram.ServiceABuilder.Resource.Name, "http");
         using var clientC = app.CreateHttpClient(testProgram.ServiceCBuilder.Resource.Name, "http");
 
-        await Task.WhenAll(clientA.GetStringAsync("/pid"), clientC.GetStringAsync("/pid")).DefaultTimeout(TestConstants.LongTimeoutDuration);
+        await Task.WhenAll(clientA.GetStringAsync("/pid"), clientC.GetStringAsync("/pid")).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         // We should get 3 distinct PIDs from service B
         Dictionary<int, bool> pids = [];
@@ -235,21 +324,21 @@ public class DistributedApplicationTests
     [Fact]
     [RequiresDocker]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
-    public async Task VerifyDockerAppWorks()
+    public async Task VerifyContainerArgs()
     {
-        using var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram("verify-container-args");
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
-        testProgram.AppBuilder.AddContainer("redis-cli", "redis")
+        testProgram.AppBuilder.AddContainer("verify-container-args-redis", "redis")
             .WithArgs("redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR")
             .WithContainerRuntimeArgs("--add-host", "testlocalhost:127.0.0.1");
 
         await using var app = testProgram.Build();
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
-        var list = await s.ListAsync<Container>().DefaultTimeout();
+        var list = await s.ListAsync<Container>().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         Assert.Collection(list,
             item =>
@@ -259,7 +348,7 @@ public class DistributedApplicationTests
                 Assert.Equal(["--add-host", "testlocalhost:127.0.0.1"], item.Spec.RunArgs);
             });
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }
 
     [Fact]
@@ -267,73 +356,87 @@ public class DistributedApplicationTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyContainerStopStartWorks()
     {
-        using var testProgram = CreateTestProgram(randomizePorts: false);
+        using var testProgram = CreateTestProgram("container-start-stop", randomizePorts: false);
 
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
-        testProgram.AppBuilder.AddContainer("redis0", "redis")
+        const string containerName = "container-start-stop-redis";
+        testProgram.AppBuilder.AddContainer(containerName, "redis")
             .WithEndpoint(targetPort: 6379, name: "tcp", env: "REDIS_PORT");
 
         await using var app = testProgram.Build();
 
+        var events = app.Services.GetRequiredService<IDistributedApplicationEventing>();
+        var beforeResourceStartedEvents = Channel.CreateUnbounded<BeforeResourceStartedEvent>();
+        events.Subscribe<BeforeResourceStartedEvent>(async (e, ct) =>
+        {
+            await beforeResourceStartedEvents.Writer.WriteAsync(e, ct);
+        });
+
         var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
-        var applicationExecutor = app.Services.GetRequiredService<ApplicationExecutor>();
+        var orchestrator = app.Services.GetRequiredService<ApplicationOrchestrator>();
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
-        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.DefaultOrchestratorTestLongTimeout);
         var token = cts.Token;
 
-        var containerPattern = $"redis0-{ReplicaIdRegex}-{suffix}";
-        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, containerPattern, r => r.Status?.State == ContainerState.Running, token).DefaultTimeout(TestConstants.LongTimeoutDuration);
+        var containerPattern = $"{containerName}-{ReplicaIdRegex}-{suffix}";
+        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, containerPattern, r => r.Status?.State == ContainerState.Running, token).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         Assert.NotNull(redisContainer);
 
-        await applicationExecutor.StopResourceAsync(redisContainer.Metadata.Name, token).DefaultTimeout();
+        // Initial startup event.
+        await beforeResourceStartedEvents.Reader.ReadAsync().DefaultTimeout();
 
-        redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, containerPattern, r => r.Status?.State == ContainerState.Exited, token).DefaultTimeout(TestConstants.LongTimeoutDuration);
+        await orchestrator.StopResourceAsync(redisContainer.Metadata.Name, token).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+
+        redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, containerPattern, r => r.Status?.State == ContainerState.Exited, token).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         Assert.NotNull(redisContainer);
 
-        // TODO: Container start has issues in DCP. Waiting for fix.
-        //await applicationExecutor.StartResourceAsync(redisContainer.Metadata.Name, token);
+        await orchestrator.StartResourceAsync(redisContainer.Metadata.Name, token);
 
-        //redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, containerPattern, r => r.Status?.State == ContainerState.Running, token);
-        //Assert.NotNull(redisContainer);
+        // Restart event.
+        await beforeResourceStartedEvents.Reader.ReadAsync().DefaultTimeout();
 
-        await app.StopAsync().DefaultTimeout();
+        redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, containerPattern, r => r.Status?.State == ContainerState.Running, token);
+        Assert.NotNull(redisContainer);
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }
 
     [Fact]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyExecutableStopStartWorks()
     {
-        using var testProgram = CreateTestProgram(randomizePorts: false);
+        const string testName = "executable-start-stop";
+        using var testProgram = CreateTestProgram(testName, randomizePorts: false);
 
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         await using var app = testProgram.Build();
 
         var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
-        var applicationExecutor = app.Services.GetRequiredService<ApplicationExecutor>();
+        var orchestrator = app.Services.GetRequiredService<ApplicationOrchestrator>();
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
-        var executablePattern = $"servicea-{ReplicaIdRegex}-{suffix}";
-        var serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Running).DefaultTimeout(TestConstants.LongTimeoutDuration);
+        var executablePattern = $"{testName}-servicea-{ReplicaIdRegex}-{suffix}";
+        var serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Running).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         Assert.NotNull(serviceA);
 
-        await applicationExecutor.StopResourceAsync(serviceA.Metadata.Name, CancellationToken.None).DefaultTimeout();
+        await orchestrator.StopResourceAsync(serviceA.Metadata.Name, CancellationToken.None).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
-        serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Finished).DefaultTimeout(TestConstants.LongTimeoutDuration);
+        serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Finished).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         Assert.NotNull(serviceA);
 
-        await applicationExecutor.StartResourceAsync(serviceA.Metadata.Name, CancellationToken.None).DefaultTimeout();
+        await orchestrator.StartResourceAsync(serviceA.Metadata.Name, CancellationToken.None).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Running).DefaultTimeout(TestConstants.LongTimeoutDuration);
         Assert.NotNull(serviceA);
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }
 
     [Fact]
@@ -341,50 +444,51 @@ public class DistributedApplicationTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task SpecifyingEnvPortInEndpointFlowsToEnv()
     {
-        using var testProgram = CreateTestProgram(randomizePorts: false);
+        const string testName = "ports-flow-to-env";
+        using var testProgram = CreateTestProgram(testName, randomizePorts: false);
 
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.ServiceABuilder
             .WithHttpEndpoint(name: "http0", env: "PORT0");
 
-        testProgram.AppBuilder.AddContainer("redis0", "redis")
+        testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
             .WithEndpoint(targetPort: 6379, name: "tcp", env: "REDIS_PORT");
 
-        testProgram.AppBuilder.AddNodeApp("nodeapp", "fakePath")
+        testProgram.AppBuilder.AddNodeApp($"{testName}-nodeapp", "fakePath")
             .WithHttpEndpoint(port: 5031, env: "PORT");
 
         await using var app = testProgram.Build();
 
         var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, $"redis0-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null).DefaultTimeout();
+        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, $"{testName}-redis-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         Assert.NotNull(redisContainer);
 
-        var serviceA = await KubernetesHelper.GetResourceByNameAsync<Executable>(kubernetes, "servicea", suffix!, r => r.Status?.EffectiveEnv is not null).DefaultTimeout();
+        var serviceA = await KubernetesHelper.GetResourceByNameAsync<Executable>(kubernetes, $"{testName}-servicea", suffix!, r => r.Status?.EffectiveEnv is not null).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         Assert.NotNull(serviceA);
 
-        var nodeApp = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, $"nodeapp-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null).DefaultTimeout();
+        var nodeApp = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, $"{testName}-nodeapp-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         Assert.NotNull(nodeApp);
 
         Assert.Equal("redis:latest", redisContainer.Spec.Image);
         Assert.Equal("6379", GetEnv(redisContainer.Spec.Env, "REDIS_PORT"));
         Assert.Equal("6379", GetEnv(redisContainer.Status!.EffectiveEnv, "REDIS_PORT"));
 
-        Assert.Equal($"{{{{- portForServing \"servicea-http0-{suffix}\" -}}}}", GetEnv(serviceA.Spec.Env, "PORT0"));
+        Assert.Equal($"{{{{- portForServing \"{testName}-servicea-http0-{suffix}\" -}}}}", GetEnv(serviceA.Spec.Env, "PORT0"));
         var serviceAPortValue = GetEnv(serviceA.Status!.EffectiveEnv, "PORT0");
         Assert.False(string.IsNullOrEmpty(serviceAPortValue));
         Assert.NotEqual(0, int.Parse(serviceAPortValue, CultureInfo.InvariantCulture));
 
-        Assert.Equal($"{{{{- portForServing \"nodeapp-{suffix}\" -}}}}", GetEnv(nodeApp.Spec.Env, "PORT"));
+        Assert.Equal($"{{{{- portForServing \"{testName}-nodeapp-{suffix}\" -}}}}", GetEnv(nodeApp.Spec.Env, "PORT"));
         var nodeAppPortValue = GetEnv(nodeApp.Status!.EffectiveEnv, "PORT");
         Assert.False(string.IsNullOrEmpty(nodeAppPortValue));
         Assert.NotEqual(0, int.Parse(nodeAppPortValue, CultureInfo.InvariantCulture));
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
         {
@@ -397,13 +501,14 @@ public class DistributedApplicationTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task StartAsync_DashboardAuthConfig_PassedToDashboardProcess()
     {
+        const string testName = "dashboard-auth-config";
         var browserToken = "ThisIsATestToken";
         var args = new string[] {
             "ASPNETCORE_URLS=http://localhost:0",
             "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:0",
             $"DOTNET_DASHBOARD_FRONTEND_BROWSERTOKEN={browserToken}"
         };
-        using var testProgram = CreateTestProgram(args: args, disableDashboard: false);
+        using var testProgram = CreateTestProgram(testName, args: args, disableDashboard: false);
 
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
@@ -411,10 +516,10 @@ public class DistributedApplicationTests
 
         var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        var aspireDashboard = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, $"aspire-dashboard-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null).DefaultTimeout();
+        var aspireDashboard = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, $"aspire-dashboard-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
         Assert.NotNull(aspireDashboard);
 
         Assert.Equal("BrowserToken", GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__FRONTEND__AUTHMODE"));
@@ -424,7 +529,7 @@ public class DistributedApplicationTests
         var keyBytes = Convert.FromHexString(GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__OTLP__PRIMARYAPIKEY")!);
         Assert.Equal(16, keyBytes.Length);
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
         {
@@ -437,12 +542,13 @@ public class DistributedApplicationTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task StartAsync_UnsecuredAllowAnonymous_PassedToDashboardProcess()
     {
+        const string testName = "dashboard-allow-anonymous";
         var args = new string[] {
             "ASPNETCORE_URLS=http://localhost:0",
             "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:0",
             "DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true"
         };
-        using var testProgram = CreateTestProgram(args: args, disableDashboard: false);
+        using var testProgram = CreateTestProgram(testName, args: args, disableDashboard: false);
 
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
@@ -450,16 +556,16 @@ public class DistributedApplicationTests
 
         var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        var aspireDashboard = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, $"aspire-dashboard-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null).DefaultTimeout();
+        var aspireDashboard = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, $"aspire-dashboard-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
         Assert.NotNull(aspireDashboard);
 
         Assert.Equal("Unsecured", GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__FRONTEND__AUTHMODE"));
         Assert.Equal("Unsecured", GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__OTLP__AUTHMODE"));
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
         {
@@ -473,27 +579,28 @@ public class DistributedApplicationTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithEntrypointWorks()
     {
-        using var testProgram = CreateTestProgram();
+        const string testName = "docker-entrypoint";
+        using var testProgram = CreateTestProgram(testName);
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
-        testProgram.AppBuilder.AddContainer("redis-cli", "redis")
+        testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
             .WithEntrypoint("bob");
 
         await using var app = testProgram.Build();
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(s, $"redis-cli-{ReplicaIdRegex}-{suffix}",
-            r => r.Status?.State == ContainerState.FailedToStart && (r.Status?.Message.Contains("bob") ?? false)).DefaultTimeout(TestConstants.LongTimeoutDuration);
+        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(s, $"{testName}-redis-{ReplicaIdRegex}-{suffix}",
+            r => r.Status?.State == ContainerState.FailedToStart && (r.Status?.Message.Contains("bob") ?? false)).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         Assert.NotNull(redisContainer);
         Assert.Equal("redis:latest", redisContainer.Spec.Image);
         Assert.Equal("bob", redisContainer.Spec.Command);
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }
 
     [Fact]
@@ -501,29 +608,30 @@ public class DistributedApplicationTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithBindMountWorksWithAbsolutePaths()
     {
-        using var testProgram = CreateTestProgram();
+        const string testName = "docker-bindmount-absolute";
+        using var testProgram = CreateTestProgram(testName);
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         var sourcePath = Path.GetFullPath("/etc/path-here");
-        testProgram.AppBuilder.AddContainer("redis-cli", "redis")
+        testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
             .WithBindMount(sourcePath, "path-here");
 
         await using var app = testProgram.Build();
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
         var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(
                 s,
-                $"redis-cli-{ReplicaIdRegex}-{suffix}", r => r.Spec.VolumeMounts != null).DefaultTimeout();
+                $"{testName}-redis-{ReplicaIdRegex}-{suffix}", r => r.Spec.VolumeMounts != null).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         Assert.NotNull(redisContainer.Spec.VolumeMounts);
         Assert.NotEmpty(redisContainer.Spec.VolumeMounts);
         Assert.Equal(sourcePath, redisContainer.Spec.VolumeMounts[0].Source);
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }
 
     [Fact]
@@ -531,29 +639,30 @@ public class DistributedApplicationTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithBindMountWorksWithRelativePaths()
     {
-        using var testProgram = CreateTestProgram();
+        const string testName = "docker-bindmount-relative";
+        using var testProgram = CreateTestProgram(testName);
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
-        testProgram.AppBuilder.AddContainer("redis-cli", "redis")
+        testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
             .WithBindMount("etc/path-here", "path-here");
 
         await using var app = testProgram.Build();
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
         var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(
             s,
-            $"redis-cli-{ReplicaIdRegex}-{suffix}", r => r.Spec.VolumeMounts != null).DefaultTimeout();
+            $"{testName}-redis-{ReplicaIdRegex}-{suffix}", r => r.Spec.VolumeMounts != null).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         Assert.NotNull(redisContainer.Spec.VolumeMounts);
         Assert.NotEmpty(redisContainer.Spec.VolumeMounts);
         Assert.NotEqual("etc/path-here", redisContainer.Spec.VolumeMounts[0].Source);
         Assert.True(Path.IsPathRooted(redisContainer.Spec.VolumeMounts[0].Source));
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }
 
     [Fact]
@@ -561,28 +670,29 @@ public class DistributedApplicationTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithVolumeWorksWithName()
     {
-        using var testProgram = CreateTestProgram();
+        const string testName = "docker-volume";
+        using var testProgram = CreateTestProgram(testName);
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
-        testProgram.AppBuilder.AddContainer("redis-cli", "redis")
-            .WithVolume("test-volume-name", "/path-here");
+        testProgram.AppBuilder.AddContainer($"{testName}-redis", "redis")
+            .WithVolume($"{testName}-volume", "/path-here");
 
         await using var app = testProgram.Build();
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
         var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(
                 s,
-                $"redis-cli-{ReplicaIdRegex}-{suffix}", r => r.Spec.VolumeMounts != null).DefaultTimeout();
+                $"{testName}-redis-{ReplicaIdRegex}-{suffix}", r => r.Spec.VolumeMounts != null).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         Assert.NotNull(redisContainer.Spec.VolumeMounts);
         Assert.NotEmpty(redisContainer.Spec.VolumeMounts);
-        Assert.Equal("test-volume-name", redisContainer.Spec.VolumeMounts[0].Source);
+        Assert.Equal($"{testName}-volume", redisContainer.Spec.VolumeMounts[0].Source);
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }
 
     [Fact]
@@ -590,31 +700,32 @@ public class DistributedApplicationTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task KubernetesHasResourceNameForContainersAndExes()
     {
-        using var testProgram = CreateTestProgram(includeIntegrationServices: true);
+        const string testName = "kube-resource-names";
+        using var testProgram = CreateTestProgram(testName, includeIntegrationServices: true);
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         await using var app = testProgram.Build();
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
 
         var expectedExeResources = new HashSet<string>()
         {
-            "servicea",
-            "serviceb",
-            "servicec",
-            "workera",
-            "integrationservicea"
+            $"{testName}-servicea",
+            $"{testName}-serviceb",
+            $"{testName}-servicec",
+            $"{testName}-workera",
+            $"{testName}-integrationservicea"
         };
 
         var expectedContainerResources = new HashSet<string>()
         {
-            "redis",
-            "postgres"
+            $"{testName}-redis",
+            $"{testName}-postgres"
         };
 
-        await foreach (var resource in s.WatchAsync<Container>().DefaultTimeout())
+        await foreach (var resource in s.WatchAsync<Container>().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout))
         {
             Assert.True(resource.Item2.Metadata.Annotations.TryGetValue(Container.ResourceNameAnnotation, out var value));
             if (expectedContainerResources.Contains(value))
@@ -628,7 +739,7 @@ public class DistributedApplicationTests
             }
         }
 
-        await foreach (var resource in s.WatchAsync<Executable>().DefaultTimeout())
+        await foreach (var resource in s.WatchAsync<Executable>().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout))
         {
             Assert.True(resource.Item2.Metadata.Annotations.TryGetValue(Executable.ResourceNameAnnotation, out var value));
             if (expectedExeResources.Contains(value))
@@ -647,7 +758,8 @@ public class DistributedApplicationTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ReplicasAndProxylessEndpointThrows()
     {
-        using var testProgram = CreateTestProgram();
+        const string testName = "replicas-no-proxyless-endpoints";
+        using var testProgram = CreateTestProgram(testName);
         testProgram.ServiceABuilder.WithReplicas(2).WithEndpoint("http", endpoint =>
         {
             endpoint.IsProxied = false;
@@ -656,16 +768,17 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync()).DefaultTimeout();
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout));
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        Assert.Equal($"Resource 'servicea-{suffix}' uses multiple replicas and a proxy-less endpoint 'http'. These features do not work together.", ex.Message);
+        Assert.Equal($"Resource '{testName}-servicea-{suffix}' uses multiple replicas and a proxy-less endpoint 'http'. These features do not work together.", ex.Message);
     }
 
     [Fact]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessEndpointWithoutPortThrows()
     {
-        using var testProgram = CreateTestProgram();
+        const string testName = "proxyess-endpoint-without-port";
+        using var testProgram = CreateTestProgram(testName);
         testProgram.ServiceABuilder.WithEndpoint("http", endpoint =>
         {
             endpoint.Port = null;
@@ -675,16 +788,17 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync()).DefaultTimeout();
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout));
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        Assert.Equal($"Service 'servicea-{suffix}' needs to specify a port for endpoint 'http' since it isn't using a proxy.", ex.Message);
+        Assert.Equal($"Service '{testName}-servicea-{suffix}' needs to specify a port for endpoint 'http' since it isn't using a proxy.", ex.Message);
     }
 
     [Fact]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessEndpointWorks()
     {
-        using var testProgram = CreateTestProgram();
+        const string testName = "proxyless-endpoint-works";
+        using var testProgram = CreateTestProgram(testName);
 
         testProgram.ServiceABuilder
             .WithEndpoint("http", e =>
@@ -696,11 +810,11 @@ public class DistributedApplicationTests
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         await using var app = testProgram.Build();
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
-        var client = app.CreateHttpClientWithResilience("servicea", "http");
+        var client = app.CreateHttpClientWithResilience($"{testName}-servicea", "http");
 
-        var result = await client.GetStringAsync("pid").DefaultTimeout(TestConstants.LongTimeoutDuration);
+        var result = await client.GetStringAsync("pid").DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         Assert.NotNull(result);
 
         // Check that endpoint from launchsettings doesn't work
@@ -712,14 +826,15 @@ public class DistributedApplicationTests
                 ConnectTimeout = TimeSpan.FromSeconds(2)
             });
             await client2.GetStringAsync("http://localhost:5156/pid");
-        }).DefaultTimeout();
+        }).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }
 
-    [Fact]
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/4599")]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4599", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessAndProxiedEndpointBothWorkOnSameResource()
     {
-        using var testProgram = CreateTestProgram();
+        const string testName = "proxyless-and-proxied-endpoints";
+        using var testProgram = CreateTestProgram(testName);
 
         testProgram.ServiceABuilder
             .WithEndpoint("http", e =>
@@ -738,7 +853,7 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
         var token = cts.Token;
@@ -786,52 +901,105 @@ public class DistributedApplicationTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessContainerCanBeReferenced()
     {
+        const string testName = "proxyless-container";
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var redis = builder.AddRedis("redis", 1234).WithEndpoint("tcp", endpoint =>
+        var redis = builder.AddRedis($"{testName}-redis", 1234).WithEndpoint("tcp", endpoint =>
         {
             endpoint.IsProxied = false;
         });
 
         // Since port is not specified, this instance will use the container target port (6379) as the host port.
-        var redisNoPort = builder.AddRedis("redisNoPort").WithEndpoint("tcp", endpoint =>
+        var redisNoPort = builder.AddRedis($"{testName}-redisNoPort").WithEndpoint("tcp", endpoint =>
         {
             endpoint.IsProxied = false;
         });
-        var servicea = builder.AddProject<Projects.ServiceA>("servicea")
+        var servicea = builder.AddProject<Projects.ServiceA>($"{testName}-servicea")
             .WithReference(redis)
             .WithReference(redisNoPort);
 
         using var app = builder.Build();
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").DefaultTimeout();
+        await app.WaitForTextAsync("Application started.").DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         // Wait until the service itself starts.
         using var clientA = app.CreateHttpClient(servicea.Resource.Name, "http");
-        await clientA.GetStringAsync("/").DefaultTimeout();
+        await clientA.GetStringAsync("/").DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
         var exeList = await s.ListAsync<Executable>().DefaultTimeout();
 
-        var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        Assert.NotNull(suffix);
-        var service = Assert.Single(exeList.Where(c => "servicea".Equals(c.AppModelResourceName) && c.Name().Contains(suffix)));
-        var env = Assert.Single(service.Spec.Env!.Where(e => e.Name == "ConnectionStrings__redis"));
-        Assert.Equal("localhost:1234", env.Value);
+        var service = Assert.Single(exeList.Where(c => $"{testName}-servicea".Equals(c.AppModelResourceName)));
+        var env = Assert.Single(service.Spec.Env!.Where(e => e.Name == $"ConnectionStrings__{testName}-redis"));
+        Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter?.Value}", env.Value);
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
-        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(),$"redis-{ReplicaIdRegex}-{suffix}"))) ;
+        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(),$"{testName}-redis-{ReplicaIdRegex}"))) ;
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
-        var otherRedisEnv = Assert.Single(service.Spec.Env!.Where(e => e.Name == "ConnectionStrings__redisNoPort"));
-        Assert.Equal("localhost:6379", otherRedisEnv.Value);
+        var otherRedisEnv = Assert.Single(service.Spec.Env!.Where(e => e.Name == $"ConnectionStrings__{testName}-redisNoPort"));
+        Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter?.Value}", otherRedisEnv.Value);
 
-        var otherRedisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"redisNoPort-{ReplicaIdRegex}-{suffix}")));
+        var otherRedisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}")));
         Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task WithEndpointProxySupportDisablesProxies()
+    {
+        const string testName = "endpoint-proxy-support";
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+#pragma warning disable ASPIREPROXYENDPOINTS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        var redis = builder.AddRedis($"{testName}-redis", 1234).WithEndpointProxySupport(false);
+#pragma warning restore ASPIREPROXYENDPOINTS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+        // Since port is not specified, this instance will use the container target port (6379) as the host port.
+#pragma warning disable ASPIREPROXYENDPOINTS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        var redisNoPort = builder.AddRedis($"{testName}-redisNoPort").WithEndpointProxySupport(false);
+#pragma warning restore ASPIREPROXYENDPOINTS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+        var servicea = builder.AddProject<Projects.ServiceA>($"{testName}-servicea")
+            .WithReference(redis)
+            .WithReference(redisNoPort);
+
+        using var app = builder.Build();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+
+        // Wait for the application to be ready
+        await app.WaitForTextAsync("Application started.").DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+
+        // Wait until the service itself starts.
+        using var clientA = app.CreateHttpClient(servicea.Resource.Name, "http");
+        await clientA.GetStringAsync("/").DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+
+        var serviceList = await s.ListAsync<Service>().DefaultTimeout();
+        Assert.All(serviceList.Where(s => s.Metadata.Name.Contains("redis")), s => Assert.Equal(AddressAllocationModes.Proxyless, s.Spec.AddressAllocationMode));
+
+        var exeList = await s.ListAsync<Executable>().DefaultTimeout();
+
+        var service = Assert.Single(exeList.Where(c => $"{testName}-servicea".Equals(c.AppModelResourceName)));
+        var env = Assert.Single(service.Spec.Env!.Where(e => e.Name == $"ConnectionStrings__{testName}-redis"));
+        Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter!.Value}", env.Value);
+
+        var list = await s.ListAsync<Container>().DefaultTimeout();
+        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(),$"{testName}-redis-{ReplicaIdRegex}"))) ;
+        Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
+
+        var otherRedisEnv = Assert.Single(service.Spec.Env!.Where(e => e.Name == $"ConnectionStrings__{testName}-redisNoPort"));
+        Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter!.Value}", otherRedisEnv.Value);
+
+        var otherRedisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}")));
+        Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }
 
     [Fact]
@@ -839,18 +1007,18 @@ public class DistributedApplicationTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessContainerWithoutPortThrows()
     {
+        const string testName = "proxyless-container-without-ports";
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var redis = builder.AddContainer("dummyRedis", "redis").WithEndpoint("tcp", endpoint =>
+        var redis = builder.AddContainer($"{testName}-redis", "redis").WithEndpoint("tcp", endpoint =>
         {
             endpoint.IsProxied = false;
         });
 
         using var app = builder.Build();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync()).DefaultTimeout();
-        var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        Assert.Equal($"The endpoint 'tcp' for container resource 'dummyRedis-{suffix}' must specify the TargetPort value", ex.Message);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout));
+        Assert.Equal($"The endpoint 'tcp' for container resource '{testName}-redis' must specify the TargetPort value", ex.Message);
     }
 
     [Fact]
@@ -858,9 +1026,10 @@ public class DistributedApplicationTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task AfterResourcesCreatedLifecycleHookWorks()
     {
+        const string testName = "lifecycle-hook-after-resource-created";
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        builder.AddRedis("redis");
+        builder.AddRedis($"{testName}-redis");
         builder.Services.TryAddLifecycleHook<KubernetesTestLifecycleHook>();
 
         using var app = builder.Build();
@@ -870,9 +1039,9 @@ public class DistributedApplicationTests
         var kubernetesLifecycle = (KubernetesTestLifecycleHook)lifecycles.Where(l => l.GetType() == typeof(KubernetesTestLifecycleHook)).First();
         kubernetesLifecycle.KubernetesService = s;
 
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
-        await kubernetesLifecycle.HooksCompleted.DefaultTimeout();
+        await kubernetesLifecycle.HooksCompleted.DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }
 
     private sealed class KubernetesTestLifecycleHook : IDistributedApplicationLifecycleHook
@@ -896,11 +1065,13 @@ public class DistributedApplicationTests
     }
 
     private static TestProgram CreateTestProgram(
+        string testName,
         string[]? args = null,
         bool includeIntegrationServices = false,
         bool disableDashboard = true,
         bool randomizePorts = true) =>
         TestProgram.Create<DistributedApplicationTests>(
+            testName,
             args,
             includeIntegrationServices: includeIntegrationServices,
             disableDashboard: disableDashboard,

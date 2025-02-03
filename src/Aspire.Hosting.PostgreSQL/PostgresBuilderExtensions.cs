@@ -206,6 +206,8 @@ public static class PostgresBuilderExtensions
 
             configureContainer?.Invoke(pgAdminContainerBuilder);
 
+            pgAdminContainerBuilder.WithRelationship(builder.Resource, "PgAdmin");
+
             return builder;
         }
     }
@@ -268,7 +270,6 @@ public static class PostgresBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<PostgresServerResource> WithPgWeb(this IResourceBuilder<PostgresServerResource> builder, Action<IResourceBuilder<PgWebContainerResource>>? configureContainer = null, string? containerName = null)
     {
-
         if (builder.ApplicationBuilder.Resources.OfType<PgWebContainerResource>().SingleOrDefault() is { } existingPgWebResource)
         {
             var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingPgWebResource);
@@ -291,6 +292,10 @@ public static class PostgresBuilderExtensions
 
             configureContainer?.Invoke(pgwebContainerBuilder);
 
+            pgwebContainerBuilder.WithRelationship(builder.Resource, "PgWeb");
+
+            pgwebContainerBuilder.WithHttpHealthCheck();
+
             builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>(async (e, ct) =>
             {
                 var adminResource = builder.ApplicationBuilder.Resources.OfType<PgWebContainerResource>().Single();
@@ -300,6 +305,15 @@ public static class PostgresBuilderExtensions
                 if (!Directory.Exists(serverFileMount.Source!))
                 {
                     Directory.CreateDirectory(serverFileMount.Source!);
+                }
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    var mode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                               UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                               UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
+                    File.SetUnixFileMode(serverFileMount.Source!, mode);
                 }
 
                 foreach (var postgresDatabase in postgresInstances)
@@ -337,7 +351,7 @@ public static class PostgresBuilderExtensions
         context.EnvironmentVariables.Add("PGADMIN_DEFAULT_PASSWORD", "admin");
 
         // When running in the context of Codespaces we need to set some additional environment
-        // varialbes so that PGAdmin will trust the forwarded headers that Codespaces port
+        // variables so that PGAdmin will trust the forwarded headers that Codespaces port
         // forwarding will send.
         var config = context.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
         if (context.ExecutionContext.IsRunMode && config.GetValue<bool>("CODESPACES", false))

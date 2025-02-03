@@ -25,7 +25,7 @@ public sealed class MicrosoftAzureCosmosSettings
 
     /// <summary>
     /// A <see cref="Uri"/> referencing the Azure Cosmos DB Endpoint.
-    /// This is likely to be similar to "https://{account_name}.queue.core.windows.net".
+    /// This is likely to be similar to "https://{account_name}.documents.azure.com".
     /// </summary>
     /// <remarks>
     /// Must not contain shared access signature.

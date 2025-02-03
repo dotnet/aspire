@@ -9,6 +9,7 @@ using System.Text.Json.Serialization;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
@@ -17,6 +18,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Aspire.Hosting.Devcontainers;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -29,7 +31,12 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              ResourceLoggerService resourceLoggerService,
                                              ILoggerFactory loggerFactory,
                                              DcpNameGenerator nameGenerator,
-                                             IHostApplicationLifetime hostApplicationLifetime) : IDistributedApplicationLifecycleHook, IAsyncDisposable
+                                             IHostApplicationLifetime hostApplicationLifetime,
+                                             CodespacesUrlRewriter codespaceUrlRewriter,
+                                             IOptions<CodespacesOptions> codespacesOptions,
+                                             IOptions<DevcontainersOptions> devcontainersOptions,
+                                             DevcontainerSettingsWriter settingsWriter
+                                             ) : IDistributedApplicationLifecycleHook, IAsyncDisposable
 {
     private Task? _dashboardLogsTask;
     private CancellationTokenSource? _dashboardLogsCts;
@@ -133,6 +140,21 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             dashboardResource.Annotations.Remove(endpointAnnotation);
         }
 
+        if (codespacesOptions.Value.IsCodespace || devcontainersOptions.Value.IsDevcontainer)
+        {
+            // We need to print out the url so that dotnet watch can launch the dashboard
+            // technically this is too early
+            if (StringUtils.TryGetUriFromDelimitedString(dashboardOptions.Value.DashboardUrl, ";", out var firstDashboardUrl))
+            {
+                settingsWriter.AddPortForward(
+                                firstDashboardUrl.ToString(),
+                                firstDashboardUrl.Port,
+                                firstDashboardUrl.Scheme,
+                                $"aspire-dashboard-{firstDashboardUrl.Scheme}",
+                                openBrowser: true);
+            }
+        }
+
         var snapshot = new CustomResourceSnapshot()
         {
             Properties = [],
@@ -233,16 +255,18 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             // via the ILogger.
             context.EnvironmentVariables["LOGGING__CONSOLE__FORMATTERNAME"] = "json";
 
-            // We need to print out the url so that dotnet watch can launch the dashboard
-            // technically this is too early, but it's late ne
-            if (StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
+            if (!StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
             {
-                distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", firstDashboardUrl.ToString().TrimEnd('/'));
+                return;
             }
+
+            var dashboardUrl = codespaceUrlRewriter.RewriteUrl(firstDashboardUrl.ToString());
+
+            distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl.TrimEnd('/'));
 
             if (!string.IsNullOrEmpty(browserToken))
             {
-                LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrls, browserToken, isContainer: false);
+                LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrl, browserToken, isContainer: false);
             }
         }));
     }

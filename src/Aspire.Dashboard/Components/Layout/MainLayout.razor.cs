@@ -21,7 +21,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     private IDisposable? _locationChangingRegistration;
     private IJSObjectReference? _jsModule;
     private IJSObjectReference? _keyboardHandlers;
-    private IJSObjectReference? _textVisualizerHandler;
     private DotNetObjectReference<ShortcutManager>? _shortcutManagerReference;
     private DotNetObjectReference<MainLayout>? _layoutReference;
     private IDialogReference? _openPageDialog;
@@ -141,7 +140,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             _shortcutManagerReference = DotNetObjectReference.Create(ShortcutManager);
             _layoutReference = DotNetObjectReference.Create(this);
             _keyboardHandlers = await JS.InvokeAsync<IJSObjectReference>("window.registerGlobalKeydownListener", _shortcutManagerReference);
-            _textVisualizerHandler = await JS.InvokeAsync<IJSObjectReference>("window.registerOpenTextVisualizerOnClick", _layoutReference);
             ShortcutManager.AddGlobalKeydownListener(this);
         }
     }
@@ -160,6 +158,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         DialogParameters parameters = new()
         {
             Title = Loc[nameof(Resources.Layout.MainLayoutAspireDashboardHelpLink)],
+            DismissTitle = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
             PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)],
             PrimaryActionEnabled = true,
             SecondaryAction = null,
@@ -195,6 +194,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         var parameters = new DialogParameters
         {
             Title = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogTitle)],
+            DismissTitle = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
             PrimaryAction =  Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)].Value,
             SecondaryAction = null,
             TrapFocus = true,
@@ -274,16 +274,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         StateHasChanged();
     }
 
-    [JSInvokable]
-    public async Task OpenTextVisualizerAsync(IJSStreamReference valueStream, string valueDescription)
-    {
-        await using var referenceStream = await valueStream.OpenReadStreamAsync();
-        using var reader = new StreamReader(referenceStream);
-        var value = await reader.ReadToEndAsync();
-
-        await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, valueDescription, value);
-    }
-
     public async ValueTask DisposeAsync()
     {
         _shortcutManagerReference?.Dispose();
@@ -298,11 +288,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             {
                 await JS.InvokeVoidAsync("window.unregisterGlobalKeydownListener", h);
             }
-
-            if (_textVisualizerHandler is not null)
-            {
-                await JS.InvokeVoidAsync("window.unregisterOpenTextVisualizerOnClick", _textVisualizerHandler);
-            }
         }
         catch (JSDisconnectedException)
         {
@@ -312,6 +297,5 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         await JSInteropHelpers.SafeDisposeAsync(_jsModule);
         await JSInteropHelpers.SafeDisposeAsync(_keyboardHandlers);
-        await JSInteropHelpers.SafeDisposeAsync(_textVisualizerHandler);
     }
 }

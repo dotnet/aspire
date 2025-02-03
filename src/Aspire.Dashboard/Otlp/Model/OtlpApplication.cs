@@ -50,12 +50,19 @@ public class OtlpApplication
             {
                 foreach (var metric in sm.Metrics)
                 {
+                    OtlpInstrument instrument;
+
                     try
                     {
+                        if (string.IsNullOrEmpty(metric.Name))
+                        {
+                            throw new InvalidOperationException("Instrument name is required.");
+                        }
+
                         var instrumentKey = new OtlpInstrumentKey(sm.Scope.Name, metric.Name);
-                        ref var instrument = ref CollectionsMarshal.GetValueRefOrAddDefault(_instruments, instrumentKey, out _);
+                        ref var instrumentRef = ref CollectionsMarshal.GetValueRefOrAddDefault(_instruments, instrumentKey, out _);
                         // Adds to dictionary if not present.
-                        instrument ??= new OtlpInstrument
+                        instrumentRef ??= new OtlpInstrument
                         {
                             Summary = new OtlpInstrumentSummary
                             {
@@ -68,7 +75,49 @@ public class OtlpApplication
                             Context = Context
                         };
 
-                        instrument.AddMetrics(metric, ref tempAttributes);
+                        instrument = instrumentRef;
+                    }
+                    catch (Exception ex)
+                    {
+                        // If we can't create the instrument then all data points for it are failures.
+                        context.FailureCount += GetMetricDataPointCount(metric);
+                        Context.Logger.LogInformation(ex, "Error adding metric instrument {MetricName}.", metric.Name);
+                        continue;
+                    }
+
+                    AddMetrics(instrument, metric, context, ref tempAttributes);
+                }
+            }
+        }
+        finally
+        {
+            _metricsLock.ExitWriteLock();
+        }
+    }
+
+    private static int GetMetricDataPointCount(Metric metric)
+    {
+        return metric.DataCase switch
+        {
+            Metric.DataOneofCase.Gauge => metric.Gauge.DataPoints.Count,
+            Metric.DataOneofCase.Sum => metric.Sum.DataPoints.Count,
+            Metric.DataOneofCase.Histogram => metric.Histogram.DataPoints.Count,
+            Metric.DataOneofCase.Summary => metric.Summary.DataPoints.Count,
+            Metric.DataOneofCase.ExponentialHistogram => metric.ExponentialHistogram.DataPoints.Count,
+            _ => 0,
+        };
+    }
+
+    private void AddMetrics(OtlpInstrument instrument, Metric metric, AddContext context, ref KeyValuePair<string, string>[]? tempAttributes)
+    {
+        switch (metric.DataCase)
+        {
+            case Metric.DataOneofCase.Gauge:
+                foreach (var d in metric.Gauge.DataPoints)
+                {
+                    try
+                    {
+                        instrument.FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Context);
                     }
                     catch (Exception ex)
                     {
@@ -76,7 +125,53 @@ public class OtlpApplication
                         Context.Logger.LogInformation(ex, "Error adding metric.");
                     }
                 }
-            }
+                break;
+            case Metric.DataOneofCase.Sum:
+                foreach (var d in metric.Sum.DataPoints)
+                {
+                    try
+                    {
+                        instrument.FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Context);
+                    }
+                    catch (Exception ex)
+                    {
+                        context.FailureCount++;
+                        Context.Logger.LogInformation(ex, "Error adding metric.");
+                    }
+                }
+                break;
+            case Metric.DataOneofCase.Histogram:
+                foreach (var d in metric.Histogram.DataPoints)
+                {
+                    try
+                    {
+                        instrument.FindScope(d.Attributes, ref tempAttributes).AddHistogramValue(d, Context);
+                    }
+                    catch (Exception ex)
+                    {
+                        context.FailureCount++;
+                        Context.Logger.LogInformation(ex, "Error adding metric.");
+                    }
+                }
+                break;
+            case Metric.DataOneofCase.Summary:
+                context.FailureCount += metric.Summary.DataPoints.Count;
+                Context.Logger.LogInformation("Error adding summary metrics. Summary is not supported.");
+                break;
+            case Metric.DataOneofCase.ExponentialHistogram:
+                context.FailureCount += metric.ExponentialHistogram.DataPoints.Count;
+                Context.Logger.LogInformation("Error adding exponential histogram metrics. Exponential histogram is not supported.");
+                break;
+        }
+    }
+
+    public void ClearMetrics()
+    {
+        _metricsLock.EnterWriteLock();
+
+        try
+        {
+            _instruments.Clear();
         }
         finally
         {

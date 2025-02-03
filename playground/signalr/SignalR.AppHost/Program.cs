@@ -1,9 +1,20 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var signalr = builder.AddAzureSignalR("signalr1");
+// Configure Azure SignalR in default mode
+var defaultSignalr = builder.AddAzureSignalR("signalrDefault");
 
 builder.AddProject<Projects.SignalRWeb>("webfrontend")
     .WithExternalHttpEndpoints()
-    .WithReference(signalr);
+    .WithReference(defaultSignalr);
+
+// Configure Azure SignalR in serverless mode
+var serverlessSignalr = builder
+    .AddAzureSignalR("signalrServerless", AzureSignalRServiceMode.Serverless)
+    .RunAsEmulator();
+
+builder.AddProject<Projects.SignalRServerlessWeb>("webserverless")
+    .WithExternalHttpEndpoints()
+    .WithReference(serverlessSignalr)
+    .WaitFor(serverlessSignalr);
 
 builder.Build().Run();

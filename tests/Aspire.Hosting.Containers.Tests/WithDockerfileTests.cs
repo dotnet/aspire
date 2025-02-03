@@ -25,8 +25,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync(includeSecrets: true);
 
-        var parameter = builder.AddParameter("secret", secret: true);
         builder.Configuration["Parameters:secret"] = "open sesame from env";
+        var parameter = builder.AddParameter("secret", secret: true);
 
         builder.AddContainer("testcontainer", "testimage")
                .WithHttpEndpoint(targetPort: 80)
@@ -51,7 +51,6 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
     public async Task ContainerBuildLogsAreStreamedToAppHost()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Services.AddHostedService<ResourceLoggerForwarderService>();
         builder.Services.AddLogging(logging =>
         {
             logging.AddFakeLogging();
@@ -161,8 +160,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         });
         builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
 
-        var parameter = builder.AddParameter("message");
         builder.Configuration["Parameters:message"] = "hello";
+        var parameter = builder.AddParameter("message");
 
         var container = builder.AddContainer("testcontainer", "testimage")
                                .WithHttpEndpoint(targetPort: 80)
@@ -209,8 +208,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         });
         builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
 
-        var parameter = builder.AddParameter("message");
         builder.Configuration["Parameters:message"] = "hello";
+        var parameter = builder.AddParameter("message");
 
         var container = builder.AddDockerfile("testcontainer", tempContextPath, tempDockerfilePath, "runner")
                                .WithHttpEndpoint(targetPort: 80)
@@ -256,8 +255,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         });
         builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
 
-        var parameter = builder.AddParameter("secret", secret: true);
         builder.Configuration["Parameters:secret"] = "open sesame";
+        var parameter = builder.AddParameter("secret", secret: true);
 
         var container = builder.AddContainer("testcontainer", "testimage")
                                .WithHttpEndpoint(targetPort: 80)
@@ -302,8 +301,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         });
         builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
 
-        var parameter = builder.AddParameter("secret", secret: true);
         builder.Configuration["Parameters:secret"] = "open sesame";
+        var parameter = builder.AddParameter("secret", secret: true);
 
         var container = builder.AddDockerfile("testcontainer", tempContextPath, tempDockerfilePath)
                                .WithHttpEndpoint(targetPort: 80)
@@ -345,8 +344,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
 
-        var parameter = builder.AddParameter("message");
         builder.Configuration["Parameters:message"] = "hello";
+        var parameter = builder.AddParameter("message");
 
         builder.AddContainer("testcontainer", "testimage")
                .WithHttpEndpoint(targetPort: 80)
@@ -416,8 +415,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
 
-        var parameter = builder.AddParameter("message");
         builder.Configuration["Parameters:message"] = "hello";
+        var parameter = builder.AddParameter("message");
 
         builder.AddDockerfile("testcontainer", tempContextPath, tempDockerfilePath)
                .WithHttpEndpoint(targetPort: 80)
@@ -504,87 +503,6 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         });
 
         Assert.Equal("contextPath", ex.ParamName);
-    }
-
-    [Fact]
-    public void WithDockerfileWithContextPathThatDoesNotExistThrowsDirectoryNotFoundException()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
-
-        var ex = Assert.Throws<DirectoryNotFoundException>(() =>
-        {
-            builder.AddContainer("mycontainer", "myimage")
-                   .WithDockerfile("a/path/to/nowhere");
-        });
-    }
-
-    [Fact]
-    public void AddDockerfileWithContextPathThatDoesNotExistThrowsDirectoryNotFoundException()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
-
-        var ex = Assert.Throws<DirectoryNotFoundException>(() =>
-        {
-            builder.AddDockerfile("mycontainer", "a/path/to/nowhere");
-        });
-    }
-
-    [Fact]
-    public async Task WithDockerfileWithValidContextPathAndEmptyDockerfilePathThrows()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var (tempContextPath, _) = await CreateTemporaryDockerfileAsync(createDockerfile: false);
-
-        var ex = Assert.Throws<FileNotFoundException>(() =>
-        {
-            builder.AddContainer("mycontainer", "myimage")
-                   .WithDockerfile(tempContextPath, string.Empty);
-        });
-    }
-
-    [Fact]
-    public async Task AddDockerfileWithValidContextPathAndEmptyDockerfilePathThrows()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
-
-        var (tempContextPath, _) = await CreateTemporaryDockerfileAsync(createDockerfile: false);
-
-        var ex = Assert.Throws<FileNotFoundException>(() =>
-        {
-            builder.AddDockerfile("mycontainer", tempContextPath, string.Empty);
-        });
-    }
-
-    [Fact]
-    public async Task WithDockerfileWithValidContextPathAndInvalidDockerfilePathThrows()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
-
-        var (tempContextPath, _) = await CreateTemporaryDockerfileAsync();
-
-        var ex = Assert.Throws<FileNotFoundException>(() =>
-        {
-            builder.AddContainer("mycontainer", "myimage")
-                   .WithDockerfile(tempContextPath, "Notarealdockerfile");
-        });
-    }
-
-    [Fact]
-    public async Task AddDockerfileWithValidContextPathAndInvalidDockerfilePathThrows()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
-
-        var (tempContextPath, _) = await CreateTemporaryDockerfileAsync();
-
-        var ex = Assert.Throws<FileNotFoundException>(() =>
-        {
-            builder.AddDockerfile("mycontainer", tempContextPath, "Notarealdockerfile");
-        });
     }
 
     [Fact]

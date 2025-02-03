@@ -1,6 +1,6 @@
 # Set up your machine to use the latest Aspire builds
 
-These instructions will get you set up with the latest build of Aspire. If you just want the last release of .NET Aspire, the packages are on nuget.org, and install [Visual Studio 2022 version 17.10](https://visualstudio.microsoft.com/vs/) or later for the tooling.
+These instructions will get you set up with the latest build of Aspire. If you just want the last preview release of .NET Aspire, the packages are on nuget.org, and install [Visual Studio 2022 version 17.12](https://visualstudio.microsoft.com/vs/preview/) or later for the tooling.
 
 ## Prepare the machine
 
@@ -18,16 +18,17 @@ dotnet new nugetconfig
 
 The latest builds are pushed to a special feed, which you need to add:
 ```sh
-dotnet nuget add source --name dotnet8 https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json
+dotnet nuget add source --name dotnet9 https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json
 ```
 
 If you use [Package Source Mapping](https://learn.microsoft.com/en-us/nuget/consume-packages/package-source-mapping), you'll also need to add the following mappings to your NuGet.config
 
 ```xml
 <packageSourceMapping>
-  <packageSource key="dotnet8">
+  <packageSource key="dotnet9">
     <package pattern="Aspire.*" />
     <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
+    <package pattern="Microsoft.Extensions.Http.Resilience" />
   </packageSource>
 </packageSourceMapping>
 ```

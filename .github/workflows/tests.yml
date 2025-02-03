@@ -1,0 +1,207 @@
+name: Run Integration Tests
+
+on:
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60 
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Hosting projects
+          - project: tests/Aspire.Hosting.Analyzers.Tests/Aspire.Hosting.Analyzers.Tests.csproj
+            name: Analyzers
+          - project: tests/Aspire.Hosting.Azure.Tests/Aspire.Hosting.Azure.Tests.csproj
+            name: Azure
+          - project: tests/Aspire.Hosting.Containers.Tests/Aspire.Hosting.Containers.Tests.csproj
+            name: Containers
+          - project: tests/Aspire.Hosting.Elasticsearch.Tests/Aspire.Hosting.Elasticsearch.Tests.csproj
+            name: Elasticsearch
+          - project: tests/Aspire.Hosting.Garnet.Tests/Aspire.Hosting.Garnet.Tests.csproj
+            name: Garnet
+          - project: tests/Aspire.Hosting.Kafka.Tests/Aspire.Hosting.Kafka.Tests.csproj
+            name: Kafka
+          - project: tests/Aspire.Hosting.Keycloak.Tests/Aspire.Hosting.Keycloak.Tests.csproj
+            name: Keycloak
+          - project: tests/Aspire.Hosting.Milvus.Tests/Aspire.Hosting.Milvus.Tests.csproj
+            name: Milvus
+          - project: tests/Aspire.Hosting.MongoDB.Tests/Aspire.Hosting.MongoDB.Tests.csproj
+            name: MongoDB
+          - project: tests/Aspire.Hosting.MySql.Tests/Aspire.Hosting.MySql.Tests.csproj
+            name: MySQL
+          - project: tests/Aspire.Hosting.Nats.Tests/Aspire.Hosting.Nats.Tests.csproj
+            name: NATS
+          - project: tests/Aspire.Hosting.NodeJs.Tests/Aspire.Hosting.NodeJs.Tests.csproj
+            name: NodeJS
+          - project: tests/Aspire.Hosting.Oracle.Tests/Aspire.Hosting.Oracle.Tests.csproj
+            name: Oracle
+          - project: tests/Aspire.Hosting.PostgreSQL.Tests/Aspire.Hosting.PostgreSQL.Tests.csproj
+            name: PostgreSQL
+          - project: tests/Aspire.Hosting.Python.Tests/Aspire.Hosting.Python.Tests.csproj
+            name: Python
+          - project: tests/Aspire.Hosting.Qdrant.Tests/Aspire.Hosting.Qdrant.Tests.csproj
+            name: Qdrant
+          - project: tests/Aspire.Hosting.RabbitMQ.Tests/Aspire.Hosting.RabbitMQ.Tests.csproj
+            name: RabbitMQ
+          - project: tests/Aspire.Hosting.Redis.Tests/Aspire.Hosting.Redis.Tests.csproj
+            name: Redis
+          - project: tests/Aspire.Hosting.Sdk.Tests/Aspire.Hosting.Sdk.Tests.csproj
+            name: SDK
+          - project: tests/Aspire.Hosting.SqlServer.Tests/Aspire.Hosting.SqlServer.Tests.csproj
+            name: SQLServer
+          - project: tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj
+            name: Testing
+          - project: tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj
+            name: Hosting
+          - project: tests/Aspire.Hosting.Valkey.Tests/Aspire.Hosting.Valkey.Tests.csproj
+            name: Valkey
+
+          # Client projects
+          - project: tests/Aspire.Azure.AI.OpenAI.Tests/Aspire.Azure.AI.OpenAI.Tests.csproj
+            name: Azure.AI.OpenAI
+          - project: tests/Aspire.Azure.Data.Tables.Tests/Aspire.Azure.Data.Tables.Tests.csproj
+            name: Azure.Data.Tables
+          - project: tests/Aspire.Azure.Messaging.EventHubs.Tests/Aspire.Azure.Messaging.EventHubs.Tests.csproj
+            name: Azure.Messaging.EventHubs
+          - project: tests/Aspire.Azure.Messaging.ServiceBus.Tests/Aspire.Azure.Messaging.ServiceBus.Tests.csproj
+            name: Azure.Messaging.ServiceBus
+          - project: tests/Aspire.Azure.Messaging.WebPubSub.Tests/Aspire.Azure.Messaging.WebPubSub.Tests.csproj
+            name: Azure.Messaging.WebPubSub
+          - project: tests/Aspire.Azure.Search.Documents.Tests/Aspire.Azure.Search.Documents.Tests.csproj
+            name: Azure.Search.Documents
+          - project: tests/Aspire.Azure.Security.KeyVault.Tests/Aspire.Azure.Security.KeyVault.Tests.csproj
+            name: Azure.Security.KeyVault
+          - project: tests/Aspire.Azure.Storage.Blobs.Tests/Aspire.Azure.Storage.Blobs.Tests.csproj
+            name: Azure.Storage.Blobs
+          - project: tests/Aspire.Azure.Storage.Queues.Tests/Aspire.Azure.Storage.Queues.Tests.csproj
+            name: Azure.Storage.Queues
+          - project: tests/Aspire.Components.Common.Tests/Aspire.Components.Common.Tests.csproj
+            name: Components.Common
+          - project: tests/Aspire.Confluent.Kafka.Tests/Aspire.Confluent.Kafka.Tests.csproj
+            name: Confluent.Kafka
+          # This is failing
+          # - project: tests/Aspire.Elastic.Clients.Elasticsearch.Tests/Aspire.Elastic.Clients.Elasticsearch.Tests.csproj
+          #   name: Elastic.Clients.Elasticsearch
+          - project: tests/Aspire.Keycloak.Authentication.Tests/Aspire.Keycloak.Authentication.Tests.csproj
+            name: Keycloak.Authentication
+          - project: tests/Aspire.Microsoft.Azure.Cosmos.Tests/Aspire.Microsoft.Azure.Cosmos.Tests.csproj
+            name: Microsoft.Azure.Cosmos
+          - project: tests/Aspire.Microsoft.Data.SqlClient.Tests/Aspire.Microsoft.Data.SqlClient.Tests.csproj
+            name: Microsoft.Data.SqlClient
+          - project: tests/Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests/Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests.csproj
+            name: Microsoft.EntityFrameworkCore.Cosmos
+          - project: tests/Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests/Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests.csproj
+            name: Microsoft.EntityFrameworkCore.SqlServer
+          - project: tests/Aspire.Milvus.Client.Tests/Aspire.Milvus.Client.Tests.csproj
+            name: Milvus.Client
+          - project: tests/Aspire.MongoDB.Driver.Tests/Aspire.MongoDB.Driver.Tests.csproj
+            name: MongoDB.Driver
+          - project: tests/Aspire.MongoDB.Driver.v3.Tests/Aspire.MongoDB.Driver.v3.Tests.csproj
+            name: MongoDB.Driver.v3
+          - project: tests/Aspire.MySqlConnector.Tests/Aspire.MySqlConnector.Tests.csproj
+            name: MySqlConnector
+          - project: tests/Aspire.NATS.Net.Tests/Aspire.NATS.Net.Tests.csproj
+            name: NATS.Net
+          - project: tests/Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests/Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests.csproj
+            name: Npgsql.EntityFrameworkCore.PostgreSQL
+          - project: tests/Aspire.Npgsql.Tests/Aspire.Npgsql.Tests.csproj
+            name: Npgsql
+          - project: tests/Aspire.OpenAI.Tests/Aspire.OpenAI.Tests.csproj
+            name: OpenAI
+          - project: tests/Aspire.Oracle.EntityFrameworkCore.Tests/Aspire.Oracle.EntityFrameworkCore.Tests.csproj
+            name: Oracle.EntityFrameworkCore
+          - project: tests/Aspire.Pomelo.EntityFrameworkCore.MySql.Tests/Aspire.Pomelo.EntityFrameworkCore.MySql.Tests.csproj
+            name: Pomelo.EntityFrameworkCore.MySql
+          - project: tests/Aspire.Qdrant.Client.Tests/Aspire.Qdrant.Client.Tests.csproj
+            name: Qdrant.Client
+          - project: tests/Aspire.RabbitMQ.Client.Tests/Aspire.RabbitMQ.Client.Tests.csproj
+            name: RabbitMQ.Client
+          - project: tests/Aspire.RabbitMQ.Client.v7.Tests/Aspire.RabbitMQ.Client.v7.Tests.csproj
+            name: RabbitMQ.Client.v7
+          - project: tests/Aspire.Seq.Tests/Aspire.Seq.Tests.csproj
+            name: Seq
+          - project: tests/Aspire.StackExchange.Redis.DistributedCaching.Tests/Aspire.StackExchange.Redis.DistributedCaching.Tests.csproj
+            name: StackExchange.Redis.DistributedCaching
+          - project: tests/Aspire.StackExchange.Redis.OutputCaching.Tests/Aspire.StackExchange.Redis.OutputCaching.Tests.csproj
+            name: StackExchange.Redis.OutputCaching
+          - project: tests/Aspire.StackExchange.Redis.Tests/Aspire.StackExchange.Redis.Tests.csproj
+            name: StackExchange.Redis
+
+          # These are failing due to globalization issues
+          # Dashboard projects
+          # - project: tests/Aspire.Dashboard.Components.Tests/Aspire.Dashboard.Components.Tests.csproj
+          #   name: Dashboard.Components
+          # - project: tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj
+          #   name: Dashboard
+
+          # Playground project
+          # - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
+          #   name: Playground
+          # Add more projects as needed
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.x
+            9.x
+
+      - name: Trust HTTPS development certificate
+        run: dotnet dev-certs https --trust
+
+      - name: Verify Docker is running
+        run: docker info
+
+      - name: Install Azure Functions Core Tools
+        if: matrix.name == 'Playground' || matrix.name == 'Azure'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y azure-functions-core-tools-4
+
+      - name: Build test project
+        run: |
+          export CI=false && ./build.sh -restore -ci -build -projects ${{ github.workspace }}/${{ matrix.project }} /bl
+
+      - name: Run tests
+        id: run-tests
+        run: |
+          export CI=false && ./dotnet.sh test ${{ github.workspace }}/${{ matrix.project }} \
+            /p:ContinuousIntegrationBuild=true \
+            -s eng/testing/.runsettings \
+            --logger "console;verbosity=normal" \
+            --logger "trx" \
+            --logger html \
+            --blame \
+            --blame-hang-timeout 7m \
+            --results-directory testresults \
+            --no-restore \
+            --no-build
+
+      - name: Compress test results
+        if: always()
+        run: zip -r testresults.zip testresults
+
+      - name: Upload bin log artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: binlog-${{ matrix.name }}
+          path: "**/*.binlog"
+
+      - name: Upload test results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testresults-${{ matrix.name }}
+          path: testresults.zip

@@ -3,7 +3,7 @@
 
 using System.Data.Common;
 
-namespace Aspire.Hosting.Azure.Cosmos;
+namespace Aspire.Hosting.Azure.CosmosDB;
 
 internal static class CosmosUtils
 {

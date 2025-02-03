@@ -201,7 +201,8 @@ public class ResourcePublisherTests
             Volumes = [],
             Environment = [],
             HealthReports = [],
-            Commands = []
+            Commands = [],
+            Relationships = []
         };
     }
 

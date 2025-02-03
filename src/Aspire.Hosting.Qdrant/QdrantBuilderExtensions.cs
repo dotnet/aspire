@@ -8,6 +8,7 @@ using Aspire.Hosting.Utils;
 using Aspire.Qdrant.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Qdrant.Client;
 
 namespace Aspire.Hosting;
 
@@ -48,20 +49,21 @@ public static class QdrantBuilderExtensions
             ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-Key", special: false);
         var qdrant = new QdrantServerResource(name, apiKeyParameter);
 
-        HttpClient? httpClient = null;
+        QdrantClient? qdrantClient = null;
 
         builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(qdrant, async (@event, ct) =>
         {
-            var connectionString = await qdrant.HttpConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false)
+            var connectionString = await qdrant.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false)
             ?? throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{qdrant.Name}' resource but the connection string was null.");
-            httpClient = CreateQdrantHttpClient(connectionString);
+
+            qdrantClient = CreateQdrantClient(connectionString);
         });
 
         var healthCheckKey = $"{name}_check";
         builder.Services.AddHealthChecks()
           .Add(new HealthCheckRegistration(
               healthCheckKey,
-              sp => new QdrantHealthCheck(httpClient!),
+              sp => new QdrantHealthCheck(qdrantClient ?? throw new InvalidOperationException("Qdrant Client is unavailable")),
               failureStatus: default,
               tags: default,
               timeout: default));
@@ -124,7 +126,7 @@ public static class QdrantBuilderExtensions
     /// </summary>
     /// <param name="builder">An <see cref="IResourceBuilder{T}"/> for <see cref="ProjectResource"/></param>
     /// <param name="qdrantResource">The Qdrant server resource</param>
-    /// <returns></returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<QdrantServerResource> qdrantResource)
          where TDestination : IResourceWithEnvironment
     {
@@ -143,7 +145,7 @@ public static class QdrantBuilderExtensions
         return builder;
     }
 
-    private static HttpClient CreateQdrantHttpClient(string? connectionString)
+    private static QdrantClient CreateQdrantClient(string? connectionString)
     {
         if (connectionString is null)
         {
@@ -175,12 +177,12 @@ public static class QdrantBuilderExtensions
             }
         }
 
-        var client = new HttpClient();
-        client.BaseAddress = endpoint;
-        if (key is not null)
+        if (endpoint is null)
         {
-            client.DefaultRequestHeaders.Add("Api-Key", key);
+            throw new InvalidOperationException("Endpoint is unavailable");
         }
+        
+        var client = new QdrantClient(endpoint, key);
         return client;
     }
 }
