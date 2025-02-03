@@ -218,8 +218,8 @@ public static class ResourceExtensions
     /// <code>
     /// var builder = DistributedApplication.CreateBuilder();
     /// var container = builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
-    ///  .WithArgument("--discovery.type", "single-node")
-    ///  .WithArgument("--xpack.security.enabled", "true");
+    ///  .WithArgs("--discovery.type", "single-node")
+    ///  .WithArgs("--xpack.security.enabled", "true");
     ///
     /// var args = await container.Resource.GetArgumentsAsync();
     ///
