@@ -9,6 +9,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
 internal static class DnsPrimitives
 {
+    // Maximum length of a domain name in ASCII (excluding trailing dot)
     internal const int MaxDomainNameLength = 253;
 
     internal static bool TryWriteQName(Span<byte> destination, string name, out int written)
@@ -59,7 +60,7 @@ internal static class DnsPrimitives
         return true;
     }
 
-    private static bool TryReadQNameCore(StringBuilder sb, ReadOnlySpan<byte> messageBuffer, int offset, out int bytesRead)
+    private static bool TryReadQNameCore(StringBuilder sb, ReadOnlySpan<byte> messageBuffer, int offset, out int bytesRead, bool canStartWithPointer = true)
     {
         //
         // domain name can be either
@@ -72,10 +73,12 @@ internal static class DnsPrimitives
         //
         // It is not specified by the RFC if pointers must be backwards only,
         // the code below prohibits forward (and self) pointers to avoid
-        // infinite loops
+        // infinite loops. It also allows pointers only to point to a
+        // label, not to another pointer.
         //
 
         bytesRead = 0;
+        bool allowPointer = canStartWithPointer;
 
         if (offset < 0 || offset >= messageBuffer.Length)
         {
@@ -98,52 +101,51 @@ internal static class DnsPrimitives
                     return true;
                 }
 
-                if (currentOffset + 1 + length < messageBuffer.Length)
+                if (currentOffset + 1 + length >= messageBuffer.Length)
                 {
-                    // read next label/segment
-                    if (sb.Length > 0)
-                    {
-                        sb.Append('.');
-                    }
-
-                    sb.Append(Encoding.ASCII.GetString(messageBuffer.Slice(currentOffset + 1, length)));
-
-                    if (sb.Length > MaxDomainNameLength)
-                    {
-                        // domain name is too long
-                        return false;
-                    }
-
-                    currentOffset += 1 + length;
-                    bytesRead += 1 + length;
-                }
-                else
-                {
-                    // truncated data
+                    // too many labels or truncated data
                     break;
                 }
+
+                // read next label/segment
+                if (sb.Length > 0)
+                {
+                    sb.Append('.');
+                }
+
+                sb.Append(Encoding.ASCII.GetString(messageBuffer.Slice(currentOffset + 1, length)));
+
+                if (sb.Length > MaxDomainNameLength)
+                {
+                    // domain name is too long
+                    return false;
+                }
+
+                currentOffset += 1 + length;
+                bytesRead += 1 + length;
+
+                // we read a label, they can be followed by pointer.
+                allowPointer = true;
             }
             else if ((length & 0xC0) == 0xC0)
             {
                 // pointer, together with next byte gives the offset of the true label
-                if (currentOffset + 1 < messageBuffer.Length)
+                if (!allowPointer || currentOffset + 1 >= messageBuffer.Length)
                 {
-                    bytesRead += 2;
-                    int pointer = ((length & 0x3F) << 8) | messageBuffer[currentOffset + 1];
-
-                    // we prohibit self-references and forward pointers to avoid
-                    // infinite loops, we do this by truncating the
-                    // messageBuffer at the offset where we started reading the
-                    // name. We also ignore the bytesRead from the recursive
-                    // call, as we are only interested on how many bytes we read
-                    // from the initial start of the name.
-                    return TryReadQNameCore(sb, messageBuffer.Slice(0, offset), pointer, out int _);
-                }
-                else
-                {
-                    // truncated data
+                    // pointer to pointer or truncated data
                     break;
                 }
+
+                bytesRead += 2;
+                int pointer = ((length & 0x3F) << 8) | messageBuffer[currentOffset + 1];
+
+                // we prohibit self-references and forward pointers to avoid
+                // infinite loops, we do this by truncating the
+                // messageBuffer at the offset where we started reading the
+                // name. We also ignore the bytesRead from the recursive
+                // call, as we are only interested on how many bytes we read
+                // from the initial start of the name.
+                return TryReadQNameCore(sb, messageBuffer.Slice(0, offset), pointer, out int _, false);
             }
             else
             {

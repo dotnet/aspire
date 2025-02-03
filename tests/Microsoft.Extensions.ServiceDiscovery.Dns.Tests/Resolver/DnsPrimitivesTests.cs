@@ -97,7 +97,7 @@ public class DnsPrimitivesTests
     public void TryReadQName_ForwardPointer_Fails()
     {
         // www->[ptr to example.com], [7B padding], example.com.
-        Span<byte> data = "\x03www\x00\0x000cpaddingexample\x0003com\x00"u8.ToArray();
+        Span<byte> data = "\x03www\x00\x000dpadding\x0007example\x0003com\x00"u8.ToArray();
         data[4] = 0xc0;
 
         Assert.False(DnsPrimitives.TryReadQName(data, 0, out _, out _));
@@ -107,17 +107,29 @@ public class DnsPrimitivesTests
     public void TryReadQName_PointerToSelf_Fails()
     {
         // www->[ptr to www->...]
-        Span<byte> data = "\x0003www\x00c0"u8.ToArray();
+        Span<byte> data = "\x0003www\0\0"u8.ToArray();
         data[4] = 0xc0;
 
         Assert.False(DnsPrimitives.TryReadQName(data, 0, out _, out _));
     }
 
     [Fact]
+    public void TryReadQName_PointerToPointer_Fails()
+    {
+        // com, example[->com], example2[->[->com]]
+        Span<byte> data = "\x0003com\0\x0007example\0\0\x0008example2\0\0"u8.ToArray();
+        data[13] = 0xc0;
+        data[14] = 0x00; // -> com
+        data[24] = 0xc0;
+        data[25] = 13; // -> -> com
+
+        Assert.False(DnsPrimitives.TryReadQName(data, 15, out _, out _));
+    }
+
+    [Fact]
     public void TryReadQName_ReservedBits()
     {
         Span<byte> data = "\x0003www\x00c0"u8.ToArray();
-        data[4] = 0xc0;
         data[0] = 0x40;
 
         Assert.False(DnsPrimitives.TryReadQName(data, 0, out _, out _));
