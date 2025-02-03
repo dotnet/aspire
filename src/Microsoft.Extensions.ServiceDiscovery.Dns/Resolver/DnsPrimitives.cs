@@ -9,6 +9,8 @@ namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
 internal static class DnsPrimitives
 {
+    internal const int MaxDomainNameLength = 253;
+
     internal static bool TryWriteQName(Span<byte> destination, string name, out int written)
     {
         //
@@ -103,7 +105,15 @@ internal static class DnsPrimitives
                     {
                         sb.Append('.');
                     }
+
                     sb.Append(Encoding.ASCII.GetString(messageBuffer.Slice(currentOffset + 1, length)));
+
+                    if (sb.Length > MaxDomainNameLength)
+                    {
+                        // domain name is too long
+                        return false;
+                    }
+
                     currentOffset += 1 + length;
                     bytesRead += 1 + length;
                 }

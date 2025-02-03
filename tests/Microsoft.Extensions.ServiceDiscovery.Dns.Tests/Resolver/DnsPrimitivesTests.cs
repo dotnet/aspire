@@ -122,4 +122,32 @@ public class DnsPrimitivesTests
 
         Assert.False(DnsPrimitives.TryReadQName(data, 0, out _, out _));
     }
+
+    [Theory]
+    [InlineData(253)]
+    [InlineData(254)]
+    [InlineData(255)]
+    public void TryReadQName_NameTooLong(int length)
+    {
+        // longest possible label is 63 bytes + 1 byte for length
+        byte[] labelData = new byte[64];
+        Array.Fill(labelData, (byte)'a');
+        labelData[0] = 63;
+
+        int remainder = length - 3 * 64;
+
+        byte[] lastLabelData = new byte[remainder + 1];
+        Array.Fill(lastLabelData, (byte)'a');
+        lastLabelData[0] = (byte)remainder;
+
+        byte[] data = Enumerable.Repeat(labelData, 3).SelectMany(x => x).Concat(lastLabelData).Concat(new byte[1]).ToArray();
+        if (length > 253)
+        {
+            Assert.False(DnsPrimitives.TryReadQName(data, 0, out _, out _));
+        }
+        else
+        {
+            Assert.True(DnsPrimitives.TryReadQName(data, 0, out _, out _));
+        }
+    }
 }

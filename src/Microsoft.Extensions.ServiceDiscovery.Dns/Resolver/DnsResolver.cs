@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -14,7 +15,6 @@ namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
 internal partial class DnsResolver : IDnsResolver, IDisposable
 {
-    private const int MaximumNameLength = 253;
     private const int IPv4Length = 4;
     private const int IPv6Length = 16;
 
@@ -65,6 +65,8 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
+
+        name = GetNormalizedHostName(name);
 
         NameResolutionActivity activity = Telemetry.StartNameResolution(name, QueryType.SRV, _timeProvider.GetTimestamp());
         SendQueryResult result = await SendQueryWithRetriesAsync(name, QueryType.SRV, cancellationToken).ConfigureAwait(false);
@@ -118,7 +120,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
 
     public async ValueTask<AddressResult[]> ResolveIPAddressesAsync(string name, CancellationToken cancellationToken = default)
     {
-        if (name == "localhost")
+        if (string.Equals(name, "localhost", StringComparison.OrdinalIgnoreCase))
         {
             // name localhost exists outside of DNS and can't be resolved by a DNS server
             int len = (Socket.OSSupportsIPv4 ? 1 : 0) + (Socket.OSSupportsIPv6 ? 1 : 0);
@@ -157,7 +159,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
             throw new ArgumentOutOfRangeException(nameof(addressFamily), addressFamily, "Invalid address family");
         }
 
-        if (name == "localhost")
+        if (string.Equals(name, "localhost", StringComparison.OrdinalIgnoreCase))
         {
             // name localhost exists outside of DNS and can't be resolved by a DNS server
             if (addressFamily == AddressFamily.InterNetwork && Socket.OSSupportsIPv4)
@@ -172,10 +174,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
             return Array.Empty<AddressResult>();
         }
 
-        if (name.Length > MaximumNameLength)
-        {
-            throw new ArgumentException("Name is too long", nameof(name));
-        }
+        name = GetNormalizedHostName(name);
 
         var queryType = addressFamily == AddressFamily.InterNetwork ? QueryType.A : QueryType.AAAA;
         NameResolutionActivity activity = Telemetry.StartNameResolution(name, queryType, _timeProvider.GetTimestamp());
@@ -622,5 +621,13 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
         }
 
         return (pendingRequestsCts, DisposeTokenSource: false, pendingRequestsCts);
+    }
+
+    private static readonly IdnMapping s_idnMapping = new IdnMapping();
+
+    private static string GetNormalizedHostName(string name)
+    {
+        // TODO: better exception message
+        return s_idnMapping.GetAscii(name);
     }
 }
