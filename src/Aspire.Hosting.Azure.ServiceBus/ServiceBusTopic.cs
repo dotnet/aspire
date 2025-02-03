@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Xml;
+using Azure.Provisioning;
 
 namespace Aspire.Hosting.Azure.ServiceBus;
 
@@ -10,22 +11,7 @@ namespace Aspire.Hosting.Azure.ServiceBus;
 /// Represents a Service Bus Topic.
 /// </summary>
 /// <remarks>
-/// List of properties from Azure.Provisioning.ServiceBus that are not exposed here:
-/// - AutoDeleteOnIdle
-/// - DeadLetteringOnMessageExpiration
-/// - EnableBatchedOperations
-/// - EnableExpress
-/// - EnablePartitioning
-/// - ForwardDeadLetteredMessagesTo
-/// - ForwardTo
-/// - LockDuration
-/// - MaxDeliveryCount
-/// - MaxMessageSizeInKilobytes
-/// - MaxSizeInMegabytes
-/// - RequiresSession
-/// - Status
-/// 
-/// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure these specific properties.
+/// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
 public class ServiceBusTopic
 {
@@ -72,7 +58,7 @@ public class ServiceBusTopic
     /// <returns>A <see cref="global::Azure.Provisioning.ServiceBus.ServiceBusTopic"/> instance.</returns>
     internal global::Azure.Provisioning.ServiceBus.ServiceBusTopic ToProvisioningEntity()
     {
-        var topic = new global::Azure.Provisioning.ServiceBus.ServiceBusTopic(AzureResourceInfrastructure.NormalizeBicepIdentifier(Name));
+        var topic = new global::Azure.Provisioning.ServiceBus.ServiceBusTopic(Infrastructure.NormalizeBicepIdentifier(Name));
 
         if (Name != null)
         {

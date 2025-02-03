@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 
@@ -24,7 +25,9 @@ public static class ContainerResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(image);
 
-        return builder.AddContainer(name, image, "latest");
+        var container = new ContainerResource(name);
+        return builder.AddResource(container)
+                      .WithImage(image);
     }
 
     /// <summary>
@@ -37,14 +40,8 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
     public static IResourceBuilder<ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, [ResourceName] string name, string image, string tag)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(image);
-        ArgumentNullException.ThrowIfNull(tag);
-
-        var container = new ContainerResource(name);
-        return builder.AddResource(container)
-                      .WithImage(image, tag);
+       return AddContainer(builder, name, image)
+           .WithImageTag(tag);
     }
 
     /// <summary>
@@ -165,22 +162,53 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="image">Image value.</param>
     /// <param name="tag">Tag value.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithImage<T>(this IResourceBuilder<T> builder, string image, string tag = "latest") where T : ContainerResource
+    public static IResourceBuilder<T> WithImage<T>(this IResourceBuilder<T> builder, string image, string? tag = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(image);
-        ArgumentNullException.ThrowIfNull(tag);
 
-        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } existingImageAnnotation)
+        var parsedReference = ContainerReferenceParser.Parse(image);
+
+        if (tag is { } && parsedReference.Tag is { })
         {
-            existingImageAnnotation.Image = image;
-            existingImageAnnotation.Tag = tag;
-            return builder;
+            throw new InvalidOperationException("Ambiguous tags - a tag was provided on both the 'tag' and 'image' parameters");
         }
 
-        // if the annotation doesn't exist, create it with the given image and add it to the collection
-        var containerImageAnnotation = new ContainerImageAnnotation() { Image = image, Tag = tag };
-        builder.Resource.Annotations.Add(containerImageAnnotation);
+        if (tag is { } && parsedReference.Digest is { })
+        {
+            throw new ArgumentOutOfRangeException(nameof(tag), "Tag conflicts with digest provided on the 'image' parameter");
+        }
+
+        // For continuity with 9.0 and earlier behaviour, keep the registry and image combined.
+        var parsedRegistryAndImage = parsedReference.Registry is {} 
+            ? $"{parsedReference.Registry}/{parsedReference.Image}"
+            : parsedReference.Image;
+
+        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } imageAnnotation)
+        {
+            imageAnnotation.Image = parsedRegistryAndImage;
+        }
+        else
+        {
+            imageAnnotation = new ContainerImageAnnotation { Image = parsedRegistryAndImage };
+            builder.Resource.Annotations.Add(imageAnnotation);
+        }
+
+        if (parsedReference.Digest is { })
+        {
+            const string prefix = "sha256:";
+            if (!parsedReference.Digest.StartsWith(prefix))
+            {
+                throw new ArgumentOutOfRangeException(nameof(image), parsedReference.Digest, "invalid digest format");
+            }
+
+            var digest = parsedReference.Digest.Substring(prefix.Length);
+            imageAnnotation.SHA256 = digest;
+        }
+        else {
+            imageAnnotation.Tag = parsedReference.Tag ?? tag ?? "latest";
+        }
+
         return builder;
     }
 
@@ -353,16 +381,6 @@ public static class ContainerResourceBuilderExtensions
 
         var fullyQualifiedDockerfilePath = Path.GetFullPath(dockerfilePath, fullyQualifiedContextPath);
 
-        if (!Directory.Exists(fullyQualifiedContextPath))
-        {
-            throw new DirectoryNotFoundException($"Context path not found at '{fullyQualifiedContextPath}'.");
-        }
-
-        if (!File.Exists(fullyQualifiedDockerfilePath))
-        {
-            throw new FileNotFoundException($"Dockerfile not found at '{fullyQualifiedDockerfilePath}'.");
-        }
-
         var imageName = builder.GenerateImageName();
         var annotation = new DockerfileBuildAnnotation(fullyQualifiedContextPath, fullyQualifiedDockerfilePath, stage);
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
@@ -464,11 +482,10 @@ public static class ContainerResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> WithBuildArg<T>(this IResourceBuilder<T> builder, string name, object value) where T : ContainerResource
+    public static IResourceBuilder<T> WithBuildArg<T>(this IResourceBuilder<T> builder, string name, object? value) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
-        ArgumentNullException.ThrowIfNull(value);
 
         var annotation = builder.Resource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault();
 
@@ -576,6 +593,30 @@ public static class ContainerResourceBuilderExtensions
         }
 
         annotation.BuildSecrets[name] = value.Resource;
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Set whether a container resource can use proxied endpoints or whether they should be disabled for all endpoints belonging to the container.
+    /// If set to <c>false</c>, endpoints belonging to the container resource will ignore the configured proxy settings and run proxy-less.
+    /// </summary>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="proxyEnabled">Should endpoints for the container resource support using a proxy?</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// This method is intended to support scenarios with persistent lifetime containers where it is desirable for the container to be accessible over the same
+    /// port whether the Aspire application is running or not. Proxied endpoints bind ports that are only accessible while the Aspire application is running.
+    /// The user needs to be careful to ensure that container endpoints are using unique ports when disabling proxy support as by default for proxy-less
+    /// endpoints, Aspire will allocate the internal container port as the host port, which will increase the chance of port conflicts.
+    /// </remarks>
+    [Experimental("ASPIREPROXYENDPOINTS001")]
+    public static IResourceBuilder<T> WithEndpointProxySupport<T>(this IResourceBuilder<T> builder, bool proxyEnabled) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.WithAnnotation(new ProxySupportAnnotation { ProxyEnabled = proxyEnabled }, ResourceAnnotationMutationBehavior.Replace);
 
         return builder;
     }

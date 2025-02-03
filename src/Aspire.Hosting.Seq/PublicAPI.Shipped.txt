@@ -1,8 +1,0 @@
-#nullable enable
-Aspire.Hosting.ApplicationModel.SeqResource
-Aspire.Hosting.ApplicationModel.SeqResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
-Aspire.Hosting.ApplicationModel.SeqResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
-Aspire.Hosting.ApplicationModel.SeqResource.SeqResource(string! name) -> void
-Aspire.Hosting.SeqBuilderExtensions
-static Aspire.Hosting.SeqBuilderExtensions.WithDataBindMount(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SeqResource!>! builder, string! source, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SeqResource!>!
-static Aspire.Hosting.SeqBuilderExtensions.WithDataVolume(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SeqResource!>! builder, string? name = null, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SeqResource!>!

@@ -32,6 +32,15 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
 
     [Fact]
     [RequiresDocker]
+    public async Task CanGetConnectionStringFromAddConnectionString()
+    {
+        // Get a connection string from a resource
+        var connectionString = await _app.GetConnectionStringAsync("cs");
+        Assert.Equal("testconnection", connectionString);
+    }
+
+    [Fact]
+    [RequiresDocker]
     public void CanGetResources()
     {
         var appModel = _app.Services.GetRequiredService<DistributedApplicationModel>();

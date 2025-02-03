@@ -1,6 +1,0 @@
-#nullable enable
-Aspire.Hosting.ApplicationModel.MongoDBServerResource.MongoDBServerResource(string! name, Aspire.Hosting.ApplicationModel.ParameterResource? userNameParameter, Aspire.Hosting.ApplicationModel.ParameterResource? passwordParameter) -> void
-Aspire.Hosting.ApplicationModel.MongoDBServerResource.PasswordParameter.get -> Aspire.Hosting.ApplicationModel.ParameterResource?
-Aspire.Hosting.ApplicationModel.MongoDBServerResource.UserNameParameter.get -> Aspire.Hosting.ApplicationModel.ParameterResource?
-static Aspire.Hosting.MongoDBBuilderExtensions.AddMongoDB(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, int? port = null, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>? userName = null, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>? password = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.MongoDBServerResource!>!
-

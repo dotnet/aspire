@@ -15,5 +15,6 @@ public enum KnownResourceState
     Waiting,
     Stopping,
     Unknown,
-    RuntimeUnhealthy
+    RuntimeUnhealthy,
+    NotStarted
 }

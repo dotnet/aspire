@@ -1,5 +1,0 @@
-#nullable enable
-Aspire.Oracle.EntityFrameworkCore.OracleEntityFrameworkCoreSettings.DisableTracing.get -> bool
-Aspire.Oracle.EntityFrameworkCore.OracleEntityFrameworkCoreSettings.DisableTracing.set -> void
-Aspire.Oracle.EntityFrameworkCore.OracleEntityFrameworkCoreSettings.InstrumentationOptions.get -> System.Action<Oracle.ManagedDataAccess.OpenTelemetry.OracleDataProviderInstrumentationOptions!>?
-Aspire.Oracle.EntityFrameworkCore.OracleEntityFrameworkCoreSettings.InstrumentationOptions.set -> void

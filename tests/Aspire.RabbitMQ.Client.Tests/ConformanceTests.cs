@@ -108,6 +108,7 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
 
     protected override void TriggerActivity(IConnection service)
     {
+#if RABBITMQ_V6
         var channel = service.CreateModel();
         channel.QueueDeclare("test-queue", exclusive: false);
         channel.BasicPublish(
@@ -115,6 +116,17 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
             routingKey: "test-queue",
             basicProperties: null,
             body: "hello world"u8.ToArray());
+#else
+        Task.Run(async () =>
+        {
+            using var channel = await service.CreateChannelAsync();
+            await channel.QueueDeclareAsync("test-queue", exclusive: false);
+            await channel.BasicPublishAsync(
+                exchange: "",
+                routingKey: "test-queue",
+                body: "hello world"u8.ToArray());
+        }).Wait();
+#endif
     }
 
     protected override void SetupConnectionInformationIsDelayValidated()

@@ -120,12 +120,12 @@ internal sealed class BicepProvisioner(
         {
             ResourceType = resource.GetType().Name,
             State = new("Starting", KnownResourceStateStyles.Info),
-            Properties = [
+            Properties = state.Properties.SetResourcePropertyRange([
                 new("azure.subscription.id", context.Subscription.Id.Name),
                 new("azure.resource.group", resourceGroup.Id.Name),
                 new("azure.tenant.domain", context.Tenant.Data.DefaultDomain),
                 new("azure.location", context.Location.ToString()),
-            ]
+            ])
         }).ConfigureAwait(false);
 
         if (FindFullPathFromPath("az") is not { } azPath)
