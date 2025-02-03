@@ -1,6 +1,5 @@
 <Project>
   <Import Project="Sdk.props" Sdk="Microsoft.DotNet.Arcade.Sdk" />
-  <Import Project="$(RepositoryEngineeringDir)/apicompat/PublicApiAnalyzer.props" />
 
   <PropertyGroup>
     <Copyright>$(CopyrightNetFoundation)</Copyright>
