@@ -46,12 +46,7 @@ internal sealed class AspireStore
         var objDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
 
         var fallbackDir = Environment.GetEnvironmentVariable(AspireStoreDir);
-        var root = fallbackDir
-                   ?? objDir
-                   ?? Environment.GetEnvironmentVariable("APPDATA")                        // On Windows it goes to %APPDATA%\Microsoft\UserSecrets\
-                   ?? Environment.GetEnvironmentVariable("HOME")                           // On Mac/Linux it goes to ~/.microsoft/usersecrets/
-                   ?? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-                   ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var root = fallbackDir ?? objDir;
 
         if (string.IsNullOrEmpty(root))
         {
@@ -211,15 +206,7 @@ internal sealed class AspireStore
     {
         if (!string.IsNullOrEmpty(_basePath) && !Directory.Exists(_basePath))
         {
-            if (!OperatingSystem.IsWindows())
-            {
-                var tempDir = Directory.CreateTempSubdirectory();
-                tempDir.MoveTo(_basePath);
-            }
-            else
-            {
-                Directory.CreateDirectory(_basePath);
-            }
+            Directory.CreateDirectory(_basePath);
         }
     }
 }
