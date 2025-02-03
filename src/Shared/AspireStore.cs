@@ -30,13 +30,8 @@ internal sealed class AspireStore
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <returns>A new instance of <see cref="AspireStore"/>.</returns>
     /// <remarks>
-    /// The store is created in the following locations:
-    /// - On Windows: %APPDATA%\Aspire\{applicationHash}\aspire.json
-    /// - On Mac/Linux: ~/.aspire/{applicationHash}\aspire.json
-    /// - If none of the above locations are available, the store is created in the directory specified by the ASPIRE_STORE_FALLBACK_DIR environment variable.
-    /// - If the ASPIRE_STORE_FALLBACK_DIR environment variable is not set, an <see cref="InvalidOperationException"/> is thrown.
-    ///
-    /// The directory has the permissions set to 700 on Unix systems.
+    /// The store is created in the ./obj folder of the Application Host.
+    /// If the ASPIRE_STORE_DIR environment variable is set this will be used instead.
     /// </remarks>
     public static AspireStore Create(IDistributedApplicationBuilder builder)
     {
