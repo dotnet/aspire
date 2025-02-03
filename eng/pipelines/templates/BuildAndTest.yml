@@ -63,6 +63,7 @@ steps:
 
     - ${{ if ne(parameters.isWindows, 'true') }}:
       - script: |
+          docker info
           docker container ls
           docker network ls
           docker network prune -f
