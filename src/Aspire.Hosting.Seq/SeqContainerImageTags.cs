@@ -5,12 +5,12 @@ namespace Aspire.Hosting;
 
 internal static class SeqContainerImageTags
 {
-    /// <summary>docker.io</summary>
+    /// <remarks>docker.io</remarks>
     public const string Registry = "docker.io";
 
-    /// <summary>datalust/seq</summary>
+    /// <remarks>datalust/seq</remarks>
     public const string Image = "datalust/seq";
 
-    /// <summary>2024.3</summary>
+    /// <remarks>2024.3</remarks>
     public const string Tag = "2024.3";
 }

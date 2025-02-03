@@ -31,7 +31,8 @@
     <!-- The version of Roslyn used needs to consider the min-supported version of VS and .NET SDK for Aspire.
          Roslyn 4.8 aligns with .NET SDK 8.0.100 & VS 17.8 and the min-supported Aspire VS version is 17.10, so
          we take the minimum of those. -->
-     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="All" /> 
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="All" />
+    <PackageReference Update="Microsoft.DotNet.GenAPI.Task" Version="9.0.103-servicing.25065.25" />
   </ItemGroup>
 
   <ItemGroup>

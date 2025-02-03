@@ -34,15 +34,6 @@ internal sealed class DevcontainerPortForwardingLifecycleHook : IDistributedAppl
 
         foreach (var resource in appModel.Resources)
         {
-            if (resource.Name == KnownResourceNames.AspireDashboard)
-            {
-                // We don't configure the dashboard here because if we print out the URL
-                // the dashboard will launch immediately but it hasn't actually started
-                // which would lead to a poor experience. So we'll let the dashboard
-                // URL writing logic call the helper directly.
-                continue;
-            }
-
             if (resource is not IResourceWithEndpoints resourceWithEndpoints)
             {
                 continue;
@@ -58,18 +49,14 @@ internal sealed class DevcontainerPortForwardingLifecycleHook : IDistributedAppl
                     continue;
                 }
 
-                // TODO: This is inefficient because we are opening the file, parsing it, updating it
-                //       and writing it each time. Its like this for now beause I need to use the logic
-                //       in a few places (here and when we print out the Dashboard URL) - but will need
-                //       to come back and optimize this to support some kind of batching.
-                await _settingsWriter.SetPortAttributesAsync(
+                _settingsWriter.AddPortForward(
+                    endpoint.AllocatedEndpoint!.UriString,
                     endpoint.AllocatedEndpoint!.Port,
                     endpoint.UriScheme,
-                    $"{resource.Name}-{endpoint.Name}",
-                    cancellationToken).ConfigureAwait(false);
-
-                _hostingLogger.LogInformation("Port forwarding: {Url}", endpoint.AllocatedEndpoint!.UriString);
+                    $"{resource.Name}-{endpoint.Name}");
             }
         }
+
+        await _settingsWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 }

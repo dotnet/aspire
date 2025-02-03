@@ -19,7 +19,10 @@
 			],
 			"settings": {
 				"remote.autoForwardPorts": true,
-				"remote.autoForwardPortsSource": "output"
+				"remote.autoForwardPortsSource": "hybrid",
+				"remote.otherPortsAttributes": {
+					"onAutoForward": "ignore"
+				}
 			}
 		}
 	},

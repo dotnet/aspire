@@ -18,6 +18,7 @@ public static class IDistributedApplicationResourceBuilderExtensions
     /// <param name="builder">The resource builder instance.</param>
     /// <param name="appId">The ID for the application, used for service discovery.</param>
     /// <returns>The resource builder instance.</returns>
+    [Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", error: false)]
     public static IResourceBuilder<T> WithDaprSidecar<T>(this IResourceBuilder<T> builder, string appId) where T : IResource
     {
         return builder.WithDaprSidecar(new DaprSidecarOptions { AppId = appId });
@@ -30,6 +31,7 @@ public static class IDistributedApplicationResourceBuilderExtensions
     /// <param name="builder">The resource builder instance.</param>
     /// <param name="options">Options for configuring the Dapr sidecar, if any.</param>
     /// <returns>The resource builder instance.</returns>
+    [Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", error: false)]
     public static IResourceBuilder<T> WithDaprSidecar<T>(this IResourceBuilder<T> builder, DaprSidecarOptions? options = null) where T : IResource
     {
         return builder.WithDaprSidecar(
@@ -49,6 +51,7 @@ public static class IDistributedApplicationResourceBuilderExtensions
     /// <param name="builder">The resource builder instance.</param>
     /// <param name="configureSidecar">A callback that can be use to configure the Dapr sidecar.</param>
     /// <returns>The resource builder instance.</returns>
+    [Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", error: false)]
     public static IResourceBuilder<T> WithDaprSidecar<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<IDaprSidecarResource>> configureSidecar) where T : IResource
     {
         // Add Dapr is idempotent, so we can call it multiple times.
@@ -73,6 +76,7 @@ public static class IDistributedApplicationResourceBuilderExtensions
     /// <param name="builder">The Dapr sidecar resource builder instance.</param>
     /// <param name="options">Options for configuring the Dapr sidecar.</param>
     /// <returns>The Dapr sidecar resource builder instance.</returns>
+    [Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", error: false)]
     public static IResourceBuilder<IDaprSidecarResource> WithOptions(this IResourceBuilder<IDaprSidecarResource> builder, DaprSidecarOptions options)
     {
         return builder.WithAnnotation(new DaprSidecarOptionsAnnotation(options));
@@ -84,6 +88,7 @@ public static class IDistributedApplicationResourceBuilderExtensions
     /// <typeparam name="TDestination">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder instance.</param>
     /// <param name="component">The Dapr component to use with the sidecar.</param>
+    [Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", error: false)]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IDaprComponentResource> component) where TDestination : IResource
     {
         return builder.WithAnnotation(new DaprComponentReferenceAnnotation(component.Resource));

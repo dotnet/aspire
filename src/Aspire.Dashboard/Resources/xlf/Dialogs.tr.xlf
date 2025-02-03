@@ -2,7 +2,7 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="tr" original="../Dialogs.resx">
     <body>
-      <trans-unit id="ExemplarsDialogCloseButtonText">
+      <trans-unit id="DialogCloseButtonText">
         <source>Close</source>
         <target state="translated">Kapat</target>
         <note />
@@ -36,6 +36,16 @@
         <source>Value</source>
         <target state="translated">Değer</target>
         <note />
+      </trans-unit>
+      <trans-unit id="FieldRequired">
+        <source>A value is required.</source>
+        <target state="translated">Değer gereklidir.</target>
+        <note>{0} is the literal, untranslated field name which we do not want to show, so it is missing.</note>
+      </trans-unit>
+      <trans-unit id="FieldTooLong">
+        <source>A maximum length of {1} characters is allowed.</source>
+        <target state="translated">En fazla {1} karaktere izin verilir.</target>
+        <note>{0} is the field name, whereas {1} is the length. We don't want to show the field name, so it is missing.</note>
       </trans-unit>
       <trans-unit id="FilterDialogApplyFilterButtonText">
         <source>Apply filter</source>
@@ -179,12 +189,12 @@
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
         <source>Language</source>
-        <target state="new">Language</target>
+        <target state="translated">Dil</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLanguagePageReloads">
         <source>The page will reload on language change.</source>
-        <target state="new">The page will reload on language change.</target>
+        <target state="translated">Dil değişikliğinde sayfa yeniden yüklenemedi.</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">

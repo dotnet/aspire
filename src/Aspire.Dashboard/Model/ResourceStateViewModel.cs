@@ -7,6 +7,7 @@ using Humanizer;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Model;
 
@@ -47,7 +48,7 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
                 color = Color.Warning;
             }
         }
-        else if (resource.IsUnusableTransitoryState() || resource.IsUnknownState())
+        else if (resource.IsUnusableTransitoryState() || resource.IsUnknownState() || resource.IsNotStarted())
         {
             icon = new Icons.Filled.Size16.CircleHint(); // A dashed, hollow circle.
             color = Color.Info;

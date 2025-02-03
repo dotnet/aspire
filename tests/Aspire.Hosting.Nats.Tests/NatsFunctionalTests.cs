@@ -111,11 +111,9 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-        builder.Configuration["Parameters:user"] = "user";
-        builder.Configuration["Parameters:pass"] = "password";
 
-        var usernameParameter = builder.AddParameter("user");
-        var passwordParameter = builder.AddParameter("pass");
+        var usernameParameter = builder.AddParameter("user", "user");
+        var passwordParameter = builder.AddParameter("pass", "password");
 
         var nats = builder.AddNats("nats", userName: usernameParameter, password: passwordParameter);
 

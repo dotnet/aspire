@@ -4,10 +4,10 @@
     "elasticsearch": {
       "type": "container.v0",
       "connectionString": "http://elastic:{elasticsearch-password.value}@{elasticsearch.bindings.http.host}:{elasticsearch.bindings.http.port}",
-      "image": "docker.io/library/elasticsearch:8.15.2",
+      "image": "docker.io/library/elasticsearch:8.17.0",
       "volumes": [
         {
-          "name": "elasticsearch.apphost-93fd2337c1-elasticsearch-data",
+          "name": "elasticsearch.apphost-7490553fdf-elasticsearch-data",
           "target": "/usr/share/elasticsearch/data",
           "readOnly": false
         }
