@@ -1,6 +1,0 @@
-#nullable enable
-Aspire.Hosting.KafkaServerResource.InternalEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
-Aspire.Hosting.KafkaUIContainerResource
-Aspire.Hosting.KafkaUIContainerResource.KafkaUIContainerResource(string! name) -> void
-static Aspire.Hosting.KafkaBuilderExtensions.WithHostPort(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.KafkaUIContainerResource!>! builder, int? port) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.KafkaUIContainerResource!>!
-static Aspire.Hosting.KafkaBuilderExtensions.WithKafkaUI(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.KafkaServerResource!>! builder, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.KafkaUIContainerResource!>!>? configureContainer = null, string? containerName = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.KafkaServerResource!>!

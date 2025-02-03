@@ -1,5 +1,0 @@
-#nullable enable
-Aspire.Qdrant.Client.QdrantClientSettings.DisableHealthChecks.get -> bool
-Aspire.Qdrant.Client.QdrantClientSettings.DisableHealthChecks.set -> void
-Aspire.Qdrant.Client.QdrantClientSettings.HealthCheckTimeout.get -> System.TimeSpan?
-Aspire.Qdrant.Client.QdrantClientSettings.HealthCheckTimeout.set -> void
