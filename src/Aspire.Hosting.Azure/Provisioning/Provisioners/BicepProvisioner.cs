@@ -105,7 +105,7 @@ internal sealed class BicepProvisioner(
         return true;
     }
 
-    public override async Task GetOrCreateResourceAsync(AzureBicepResource resource, ProvisioningContext context,CancellationToken cancellationToken)
+    public override async Task GetOrCreateResourceAsync(AzureBicepResource resource, ProvisioningContext context, CancellationToken cancellationToken)
     {
         var resourceGroup = context.ResourceGroup;
         var resourceLogger = loggerService.GetLogger(resource);
@@ -429,7 +429,7 @@ internal sealed class BicepProvisioner(
         return null;
     }
 
-    internal static string GetChecksum(AzureBicepResource resource, JsonObject parameters, JsonObject? scope = null)
+    internal static string GetChecksum(AzureBicepResource resource, JsonObject parameters, JsonObject? scope)
     {
         // TODO: PERF Inefficient
 

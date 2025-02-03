@@ -18,7 +18,7 @@ public sealed class ExistingAzureResourceAnnotation(ParameterResource nameParame
     public ParameterResource NameParameter { get; } = nameParameter;
 
     /// <summary>
-    /// Gets the name of the existing resource group.
+    /// Gets the name of the existing resource group. If <see langword="null"/>, use the current resource group.
     /// </summary>
     public ParameterResource? ResourceGroupParameter { get; } = resourceGroupParameter;
 }

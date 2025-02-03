@@ -69,11 +69,7 @@ public static class AzureProvisioningResourceExtensions
         ArgumentNullException.ThrowIfNull(parameterResourceBuilder);
         ArgumentNullException.ThrowIfNull(infrastructure);
 
-        parameterName ??= Infrastructure.NormalizeBicepIdentifier(parameterResourceBuilder.Resource.Name);
-
-        infrastructure.AspireResource.Parameters[parameterName] = parameterResourceBuilder.Resource;
-
-        return GetOrAddParameter(infrastructure, parameterName, parameterResourceBuilder.Resource.Secret);
+        return parameterResourceBuilder.Resource.AsProvisioningParameter(infrastructure, parameterName);
     }
 
     /// <summary>

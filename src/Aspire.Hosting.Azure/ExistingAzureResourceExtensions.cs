@@ -38,7 +38,7 @@ public static class ExistingAzureResourceExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         // Throw if ExistingResourceAnnotation already exists on resource
-        if (builder.Resource.Annotations.OfType<ExistingAzureResourceAnnotation>().SingleOrDefault() is not null)
+        if (builder.Resource.IsExisting())
         {
             throw new InvalidOperationException($"Resource {builder.Resource.Name} is already marked as an existing resource.");
         }
@@ -57,14 +57,14 @@ public static class ExistingAzureResourceExtensions
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="nameParameter">The name of the existing resource.</param>
-    /// <param name="resourceGroupParameter"></param>
+    /// <param name="resourceGroupParameter">The name of the existing resource group, or <see langword="null"/> to use the current resource group.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
     public static IResourceBuilder<T> PublishAsExisting<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource>? resourceGroupParameter = null)
         where T : IAzureResource
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        if (builder.Resource.Annotations.OfType<ExistingAzureResourceAnnotation>().SingleOrDefault() is not null)
+        if (builder.Resource.IsExisting())
         {
             throw new InvalidOperationException($"Resource {builder.Resource.Name} is already marked as an existing resource.");
         }
