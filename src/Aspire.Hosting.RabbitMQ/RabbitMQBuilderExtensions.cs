@@ -137,6 +137,7 @@ public static class RabbitMQBuilderExtensions
     /// <inheritdoc cref="WithManagementPlugin(IResourceBuilder{RabbitMQServerResource})" />
     /// <param name="builder">The resource builder.</param>
     /// <param name="port">The host port that can be used to access the management UI page when running locally.</param>
+    /// <remarks>
     /// <example>
     /// Use <see cref="WithManagementPlugin(IResourceBuilder{RabbitMQServerResource}, int?)"/> to specify a port to access the RabbitMQ management UI page.
     /// <code>
@@ -145,6 +146,7 @@ public static class RabbitMQBuilderExtensions
     ///                       .WithManagementPlugin(port: 15672);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<RabbitMQServerResource> WithManagementPlugin(this IResourceBuilder<RabbitMQServerResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);
