@@ -24,7 +24,6 @@ public static class QdrantBuilderExtensions
 
     /// <summary>
     /// Adds a Qdrant resource to the application. A container is used for local development.
-    /// This version of the package defaults to the <inheritdoc cref="QdrantContainerImageTags.Tag"/> tag of the <inheritdoc cref="QdrantContainerImageTags.Image"/> container image.
     /// </summary>
     /// <remarks>
     /// The .NET client library uses the gRPC port by default to communicate and this resource exposes that endpoint.

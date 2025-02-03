@@ -250,7 +250,6 @@ public static class PostgresBuilderExtensions
     /// <param name="configureContainer">Configuration callback for pgweb container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
     /// <remarks>
-    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgWebTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgWebImage"/> container image.
     /// <example>
     /// Use in application host with a Postgres resource
     /// <code lang="csharp">
