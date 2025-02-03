@@ -34,12 +34,9 @@ internal sealed partial class DnsSrvServiceEndpointProvider(
         var endpoints = new List<ServiceEndpoint>();
         var ttl = DefaultRefreshPeriod;
         Log.SrvQuery(logger, ServiceName, srvQuery);
-        logger.LogInformation("Resolving endpoints for service '{ServiceName}' using DNS SRV lookup for name '{RecordName}'.", ServiceName, srvQuery);
 
         var now = _timeProvider.GetUtcNow().DateTime;
         var result = await resolver.ResolveServiceAsync(srvQuery, cancellationToken: ShutdownToken).ConfigureAwait(false);
-
-        logger.LogInformation("Resolved {Number} entries", result.Length);
 
         foreach (var record in result)
         {

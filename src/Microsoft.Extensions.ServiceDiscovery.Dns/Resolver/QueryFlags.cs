@@ -6,8 +6,6 @@ namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 [Flags]
 internal enum QueryFlags : ushort
 {
-    IsCheckingDisabled = 0x0010,
-    IsAuthenticData = 0x0020,
     RecursionAvailable = 0x0080,
     RecursionDesired = 0x0100,
     ResultTruncated = 0x0200,

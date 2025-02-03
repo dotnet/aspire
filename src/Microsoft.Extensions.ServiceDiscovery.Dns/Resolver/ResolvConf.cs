@@ -3,11 +3,14 @@
 
 using System.Net.Sockets;
 using System.Net;
+using System.Runtime.Versioning;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
 internal static class ResolvConf
 {
+    [SupportedOSPlatform("linux")]
+    [SupportedOSPlatform("osx")]
     public static ResolverOptions GetOptions()
     {
         return GetOptions(new StreamReader("/etc/resolv.conf"));
@@ -26,7 +29,7 @@ internal static class ResolvConf
             {
                 if (tokens.Length >= 2 && IPAddress.TryParse(tokens[1], out IPAddress? address))
                 {
-                    serverList.Add(new IPEndPoint(address, 53));
+                    serverList.Add(new IPEndPoint(address, 53)); // 53 is standard DNS port
                 }
             }
             else if (line.StartsWith("search"))

@@ -22,7 +22,7 @@ internal static class NetworkInfo
             {
                 foreach (IPAddress server in properties.DnsAddresses)
                 {
-                    IPEndPoint ep = new IPEndPoint(server, 53);
+                    IPEndPoint ep = new IPEndPoint(server, 53); // 53 is standard DNS port
                     if (!servers.Contains(ep))
                     {
                         servers.Add(ep);

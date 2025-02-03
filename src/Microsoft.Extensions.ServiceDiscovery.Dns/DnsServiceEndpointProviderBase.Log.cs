@@ -9,10 +9,10 @@ partial class DnsServiceEndpointProviderBase
 {
     internal static partial class Log
     {
-        [LoggerMessage(1, LogLevel.Information, "Resolving endpoints for service '{ServiceName}' using DNS SRV lookup for name '{RecordName}'.", EventName = "SrvQuery")]
+        [LoggerMessage(1, LogLevel.Trace, "Resolving endpoints for service '{ServiceName}' using DNS SRV lookup for name '{RecordName}'.", EventName = "SrvQuery")]
         public static partial void SrvQuery(ILogger logger, string serviceName, string recordName);
 
-        [LoggerMessage(2, LogLevel.Information, "Resolving endpoints for service '{ServiceName}' using host lookup for name '{RecordName}'.", EventName = "AddressQuery")]
+        [LoggerMessage(2, LogLevel.Trace, "Resolving endpoints for service '{ServiceName}' using host lookup for name '{RecordName}'.", EventName = "AddressQuery")]
         public static partial void AddressQuery(ILogger logger, string serviceName, string recordName);
 
         [LoggerMessage(3, LogLevel.Debug, "Skipping endpoint resolution for service '{ServiceName}': '{Reason}'.", EventName = "SkippedResolution")]

@@ -5,7 +5,7 @@ using System.Net;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
-internal class ResolverOptions
+internal sealed class ResolverOptions
 {
     public IPEndPoint[] Servers;
     public string DefaultDomain = string.Empty;
@@ -17,6 +17,11 @@ internal class ResolverOptions
 
     public ResolverOptions(IPEndPoint[] servers)
     {
+        if (servers.Length == 0)
+        {
+            throw new ArgumentException("At least one server is required.", nameof(servers));
+        }
+
         Servers = servers;
     }
 

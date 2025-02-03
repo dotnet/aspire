@@ -112,7 +112,7 @@ internal struct DnsDataReader : IDisposable
         if (RawData is not null)
         {
             ArrayPool<byte>.Shared.Return(RawData);
-            RawData = null!;
+            RawData = null;
         }
 
         _buffer = default;

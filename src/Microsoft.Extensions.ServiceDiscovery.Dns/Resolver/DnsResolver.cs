@@ -20,7 +20,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
 
     private static readonly TimeSpan s_maxTimeout = TimeSpan.FromMilliseconds(int.MaxValue);
 
-    bool _disposed;
+    private bool _disposed;
     private readonly ResolverOptions _options;
     private readonly CancellationTokenSource _pendingRequestsCts = new();
     private TimeProvider _timeProvider = TimeProvider.System;
@@ -31,7 +31,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
         _timeProvider = timeProvider;
     }
 
-    public DnsResolver(TimeProvider timeProvider, ILogger<DnsResolver> logger) : this(OperatingSystem.IsWindows() ? NetworkInfo.GetOptions() : ResolvConf.GetOptions())
+    public DnsResolver(TimeProvider timeProvider, ILogger<DnsResolver> logger) : this(OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() ? ResolvConf.GetOptions() : NetworkInfo.GetOptions())
     {
         _timeProvider = timeProvider;
         _logger = logger;
@@ -255,7 +255,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
                 switch (result.Error)
                 {
                     case SendQueryError.NoError:
-                        goto exit;
+                        return result;
                     case SendQueryError.Timeout:
                         // TODO: should we retry on timeout or skip to the next server?
                         Log.Timeout(_logger, queryType, name, serverEndPoint, attempt);
@@ -270,8 +270,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
             }
         }
 
-    exit:
-        // we have at least one server and we always keep the last received response.
+        // return the last error received
         return result;
     }
 
@@ -307,7 +306,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
         }
     }
 
-    async ValueTask<SendQueryResult> SendQueryToServerAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, bool isLastServer, int attempt, CancellationToken cancellationToken)
+    private async ValueTask<SendQueryResult> SendQueryToServerAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, bool isLastServer, int attempt, CancellationToken cancellationToken)
     {
         Log.Query(_logger, queryType, name, serverEndPoint, attempt);
 

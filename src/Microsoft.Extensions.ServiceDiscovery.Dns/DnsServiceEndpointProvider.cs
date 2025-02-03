@@ -38,7 +38,7 @@ internal sealed partial class DnsServiceEndpointProvider(
         foreach (var address in addresses)
         {
             ttl = MinTtl(now, address.ExpiresAt, ttl);
-            endpoints.Add(CreateEndpoint(new IPEndPoint(address.Address, 0)));
+            endpoints.Add(CreateEndpoint(new IPEndPoint(address.Address, port: 0)));
         }
 
         if (endpoints.Count == 0)

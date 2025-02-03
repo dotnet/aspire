@@ -41,6 +41,8 @@ internal static class DnsPrimitives
             int index = nameBuffer.Slice(1).IndexOf<byte>((byte)'.');
             int labelLen = index == -1 ? nameBuffer.Length - 1 : index;
 
+            // https://www.rfc-editor.org/rfc/rfc1035#section-2.3.4
+            // labels          63 octets or less
             if (labelLen > 63)
             {
                 throw new ArgumentException("Label is too long");
@@ -177,6 +179,7 @@ internal static class DnsPrimitives
 
     internal static bool TryReadService(ReadOnlySpan<byte> buffer, out ushort priority, out ushort weight, out ushort port, [NotNullWhen(true)] out string? target, out int bytesRead)
     {
+        // https://www.rfc-editor.org/rfc/rfc2782
         if (!BinaryPrimitives.TryReadUInt16BigEndian(buffer, out priority) ||
             !BinaryPrimitives.TryReadUInt16BigEndian(buffer.Slice(2), out weight) ||
             !BinaryPrimitives.TryReadUInt16BigEndian(buffer.Slice(4), out port) ||
@@ -196,6 +199,7 @@ internal static class DnsPrimitives
 
     internal static bool TryWriteService(Span<byte> buffer, ushort priority, ushort weight, ushort port, string target, out int bytesWritten)
     {
+        // https://www.rfc-editor.org/rfc/rfc2782
         if (!BinaryPrimitives.TryWriteUInt16BigEndian(buffer, priority) ||
             !BinaryPrimitives.TryWriteUInt16BigEndian(buffer.Slice(2), weight) ||
             !BinaryPrimitives.TryWriteUInt16BigEndian(buffer.Slice(4), port) ||
@@ -211,6 +215,7 @@ internal static class DnsPrimitives
 
     internal static bool TryWriteSoa(Span<byte> buffer, string primaryNameServer, string responsibleMailAddress, uint serial, uint refresh, uint retry, uint expire, uint minimum, out int bytesWritten)
     {
+        // https://www.rfc-editor.org/rfc/rfc1035#section-3.3.13
         if (!TryWriteQName(buffer, primaryNameServer, out int w1) ||
             !TryWriteQName(buffer.Slice(w1), responsibleMailAddress, out int w2) ||
             !BinaryPrimitives.TryWriteUInt32BigEndian(buffer.Slice(w1 + w2), serial) ||
@@ -229,6 +234,7 @@ internal static class DnsPrimitives
 
     internal static bool TryReadSoa(ReadOnlySpan<byte> buffer, [NotNullWhen(true)] out string? primaryNameServer, [NotNullWhen(true)] out string? responsibleMailAddress, out uint serial, out uint refresh, out uint retry, out uint expire, out uint minimum, out int bytesRead)
     {
+        // https://www.rfc-editor.org/rfc/rfc1035#section-3.3.13
         if (!TryReadQName(buffer, 0, out primaryNameServer, out int w1) ||
             !TryReadQName(buffer.Slice(w1), 0, out responsibleMailAddress, out int w2) ||
             !BinaryPrimitives.TryReadUInt32BigEndian(buffer.Slice(w1 + w2), out serial) ||
