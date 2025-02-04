@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Security.Cryptography;
 using Aspire.Azure.Common;
 using Aspire.Azure.Messaging.EventHubs;
 using Azure.Core;
@@ -56,15 +55,15 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
                 : new Uri(settings.FullyQualifiedNamespace).Host;
 
             // This is likely to be similar to {yournamespace}.servicebus.windows.net or {yournamespace}.servicebus.chinacloudapi.cn
-            if (ns.Contains(".servicebus", StringComparison.OrdinalIgnoreCase))
+            var serviceBusIndex = ns.IndexOf(".servicebus", StringComparison.OrdinalIgnoreCase);
+            if (serviceBusIndex != -1)
             {
-                ns = ns[..ns.IndexOf(".servicebus")];
+                ns = ns[..serviceBusIndex];
             }
             else
             {
-                // Use a random prefix if no meaningful name is found e.g., "localhost", "127.0.0.1".
-                // This is used to create blob containers names that are unique in the referenced storage account.
-                RandomNumberGenerator.GetHexString(12, true);
+                // sanitize the namespace if it's not a servicebus namespace
+                ns = ns.Replace(".", "-");
             }
         }
         catch (Exception ex) when (ex is FormatException or IndexOutOfRangeException)

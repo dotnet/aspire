@@ -86,7 +86,7 @@ builder.Build().Run();
 """);
             File.WriteAllText(Path.Combine(appHostDirectory, "Directory.Build.targets"), $"""
 <Project>
-  <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets" />
+  <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.in.targets" />
   <Import Project="{repoRoot}\src\Aspire.AppHost.Sdk\SDK\Sdk.in.targets" />
 </Project>
 """);

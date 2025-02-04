@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectCapability Include="Aspire" Condition=" '$(IsAspireHost)' == 'true' " />
+    <ProjectCapability Include="Aspire_@VERSION@" Condition=" '$(IsAspireHost)' == 'true' " />
   </ItemGroup>
 
   <ItemGroup>
