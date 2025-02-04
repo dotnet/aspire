@@ -66,7 +66,7 @@ public class ExistingAzureResourceTests
             output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
             """;
         Assert.Equal(expectedBicep, BicepText);
-
+    }
 
     [Fact]
     public async Task RequiresPublishAsExistingInPublishMode()

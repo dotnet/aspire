@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
@@ -39,7 +38,7 @@ public static class ExistingAzureResourceExtensions
 
         if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
-            builder.Resource.Annotations.Add(new ExistingAzureResourceAnnotation(nameParameter.Resource, resourceGroupParameter?.Resource));
+            builder.WithAnnotation(new ExistingAzureResourceAnnotation(nameParameter.Resource, resourceGroupParameter?.Resource));
         }
 
         return builder;
@@ -60,23 +59,9 @@ public static class ExistingAzureResourceExtensions
 
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
-            builder.Resource.Annotations.Add(new ExistingAzureResourceAnnotation(nameParameter.Resource, resourceGroupParameter?.Resource));
+            builder.WithAnnotation(new ExistingAzureResourceAnnotation(nameParameter.Resource, resourceGroupParameter?.Resource));
         }
 
         return builder;
-    }
-
-    /// <summary>
-    /// Gets the <see cref="ExistingAzureResourceAnnotation" /> if the resource is an existing resource.
-    /// </summary>
-    /// <param name="resource">The resource to check.</param>
-    /// <param name="existingAzureResourceAnnotation">The existing resource annotation if the resource is an existing resource.</param>
-    /// <returns>True if the resource is an existing resource, otherwise false.</returns>
-    public static bool TryGetExistingAzureResourceAnnotation(this IResource resource, [NotNullWhen(true)] out ExistingAzureResourceAnnotation? existingAzureResourceAnnotation)
-    {
-        ArgumentNullException.ThrowIfNull(resource);
-
-        existingAzureResourceAnnotation = resource.Annotations.OfType<ExistingAzureResourceAnnotation>().LastOrDefault();
-        return existingAzureResourceAnnotation is not null;
     }
 }

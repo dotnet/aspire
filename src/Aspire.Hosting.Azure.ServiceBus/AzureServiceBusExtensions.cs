@@ -34,7 +34,7 @@ public static class AzureServiceBusExtensions
         var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
             AzureProvisioning.ServiceBusNamespace? serviceBusNamespace;
-            if (infrastructure.AspireResource.TryGetExistingAzureResourceAnnotation(out var existingAnnotation))
+            if (infrastructure.AspireResource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation))
             {
                 var existingResourceName = existingAnnotation.NameParameter.AsProvisioningParameter(infrastructure, $"{infrastructure.AspireResource.GetBicepIdentifier()}Existing");
                 serviceBusNamespace = AzureProvisioning.ServiceBusNamespace.FromExisting(infrastructure.AspireResource.GetBicepIdentifier());
