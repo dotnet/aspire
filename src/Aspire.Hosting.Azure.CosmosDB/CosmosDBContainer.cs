@@ -16,14 +16,20 @@ public class CosmosDBContainer : Resource, IResourceWithParent<CosmosDBDatabase>
     /// <summary>
     /// Initializes a new instance of the <see cref="CosmosDBContainer"/> class.
     /// </summary>
-    public CosmosDBContainer(string name, string partitionKeyPath, CosmosDBDatabase parent) : base(name)
+    public CosmosDBContainer(string name, string containerName, string partitionKeyPath, CosmosDBDatabase parent) : base(name)
     {
+        ContainerName = containerName;
         PartitionKeyPath = partitionKeyPath;
         Parent = parent;
     }
 
     /// <summary>
-    /// The partition key path.
+    /// Gets or sets the container name.
+    /// </summary>
+    public string ContainerName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the partition key path.
     /// </summary>
     public string PartitionKeyPath { get; set; }
 

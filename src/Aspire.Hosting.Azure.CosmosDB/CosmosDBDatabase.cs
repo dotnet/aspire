@@ -16,15 +16,21 @@ public class CosmosDBDatabase : Resource, IResourceWithParent<AzureCosmosDBResou
     /// <summary>
     /// Initializes a new instance of the <see cref="CosmosDBDatabase"/> class.
     /// </summary>
-    public CosmosDBDatabase(string name, AzureCosmosDBResource parent) : base(name)
+    public CosmosDBDatabase(string name, string databaseName, AzureCosmosDBResource parent) : base(name)
     {
+        DatabaseName = databaseName;
         Parent = parent;
     }
 
     /// <summary>
+    /// Gets or sets the database name.
+    /// </summary>
+    public string DatabaseName { get; set; }
+
+    /// <summary>
     /// The containers for this database.
     /// </summary>
-    public List<CosmosDBContainer> Containers { get; } = [];
+    internal List<CosmosDBContainer> Containers { get; } = [];
 
     /// <summary>
     /// Gets the parent Azure Cosmos DB account resource.

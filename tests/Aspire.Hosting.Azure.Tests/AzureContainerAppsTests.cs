@@ -697,7 +697,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         // CosmosDB uses secret outputs
         var db = builder.AddAzureCosmosDB("mydb");
-        db.AddCosmosDatabase("db");
+        db.AddCosmosDatabase("cosmosdb", databaseName: "db");
 
         // Postgres uses secret outputs + a literal connection string
         var pgdb = builder.AddAzurePostgresFlexibleServer("pg").WithPasswordAuthentication().AddDatabase("db");
