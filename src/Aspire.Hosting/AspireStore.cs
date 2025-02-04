@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Buffers;
 using System.Reflection;
 using System.Security.Cryptography;
 
@@ -10,12 +9,19 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Represents a store for managing files in the Aspire hosting environment that can be reused across runs.
 /// </summary>
+/// <remarks>
+/// The store is created in the ./obj folder of the Application Host.
+/// If the ASPIRE_STORE_DIR environment variable is set this will be used instead.
+///
+/// The store is specific to a <see cref="IDistributedApplicationBuilder"/> instance such that each application can't
+/// conflict with others. A <em>.aspire</em> prefix is also used to ensure that the folder can be delete without impacting
+/// unrelated files.
+/// </remarks>
 public class AspireStore
 {
     internal const string AspireStorePathKeyName = "Aspire:Store:Path";
 
     private readonly string _basePath;
-    private static readonly SearchValues<char> s_invalidFileNameChars = SearchValues.Create(Path.GetInvalidFileNameChars());
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AspireStore"/> class with the specified base path.
@@ -30,19 +36,15 @@ public class AspireStore
     }
 
     /// <summary>
-    /// Gets the base path of the store.
+    /// Gets the base path of this store.
     /// </summary>
-    internal string BasePath => _basePath;
+    public string BasePath => _basePath;
 
     /// <summary>
     /// Creates a new instance of <see cref="AspireStore"/> using the provided <paramref name="builder"/>.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <returns>A new instance of <see cref="AspireStore"/>.</returns>
-    /// <remarks>
-    /// The store is created in the ./obj folder of the Application Host.
-    /// If the ASPIRE_STORE_DIR environment variable is set this will be used instead.
-    /// </remarks>
     public static AspireStore Create(IDistributedApplicationBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -182,7 +184,7 @@ public class AspireStore
     }
 
     /// <summary>
-    /// Creates a file with the provided <paramref name="filename"/> in the store.
+    /// Creates an absolute file name for the provided <paramref name="filename"/> in the store.
     /// </summary>
     /// <param name="filename">The file name to use in the store.</param>
     /// <returns>The absolute file name in the store.</returns>
@@ -203,13 +205,18 @@ public class AspireStore
     /// <returns>The sanitized filename.</returns>
     internal static string Sanitize(string filename)
     {
+        ArgumentException.ThrowIfNullOrEmpty(filename);
+
         return string.Create(filename.Length, filename, static (s, name) =>
         {
-            name.CopyTo(s);
+            // First char must be a letter of digit
+            s[0] = char.IsAsciiLetterOrDigit(name[0]) ? name[0] : '_';
 
-            while (s.IndexOfAny(s_invalidFileNameChars) is var i and not -1)
+            for (var i = 1; i < name.Length; i++)
             {
-                s[i] = '_';
+                var c = name[i];
+
+                s[i] = char.IsAsciiLetterOrDigit(c) || c == '.' ? c : '_';
             }
         });
     }

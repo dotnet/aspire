@@ -12,7 +12,7 @@ public class AspireStoreTests
     public void Create_ShouldInitializeStore()
     {
         var builder = TestDistributedApplicationBuilder.Create();
-
+        builder.Configuration[AspireStore.AspireStorePathKeyName] = Path.GetTempPath();
         var store = AspireStore.Create(builder);
 
         Assert.NotNull(store);
@@ -20,22 +20,10 @@ public class AspireStoreTests
     }
 
     [Fact]
-    public void BasePath_ShouldUseObj()
-    {
-        var builder = TestDistributedApplicationBuilder.Create();
-
-        var store = AspireStore.Create(builder);
-
-        var path = store.BasePath;
-
-        Assert.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", path);
-    }
-
-    [Fact]
     public void BasePath_ShouldBeAbsolute()
     {
         var builder = TestDistributedApplicationBuilder.Create();
-
+        builder.Configuration[AspireStore.AspireStorePathKeyName] = Path.GetTempPath();
         var store = AspireStore.Create(builder);
 
         var path = store.BasePath;
@@ -48,7 +36,6 @@ public class AspireStoreTests
     {
         var builder = TestDistributedApplicationBuilder.Create();
         builder.Configuration[AspireStore.AspireStorePathKeyName] = Path.GetTempPath();
-
         var store = AspireStore.Create(builder);
 
         var path = store.BasePath;
@@ -58,12 +45,23 @@ public class AspireStoreTests
     }
 
     [Fact]
+    public void BasePath_ShouldBePrefixed_WhenUsingObjFolder()
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration[AspireStore.AspireStorePathKeyName] = Path.GetTempPath();
+        var store = AspireStore.Create(builder);
+
+        var path = store.BasePath;
+
+        Assert.Contains(".aspire", path);
+    }
+
+    [Fact]
     public void BasePath_ShouldBePrefixed_WhenUsingConfiguration()
     {
         var builder = TestDistributedApplicationBuilder.Create();
         builder.Configuration[AspireStore.AspireStorePathKeyName] = Path.GetTempPath();
         builder.Configuration["AppHost:Sha256"] = "0123456789abcdef";
-
         var store = AspireStore.Create(builder);
 
         var path = store.BasePath;
@@ -74,21 +72,23 @@ public class AspireStoreTests
     }
 
     [Fact]
-    public void GetOrCreateFile_ShouldCreateFileIfNotExists()
+    public void GetFileName_ShouldNotCreateFile()
     {
         var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration[AspireStore.AspireStorePathKeyName] = Path.GetTempPath();
         var store = AspireStore.Create(builder);
 
         var filename = "testfile1.txt";
         var filePath = store.GetFileName(filename);
 
-        Assert.True(File.Exists(filePath));
+        Assert.False(File.Exists(filePath));
     }
 
     [Fact]
     public void GetOrCreateFileWithContent_ShouldCreateFile_WithStreamContent()
     {
         var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration[AspireStore.AspireStorePathKeyName] = Path.GetTempPath();
         var store = AspireStore.Create(builder);
 
         var filename = "testfile2.txt";
@@ -103,6 +103,7 @@ public class AspireStoreTests
     public void GetOrCreateFileWithContent_ShouldCreateFile_WithFileContent()
     {
         var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration[AspireStore.AspireStorePathKeyName] = Path.GetTempPath();
         var store = AspireStore.Create(builder);
 
         var filename = "testfile2.txt";
@@ -126,6 +127,7 @@ public class AspireStoreTests
     public void GetOrCreateFileWithContent_ShouldNotRecreateFile()
     {
         var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration[AspireStore.AspireStorePathKeyName] = Path.GetTempPath();
         var store = AspireStore.Create(builder);
 
         var filename = "testfile3.txt";
@@ -144,9 +146,9 @@ public class AspireStoreTests
     [Fact]
     public void Sanitize_ShouldRemoveInvalidCharacters()
     {
-        var invalidFilename = "inva|id:fi*le?name.t<t";
+        var invalidFilename = "..inva|id:fi*le?name.t<t";
         var sanitizedFilename = AspireStore.Sanitize(invalidFilename);
 
-        Assert.Equal("inva_id_fi_le_name.t_t", sanitizedFilename);
+        Assert.Equal("_.inva_id_fi_le_name.t_t", sanitizedFilename);
     }
 }
