@@ -55,7 +55,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     /// in the module definition for a given resource. It is
     /// only emitted for schema versions azure.bicep.v1.
     /// </remarks>
-    public ResourceScope? Scope { get; set; }
+    public AzureBicepResourceScope? Scope { get; set; }
 
     /// <summary>
     /// For testing purposes only.

@@ -7,7 +7,7 @@ namespace Aspire.Hosting.Azure;
 /// Represents the scope associated with the resource.
 /// </summary>
 /// <param name="resourceGroup">The name of the existing resource group.</param>
-public sealed class ResourceScope(object resourceGroup)
+public sealed class AzureBicepResourceScope(object resourceGroup)
 {
     /// <summary>
     /// Represents the resource group to encode in the scope.
