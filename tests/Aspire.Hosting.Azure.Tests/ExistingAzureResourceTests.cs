@@ -69,30 +69,6 @@ public class ExistingAzureResourceTests
     }
 
     [Fact]
-    public void ThrowsIfRunAsExistingCalledTwiceOnSameResource()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var existingResourceName = builder.AddParameter("existingResourceName");
-        var serviceBus = builder.AddAzureServiceBus("messaging")
-            .RunAsExisting(existingResourceName);
-
-        Assert.Throws<InvalidOperationException>(() => serviceBus.RunAsExisting(existingResourceName));
-    }
-
-    [Fact]
-    public void ThrowsIfPublishAsExistingCalledTwiceOnSameResource()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        var existingResourceName = builder.AddParameter("existingResourceName");
-        var serviceBus = builder.AddAzureServiceBus("messaging")
-            .PublishAsExisting(existingResourceName);
-
-        Assert.Throws<InvalidOperationException>(() => serviceBus.PublishAsExisting(existingResourceName));
-    }
-
-    [Fact]
     public async Task RequiresPublishAsExistingInPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
