@@ -1,9 +1,0 @@
-#nullable enable
-Aspire.Hosting.KafkaBuilderExtensions
-Aspire.Hosting.KafkaServerResource
-Aspire.Hosting.KafkaServerResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
-Aspire.Hosting.KafkaServerResource.KafkaServerResource(string! name) -> void
-Aspire.Hosting.KafkaServerResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
-static Aspire.Hosting.KafkaBuilderExtensions.AddKafka(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, int? port = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.KafkaServerResource!>!
-static Aspire.Hosting.KafkaBuilderExtensions.WithDataBindMount(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.KafkaServerResource!>! builder, string! source, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.KafkaServerResource!>!
-static Aspire.Hosting.KafkaBuilderExtensions.WithDataVolume(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.KafkaServerResource!>! builder, string? name = null, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.KafkaServerResource!>!

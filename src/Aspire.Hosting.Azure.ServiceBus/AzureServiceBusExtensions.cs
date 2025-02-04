@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.ServiceBus;
@@ -31,21 +32,34 @@ public static class AzureServiceBusExtensions
 
         var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
-            var skuParameter = new ProvisioningParameter("sku", typeof(string))
+            AzureProvisioning.ServiceBusNamespace? serviceBusNamespace;
+            if (infrastructure.AspireResource.TryGetExistingAzureResourceAnnotation(out var existingAnnotation))
             {
-                Value = "Standard"
-            };
-            infrastructure.Add(skuParameter);
-
-            var serviceBusNamespace = new AzureProvisioning.ServiceBusNamespace(infrastructure.AspireResource.GetBicepIdentifier())
-            {
-                Sku = new AzureProvisioning.ServiceBusSku()
+                var existingResourceName = existingAnnotation.NameParameter.AsProvisioningParameter(infrastructure, $"{infrastructure.AspireResource.GetBicepIdentifier()}Existing");
+                serviceBusNamespace = AzureProvisioning.ServiceBusNamespace.FromExisting(infrastructure.AspireResource.GetBicepIdentifier());
+                serviceBusNamespace.Name = existingResourceName;
+                if (existingAnnotation.ResourceGroupParameter is not null)
                 {
-                    Name = skuParameter
-                },
-                DisableLocalAuth = true,
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-            };
+                    infrastructure.AspireResource.Scope["resourceGroup"] = existingAnnotation.ResourceGroupParameter;
+                }
+            }
+            else
+            {
+                var skuParameter = new ProvisioningParameter("sku", typeof(string))
+                {
+                    Value = "Standard"
+                };
+                infrastructure.Add(skuParameter);
+                serviceBusNamespace = new AzureProvisioning.ServiceBusNamespace(infrastructure.AspireResource.GetBicepIdentifier())
+                {
+                    Sku = new AzureProvisioning.ServiceBusSku()
+                    {
+                        Name = skuParameter
+                    },
+                    DisableLocalAuth = true,
+                    Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                };
+            }
             infrastructure.Add(serviceBusNamespace);
 
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));

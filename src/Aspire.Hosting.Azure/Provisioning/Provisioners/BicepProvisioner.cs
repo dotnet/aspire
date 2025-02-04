@@ -107,19 +107,26 @@ internal sealed class BicepProvisioner(
 
     public override async Task GetOrCreateResourceAsync(AzureBicepResource resource, ProvisioningContext context, CancellationToken cancellationToken)
     {
+        var resourceGroup = context.ResourceGroup;
+        var resourceLogger = loggerService.GetLogger(resource);
+
+        if (resource.TryGetExistingAzureResourceAnnotation(out var existingResource) &&
+            existingResource.ResourceGroupParameter is { } resourceGroupParameter)
+        {
+            resourceGroup = await context.GetResourceGroup(resourceGroupParameter.Name, resourceLogger, cancellationToken).ConfigureAwait(false);
+        }
+
         await notificationService.PublishUpdateAsync(resource, state => state with
         {
             ResourceType = resource.GetType().Name,
             State = new("Starting", KnownResourceStateStyles.Info),
             Properties = state.Properties.SetResourcePropertyRange([
                 new("azure.subscription.id", context.Subscription.Id.Name),
-                new("azure.resource.group", context.ResourceGroup.Id.Name),
+                new("azure.resource.group", resourceGroup.Id.Name),
                 new("azure.tenant.domain", context.Tenant.Data.DefaultDomain),
                 new("azure.location", context.Location.ToString()),
             ])
         }).ConfigureAwait(false);
-
-        var resourceLogger = loggerService.GetLogger(resource);
 
         if (FindFullPathFromPath("az") is not { } azPath)
         {
@@ -139,7 +146,7 @@ internal sealed class BicepProvisioner(
         {
             // This could be done as a bicep template that imports the other bicep template but this is
             // quick and dirty for now
-            var keyVaults = context.ResourceGroup.GetKeyVaults();
+            var keyVaults = resourceGroup.GetKeyVaults();
 
             // Check to see if there's a key vault for this resource already
             await foreach (var kv in keyVaults.GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
@@ -213,13 +220,15 @@ internal sealed class BicepProvisioner(
             throw new InvalidOperationException();
         }
 
-        var deployments = context.ResourceGroup.GetArmDeployments();
+        var deployments = resourceGroup.GetArmDeployments();
 
-        resourceLogger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, context.ResourceGroup.Data.Name);
+        resourceLogger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, resourceGroup.Data.Name);
 
         // Convert the parameters to a JSON object
         var parameters = new JsonObject();
         await SetParametersAsync(parameters, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var scope = new JsonObject();
+        await SetScopeAsync(scope, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         var sw = Stopwatch.StartNew();
 
@@ -241,7 +250,7 @@ internal sealed class BicepProvisioner(
         cancellationToken).ConfigureAwait(false);
 
         // Resolve the deployment URL before waiting for the operation to complete
-        var url = GetDeploymentUrl(context, resource.Name);
+        var url = GetDeploymentUrl(context, resourceGroup, resource.Name);
 
         resourceLogger.LogInformation("Deployment started: {Url}", url);
 
@@ -258,7 +267,7 @@ internal sealed class BicepProvisioner(
         await operation.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
 
         sw.Stop();
-        resourceLogger.LogInformation("Deployment of {Name} to {ResourceGroup} took {Elapsed}", resource.Name, context.ResourceGroup.Data.Name, sw.Elapsed);
+        resourceLogger.LogInformation("Deployment of {Name} to {ResourceGroup} took {Elapsed}", resource.Name, resourceGroup.Data.Name, sw.Elapsed);
 
         var deployment = operation.Value;
 
@@ -270,7 +279,7 @@ internal sealed class BicepProvisioner(
         }
         else
         {
-            throw new InvalidOperationException($"Deployment of {resource.Name} to {context.ResourceGroup.Data.Name} failed with {deployment.Data.Properties.ProvisioningState}");
+            throw new InvalidOperationException($"Deployment of {resource.Name} to {resourceGroup.Data.Name} failed with {deployment.Data.Properties.ProvisioningState}");
         }
 
         // e.g. {  "sqlServerName": { "type": "String", "value": "<value>" }}
@@ -301,7 +310,7 @@ internal sealed class BicepProvisioner(
         }
 
         // Save the checksum to the configuration
-        resourceConfig["CheckSum"] = GetChecksum(resource, parameters);
+        resourceConfig["CheckSum"] = GetChecksum(resource, parameters, scope);
 
         if (outputObj is not null)
         {
@@ -420,12 +429,16 @@ internal sealed class BicepProvisioner(
         return null;
     }
 
-    internal static string GetChecksum(AzureBicepResource resource, JsonObject parameters)
+    internal static string GetChecksum(AzureBicepResource resource, JsonObject parameters, JsonObject? scope)
     {
         // TODO: PERF Inefficient
 
         // Combine the parameter values with the bicep template to create a unique value
         var input = parameters.ToJsonString() + resource.GetBicepTemplateString();
+        if (scope is not null)
+        {
+            input += scope.ToJsonString();
+        }
 
         // Hash the contents
         var hashedContents = Crc32.Hash(Encoding.UTF8.GetBytes(input));
@@ -445,6 +458,9 @@ internal sealed class BicepProvisioner(
         try
         {
             var parameters = JsonNode.Parse(jsonString)?.AsObject();
+            var scope = section["Scope"] is string scopeString
+                ? JsonNode.Parse(scopeString)?.AsObject()
+                : null;
 
             if (parameters is null)
             {
@@ -455,9 +471,13 @@ internal sealed class BicepProvisioner(
             // This is important because the provisioner will fill in the known values and
             // generated values would change every time, so they can't be part of the checksum.
             await SetParametersAsync(parameters, resource, skipDynamicValues: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+            if (scope is not null)
+            {
+                await SetScopeAsync(scope, resource, cancellationToken).ConfigureAwait(false);
+            }
 
             // Get the checksum of the new values
-            return GetChecksum(resource, parameters);
+            return GetChecksum(resource, parameters, scope);
         }
         catch
         {
@@ -510,6 +530,20 @@ internal sealed class BicepProvisioner(
         }
     }
 
+    internal static async Task SetScopeAsync(JsonObject scope, AzureBicepResource resource, CancellationToken cancellationToken = default)
+    {
+        foreach (var item in resource.Scope)
+        {
+            scope[item.Key] = item.Value switch
+            {
+                string s => s,
+                IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
+                null => null,
+                _ => throw new NotSupportedException($"The scope value type {item.Value.GetType()} is not supported.")
+            };
+        }
+    }
+
     private static bool IsParameterWithGeneratedValue(object? value)
     {
         return value is ParameterResource { Default: not null };
@@ -517,12 +551,12 @@ internal sealed class BicepProvisioner(
 
     private const string PortalDeploymentOverviewUrl = "https://portal.azure.com/#view/HubsExtension/DeploymentDetailsBlade/~/overview/id";
 
-    private static string GetDeploymentUrl(ProvisioningContext provisioningContext, string deploymentName)
+    private static string GetDeploymentUrl(ProvisioningContext provisioningContext, ResourceGroupResource resourceGroup, string deploymentName)
     {
         var prefix = PortalDeploymentOverviewUrl;
 
         var subId = provisioningContext.Subscription.Data.Id.ToString();
-        var rgName = provisioningContext.ResourceGroup.Data.Name;
+        var rgName = resourceGroup.Data.Name;
         var subAndRg = $"{subId}/resourceGroups/{rgName}";
 
         var deployId = deploymentName;

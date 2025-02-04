@@ -48,6 +48,20 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     public TaskCompletionSource? ProvisioningTaskCompletionSource { get; set; }
 
     /// <summary>
+    /// The scope of the resource that will be configured in the main Bicep file.
+    /// </summary>
+    /// <remarks>
+    /// The scope is a weakly-typed collection of key-value pairs that can be used to configure
+    /// the Bicep scope that is emitted by AZD in the module definition for a resource.
+    /// By default, this scope dictionary will include a single `resourceGroup` key that will
+    /// map to the scope that is generated in the Bice template (for example,
+    /// `scope: resourceGroup(resourceGroupValue)`). This property is only emitted for schema
+    /// versions azure.bicep.v1. Only the `resourceGroup` key is respected as a sub-property although
+    /// more keys may be supported in the future, such as a subscriptionId.
+    /// </remarks>
+    public Dictionary<string, object> Scope { get; } = [];
+
+    /// <summary>
     /// For testing purposes only.
     /// </summary>
     internal string? TempDirectory { get; set; }
@@ -134,10 +148,17 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     /// <param name="context">The <see cref="ManifestPublishingContext"/>.</param>
     public virtual void WriteToManifest(ManifestPublishingContext context)
     {
-        context.Writer.WriteString("type", "azure.bicep.v0");
-
         using var template = GetBicepTemplateFile(Path.GetDirectoryName(context.ManifestPath), deleteTemporaryFileOnDispose: false);
         var path = template.Path;
+
+        if (Scope.Count == 0)
+        {
+            context.Writer.WriteString("type", "azure.bicep.v0");
+        }
+        else
+        {
+            context.Writer.WriteString("type", "azure.bicep.v1");
+        }
 
         // Write a connection string if it exists.
         context.WriteConnectionString(this);
@@ -171,6 +192,22 @@ public class AzureBicepResource(string name, string? templateFile = null, string
                 context.Writer.WriteString(input.Key, value);
 
                 context.TryAddDependentResources(input.Value);
+            }
+            context.Writer.WriteEndObject();
+        }
+
+        if (Scope.Count > 0)
+        {
+            context.Writer.WriteStartObject("scope");
+            foreach (var (key, value) in Scope)
+            {
+                var outputValue = value switch
+                {
+                    IManifestExpressionProvider output => output.ValueExpression,
+                    object obj => obj.ToString(),
+                    null => ""
+                };
+                context.Writer.WriteString(key, outputValue);
             }
             context.Writer.WriteEndObject();
         }
