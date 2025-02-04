@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text;
+using Azure.Core;
 using Azure.Identity;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
@@ -476,7 +478,7 @@ public class AspireEventHubsExtensionsTests
             EventHubConsumerClient consumer => consumer.FullyQualifiedNamespace,
             EventProcessorClient processor => processor.FullyQualifiedNamespace,
             PartitionReceiver receiver => receiver.FullyQualifiedNamespace,
-            EventHubBufferedProducerClient  producer => producer.FullyQualifiedNamespace,
+            EventHubBufferedProducerClient producer => producer.FullyQualifiedNamespace,
             _ => throw new InvalidOperationException()
         });
     }
@@ -580,4 +582,48 @@ public class AspireEventHubsExtensionsTests
 
     public static string CreateConfigKey(string prefix, string? key, string suffix)
         => string.IsNullOrEmpty(key) ? $"{prefix}:{suffix}" : $"{prefix}:{key}:{suffix}";
+
+    /// <summary>
+    /// Tests that the BlobContainerName defaults correctly when the connection string doesn't contain ".servicebus" and
+    /// contains invalid container name characters.
+    /// </summary>
+    [Fact]
+    public void ProcessorBlobContainerNameDefaultsCorrectly()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:eh1", "Endpoint=sb://127.0.0.1:53589;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"),
+            new KeyValuePair<string, string?>("Aspire:Azure:Messaging:EventHubs:EventProcessorClient:EventHubName", "MyHub"),
+        ]);
+
+        var mockTransport = new MockTransport(
+            CreateResponse("""{}"""));
+        var blobClient = new BlobServiceClient(new Uri(BlobsConnectionString), new BlobClientOptions() { Transport = mockTransport });
+        builder.Services.AddSingleton(blobClient);
+
+        builder.AddAzureEventProcessorClient("eh1");
+
+        using var host = builder.Build();
+
+        var client = host.Services.GetRequiredService<EventProcessorClient>();
+        Assert.NotNull(client);
+
+        Assert.Single(mockTransport.Requests);
+        // the container name should be based on the Endpoint, EventHubName, and ConsumerGroup
+        Assert.Equal("https://fake.blob.core.windows.net/127-0-0-1-MyHub-default?restype=container", mockTransport.Requests[0].Uri.ToString());
+    }
+
+    private static MockResponse CreateResponse(string content)
+    {
+        var buffer = Encoding.UTF8.GetBytes(content);
+        var response = new MockResponse(201)
+        {
+            ClientRequestId = Guid.NewGuid().ToString(),
+            ContentStream = new MemoryStream(buffer),
+        };
+
+        response.AddHeader(new HttpHeader("Content-Type", "application/json; charset=utf-8"));
+
+        return response;
+    }
 }
