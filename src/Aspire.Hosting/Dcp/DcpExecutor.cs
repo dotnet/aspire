@@ -854,7 +854,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
                     foreach (var arg in exeSpec.Spec.Args)
                     {
-                        exeSpec.AnnotateAsObjectList(CustomResource.ResourceHostArgsAnnotation, arg);
+                        exeSpec.AnnotateAsObjectList(CustomResource.ProjectArgsAnnotation, arg);
                     }
 
                     var launchProfile = project.GetEffectiveLaunchProfile()?.LaunchProfile;
@@ -865,7 +865,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                         {
                             const string separator = "--";
                             exeSpec.Spec.Args.Add(separator);
-                            exeSpec.Annotate(CustomResource.ResourceHostArgsAnnotation, separator);
+                            exeSpec.Annotate(CustomResource.ProjectArgsAnnotation, separator);
 
                             exeSpec.Spec.Args.AddRange(cmdArgs);
                         }

@@ -103,8 +103,6 @@ internal class ResourceSnapshotBuilder
             relationships = ApplicationModel.ResourceSnapshotBuilder.BuildRelationships(appModelResource);
         }
 
-        List<string>? hostArgs;
-
         if (projectPath is not null)
         {
             return previous with
@@ -116,9 +114,9 @@ internal class ResourceSnapshotBuilder
                     new(KnownProperties.Executable.Path, executable.Spec.ExecutablePath),
                     new(KnownProperties.Executable.WorkDir, executable.Spec.WorkingDirectory),
                     new(KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []) { IsSensitive = true },
-                    new(KnownProperties.Executable.HostArgs, executable.TryGetAnnotationAsObjectList(CustomResource.ResourceHostArgsAnnotation, out hostArgs) ? hostArgs : null),
                     new(KnownProperties.Executable.Pid, executable.Status?.ProcessId),
-                    new(KnownProperties.Project.Path, projectPath)
+                    new(KnownProperties.Project.Path, projectPath),
+                    new(KnownProperties.Project.Args, executable.TryGetAnnotationAsObjectList(CustomResource.ProjectArgsAnnotation, out List<string>? projectArgs) ? projectArgs : null)
                 ]),
                 EnvironmentVariables = environment,
                 CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToUniversalTime(),
@@ -138,7 +136,6 @@ internal class ResourceSnapshotBuilder
                 new(KnownProperties.Executable.Path, executable.Spec.ExecutablePath),
                 new(KnownProperties.Executable.WorkDir, executable.Spec.WorkingDirectory),
                 new(KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []) { IsSensitive = true },
-                new(KnownProperties.Executable.HostArgs, executable.TryGetAnnotationAsObjectList(CustomResource.ResourceHostArgsAnnotation, out hostArgs) ? hostArgs : null),
                 new(KnownProperties.Executable.Pid, executable.Status?.ProcessId)
             ]),
             EnvironmentVariables = environment,

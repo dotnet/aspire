@@ -26,9 +26,9 @@ public class ResourceSourceViewModelTests
             properties.TryAdd(KnownProperties.Executable.Args, new ResourcePropertyViewModel(KnownProperties.Executable.Args, Value.ForList(testData.ExecutableArguments.Select(Value.ForString).ToArray()), false, null, 0, new BrowserTimeProvider(new NullLoggerFactory())));
         }
 
-        if (testData.HostArguments is not null)
+        if (testData.HostArguments is not null && testData.ResourceType == "Project")
         {
-            properties.TryAdd(KnownProperties.Executable.HostArgs, new ResourcePropertyViewModel(KnownProperties.Executable.HostArgs, Value.ForList(testData.HostArguments.Select(Value.ForString).ToArray()), false, null, 0, new BrowserTimeProvider(new NullLoggerFactory())));
+            properties.TryAdd(KnownProperties.Project.Args, new ResourcePropertyViewModel(KnownProperties.Project.Args, Value.ForList(testData.HostArguments.Select(Value.ForString).ToArray()), false, null, 0, new BrowserTimeProvider(new NullLoggerFactory())));
         }
 
         var resource = ModelTestHelpers.CreateResource(
