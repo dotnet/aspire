@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <None Include="**/*.props;**/*.targets;AspireAppHostConfiguration.json" Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Update="build\Aspire.Hosting.AppHost.in.targets" Pack="true" PerformTextReplacement="True" PackagePath="build\Aspire.Hosting.AppHost.targets" />
   </ItemGroup>
 
   <ItemGroup>
