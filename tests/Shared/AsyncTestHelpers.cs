@@ -17,10 +17,14 @@ internal static class TestConstants
     // Shorter duration when running tests with debug.
     // Less time waiting for hang unit tests to fail in aspnetcore solution.
     public const int DefaultTimeoutDuration = 5 * 1000;
-    public const int LongTimeoutDuration = 20 * 1000;
+    public const int LongTimeoutDuration = 60 * 1000;
+    public const int DefaultOrchestratorTestTimeout = 15 * 1000;
+    public const int DefaultOrchestratorTestLongTimeout = 45 * 1000;
 #else
     public const int DefaultTimeoutDuration = 30 * 1000;
     public const int LongTimeoutDuration = 120 * 1000;
+    public const int DefaultOrchestratorTestTimeout = DefaultTimeoutDuration;
+    public const int DefaultOrchestratorTestLongTimeout = LongTimeoutDuration;
 #endif
 
     public static TimeSpan DefaultTimeoutTimeSpan { get; } = TimeSpan.FromMilliseconds(DefaultTimeoutDuration);

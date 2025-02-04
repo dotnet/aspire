@@ -142,7 +142,7 @@ Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.CancellationToken.get
 Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.EnvironmentCallbackContext(Aspire.Hosting.DistributedApplicationExecutionContext! executionContext, System.Collections.Generic.Dictionary<string!, object!>? environmentVariables = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
 Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.EnvironmentVariables.get -> System.Collections.Generic.Dictionary<string!, object!>!
 Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.ExecutionContext.get -> Aspire.Hosting.DistributedApplicationExecutionContext!
-Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.Logger.get -> Microsoft.Extensions.Logging.ILogger?
+Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.Logger.get -> Microsoft.Extensions.Logging.ILogger!
 Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.Logger.set -> void
 Aspire.Hosting.ApplicationModel.EnvironmentVariableSnapshot
 Aspire.Hosting.ApplicationModel.EnvironmentVariableSnapshot.EnvironmentVariableSnapshot(string! Name, string? Value, bool IsFromSpec) -> void
@@ -448,7 +448,6 @@ static Aspire.Hosting.DistributedApplication.CreateBuilder() -> Aspire.Hosting.I
 static Aspire.Hosting.DistributedApplication.CreateBuilder(Aspire.Hosting.DistributedApplicationOptions! options) -> Aspire.Hosting.IDistributedApplicationBuilder!
 static Aspire.Hosting.DistributedApplication.CreateBuilder(string![]! args) -> Aspire.Hosting.IDistributedApplicationBuilder!
 static Aspire.Hosting.ExecutableResourceBuilderExtensions.AddExecutable(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! command, string! workingDirectory, params string![]? args) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ExecutableResource!>!
-static Aspire.Hosting.ExecutableResourceBuilderExtensions.PublishAsDockerFile<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, System.Collections.Generic.IEnumerable<Aspire.Hosting.ApplicationModel.DockerBuildArg!>? buildArgs = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ExecutableResourceExtensions.GetExecutableResources(this Aspire.Hosting.ApplicationModel.DistributedApplicationModel! model) -> System.Collections.Generic.IEnumerable<Aspire.Hosting.ApplicationModel.ExecutableResource!>!
 static Aspire.Hosting.Lifecycle.LifecycleHookServiceCollectionExtensions.AddLifecycleHook<T>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> void
 static Aspire.Hosting.Lifecycle.LifecycleHookServiceCollectionExtensions.AddLifecycleHook<T>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Func<System.IServiceProvider!, T!>! implementationFactory) -> void

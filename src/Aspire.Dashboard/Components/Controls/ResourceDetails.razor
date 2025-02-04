@@ -83,12 +83,14 @@
 
                     <FluentDataGrid TGridItem="VolumeViewModel"
                                     ItemKey="@(vm => ((IPropertyGridItem)vm).Key)"
-                                    ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlStringsLoc)"
-                                    ResizeType="DataGridResizeType.Discrete"
                                     Items="@FilteredVolumes"
+                                    ColumnResizeLabels="@_resizeLabels"
+                                    ColumnSortLabels="@_sortLabels"
+                                    HeaderCellAsButtonWithMenu="true"
                                     ResizableColumns="true"
+                                    ResizeType="DataGridResizeType.Discrete"
                                     Style="width:100%"
-                                    GenerateHeader="GenerateHeaderOption.Sticky"
+                                    RowSize="DataGridRowSize.Medium"
                                     GridTemplateColumns="1fr 1fr 0.5fr"
                                     ShowHover="true">
                         <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<VolumeViewModel>.ByAscending(i => i.Source))" Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]">
@@ -123,11 +125,16 @@
                         @FilteredRelationships.Count()
                     </FluentBadge>
                 </div>
-                <FluentDataGrid TGridItem="ResourceDetailRelationship"
+                <FluentDataGrid ColumnResizeLabels="@_resizeLabels"
+                                ColumnSortLabels="@_sortLabels"
+                                HeaderCellAsButtonWithMenu="true"
+                                ResizeType="DataGridResizeType.Discrete"
+                                TGridItem="ResourceDetailRelationship"
                                 Items="@FilteredRelationships"
                                 ItemKey="r => r.ResourceName"
+                                ResizableColumns="true"
                                 Style="width:100%"
-                                GenerateHeader="GenerateHeaderOption.Sticky"
+                                RowSize="DataGridRowSize.Medium"
                                 GridTemplateColumns="1fr 1fr 0.5fr"
                                 ShowHover="true">
                     <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsResourceHeader)]">
@@ -147,11 +154,16 @@
                         @FilteredBackRelationships.Count()
                     </FluentBadge>
                 </div>
-                <FluentDataGrid TGridItem="ResourceDetailRelationship"
+                <FluentDataGrid ColumnResizeLabels="@_resizeLabels"
+                                ColumnSortLabels="@_sortLabels"
+                                HeaderCellAsButtonWithMenu="true"
+                                ResizeType="DataGridResizeType.Discrete"
+                                TGridItem="ResourceDetailRelationship"
                                 Items="@FilteredBackRelationships"
                                 ItemKey="r => r.ResourceName"
+                                ResizableColumns="true"
                                 Style="width:100%"
-                                GenerateHeader="GenerateHeaderOption.Sticky"
+                                RowSize="DataGridRowSize.Medium"
                                 GridTemplateColumns="1fr 1fr 0.5fr"
                                 ShowHover="true">
                     <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsResourceHeader)]">
@@ -172,13 +184,15 @@
                     </FluentBadge>
                 </div>
 
-                <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlStringsLoc)"
+                <FluentDataGrid ColumnResizeLabels="@_resizeLabels"
+                                ColumnSortLabels="@_sortLabels"
+                                HeaderCellAsButtonWithMenu="true"
                                 ResizeType="DataGridResizeType.Discrete"
                                 Items="@FilteredHealthReports"
                                 ItemKey="r => r.Name"
                                 ResizableColumns="true"
                                 Style="width:100%"
-                                GenerateHeader="GenerateHeaderOption.Sticky"
+                                RowSize="DataGridRowSize.Medium"
                                 GridTemplateColumns="1fr 1fr 1.5fr"
                                 ShowHover="true">
                     <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">

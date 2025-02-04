@@ -76,9 +76,8 @@ public class AddElasticsearchTests
     public async Task AddElasticsearchContainerAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:pass"] = "pass";
 
-        var pass = appBuilder.AddParameter("pass");
+        var pass = appBuilder.AddParameter("pass", "pass");
         appBuilder.AddElasticsearch("elasticsearch",pass);
 
         using var app = appBuilder.Build();

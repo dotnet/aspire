@@ -92,9 +92,8 @@ public class AddRabbitMQTests
     public async Task RabbitMQCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:pass"] = "p@ssw0rd1";
 
-        var pass = appBuilder.AddParameter("pass");
+        var pass = appBuilder.AddParameter("pass", "p@ssw0rd1");
         appBuilder
             .AddRabbitMQ("rabbit", password: pass)
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27011));
@@ -163,7 +162,6 @@ public class AddRabbitMQTests
     }
 
     [Theory]
-    [InlineData(" ")]
     [InlineData("notrabbitmq")]
     [InlineData("not-supported")]
     public void WithManagementPluginThrowsForUnsupportedContainerImageName(string imageName)

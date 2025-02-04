@@ -6,7 +6,7 @@ using Aspire.Hosting.Dcp;
 namespace Aspire.Hosting.Tests.Dcp;
 internal sealed class TestDcpDependencyCheckService : IDcpDependencyCheckService
 {
-    public Task<DcpInfo?> GetDcpInfoAsync(CancellationToken cancellationToken = default)
+    public Task<DcpInfo?> GetDcpInfoAsync(bool force = false, CancellationToken cancellationToken = default)
     {
         var dcpInfo = new DcpInfo
         {

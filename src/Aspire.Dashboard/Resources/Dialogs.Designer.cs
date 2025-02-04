@@ -62,9 +62,9 @@ namespace Aspire.Dashboard.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Close.
         /// </summary>
-        public static string ExemplarsDialogCloseButtonText {
+        public static string DialogCloseButtonText {
             get {
-                return ResourceManager.GetString("ExemplarsDialogCloseButtonText", resourceCulture);
+                return ResourceManager.GetString("DialogCloseButtonText", resourceCulture);
             }
         }
         
@@ -119,6 +119,24 @@ namespace Aspire.Dashboard.Resources {
         public static string ExemplarsDialogValueColumnHeader {
             get {
                 return ResourceManager.GetString("ExemplarsDialogValueColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to A value is required..
+        /// </summary>
+        public static string FieldRequired {
+            get {
+                return ResourceManager.GetString("FieldRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to A maximum length of {1} characters is allowed..
+        /// </summary>
+        public static string FieldTooLong {
+            get {
+                return ResourceManager.GetString("FieldTooLong", resourceCulture);
             }
         }
         
