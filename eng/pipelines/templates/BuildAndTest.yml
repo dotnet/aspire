@@ -81,7 +81,6 @@ steps:
         DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
         DCP_DIAGNOSTICS_LOG_LEVEL: debug
         DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
-        DCP_SESSION_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp/session
         DCP_PRESERVE_EXECUTABLE_LOGS: 1
       displayName: Run non-helix tests
 
