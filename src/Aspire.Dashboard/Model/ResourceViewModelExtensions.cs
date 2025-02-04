@@ -59,6 +59,11 @@ internal static class ResourceViewModelExtensions
         return resource.TryGetCustomDataStringArray(KnownProperties.Executable.Args, out arguments);
     }
 
+    public static bool TryGetExecutableHostArguments(this ResourceViewModel resource, out ImmutableArray<string> arguments)
+    {
+        return resource.TryGetCustomDataStringArray(KnownProperties.Executable.HostArgs, out arguments);
+    }
+
     private static bool TryGetCustomDataString(this ResourceViewModel resource, string key, [NotNullWhen(returnValue: true)] out string? s)
     {
         if (resource.Properties.TryGetValue(key, out var property) && property.Value.TryConvertToString(out var valueString))

@@ -27,6 +27,7 @@ internal abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMet
     public const string ResourceStateAnnotation = "resource-state";
     public const string ResourceReplicaCount = "resource-replica-count";
     public const string ResourceReplicaIndex = "resource-replica-index";
+    public const string ResourceHostArgsAnnotation = "resource-host-args";
 
     public string? AppModelResourceName => Metadata.Annotations?.TryGetValue(ResourceNameAnnotation, out var value) is true ? value : null;
 
@@ -112,7 +113,7 @@ internal abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMet
             values = [value];
         }
 
-        var newAnnotationVal = JsonSerializer.Serialize(values);
+        var newAnnotationVal = JsonSerializer.Serialize<List<TValue>>(values);
         annotations[annotationName] = newAnnotationVal;
     }
 }

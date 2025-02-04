@@ -852,13 +852,21 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                     // and the environment variables/application URLs inside CreateExecutableAsync().
                     exeSpec.Spec.Args.Add("--no-launch-profile");
 
+                    foreach (var arg in exeSpec.Spec.Args)
+                    {
+                        exeSpec.AnnotateAsObjectList(CustomResource.ResourceHostArgsAnnotation, arg);
+                    }
+
                     var launchProfile = project.GetEffectiveLaunchProfile()?.LaunchProfile;
                     if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
                     {
                         var cmdArgs = CommandLineArgsParser.Parse(launchProfile.CommandLineArgs);
                         if (cmdArgs.Count > 0)
                         {
-                            exeSpec.Spec.Args.Add("--");
+                            const string separator = "--";
+                            exeSpec.Spec.Args.Add(separator);
+                            exeSpec.Annotate(CustomResource.ResourceHostArgsAnnotation, separator);
+
                             exeSpec.Spec.Args.AddRange(cmdArgs);
                         }
                     }

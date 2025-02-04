@@ -45,6 +45,7 @@ internal static class KnownProperties
         public const string Pid = "executable.pid";
         public const string WorkDir = "executable.workDir";
         public const string Args = "executable.args";
+        public const string HostArgs = "executable.hostArgs";
     }
 
     public static class Project

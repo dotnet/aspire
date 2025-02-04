@@ -18,6 +18,12 @@ public class ResourceSourceViewModel(string value, string? contentAfterValue, st
 
         if (resource.TryGetExecutableArguments(out var arguments))
         {
+            if (resource.TryGetExecutableHostArguments(out var hostArgs))
+            {
+                var foundHostArgCount = arguments.TakeWhile((arg, i) => i < hostArgs.Length && string.Equals(arg, hostArgs[i], StringComparison.Ordinal)).Count();
+                arguments = [..arguments.Skip(foundHostArgCount)];
+            }
+
             var argumentsString = arguments.IsDefaultOrEmpty ? null : string.Join(" ", arguments);
             commandLineInfo = (ArgumentsString: argumentsString, $"{executablePath} {argumentsString}");
         }
