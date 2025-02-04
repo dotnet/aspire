@@ -63,6 +63,8 @@ public static class TestDistributedApplicationBuilder
             builder.WithTestAndResourceLogging(testOutputHelper);
         }
 
+        builder.WithTempAspireStore();
+
         return builder;
     }
 }

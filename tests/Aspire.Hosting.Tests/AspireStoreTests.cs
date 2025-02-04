@@ -51,17 +51,6 @@ public class AspireStoreTests
     }
 
     [Fact]
-    public void GetFileName_ShouldNotCreateFile()
-    {
-        var store = CreateStore();
-
-        var filename = "testfile1.txt";
-        var filePath = store.GetFileName(filename);
-
-        Assert.False(File.Exists(filePath));
-    }
-
-    [Fact]
     public void GetOrCreateFileWithContent_ShouldCreateFile_WithStreamContent()
     {
         var builder = TestDistributedApplicationBuilder.Create();

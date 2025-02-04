@@ -85,16 +85,6 @@ internal sealed class AspireStore : IAspireStore
         return finalFilePath;
     }
 
-    public string GetFileName(string filename)
-    {
-        EnsureDirectory();
-
-        // Strip any folder information from the filename.
-        filename = Path.GetFileName(filename);
-
-        return Path.Combine(_basePath, filename);
-    }
-
     /// <summary>
     /// Ensures that the directory for the store exists.
     /// </summary>

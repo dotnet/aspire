@@ -22,13 +22,6 @@ public interface IAspireStore
     string BasePath { get; }
 
     /// <summary>
-    /// Creates an absolute file name for the provided <paramref name="filename"/> in the store.
-    /// </summary>
-    /// <param name="filename">The file name to use in the store.</param>
-    /// <returns>The absolute file name in the store.</returns>
-    string GetFileName(string filename);
-
-    /// <summary>
     /// Gets a deterministic file path that is a copy of the content from the provided stream.
     /// The resulting file name will depend on the content of the stream.
     /// </summary>

@@ -287,12 +287,7 @@ public static class AzureServiceBusExtensions
             context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", passwordParameter);
         }));
 
-        ServiceBusClient? serviceBusClient = null;
-        string? queueOrTopicName = null;
-
         var lifetime = ContainerLifetime.Session;
-
-        var aspireStore = builder.ApplicationBuilder.CreateStore();
 
         if (configureContainer != null)
         {
@@ -352,6 +347,8 @@ public static class AzureServiceBusExtensions
                     jsonObject.WriteTo(writer);
                 }
 
+                var aspireStore = builder.ApplicationBuilder.CreateStore();
+
                 // Deterministic file path for the configuration file based on its content
                 var configJsonPath = aspireStore.GetFileNameWithContent($"{builder.Resource.Name}-Config.json", tempConfigFile);
 
@@ -374,6 +371,9 @@ public static class AzureServiceBusExtensions
 
             return Task.CompletedTask;
         });
+
+        ServiceBusClient? serviceBusClient = null;
+        string? queueOrTopicName = null;
 
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (@event, ct) =>
         {
