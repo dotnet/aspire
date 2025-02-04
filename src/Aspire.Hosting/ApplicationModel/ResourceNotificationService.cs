@@ -69,7 +69,7 @@ public class ResourceNotificationService : IDisposable
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _serviceProvider = serviceProvider;
         _resourceLoggerService = resourceLoggerService ?? throw new ArgumentNullException(nameof(resourceLoggerService));
-        DefaultWaitBehavior = serviceProvider.GetRequiredService<IOptions<ResourceNotificationServiceOptions>>().Value.DefaultWaitBehavior;
+        DefaultWaitBehavior = serviceProvider.GetService<IOptions<ResourceNotificationServiceOptions>>()?.Value.DefaultWaitBehavior ?? WaitBehavior.StopOnDependencyFailure;
 
         // The IHostApplicationLifetime parameter is not used anymore, but we keep it for backwards compatibility.
         // Notification updates will be cancelled when the service is disposed.
