@@ -28,8 +28,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ResourceCollapseAllChildren">
-        <source>Collapse all nested resources</source>
-        <target state="new">Collapse all nested resources</target>
+        <source>Hide child resources</source>
+        <target state="new">Hide child resources</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceCommandFailed">
@@ -68,8 +68,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ResourceExpandAllChildren">
-        <source>Expand all nested resources</source>
-        <target state="new">Expand all nested resources</target>
+        <source>Show child resources</source>
+        <target state="new">Show child resources</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceFilterOptionEmpty">
