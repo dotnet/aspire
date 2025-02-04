@@ -188,6 +188,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         using var builder = TestDistributedApplicationBuilder.Create(output);
+        builder.Configuration["Aspire:Store:Path"] = Path.GetTempPath();
 
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
         builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
@@ -231,6 +232,8 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
 
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(output);
+        builder.Configuration["Aspire:Store:Path"] = Path.GetTempPath();
+
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
             .RunAsEmulator()
             .WithQueue("queue123");
@@ -267,6 +270,8 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     public void AddAzureServiceBusWithEmulatorGetsExpectedPort(int? port = null)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Aspire:Store:Path"] = Path.GetTempPath();
+
         var serviceBus = builder.AddAzureServiceBus("sb").RunAsEmulator(configureContainer: builder =>
         {
             builder.WithHostPort(port);
@@ -286,6 +291,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var serviceBus = builder.AddAzureServiceBus("sb");
+        builder.Configuration["Aspire:Store:Path"] = Path.GetTempPath();
 
         serviceBus.RunAsEmulator(container =>
         {
@@ -415,6 +421,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     public async Task AzureServiceBusEmulatorResourceGeneratesConfigJson()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Aspire:Store:Path"] = Path.GetTempPath();
 
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
             .RunAsEmulator()
@@ -551,6 +558,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     public async Task AzureServiceBusEmulatorResourceGeneratesConfigJsonOnlyChangedProperties()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Aspire:Store:Path"] = Path.GetTempPath();
 
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
             .RunAsEmulator()
@@ -599,6 +607,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     public async Task AzureServiceBusEmulatorResourceGeneratesConfigJsonWithCustomizations()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Aspire:Store:Path"] = Path.GetTempPath();
 
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
             .RunAsEmulator(configure => configure.ConfigureEmulator(document =>
@@ -639,6 +648,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     public async Task AzureServiceBusEmulator_WithConfigurationFile()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Aspire:Store:Path"] = Path.GetTempPath();
 
         var configJsonPath = Path.GetTempFileName();
 
@@ -699,6 +709,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     public void AddAzureServiceBusWithEmulator_SetsSqlLifetime(bool isPersistent)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Aspire:Store:Path"] = Path.GetTempPath();
         var lifetime = isPersistent ? ContainerLifetime.Persistent : ContainerLifetime.Session;
 
         var serviceBus = builder.AddAzureServiceBus("sb").RunAsEmulator(configureContainer: builder =>
@@ -721,6 +732,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     public void RunAsEmulator_CalledTwice_Throws()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Aspire:Store:Path"] = Path.GetTempPath();
         var serviceBus = builder.AddAzureServiceBus("sb").RunAsEmulator();
 
         Assert.Throws<InvalidOperationException>(() => serviceBus.RunAsEmulator());
