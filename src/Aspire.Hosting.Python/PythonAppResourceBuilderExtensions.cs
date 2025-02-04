@@ -18,19 +18,19 @@ public static class PythonAppResourceBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="appDirectory">The path to the directory containing the python app files.</param>
-    /// <param name="scriptPath">The path to the script relative to the project directory to run.</param>
+    /// <param name="scriptPath">The path to the script relative to the app directory to run.</param>
     /// <param name="scriptArgs">The arguments for the script.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
-    /// The virtual environment must be initialized before running the project. By default the virtual environment folder is expected
-    /// to be named <c>.venv</c> and be located in the project directory. If the virtual environment is located in a different directory
+    /// The virtual environment must be initialized before running the app. By default the virtual environment folder is expected
+    /// to be named <c>.venv</c> and be located in the app directory. If the virtual environment is located in a different directory
     /// this default can be specified by using the <see cref="AddPythonApp(IDistributedApplicationBuilder, string, string, string, string, string[])"/>
     /// overload of this method.
     /// </para>
     /// <para>
-    /// The virtual environment is setup individually for each project to allow each project to use a different version of
-    /// Python and dependencies. To setup a virtual environment use the <c>python -m venv .venv</c> command in the project
+    /// The virtual environment is setup individually for each app to allow each app to use a different version of
+    /// Python and dependencies. To setup a virtual environment use the <c>python -m venv .venv</c> command in the app
     /// directory. This will create a virtual environment in the <c>.venv</c> directory.
     /// </para>
     /// <para>
@@ -38,20 +38,20 @@ public static class PythonAppResourceBuilderExtensions
     /// script and then use the <c>pip install -r requirements.txt</c> command to restore dependencies.
     /// </para>
     /// <para>
-    /// To receive traces, logs, and metrics from the python project in the dashboard, the project must be instrumented with OpenTelemetry.
-    /// You can instrument your project by adding the <c>opentelemetry-distro</c>, and <c>opentelemetry-exporter-otlp</c> to
-    /// your Python project.
+    /// To receive traces, logs, and metrics from the python app in the dashboard, the app must be instrumented with OpenTelemetry.
+    /// You can instrument your app by adding the <c>opentelemetry-distro</c>, and <c>opentelemetry-exporter-otlp</c> to
+    /// your Python app.
     /// </para>
     /// <example>
-    /// Add a python app or executable to the application model. In this example the python code entry point is located in the <c>PythonProject</c> directory
+    /// Add a python app or executable to the application model. In this example the python code entry point is located in the <c>PythonApp</c> directory
     /// if this path is relative then it is assumed to be relative to the AppHost directory, and the virtual environment path if relative
-    /// is relative to the project directory. In the example below, if the app host directory is <c>$HOME/repos/MyApp/src/MyApp.AppHost</c> then
-    /// the ProjectPath would be <c>$HOME/repos/MyApp/src/MyApp.AppHost/PythonProject</c> and the virtual environment path (defaulted) would
-    /// be <c>$HOME/repos/MyApp/src/MyApp.AppHost/PythonProject/.venv</c>.
+    /// is relative to the app directory. In the example below, if the app host directory is <c>$HOME/repos/MyApp/src/MyApp.AppHost</c> then
+    /// the AppPath would be <c>$HOME/repos/MyApp/src/MyApp.AppHost/PythonApp</c> and the virtual environment path (defaulted) would
+    /// be <c>$HOME/repos/MyApp/src/MyApp.AppHost/PythonApp/.venv</c>.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// builder.AddPythonApp("python-project", "PythonProject", "main.py");
+    /// builder.AddPythonApp("python-app", "PythonApp", "main.py");
     ///
     /// builder.Build().Run();
     /// </code>
@@ -77,8 +77,8 @@ public static class PythonAppResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
-    /// The virtual environment is setup individually for each project to allow each project to use a different version of
-    /// Python and dependencies. To setup a virtual environment use the <c>python -m venv .venv</c> command in the project
+    /// The virtual environment is setup individually for each app to allow each app to use a different version of
+    /// Python and dependencies. To setup a virtual environment use the <c>python -m venv .venv</c> command in the app
     /// directory. This will create a virtual environment in the <c>.venv</c> directory (where <c>.venv</c> is the name of your
     /// virtual environment directory).
     /// </para>
@@ -87,20 +87,20 @@ public static class PythonAppResourceBuilderExtensions
     /// script and then use the <c>pip install -r requirements.txt</c> command to restore dependencies.
     /// </para>
     /// <para>
-    /// To receive traces, logs, and metrics from the python project in the dashboard, the project must be instrumented with OpenTelemetry.
-    /// You can instrument your project by adding the <c>opentelemetry-distro</c>, and <c>opentelemetry-exporter-otlp</c> to
-    /// your Python project.
+    /// To receive traces, logs, and metrics from the python app in the dashboard, the app must be instrumented with OpenTelemetry.
+    /// You can instrument your app by adding the <c>opentelemetry-distro</c>, and <c>opentelemetry-exporter-otlp</c> to
+    /// your Python app.
     /// </para>
     /// <example>
-    /// Add a python app or executable to the application model. In this example the python code is located in the <c>PythonProject</c> directory
+    /// Add a python app or executable to the application model. In this example the python code is located in the <c>PythonApp</c> directory
     /// if this path is relative then it is assumed to be relative to the AppHost directory, and the virtual environment path if relative
-    /// is relative to the project directory. In the example below, if the app host directory is <c>$HOME/repos/MyApp/src/MyApp.AppHost</c> then
-    /// the ProjectPath would be <c>$HOME/repos/MyApp/src/MyApp.AppHost/PythonProject</c> and the virtual environment path (defaulted) would
-    /// be <c>$HOME/repos/MyApp/src/MyApp.AppHost/PythonProject/.venv</c>.
+    /// is relative to the app directory. In the example below, if the app host directory is <c>$HOME/repos/MyApp/src/MyApp.AppHost</c> then
+    /// the AppPath would be <c>$HOME/repos/MyApp/src/MyApp.AppHost/PythonApp</c> and the virtual environment path (defaulted) would
+    /// be <c>$HOME/repos/MyApp/src/MyApp.AppHost/PythonApp/.venv</c>.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// builder.AddPythonApp("python-project", "PythonProject", "main.py");
+    /// builder.AddPythonApp("python-app", "PythonApp", "main.py");
     ///
     /// builder.Build().Run();
     /// </code>
@@ -124,9 +124,9 @@ public static class PythonAppResourceBuilderExtensions
 
         var instrumentationExecutable = virtualEnvironment.GetExecutable("opentelemetry-instrument");
         var pythonExecutable = virtualEnvironment.GetRequiredExecutable("python");
-        var projectExecutable = instrumentationExecutable ?? pythonExecutable;
+        var appExecutable = instrumentationExecutable ?? pythonExecutable;
 
-        var resource = new PythonAppResource(name, projectExecutable, appDirectory);
+        var resource = new PythonAppResource(name, appExecutable, appDirectory);
 
         var resourceBuilder = builder.AddResource(resource).WithArgs(context =>
         {
