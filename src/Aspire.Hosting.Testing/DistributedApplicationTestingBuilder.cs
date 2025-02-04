@@ -274,16 +274,13 @@ public static class DistributedApplicationTestingBuilder
         }
     }
 
-    private sealed class TestingBuilder(
-        string[] args,
-        Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder) : IDistributedApplicationTestingBuilder
+    private sealed class TestingBuilder : IDistributedApplicationTestingBuilder
     {
-        private readonly DistributedApplicationBuilder _innerBuilder = CreateInnerBuilder(args, configureBuilder);
+        private readonly DistributedApplicationBuilder _innerBuilder;
         private DistributedApplication? _app;
+        private readonly string? _tempAspireStorePath;
 
-        private static DistributedApplicationBuilder CreateInnerBuilder(
-            string[] args,
-            Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)
+        public TestingBuilder(string[] args, Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)
         {
             var builder = TestingBuilderFactory.CreateBuilder(args, onConstructing: (applicationOptions, hostBuilderOptions) =>
             {
@@ -297,7 +294,12 @@ public static class DistributedApplicationTestingBuilder
                 builder.Services.ConfigureHttpClientDefaults(http => http.AddStandardResilienceHandler());
             }
 
-            return builder;
+            if (!builder.Configuration.GetValue("Aspire:Store:Path", false))
+            {
+                builder.Configuration["Aspire:Store:Path"] = _tempAspireStorePath = Path.GetTempPath();
+            }
+
+            _innerBuilder = builder;
 
             static Assembly FindApplicationAssembly()
             {
@@ -373,6 +375,18 @@ public static class DistributedApplicationTestingBuilder
             {
                 app.Dispose();
             }
+
+            if (_tempAspireStorePath is { } path)
+            {
+                try
+                {
+                    Directory.Delete(path, recursive: true);
+                }
+                catch
+                {
+                    // Suppress.
+                }
+            }
         }
 
         public async ValueTask DisposeAsync()
@@ -392,6 +406,18 @@ public static class DistributedApplicationTestingBuilder
             if (_app is IAsyncDisposable asyncDisposable)
             {
                 await asyncDisposable.DisposeAsync().ConfigureAwait(false);
+            }
+
+            if (_tempAspireStorePath is { } path)
+            {
+                try
+                {
+                    Directory.Delete(path, recursive: true);
+                }
+                catch
+                {
+                    // Suppress.
+                }
             }
         }
     }

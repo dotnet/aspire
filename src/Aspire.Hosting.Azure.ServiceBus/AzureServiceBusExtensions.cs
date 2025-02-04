@@ -292,7 +292,7 @@ public static class AzureServiceBusExtensions
 
         var lifetime = ContainerLifetime.Session;
 
-        var aspireStore = AspireStore.Create(builder.ApplicationBuilder);
+        var aspireStore = builder.ApplicationBuilder.CreateStore();
 
         if (configureContainer != null)
         {
@@ -330,20 +330,25 @@ public static class AzureServiceBusExtensions
                 // Apply ConfigJsonAnnotation modifications
                 var configJsonAnnotations = builder.Resource.Annotations.OfType<ConfigJsonAnnotation>();
 
-                foreach (var annotation in configJsonAnnotations)
+                if (configJsonAnnotations.Any())
                 {
                     using var readStream = new FileStream(tempConfigFile, FileMode.Open, FileAccess.Read);
                     var jsonObject = JsonNode.Parse(readStream);
                     readStream.Close();
 
-                    using var writeStream = new FileStream(tempConfigFile, FileMode.Open, FileAccess.Write);
-                    using var writer = new Utf8JsonWriter(writeStream, new JsonWriterOptions { Indented = true });
-
                     if (jsonObject == null)
                     {
                         throw new InvalidOperationException("The configuration file mount could not be parsed.");
                     }
-                    annotation.Configure(jsonObject);
+
+                    foreach (var annotation in configJsonAnnotations)
+                    {
+
+                        annotation.Configure(jsonObject);
+                    }
+
+                    using var writeStream = new FileStream(tempConfigFile, FileMode.Open, FileAccess.Write);
+                    using var writer = new Utf8JsonWriter(writeStream, new JsonWriterOptions { Indented = true });
                     jsonObject.WriteTo(writer);
                 }
 
@@ -434,6 +439,20 @@ public static class AzureServiceBusExtensions
     /// <param name="builder">The builder for the <see cref="AzureServiceBusEmulatorResource"/>.</param>
     /// <param name="configJson">A callback to update the JSON object representation of the configuration.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <example>
+    /// Here is an example of how to configure the emulator to use a different logging mechanism:
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// 
+    /// builder.AddAzureServiceBus("servicebusns")
+    ///        .RunAsEmulator(configure => configure
+    ///            .ConfigureEmulator(document =>
+    ///            {
+    ///                document["UserConfig"]!["Logging"] = new JsonObject { ["Type"] = "Console" };
+    ///            });
+    ///        );
+    /// </code>
+    /// </example>
     public static IResourceBuilder<AzureServiceBusEmulatorResource> ConfigureEmulator(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, Action<JsonNode> configJson)
     {
         ArgumentNullException.ThrowIfNull(builder);
