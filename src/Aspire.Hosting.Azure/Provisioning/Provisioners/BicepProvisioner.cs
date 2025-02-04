@@ -532,16 +532,13 @@ internal sealed class BicepProvisioner(
 
     internal static async Task SetScopeAsync(JsonObject scope, AzureBicepResource resource, CancellationToken cancellationToken = default)
     {
-        foreach (var item in resource.Scope)
+        scope["resourceGroup"] = resource.Scope?.ResourceGroup switch
         {
-            scope[item.Key] = item.Value switch
-            {
-                string s => s,
-                IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
-                null => null,
-                _ => throw new NotSupportedException($"The scope value type {item.Value.GetType()} is not supported.")
-            };
-        }
+            string s => s,
+            IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
+            null => null,
+            _ => throw new NotSupportedException($"The scope value type {resource.Scope.ResourceGroup.GetType()} is not supported.")
+        };
     }
 
     private static bool IsParameterWithGeneratedValue(object? value)

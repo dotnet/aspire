@@ -41,7 +41,7 @@ public static class AzureServiceBusExtensions
                 serviceBusNamespace.Name = existingResourceName;
                 if (existingAnnotation.ResourceGroupParameter is not null)
                 {
-                    infrastructure.AspireResource.Scope["resourceGroup"] = existingAnnotation.ResourceGroupParameter;
+                    infrastructure.AspireResource.Scope = new(existingAnnotation.ResourceGroupParameter);
                 }
             }
             else

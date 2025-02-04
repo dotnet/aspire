@@ -192,11 +192,11 @@ public class AzureBicepProvisionerTests
 
         var bicep0 = builder.AddBicepTemplateString("bicep0", "param name string")
                        .WithParameter("key", "value");
+        bicep0.Resource.Scope = new("rg0");
 
         var bicep1 = builder.AddBicepTemplateString("bicep1", "param name string")
                        .WithParameter("key", "value");
-
-        bicep1.Resource.Scope["resourceGroup"] = "rg";
+        bicep1.Resource.Scope = new("rg1");
 
         var parameters0 = new JsonObject();
         var scope0 = new JsonObject();
@@ -220,13 +220,11 @@ public class AzureBicepProvisionerTests
 
         var bicep0 = builder.AddBicepTemplateString("bicep0", "param name string")
                        .WithParameter("key", "value");
-
-        bicep0.Resource.Scope["resourceGroup"] = "rg";
+        bicep0.Resource.Scope = new("rg0");
 
         var bicep1 = builder.AddBicepTemplateString("bicep1", "param name string")
                        .WithParameter("key", "value");
-
-        bicep1.Resource.Scope["resourceGroup"] = "rg";
+        bicep1.Resource.Scope = new("rg0");
 
         var parameters0 = new JsonObject();
         var scope0 = new JsonObject();
