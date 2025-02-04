@@ -21,7 +21,7 @@ public static class ExistingAzureResourceExtensions
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        return resource.Annotations.OfType<ExistingAzureResourceAnnotation>().SingleOrDefault() is not null;
+        return resource.Annotations.OfType<ExistingAzureResourceAnnotation>().LastOrDefault() is not null;
     }
 
     /// <summary>
@@ -36,12 +36,6 @@ public static class ExistingAzureResourceExtensions
         where T : IAzureResource
     {
         ArgumentNullException.ThrowIfNull(builder);
-
-        // Throw if ExistingResourceAnnotation already exists on resource
-        if (builder.Resource.IsExisting())
-        {
-            throw new InvalidOperationException($"Resource {builder.Resource.Name} is already marked as an existing resource.");
-        }
 
         if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
@@ -64,11 +58,6 @@ public static class ExistingAzureResourceExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        if (builder.Resource.IsExisting())
-        {
-            throw new InvalidOperationException($"Resource {builder.Resource.Name} is already marked as an existing resource.");
-        }
-
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             builder.Resource.Annotations.Add(new ExistingAzureResourceAnnotation(nameParameter.Resource, resourceGroupParameter?.Resource));
@@ -87,7 +76,7 @@ public static class ExistingAzureResourceExtensions
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        existingAzureResourceAnnotation = resource.Annotations.OfType<ExistingAzureResourceAnnotation>().SingleOrDefault();
+        existingAzureResourceAnnotation = resource.Annotations.OfType<ExistingAzureResourceAnnotation>().LastOrDefault();
         return existingAzureResourceAnnotation is not null;
     }
 }
