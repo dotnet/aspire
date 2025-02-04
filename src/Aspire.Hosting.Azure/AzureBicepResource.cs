@@ -51,15 +51,11 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     /// The scope of the resource that will be configured in the main Bicep file.
     /// </summary>
     /// <remarks>
-    /// The scope is a weakly-typed collection of key-value pairs that can be used to configure
-    /// the Bicep scope that is emitted by AZD in the module definition for a resource.
-    /// By default, this scope dictionary will include a single `resourceGroup` key that will
-    /// map to the scope that is generated in the Bice template (for example,
-    /// `scope: resourceGroup(resourceGroupValue)`). This property is only emitted for schema
-    /// versions azure.bicep.v1. Only the `resourceGroup` key is respected as a sub-property although
-    /// more keys may be supported in the future, such as a subscriptionId.
+    /// The property is used to configure the Bicep scope that is emitted
+    /// in the module definition for a given resource. It is
+    /// only emitted for schema versions azure.bicep.v1.
     /// </remarks>
-    public Dictionary<string, object> Scope { get; } = [];
+    public ResourceScope? Scope { get; set; }
 
     /// <summary>
     /// For testing purposes only.
@@ -151,7 +147,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
         using var template = GetBicepTemplateFile(Path.GetDirectoryName(context.ManifestPath), deleteTemporaryFileOnDispose: false);
         var path = template.Path;
 
-        if (Scope.Count == 0)
+        if (Scope is null)
         {
             context.Writer.WriteString("type", "azure.bicep.v0");
         }
@@ -196,19 +192,16 @@ public class AzureBicepResource(string name, string? templateFile = null, string
             context.Writer.WriteEndObject();
         }
 
-        if (Scope.Count > 0)
+        if (Scope is not null)
         {
             context.Writer.WriteStartObject("scope");
-            foreach (var (key, value) in Scope)
+            var resourceGroup = Scope.ResourceGroup switch
             {
-                var outputValue = value switch
-                {
-                    IManifestExpressionProvider output => output.ValueExpression,
-                    object obj => obj.ToString(),
-                    null => ""
-                };
-                context.Writer.WriteString(key, outputValue);
-            }
+                IManifestExpressionProvider output => output.ValueExpression,
+                object obj => obj.ToString(),
+                null => ""
+            };
+            context.Writer.WriteString("resourceGroup", resourceGroup);
             context.Writer.WriteEndObject();
         }
     }
