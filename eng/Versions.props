@@ -31,8 +31,8 @@
     <!-- Other -->
     <MicrosoftDotNetRemoteExecutorVersion>9.0.0-beta.25077.4</MicrosoftDotNetRemoteExecutorVersion>
     <MicrosoftDotNetXUnitExtensionsVersion>9.0.0-beta.25077.4</MicrosoftDotNetXUnitExtensionsVersion>
-    <MicrosoftDotNetBuildTasksInstallersVersion>9.0.0-beta.25065.2</MicrosoftDotNetBuildTasksInstallersVersion>
-    <MicrosoftDotNetBuildTasksWorkloadsVersion>9.0.0-beta.25065.2</MicrosoftDotNetBuildTasksWorkloadsVersion>
+    <MicrosoftDotNetBuildTasksInstallersVersion>9.0.0-beta.25077.4</MicrosoftDotNetBuildTasksInstallersVersion>
+    <MicrosoftDotNetBuildTasksWorkloadsVersion>9.0.0-beta.25077.4</MicrosoftDotNetBuildTasksWorkloadsVersion>
     <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.1-servicing.24603.14</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
     <!-- dotnet/extensions -->
     <MicrosoftExtensionsAIVersion>9.1.0-preview.1.25064.3</MicrosoftExtensionsAIVersion>
