@@ -248,7 +248,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             {
                 callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
             }).WithAccessKeyAuthentication();
-        cosmos.WithDatabase("mydatabase", db => db.Containers.Add(new("mycontainer", "mypartitionkeypath")));
+        var db = cosmos.AddCosmosDatabase("mydatabase");
+        db.AddContainer("mycontainer", "mypartitionkeypath");
 
         cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
 
@@ -359,7 +360,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             {
                 callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
             });
-        cosmos.WithDatabase("mydatabase", db => db.Containers.Add(new("mycontainer", "mypartitionkeypath")));
+        var db = cosmos.AddCosmosDatabase("mydatabase");
+        db.AddContainer("mycontainer", "mypartitionkeypath");
 
         cosmos.Resource.Outputs["connectionString"] = "mycosmosconnectionstring";
 
@@ -480,7 +482,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             {
                 callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
             }).WithAccessKeyAuthentication();
-        cosmos.WithDatabase("mydatabase", db => db.Containers.Add(new("mycontainer", "mypartitionkeypath")));
+        var db = cosmos.AddCosmosDatabase("mydatabase");
+        db.AddContainer("mycontainer", "mypartitionkeypath");
 
         cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
 
@@ -591,7 +594,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             {
                 callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
             });
-        cosmos.WithDatabase("mydatabase", db => db.Containers.Add(new("mycontainer", "mypartitionkeypath")));
+        var db = cosmos.AddCosmosDatabase("mydatabase");
+        db.AddContainer("mycontainer", "mypartitionkeypath");
 
         cosmos.Resource.Outputs["connectionString"] = "mycosmosconnectionstring";
 
