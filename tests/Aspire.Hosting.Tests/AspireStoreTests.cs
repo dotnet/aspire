@@ -20,6 +20,60 @@ public class AspireStoreTests
     }
 
     [Fact]
+    public void BasePath_ShouldUseObj()
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+
+        var store = AspireStore.Create(builder);
+
+        var path = store.BasePath;
+
+        Assert.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", path);
+    }
+
+    [Fact]
+    public void BasePath_ShouldBeAbsolute()
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+
+        var store = AspireStore.Create(builder);
+
+        var path = store.BasePath;
+
+        Assert.True(Path.IsPathRooted(path));
+    }
+
+    [Fact]
+    public void BasePath_ShouldUseConfiguration()
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration[AspireStore.AspireStorePathKeyName] = Path.GetTempPath();
+
+        var store = AspireStore.Create(builder);
+
+        var path = store.BasePath;
+
+        Assert.DoesNotContain($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", path);
+        Assert.Contains(Path.GetTempPath(), path);
+    }
+
+    [Fact]
+    public void BasePath_ShouldBePrefixed_WhenUsingConfiguration()
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration[AspireStore.AspireStorePathKeyName] = Path.GetTempPath();
+        builder.Configuration["AppHost:Sha256"] = "0123456789abcdef";
+
+        var store = AspireStore.Create(builder);
+
+        var path = store.BasePath;
+
+        Assert.Contains(builder.Environment.ApplicationName.ToLowerInvariant(), path);
+        Assert.Contains("0123456789", path);
+        Assert.Contains(".aspire", path);
+    }
+
+    [Fact]
     public void GetOrCreateFile_ShouldCreateFileIfNotExists()
     {
         var builder = TestDistributedApplicationBuilder.Create();
@@ -32,7 +86,7 @@ public class AspireStoreTests
     }
 
     [Fact]
-    public void GetOrCreateFileWithContent_ShouldCreateFileWithContent()
+    public void GetOrCreateFileWithContent_ShouldCreateFile_WithStreamContent()
     {
         var builder = TestDistributedApplicationBuilder.Create();
         var store = AspireStore.Create(builder);
@@ -43,6 +97,29 @@ public class AspireStoreTests
 
         Assert.True(File.Exists(filePath));
         Assert.Equal("Test content", File.ReadAllText(filePath));
+    }
+
+    [Fact]
+    public void GetOrCreateFileWithContent_ShouldCreateFile_WithFileContent()
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        var store = AspireStore.Create(builder);
+
+        var filename = "testfile2.txt";
+        var tempFilename = Path.GetTempFileName();
+        File.WriteAllText(tempFilename, "Test content");
+        var filePath = store.GetFileNameWithContent(filename, tempFilename);
+
+        Assert.True(File.Exists(filePath));
+        Assert.Equal("Test content", File.ReadAllText(filePath));
+
+        try
+        {
+            File.Delete(tempFilename);
+        }
+        catch
+        {
+        }
     }
 
     [Fact]

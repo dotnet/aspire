@@ -1,6 +1,4 @@
 #nullable enable
-Aspire.Hosting.ApplicationModel.BeforeResourcesPreparedEvent
-Aspire.Hosting.ApplicationModel.BeforeResourcesPreparedEvent.BeforeResourcesPreparedEvent() -> void
 Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext.ExecutionContext.get -> Aspire.Hosting.DistributedApplicationExecutionContext!
 Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext.ExecutionContext.init -> void
 Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext.Logger.get -> Microsoft.Extensions.Logging.ILogger!
@@ -193,6 +191,10 @@ Aspire.Hosting.ApplicationModel.WaitAnnotation.WaitType.get -> Aspire.Hosting.Ap
 Aspire.Hosting.ApplicationModel.WaitType
 Aspire.Hosting.ApplicationModel.WaitType.WaitForCompletion = 1 -> Aspire.Hosting.ApplicationModel.WaitType
 Aspire.Hosting.ApplicationModel.WaitType.WaitUntilHealthy = 0 -> Aspire.Hosting.ApplicationModel.WaitType
+Aspire.Hosting.AspireStore
+Aspire.Hosting.AspireStore.GetFileName(string! filename) -> string!
+Aspire.Hosting.AspireStore.GetFileNameWithContent(string! filename, string! sourceFilename) -> string!
+Aspire.Hosting.AspireStore.GetFileNameWithContent(string! filename, System.IO.Stream! contentStream) -> string!
 Aspire.Hosting.DistributedApplicationBuilder.AppHostPath.get -> string!
 Aspire.Hosting.DistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
 Aspire.Hosting.DistributedApplicationBuilderExtensions
@@ -256,6 +258,7 @@ Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.HasAnnotationIncludingAncestorsOfType<T>(this Aspire.Hosting.ApplicationModel.IResource! resource) -> bool
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.HasAnnotationOfType<T>(this Aspire.Hosting.ApplicationModel.IResource! resource) -> bool
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetAnnotationsIncludingAncestorsOfType<T>(this Aspire.Hosting.ApplicationModel.IResource! resource, out System.Collections.Generic.IEnumerable<T>? result) -> bool
+static Aspire.Hosting.AspireStore.Create(Aspire.Hosting.IDistributedApplicationBuilder! builder) -> Aspire.Hosting.AspireStore!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBuildArg<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, object? value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithContainerName<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithEndpointProxySupport<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, bool proxyEnabled) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!

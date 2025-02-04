@@ -6,7 +6,6 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.ServiceBus;
-using Aspire.Hosting.Utils;
 using Azure.Messaging.ServiceBus;
 using Azure.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
@@ -298,7 +297,7 @@ public static class AzureServiceBusExtensions
         // RunAsEmulator() can be followed by custom model configuration so we need to delay the creation of the Config.json file
         // until all resources are about to be prepared and annotations can't be updated anymore.
 
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourcesPreparedEvent>((@event, ct) =>
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((@event, ct) =>
         {
             // Create JSON configuration file
 
@@ -345,7 +344,13 @@ public static class AzureServiceBusExtensions
             }
             finally
             {
-                File.Delete(tempConfigFile);
+                try
+                {
+                    File.Delete(tempConfigFile);
+                }
+                catch
+                {
+                }
             }
 
             return Task.CompletedTask;

@@ -5,15 +5,22 @@ using System.Buffers;
 using System.Reflection;
 using System.Security.Cryptography;
 
-namespace Aspire.Hosting.Utils;
+namespace Aspire.Hosting;
 
-internal sealed class AspireStore
+/// <summary>
+/// Represents a store for managing files in the Aspire hosting environment that can be reused across runs.
+/// </summary>
+public class AspireStore
 {
-    internal const string AspireStoreDir = "ASPIRE_STORE_DIR";
+    internal const string AspireStorePathKeyName = "Aspire:Store:Path";
 
     private readonly string _basePath;
     private static readonly SearchValues<char> s_invalidFileNameChars = SearchValues.Create(Path.GetInvalidFileNameChars());
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AspireStore"/> class with the specified base path.
+    /// </summary>
+    /// <param name="basePath">The base path for the store.</param>
     private AspireStore(string basePath)
     {
         ArgumentNullException.ThrowIfNull(basePath);
@@ -22,6 +29,9 @@ internal sealed class AspireStore
         EnsureDirectory();
     }
 
+    /// <summary>
+    /// Gets the base path of the store.
+    /// </summary>
     internal string BasePath => _basePath;
 
     /// <summary>
@@ -40,12 +50,13 @@ internal sealed class AspireStore
         var assemblyMetadata = builder.AppHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
         var objDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
 
-        var fallbackDir = Environment.GetEnvironmentVariable(AspireStoreDir);
+        var fallbackDir = builder.Configuration[AspireStorePathKeyName];
+
         var root = fallbackDir ?? objDir;
 
         if (string.IsNullOrEmpty(root))
         {
-            throw new InvalidOperationException($"Could not determine an appropriate location for storing user secrets. Set the {AspireStoreDir} environment variable to a folder where the App Host content should be stored.");
+            throw new InvalidOperationException($"Could not determine an appropriate location for storing user secrets. Set the {AspireStorePathKeyName} setting to a folder where the App Host content should be stored.");
         }
 
         var directoryPath = Path.Combine(root, ".aspire");
@@ -59,9 +70,20 @@ internal sealed class AspireStore
         return new AspireStore(directoryPath);
     }
 
+    /// <summary>
+    /// Gets the metadata value for the specified key from the assembly metadata.
+    /// </summary>
+    /// <param name="assemblyMetadata">The assembly metadata.</param>
+    /// <param name="key">The key to look for.</param>
+    /// <returns>The metadata value if found; otherwise, null.</returns>
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key) =>
         assemblyMetadata?.FirstOrDefault(a => string.Equals(a.Key, key, StringComparison.OrdinalIgnoreCase))?.Value;
 
+    /// <summary>
+    /// Gets the application host specific prefix based on the builder's environment.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <returns>The application host specific prefix.</returns>
     private static string GetAppHostSpecificPrefix(IDistributedApplicationBuilder builder)
     {
         var appName = Sanitize(builder.Environment.ApplicationName).ToLowerInvariant();
@@ -73,9 +95,10 @@ internal sealed class AspireStore
     /// Gets a deterministic file path that is a copy of the <paramref name="sourceFilename"/>.
     /// The resulting file name will depend on the content of the file.
     /// </summary>
-    /// <param name="filename">A file name the to base the result on.</param>
+    /// <param name="filename">A file name to base the result on.</param>
     /// <param name="sourceFilename">An existing file.</param>
     /// <returns>A deterministic file path with the same content as <paramref name="sourceFilename"/>.</returns>
+    /// <exception cref="FileNotFoundException">Thrown when the source file does not exist.</exception>
     public string GetFileNameWithContent(string filename, string sourceFilename)
     {
         ArgumentNullException.ThrowIfNullOrWhiteSpace(filename);
@@ -124,6 +147,13 @@ internal sealed class AspireStore
         return finalFilePath;
     }
 
+    /// <summary>
+    /// Gets a deterministic file path that is a copy of the content from the provided stream.
+    /// The resulting file name will depend on the content of the stream.
+    /// </summary>
+    /// <param name="filename">A file name to base the result on.</param>
+    /// <param name="contentStream">A stream containing the content.</param>
+    /// <returns>A deterministic file path with the same content as the provided stream.</returns>
     public string GetFileNameWithContent(string filename, Stream contentStream)
     {
         ArgumentNullException.ThrowIfNullOrWhiteSpace(filename);
@@ -140,7 +170,13 @@ internal sealed class AspireStore
 
         var finalFilePath = GetFileNameWithContent(filename, tempFileName);
 
-        File.Delete(tempFileName);
+        try
+        {
+            File.Delete(tempFileName);
+        }
+        catch
+        {
+        }
 
         return finalFilePath;
     }
@@ -160,30 +196,11 @@ internal sealed class AspireStore
         return Path.Combine(_basePath, filename);
     }
 
-    public void DeleteFile(string filename)
-    {
-        // Strip any folder information from the filename.
-        filename = Path.GetFileName(filename);
-
-        var finalFilePath = Path.Combine(_basePath, filename);
-
-        if (File.Exists(finalFilePath))
-        {
-            File.Delete(finalFilePath);
-        }
-    }
-
-    public void DeleteStore()
-    {
-        if (Directory.Exists(_basePath))
-        {
-            Directory.Delete(_basePath, recursive: true);
-        }
-    }
-
     /// <summary>
     /// Removes any unwanted characters from the <paramref name="filename"/>.
     /// </summary>
+    /// <param name="filename">The filename to sanitize.</param>
+    /// <returns>The sanitized filename.</returns>
     internal static string Sanitize(string filename)
     {
         return string.Create(filename.Length, filename, static (s, name) =>
@@ -197,6 +214,9 @@ internal sealed class AspireStore
         });
     }
 
+    /// <summary>
+    /// Ensures that the directory for the store exists.
+    /// </summary>
     private void EnsureDirectory()
     {
         if (!string.IsNullOrEmpty(_basePath) && !Directory.Exists(_basePath))
