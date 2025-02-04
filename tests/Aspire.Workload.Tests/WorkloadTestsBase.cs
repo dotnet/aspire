@@ -16,7 +16,7 @@ public partial class WorkloadTestsBase
     [GeneratedRegex(@"^\s*//")]
     private static partial Regex CommentLineRegex();
 
-    // Regex is from src/Aspire.Hosting.AppHost/build/Aspire.Hosting.AppHost.targets - _GeneratedClassNameFixupRegex
+    // Regex is from src/Aspire.Hosting.AppHost/build/Aspire.Hosting.AppHost.in.targets - _GeneratedClassNameFixupRegex
     [GeneratedRegex(@"(((?<=\.)|^)(?=\d)|\W)")]
     private static partial Regex GeneratedClassNameFixupRegex();
     private static Lazy<IBrowser> Browser => new(CreateBrowser);

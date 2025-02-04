@@ -141,7 +141,7 @@
   </Target>
 
   <ImportGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'">
-    <Import Project="$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets" Condition="Exists('$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets')" />
+    <Import Project="$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.in.targets" Condition="Exists('$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.in.targets')" />
     <Import Project="$(RepoRoot)src\Aspire.AppHost.Sdk\SDK\Sdk.in.targets" Condition="Exists('$(RepoRoot)src\Aspire.AppHost.Sdk\SDK\Sdk.in.targets')" />
   </ImportGroup>
 
