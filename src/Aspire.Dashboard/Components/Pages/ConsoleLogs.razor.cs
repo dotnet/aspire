@@ -12,6 +12,7 @@ using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
@@ -94,6 +95,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     // State
     private bool _showTimestamp;
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
+
+    private readonly Dictionary<ApplicationKey, DateTime> _ignoreLogsBeforeTimeByApplicationKey = new Dictionary<ApplicationKey, DateTime>();
+    private DateTime _ignoreAllLogsBefore { get; set; } = DateTime.MinValue;
 
     public string BasePath => DashboardUrls.ConsoleLogBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ConsoleLogsPageState;
@@ -217,35 +221,35 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             Logger.LogDebug("New resource {ResourceName} selected.", selectedResourceName);
 
             ConsoleLogsSubscription? newConsoleLogsSubscription = null;
-            if (selectedResourceName is not null)
-            {
-                newConsoleLogsSubscription = new ConsoleLogsSubscription { Name = selectedResourceName };
-                Logger.LogDebug("Creating new subscription {SubscriptionId}.", newConsoleLogsSubscription.SubscriptionId);
+        if (selectedResourceName is not null)
+        {
+            newConsoleLogsSubscription = new ConsoleLogsSubscription { Name = selectedResourceName };
+            Logger.LogDebug("Creating new subscription {SubscriptionId}.", newConsoleLogsSubscription.SubscriptionId);
 
-                if (Logger.IsEnabled(LogLevel.Debug))
+            if (Logger.IsEnabled(LogLevel.Debug))
+            {
+                newConsoleLogsSubscription.CancellationToken.Register(state =>
                 {
-                    newConsoleLogsSubscription.CancellationToken.Register(state =>
-                    {
-                        var s = (ConsoleLogsSubscription)state!;
-                        Logger.LogDebug("Canceling subscription {SubscriptionId} to {ResourceName}.", s.SubscriptionId, s.Name);
-                    }, newConsoleLogsSubscription);
-                }
+                    var s = (ConsoleLogsSubscription)state!;
+                    Logger.LogDebug("Canceling subscription {SubscriptionId} to {ResourceName}.", s.SubscriptionId, s.Name);
+                }, newConsoleLogsSubscription);
             }
+        }
 
-            if (_consoleLogsSubscription is { } currentSubscription)
-            {
-                currentSubscription.Cancel();
-                _consoleLogsSubscription = newConsoleLogsSubscription;
+        if (_consoleLogsSubscription is { } currentSubscription)
+        {
+            currentSubscription.Cancel();
+            _consoleLogsSubscription = newConsoleLogsSubscription;
 
-                await TaskHelpers.WaitIgnoreCancelAsync(currentSubscription.SubscriptionTask);
-            }
-            else
-            {
-                _consoleLogsSubscription = newConsoleLogsSubscription;
-            }
+            await TaskHelpers.WaitIgnoreCancelAsync(currentSubscription.SubscriptionTask);
+        }
+        else
+        {
+            _consoleLogsSubscription = newConsoleLogsSubscription;
+        }
 
-            Logger.LogDebug("Creating new log entries collection.");
-            _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
+        Logger.LogDebug("Creating new log entries collection.");
+        _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
 
             if (newConsoleLogsSubscription is not null)
             {
@@ -417,6 +421,17 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             try
             {
+                var ignoreLogsBefore = _ignoreAllLogsBefore; // 'Global' ignore before timestamp, defaults to DateTime.Min
+                if (PageViewModel.SelectedOption.Id is not null &&
+                    _ignoreLogsBeforeTimeByApplicationKey.TryGetValue(
+                        PageViewModel.SelectedOption.Id.GetApplicationKey(),
+                        out var _ignoreBeforeForApp) &&
+                    _ignoreBeforeForApp > ignoreLogsBefore)
+                {
+                    // If we have an entry for the specific app that is a higher value than the 'global' ignore, we use that.
+                    ignoreLogsBefore = _ignoreBeforeForApp;
+                }
+
                 var logParser = new LogParser();
                 await foreach (var batch in subscription.ConfigureAwait(true))
                 {
@@ -434,7 +449,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                         }
 
                         var logEntry = logParser.CreateLogEntry(content, isErrorOutput);
-                        _logEntries.InsertSorted(logEntry);
+                        if (logEntry.Timestamp is null || logEntry.Timestamp > ignoreLogsBefore)
+                        {
+                            // Only add entries that are not ignored, or if they are null as we cannot know when they happened.
+                            _logEntries.InsertSorted(logEntry);
+                        }
                     }
 
                     await InvokeAsync(StateHasChanged);
@@ -529,6 +548,21 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         var fileName = $"{safeDisplayName}-{DateTime.Now.ToString("yyyyMMddhhmmss", CultureInfo.InvariantCulture)}.txt";
 
         await JS.InvokeVoidAsync("downloadStreamAsFile", fileName, streamReference);
+    }
+
+    private async Task ClearConsoleLogs(ApplicationKey? key)
+    {
+        if (key is null)
+        {
+            _ignoreAllLogsBefore = DateTime.UtcNow;
+        }
+        else
+        {
+            _ignoreLogsBeforeTimeByApplicationKey[key.Value] = DateTime.UtcNow;
+        }
+
+        _logEntries.Clear();
+        await InvokeAsync(StateHasChanged);
     }
 
     public async ValueTask DisposeAsync()
