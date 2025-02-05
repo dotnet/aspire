@@ -109,15 +109,15 @@ public static class AzureEventHubsExtensions
     /// </remarks>
     /// <param name="builder">The Azure Event Hubs resource builder.</param>
     /// <param name="name">The name of the Event Hub.</param>
-    /// <param name="configure">An optional method that can be used for customizing the <see cref="EventHub"/>.</param>
+    /// <param name="configure">An optional method that can be used for customizing the <see cref="AzureEventHubResource"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureEventHubsResource> WithHub(this IResourceBuilder<AzureEventHubsResource> builder, [ResourceName] string name, Action<EventHub>? configure = null)
+    public static IResourceBuilder<AzureEventHubsResource> WithHub(this IResourceBuilder<AzureEventHubsResource> builder, [ResourceName] string name, Action<AzureEventHubResource>? configure = null)
     {
         var hub = builder.Resource.Hubs.FirstOrDefault(x => x.Name == name);
 
         if (hub == null)
         {
-            hub = new EventHub(name);
+            hub = new AzureEventHubResource(name);
             builder.Resource.Hubs.Add(hub);
         }
 

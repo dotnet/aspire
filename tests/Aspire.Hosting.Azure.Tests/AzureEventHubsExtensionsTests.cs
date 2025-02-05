@@ -284,7 +284,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
             .WithHub("hub1", hub =>
             {
                 hub.PartitionCount = 4;
-                hub.ConsumerGroups.Add(new EventHubConsumerGroup("cg1"));
+                hub.ConsumerGroups.Add(new AzureEventHubConsumerGroupResource("cg1"));
             })
             .ConfigureInfrastructure(infrastructure =>
             {
@@ -315,7 +315,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
             .WithHub("hub1", hub =>
             {
                 hub.PartitionCount = 4;
-                hub.ConsumerGroups.Add(new EventHubConsumerGroup("cg1"));
+                hub.ConsumerGroups.Add(new AzureEventHubConsumerGroupResource("cg1"));
             });
 
         using var app = builder.Build();

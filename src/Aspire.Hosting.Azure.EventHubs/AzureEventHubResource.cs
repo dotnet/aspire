@@ -4,7 +4,7 @@
 using System.Text.Json;
 using Azure.Provisioning;
 
-namespace Aspire.Hosting.Azure.EventHubs;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents an Event Hub.
@@ -12,12 +12,12 @@ namespace Aspire.Hosting.Azure.EventHubs;
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-public class EventHub
+public class AzureEventHubResource
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="EventHub"/> class.
+    /// Initializes a new instance of the <see cref="AzureEventHubResource"/> class.
     /// </summary>
-    public EventHub(string name)
+    public AzureEventHubResource(string name)
     {
         Name = name;
     }
@@ -36,7 +36,7 @@ public class EventHub
     /// <summary>
     /// The consumer groups for this hub.
     /// </summary>
-    public List<EventHubConsumerGroup> ConsumerGroups { get; } = [];
+    public List<AzureEventHubConsumerGroupResource> ConsumerGroups { get; } = [];
 
     /// <summary>
     /// Converts the current instance to a provisioning entity.
