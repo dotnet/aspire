@@ -994,7 +994,6 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             }
             else if (value is { } argument)
             {
-                // TODO return after processing whether the argument contains a secret
                 er.DcpResource.AnnotateAsObjectList(CustomResource.ResourceAppArgsAnnotation, new AppLaunchArgumentAnnotation(argument, isSensitive: isSensitive));
                 spec.Args.Add(argument);
             }
@@ -1251,7 +1250,6 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             }
             else if (value is { } argument)
             {
-                // TODO return after processing whether the argument contains a secret
                 cr.DcpResource.AnnotateAsObjectList(CustomResource.ResourceAppArgsAnnotation, new AppLaunchArgumentAnnotation(argument, isSensitive: isSensitive));
                 spec.Args.Add(argument);
             }
