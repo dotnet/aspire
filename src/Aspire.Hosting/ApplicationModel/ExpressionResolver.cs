@@ -101,13 +101,14 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
     {
         var value = await vp.GetValueAsync(cancellationToken).ConfigureAwait(false);
 
+        if (vp is ParameterResource pr)
+        {
+            return new ResolvedValue(value, pr.Secret);
+        }
+
+        // No need to do extra work, since the below will only be valid for containers.
         if (!sourceIsContainer)
         {
-            if (vp is ParameterResource pr)
-            {
-                return new ResolvedValue(value, pr.Secret);
-            }
-
             return new ResolvedValue(value, false);
         }
 
