@@ -709,28 +709,7 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(dependency);
 
-        if (builder.Resource as IResource == dependency.Resource)
-        {
-            throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for itself.");
-        }
-
-        if (builder.Resource is IResourceWithParent resourceWithParent && resourceWithParent.Parent == dependency.Resource)
-        {
-            throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for its parent '{dependency.Resource.Name}'.");
-        }
-
-        if (dependency.Resource is IResourceWithParent dependencyResourceWithParent)
-        {
-            // If the dependency resource is a child resource we automatically apply
-            // the WaitFor to the parent resource. This caters for situations where
-            // the child resource itself does not have any health checks setup.
-            var parentBuilder = builder.ApplicationBuilder.CreateResourceBuilder(dependencyResourceWithParent.Parent);
-            builder.WaitFor(parentBuilder);
-        }
-
-        builder.WithRelationship(dependency.Resource, KnownRelationshipTypes.WaitFor);
-
-        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilHealthy));
+        return WaitForCore(builder, dependency, waitBehavior: null);
     }
 
     /// <summary>
@@ -767,6 +746,11 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(dependency);
 
+        return WaitForCore(builder, dependency, waitBehavior);
+    }
+
+    private static IResourceBuilder<T> WaitForCore<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, WaitBehavior? waitBehavior) where T : IResourceWithWaitSupport
+    {
         if (builder.Resource as IResource == dependency.Resource)
         {
             throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for itself.");
@@ -783,7 +767,7 @@ public static class ResourceBuilderExtensions
             // the WaitFor to the parent resource. This caters for situations where
             // the child resource itself does not have any health checks setup.
             var parentBuilder = builder.ApplicationBuilder.CreateResourceBuilder(dependencyResourceWithParent.Parent);
-            builder.WaitFor(parentBuilder, waitBehavior);
+            builder.WaitForCore(parentBuilder, waitBehavior);
         }
 
         builder.WithRelationship(dependency.Resource, KnownRelationshipTypes.WaitFor);
