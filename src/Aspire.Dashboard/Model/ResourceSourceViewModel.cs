@@ -15,10 +15,7 @@ public class ResourceSourceViewModel(string value, List<LaunchArgument>? content
 
     internal static ResourceSourceViewModel? GetSourceViewModel(ResourceViewModel resource)
     {
-        var executablePath = resource.TryGetExecutablePath(out var path) ? path : null;
-        var projectPath = resource.TryGetProjectPath(out var projPath) ? projPath : null;
-
-        (List<LaunchArgument>? Arguments, string FullCommandLine)? commandLineInfo = null;
+        (List<LaunchArgument>? Arguments, string? ArgumentsString)? commandLineInfo;
 
         // If the resource contains launch arguments, these project arguments should be shown in place of all executable arguments,
         // which include args added by the app host
@@ -26,11 +23,10 @@ public class ResourceSourceViewModel(string value, List<LaunchArgument>? content
         {
             if (launchArguments.IsDefaultOrEmpty)
             {
-                commandLineInfo = (null, executablePath ?? string.Empty);
+                commandLineInfo = (null, null);
             }
             else
             {
-                var programPath = projectPath ?? executablePath;
                 var argumentsString = string.Join(" ", launchArguments);
                 if (resource.TryGetAppArgsFormatParams(out var formatParams))
                 {
@@ -38,44 +34,46 @@ public class ResourceSourceViewModel(string value, List<LaunchArgument>? content
                         .Select(arg => new LaunchArgument(arg, !Regex.IsMatch(arg, "{\\d+}")))
                         .ToList();
                     var launchArgsString = string.Format(CultureInfo.InvariantCulture, argumentsString, [.. formatParams]);
-                    commandLineInfo = (Arguments: arguments, programPath is null ? argumentsString : $"{programPath} {launchArgsString}");
+                    commandLineInfo = (Arguments: arguments, launchArgsString);
                 }
                 else
                 {
-                    commandLineInfo = (Arguments: launchArguments.Select(arg => new LaunchArgument(arg, true)).ToList(), programPath is null ? argumentsString : $"{programPath} {argumentsString}");
+                    commandLineInfo = (Arguments: launchArguments.Select(arg => new LaunchArgument(arg, true)).ToList(), argumentsString);
                 }
             }
         }
         else if (resource.TryGetExecutableArguments(out var executableArguments) && !resource.IsProject())
         {
             var arguments = executableArguments.IsDefaultOrEmpty ? null : executableArguments.Select(arg => new LaunchArgument(arg, true)).ToList();
-            commandLineInfo = (Arguments: arguments, $"{executablePath} {string.Join(' ', executableArguments)}");
+            commandLineInfo = (Arguments: arguments, string.Join(' ', executableArguments));
         }
         else
         {
-            commandLineInfo = (Arguments: null, projectPath ?? executablePath ?? string.Empty);
+            commandLineInfo = (Arguments: null, null);
         }
 
         // NOTE projects are also executables, so we have to check for projects first
-        if (resource.IsProject() && projectPath is not null)
+        if (resource.IsProject() && resource.TryGetProjectPath(out var projectPath))
         {
-            if (commandLineInfo is { Arguments: { } arguments, FullCommandLine: { } fullCommandLine })
+            if (commandLineInfo is { Arguments: { } arguments, ArgumentsString: { } fullCommandLine })
             {
-                return new ResourceSourceViewModel(value: Path.GetFileName(projectPath), contentAfterValue: arguments, valueToVisualize: fullCommandLine, tooltip: fullCommandLine);
+                return new ResourceSourceViewModel(value: Path.GetFileName(projectPath), contentAfterValue: arguments, valueToVisualize: $"{projectPath} {fullCommandLine}", tooltip: $"{projectPath} {fullCommandLine}");
             }
 
             // default to project path if there is no executable path or executable arguments
             return new ResourceSourceViewModel(value: Path.GetFileName(projectPath), contentAfterValue: commandLineInfo?.Arguments, valueToVisualize: projectPath, tooltip: projectPath);
         }
 
-        if (executablePath is not null)
+        if (resource.TryGetExecutablePath(out var executablePath))
         {
-            return new ResourceSourceViewModel(value: Path.GetFileName(executablePath), contentAfterValue: commandLineInfo?.Arguments, valueToVisualize: commandLineInfo?.FullCommandLine ?? executablePath, tooltip: commandLineInfo?.FullCommandLine ?? string.Empty);
+            var fullSource = commandLineInfo?.ArgumentsString is not null ? $"{executablePath} {commandLineInfo.Value.ArgumentsString}" : executablePath;
+            return new ResourceSourceViewModel(value: Path.GetFileName(executablePath), contentAfterValue: commandLineInfo?.Arguments, valueToVisualize: fullSource, tooltip: fullSource);
         }
 
         if (resource.TryGetContainerImage(out var containerImage))
         {
-            return new ResourceSourceViewModel(value: containerImage, contentAfterValue: commandLineInfo?.Arguments, valueToVisualize: containerImage, tooltip: containerImage);
+            var fullSource = commandLineInfo?.ArgumentsString is null ? containerImage : $"{containerImage} {commandLineInfo.Value.ArgumentsString}";
+            return new ResourceSourceViewModel(value: containerImage, contentAfterValue: commandLineInfo?.Arguments, valueToVisualize: fullSource, tooltip: fullSource);
         }
 
         if (resource.Properties.TryGetValue(KnownProperties.Resource.Source, out var property) && property.Value is { HasStringValue: true, StringValue: var value })
