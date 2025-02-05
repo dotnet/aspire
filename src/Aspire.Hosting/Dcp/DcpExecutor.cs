@@ -983,7 +983,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
         spec.Args ??= [];
 
-        await er.ModelResource.ProcessArgumentValuesAsync(_executionContext, (unprocessed, value, ex) =>
+        await er.ModelResource.ProcessArgumentValuesAsync(_executionContext, (unprocessed, value, ex, isSensitive) =>
         {
             if (ex is not null)
             {
@@ -995,7 +995,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             else if (value is { } argument)
             {
                 // TODO return after processing whether the argument contains a secret
-                er.DcpResource.AnnotateAsObjectList(CustomResource.ResourceAppArgsAnnotation, new AppLaunchArgumentAnnotation(argument, isSensitive: false));
+                er.DcpResource.AnnotateAsObjectList(CustomResource.ResourceAppArgsAnnotation, new AppLaunchArgumentAnnotation(argument, isSensitive: isSensitive));
                 spec.Args.Add(argument);
             }
         },
@@ -1240,7 +1240,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
         spec.Args ??= [];
 
-        await cr.ModelResource.ProcessArgumentValuesAsync(_executionContext, (unprocessed, value, ex) =>
+        await cr.ModelResource.ProcessArgumentValuesAsync(_executionContext, (unprocessed, value, ex, isSensitive) =>
         {
             if (ex is not null)
             {
@@ -1252,7 +1252,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             else if (value is { } argument)
             {
                 // TODO return after processing whether the argument contains a secret
-                cr.DcpResource.AnnotateAsObjectList(CustomResource.ResourceAppArgsAnnotation, new AppLaunchArgumentAnnotation(argument, isSensitive: false));
+                cr.DcpResource.AnnotateAsObjectList(CustomResource.ResourceAppArgsAnnotation, new AppLaunchArgumentAnnotation(argument, isSensitive: isSensitive));
                 spec.Args.Add(argument);
             }
         },

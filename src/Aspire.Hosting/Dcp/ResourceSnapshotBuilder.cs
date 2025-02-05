@@ -175,7 +175,7 @@ internal class ResourceSnapshotBuilder
         {
             if (annotation.IsSensitive)
             {
-                launchArgsBuilder.Add(sensitiveArgCount.ToString(CultureInfo.InvariantCulture));
+                launchArgsBuilder.Add("{" + sensitiveArgCount.ToString(CultureInfo.InvariantCulture) + "}");
                 formatArgsBuilder.Add(annotation.Argument);
                 sensitiveArgCount++;
             }

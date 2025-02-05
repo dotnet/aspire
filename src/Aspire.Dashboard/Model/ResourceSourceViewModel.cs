@@ -33,8 +33,8 @@ public class ResourceSourceViewModel(string value, string? contentAfterValue, st
                 var argumentsString = string.Join(" ", launchArguments);
                 if (resource.TryGetAppArgsFormatParams(out var formatParams))
                 {
-                    var hiddenArgs = string.Format(CultureInfo.InvariantCulture, argumentsString, formatParams.Select(_ => "***"));
-                    var shownArgs = string.Format(CultureInfo.InvariantCulture, argumentsString, formatParams);
+                    var hiddenArgs = string.Format(CultureInfo.InvariantCulture, argumentsString, formatParams.Select(_ => "***").ToArray<object?>());
+                    var shownArgs = string.Format(CultureInfo.InvariantCulture, argumentsString, formatParams.ToArray<object?>());
                     commandLineInfo = (ArgumentsString: hiddenArgs, programPath is null ? argumentsString : $"{programPath} {shownArgs}");
                 }
                 else
