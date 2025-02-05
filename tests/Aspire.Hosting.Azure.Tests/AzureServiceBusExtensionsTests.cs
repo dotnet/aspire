@@ -605,11 +605,11 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
             .RunAsEmulator(configure => configure
-                .ConfigureEmulator(document =>
+                .WithConfiguration(document =>
                 {
                     document["UserConfig"]!["Logging"] = new JsonObject { ["Type"] = "Console" };
                 })
-                .ConfigureEmulator(document =>
+                .WithConfiguration(document =>
                 {
                     document["Custom"] = JsonValue.Create(42);
                 })
