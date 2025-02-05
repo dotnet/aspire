@@ -6,6 +6,7 @@ using System.Runtime.Versioning;
 using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Testing;
+using Xunit;
 
 namespace Aspire.Hosting.Analyzers.Tests;
 
@@ -14,6 +15,7 @@ internal static class AnalyzerTest
     public static CSharpAnalyzerTest<TAnalyzer, DefaultVerifier> Create<TAnalyzer>(string source, IEnumerable<DiagnosticResult> expectedDiagnostics)
         where TAnalyzer : DiagnosticAnalyzer, new()
     {
+        Assert.Fail("Failing this intentionally to test out the logger.");
         var test = new CSharpAnalyzerTest<TAnalyzer, DefaultVerifier>
         {
             TestState =
