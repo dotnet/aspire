@@ -7,7 +7,6 @@ using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.ServiceBus;
-using Aspire.Hosting.Utils;
 using Azure.Messaging.ServiceBus;
 using Azure.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
@@ -242,25 +241,20 @@ public static class AzureServiceBusExtensions
     /// </example>
     public static IResourceBuilder<AzureServiceBusResource> RunAsEmulator(this IResourceBuilder<AzureServiceBusResource> builder, Action<IResourceBuilder<AzureServiceBusEmulatorResource>>? configureContainer = null)
     {
+        if (builder.Resource.IsEmulator)
+        {
+            throw new InvalidOperationException("The Azure Service Bus resource is already configured to run as an emulator.");
+        }
+
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return builder;
         }
 
-        // Create a default file mount. This could be replaced by a user-provided file mount.
-        var configHostFile = Path.Combine(Directory.CreateTempSubdirectory("AspireServiceBusEmulator").FullName, "Config.json");
-
-        var defaultConfigFileMount = new ContainerMountAnnotation(
-                configHostFile,
-                AzureServiceBusEmulatorResource.EmulatorConfigJsonPath,
-                ContainerMountType.BindMount,
-                isReadOnly: true);
-
-        builder.WithAnnotation(defaultConfigFileMount);
-
         // Add emulator container
 
-        var password = PasswordGenerator.Generate(16, true, true, true, true, 0, 0, 0, 0);
+        // The password must be at least 8 characters long and contain characters from three of the following four sets: Uppercase letters, Lowercase letters, Base 10 digits, and Symbols
+        var passwordParameter = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder.ApplicationBuilder, $"{builder.Resource.Name}-sql-pwd", minLower: 1, minUpper: 1, minNumeric: 1);
 
         builder
             .WithEndpoint(name: "emulator", targetPort: 5672)
@@ -278,7 +272,10 @@ public static class AzureServiceBusExtensions
                 .WithImageRegistry(ServiceBusEmulatorContainerImageTags.AzureSqlEdgeRegistry)
                 .WithEndpoint(targetPort: 1433, name: "tcp")
                 .WithEnvironment("ACCEPT_EULA", "Y")
-                .WithEnvironment("MSSQL_SA_PASSWORD", password)
+                .WithEnvironment(context =>
+                {
+                    context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = passwordParameter;
+                })
                 .WithParentRelationship(builder.Resource);
 
         builder.WithAnnotation(new EnvironmentCallbackAnnotation((EnvironmentCallbackContext context) =>
@@ -287,22 +284,99 @@ public static class AzureServiceBusExtensions
 
             context.EnvironmentVariables.Add("ACCEPT_EULA", "Y");
             context.EnvironmentVariables.Add("SQL_SERVER", $"{sqlEndpoint.Resource.Name}:{sqlEndpoint.TargetPort}");
-            context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", password);
+            context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", passwordParameter);
         }));
+
+        var lifetime = ContainerLifetime.Session;
+
+        if (configureContainer != null)
+        {
+            var surrogate = new AzureServiceBusEmulatorResource(builder.Resource);
+            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
+            configureContainer(surrogateBuilder);
+
+            if (surrogate.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
+            {
+                lifetime = lifetimeAnnotation.Lifetime;
+            }
+        }
+
+        sqlEdgeResource = sqlEdgeResource.WithLifetime(lifetime);
+
+        // RunAsEmulator() can be followed by custom model configuration so we need to delay the creation of the Config.json file
+        // until all resources are about to be prepared and annotations can't be updated anymore.
+
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((@event, ct) =>
+        {
+            // Create JSON configuration file
+
+            var hasCustomConfigJson = builder.Resource.Annotations.OfType<ContainerMountAnnotation>().Any(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath);
+
+            if (hasCustomConfigJson)
+            {
+                return Task.CompletedTask;
+            }
+
+            // Create Config.json file content and its alterations in a temporary file
+            var tempConfigFile = WriteEmulatorConfigJson(builder.Resource);
+
+            try
+            {
+                // Apply ConfigJsonAnnotation modifications
+                var configJsonAnnotations = builder.Resource.Annotations.OfType<ConfigJsonAnnotation>();
+
+                if (configJsonAnnotations.Any())
+                {
+                    using var readStream = new FileStream(tempConfigFile, FileMode.Open, FileAccess.Read);
+                    var jsonObject = JsonNode.Parse(readStream);
+                    readStream.Close();
+
+                    if (jsonObject == null)
+                    {
+                        throw new InvalidOperationException("The configuration file mount could not be parsed.");
+                    }
+
+                    foreach (var annotation in configJsonAnnotations)
+                    {
+
+                        annotation.Configure(jsonObject);
+                    }
+
+                    using var writeStream = new FileStream(tempConfigFile, FileMode.Open, FileAccess.Write);
+                    using var writer = new Utf8JsonWriter(writeStream, new JsonWriterOptions { Indented = true });
+                    jsonObject.WriteTo(writer);
+                }
+
+                var aspireStore = builder.ApplicationBuilder.CreateStore();
+
+                // Deterministic file path for the configuration file based on its content
+                var configJsonPath = aspireStore.GetFileNameWithContent($"{builder.Resource.Name}-Config.json", tempConfigFile);
+
+                builder.WithAnnotation(new ContainerMountAnnotation(
+                    configJsonPath,
+                    AzureServiceBusEmulatorResource.EmulatorConfigJsonPath,
+                    ContainerMountType.BindMount,
+                    isReadOnly: true));
+            }
+            finally
+            {
+                try
+                {
+                    File.Delete(tempConfigFile);
+                }
+                catch
+                {
+                }
+            }
+
+            return Task.CompletedTask;
+        });
 
         ServiceBusClient? serviceBusClient = null;
         string? queueOrTopicName = null;
 
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (@event, ct) =>
         {
-            var serviceBusEmulatorResources = builder.ApplicationBuilder.Resources.OfType<AzureServiceBusResource>().Where(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
-
-            if (!serviceBusEmulatorResources.Any())
-            {
-                // No-op if there is no Azure Service Bus emulator resource.
-                return;
-            }
-
             var connectionString = await builder.Resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
 
             if (connectionString == null)
@@ -316,122 +390,11 @@ public static class AzureServiceBusExtensions
             serviceBusClient = new ServiceBusClient(connectionString, noRetryOptions);
 
             queueOrTopicName =
-                serviceBusEmulatorResources.SelectMany(x => x.Queues).Select(x => x.Name).FirstOrDefault()
-                ?? serviceBusEmulatorResources.SelectMany(x => x.Topics).Select(x => x.Name).FirstOrDefault();
-
-            // Create JSON configuration file
-
-            foreach (var emulatorResource in serviceBusEmulatorResources)
-            {
-                var configFileMount = emulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath);
-
-                // If there is a custom mount for EmulatorConfigJsonPath we don't need to create the Config.json file.
-                if (configFileMount != defaultConfigFileMount)
-                {
-                    continue;
-                }
-
-                var fileStreamOptions = new FileStreamOptions() { Mode = FileMode.Create, Access = FileAccess.Write };
-
-                if (!OperatingSystem.IsWindows())
-                {
-                    fileStreamOptions.UnixCreateMode =
-                        UnixFileMode.UserRead | UnixFileMode.UserWrite
-                        | UnixFileMode.GroupRead | UnixFileMode.GroupWrite
-                        | UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
-                }
-
-                using (var stream = new FileStream(configFileMount.Source!, fileStreamOptions))
-                {
-                    using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
-
-                    writer.WriteStartObject();                      // {
-                    writer.WriteStartObject("UserConfig");          //   "UserConfig": {
-                    writer.WriteStartArray("Namespaces");           //     "Namespaces": [
-                    writer.WriteStartObject();                      //       {
-                    writer.WriteString("Name", emulatorResource.Name);
-                    writer.WriteStartArray("Queues");               //         "Queues": [
-
-                    foreach (var queue in emulatorResource.Queues)
-                    {
-                        writer.WriteStartObject();
-                        queue.WriteJsonObjectProperties(writer);
-                        writer.WriteEndObject();
-                    }
-
-                    writer.WriteEndArray();                         //         ] (/Queues)
-
-                    writer.WriteStartArray("Topics");               //         "Topics": [
-                    foreach (var topic in emulatorResource.Topics)
-                    {
-                        writer.WriteStartObject();                  //           "{ (Topic)"
-                        topic.WriteJsonObjectProperties(writer);
-
-                        writer.WriteStartArray("Subscriptions");    //             "Subscriptions": [
-                        foreach (var subscription in topic.Subscriptions)
-                        {
-                            writer.WriteStartObject();              //               "{ (Subscription)"
-                            subscription.WriteJsonObjectProperties(writer);
-
-                            writer.WriteStartArray("Rules");        //                 "Rules": [
-                            foreach (var rule in subscription.Rules)
-                            {
-                                writer.WriteStartObject();
-                                rule.WriteJsonObjectProperties(writer);
-                                writer.WriteEndObject();
-                            }
-
-                            writer.WriteEndArray();                 //                  ] (/Rules)
-
-                            writer.WriteEndObject();                //               } (/Subscription)
-                        }
-
-                        writer.WriteEndArray();                     //             ] (/Subscriptions)
-
-                        writer.WriteEndObject();                    //           } (/Topic)
-                    }
-                    writer.WriteEndArray();                         //         ] (/Topics)
-
-                    writer.WriteEndObject();                        //       } (/Namespace)
-                    writer.WriteEndArray();                         //     ], (/Namespaces)
-                    writer.WriteStartObject("Logging");             //     "Logging": {
-                    writer.WriteString("Type", "File");             //       "Type": "File"
-                    writer.WriteEndObject();                        //     } (/LoggingConfig)
-
-                    writer.WriteEndObject();                        //   } (/UserConfig)
-                    writer.WriteEndObject();                        // } (/Root)
-                }
-
-                // Apply ConfigJsonAnnotation modifications
-                var configJsonAnnotations = emulatorResource.Annotations.OfType<ConfigJsonAnnotation>();
-
-                foreach (var annotation in configJsonAnnotations)
-                {
-                    using var readStream = new FileStream(configFileMount.Source!, FileMode.Open, FileAccess.Read);
-                    var jsonObject = JsonNode.Parse(readStream);
-                    readStream.Close();
-
-                    using var writeStream = new FileStream(configFileMount.Source!, FileMode.Open, FileAccess.Write);
-                    using var writer = new Utf8JsonWriter(writeStream, new JsonWriterOptions { Indented = true });
-
-                    if (jsonObject == null)
-                    {
-                        throw new InvalidOperationException("The configuration file mount could not be parsed.");
-                    }
-                    annotation.Configure(jsonObject);
-                    jsonObject.WriteTo(writer);
-                }
-            }
+                builder.Resource.Queues.Select(x => x.Name).FirstOrDefault()
+                ?? builder.Resource.Topics.Select(x => x.Name).FirstOrDefault();
         });
 
         var healthCheckKey = $"{builder.Resource.Name}_check";
-
-        if (configureContainer != null)
-        {
-            var surrogate = new AzureServiceBusEmulatorResource(builder.Resource);
-            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
-            configureContainer(surrogateBuilder);
-        }
 
         // To use the existing ServiceBus health check we would need to know if there is any queue or topic defined.
         // We can register a health check for a queue and then no-op if there are no queues. Same for topics.
@@ -476,6 +439,20 @@ public static class AzureServiceBusExtensions
     /// <param name="builder">The builder for the <see cref="AzureServiceBusEmulatorResource"/>.</param>
     /// <param name="configJson">A callback to update the JSON object representation of the configuration.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <example>
+    /// Here is an example of how to configure the emulator to use a different logging mechanism:
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// 
+    /// builder.AddAzureServiceBus("servicebusns")
+    ///        .RunAsEmulator(configure => configure
+    ///            .ConfigureEmulator(document =>
+    ///            {
+    ///                document["UserConfig"]!["Logging"] = new JsonObject { ["Type"] = "Console" };
+    ///            });
+    ///        );
+    /// </code>
+    /// </example>
     public static IResourceBuilder<AzureServiceBusEmulatorResource> ConfigureEmulator(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, Action<JsonNode> configJson)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -498,5 +475,71 @@ public static class AzureServiceBusExtensions
         {
             endpoint.Port = port;
         });
+    }
+
+    private static string WriteEmulatorConfigJson(AzureServiceBusResource emulatorResource)
+    {
+        var filePath = Path.GetTempFileName();
+
+        using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Write);
+        using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
+
+        writer.WriteStartObject();                      // {
+        writer.WriteStartObject("UserConfig");          //   "UserConfig": {
+        writer.WriteStartArray("Namespaces");           //     "Namespaces": [
+        writer.WriteStartObject();                      //       {
+        writer.WriteString("Name", emulatorResource.Name);
+        writer.WriteStartArray("Queues");               //         "Queues": [
+
+        foreach (var queue in emulatorResource.Queues)
+        {
+            writer.WriteStartObject();
+            queue.WriteJsonObjectProperties(writer);
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();                         //         ] (/Queues)
+
+        writer.WriteStartArray("Topics");               //         "Topics": [
+        foreach (var topic in emulatorResource.Topics)
+        {
+            writer.WriteStartObject();                  //           "{ (Topic)"
+            topic.WriteJsonObjectProperties(writer);
+
+            writer.WriteStartArray("Subscriptions");    //             "Subscriptions": [
+            foreach (var subscription in topic.Subscriptions)
+            {
+                writer.WriteStartObject();              //               "{ (Subscription)"
+                subscription.WriteJsonObjectProperties(writer);
+
+                writer.WriteStartArray("Rules");        //                 "Rules": [
+                foreach (var rule in subscription.Rules)
+                {
+                    writer.WriteStartObject();
+                    rule.WriteJsonObjectProperties(writer);
+                    writer.WriteEndObject();
+                }
+
+                writer.WriteEndArray();                 //                  ] (/Rules)
+
+                writer.WriteEndObject();                //               } (/Subscription)
+            }
+
+            writer.WriteEndArray();                     //             ] (/Subscriptions)
+
+            writer.WriteEndObject();                    //           } (/Topic)
+        }
+        writer.WriteEndArray();                         //         ] (/Topics)
+
+        writer.WriteEndObject();                        //       } (/Namespace)
+        writer.WriteEndArray();                         //     ], (/Namespaces)
+        writer.WriteStartObject("Logging");             //     "Logging": {
+        writer.WriteString("Type", "File");             //       "Type": "File"
+        writer.WriteEndObject();                        //     } (/LoggingConfig)
+
+        writer.WriteEndObject();                        //   } (/UserConfig)
+        writer.WriteEndObject();                        // } (/Root)
+
+        return filePath;
     }
 }

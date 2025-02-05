@@ -242,6 +242,15 @@ namespace Projects%3B
     </ItemGroup>
   </Target>
 
+  <Target Name="EmbedAppHostIntermediateOutputPath" BeforeTargets="GetAssemblyAttributes" Condition=" '$(IsAspireHost)' == 'true' ">
+    <ItemGroup>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+        <_Parameter1>apphostprojectbaseintermediateoutputpath</_Parameter1>
+        <_Parameter2>$(BaseIntermediateOutputPath)</_Parameter2>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
+
   <PropertyGroup>
     <AspirePublisher Condition="'$(AspirePublisher)' == ''">manifest</AspirePublisher>
     <AspireManifestPublishOutputPath Condition="'$(AspireManifestPublishOutputPath)' == ''">$(_AspireIntermediatePath)</AspireManifestPublishOutputPath>
