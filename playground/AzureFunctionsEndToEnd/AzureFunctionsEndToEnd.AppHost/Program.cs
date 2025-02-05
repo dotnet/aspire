@@ -7,9 +7,10 @@ var eventHubs = builder.AddAzureEventHubs("eventhubs").RunAsEmulator().WithHub("
 #if !SKIP_UNSTABLE_EMULATORS
 var serviceBus = builder.AddAzureServiceBus("messaging").RunAsEmulator().WithQueue("myqueue");
 var cosmosDb = builder.AddAzureCosmosDB("cosmosdb")
-    .RunAsEmulator()
-    .WithDatabase("mydatabase", (database)
-        => database.Containers.AddRange([new("mycontainer", "/id")]));
+    .RunAsEmulator();
+var database = cosmosDb.AddCosmosDatabase("mydatabase");
+database.AddContainer("mycontainer", "/id");
+
 #endif
 
 var funcApp = builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_Functions>("funcapp")

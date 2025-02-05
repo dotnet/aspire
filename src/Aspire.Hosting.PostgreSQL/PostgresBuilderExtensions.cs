@@ -244,13 +244,12 @@ public static class PostgresBuilderExtensions
 
     /// <summary>
     /// Adds an administration and development platform for PostgreSQL to the application model using pgweb.
-    /// </summary>
-    /// <remarks>
     /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgWebTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgWebImage"/> container image.
-    /// </remarks>
+    /// </summary>
     /// <param name="builder">The Postgres server resource builder.</param>
     /// <param name="configureContainer">Configuration callback for pgweb container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
+    /// <remarks>
     /// <example>
     /// Use in application host with a Postgres resource
     /// <code lang="csharp">
@@ -266,6 +265,7 @@ public static class PostgresBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<PostgresServerResource> WithPgWeb(this IResourceBuilder<PostgresServerResource> builder, Action<IResourceBuilder<PgWebContainerResource>>? configureContainer = null, string? containerName = null)
     {
@@ -293,6 +293,8 @@ public static class PostgresBuilderExtensions
 
             pgwebContainerBuilder.WithRelationship(builder.Resource, "PgWeb");
 
+            pgwebContainerBuilder.WithHttpHealthCheck();
+
             builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>(async (e, ct) =>
             {
                 var adminResource = builder.ApplicationBuilder.Resources.OfType<PgWebContainerResource>().Single();
@@ -302,6 +304,15 @@ public static class PostgresBuilderExtensions
                 if (!Directory.Exists(serverFileMount.Source!))
                 {
                     Directory.CreateDirectory(serverFileMount.Source!);
+                }
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    var mode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                               UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                               UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
+                    File.SetUnixFileMode(serverFileMount.Source!, mode);
                 }
 
                 foreach (var postgresDatabase in postgresInstances)

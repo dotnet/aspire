@@ -1,0 +1,34 @@
+name: Generate API Diffs
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 16 * * *' # 8am PST (16:00 UTC)
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate-and-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore and build
+        run: |
+          set +e
+
+          for proj in $(find src -name '*.csproj' ! -path 'src/Aspire.ProjectTemplates/**/*.csproj'); do
+            export CI=false && ./dotnet.sh build "$proj" -f net8.0 --configuration Release --no-incremental /t:"Build;GenAPIGenerateReferenceAssemblySource"
+          done
+        continue-on-error: true
+
+      - name: Create or update pull request
+        uses: peter-evans/create-pull-request@67ccf781d68cd99b580ae25a5c18a1cc84ffff1f
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: update-api-diffs
+          base: main
+          title: "[Automated] Update API Surface Area"
+          body: "Auto-generated update to the API surface to compare current surface vs latest release. This should only be merged once this surface area ships in a new release."

@@ -44,6 +44,14 @@
         "principalId": ""
       }
     },
+    "mydatabase": {
+      "type": "value.v0",
+      "connectionString": "{cosmosdb.outputs.connectionString}"
+    },
+    "mycontainer": {
+      "type": "value.v0",
+      "connectionString": "{cosmosdb.outputs.connectionString}"
+    },
     "funcstorage67c6c": {
       "type": "azure.bicep.v0",
       "path": "funcstorage67c6c.module.bicep",

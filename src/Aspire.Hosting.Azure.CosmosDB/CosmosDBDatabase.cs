@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
+
 namespace Aspire.Hosting.Azure.CosmosDB;
 
 /// <summary>
@@ -9,23 +11,34 @@ namespace Aspire.Hosting.Azure.CosmosDB;
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-public class CosmosDBDatabase
+public class CosmosDBDatabase : Resource, IResourceWithParent<AzureCosmosDBResource>, IResourceWithConnectionString
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CosmosDBDatabase"/> class.
     /// </summary>
-    public CosmosDBDatabase(string name)
+    public CosmosDBDatabase(string name, string databaseName, AzureCosmosDBResource parent) : base(name)
     {
-        Name = name;
+        DatabaseName = databaseName;
+        Parent = parent;
     }
 
     /// <summary>
-    /// The database name.
+    /// Gets or sets the database name.
     /// </summary>
-    public string Name { get; set; }
+    public string DatabaseName { get; set; }
 
     /// <summary>
     /// The containers for this database.
     /// </summary>
-    public List<CosmosDBContainer> Containers { get; } = [];
+    internal List<CosmosDBContainer> Containers { get; } = [];
+
+    /// <summary>
+    /// Gets the parent Azure Cosmos DB account resource.
+    /// </summary>
+    public AzureCosmosDBResource Parent { get; }
+
+    /// <summary>
+    /// Gets the connection string expression for the Azure Cosmos DB database.
+    /// </summary>
+    public ReferenceExpression ConnectionStringExpression => Parent.ConnectionStringExpression;
 }
