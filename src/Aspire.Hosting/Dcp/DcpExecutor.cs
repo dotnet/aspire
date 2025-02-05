@@ -852,21 +852,13 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                     // and the environment variables/application URLs inside CreateExecutableAsync().
                     exeSpec.Spec.Args.Add("--no-launch-profile");
 
-                    foreach (var arg in exeSpec.Spec.Args)
-                    {
-                        exeSpec.AnnotateAsObjectList(CustomResource.ProjectArgsAnnotation, arg);
-                    }
-
                     var launchProfile = project.GetEffectiveLaunchProfile()?.LaunchProfile;
                     if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
                     {
                         var cmdArgs = CommandLineArgsParser.Parse(launchProfile.CommandLineArgs);
                         if (cmdArgs.Count > 0)
                         {
-                            const string separator = "--";
-                            exeSpec.Spec.Args.Add(separator);
-                            exeSpec.Annotate(CustomResource.ProjectArgsAnnotation, separator);
-
+                            exeSpec.Spec.Args.Add("--");
                             exeSpec.Spec.Args.AddRange(cmdArgs);
                         }
                     }
@@ -1000,9 +992,11 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                 resourceLogger.LogCritical(ex, "Failed to apply argument value '{ArgKey}'. A dependency may have failed to start.", ex.Data["ArgKey"]);
                 _logger.LogDebug(ex, "Failed to apply argument value '{ArgKey}' to '{ResourceName}'. A dependency may have failed to start.", ex.Data["ArgKey"], er.ModelResource.Name);
             }
-            else if (value is string a)
+            else if (value is { } argument)
             {
-                spec.Args.Add(a);
+                // TODO return after processing whether the argument contains a secret
+                er.DcpResource.AnnotateAsObjectList(CustomResource.ResourceAppArgsAnnotation, new AppLaunchArgumentAnnotation(argument, isSensitive: false));
+                spec.Args.Add(argument);
             }
         },
         resourceLogger,
@@ -1255,9 +1249,11 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                 resourceLogger.LogCritical(ex, "Failed to apply argument value '{ArgKey}'. A dependency may have failed to start.", value);
                 _logger.LogDebug(ex, "Failed to apply argument value '{ArgKey}' to '{ResourceName}'. A dependency may have failed to start.", value, cr.ModelResource.Name);
             }
-            else if (value is string a)
+            else if (value is { } argument)
             {
-                spec.Args.Add(a);
+                // TODO return after processing whether the argument contains a secret
+                cr.DcpResource.AnnotateAsObjectList(CustomResource.ResourceAppArgsAnnotation, new AppLaunchArgumentAnnotation(argument, isSensitive: false));
+                spec.Args.Add(argument);
             }
         },
         resourceLogger,

@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
+
 namespace Aspire.Dashboard.Model;
 
 public class ResourceSourceViewModel(string value, string? contentAfterValue, string valueToVisualize, string tooltip)
@@ -13,23 +15,46 @@ public class ResourceSourceViewModel(string value, string? contentAfterValue, st
     internal static ResourceSourceViewModel? GetSourceViewModel(ResourceViewModel resource)
     {
         var executablePath = resource.TryGetExecutablePath(out var path) ? path : null;
+        var projectPath = resource.TryGetProjectPath(out var projPath) ? projPath : null;
 
         (string? ArgumentsString, string FullCommandLine)? commandLineInfo = null;
 
-        if (resource.TryGetExecutableArguments(out var arguments))
+        // If the resource contains launch arguments, these project arguments should be shown in place of all executable arguments,
+        // which include args added by the app host
+        if (resource.TryGetAppArgs(out var launchArguments))
         {
-            if (resource.TryGetProjectArguments(out var projectArgs))
+            if (launchArguments.IsDefaultOrEmpty)
             {
-                var foundHostArgCount = arguments.TakeWhile((arg, i) => i < projectArgs.Length && string.Equals(arg, projectArgs[i], StringComparison.Ordinal)).Count();
-                arguments = [..arguments.Skip(foundHostArgCount)];
+                commandLineInfo = (null, executablePath ?? string.Empty);
             }
-
+            else
+            {
+                var programPath = projectPath ?? executablePath;
+                var argumentsString = string.Join(" ", launchArguments);
+                if (resource.TryGetAppArgsFormatParams(out var formatParams))
+                {
+                    var hiddenArgs = string.Format(CultureInfo.InvariantCulture, argumentsString, formatParams.Select(_ => "***"));
+                    var shownArgs = string.Format(CultureInfo.InvariantCulture, argumentsString, formatParams);
+                    commandLineInfo = (ArgumentsString: hiddenArgs, programPath is null ? argumentsString : $"{programPath} {shownArgs}");
+                }
+                else
+                {
+                    commandLineInfo = (ArgumentsString: argumentsString, programPath is null ? argumentsString : $"{programPath} {argumentsString}");
+                }
+            }
+        }
+        else if (resource.TryGetExecutableArguments(out var arguments) && !resource.IsProject())
+        {
             var argumentsString = arguments.IsDefaultOrEmpty ? null : string.Join(" ", arguments);
             commandLineInfo = (ArgumentsString: argumentsString, $"{executablePath} {argumentsString}");
         }
+        else
+        {
+            commandLineInfo = (ArgumentsString: null, projectPath ?? string.Empty);
+        }
 
         // NOTE projects are also executables, so we have to check for projects first
-        if (resource.IsProject() && resource.TryGetProjectPath(out var projectPath))
+        if (resource.IsProject() && projectPath is not null)
         {
             if (commandLineInfo is { ArgumentsString: { } argumentsString, FullCommandLine: { } fullCommandLine })
             {
@@ -47,7 +72,7 @@ public class ResourceSourceViewModel(string value, string? contentAfterValue, st
 
         if (resource.TryGetContainerImage(out var containerImage))
         {
-            return new ResourceSourceViewModel(value: containerImage, contentAfterValue: null, valueToVisualize: containerImage, tooltip: containerImage);
+            return new ResourceSourceViewModel(value: containerImage, contentAfterValue: commandLineInfo?.ArgumentsString, valueToVisualize: containerImage, tooltip: containerImage);
         }
 
         if (resource.Properties.TryGetValue(KnownProperties.Resource.Source, out var property) && property.Value is { HasStringValue: true, StringValue: var value })

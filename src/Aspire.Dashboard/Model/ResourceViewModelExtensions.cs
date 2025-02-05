@@ -59,9 +59,14 @@ internal static class ResourceViewModelExtensions
         return resource.TryGetCustomDataStringArray(KnownProperties.Executable.Args, out arguments);
     }
 
-    public static bool TryGetProjectArguments(this ResourceViewModel resource, out ImmutableArray<string> arguments)
+    public static bool TryGetAppArgs(this ResourceViewModel resource, out ImmutableArray<string> arguments)
     {
-        return resource.TryGetCustomDataStringArray(KnownProperties.Project.Args, out arguments);
+        return resource.TryGetCustomDataStringArray(KnownProperties.Resource.AppArgs, out arguments);
+    }
+
+    public static bool TryGetAppArgsFormatParams(this ResourceViewModel resource, out ImmutableArray<string> argParams)
+    {
+        return resource.TryGetCustomDataStringArray(KnownProperties.Resource.AppArgsParams, out argParams);
     }
 
     private static bool TryGetCustomDataString(this ResourceViewModel resource, string key, [NotNullWhen(returnValue: true)] out string? s)
