@@ -76,6 +76,10 @@
         "principalId": ""
       }
     },
+    "db": {
+      "type": "value.v0",
+      "connectionString": "{account.outputs.connectionString}"
+    },
     "storage": {
       "type": "azure.bicep.v0",
       "path": "storage.module.bicep",

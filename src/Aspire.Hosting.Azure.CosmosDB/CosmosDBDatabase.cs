@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Azure.CosmosDB;
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-public class CosmosDBDatabase : Resource, IResourceWithParent<AzureCosmosDBResource>
+public class CosmosDBDatabase : Resource, IResourceWithParent<AzureCosmosDBResource>, IResourceWithConnectionString
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CosmosDBDatabase"/> class.
@@ -36,4 +36,9 @@ public class CosmosDBDatabase : Resource, IResourceWithParent<AzureCosmosDBResou
     /// Gets the parent Azure Cosmos DB account resource.
     /// </summary>
     public AzureCosmosDBResource Parent { get; }
+
+    /// <summary>
+    /// Gets the connection string expression for the Azure Cosmos DB database.
+    /// </summary>
+    public ReferenceExpression ConnectionStringExpression => Parent.ConnectionStringExpression;
 }
