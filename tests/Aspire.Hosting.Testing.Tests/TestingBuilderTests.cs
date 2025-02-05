@@ -388,7 +388,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
         await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
 
         // Explicitly get the HTTPS endpoint - this is only available on the "https" launch profile.
-        var httpClient = app.CreateHttpClient("mywebapp1", "https");
+        var httpClient = app.CreateHttpClientWithResilience("mywebapp1", "https");
         var result = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
         Assert.NotNull(result);
         Assert.True(result.Length > 0);
@@ -409,7 +409,6 @@ public class TestingBuilderTests(ITestOutputHelper output)
     {
         var timeout = TimeSpan.FromMinutes(5);
         using var cts = new CancellationTokenSource(timeout);
-        DistributedApplication? app = null;
 
         IDistributedApplicationTestingBuilder builder;
         if (crashArg == "before-build")
@@ -429,7 +428,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
 
         cts.CancelAfter(timeout);
         builder.WithTestAndResourceLogging(output);
-        app = await builder.BuildAsync().WaitAsync(cts.Token);
+        using var app = await builder.BuildAsync().WaitAsync(cts.Token);
 
         cts.CancelAfter(timeout);
         if (crashArg == "after-build")

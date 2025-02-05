@@ -20,7 +20,7 @@ public class TestingFactoryCrashTests
         var timeout = TimeSpan.FromMinutes(5);
         using var cts = new CancellationTokenSource(timeout);
 
-        var factory = new DistributedApplicationFactory(typeof(Projects.TestingAppHost1_AppHost), [$"--crash-{crashArg}"]);
+        using var factory = new DistributedApplicationFactory(typeof(Projects.TestingAppHost1_AppHost), [$"--crash-{crashArg}"]);
 
         if (crashArg is "before-build" or "after-build")
         {
