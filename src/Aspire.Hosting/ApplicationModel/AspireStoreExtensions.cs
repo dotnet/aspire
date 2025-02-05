@@ -3,7 +3,7 @@
 
 using System.Reflection;
 
-namespace Aspire.Hosting;
+namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
 /// Provides extension methods for <see cref="IDistributedApplicationBuilder"/> to create an <see cref="IAspireStore"/> instance.

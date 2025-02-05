@@ -383,7 +383,7 @@ public static class AzureEventHubsExtensions
     /// <param name="builder">The builder for the <see cref="AzureEventHubsEmulatorResource"/>.</param>
     /// <param name="configJson">A callback to update the JSON object representation of the configuration.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureEventHubsEmulatorResource> ConfigureEmulator(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, Action<JsonNode> configJson)
+    public static IResourceBuilder<AzureEventHubsEmulatorResource> WithConfiguration(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, Action<JsonNode> configJson)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configJson);

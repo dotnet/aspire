@@ -3,7 +3,7 @@
 
 using System.Security.Cryptography;
 
-namespace Aspire.Hosting;
+namespace Aspire.Hosting.ApplicationModel;
 
 internal sealed class AspireStore : IAspireStore
 {
@@ -26,8 +26,8 @@ internal sealed class AspireStore : IAspireStore
 
     public string GetFileNameWithContent(string filenameTemplate, string sourceFilename)
     {
-        ArgumentNullException.ThrowIfNullOrWhiteSpace(filenameTemplate);
-        ArgumentNullException.ThrowIfNullOrWhiteSpace(sourceFilename);
+        ArgumentException.ThrowIfNullOrWhiteSpace(filenameTemplate);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceFilename);
 
         if (!File.Exists(sourceFilename))
         {
@@ -60,7 +60,7 @@ internal sealed class AspireStore : IAspireStore
 
     public string GetFileNameWithContent(string filenameTemplate, Stream contentStream)
     {
-        ArgumentNullException.ThrowIfNullOrWhiteSpace(filenameTemplate);
+        ArgumentException.ThrowIfNullOrWhiteSpace(filenameTemplate);
         ArgumentNullException.ThrowIfNull(contentStream);
 
         // Create a temporary file to write the content to.

@@ -446,14 +446,14 @@ public static class AzureServiceBusExtensions
     /// 
     /// builder.AddAzureServiceBus("servicebusns")
     ///        .RunAsEmulator(configure => configure
-    ///            .ConfigureEmulator(document =>
+    ///            .WithConfiguration(document =>
     ///            {
     ///                document["UserConfig"]!["Logging"] = new JsonObject { ["Type"] = "Console" };
     ///            });
     ///        );
     /// </code>
     /// </example>
-    public static IResourceBuilder<AzureServiceBusEmulatorResource> ConfigureEmulator(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, Action<JsonNode> configJson)
+    public static IResourceBuilder<AzureServiceBusEmulatorResource> WithConfiguration(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, Action<JsonNode> configJson)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configJson);

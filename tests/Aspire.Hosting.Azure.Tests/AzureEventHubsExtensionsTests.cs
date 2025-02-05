@@ -365,7 +365,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         var eventHubs = builder
             .AddAzureEventHubs("eh")
             .WithHub("hub1")
-            .RunAsEmulator(configure => configure.ConfigureEmulator(document =>
+            .RunAsEmulator(configure => configure.WithConfiguration(document =>
             {
                 document["UserConfig"]!["LoggingConfig"] = new JsonObject { ["Type"] = "Console" };
             }));
