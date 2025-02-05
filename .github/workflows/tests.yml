@@ -182,6 +182,7 @@ jobs:
             --logger "console;verbosity=normal" \
             --logger "trx" \
             --logger html \
+            --logger GitHubActions \
             --blame \
             --blame-hang-timeout 7m \
             --results-directory testresults \
