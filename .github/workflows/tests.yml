@@ -182,11 +182,12 @@ jobs:
             --logger "console;verbosity=normal" \
             --logger "trx" \
             --logger html \
+            --logger "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true" \
             --blame \
             --blame-hang-timeout 7m \
             --results-directory testresults \
             --no-restore \
-            --no-build
+            --no-build -- RunConfiguration.CollectSourceInformation=true
 
       - name: Compress test results
         if: always()
