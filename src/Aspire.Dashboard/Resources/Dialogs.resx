@@ -262,4 +262,7 @@
     <value>A maximum length of {1} characters is allowed.</value>
     <comment>{0} is the field name, whereas {1} is the length. We don't want to show the field name, so it is missing.</comment>
   </data>
+  <data name="SettingsDashboardTelemetry" xml:space="preserve">
+    <value>Dashboard telemetry</value>
+  </data>
 </root>

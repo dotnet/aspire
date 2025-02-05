@@ -263,12 +263,13 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 
     public record StringLogLine(int LineNumber, string Content, bool IsFormatted);
 
-    public static async Task OpenDialogAsync(ViewportInformation viewportInformation, IDialogService dialogService, string valueDescription, string value)
+    public static async Task OpenDialogAsync(ViewportInformation viewportInformation, IDialogService dialogService, string dismissTitle, string valueDescription, string value)
     {
         var width = viewportInformation.IsDesktop ? "75vw" : "100vw";
         var parameters = new DialogParameters
         {
             Title = valueDescription,
+            DismissTitle = dismissTitle,
             Width = $"min(1000px, {width})",
             TrapFocus = true,
             Modal = true,

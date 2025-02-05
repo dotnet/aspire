@@ -25,6 +25,9 @@ public partial class StructuredLogActions : ComponentBase
     public required IStringLocalizer<Resources.ControlsStrings> ControlsLoc { get; set; }
 
     [Inject]
+    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; set; }
+
+    [Inject]
     public required IDialogService DialogService { get; set; }
 
     [Parameter]
@@ -55,7 +58,7 @@ public partial class StructuredLogActions : ComponentBase
             OnClick = async () =>
             {
                 var header = Loc[nameof(Resources.StructuredLogs.StructuredLogsMessageColumnHeader)];
-                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, header, LogEntry.Message);
+                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)], header, LogEntry.Message);
             }
         });
     }
