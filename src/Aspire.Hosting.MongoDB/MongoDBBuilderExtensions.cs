@@ -158,6 +158,7 @@ public static class MongoDBBuilderExtensions
                                                         .WithImageRegistry(MongoDBContainerImageTags.MongoExpressRegistry)
                                                         .WithEnvironment(context => ConfigureMongoExpressContainer(context, builder.Resource))
                                                         .WithHttpEndpoint(targetPort: 8081, name: "http")
+                                                        .WithParentRelationship(builder.Resource)
                                                         .ExcludeFromManifest();
 
         configureContainer?.Invoke(resourceBuilder);

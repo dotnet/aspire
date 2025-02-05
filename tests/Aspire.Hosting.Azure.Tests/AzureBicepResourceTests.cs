@@ -248,7 +248,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             {
                 callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
             }).WithAccessKeyAuthentication();
-        cosmos.WithDatabase("mydatabase", db => db.Containers.Add(new("mycontainer", "mypartitionkeypath")));
+        var db = cosmos.AddCosmosDatabase("db", databaseName: "mydatabase");
+        db.AddContainer("container", "mypartitionkeypath", containerName: "mycontainer");
 
         cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
 
@@ -294,7 +295,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
             }
 
-            resource mydatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
+            resource db 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
               name: 'mydatabase'
               location: location
               properties: {
@@ -305,7 +306,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               parent: cosmos
             }
 
-            resource mycontainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
+            resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
               name: 'mycontainer'
               location: location
               properties: {
@@ -318,7 +319,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                   }
                 }
               }
-              parent: mydatabase
+              parent: db
             }
 
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
@@ -359,7 +360,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             {
                 callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
             });
-        cosmos.WithDatabase("mydatabase", db => db.Containers.Add(new("mycontainer", "mypartitionkeypath")));
+        var db = cosmos.AddCosmosDatabase("mydatabase");
+        db.AddContainer("mycontainer", "mypartitionkeypath");
 
         cosmos.Resource.Outputs["connectionString"] = "mycosmosconnectionstring";
 
@@ -480,7 +482,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             {
                 callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
             }).WithAccessKeyAuthentication();
-        cosmos.WithDatabase("mydatabase", db => db.Containers.Add(new("mycontainer", "mypartitionkeypath")));
+        var db = cosmos.AddCosmosDatabase("mydatabase");
+        db.AddContainer("mycontainer", "mypartitionkeypath");
 
         cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
 
@@ -591,7 +594,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             {
                 callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
             });
-        cosmos.WithDatabase("mydatabase", db => db.Containers.Add(new("mycontainer", "mypartitionkeypath")));
+        var db = cosmos.AddCosmosDatabase("mydatabase");
+        db.AddContainer("mycontainer", "mypartitionkeypath");
 
         cosmos.Resource.Outputs["connectionString"] = "mycosmosconnectionstring";
 
@@ -1115,8 +1119,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 #pragma warning restore CS0618 // Type or member is obsolete
 
         Assert.True(redis.Resource.IsContainer());
+        Assert.NotNull(redis.Resource.PasswordParameter);
 
-        Assert.Equal("localhost:12455", await redis.Resource.GetConnectionStringAsync());
+        Assert.Equal($"localhost:12455,password={redis.Resource.PasswordParameter.Value}", await redis.Resource.GetConnectionStringAsync());
 
         var manifest = await ManifestUtils.GetManifestWithBicep(redis.Resource);
 

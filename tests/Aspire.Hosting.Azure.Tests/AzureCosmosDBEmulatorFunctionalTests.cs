@@ -86,9 +86,9 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         var databaseName = "db1";
         var containerName = "container1";
 
-        var cosmos = builder.AddAzureCosmosDB("cosmos");
-        var db = cosmos.WithDatabase(databaseName)
-                       .RunAsEmulator(usePreview);
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+            .RunAsEmulator(usePreview);
+        var db = cosmos.AddCosmosDatabase(databaseName);
 
         using var app = builder.Build();
 
@@ -98,7 +98,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         await rns.WaitForResourceHealthyAsync(db.Resource.Name, cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
-        hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default);
+        hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await cosmos.Resource.ConnectionStringExpression.GetValueAsync(default);
         hb.AddAzureCosmosClient(db.Resource.Name);
         hb.AddCosmosDbContext<EFCoreCosmosDbContext>(db.Resource.Name, databaseName);
 
@@ -161,8 +161,9 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
         var volumeName = VolumeNameGenerator.Generate(cosmos1, nameof(WithDataVolumeShouldPersistStateBetweenUsages));
 
-        var db1 = cosmos1.WithDatabase(databaseName)
-                       .RunAsEmulator(usePreview, volumeName);
+        cosmos1.RunAsEmulator(usePreview, volumeName);
+
+        cosmos1.AddCosmosDatabase(databaseName);
 
         // if the volume already exists (because of a crashing previous run), delete it
         DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
@@ -174,7 +175,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
             await app.StartAsync(cts.Token);
 
             var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-            await rns.WaitForResourceHealthyAsync(db1.Resource.Name, cts.Token);
+            await rns.WaitForResourceHealthyAsync(cosmos1.Resource.Name, cts.Token);
 
             try
             {
@@ -182,10 +183,10 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
                 hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    [$"ConnectionStrings:{db1.Resource.Name}"] = await db1.Resource.ConnectionStringExpression.GetValueAsync(default)
+                    [$"ConnectionStrings:{cosmos1.Resource.Name}"] = await cosmos1.Resource.ConnectionStringExpression.GetValueAsync(default)
                 });
 
-                hb.AddAzureCosmosClient(db1.Resource.Name);
+                hb.AddAzureCosmosClient(cosmos1.Resource.Name);
 
                 using (var host = hb.Build())
                 {
@@ -213,16 +214,16 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
         using var builder2 = TestDistributedApplicationBuilder.Create(options => { }, testOutputHelper);
 
-        var cosmos2 = builder2.AddAzureCosmosDB("cosmos");
-        var db2 = cosmos2.WithDatabase(databaseName)
-                       .RunAsEmulator(usePreview, volumeName);
+        var cosmos2 = builder2.AddAzureCosmosDB("cosmos")
+            .RunAsEmulator(usePreview, volumeName);
+        cosmos2.AddCosmosDatabase(databaseName);
 
         using (var app = builder2.Build())
         {
             await app.StartAsync(cts.Token);
 
             var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-            await rns.WaitForResourceHealthyAsync(db2.Resource.Name, cts.Token);
+            await rns.WaitForResourceHealthyAsync(cosmos2.Resource.Name, cts.Token);
 
             try
             {
@@ -230,10 +231,10 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
                 hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    [$"ConnectionStrings:{db2.Resource.Name}"] = await db2.Resource.ConnectionStringExpression.GetValueAsync(default)
+                    [$"ConnectionStrings:{cosmos2.Resource.Name}"] = await cosmos2.Resource.ConnectionStringExpression.GetValueAsync(default)
                 });
 
-                hb.AddAzureCosmosClient(db2.Resource.Name);
+                hb.AddAzureCosmosClient(cosmos2.Resource.Name);
 
                 using (var host = hb.Build())
                 {
@@ -282,8 +283,9 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         var partitionKeyPath = "/id";
 
         var cosmos = builder.AddAzureCosmosDB("cosmos")
-                            .WithDatabase(databaseName, db => db.Containers.Add(new(containerName, partitionKeyPath)))
                             .RunAsEmulator();
+        var db = cosmos.AddCosmosDatabase(databaseName);
+        db.AddContainer(containerName, partitionKeyPath);
 
         using var app = builder.Build();
 

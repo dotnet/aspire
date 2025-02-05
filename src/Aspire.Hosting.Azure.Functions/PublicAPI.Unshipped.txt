@@ -1,7 +1,0 @@
-#nullable enable
-Aspire.Hosting.Azure.AzureFunctionsProjectResource
-Aspire.Hosting.Azure.AzureFunctionsProjectResource.AzureFunctionsProjectResource(string! name) -> void
-Aspire.Hosting.AzureFunctionsProjectResourceExtensions
-static Aspire.Hosting.AzureFunctionsProjectResourceExtensions.AddAzureFunctionsProject<TProject>(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureFunctionsProjectResource!>!
-static Aspire.Hosting.AzureFunctionsProjectResourceExtensions.WithHostStorage(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureFunctionsProjectResource!>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureStorageResource!>! storage) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureFunctionsProjectResource!>!
-static Aspire.Hosting.AzureFunctionsProjectResourceExtensions.WithReference<TSource>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureFunctionsProjectResource!>! destination, Aspire.Hosting.ApplicationModel.IResourceBuilder<TSource>! source, string? connectionName = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureFunctionsProjectResource!>!

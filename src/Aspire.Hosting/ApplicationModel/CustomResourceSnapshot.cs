@@ -351,6 +351,11 @@ public static class KnownResourceStates
     public static readonly string Waiting = nameof(Waiting);
 
     /// <summary>
+    /// The not started state. Useful for showing the resource was created without being started.
+    /// </summary>
+    public static readonly string NotStarted = nameof(NotStarted);
+
+    /// <summary>
     /// List of terminal states.
     /// </summary>
     public static readonly IReadOnlyList<string> TerminalStates = [Finished, FailedToStart, Exited];

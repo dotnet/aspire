@@ -1,6 +1,6 @@
 # Set up your machine to use the latest Aspire builds
 
-These instructions will get you set up with the latest build of Aspire. If you just want the last release of .NET Aspire, the packages are on nuget.org, and install [Visual Studio 2022 version 17.10](https://visualstudio.microsoft.com/vs/) or later for the tooling.
+These instructions will get you set up with the latest build of Aspire. If you just want the last preview release of .NET Aspire, the packages are on nuget.org, and install [Visual Studio 2022 version 17.12](https://visualstudio.microsoft.com/vs/preview/) or later for the tooling.
 
 ## Prepare the machine
 

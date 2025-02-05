@@ -1,8 +1,0 @@
-#nullable enable
-Aspire.Hosting.Azure.AzureAppConfigurationResource
-Aspire.Hosting.Azure.AzureAppConfigurationResource.AzureAppConfigurationResource(string! name, System.Action<Aspire.Hosting.ResourceModuleConstruct!>! configureConstruct) -> void
-Aspire.Hosting.Azure.AzureAppConfigurationResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
-Aspire.Hosting.Azure.AzureAppConfigurationResource.Endpoint.get -> Aspire.Hosting.Azure.BicepOutputReference!
-Aspire.Hosting.AzureAppConfigurationExtensions
-static Aspire.Hosting.AzureAppConfigurationExtensions.AddAzureAppConfiguration(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureAppConfigurationResource!>!
-static Aspire.Hosting.AzureAppConfigurationExtensions.AddAzureAppConfiguration(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureAppConfigurationResource!>!, Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.AppConfiguration.AppConfigurationStore!>? configureResource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureAppConfigurationResource!>!

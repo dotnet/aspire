@@ -1,4 +1,0 @@
-#nullable enable
-*REMOVED*static Aspire.Hosting.AzureKeyVaultResourceExtensions.AddAzureKeyVault(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureKeyVaultResource!>!, Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.KeyVaults.KeyVault!>? configureResource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureKeyVaultResource!>!
-*REMOVED*Aspire.Hosting.Azure.AzureKeyVaultResource.AzureKeyVaultResource(string! name, System.Action<Aspire.Hosting.ResourceModuleConstruct!>! configureConstruct) -> void
-Aspire.Hosting.Azure.AzureKeyVaultResource.AzureKeyVaultResource(string! name, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureInfrastructure) -> void

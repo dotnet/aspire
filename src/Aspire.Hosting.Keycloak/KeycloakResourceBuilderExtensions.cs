@@ -33,7 +33,6 @@ public static class KeycloakResourceBuilderExtensions
     /// <remarks>
     /// The container exposes port 8080 by default.
     /// This version of the package defaults to the <inheritdoc cref="KeycloakContainerImageTags.Tag"/> tag of the <inheritdoc cref="KeycloakContainerImageTags.Registry"/>/<inheritdoc cref="KeycloakContainerImageTags.Image"/> container image.
-    /// </remarks>
     /// <example>
     /// Use in application host
     /// <code lang="csharp">
@@ -43,6 +42,7 @@ public static class KeycloakResourceBuilderExtensions
     ///                        .WithReference(keycloak);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<KeycloakResource> AddKeycloak(
         this IDistributedApplicationBuilder builder,
         string name,
@@ -94,7 +94,6 @@ public static class KeycloakResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// The volume is mounted at /opt/keycloak/data in the container.
-    /// </remarks>
     /// <example>
     /// Use a data volume
     /// <code lang="csharp">
@@ -102,6 +101,7 @@ public static class KeycloakResourceBuilderExtensions
     ///                       .WithDataVolume();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<KeycloakResource> WithDataVolume(this IResourceBuilder<KeycloakResource> builder, string? name = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -118,7 +118,6 @@ public static class KeycloakResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// The source directory is mounted at /opt/keycloak/data in the container.
-    /// </remarks>
     /// <example>
     /// Use a bind mount
     /// <code lang="csharp">
@@ -126,6 +125,7 @@ public static class KeycloakResourceBuilderExtensions
     ///                       .WithDataBindMount("mydata");
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<KeycloakResource> WithDataBindMount(this IResourceBuilder<KeycloakResource> builder, string source)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -143,7 +143,6 @@ public static class KeycloakResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// The realm import files are mounted at /opt/keycloak/data/import in the container.
-    /// </remarks>
     /// <example>
     /// Import the realms from a directory
     /// <code lang="csharp">
@@ -151,6 +150,7 @@ public static class KeycloakResourceBuilderExtensions
     ///                       .WithRealmImport("../realms");
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<KeycloakResource> WithRealmImport(
         this IResourceBuilder<KeycloakResource> builder,
         string import,

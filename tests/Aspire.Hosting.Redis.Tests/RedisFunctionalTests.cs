@@ -713,4 +713,41 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         public int? Db { get; set; }
         public string? ConnectionType { get; set; }
     }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task WithRedisCommanderShouldWorkWithPassword()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        var passwordParameter = builder.AddParameter("pass", "p@ssw0rd1");
+
+        var redis = builder.AddRedis("redis", password: passwordParameter)
+           .WithRedisCommander();
+
+        builder.Services.AddHttpClient();
+        using var app = builder.Build();
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await app.StartAsync();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var redisCommander = Assert.Single(appModel.Resources.OfType<RedisCommanderResource>());
+
+        await rns.WaitForResourceHealthyAsync(redis.Resource.Name, cts.Token);
+        await rns.WaitForResourceHealthyAsync(redisCommander.Name, cts.Token);
+
+        var endpoint = redisCommander.GetEndpoint("http");
+        var redisCommanderUrl = endpoint.Url;
+        Assert.NotNull(redisCommanderUrl);
+
+        var clientFactory = app.Services.GetRequiredService<IHttpClientFactory>();
+        var client = clientFactory.CreateClient();
+
+        var httpResponse = await client.GetAsync(redisCommanderUrl!);
+        httpResponse.EnsureSuccessStatusCode();
+    }
 }

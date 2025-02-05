@@ -162,11 +162,13 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
+        var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
+
         await app.StartAsync();
 
-        await app.WaitForTextAsync("Starting server...", resourceName: pgWebBuilder.Resource.Name);
-
         var client = app.CreateHttpClient(pgWebBuilder.Resource.Name, "http");
+
+        await resourceNotificationService.WaitForResourceHealthyAsync(pgWebBuilder.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         var httpContent = new MultipartFormDataContent
         {
@@ -177,6 +179,9 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var response = await client.PostAsync("/api/connect", httpContent);
         var d = await response.Content.ReadAsStringAsync();
+
+        testOutputHelper.WriteLine("RESPONSE: \r\n" + d);
+
         response.EnsureSuccessStatusCode();
     }
 
