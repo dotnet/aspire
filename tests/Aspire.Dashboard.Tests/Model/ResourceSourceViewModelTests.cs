@@ -26,9 +26,14 @@ public class ResourceSourceViewModelTests
             properties.TryAdd(KnownProperties.Executable.Args, new ResourcePropertyViewModel(KnownProperties.Executable.Args, Value.ForList(testData.ExecutableArguments.Select(Value.ForString).ToArray()), false, null, 0, new BrowserTimeProvider(new NullLoggerFactory())));
         }
 
-        if (testData.HostArguments is not null && testData.ResourceType == "Project")
+        if (testData.AppArgs is not null)
         {
-            properties.TryAdd(KnownProperties.Project.Args, new ResourcePropertyViewModel(KnownProperties.Project.Args, Value.ForList(testData.HostArguments.Select(Value.ForString).ToArray()), false, null, 0, new BrowserTimeProvider(new NullLoggerFactory())));
+            properties.TryAdd(KnownProperties.Resource.AppArgs, new ResourcePropertyViewModel(KnownProperties.Resource.AppArgs, Value.ForList(testData.AppArgs.Select(Value.ForString).ToArray()), false, null, 0, new BrowserTimeProvider(new NullLoggerFactory())));
+        }
+
+        if (testData.AppArgsFormatArgs is not null)
+        {
+            properties.TryAdd(KnownProperties.Resource.AppArgsParams, new ResourcePropertyViewModel(KnownProperties.Resource.AppArgsParams, Value.ForList(testData.AppArgsFormatArgs.Select(Value.ForString).ToArray()), false, null, 0, new BrowserTimeProvider(new NullLoggerFactory())));
         }
 
         var resource = ModelTestHelpers.CreateResource(
@@ -59,27 +64,45 @@ public class ResourceSourceViewModelTests
     {
         var data = new TheoryData<TestData, ResourceSourceViewModel?>();
 
-        // Project with executable arguments
+        // Project with app arguments
         data.Add(new TestData(
                 ResourceType: "Project",
                 ExecutablePath: "path/to/executable",
                 ExecutableArguments: ["arg1", "arg2"],
-                HostArguments: ["arg1"],
+                AppArgs: ["arg2"],
+                AppArgsFormatArgs: null,
                 ProjectPath: "path/to/project",
                 ContainerImage: null,
                 SourceProperty: null),
             new ResourceSourceViewModel(
                 value: "project",
-                contentAfterValue: "arg2",
-                valueToVisualize: "path/to/executable arg2",
-                tooltip: "path/to/executable arg2"));
+                contentAfterValue: [new LaunchArgument("arg2", true)],
+                valueToVisualize: "path/to/project arg2",
+                tooltip: "path/to/project arg2"));
+
+        // Project with app arguments, as well as a secret (format argument)
+        data.Add(new TestData(
+                ResourceType: "Project",
+                ExecutablePath: "path/to/executable",
+                ExecutableArguments: ["arg1", "arg2"],
+                AppArgs: ["arg2", "--key", "{0}"],
+                AppArgsFormatArgs: ["secret"],
+                ProjectPath: "path/to/project",
+                ContainerImage: null,
+                SourceProperty: null),
+            new ResourceSourceViewModel(
+                value: "project",
+                contentAfterValue: [new LaunchArgument("arg2", true), new LaunchArgument("--key", true), new LaunchArgument("{0}", false)],
+                valueToVisualize: "path/to/project arg2 --key secret",
+                tooltip: "path/to/project arg2 --key secret"));
 
         // Project without executable arguments
         data.Add(new TestData(
                 ResourceType: "Project",
                 ExecutablePath: null,
                 ExecutableArguments: null,
-                HostArguments: null,
+                AppArgs: null,
+                AppArgsFormatArgs: null,
                 ProjectPath: "path/to/project",
                 ContainerImage: null,
                 SourceProperty: null),
@@ -94,13 +117,14 @@ public class ResourceSourceViewModelTests
                 ResourceType: "Executable",
                 ExecutablePath: "path/to/executable",
                 ExecutableArguments: ["arg1", "arg2"],
-                HostArguments: null,
+                AppArgs: null,
+                AppArgsFormatArgs: null,
                 ProjectPath: null,
                 ContainerImage: null,
                 SourceProperty: null),
             new ResourceSourceViewModel(
                 value: "executable",
-                contentAfterValue: "arg1 arg2",
+                contentAfterValue: [new LaunchArgument("arg1", true), new LaunchArgument("arg2", true)],
                 valueToVisualize: "path/to/executable arg1 arg2",
                 tooltip: "path/to/executable arg1 arg2"));
 
@@ -109,7 +133,8 @@ public class ResourceSourceViewModelTests
                 ResourceType: "Container",
                 ExecutablePath: null,
                 ExecutableArguments: null,
-                HostArguments: null,
+                AppArgs: null,
+                AppArgsFormatArgs: null,
                 ProjectPath: null,
                 ContainerImage: "my-container-image",
                 SourceProperty: null),
@@ -124,7 +149,8 @@ public class ResourceSourceViewModelTests
                 ResourceType: "CustomResourceType",
                 ExecutablePath: null,
                 ExecutableArguments: null,
-                HostArguments: null,
+                AppArgs: null,
+                AppArgsFormatArgs: null,
                 ProjectPath: null,
                 ContainerImage: null,
                 SourceProperty: "source-value"),
@@ -139,7 +165,8 @@ public class ResourceSourceViewModelTests
                 ResourceType: "Executable",
                 ExecutablePath: "path/to/executable",
                 ExecutableArguments: null,
-                HostArguments: null,
+                AppArgs: null,
+                AppArgsFormatArgs: null,
                 ProjectPath: null,
                 ContainerImage: null,
                 SourceProperty: null),
@@ -147,7 +174,7 @@ public class ResourceSourceViewModelTests
                 value: "executable",
                 contentAfterValue: null,
                 valueToVisualize: "path/to/executable",
-                tooltip: ""));
+                tooltip: "path/to/executable"));
 
         return data;
     }
@@ -156,7 +183,8 @@ public class ResourceSourceViewModelTests
         string ResourceType,
         string? ExecutablePath,
         string[]? ExecutableArguments,
-        string[]? HostArguments,
+        string[]? AppArgs,
+        string[]? AppArgsFormatArgs,
         string? ProjectPath,
         string? ContainerImage,
         string? SourceProperty);
