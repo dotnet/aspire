@@ -138,12 +138,12 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <summary>
     /// Display name of the endpoint, to be displayed in the Aspire Dashboard.
     /// </summary>
-    public string? DisplayName { get; }
+    public string? DisplayName { get; set; }
 
     /// <summary>
     /// Integer to control visual ordering of endpoints in the Aspire Dashboard.
     /// </summary>
-    public int? Priority { get; }
+    public int? Priority { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the endpoint is from a launch profile.

@@ -288,10 +288,11 @@ public static class AzureCosmosExtensions
             endpoint.UriScheme = "http";
             endpoint.TargetPort = 1234;
             endpoint.Port = port;
+            endpoint.DisplayName = "Data Explorer";
         });
     }
 
-    /// <summary>    
+    /// <summary>
     /// Configures the resource to use access key authentication with Azure Cosmos DB.
     /// </summary>
     /// <param name="builder">The Azure Cosmos DB resource builder.</param>
