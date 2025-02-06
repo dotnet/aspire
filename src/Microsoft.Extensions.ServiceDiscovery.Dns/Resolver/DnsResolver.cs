@@ -18,6 +18,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
     private const int IPv4Length = 4;
     private const int IPv6Length = 16;
 
+    // CancellationTokenSource.CancelAfter has a maximum timeout of Int32.MaxValue milliseconds.
     private static readonly TimeSpan s_maxTimeout = TimeSpan.FromMilliseconds(int.MaxValue);
 
     private bool _disposed;
@@ -130,10 +131,11 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
             if (Socket.OSSupportsIPv6) // prefer IPv6
             {
                 res[index] = new AddressResult(DateTime.MaxValue, IPAddress.IPv6Loopback);
+                index++;
             }
             if (Socket.OSSupportsIPv4)
             {
-                res[index++] = new AddressResult(DateTime.MaxValue, IPAddress.Loopback);
+                res[index] = new AddressResult(DateTime.MaxValue, IPAddress.Loopback);
             }
         }
 
