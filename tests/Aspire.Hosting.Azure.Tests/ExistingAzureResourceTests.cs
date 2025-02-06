@@ -26,7 +26,7 @@ public class ExistingAzureResourceTests
               "connectionString": "{messaging.outputs.serviceBusEndpoint}",
               "path": "messaging.module.bicep",
               "params": {
-                "messagingExisting": "{existingResourceName.value}",
+                "existingResourceName": "{existingResourceName.value}",
                 "principalType": "",
                 "principalId": ""
               }
@@ -38,14 +38,14 @@ public class ExistingAzureResourceTests
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param messagingExisting string
+            param existingResourceName string
 
             param principalType string
 
             param principalId string
 
             resource messaging 'Microsoft.ServiceBus/namespaces@2024-01-01' existing = {
-              name: messagingExisting
+              name: existingResourceName
             }
 
             resource messaging_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -155,7 +155,7 @@ public class ExistingAzureResourceTests
               "connectionString": "{messaging.outputs.serviceBusEndpoint}",
               "path": "messaging.module.bicep",
               "params": {
-                "messagingExisting": "{existingResourceName.value}",
+                "existingResourceName": "{existingResourceName.value}",
                 "principalType": "",
                 "principalId": ""
               }
@@ -167,14 +167,14 @@ public class ExistingAzureResourceTests
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param messagingExisting string
+            param existingResourceName string
 
             param principalType string
 
             param principalId string
 
             resource messaging 'Microsoft.ServiceBus/namespaces@2024-01-01' existing = {
-              name: messagingExisting
+              name: existingResourceName
             }
 
             resource messaging_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -216,7 +216,7 @@ public class ExistingAzureResourceTests
               "connectionString": "{messaging.outputs.serviceBusEndpoint}",
               "path": "messaging.module.bicep",
               "params": {
-                "messagingExisting": "{existingResourceName.value}",
+                "existingResourceName": "{existingResourceName.value}",
                 "principalType": "",
                 "principalId": ""
               },
@@ -232,14 +232,75 @@ public class ExistingAzureResourceTests
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param messagingExisting string
+            param existingResourceName string
 
             param principalType string
 
             param principalId string
 
             resource messaging 'Microsoft.ServiceBus/namespaces@2024-01-01' existing = {
-              name: messagingExisting
+              name: existingResourceName
+            }
+
+            resource messaging_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(messaging.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
+                principalType: principalType
+              }
+              scope: messaging
+            }
+
+            resource queue 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
+              name: 'queue'
+              parent: messaging
+            }
+
+            output serviceBusEndpoint string = messaging.properties.serviceBusEndpoint
+            """;
+
+        Assert.Equal(expectedBicep, BicepText);
+
+    }
+
+    [Fact]
+    public async Task SupportsExistingServiceBusWithStaticArguments()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var serviceBus = builder.AddAzureServiceBus("messaging")
+            .PublishAsExisting("existingResourceName", "existingResourceGroupName")
+            .WithQueue("queue");
+
+        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v1",
+              "connectionString": "{messaging.outputs.serviceBusEndpoint}",
+              "path": "messaging.module.bicep",
+              "params": {
+                "principalType": "",
+                "principalId": ""
+              },
+              "scope": {
+                "resourceGroup": "existingResourceGroupName"
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, ManifestNode.ToString());
+
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param principalType string
+
+            param principalId string
+
+            resource messaging 'Microsoft.ServiceBus/namespaces@2024-01-01' existing = {
+              name: 'existingResourceName'
             }
 
             resource messaging_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -281,7 +342,7 @@ public class ExistingAzureResourceTests
               "type": "azure.bicep.v1",
               "path": "storage.module.bicep",
               "params": {
-                "storageExisting": "{existingResourceName.value}",
+                "existingResourceName": "{existingResourceName.value}",
                 "principalType": "",
                 "principalId": ""
               },
@@ -297,14 +358,14 @@ public class ExistingAzureResourceTests
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param storageExisting string
+            param existingResourceName string
 
             param principalType string
 
             param principalId string
 
             resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
-              name: storageExisting
+              name: existingResourceName
             }
 
             resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
@@ -354,6 +415,89 @@ public class ExistingAzureResourceTests
     }
 
     [Fact]
+    public async Task SupportsExistingStorageAccountWithResourceGroupAndStaticArguments()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var storageAccount = builder.AddAzureStorage("storage")
+            .PublishAsExisting("existingResourcename", "existingResourceGroupName");
+
+        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(storageAccount.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v1",
+              "path": "storage.module.bicep",
+              "params": {
+                "principalType": "",
+                "principalId": ""
+              },
+              "scope": {
+                "resourceGroup": "existingResourceGroupName"
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, ManifestNode.ToString());
+
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param principalType string
+
+            param principalId string
+
+            resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
+              name: 'existingResourcename'
+            }
+
+            resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
+              name: 'default'
+              parent: storage
+            }
+
+            resource storage_StorageBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+                principalType: principalType
+              }
+              scope: storage
+            }
+
+            resource storage_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
+                principalType: principalType
+              }
+              scope: storage
+            }
+
+            resource storage_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
+                principalType: principalType
+              }
+              scope: storage
+            }
+
+            output blobEndpoint string = storage.properties.primaryEndpoints.blob
+
+            output queueEndpoint string = storage.properties.primaryEndpoints.queue
+
+            output tableEndpoint string = storage.properties.primaryEndpoints.table
+            """;
+
+        Assert.Equal(expectedBicep, BicepText);
+    }
+
+    [Fact]
     public async Task SupportsExistingAppConfigurationWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
@@ -371,7 +515,7 @@ public class ExistingAzureResourceTests
               "connectionString": "{appConfig.outputs.appConfigEndpoint}",
               "path": "appConfig.module.bicep",
               "params": {
-                "appConfigExisting": "{existingResourceName.value}",
+                "existingResourceName": "{existingResourceName.value}",
                 "principalType": "",
                 "principalId": ""
               },
@@ -387,14 +531,14 @@ public class ExistingAzureResourceTests
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param appConfigExisting string
+            param existingResourceName string
 
             param principalType string
 
             param principalId string
 
             resource appConfig 'Microsoft.AppConfiguration/configurationStores@2024-05-01' existing = {
-              name: appConfigExisting
+              name: existingResourceName
             }
 
             resource appConfig_AppConfigurationDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -431,7 +575,7 @@ public class ExistingAzureResourceTests
               "connectionString": "{eventHubs.outputs.eventHubsEndpoint}",
               "path": "eventHubs.module.bicep",
               "params": {
-                "eventHubsExisting": "{existingResourceName.value}",
+                "existingResourceName": "{existingResourceName.value}",
                 "principalType": "",
                 "principalId": ""
               },
@@ -447,14 +591,14 @@ public class ExistingAzureResourceTests
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param eventHubsExisting string
+            param existingResourceName string
 
             param principalType string
 
             param principalId string
 
             resource eventHubs 'Microsoft.EventHub/namespaces@2024-01-01' existing = {
-              name: eventHubsExisting
+              name: existingResourceName
             }
 
             resource eventHubs_AzureEventHubsDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -491,7 +635,7 @@ public class ExistingAzureResourceTests
               "connectionString": "{keyVault.outputs.vaultUri}",
               "path": "keyVault.module.bicep",
               "params": {
-                "keyVaultExisting": "{existingResourceName.value}",
+                "existingResourceName": "{existingResourceName.value}",
                 "principalType": "",
                 "principalId": ""
               },
@@ -507,14 +651,14 @@ public class ExistingAzureResourceTests
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param keyVaultExisting string
+            param existingResourceName string
 
             param principalType string
 
             param principalId string
 
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-              name: keyVaultExisting
+              name: existingResourceName
               tags: {
                 'aspire-resource-name': 'keyVault'
               }
@@ -553,7 +697,7 @@ public class ExistingAzureResourceTests
               "type": "azure.bicep.v1",
               "path": "logAnalytics.module.bicep",
               "params": {
-                "logAnalyticsExisting": "{existingResourceName.value}"
+                "existingResourceName": "{existingResourceName.value}"
               },
               "scope": {
                 "resourceGroup": "{existingResourceGroupName.value}"
@@ -567,10 +711,10 @@ public class ExistingAzureResourceTests
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param logAnalyticsExisting string
+            param existingResourceName string
 
             resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = {
-              name: logAnalyticsExisting
+              name: existingResourceName
             }
 
             output logAnalyticsWorkspaceId string = logAnalytics.id
@@ -597,7 +741,7 @@ public class ExistingAzureResourceTests
               "connectionString": "{postgresSql.outputs.connectionString}",
               "path": "postgresSql.module.bicep",
               "params": {
-                "postgresSqlExisting": "{existingResourceName.value}",
+                "existingResourceName": "{existingResourceName.value}",
                 "principalId": "",
                 "principalType": "",
                 "principalName": ""
@@ -614,7 +758,7 @@ public class ExistingAzureResourceTests
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param postgresSqlExisting string
+            param existingResourceName string
 
             param principalId string
 
@@ -623,7 +767,7 @@ public class ExistingAzureResourceTests
             param principalName string
 
             resource postgresSql 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' existing = {
-              name: postgresSqlExisting
+              name: existingResourceName
               properties: {
                 authConfig: {
                   activeDirectoryAuth: 'Enabled'
@@ -678,7 +822,7 @@ public class ExistingAzureResourceTests
               "connectionString": "{search.outputs.connectionString}",
               "path": "search.module.bicep",
               "params": {
-                "searchExisting": "{existingResourceName.value}",
+                "existingResourceName": "{existingResourceName.value}",
                 "principalType": "",
                 "principalId": ""
               },
@@ -694,14 +838,14 @@ public class ExistingAzureResourceTests
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param searchExisting string
+            param existingResourceName string
 
             param principalType string
 
             param principalId string
 
             resource search 'Microsoft.Search/searchServices@2023-11-01' existing = {
-              name: searchExisting
+              name: existingResourceName
             }
 
             resource search_SearchIndexDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -724,7 +868,7 @@ public class ExistingAzureResourceTests
               scope: search
             }
 
-            output connectionString string = 'Endpoint=https://${searchExisting}.search.windows.net'
+            output connectionString string = 'Endpoint=https://${existingResourceName}.search.windows.net'
             """;
 
         Assert.Equal(expectedBicep, BicepText);
@@ -748,7 +892,7 @@ public class ExistingAzureResourceTests
               "connectionString": "Endpoint=https://{signalR.outputs.hostName};AuthType=azure",
               "path": "signalR.module.bicep",
               "params": {
-                "signalRExisting": "{existingResourceName.value}",
+                "existingResourceName": "{existingResourceName.value}",
                 "principalType": "",
                 "principalId": ""
               },
@@ -764,14 +908,14 @@ public class ExistingAzureResourceTests
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param signalRExisting string
+            param existingResourceName string
 
             param principalType string
 
             param principalId string
 
             resource signalR 'Microsoft.SignalRService/signalR@2024-03-01' existing = {
-              name: signalRExisting
+              name: existingResourceName
             }
 
             resource signalR_SignalRAppServer 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -808,7 +952,7 @@ public class ExistingAzureResourceTests
               "connectionString": "{webPubSub.outputs.endpoint}",
               "path": "webPubSub.module.bicep",
               "params": {
-                "webPubSubExisting": "{existingResourceName.value}",
+                "existingResourceName": "{existingResourceName.value}",
                 "principalType": "",
                 "principalId": ""
               },
@@ -824,14 +968,14 @@ public class ExistingAzureResourceTests
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            param webPubSubExisting string
+            param existingResourceName string
 
             param principalType string
 
             param principalId string
 
             resource webPubSub 'Microsoft.SignalRService/webPubSub@2024-03-01' existing = {
-              name: webPubSubExisting
+              name: existingResourceName
             }
 
             resource webPubSub_WebPubSubServiceOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
