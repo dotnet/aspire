@@ -63,6 +63,14 @@ variables:
   - name: _InternalBuildArgs
     value: ''
 
+  # Use the build reason to decide whether to include helix_tests
+  - ${{ if notin(variables['Build.Reason'], 'PullRequest') }}:
+    - name: testVariants
+      value: ',_helix_tests'
+  - ${{ else }}:
+    - name: testVariants
+      value: ''
+
 resources:
   containers:
   - container: LinuxContainer
@@ -95,7 +103,8 @@ stages:
 
       jobs:
 
-      - ${{ each testVariant in split(',_helix_tests', ',') }}:
+      # Windows jobs
+      - ${{ each testVariant in split( variables.testVariants, ',' ) }}:
         - job: Windows${{ testVariant }}
 
           # timeout accounts for wait times for helix agents up to 30mins
@@ -127,7 +136,8 @@ stages:
                 isWindows: true
                 runHelixTests: ${{ contains(testVariant, 'helix') }}
 
-      - ${{ each testVariant in split(',_helix_tests', ',') }}:
+      # Linux jobs
+      - ${{ each testVariant in split( variables.testVariants, ',' ) }}:
         - job: Linux${{ testVariant }}
 
           # timeout accounts for wait times for helix agents up to 30mins
