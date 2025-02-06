@@ -19,6 +19,9 @@ parameters:
   - name: runHelixTests
     type: boolean
     default: false
+  - name: runPipelineTests
+    type: boolean
+    default: false
 
 steps:
   # Internal pipeline: Build with pack+sign
@@ -46,7 +49,7 @@ steps:
       displayName: Build
 
   # Non-helix tests are run only on the public pipeline
-  - ${{ if and(eq(parameters.runAsPublic, 'true'), ne(parameters.runHelixTests, 'true')) }}:
+  - ${{ if and(eq(parameters.runAsPublic, 'true'), eq(parameters.runPipelineTests, 'true')) }}:
     # non-helix tests
     - ${{ if ne(parameters.isWindows, 'true') }}:
       - script: mkdir ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
@@ -130,7 +133,7 @@ steps:
       condition: always()
 
   # Code coverage - only on public pipelines
-  - ${{ if eq(parameters.runAsPublic, 'true') }}:
+  - ${{ if and(eq(parameters.runAsPublic, 'true'), or(eq(parameters.runHelixTests, 'true'), eq(parameters.runPipelineTests, 'true'))) }}:
     - task: CopyFiles@2
       inputs:
         Contents: '${{ parameters.repoArtifactsPath }}/**/*.cobertura.xml'
