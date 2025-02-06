@@ -1569,9 +1569,11 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             switch (sp.EndpointAnnotation.Protocol)
             {
                 case ProtocolType.Tcp:
-                    portSpec.Protocol = PortProtocol.TCP; break;
+                    portSpec.Protocol = PortProtocol.TCP;
+                    break;
                 case ProtocolType.Udp:
-                    portSpec.Protocol = PortProtocol.UDP; break;
+                    portSpec.Protocol = PortProtocol.UDP;
+                    break;
             }
 
             ports.Add(portSpec);
