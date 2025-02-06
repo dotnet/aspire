@@ -28,14 +28,34 @@ public static class ExistingAzureResourceExtensions
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="name">The name of the existing resource.</param>
-    /// <param name="resourceGroup">The name of the existing resource group, or <see langword="null"/> to use the current resource group.</param>
+    /// <param name="nameParameter">The name of the existing resource.</param>
+    /// <param name="resourceGroupParameter">The name of the existing resource group, or <see langword="null"/> to use the current resource group.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
-    public static IResourceBuilder<T> RunAsExisting<T>(this IResourceBuilder<T> builder, object name, object? resourceGroup = null)
+    public static IResourceBuilder<T> RunAsExisting<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource>? resourceGroupParameter = null)
         where T : IAzureResource
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ValidateExistingArguments(name, resourceGroup);
+
+        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            builder.WithAnnotation(new ExistingAzureResourceAnnotation(nameParameter.Resource, resourceGroupParameter?.Resource));
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Marks the resource as an existing resource when the application is running.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the existing resource.</param>
+    /// <param name="resourceGroup">The name of the existing resource group, or <see langword="null"/> to use the current resource group.</param>
+    /// <returns>The resource builder with the existing resource annotation added.</returns>
+    public static IResourceBuilder<T> RunAsExisting<T>(this IResourceBuilder<T> builder, string name, string? resourceGroup = null)
+        where T : IAzureResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
 
         if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
@@ -46,18 +66,38 @@ public static class ExistingAzureResourceExtensions
     }
 
     /// <summary>
-    /// Marks the resource as an existing resource when the application is published.
+    /// Marks the resource as an existing resource when the application is deployed.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="nameParameter">The name of the existing resource.</param>
+    /// <param name="resourceGroupParameter">The name of the existing resource group, or <see langword="null"/> to use the current resource group.</param>
+    /// <returns>The resource builder with the existing resource annotation added.</returns>
+    public static IResourceBuilder<T> PublishAsExisting<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource>? resourceGroupParameter = null)
+        where T : IAzureResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            builder.WithAnnotation(new ExistingAzureResourceAnnotation(nameParameter.Resource, resourceGroupParameter?.Resource));
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Marks the resource as an existing resource when the application is deployed.
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the existing resource.</param>
     /// <param name="resourceGroup">The name of the existing resource group, or <see langword="null"/> to use the current resource group.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
-    public static IResourceBuilder<T> PublishAsExisting<T>(this IResourceBuilder<T> builder, object name, object? resourceGroup = null)
+    public static IResourceBuilder<T> PublishAsExisting<T>(this IResourceBuilder<T> builder, string name, string? resourceGroup = null)
         where T : IAzureResource
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ValidateExistingArguments(name, resourceGroup);
 
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
@@ -65,20 +105,5 @@ public static class ExistingAzureResourceExtensions
         }
 
         return builder;
-    }
-
-    private static void ValidateExistingArguments(object name, object? resourceGroup)
-    {
-        ArgumentNullException.ThrowIfNull(name);
-
-        if (name is not string && name is not IResourceBuilder<ParameterResource>)
-        {
-            throw new ArgumentException("The name must be a string or a ParameterResource.", nameof(name));
-        }
-
-        if (resourceGroup is not null && resourceGroup is not string && resourceGroup is not IResourceBuilder<ParameterResource>)
-        {
-            throw new ArgumentException("The resource group must be a string, a ParameterResource, or null.", nameof(resourceGroup));
-        }
     }
 }

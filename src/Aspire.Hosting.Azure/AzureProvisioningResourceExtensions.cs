@@ -203,14 +203,14 @@ public static class AzureProvisioningResourceExtensions
         T provisionedResource;
         if (infrastructure.AspireResource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation))
         {
-            var existingResourceName = existingAnnotation.Name is IResourceBuilder<ParameterResource> nameParameter
+            var existingResourceName = existingAnnotation.Name is ParameterResource nameParameter
                 ? nameParameter.AsProvisioningParameter(infrastructure)
                 : new BicepValue<string>((string)existingAnnotation.Name);
             provisionedResource = createExisting(infrastructure.AspireResource.GetBicepIdentifier(), existingResourceName);
             if (existingAnnotation.ResourceGroup is not null)
             {
-                var existingResourceGroup = existingAnnotation.ResourceGroup is IResourceBuilder<ParameterResource> resourceGroupParameter
-                    ? resourceGroupParameter.Resource
+                var existingResourceGroup = existingAnnotation.ResourceGroup is ParameterResource resourceGroupParameter
+                    ? resourceGroupParameter
                     : existingAnnotation.ResourceGroup;
                 infrastructure.AspireResource.Scope = new(existingResourceGroup);
             }

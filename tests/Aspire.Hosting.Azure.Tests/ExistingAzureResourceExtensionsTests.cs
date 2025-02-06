@@ -35,10 +35,10 @@ public class ExistingAzureExtensionsResourceTests
             .RunAsExisting(nameParameter, resourceGroupParameter);
 
         Assert.True(serviceBus.Resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAzureResourceAnnotation));
-        var existingNameParameter = Assert.IsAssignableFrom<IResourceBuilder<ParameterResource>>(existingAzureResourceAnnotation.Name);
-        Assert.Equal("name", existingNameParameter.Resource.Name);
-        var existingResourceGroupParameter = Assert.IsAssignableFrom<IResourceBuilder<ParameterResource>>(existingAzureResourceAnnotation.ResourceGroup);
-        Assert.Equal("resourceGroup", existingResourceGroupParameter.Resource.Name);
+        var existingNameParameter = Assert.IsType<ParameterResource>(existingAzureResourceAnnotation.Name);
+        Assert.Equal("name", existingNameParameter.Name);
+        var existingResourceGroupParameter = Assert.IsType<ParameterResource>(existingAzureResourceAnnotation.ResourceGroup);
+        Assert.Equal("resourceGroup", existingResourceGroupParameter.Name);
     }
 
     [Fact]
@@ -56,10 +56,10 @@ public class ExistingAzureExtensionsResourceTests
             .RunAsExisting(nameParameter1, resourceGroupParameter1);
 
         Assert.True(serviceBus.Resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAzureResourceAnnotation));
-        var existingNameParameter = Assert.IsAssignableFrom<IResourceBuilder<ParameterResource>>(existingAzureResourceAnnotation.Name);
-        Assert.Equal("name1", existingNameParameter.Resource.Name);
-        var existingResourceGroupParameter = Assert.IsAssignableFrom<IResourceBuilder<ParameterResource>>(existingAzureResourceAnnotation.ResourceGroup);
-        Assert.Equal("resourceGroup1", existingResourceGroupParameter.Resource.Name);
+        var existingNameParameter = Assert.IsType<ParameterResource>(existingAzureResourceAnnotation.Name);
+        Assert.Equal("name1", existingNameParameter.Name);
+        var existingResourceGroupParameter = Assert.IsType<ParameterResource>(existingAzureResourceAnnotation.ResourceGroup);
+        Assert.Equal("resourceGroup1", existingResourceGroupParameter.Name);
     }
 
     [Fact]
@@ -74,10 +74,10 @@ public class ExistingAzureExtensionsResourceTests
             .PublishAsExisting(nameParameter, resourceGroupParameter);
 
         Assert.True(serviceBus.Resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAzureResourceAnnotation));
-        var existingNameParameter = Assert.IsAssignableFrom<IResourceBuilder<ParameterResource>>(existingAzureResourceAnnotation.Name);
-        Assert.Equal("name", existingNameParameter.Resource.Name);
-        var existingResourceGroupParameter = Assert.IsAssignableFrom<IResourceBuilder<ParameterResource>>(existingAzureResourceAnnotation.ResourceGroup);
-        Assert.Equal("resourceGroup", existingResourceGroupParameter.Resource.Name);
+        var existingNameParameter = Assert.IsType<ParameterResource>(existingAzureResourceAnnotation.Name);
+        Assert.Equal("name", existingNameParameter.Name);
+        var existingResourceGroupParameter = Assert.IsType<ParameterResource>(existingAzureResourceAnnotation.ResourceGroup);
+        Assert.Equal("resourceGroup", existingResourceGroupParameter.Name);
     }
 
     [Fact]
@@ -95,10 +95,10 @@ public class ExistingAzureExtensionsResourceTests
             .PublishAsExisting(nameParameter1, resourceGroupParameter1);
 
         Assert.True(serviceBus.Resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAzureResourceAnnotation));
-        var existingNameParameter = Assert.IsAssignableFrom<IResourceBuilder<ParameterResource>>(existingAzureResourceAnnotation.Name);
-        Assert.Equal("name1", existingNameParameter.Resource.Name);
-        var existingResourceGroupParameter = Assert.IsAssignableFrom<IResourceBuilder<ParameterResource>>(existingAzureResourceAnnotation.ResourceGroup);
-        Assert.Equal("resourceGroup1", existingResourceGroupParameter.Resource.Name);
+        var existingNameParameter = Assert.IsType<ParameterResource>(existingAzureResourceAnnotation.Name);
+        Assert.Equal("name1", existingNameParameter.Name);
+        var existingResourceGroupParameter = Assert.IsType<ParameterResource>(existingAzureResourceAnnotation.ResourceGroup);
+        Assert.Equal("resourceGroup1", existingResourceGroupParameter.Name);
     }
 
     public static TheoryData<Func<string, string, string, IResourceBuilder<IAzureResource>>> AsExistingMethodsWithString =>
@@ -117,19 +117,5 @@ public class ExistingAzureExtensionsResourceTests
         Assert.True(serviceBus.Resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAzureResourceAnnotation));
         Assert.Equal("existingName", existingAzureResourceAnnotation.Name);
         Assert.Equal("existingResourceGroup", existingAzureResourceAnnotation.ResourceGroup);
-    }
-
-    public static TheoryData<Func<IResourceBuilder<IAzureResource>>> AsExistingMethodsWithInvalidArguments =>
-        new()
-        {
-            { () => TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run).AddAzureServiceBus("sb").RunAsExisting(1, 2) },
-            { () => TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish).AddAzureServiceBus("sb").PublishAsExisting(1, 2) }
-        };
-
-    [Theory]
-    [MemberData(nameof(AsExistingMethodsWithInvalidArguments))]
-    public void ThrowsForAsExistingWithInvalidArgumentType(Func<IResourceBuilder<IAzureResource>> asExisting)
-    {
-        Assert.Throws<ArgumentException>(() => asExisting());
     }
 }
