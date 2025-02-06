@@ -40,9 +40,20 @@ partial class Resource
             resource.Environment.Add(new EnvironmentVariable { Name = env.Name, Value = env.Value ?? "", IsFromSpec = env.IsFromSpec });
         }
 
-        foreach (var url in snapshot.Urls)
+        foreach (var urlSnapshot in snapshot.Urls)
         {
-            resource.Urls.Add(new Url { Name = url.Name, FullUrl = url.Url, IsInternal = url.IsInternal });
+            var url = new Url { Name = urlSnapshot.Name, FullUrl = urlSnapshot.Url, IsInternal = urlSnapshot.IsInternal };
+            if (urlSnapshot.DisplayName is not null)
+            {
+                url.DisplayName = urlSnapshot.DisplayName;
+            }
+
+            if (urlSnapshot.Priority is not null)
+            {
+                url.Priority = urlSnapshot.Priority.Value;
+            }
+
+            resource.Urls.Add(url);
         }
 
         foreach (var relationship in snapshot.Relationships)
