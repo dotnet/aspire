@@ -28,7 +28,7 @@ internal static class KnownProperties
         public const string ConnectionString = "resource.connectionString";
         public const string ParentName = "resource.parentName";
         public const string AppArgs = "resource.appArgs";
-        public const string AppArgsParams = "resource.appArgsParams";
+        public const string AppArgsSensitivity = "resource.appArgsSensitivity";
     }
 
     public static class Container

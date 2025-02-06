@@ -64,9 +64,9 @@ internal static class ResourceViewModelExtensions
         return resource.TryGetCustomDataStringArray(KnownProperties.Resource.AppArgs, out arguments);
     }
 
-    public static bool TryGetAppArgsFormatParams(this ResourceViewModel resource, out ImmutableArray<string> argParams)
+    public static bool TryGetAppArgsSensitivity(this ResourceViewModel resource, out ImmutableArray<bool> argParams)
     {
-        return resource.TryGetCustomDataStringArray(KnownProperties.Resource.AppArgsParams, out argParams);
+        return resource.TryGetCustomDataBoolArray(KnownProperties.Resource.AppArgsSensitivity, out argParams);
     }
 
     private static bool TryGetCustomDataString(this ResourceViewModel resource, string key, [NotNullWhen(returnValue: true)] out string? s)
@@ -103,6 +103,31 @@ internal static class ResourceViewModelExtensions
         }
 
         strings = default;
+        return false;
+    }
+
+    private static bool TryGetCustomDataBoolArray(this ResourceViewModel resource, string key, out ImmutableArray<bool> bools)
+    {
+        if (resource.Properties.TryGetValue(key, out var property) && property is { Value: { ListValue: not null } value })
+        {
+            var builder = ImmutableArray.CreateBuilder<bool>(value.ListValue.Values.Count);
+
+            foreach (var element in value.ListValue.Values)
+            {
+                if (!element.HasNumberValue)
+                {
+                    bools = default;
+                    return false;
+                }
+
+                builder.Add(Convert.ToBoolean(element.NumberValue));
+            }
+
+            bools = builder.MoveToImmutable();
+            return true;
+        }
+
+        bools = default;
         return false;
     }
 

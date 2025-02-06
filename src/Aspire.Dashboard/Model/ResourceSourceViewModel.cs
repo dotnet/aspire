@@ -1,9 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
-using System.Text.RegularExpressions;
-
 namespace Aspire.Dashboard.Model;
 
 public class ResourceSourceViewModel(string value, List<LaunchArgument>? contentAfterValue, string valueToVisualize, string tooltip)
@@ -28,13 +25,13 @@ public class ResourceSourceViewModel(string value, List<LaunchArgument>? content
             else
             {
                 var argumentsString = string.Join(" ", launchArguments);
-                if (resource.TryGetAppArgsFormatParams(out var formatParams))
+                if (resource.TryGetAppArgsSensitivity(out var areArgumentsSensitive))
                 {
                     var arguments = launchArguments
-                        .Select(arg => new LaunchArgument(arg, !Regex.IsMatch(arg, "{\\d+}")))
+                        .Select((arg, i) => new LaunchArgument(arg, IsShown: !areArgumentsSensitive[i]))
                         .ToList();
-                    var launchArgsString = string.Format(CultureInfo.InvariantCulture, argumentsString, [.. formatParams]);
-                    commandLineInfo = (Arguments: arguments, launchArgsString);
+
+                    commandLineInfo = (Arguments: arguments, argumentsString);
                 }
                 else
                 {

@@ -31,9 +31,9 @@ public class ResourceSourceViewModelTests
             properties.TryAdd(KnownProperties.Resource.AppArgs, new ResourcePropertyViewModel(KnownProperties.Resource.AppArgs, Value.ForList(testData.AppArgs.Select(Value.ForString).ToArray()), false, null, 0, new BrowserTimeProvider(new NullLoggerFactory())));
         }
 
-        if (testData.AppArgsFormatArgs is not null)
+        if (testData.AppArgsSensitivity is not null)
         {
-            properties.TryAdd(KnownProperties.Resource.AppArgsParams, new ResourcePropertyViewModel(KnownProperties.Resource.AppArgsParams, Value.ForList(testData.AppArgsFormatArgs.Select(Value.ForString).ToArray()), false, null, 0, new BrowserTimeProvider(new NullLoggerFactory())));
+            properties.TryAdd(KnownProperties.Resource.AppArgsSensitivity, new ResourcePropertyViewModel(KnownProperties.Resource.AppArgsSensitivity, Value.ForList(testData.AppArgsSensitivity.Select(b => Value.ForNumber(Convert.ToInt32(b))).ToArray()), false, null, 0, new BrowserTimeProvider(new NullLoggerFactory())));
         }
 
         var resource = ModelTestHelpers.CreateResource(
@@ -70,7 +70,7 @@ public class ResourceSourceViewModelTests
                 ExecutablePath: "path/to/executable",
                 ExecutableArguments: ["arg1", "arg2"],
                 AppArgs: ["arg2"],
-                AppArgsFormatArgs: null,
+                AppArgsSensitivity: [false],
                 ProjectPath: "path/to/project",
                 ContainerImage: null,
                 SourceProperty: null),
@@ -85,14 +85,14 @@ public class ResourceSourceViewModelTests
                 ResourceType: "Project",
                 ExecutablePath: "path/to/executable",
                 ExecutableArguments: ["arg1", "arg2"],
-                AppArgs: ["arg2", "--key", "{0}"],
-                AppArgsFormatArgs: ["secret"],
+                AppArgs: ["arg2", "--key", "secret"],
+                AppArgsSensitivity: [false, false, true],
                 ProjectPath: "path/to/project",
                 ContainerImage: null,
                 SourceProperty: null),
             new ResourceSourceViewModel(
                 value: "project",
-                contentAfterValue: [new LaunchArgument("arg2", true), new LaunchArgument("--key", true), new LaunchArgument("{0}", false)],
+                contentAfterValue: [new LaunchArgument("arg2", true), new LaunchArgument("--key", true), new LaunchArgument("secret", false)],
                 valueToVisualize: "path/to/project arg2 --key secret",
                 tooltip: "path/to/project arg2 --key secret"));
 
@@ -102,7 +102,7 @@ public class ResourceSourceViewModelTests
                 ExecutablePath: null,
                 ExecutableArguments: null,
                 AppArgs: null,
-                AppArgsFormatArgs: null,
+                AppArgsSensitivity: null,
                 ProjectPath: "path/to/project",
                 ContainerImage: null,
                 SourceProperty: null),
@@ -118,7 +118,7 @@ public class ResourceSourceViewModelTests
                 ExecutablePath: "path/to/executable",
                 ExecutableArguments: ["arg1", "arg2"],
                 AppArgs: null,
-                AppArgsFormatArgs: null,
+                AppArgsSensitivity: null,
                 ProjectPath: null,
                 ContainerImage: null,
                 SourceProperty: null),
@@ -134,7 +134,7 @@ public class ResourceSourceViewModelTests
                 ExecutablePath: null,
                 ExecutableArguments: null,
                 AppArgs: null,
-                AppArgsFormatArgs: null,
+                AppArgsSensitivity: null,
                 ProjectPath: null,
                 ContainerImage: "my-container-image",
                 SourceProperty: null),
@@ -150,7 +150,7 @@ public class ResourceSourceViewModelTests
                 ExecutablePath: null,
                 ExecutableArguments: null,
                 AppArgs: null,
-                AppArgsFormatArgs: null,
+                AppArgsSensitivity: null,
                 ProjectPath: null,
                 ContainerImage: null,
                 SourceProperty: "source-value"),
@@ -166,7 +166,7 @@ public class ResourceSourceViewModelTests
                 ExecutablePath: "path/to/executable",
                 ExecutableArguments: null,
                 AppArgs: null,
-                AppArgsFormatArgs: null,
+                AppArgsSensitivity: null,
                 ProjectPath: null,
                 ContainerImage: null,
                 SourceProperty: null),
@@ -184,7 +184,7 @@ public class ResourceSourceViewModelTests
         string? ExecutablePath,
         string[]? ExecutableArguments,
         string[]? AppArgs,
-        string[]? AppArgsFormatArgs,
+        bool[]? AppArgsSensitivity,
         string? ProjectPath,
         string? ContainerImage,
         string? SourceProperty);

@@ -2,11 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
-using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Model;
-using Microsoft.IdentityModel.Tokens;
 
 namespace Aspire.Hosting.Dcp;
 
@@ -30,7 +28,7 @@ internal class ResourceSnapshotBuilder
 
         var relationships = ImmutableArray<RelationshipSnapshot>.Empty;
 
-        (ImmutableArray<string> Args, ImmutableArray<string>? FormatArgs, bool IsSensitive)? launchArguments = null;
+        (ImmutableArray<string> Args, ImmutableArray<int>? ArgsAreSensitive, bool IsSensitive)? launchArguments = null;
 
         if (container.AppModelResourceName is not null &&
             _resourceState.ApplicationModel.TryGetValue(container.AppModelResourceName, out var appModelResource))
@@ -53,7 +51,7 @@ internal class ResourceSnapshotBuilder
                 new(KnownProperties.Container.Ports, GetPorts()),
                 new(KnownProperties.Container.Lifetime, GetContainerLifetime()),
                 new(KnownProperties.Resource.AppArgs, launchArguments?.Args) { IsSensitive = launchArguments?.IsSensitive ?? false },
-                new(KnownProperties.Resource.AppArgsParams, launchArguments?.FormatArgs) { IsSensitive = launchArguments?.IsSensitive ?? false },
+                new(KnownProperties.Resource.AppArgsSensitivity, launchArguments?.ArgsAreSensitive) { IsSensitive = launchArguments?.IsSensitive ?? false },
             ]),
             EnvironmentVariables = environment,
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToUniversalTime(),
@@ -127,7 +125,7 @@ internal class ResourceSnapshotBuilder
                     new(KnownProperties.Executable.Pid, executable.Status?.ProcessId),
                     new(KnownProperties.Project.Path, projectPath),
                     new(KnownProperties.Resource.AppArgs, launchArguments?.Args) { IsSensitive = launchArguments?.IsSensitive ?? false },
-                    new(KnownProperties.Resource.AppArgsParams, launchArguments?.FormatArgs) { IsSensitive = launchArguments?.IsSensitive ?? false },
+                    new(KnownProperties.Resource.AppArgsSensitivity, launchArguments?.ArgsAreSensitive) { IsSensitive = launchArguments?.IsSensitive ?? false },
                 ]),
                 EnvironmentVariables = environment,
                 CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToUniversalTime(),
@@ -149,7 +147,7 @@ internal class ResourceSnapshotBuilder
                 new(KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []) { IsSensitive = true },
                 new(KnownProperties.Executable.Pid, executable.Status?.ProcessId),
                 new(KnownProperties.Resource.AppArgs, launchArguments?.Args) { IsSensitive = launchArguments?.IsSensitive ?? false },
-                new(KnownProperties.Resource.AppArgsParams, launchArguments?.FormatArgs) { IsSensitive = launchArguments?.IsSensitive ?? false },
+                new(KnownProperties.Resource.AppArgsSensitivity, launchArguments?.ArgsAreSensitive) { IsSensitive = launchArguments?.IsSensitive ?? false },
             ]),
             EnvironmentVariables = environment,
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToUniversalTime(),
@@ -160,7 +158,7 @@ internal class ResourceSnapshotBuilder
         };
     }
 
-    private static (ImmutableArray<string> Args, ImmutableArray<string>? FormatArgs, bool IsSensitive)? GetLaunchArgs(CustomResource resource)
+    private static (ImmutableArray<string> Args, ImmutableArray<int>? ArgsAreSensitive, bool IsSensitive)? GetLaunchArgs(CustomResource resource)
     {
         if (!resource.TryGetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, out List<AppLaunchArgumentAnnotation>? launchArgumentAnnotations))
         {
@@ -168,24 +166,21 @@ internal class ResourceSnapshotBuilder
         }
 
         var launchArgsBuilder = ImmutableArray.CreateBuilder<string>();
-        var formatArgsBuilder = ImmutableArray.CreateBuilder<string>();
+        var argsAreSensitiveBuilder = ImmutableArray.CreateBuilder<int>();
 
-        var sensitiveArgCount = 0;
+        var anySensitive = false;
         foreach (var annotation in launchArgumentAnnotations)
         {
             if (annotation.IsSensitive)
             {
-                launchArgsBuilder.Add("{" + sensitiveArgCount.ToString(CultureInfo.InvariantCulture) + "}");
-                formatArgsBuilder.Add(annotation.Argument);
-                sensitiveArgCount++;
+                anySensitive = true;
             }
-            else
-            {
-                launchArgsBuilder.Add(annotation.Argument);
-            }
+
+            launchArgsBuilder.Add(annotation.Argument);
+            argsAreSensitiveBuilder.Add(Convert.ToInt32(annotation.IsSensitive));
         }
 
-        return (launchArgsBuilder.ToImmutable(), formatArgsBuilder.IsNullOrEmpty() ? null : formatArgsBuilder.ToImmutable(), sensitiveArgCount > 0);
+        return (launchArgsBuilder.ToImmutable(), argsAreSensitiveBuilder.ToImmutable(), anySensitive);
     }
 
     private ImmutableArray<UrlSnapshot> GetUrls(CustomResource resource)
