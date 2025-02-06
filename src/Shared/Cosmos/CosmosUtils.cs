@@ -47,7 +47,8 @@ internal static class CosmosUtils
             ConnectionString = connectionString
         };
 
-        // Strip out the database and container from the connection string to
+        // Strip out the database and container from the connection string in order
+        // to tell if we are left with just AccountEndpoint.
         if (connectionBuilder.TryGetValue("Database", out var _))
         {
             connectionBuilder["Database"] = null;
