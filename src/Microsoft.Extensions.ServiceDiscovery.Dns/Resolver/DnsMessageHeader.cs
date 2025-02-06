@@ -2,21 +2,28 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Buffers.Binary;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
 // RFC 1035 4.1.1. Header section format
+[StructLayout(LayoutKind.Explicit, Size = HeaderLength)]
 internal struct DnsMessageHeader
 {
     internal const int HeaderLength = 12;
 
+    [FieldOffset(0)]
     private ushort _transactionId;
+    [FieldOffset(2)]
     private ushort _flags;
-
+    [FieldOffset(4)]
     private ushort _queryCount;
+    [FieldOffset(6)]
     private ushort _answerCount;
+    [FieldOffset(8)]
     private ushort _authorityCount;
+    [FieldOffset(10)]
     private ushort _additionalRecordCount;
 
     internal ushort QueryCount

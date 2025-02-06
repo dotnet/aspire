@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
@@ -23,7 +24,9 @@ internal struct DnsDataReader : IDisposable
 
     public bool TryReadHeader(out DnsMessageHeader header)
     {
-        if (_buffer.Length - _position < DnsMessageHeader.HeaderLength)
+        Debug.Assert(_position == 0);
+
+        if (_buffer.Length < DnsMessageHeader.HeaderLength)
         {
             header = default;
             return false;

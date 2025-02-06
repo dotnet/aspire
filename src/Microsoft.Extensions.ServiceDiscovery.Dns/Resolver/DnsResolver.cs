@@ -552,6 +552,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
                 throw new InvalidOperationException("Invalid response: Header mismatch");
             }
 
+            // transfer ownership of buffer to the caller
             buffer = null!;
             return (responseReader, header);
         }

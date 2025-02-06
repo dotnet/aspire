@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
@@ -25,7 +26,11 @@ internal static class DnsPrimitives
         //     padding is used.
         //
 
-        if (!Encoding.ASCII.TryGetBytes(name, destination.IsEmpty ? destination : destination.Slice(1), out int length) || destination.Length < length + 2)
+        // The is assumed to be already validated and puny-encoded if needed
+        Debug.Assert(name.Length <= MaxDomainNameLength);
+        Debug.Assert(Ascii.IsValid(name));
+
+        if (destination.IsEmpty || !Encoding.ASCII.TryGetBytes(name, destination.Slice(1), out int length) || destination.Length < length + 2)
         {
             // buffer too small
             written = 0;
@@ -38,13 +43,14 @@ internal static class DnsPrimitives
         while (true)
         {
             // figure out the next label and prepend the length
-            int index = nameBuffer.Slice(1).IndexOf<byte>((byte)'.');
+            int index = nameBuffer.Slice(1).IndexOf((byte)'.');
             int labelLen = index == -1 ? nameBuffer.Length - 1 : index;
 
             // https://www.rfc-editor.org/rfc/rfc1035#section-2.3.4
             // labels          63 octets or less
             if (labelLen > 63)
             {
+                // this should never happen, as we validate the name before calling this method
                 throw new ArgumentException("Label is too long");
             }
 
@@ -194,41 +200,6 @@ internal static class DnsPrimitives
         }
 
         bytesRead += 6;
-        return true;
-    }
-
-    internal static bool TryWriteService(Span<byte> buffer, ushort priority, ushort weight, ushort port, string target, out int bytesWritten)
-    {
-        // https://www.rfc-editor.org/rfc/rfc2782
-        if (!BinaryPrimitives.TryWriteUInt16BigEndian(buffer, priority) ||
-            !BinaryPrimitives.TryWriteUInt16BigEndian(buffer.Slice(2), weight) ||
-            !BinaryPrimitives.TryWriteUInt16BigEndian(buffer.Slice(4), port) ||
-            !TryWriteQName(buffer.Slice(6), target, out bytesWritten))
-        {
-            bytesWritten = 0;
-            return false;
-        }
-
-        bytesWritten += 6;
-        return true;
-    }
-
-    internal static bool TryWriteSoa(Span<byte> buffer, string primaryNameServer, string responsibleMailAddress, uint serial, uint refresh, uint retry, uint expire, uint minimum, out int bytesWritten)
-    {
-        // https://www.rfc-editor.org/rfc/rfc1035#section-3.3.13
-        if (!TryWriteQName(buffer, primaryNameServer, out int w1) ||
-            !TryWriteQName(buffer.Slice(w1), responsibleMailAddress, out int w2) ||
-            !BinaryPrimitives.TryWriteUInt32BigEndian(buffer.Slice(w1 + w2), serial) ||
-            !BinaryPrimitives.TryWriteUInt32BigEndian(buffer.Slice(w1 + w2 + 4), refresh) ||
-            !BinaryPrimitives.TryWriteUInt32BigEndian(buffer.Slice(w1 + w2 + 8), retry) ||
-            !BinaryPrimitives.TryWriteUInt32BigEndian(buffer.Slice(w1 + w2 + 12), expire) ||
-            !BinaryPrimitives.TryWriteUInt32BigEndian(buffer.Slice(w1 + w2 + 16), minimum))
-        {
-            bytesWritten = 0;
-            return false;
-        }
-
-        bytesWritten = w1 + w2 + 20;
         return true;
     }
 

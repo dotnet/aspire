@@ -61,7 +61,8 @@ internal sealed class LoopbackDnsServer : IDisposable
         }))
         {
             throw new InvalidOperationException("Failed to write header");
-        };
+        }
+        ;
 
         foreach (var (questionName, questionType, questionClass) in responseBuilder.Questions)
         {
@@ -198,10 +199,17 @@ internal static class LoopbackDnsServerExtensions
     public static List<DnsResourceRecord> AddService(this List<DnsResourceRecord> records, string name, int ttl, ushort priority, ushort weight, ushort port, string target)
     {
         byte[] buff = new byte[256];
-        if (!DnsPrimitives.TryWriteService(buff, priority, weight, port, target, out int length))
+
+        // https://www.rfc-editor.org/rfc/rfc2782
+        if (!BinaryPrimitives.TryWriteUInt16BigEndian(buff, priority) ||
+            !BinaryPrimitives.TryWriteUInt16BigEndian(buff.AsSpan(2), weight) ||
+            !BinaryPrimitives.TryWriteUInt16BigEndian(buff.AsSpan(4), port) ||
+            !DnsPrimitives.TryWriteQName(buff.AsSpan(6), target, out int length))
         {
             throw new InvalidOperationException("Failed to encode SRV record");
         }
+
+        length += 6;
 
         records.Add(new DnsResourceRecord(name, QueryType.SRV, QueryClass.Internet, ttl, buff.AsMemory(0, length)));
         return records;
@@ -210,10 +218,20 @@ internal static class LoopbackDnsServerExtensions
     public static List<DnsResourceRecord> AddStartOfAuthority(this List<DnsResourceRecord> records, string name, int ttl, string mname, string rname, uint serial, uint refresh, uint retry, uint expire, uint minimum)
     {
         byte[] buff = new byte[256];
-        if (!DnsPrimitives.TryWriteSoa(buff, mname, rname, serial, refresh, retry, expire, minimum, out int length))
+
+        // https://www.rfc-editor.org/rfc/rfc1035#section-3.3.13
+        if (!DnsPrimitives.TryWriteQName(buff, mname, out int w1) ||
+            !DnsPrimitives.TryWriteQName(buff.AsSpan(w1), rname, out int w2) ||
+            !BinaryPrimitives.TryWriteUInt32BigEndian(buff.AsSpan(w1 + w2), serial) ||
+            !BinaryPrimitives.TryWriteUInt32BigEndian(buff.AsSpan(w1 + w2 + 4), refresh) ||
+            !BinaryPrimitives.TryWriteUInt32BigEndian(buff.AsSpan(w1 + w2 + 8), retry) ||
+            !BinaryPrimitives.TryWriteUInt32BigEndian(buff.AsSpan(w1 + w2 + 12), expire) ||
+            !BinaryPrimitives.TryWriteUInt32BigEndian(buff.AsSpan(w1 + w2 + 16), minimum))
         {
             throw new InvalidOperationException("Failed to encode SOA record");
         }
+
+        int length = w1 + w2 + 20;
 
         records.Add(new DnsResourceRecord(name, QueryType.SOA, QueryClass.Internet, ttl, buff.AsMemory(0, length)));
         return records;
