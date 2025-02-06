@@ -11,7 +11,7 @@ public sealed class ArgumentEvaluator
     {
         var args = new List<string>();
 
-        await resource.ProcessArgumentValuesAsync(new(DistributedApplicationOperation.Run), (unprocessed, processed, ex) =>
+        await resource.ProcessArgumentValuesAsync(new(DistributedApplicationOperation.Run), (_, processed, ex, _) =>
         {
             if (ex is not null)
             {
