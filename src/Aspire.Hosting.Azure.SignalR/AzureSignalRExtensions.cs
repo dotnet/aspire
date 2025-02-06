@@ -37,7 +37,14 @@ public static class AzureSignalRExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var service = new SignalRService(infrastructure.AspireResource.GetBicepIdentifier())
+            var service = infrastructure.CreateExistingOrNewProvisionableResource((identifier, name) =>
+            {
+                var resource = SignalRService.FromExisting(identifier);
+                resource.Name = name;
+                return resource;
+            },
+
+            (infrastructure) => new SignalRService(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Kind = SignalRServiceKind.SignalR,
                 Sku = new SignalRResourceSku()
@@ -55,8 +62,7 @@ public static class AzureSignalRExtensions
                 ],
                 CorsAllowedOrigins = ["*"],
                 Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-            };
-            infrastructure.Add(service);
+            });
 
             infrastructure.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = service.HostName });
 

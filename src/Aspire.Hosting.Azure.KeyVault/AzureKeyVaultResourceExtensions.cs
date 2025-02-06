@@ -26,7 +26,14 @@ public static class AzureKeyVaultResourceExtensions
 
         var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
-            var keyVault = new KeyVaultService(infrastructure.AspireResource.GetBicepIdentifier())
+            var keyVault = infrastructure.CreateExistingOrNewProvisionableResource(
+            (identifier, name) =>
+            {
+                var resource = KeyVaultService.FromExisting(identifier);
+                resource.Name = name;
+                return resource;
+            },
+            (infrastructure) => new KeyVaultService(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Properties = new KeyVaultProperties()
                 {
@@ -38,8 +45,7 @@ public static class AzureKeyVaultResourceExtensions
                     },
                     EnableRbacAuthorization = true
                 }
-            };
-            infrastructure.Add(keyVault);
+            });
 
             infrastructure.Add(new ProvisioningOutput("vaultUri", typeof(string))
             {
