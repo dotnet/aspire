@@ -177,8 +177,10 @@ public sealed record EnvironmentVariableSnapshot(string Name, string? Value, boo
 /// <param name="Name">Name of the url.</param>
 /// <param name="Url">The full uri.</param>
 /// <param name="IsInternal">Determines if this url is internal.</param>
+/// <param name="DisplayName">The display name of the url.</param>
+/// <param name="Priority">The order of the url in UI.</param>
 [DebuggerDisplay("{Url}", Name = "{Name}")]
-public sealed record UrlSnapshot(string Name, string Url, bool IsInternal);
+public sealed record UrlSnapshot(string Name, string Url, bool IsInternal, string? DisplayName = null, int? Priority = null);
 
 /// <summary>
 /// A snapshot of a volume, mounted to a container.

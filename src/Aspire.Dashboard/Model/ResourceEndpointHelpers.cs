@@ -19,13 +19,13 @@ internal static class ResourceEndpointHelpers
         {
             if ((includeInternalUrls && url.IsInternal) || !url.IsInternal)
             {
-                endpoints.Add(new DisplayedEndpoint
+                endpoints.Add(new DisplayedEndpoint(displayName: url.DisplayName, originalString: url.Url.OriginalString)
                 {
                     Name = url.Name,
-                    Text = url.Url.OriginalString,
                     Address = url.Url.Host,
                     Port = url.Url.Port,
-                    Url = url.Url.Scheme is "http" or "https" ? url.Url.OriginalString : null
+                    Url = url.Url.Scheme is "http" or "https" ? url.Url.OriginalString : null,
+                    Priority = url.Priority
                 });
             }
         }
@@ -36,7 +36,8 @@ internal static class ResourceEndpointHelpers
         // - other urls
         // - endpoint name
         var orderedEndpoints = endpoints
-            .OrderByDescending(e => e.Url?.StartsWith("https") == true)
+            .OrderByDescending(e => e.Priority ?? 0)
+            .ThenByDescending(e => e.Url?.StartsWith("https") == true)
             .ThenByDescending(e => e.Url != null)
             .ThenBy(e => e.Name, StringComparers.EndpointAnnotationName)
             .ToList();
@@ -46,13 +47,14 @@ internal static class ResourceEndpointHelpers
 }
 
 [DebuggerDisplay("Name = {Name}, Text = {Text}, Address = {Address}:{Port}, Url = {Url}")]
-public sealed class DisplayedEndpoint : IPropertyGridItem
+public sealed class DisplayedEndpoint(string? displayName, string originalString) : IPropertyGridItem
 {
     public required string Name { get; set; }
-    public required string Text { get; set; }
+    public string Text { get; } = displayName ?? originalString;
     public string? Address { get; set; }
     public int? Port { get; set; }
     public string? Url { get; set; }
+    public int? Priority { get; set; }
 
     /// <summary>
     /// Don't display a plain string value here. The URL will be displayed as a hyperlink
