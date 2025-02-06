@@ -215,8 +215,9 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create();
         var eventHubs = builder.AddAzureEventHubs("eh");
 
-        var hub = eventHubs.AddHub("hub-resource", "hub-name", hub => hub.PartitionCount = 3);
-        hub.AddConsumerGroup("cg1", "group-name");
+        eventHubs.AddHub("hub-resource", "hub-name")
+            .WithProperties(hub => hub.PartitionCount = 3)
+            .AddConsumerGroup("cg1", "group-name");
 
         var manifest = await ManifestUtils.GetManifestWithBicep(eventHubs.Resource);
 
@@ -285,8 +286,9 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
                 cg = infrastructure.GetProvisionableResources().OfType<global::Azure.Provisioning.EventHubs.EventHubsConsumerGroup>().Single();
             });
 
-        var hub1 = eventHubs.AddHub("hub1", configure: hub => hub.PartitionCount = 4);
-        hub1.AddConsumerGroup("cg1");
+        eventHubs.AddHub("hub1")
+            .WithProperties(hub => hub.PartitionCount = 4)
+            .AddConsumerGroup("cg1");
 
         using var app = builder.Build();
 
@@ -309,8 +311,9 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         var eventHubs = builder.AddAzureEventHubs("eh")
             .RunAsEmulator();
 
-        var hub1 = eventHubs.AddHub("hub1", configure: hub => hub.PartitionCount = 4);
-        hub1.AddConsumerGroup("cg1");
+        eventHubs.AddHub("hub1")
+            .WithProperties(hub => hub.PartitionCount = 4)
+            .AddConsumerGroup("cg1");
 
         using var app = builder.Build();
         await app.StartAsync();

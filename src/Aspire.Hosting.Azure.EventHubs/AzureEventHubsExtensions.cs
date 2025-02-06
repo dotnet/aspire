@@ -104,14 +104,13 @@ public static class AzureEventHubsExtensions
     }
 
     /// <summary>
-    /// Adds an Azure Event Hubs hub resource to the application model. This resource requires an <see cref="AzureEventHubsResource"/> to be added to the application model.
+    /// Adds an Azure Event Hubs hub resource to the application model.
     /// </summary>
     /// <param name="builder">The Azure Event Hubs resource builder.</param>
     /// <param name="name">The name of the Event Hub resource.</param>
     /// <param name="hubName">The name of the Event Hub. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
-    /// <param name="configure">An optional method that can be used for customizing the <see cref="AzureEventHubResource"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureEventHubResource> AddHub(this IResourceBuilder<AzureEventHubsResource> builder, [ResourceName] string name, string? hubName = null, Action<AzureEventHubResource>? configure = null)
+    public static IResourceBuilder<AzureEventHubResource> AddHub(this IResourceBuilder<AzureEventHubsResource> builder, [ResourceName] string name, string? hubName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
@@ -120,10 +119,25 @@ public static class AzureEventHubsExtensions
         hubName ??= name;
 
         var hub = new AzureEventHubResource(name, hubName, builder.Resource);
-        configure?.Invoke(hub);
         builder.Resource.Hubs.Add(hub);
 
         return builder.ApplicationBuilder.AddResource(hub);
+    }
+
+    /// <summary>
+    /// Allows setting the properties of an Azure Event Hub resource.
+    /// </summary>
+    /// <param name="builder">The Azure Event Hub resource builder.</param>
+    /// <param name="configure">A method that can be used for customizing the <see cref="AzureEventHubResource"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureEventHubResource> WithProperties(this IResourceBuilder<AzureEventHubResource> builder, Action<AzureEventHubResource> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        configure(builder.Resource);
+
+        return builder;
     }
 
     /// <summary>
