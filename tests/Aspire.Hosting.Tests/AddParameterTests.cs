@@ -231,7 +231,7 @@ public class AddParameterTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task ParametersWithDefaultValueObjectOverloadUsedRegardlessOfConfigurationValue(bool hasConfig)
+    public async Task ParametersWithDefaultValueObjectOverloadUseConfigurationValueWhenPresent(bool hasConfig)
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
@@ -250,12 +250,20 @@ public class AddParameterTests
         using var app = appBuilder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        // Make sure the the generated default value is used, regardless of the config value
-        // We can't test the exact value since it's random, but we can test the length
+        // Make sure the the generated default value is only used when there isn't a config value
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "pass");
-        Assert.Equal(10, parameterResource.Value.Length);
+        if (hasConfig)
+        {
+            Assert.Equal("ValueFromConfiguration", parameterResource.Value);
+        }
+        else
+        {
+            Assert.NotEqual("ValueFromConfiguration", parameterResource.Value);
+            // We can't test the exact value since it's random, but we can test the length
+            Assert.Equal(10, parameterResource.Value.Length);
+        }
 
-        // The manifest should include the fields for the generated default value
+        // The manifest should always include the fields for the generated default value
         var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass")).DefaultTimeout();
         var expectedManifest = $$"""
             {
