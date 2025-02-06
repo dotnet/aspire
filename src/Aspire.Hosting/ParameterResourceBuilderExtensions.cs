@@ -86,7 +86,7 @@ public static class ParameterResourceBuilderExtensions
         return builder.AddParameter(
                 new ParameterResource(
                     name,
-                    parameterDefault => parameterDefault?.GetDefaultValue() ?? valueGetter(),
+                    parameterDefault => parameterDefault is not null ? parameterDefault.GetDefaultValue() : valueGetter(),
                     secret)
                 {
                     Default = publishValueAsDefault ? new ConstantParameterDefault(valueGetter) : null
