@@ -231,6 +231,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Display name.
+        /// </summary>
+        public static string DisplayNameColumnHeader {
+            get {
+                return ResourceManager.GetString("DisplayNameColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Duration.
         /// </summary>
         public static string DurationColumnHeader {

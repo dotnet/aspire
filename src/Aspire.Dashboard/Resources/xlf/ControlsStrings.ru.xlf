@@ -97,6 +97,11 @@
         <target state="translated">Сведения</target>
         <note />
       </trans-unit>
+      <trans-unit id="DisplayNameColumnHeader">
+        <source>Display name</source>
+        <target state="new">Display name</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DurationColumnHeader">
         <source>Duration</source>
         <target state="translated">Длительность</target>

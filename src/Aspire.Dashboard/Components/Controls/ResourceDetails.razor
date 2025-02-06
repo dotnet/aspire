@@ -63,14 +63,50 @@
                         @FilteredEndpoints.Count()
                     </FluentBadge>
                 </div>
-                <PropertyGrid
-                    TItem="DisplayedEndpoint"
-                    Items="@FilteredEndpoints"
-                    ContentAfterValue="(vm) => GetContentAfterValue(vm)"
-                    ValueSort="_endpointValueSort"
-                    IsValueMaskedChanged="@OnValueMaskedChanged"
-                    HighlightText="@_filter"
-                    GridTemplateColumns="1fr 1.5fr" />
+
+                @{
+                    var hasAnyEndpointDisplayNames = FilteredEndpoints.Any(e => e.DisplayName != null);
+                }
+
+                <FluentDataGrid TGridItem="DisplayedEndpoint"
+                                ItemKey="@(vm => ((IPropertyGridItem)vm).Key)"
+                                Items="@FilteredEndpoints"
+                                ColumnResizeLabels="@_resizeLabels"
+                                ColumnSortLabels="@_sortLabels"
+                                HeaderCellAsButtonWithMenu="true"
+                                ResizableColumns="true"
+                                ResizeType="DataGridResizeType.Discrete"
+                                Style="width:100%"
+                                RowSize="DataGridRowSize.Medium"
+                                GridTemplateColumns="@(hasAnyEndpointDisplayNames ? "1fr 1.5fr 1.5fr" : "1.5fr 1.5fr")"
+                                ShowHover="true">
+                    <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<DisplayedEndpoint>.ByAscending(i => i.Name))" Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]">
+                        <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]"
+                                   Value="@context.Name"
+                                   EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
+                                   HighlightText="@_filter" />
+                    </AspireTemplateColumn>
+                    @if (hasAnyEndpointDisplayNames)
+                    {
+                        <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<DisplayedEndpoint>.ByAscending(i => i.Name))" Title="@ControlStringsLoc[nameof(ControlsStrings.DisplayNameColumnHeader)]">
+                            @if (context.DisplayName is not null)
+                            {
+                                <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.DisplayNameColumnHeader)]"
+                                           Value="@context.DisplayName"
+                                           EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
+                                           HighlightText="@_filter" />
+                            }
+                        </AspireTemplateColumn>
+                    }
+                    <AspireTemplateColumn Sortable="true" SortBy="@_endpointValueSort" Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]">
+                        <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]"
+                                   Value="@context.OriginalUrlString"
+                                   ContentAfterValue="vm => GetContentAfterValue(context)"
+                                   EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
+                                   IsMaskedChanged="@(_ => OnValueMaskedChanged(context))"
+                                   HighlightText="@_filter" />
+                    </AspireTemplateColumn>
+                </FluentDataGrid>
             </FluentAccordionItem>
             @if (Resource.IsContainer())
             {

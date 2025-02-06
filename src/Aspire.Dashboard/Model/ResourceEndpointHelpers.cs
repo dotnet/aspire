@@ -19,7 +19,7 @@ internal static class ResourceEndpointHelpers
         {
             if ((includeInternalUrls && url.IsInternal) || !url.IsInternal)
             {
-                endpoints.Add(new DisplayedEndpoint(displayName: url.DisplayName, originalString: url.Url.OriginalString)
+                endpoints.Add(new DisplayedEndpoint(displayName: url.DisplayName, originalUrlString: url.Url.OriginalString)
                 {
                     Name = url.Name,
                     Address = url.Url.Host,
@@ -47,14 +47,16 @@ internal static class ResourceEndpointHelpers
 }
 
 [DebuggerDisplay("Name = {Name}, Text = {Text}, Address = {Address}:{Port}, Url = {Url}")]
-public sealed class DisplayedEndpoint(string? displayName, string originalString) : IPropertyGridItem
+public sealed class DisplayedEndpoint(string? displayName, string originalUrlString) : IPropertyGridItem
 {
     public required string Name { get; set; }
-    public string Text { get; } = displayName ?? originalString;
+    public string Text { get; } = displayName ?? originalUrlString;
     public string? Address { get; set; }
     public int? Port { get; set; }
     public string? Url { get; set; }
     public int? Priority { get; set; }
+    public string? DisplayName => displayName;
+    public string OriginalUrlString { get; set; } = originalUrlString;
 
     /// <summary>
     /// Don't display a plain string value here. The URL will be displayed as a hyperlink

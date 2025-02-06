@@ -181,6 +181,9 @@
   <data name="NameColumnHeader" xml:space="preserve">
     <value>Name</value>
   </data>
+  <data name="DisplayNameColumnHeader" xml:space="preserve">
+    <value>Display name</value>
+  </data>
   <data name="PropertyGridValueColumnHeader" xml:space="preserve">
     <value>Value</value>
   </data>
