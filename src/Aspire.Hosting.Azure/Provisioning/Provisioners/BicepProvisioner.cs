@@ -111,9 +111,12 @@ internal sealed class BicepProvisioner(
         var resourceLogger = loggerService.GetLogger(resource);
 
         if (resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingResource) &&
-            existingResource.ResourceGroupParameter is { } resourceGroupParameter)
+            existingResource.ResourceGroup is { } existingResourceGroup)
         {
-            resourceGroup = await context.GetResourceGroup(resourceGroupParameter.Name, resourceLogger, cancellationToken).ConfigureAwait(false);
+            var existingResourceGroupName = existingResourceGroup is IResourceBuilder<ParameterResource> parameterResource
+                ? parameterResource.Resource.Name
+                : (string)existingResourceGroup;
+            resourceGroup = await context.GetResourceGroup(existingResourceGroupName, resourceLogger, cancellationToken).ConfigureAwait(false);
         }
 
         await notificationService.PublishUpdateAsync(resource, state => state with

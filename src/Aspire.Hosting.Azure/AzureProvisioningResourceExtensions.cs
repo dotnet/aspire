@@ -193,7 +193,7 @@ public static class AzureProvisioningResourceExtensions
     /// <param name="createExisting">A callback to create the existing resource.</param>
     /// <param name="createNew">A callback to create the new resource.</param>
     /// <returns>The provisioned resource.</returns>
-    public static T CreateExistingOrNewProvisionableResource<T>(this AzureResourceInfrastructure infrastructure, Func<string, ProvisioningParameter, T> createExisting, Func<AzureResourceInfrastructure, T> createNew)
+    public static T CreateExistingOrNewProvisionableResource<T>(this AzureResourceInfrastructure infrastructure, Func<string, BicepValue<string>, T> createExisting, Func<AzureResourceInfrastructure, T> createNew)
         where T : ProvisionableResource
     {
         ArgumentNullException.ThrowIfNull(infrastructure);
@@ -203,11 +203,16 @@ public static class AzureProvisioningResourceExtensions
         T provisionedResource;
         if (infrastructure.AspireResource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation))
         {
-            var existingResourceName = existingAnnotation.NameParameter.AsProvisioningParameter(infrastructure, $"{infrastructure.AspireResource.GetBicepIdentifier()}Existing");
+            var existingResourceName = existingAnnotation.Name is IResourceBuilder<ParameterResource> nameParameter
+                ? nameParameter.AsProvisioningParameter(infrastructure)
+                : new BicepValue<string>((string)existingAnnotation.Name);
             provisionedResource = createExisting(infrastructure.AspireResource.GetBicepIdentifier(), existingResourceName);
-            if (existingAnnotation.ResourceGroupParameter is not null)
+            if (existingAnnotation.ResourceGroup is not null)
             {
-                infrastructure.AspireResource.Scope = new(existingAnnotation.ResourceGroupParameter);
+                var existingResourceGroup = existingAnnotation.ResourceGroup is IResourceBuilder<ParameterResource> resourceGroupParameter
+                    ? resourceGroupParameter.Resource
+                    : existingAnnotation.ResourceGroup;
+                infrastructure.AspireResource.Scope = new(existingResourceGroup);
             }
         }
         else
