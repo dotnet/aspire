@@ -32,7 +32,7 @@ public static class AzureEventHubsExtensions
 
         var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
-            var eventHubsNamespace = infrastructure.CreateExistingOrNewProvisionableResource(
+            var eventHubsNamespace = AzureProvisioningResourceExtensions.CreateExistingOrNewProvisionableResource(infrastructure,
                 (identifier, name) =>
                 {
                     var resource = AzureProvisioning.EventHubsNamespace.FromExisting(identifier);

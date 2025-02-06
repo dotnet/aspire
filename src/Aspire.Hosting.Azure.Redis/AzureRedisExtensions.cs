@@ -97,7 +97,7 @@ public static class AzureRedisExtensions
     /// By default, the Azure Cache for Redis resource is configured to use Microsoft Entra ID (Azure Active Directory) for authentication.
     /// This requires changes to the application code to use an azure credential to authenticate with the resource. See
     /// https://github.com/Azure/Microsoft.Azure.StackExchangeRedis for more information.
-    /// 
+    ///
     /// You can use the <see cref="WithAccessKeyAuthentication"/> method to configure the resource to use access key authentication.
     /// </remarks>
     /// <example>
@@ -198,7 +198,17 @@ public static class AzureRedisExtensions
 
     private static CdkRedisResource CreateRedisResource(AzureResourceInfrastructure infrastructure)
     {
-        var redisCache = new CdkRedisResource(infrastructure.AspireResource.GetBicepIdentifier())
+        return AzureProvisioningResourceExtensions.CreateExistingOrNewProvisionableResource(infrastructure,
+        (identifier, name) =>
+        {
+            var redisResource = (AzureRedisCacheResource)infrastructure.AspireResource;
+            var resource = new ExistingCdkRedisResource(identifier, !redisResource.UseAccessKeyAuthentication)
+            {
+                Name = name,
+            };
+            return resource;
+        },
+        (infrastructure) => new CdkRedisResource(infrastructure.AspireResource.GetBicepIdentifier())
         {
             Sku = new RedisSku()
             {
@@ -209,10 +219,7 @@ public static class AzureRedisExtensions
             EnableNonSslPort = false,
             MinimumTlsVersion = RedisTlsVersion.Tls1_2,
             Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-        };
-        infrastructure.Add(redisCache);
-
-        return redisCache;
+        });
     }
 
     private static void ConfigureRedisInfrastructure(AzureResourceInfrastructure infrastructure)
@@ -246,7 +253,10 @@ public static class AzureRedisExtensions
             {
                 IsAadEnabled = "true"
             };
-            redis.IsAccessKeyAuthenticationDisabled = true;
+            if (!redis.IsExistingResource)
+            {
+                redis.IsAccessKeyAuthenticationDisabled = true;
+            }
 
             var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
             infrastructure.Add(principalIdParameter);
@@ -265,6 +275,21 @@ public static class AzureRedisExtensions
             {
                 Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true")
             });
+        }
+    }
+
+    /// <remarks>
+    /// The provisioning APIs will mark the IsAccessKeyAuthenticationDisabled as `ReadOnly` after the
+    /// `IsExistingResource` property is set, making it impossible to configure the
+    /// `IsAccessKeyAuthenticationDisabled` property in our usual flows. This is a workaround to
+    /// allow us to set the property on existing resources.
+    /// </remarks>
+    private sealed class ExistingCdkRedisResource : CdkRedisResource
+    {
+        public ExistingCdkRedisResource(string bicepIdentifier, bool isAccessKeyAuthenticationDisabled, string? resourceVersion = null) : base(bicepIdentifier, resourceVersion)
+        {
+            IsAccessKeyAuthenticationDisabled = isAccessKeyAuthenticationDisabled;
+            IsExistingResource = true;
         }
     }
 }

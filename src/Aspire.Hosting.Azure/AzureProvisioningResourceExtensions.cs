@@ -193,7 +193,7 @@ public static class AzureProvisioningResourceExtensions
     /// <param name="createExisting">A callback to create the existing resource.</param>
     /// <param name="createNew">A callback to create the new resource.</param>
     /// <returns>The provisioned resource.</returns>
-    public static T CreateExistingOrNewProvisionableResource<T>(this AzureResourceInfrastructure infrastructure, Func<string, BicepValue<string>, T> createExisting, Func<AzureResourceInfrastructure, T> createNew)
+    public static T CreateExistingOrNewProvisionableResource<T>(AzureResourceInfrastructure infrastructure, Func<string, BicepValue<string>, T> createExisting, Func<AzureResourceInfrastructure, T> createNew)
         where T : ProvisionableResource
     {
         ArgumentNullException.ThrowIfNull(infrastructure);

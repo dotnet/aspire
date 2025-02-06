@@ -28,7 +28,7 @@ public static class AzureWebPubSubExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var service = infrastructure.CreateExistingOrNewProvisionableResource(
+            var service = AzureProvisioningResourceExtensions.CreateExistingOrNewProvisionableResource(infrastructure,
                 (identifier, name) =>
                 {
                     var resource = WebPubSubService.FromExisting(identifier);
