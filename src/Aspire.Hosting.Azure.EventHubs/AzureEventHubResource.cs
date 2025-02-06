@@ -2,30 +2,32 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
 
-namespace Aspire.Hosting.Azure.EventHubs;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// Represents an Event Hub.
+/// Represents an Azure Event Hub.
 /// </summary>
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-public class EventHub
+public class AzureEventHubResource : Resource, IResourceWithParent<AzureEventHubsResource>, IResourceWithConnectionString
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="EventHub"/> class.
+    /// Initializes a new instance of the <see cref="AzureEventHubResource"/> class.
     /// </summary>
-    public EventHub(string name)
+    public AzureEventHubResource(string name, string hubName, AzureEventHubsResource parent) : base(name)
     {
-        Name = name;
+        HubName = hubName;
+        Parent = parent;
     }
 
     /// <summary>
     /// The event hub name.
     /// </summary>
-    public string Name { get; set; }
+    public string HubName { get; set; }
 
     /// <summary>
     /// Number of partitions created for the Event Hub, allowed values are from
@@ -34,9 +36,19 @@ public class EventHub
     public long? PartitionCount { get; set; }
 
     /// <summary>
+    /// Gets the parent Azure Event Hubs resource.
+    /// </summary>
+    public AzureEventHubsResource Parent { get; }
+
+    /// <summary>
+    /// Gets the connection string expression for the Azure Event Hub.
+    /// </summary>
+    public ReferenceExpression ConnectionStringExpression => Parent.ConnectionStringExpression;
+
+    /// <summary>
     /// The consumer groups for this hub.
     /// </summary>
-    public List<EventHubConsumerGroup> ConsumerGroups { get; } = [];
+    internal List<AzureEventHubConsumerGroupResource> ConsumerGroups { get; } = [];
 
     /// <summary>
     /// Converts the current instance to a provisioning entity.
@@ -46,7 +58,7 @@ public class EventHub
     {
         var hub = new global::Azure.Provisioning.EventHubs.EventHub(Infrastructure.NormalizeBicepIdentifier(Name));
 
-        hub.Name = Name;
+        hub.Name = HubName;
 
         if (PartitionCount.HasValue)
         {
@@ -64,7 +76,7 @@ public class EventHub
     {
         var hub = this;
 
-        writer.WriteString(nameof(Name), hub.Name);
+        writer.WriteString(nameof(Name), hub.HubName);
 
         if (hub.PartitionCount.HasValue)
         {
