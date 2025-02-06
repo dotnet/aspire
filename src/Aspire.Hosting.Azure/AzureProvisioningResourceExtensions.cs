@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting;
 
@@ -181,6 +182,40 @@ public static class AzureProvisioningResourceExtensions
         infrastructure.AspireResource.Parameters[parameterName] = expression;
 
         return GetOrAddParameter(infrastructure, parameterName);
+    }
+
+    /// <summary>
+    /// Encapsulates the logic for creating an existing or new <see cref="ProvisionableResource"/>
+    /// based on whether or not the <see cref="ExistingAzureResourceAnnotation" /> exists on the resource.
+    /// </summary>
+    /// <typeparam name="T">The type of <see cref="ProvisionableResource"/> to produce.</typeparam>
+    /// <param name="infrastructure">The <see cref="AzureResourceInfrastructure"/> that will contain the <see cref="ProvisionableResource"/>.</param>
+    /// <param name="createExisting">A callback to create the existing resource.</param>
+    /// <param name="createNew">A callback to create the new resource.</param>
+    /// <returns>The provisioned resource.</returns>
+    public static T CreateExistingOrNewProvisionableResource<T>(this AzureResourceInfrastructure infrastructure, Func<string, ProvisioningParameter, T> createExisting, Func<AzureResourceInfrastructure, T> createNew)
+        where T : ProvisionableResource
+    {
+        ArgumentNullException.ThrowIfNull(infrastructure);
+        ArgumentNullException.ThrowIfNull(createExisting);
+        ArgumentNullException.ThrowIfNull(createNew);
+
+        T provisionedResource;
+        if (infrastructure.AspireResource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation))
+        {
+            var existingResourceName = existingAnnotation.NameParameter.AsProvisioningParameter(infrastructure, $"{infrastructure.AspireResource.GetBicepIdentifier()}Existing");
+            provisionedResource = createExisting(infrastructure.AspireResource.GetBicepIdentifier(), existingResourceName);
+            if (existingAnnotation.ResourceGroupParameter is not null)
+            {
+                infrastructure.AspireResource.Scope = new(existingAnnotation.ResourceGroupParameter);
+            }
+        }
+        else
+        {
+            provisionedResource = createNew(infrastructure);
+        }
+        infrastructure.Add(provisionedResource);
+        return provisionedResource;
     }
 
     private static ProvisioningParameter GetOrAddParameter(AzureResourceInfrastructure infrastructure, string parameterName, bool? isSecure = null)

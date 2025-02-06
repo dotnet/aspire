@@ -120,7 +120,7 @@ public static class AzurePostgresExtensions
     /// By default, the Azure PostgreSQL Flexible Server resource is configured to use Microsoft Entra ID (Azure Active Directory) for authentication.
     /// This requires changes to the application code to use an azure credential to authenticate with the resource. See
     /// https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-connect-with-managed-identity#connect-using-managed-identity-in-c for more information.
-    /// 
+    ///
     /// You can use the <see cref="WithPasswordAuthentication"/> method to configure the resource to use password authentication.
     /// </remarks>
     /// <example>
@@ -309,28 +309,34 @@ public static class AzurePostgresExtensions
 
     private static PostgreSqlFlexibleServer CreatePostgreSqlFlexibleServer(AzureResourceInfrastructure infrastructure, IDistributedApplicationBuilder distributedApplicationBuilder, IReadOnlyDictionary<string, string> databases)
     {
-        var postgres = new PostgreSqlFlexibleServer(infrastructure.AspireResource.GetBicepIdentifier())
-        {
-            StorageSizeInGB = 32,
-            Sku = new PostgreSqlFlexibleServerSku()
+        var postgres = infrastructure.CreateExistingOrNewProvisionableResource(
+            (identifier, name) =>
             {
-                Name = "Standard_B1ms",
-                Tier = PostgreSqlFlexibleServerSkuTier.Burstable
+                var resource = PostgreSqlFlexibleServer.FromExisting(identifier);
+                resource.Name = name;
+                return resource;
             },
-            Version = new StringLiteralExpression("16"),
-            HighAvailability = new PostgreSqlFlexibleServerHighAvailability()
+            (infrastructure) => new PostgreSqlFlexibleServer(infrastructure.AspireResource.GetBicepIdentifier())
             {
-                Mode = PostgreSqlFlexibleServerHighAvailabilityMode.Disabled
-            },
-            Backup = new PostgreSqlFlexibleServerBackupProperties()
-            {
-                BackupRetentionDays = 7,
-                GeoRedundantBackup = PostgreSqlFlexibleServerGeoRedundantBackupEnum.Disabled
-            },
-            AvailabilityZone = "1",
-            Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-        };
-        infrastructure.Add(postgres);
+                StorageSizeInGB = 32,
+                Sku = new PostgreSqlFlexibleServerSku()
+                {
+                    Name = "Standard_B1ms",
+                    Tier = PostgreSqlFlexibleServerSkuTier.Burstable
+                },
+                Version = new StringLiteralExpression("16"),
+                HighAvailability = new PostgreSqlFlexibleServerHighAvailability()
+                {
+                    Mode = PostgreSqlFlexibleServerHighAvailabilityMode.Disabled
+                },
+                Backup = new PostgreSqlFlexibleServerBackupProperties()
+                {
+                    BackupRetentionDays = 7,
+                    GeoRedundantBackup = PostgreSqlFlexibleServerGeoRedundantBackupEnum.Disabled
+                },
+                AvailabilityZone = "1",
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+            });
 
         // Opens access to all Azure services.
         infrastructure.Add(new PostgreSqlFlexibleServerFirewallRule("postgreSqlFirewallRule_AllowAllAzureIps")

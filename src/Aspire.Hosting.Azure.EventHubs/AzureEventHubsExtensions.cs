@@ -32,21 +32,31 @@ public static class AzureEventHubsExtensions
 
         var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
-            var skuParameter = new ProvisioningParameter("sku", typeof(string))
-            {
-                Value = "Standard"
-            };
-            infrastructure.Add(skuParameter);
-
-            var eventHubsNamespace = new AzureProvisioning.EventHubsNamespace(infrastructure.AspireResource.GetBicepIdentifier())
-            {
-                Sku = new AzureProvisioning.EventHubsSku()
+            var eventHubsNamespace = infrastructure.CreateExistingOrNewProvisionableResource(
+                (identifier, name) =>
                 {
-                    Name = skuParameter
+                    var resource = AzureProvisioning.EventHubsNamespace.FromExisting(identifier);
+                    resource.Name = name;
+                    return resource;
                 },
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-            };
-            infrastructure.Add(eventHubsNamespace);
+                (infrastructure) =>
+                {
+                    var skuParameter = new ProvisioningParameter("sku", typeof(string))
+                    {
+                        Value = "Standard"
+                    };
+                    infrastructure.Add(skuParameter);
+
+                    var resource = new AzureProvisioning.EventHubsNamespace(infrastructure.AspireResource.GetBicepIdentifier())
+                    {
+                        Sku = new AzureProvisioning.EventHubsSku()
+                        {
+                            Name = skuParameter
+                        },
+                        Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                    };
+                    return resource;
+                });
 
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
             infrastructure.Add(principalTypeParameter);
@@ -366,7 +376,7 @@ public static class AzureEventHubsExtensions
     /// <param name="path">Path to the file on the AppHost where the emulator configuration is located.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureEventHubsEmulatorResource> WithConfigurationFile(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string path)
-    { 
+    {
         // Update the existing mount
         var configFileMount = builder.Resource.Annotations.OfType<ContainerMountAnnotation>().LastOrDefault(v => v.Target == AzureEventHubsEmulatorResource.EmulatorConfigJsonPath);
         if (configFileMount != null)

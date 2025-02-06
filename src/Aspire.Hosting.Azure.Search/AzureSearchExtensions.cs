@@ -30,16 +30,22 @@ public static class AzureSearchExtensions
 
         void ConfigureSearch(AzureResourceInfrastructure infrastructure)
         {
-            var search = new SearchService(infrastructure.AspireResource.GetBicepIdentifier())
-            {
-                SearchSkuName = SearchServiceSkuName.Basic,
-                ReplicaCount = 1,
-                PartitionCount = 1,
-                HostingMode = SearchServiceHostingMode.Default,
-                IsLocalAuthDisabled = true,
-                Tags = { { "aspire-resource-name", name } }
-            };
-            infrastructure.Add(search);
+            var search = infrastructure.CreateExistingOrNewProvisionableResource(
+                (identifier, name) =>
+                {
+                    var resource = SearchService.FromExisting(identifier);
+                    resource.Name = name;
+                    return resource;
+                },
+                (infrastructure) => new SearchService(infrastructure.AspireResource.GetBicepIdentifier())
+                {
+                    SearchSkuName = SearchServiceSkuName.Basic,
+                    ReplicaCount = 1,
+                    PartitionCount = 1,
+                    HostingMode = SearchServiceHostingMode.Default,
+                    IsLocalAuthDisabled = true,
+                    Tags = { { "aspire-resource-name", name } }
+                });
 
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
             infrastructure.Add(principalTypeParameter);
