@@ -12,7 +12,7 @@ public class ResourceSourceViewModel(string value, List<LaunchArgument>? content
 
     internal static ResourceSourceViewModel? GetSourceViewModel(ResourceViewModel resource)
     {
-        (List<LaunchArgument>? Arguments, string? ArgumentsString)? commandLineInfo;
+        (List<LaunchArgument>? Arguments, string? ArgumentsString) commandLineInfo;
 
         // If the resource contains launch arguments, these project arguments should be shown in place of all executable arguments,
         // which include args added by the app host
@@ -58,19 +58,19 @@ public class ResourceSourceViewModel(string value, List<LaunchArgument>? content
             }
 
             // default to project path if there is no executable path or executable arguments
-            return new ResourceSourceViewModel(value: Path.GetFileName(projectPath), contentAfterValue: commandLineInfo?.Arguments, valueToVisualize: projectPath, tooltip: projectPath);
+            return new ResourceSourceViewModel(value: Path.GetFileName(projectPath), contentAfterValue: commandLineInfo.Arguments, valueToVisualize: projectPath, tooltip: projectPath);
         }
 
         if (resource.TryGetExecutablePath(out var executablePath))
         {
-            var fullSource = commandLineInfo?.ArgumentsString is not null ? $"{executablePath} {commandLineInfo.Value.ArgumentsString}" : executablePath;
-            return new ResourceSourceViewModel(value: Path.GetFileName(executablePath), contentAfterValue: commandLineInfo?.Arguments, valueToVisualize: fullSource, tooltip: fullSource);
+            var fullSource = commandLineInfo.ArgumentsString is not null ? $"{executablePath} {commandLineInfo.ArgumentsString}" : executablePath;
+            return new ResourceSourceViewModel(value: Path.GetFileName(executablePath), contentAfterValue: commandLineInfo.Arguments, valueToVisualize: fullSource, tooltip: fullSource);
         }
 
         if (resource.TryGetContainerImage(out var containerImage))
         {
-            var fullSource = commandLineInfo?.ArgumentsString is null ? containerImage : $"{containerImage} {commandLineInfo.Value.ArgumentsString}";
-            return new ResourceSourceViewModel(value: containerImage, contentAfterValue: commandLineInfo?.Arguments, valueToVisualize: fullSource, tooltip: fullSource);
+            var fullSource = commandLineInfo.ArgumentsString is null ? containerImage : $"{containerImage} {commandLineInfo.ArgumentsString}";
+            return new ResourceSourceViewModel(value: containerImage, contentAfterValue: commandLineInfo.Arguments, valueToVisualize: fullSource, tooltip: fullSource);
         }
 
         if (resource.Properties.TryGetValue(KnownProperties.Resource.Source, out var property) && property.Value is { HasStringValue: true, StringValue: var value })
