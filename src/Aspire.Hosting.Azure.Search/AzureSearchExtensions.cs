@@ -30,7 +30,7 @@ public static class AzureSearchExtensions
 
         void ConfigureSearch(AzureResourceInfrastructure infrastructure)
         {
-            var search = AzureProvisioningResourceExtensions.CreateExistingOrNewProvisionableResource(infrastructure,
+            var search = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
                 (identifier, name) =>
                 {
                     var resource = SearchService.FromExisting(identifier);

@@ -198,7 +198,7 @@ public static class AzureRedisExtensions
 
     private static CdkRedisResource CreateRedisResource(AzureResourceInfrastructure infrastructure)
     {
-        return AzureProvisioningResourceExtensions.CreateExistingOrNewProvisionableResource(infrastructure,
+        return AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
         (identifier, name) =>
         {
             var redisResource = (AzureRedisCacheResource)infrastructure.AspireResource;

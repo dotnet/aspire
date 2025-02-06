@@ -309,7 +309,7 @@ public static class AzurePostgresExtensions
 
     private static PostgreSqlFlexibleServer CreatePostgreSqlFlexibleServer(AzureResourceInfrastructure infrastructure, IDistributedApplicationBuilder distributedApplicationBuilder, IReadOnlyDictionary<string, string> databases)
     {
-        var postgres = AzureProvisioningResourceExtensions.CreateExistingOrNewProvisionableResource(infrastructure,
+        var postgres = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
             (identifier, name) =>
             {
                 var resource = PostgreSqlFlexibleServer.FromExisting(identifier);

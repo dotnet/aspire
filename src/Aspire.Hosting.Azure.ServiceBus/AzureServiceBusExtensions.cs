@@ -32,7 +32,7 @@ public static class AzureServiceBusExtensions
 
         var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
-            AzureProvisioning.ServiceBusNamespace serviceBusNamespace = AzureProvisioningResourceExtensions.CreateExistingOrNewProvisionableResource(infrastructure,
+            AzureProvisioning.ServiceBusNamespace serviceBusNamespace = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
                 (identifier, name) =>
                 {
                     var resource = AzureProvisioning.ServiceBusNamespace.FromExisting(identifier);

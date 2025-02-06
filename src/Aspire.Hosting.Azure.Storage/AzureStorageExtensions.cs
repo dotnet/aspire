@@ -32,7 +32,7 @@ public static class AzureStorageExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var storageAccount = AzureProvisioningResourceExtensions.CreateExistingOrNewProvisionableResource(infrastructure,
+            var storageAccount = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
                 (identifier, name) =>
                 {
                     var resource = StorageAccount.FromExisting(identifier);

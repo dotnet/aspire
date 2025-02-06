@@ -25,7 +25,7 @@ public static class AzureAppConfigurationExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var store = AzureProvisioningResourceExtensions.CreateExistingOrNewProvisionableResource(infrastructure,
+            var store = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
                 (identifier, name) =>
                 {
                     var resource = AppConfigurationStore.FromExisting(identifier);

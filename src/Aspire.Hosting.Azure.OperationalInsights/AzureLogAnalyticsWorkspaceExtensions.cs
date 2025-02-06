@@ -25,7 +25,7 @@ public static class AzureLogAnalyticsWorkspaceExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var workspace = AzureProvisioningResourceExtensions.CreateExistingOrNewProvisionableResource(infrastructure,
+            var workspace = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
                 (identifier, name) =>
                 {
                     var resource = OperationalInsightsWorkspace.FromExisting(identifier);

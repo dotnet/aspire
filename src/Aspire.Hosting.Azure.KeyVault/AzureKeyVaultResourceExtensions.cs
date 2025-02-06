@@ -26,7 +26,7 @@ public static class AzureKeyVaultResourceExtensions
 
         var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
-            var keyVault = AzureProvisioningResourceExtensions.CreateExistingOrNewProvisionableResource(infrastructure,
+            var keyVault = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
             (identifier, name) =>
             {
                 var resource = KeyVaultService.FromExisting(identifier);
