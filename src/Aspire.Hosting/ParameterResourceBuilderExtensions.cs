@@ -86,7 +86,7 @@ public static class ParameterResourceBuilderExtensions
         return builder.AddParameter(
                 new ParameterResource(
                     name,
-                    parameterDefault => parameterDefault != null ? parameterDefault.GetDefaultValue() : valueGetter(),
+                    parameterDefault => parameterDefault?.GetDefaultValue() ?? valueGetter(),
                     secret)
                 {
                     Default = publishValueAsDefault ? new ConstantParameterDefault(valueGetter) : null
@@ -116,11 +116,11 @@ public static class ParameterResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a parameter resource to the application, with a value coming from a ParameterDefault.
+    /// Adds a parameter resource to the application, with a value coming from a <see cref="ParameterDefault"/> if not supplied from configuration.
     /// </summary>
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">Name of parameter resource</param>
-    /// <param name="value">A <see cref="ParameterDefault"/> that is used to provide the parameter value</param>
+    /// <param name="value">A <see cref="ParameterDefault"/> that is used to provide the parameter value if a value is not present in configuration</param>
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
     /// <param name="persist">Persist the value to the app host project's user secrets store. This is typically
     /// done when the value is generated, so that it stays stable across runs. This is only relevant when
@@ -142,13 +142,13 @@ public static class ParameterResourceBuilderExtensions
         }
 
         return builder.AddParameter(
-            new ParameterResource(name, p => p!.GetDefaultValue(), secret)
+            new ParameterResource(name, p => GetParameterValue(builder.Configuration, name, value), secret)
             {
                 Default = value
             });
     }
 
-    private static string GetParameterValue(IConfiguration configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
+    private static string GetParameterValue(ConfigurationManager configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
     {
         configurationKey ??= $"Parameters:{name}";
         return configuration[configurationKey]
