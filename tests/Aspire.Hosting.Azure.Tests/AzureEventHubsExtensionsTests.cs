@@ -373,10 +373,16 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
 
         var eventHubs = builder
             .AddAzureEventHubs("eh")
-            .RunAsEmulator(configure => configure.WithConfiguration(document =>
+            .RunAsEmulator(configure => configure
+            .WithConfiguration(document =>
             {
                 document["UserConfig"]!["LoggingConfig"] = new JsonObject { ["Type"] = "Console" };
+            })
+            .WithConfiguration(document =>
+            {
+                document["Custom"] = JsonValue.Create(42);
             }));
+
         eventHubs.AddHub("hub1");
 
         using var app = builder.Build();
@@ -406,7 +412,8 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
             "LoggingConfig": {
               "Type": "Console"
             }
-          }
+          },
+          "Custom": 42
         }
         """, configJsonContent);
 
@@ -470,6 +477,39 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         catch
         {
         }
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddAzureEventHubsWithEmulator_SetsStorageLifetime(bool isPersistent)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var lifetime = isPersistent ? ContainerLifetime.Persistent : ContainerLifetime.Session;
+
+        var serviceBus = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
+        {
+            builder.WithLifetime(lifetime);
+        });
+
+        var azurite = builder.Resources.FirstOrDefault(x => x.Name == "eh-storage");
+
+        Assert.NotNull(azurite);
+
+        serviceBus.Resource.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var sbLifetimeAnnotation);
+        azurite.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var sqlLifetimeAnnotation);
+
+        Assert.Equal(lifetime, sbLifetimeAnnotation?.Lifetime);
+        Assert.Equal(lifetime, sqlLifetimeAnnotation?.Lifetime);
+    }
+
+    [Fact]
+    public void RunAsEmulator_CalledTwice_Throws()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var serviceBus = builder.AddAzureEventHubs("eh").RunAsEmulator();
+
+        Assert.Throws<InvalidOperationException>(() => serviceBus.RunAsEmulator());
     }
 
     [Fact]
