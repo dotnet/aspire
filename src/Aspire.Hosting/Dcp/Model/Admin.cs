@@ -12,8 +12,15 @@ internal sealed class ApiServerExecution
     [JsonPropertyName("status")]
     public string? ApiServerStatus { get; set; }
 
+    // Requested resource cleanup type.
     [JsonPropertyName("shutdownResourceCleanup")]
     public string? ShutdownResourceCleanup { get; set; } = ResourceCleanup.Full;
+
+    // Indicates whether the resources have been cleaned up.
+    public bool ResourcesCleanedUp =>
+        ApiServerStatus is not null && (
+        ApiServerStatus == Model.ApiServerStatus.CleanupComplete ||
+        ApiServerStatus == Model.ApiServerStatus.Stopping);
 }
 
 internal static class ApiServerStatus
@@ -21,11 +28,16 @@ internal static class ApiServerStatus
     // The server is running (default state).
     public const string Running = "Running";
 
-    // The server is stopping (also used for programmatic server stoppage).
+    // The server is stopping/shutting down (also used for programmatic server stoppage).
+    // This includes resource cleanup if it was not initiated previously.
     public const string Stopping = "Stopping";
 
-    // The server has stopped (final state).
-    public const string Stopped = "Stopped";
+    // The server is in te process of cleaning up resources
+    // (also used for triggering the resource cleanup without stopping the server).
+    public const string CleaningResources = "CleaningResources";
+
+    // The server completed resource cleanup.
+    public const string CleanupComplete = "CleanupComplete";
 }
 
 internal static class ResourceCleanup
