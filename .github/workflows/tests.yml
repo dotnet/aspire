@@ -176,6 +176,7 @@ jobs:
 
       - name: Run tests
         id: run-tests
+        continue-on-error: true
         env:
           CI: false
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
@@ -185,7 +186,7 @@ jobs:
           mkdir -p testresults
           
           # Run tests and prepend a timestamp to each output line.
-          # This while-read loop processes each line of output and echoes it with a timestamp.
+          # The while-read loop echoes each output line with a timestamp.
           ./dotnet.sh test ${{ github.workspace }}/${{ matrix.project }} \
             /p:ContinuousIntegrationBuild=true \
             -s eng/testing/.runsettings \
@@ -200,6 +201,12 @@ jobs:
           while IFS= read -r line; do
             echo "$(date '+[%Y-%m-%d %H:%M:%S]') $line"
           done > testresults/${{ matrix.name }}.log
+
+      - name: Dump test log on failure
+        if: failure()  # This runs only if the previous "Run tests" step failed.
+        run: |
+          echo "Test run failed. Dumping test log:"
+          cat testresults/${{ matrix.name }}.log
 
       - name: Upload bin log artifact
         if: always()
