@@ -1,17 +1,17 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Hosting.Azure.ServiceBus;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents the correlation filter expression.
 /// </summary>
-public class ServiceBusCorrelationFilter
+public class AzureServiceBusCorrelationFilter
 {
     /// <summary>
     /// Represents the correlation filter expression.
     /// </summary>
-    public ServiceBusCorrelationFilter()
+    public AzureServiceBusCorrelationFilter()
     {
     }
 

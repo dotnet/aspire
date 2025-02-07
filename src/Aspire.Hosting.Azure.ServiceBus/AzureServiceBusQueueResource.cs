@@ -5,7 +5,7 @@ using System.Text.Json;
 using System.Xml;
 using Azure.Provisioning;
 
-namespace Aspire.Hosting.Azure.ServiceBus;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents a Service Bus Queue.
@@ -13,12 +13,12 @@ namespace Aspire.Hosting.Azure.ServiceBus;
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-public class ServiceBusQueue
+public class AzureServiceBusQueueResource
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="ServiceBusQueue"/> class.
+    /// Initializes a new instance of the <see cref="AzureServiceBusQueueResource"/> class.
     /// </summary>
-    public ServiceBusQueue(string name)
+    public AzureServiceBusQueueResource(string name)
     {
         Name = name;
     }

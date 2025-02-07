@@ -5,7 +5,7 @@ using System.Text.Json;
 using System.Xml;
 using Azure.Provisioning;
 
-namespace Aspire.Hosting.Azure.ServiceBus;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents a Service Bus Topic.
@@ -13,12 +13,12 @@ namespace Aspire.Hosting.Azure.ServiceBus;
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-public class ServiceBusTopic
+public class AzureServiceBusTopicResource
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="ServiceBusTopic"/> class.
+    /// Initializes a new instance of the <see cref="AzureServiceBusTopicResource"/> class.
     /// </summary>
-    public ServiceBusTopic(string name)
+    public AzureServiceBusTopicResource(string name)
     {
         Name = name;
     }
@@ -50,7 +50,7 @@ public class ServiceBusTopic
     /// <summary>
     /// The subscriptions for this topic.
     /// </summary>
-    public List<ServiceBusSubscription> Subscriptions { get; } = [];
+    public List<AzureServiceBusSubscriptionResource> Subscriptions { get; } = [];
 
     /// <summary>
     /// Converts the current instance to a provisioning entity.

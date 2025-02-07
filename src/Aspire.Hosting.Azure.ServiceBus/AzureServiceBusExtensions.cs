@@ -120,15 +120,15 @@ public static class AzureServiceBusExtensions
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the queue.</param>
-    /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusQueue"/>.</param>
+    /// <param name="configure">An optional method that can be used for customizing the <see cref="AzureServiceBusQueueResource"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureServiceBusResource> WithQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<ServiceBusQueue>? configure = null)
+    public static IResourceBuilder<AzureServiceBusResource> WithQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<AzureServiceBusQueueResource>? configure = null)
     {
         var queue = builder.Resource.Queues.FirstOrDefault(x => x.Name == name);
 
         if (queue == null)
         {
-            queue = new ServiceBusQueue(name);
+            queue = new AzureServiceBusQueueResource(name);
             builder.Resource.Queues.Add(queue);
         }
 
@@ -162,7 +162,7 @@ public static class AzureServiceBusExtensions
             {
                 if (!topic.Subscriptions.Any(x => x.Name == subscription))
                 {
-                    topic.Subscriptions.Add(new ServiceBusSubscription(subscription));
+                    topic.Subscriptions.Add(new AzureServiceBusSubscriptionResource(subscription));
                 }
             }
         });
@@ -173,15 +173,15 @@ public static class AzureServiceBusExtensions
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the topic.</param>
-    /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusTopic"/>.</param>
+    /// <param name="configure">An optional method that can be used for customizing the <see cref="AzureServiceBusTopicResource"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureServiceBusResource> WithTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<ServiceBusTopic>? configure = null)
+    public static IResourceBuilder<AzureServiceBusResource> WithTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<AzureServiceBusTopicResource>? configure = null)
     {
         var topic = builder.Resource.Topics.FirstOrDefault(x => x.Name == name);
 
         if (topic == null)
         {
-            topic = new ServiceBusTopic(name);
+            topic = new AzureServiceBusTopicResource(name);
             builder.Resource.Topics.Add(topic);
         }
 
@@ -203,7 +203,7 @@ public static class AzureServiceBusExtensions
         {
             if (!topic.Subscriptions.Any(x => x.Name == subscriptionName))
             {
-                topic.Subscriptions.Add(new ServiceBusSubscription(subscriptionName));
+                topic.Subscriptions.Add(new AzureServiceBusSubscriptionResource(subscriptionName));
             }
         });
 

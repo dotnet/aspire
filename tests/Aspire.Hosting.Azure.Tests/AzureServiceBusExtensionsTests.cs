@@ -32,8 +32,8 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         serviceBus.WithTopic("topic1", topic =>
         {
             topic.DefaultMessageTimeToLive = TimeSpan.FromSeconds(1);
-            var subscription = new ServiceBusSubscription("subscription1");
-            subscription.Rules.Add(new ServiceBusRule("rule1"));
+            var subscription = new AzureServiceBusSubscriptionResource("subscription1");
+            subscription.Rules.Add(new AzureServiceBusRule("rule1"));
             topic.Subscriptions.Add(subscription);
         });
         serviceBus.AddSubscription("topic1", "subscription1");
@@ -334,7 +334,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                 topic.DuplicateDetectionHistoryTimeWindow = TimeSpan.FromSeconds(20);
                 topic.RequiresDuplicateDetection = true;
 
-                var subscription = new ServiceBusSubscription("subscription1")
+                var subscription = new AzureServiceBusSubscriptionResource("subscription1")
                 {
                     DeadLetteringOnMessageExpiration = true,
                     DefaultMessageTimeToLive = TimeSpan.FromMinutes(1),
@@ -345,9 +345,9 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                 };
                 topic.Subscriptions.Add(subscription);
 
-                var rule = new ServiceBusRule("rule1")
+                var rule = new AzureServiceBusRule("rule1")
                 {
-                    FilterType = ServiceBusFilterType.SqlFilter,
+                    FilterType = AzureServiceBusFilterType.SqlFilter,
                     CorrelationFilter = new()
                     {
                         ContentType = "application/text",
@@ -438,7 +438,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                 topic.DuplicateDetectionHistoryTimeWindow = TimeSpan.FromSeconds(20);
                 topic.RequiresDuplicateDetection = true;
 
-                var subscription = new ServiceBusSubscription("subscription1")
+                var subscription = new AzureServiceBusSubscriptionResource("subscription1")
                 {
                     DeadLetteringOnMessageExpiration = true,
                     DefaultMessageTimeToLive = TimeSpan.FromMinutes(1),
@@ -449,9 +449,9 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                 };
                 topic.Subscriptions.Add(subscription);
 
-                var rule = new ServiceBusRule("rule1")
+                var rule = new AzureServiceBusRule("rule1")
                 {
-                    FilterType = ServiceBusFilterType.SqlFilter,
+                    FilterType = AzureServiceBusFilterType.SqlFilter,
                     CorrelationFilter = new()
                     {
                         ContentType = "application/text",

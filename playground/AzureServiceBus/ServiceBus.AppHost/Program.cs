@@ -1,5 +1,5 @@
 using System.Text.Json.Nodes;
-using Aspire.Hosting.Azure.ServiceBus;
+using Aspire.Hosting.Azure;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -12,13 +12,13 @@ serviceBus
     })
     .WithTopic("topic1", topic =>
     {
-        var subscription = new ServiceBusSubscription("sub1")
+        var subscription = new AzureServiceBusSubscriptionResource("sub1")
         {
             MaxDeliveryCount = 10,
         };
         topic.Subscriptions.Add(subscription);
 
-        var rule = new ServiceBusRule("app-prop-filter-1")
+        var rule = new AzureServiceBusRule("app-prop-filter-1")
         {
             CorrelationFilter = new()
             {

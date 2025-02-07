@@ -5,7 +5,7 @@ using System.Text.Json;
 using System.Xml;
 using Azure.Provisioning;
 
-namespace Aspire.Hosting.Azure.ServiceBus;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents a Service Bus Subscription.
@@ -13,12 +13,12 @@ namespace Aspire.Hosting.Azure.ServiceBus;
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-public class ServiceBusSubscription
+public class AzureServiceBusSubscriptionResource
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="ServiceBusSubscription"/> class.
+    /// Initializes a new instance of the <see cref="AzureServiceBusSubscriptionResource"/> class.
     /// </summary>
-    public ServiceBusSubscription(string name)
+    public AzureServiceBusSubscriptionResource(string name)
     {
         Name = name;
     }
@@ -74,7 +74,7 @@ public class ServiceBusSubscription
     /// <summary>
     /// The rules for this subscription.
     /// </summary>
-    public List<ServiceBusRule> Rules { get; } = [];
+    public List<AzureServiceBusRule> Rules { get; } = [];
 
     /// <summary>
     /// Converts the current instance to a provisioning entity.
@@ -130,7 +130,7 @@ public class ServiceBusSubscription
 
         if (subscription.Name != null)
         {
-            writer.WriteString(nameof(ServiceBusQueue.Name), subscription.Name);
+            writer.WriteString(nameof(AzureServiceBusQueueResource.Name), subscription.Name);
         }
 
         writer.WriteStartObject("Properties");
