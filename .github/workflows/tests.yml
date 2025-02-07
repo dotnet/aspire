@@ -11,7 +11,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 60 
+    timeout-minutes: 60
     name: ${{ matrix.name }}
     strategy:
       fail-fast: false
@@ -138,14 +138,14 @@ jobs:
 
           # These are failing due to globalization issues
           # Dashboard projects
-          # - project: tests/Aspire.Dashboard.Components.Tests/Aspire.Dashboard.Components.Tests.csproj
-          #   name: Dashboard.Components
-          # - project: tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj
-          #   name: Dashboard
+          - project: tests/Aspire.Dashboard.Components.Tests/Aspire.Dashboard.Components.Tests.csproj
+            name: Dashboard.Components
+          - project: tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj
+            name: Dashboard
 
           # Playground project
-          # - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
-          #   name: Playground
+          - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
+            name: Playground
           # Add more projects as needed
     steps:
       - name: Checkout code
