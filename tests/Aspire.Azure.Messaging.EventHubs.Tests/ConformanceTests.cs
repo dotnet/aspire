@@ -88,6 +88,7 @@ public class ConformanceTests : ConformanceTests<EventProcessorClient, AzureMess
             {
                 settings.Credential = new DefaultAzureCredential();
             }
+            settings.BlobClientServiceKey = "blobs";
             configure?.Invoke(settings);
         }
     }
