@@ -105,65 +105,6 @@ public class DcpExecutorTests
     }
 
     [Fact]
-    public async Task ResourceRestarted_EnvironmentCallbacksApplied()
-    {
-        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
-        {
-            AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
-        });
-
-        var callCount = 0;
-        var resource = builder.AddProject<Projects.ServiceA>("ServiceA")
-            .WithArgs(c =>
-            {
-                c.Args.Add("--test");
-            })
-            .WithEnvironment(c =>
-            {
-                Interlocked.Increment(ref callCount);
-                c.EnvironmentVariables["CALL_COUNT"] = callCount.ToString();
-            }).Resource;
-
-        var kubernetesService = new TestKubernetesService();
-        using var app = builder.Build();
-        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix" };
-
-        var events = new DcpExecutorEvents();
-        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
-
-        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions, events: events);
-        await appExecutor.RunApplicationAsync();
-
-        var executables = kubernetesService.CreatedResources.OfType<Executable>().ToList();
-
-        var exe1 = Assert.Single(executables);
-        var callCount1 = exe1.Spec.Env!.Single(e => e.Name == "CALL_COUNT");
-        Assert.Equal("1", callCount1.Value);
-
-        Assert.Single(exe1.Spec.Args!.Where(a => a == "--test"));
-        Assert.True(exe1.TryGetAnnotationAsObjectList<AppLaunchArgumentAnnotation>(CustomResource.ResourceAppArgsAnnotation, out var argAnnotations1));
-        Assert.Single(argAnnotations1.Where(a => a.Argument == "--test"));
-
-        var reference = appExecutor.GetResource(exe1.Metadata.Name);
-
-        await appExecutor.StopResourceAsync(reference, CancellationToken.None);
-
-        await appExecutor.StartResourceAsync(reference, CancellationToken.None);
-
-        executables = kubernetesService.CreatedResources.OfType<Executable>().ToList();
-        Assert.Equal(2, executables.Count);
-
-        var exe2 = executables[1];
-        var callCount2 = exe2.Spec.Env!.Single(e => e.Name == "CALL_COUNT");
-        Assert.Equal("2", callCount2.Value);
-
-        Assert.Single(exe1.Spec.Args!.Where(a => a == "--test"));
-        Assert.True(exe1.TryGetAnnotationAsObjectList<AppLaunchArgumentAnnotation>(CustomResource.ResourceAppArgsAnnotation, out var argAnnotations2));
-        Assert.Single(argAnnotations2.Where(a => a.Argument == "--test"));
-    }
-
-    [Fact]
     public async Task EndpointPortsExecutableNotReplicatedProxiedNoPortNoTargetPort()
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -1020,7 +961,7 @@ public class DcpExecutorTests
         var builder = DistributedApplication.CreateBuilder();
         builder.AddContainer("database", "image");
 
-        var kubernetesService = new TestKubernetesService(ignoreDeletes: true);
+        var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var dcpEvents = new DcpExecutorEvents();

@@ -16,6 +16,8 @@ internal class AppResource : IResourceReference
     public virtual List<ServiceAppResource> ServicesProduced { get; } = [];
     public virtual List<ServiceAppResource> ServicesConsumed { get; } = [];
 
+    public bool IsInitialized { get; set; }
+
     public AppResource(IResource modelResource, CustomResource dcpResource)
     {
         ModelResource = modelResource;
