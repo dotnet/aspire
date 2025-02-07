@@ -58,7 +58,7 @@ public partial class StructuredLogActions : ComponentBase
             OnClick = async () =>
             {
                 var header = Loc[nameof(Resources.StructuredLogs.StructuredLogsMessageColumnHeader)];
-                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)], header, LogEntry.Message);
+                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, header, LogEntry.Message);
             }
         });
     }

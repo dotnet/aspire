@@ -4,6 +4,7 @@
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Aspire.Dashboard.Model;
+using Aspire.Hosting.Dashboard;
 using FluentUIIconVariant = Microsoft.FluentUI.AspNetCore.Components.IconVariant;
 using CommandsResources = Aspire.Dashboard.Resources.Commands;
 
@@ -118,26 +119,13 @@ partial class Resource
             // Use custom localizations for built-in lifecycle commands
             static (string DisplayName, string DisplayDescription) GetDisplayNameAndDescription(string commandName, string displayName, string description)
             {
-                const string startCommandName = "resource-start";
-                const string stopCommandName = "resource-stop";
-                const string restartCommandName = "resource-restart";
-
-                if (commandName is startCommandName)
+                return commandName switch
                 {
-                    return (CommandsResources.StartCommandDisplayName, CommandsResources.StartCommandDisplayDescription);
-                }
-
-                if (commandName is stopCommandName)
-                {
-                    return (CommandsResources.StopCommandDisplayName, CommandsResources.StopCommandDisplayDescription);
-                }
-
-                if (commandName is restartCommandName)
-                {
-                    return (CommandsResources.RestartCommandDisplayName, CommandsResources.RestartCommandDisplayDescription);
-                }
-
-                return (displayName, description);
+                    KnownResourceCommands.StartCommand => (CommandsResources.StartCommandDisplayName, CommandsResources.StartCommandDisplayDescription),
+                    KnownResourceCommands.StopCommand => (CommandsResources.StopCommandDisplayName, CommandsResources.StopCommandDisplayDescription),
+                    KnownResourceCommands.RestartCommand => (CommandsResources.RestartCommandDisplayName, CommandsResources.RestartCommandDisplayDescription),
+                    _ => (displayName, description)
+                };
             }
 
             static CommandViewModelState MapState(ResourceCommandState state)

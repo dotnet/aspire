@@ -29,6 +29,6 @@
 
     private void OnExceptionDetailsClicked(MouseEventArgs e)
     {
-        _ = TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc[nameof(Dashboard.Resources.Dialogs.DialogCloseButtonText)], Loc[nameof(ControlsStrings.ExceptionDetailsTitle)], ExceptionText);
+        _ = TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, Loc[nameof(ControlsStrings.ExceptionDetailsTitle)], ExceptionText);
     }
 }
