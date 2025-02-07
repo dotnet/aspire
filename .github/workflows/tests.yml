@@ -179,9 +179,14 @@ jobs:
         env:
           CI: false
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
-          DCP_DIAGNOSTICS_LOG_FOLDER:  ${{ github.workspace }}/testresults
+          DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
         run: |
+          # Create the testresults directory if it doesn't exist
           mkdir -p testresults
+          
+          # Run tests and prepend each line of output with a timestamp using awk.
+          # The awk command executes 'date' to fetch the current timestamp and then
+          # prints it before each log line.
           ./dotnet.sh test ${{ github.workspace }}/${{ matrix.project }} \
             /p:ContinuousIntegrationBuild=true \
             -s eng/testing/.runsettings \
@@ -193,7 +198,9 @@ jobs:
             --blame-hang-timeout 7m \
             --results-directory testresults \
             --no-restore \
-            --no-build -- RunConfiguration.CollectSourceInformation=true > testresults/${{ matrix.name }}.log 2>&1
+            --no-build -- RunConfiguration.CollectSourceInformation=true 2>&1 | \
+          awk '{ "date +\\\"[%Y-%m-%d %H:%M:%S]\\\"" | getline dt; print dt, $0; fflush(); }' \
+          > testresults/${{ matrix.name }}.log
 
       - name: Upload bin log artifact
         if: always()
