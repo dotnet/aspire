@@ -202,6 +202,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<ResourceLoggerService>();
         _innerBuilder.Services.AddSingleton<IDistributedApplicationEventing>(Eventing);
         _innerBuilder.Services.AddHealthChecks();
+        _innerBuilder.Services.Configure<ResourceNotificationServiceOptions>(o =>
+        {
+            // Default to stopping on dependency failure if the dashboard is disabled. As there's no way to see or easily recover
+            // from a failure in that case.
+            o.DefaultWaitBehavior = options.DisableDashboard ? WaitBehavior.StopOnDependencyFailure : WaitBehavior.WaitOnDependencyFailure;
+        });
 
         ConfigureHealthChecks();
 
