@@ -331,7 +331,7 @@ public static class ProjectResourceBuilderExtensions
         else
         {
             var appHostDefaultLaunchProfileName = builder.ApplicationBuilder.Configuration["AppHost:DefaultLaunchProfileName"]
-                ?? Environment.GetEnvironmentVariable("DOTNET_LAUNCH_PROFILE");
+                ?? builder.ApplicationBuilder.Configuration["DOTNET_LAUNCH_PROFILE"];
             if (!string.IsNullOrEmpty(appHostDefaultLaunchProfileName))
             {
                 builder.WithAnnotation(new DefaultLaunchProfileAnnotation(appHostDefaultLaunchProfileName));
