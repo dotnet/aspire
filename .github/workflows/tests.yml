@@ -56,6 +56,8 @@ jobs:
             name: Hosting.Redis
           - project: tests/Aspire.Hosting.Sdk.Tests/Aspire.Hosting.Sdk.Tests.csproj
             name: Hosting.Sdk
+          - project: tests/Aspire.Hosting.Seq.Tests/Aspire.Hosting.Seq.Tests.csproj
+            name: Hosting.Seq
           - project: tests/Aspire.Hosting.SqlServer.Tests/Aspire.Hosting.SqlServer.Tests.csproj
             name: Hosting.SqlServer
           - project: tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj

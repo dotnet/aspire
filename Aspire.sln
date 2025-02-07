@@ -637,6 +637,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.MongoDB.Driver.v3.Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stress.Empty", "playground\Stress\Stress.Empty\Stress.Empty.csproj", "{6C4B55AD-5D98-452D-B71D-CAF628E822B0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Seq.Tests", "tests\Aspire.Hosting.Seq.Tests\Aspire.Hosting.Seq.Tests.csproj", "{CA86754E-3AED-4937-BE7B-14EF9929E245}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1671,6 +1673,10 @@ Global
 		{6C4B55AD-5D98-452D-B71D-CAF628E822B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6C4B55AD-5D98-452D-B71D-CAF628E822B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6C4B55AD-5D98-452D-B71D-CAF628E822B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA86754E-3AED-4937-BE7B-14EF9929E245}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA86754E-3AED-4937-BE7B-14EF9929E245}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA86754E-3AED-4937-BE7B-14EF9929E245}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA86754E-3AED-4937-BE7B-14EF9929E245}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1977,6 +1983,7 @@ Global
 		{FD53B608-138D-8FB1-AA57-9B8CD42CF13E} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
 		{223AF8EB-3A4E-E778-4EBD-6E4876C308B6} = {C424395C-1235-41A4-BF55-07880A04368C}
 		{6C4B55AD-5D98-452D-B71D-CAF628E822B0} = {CFDA7AC5-251C-43C7-B334-71AE8040A147}
+		{CA86754E-3AED-4937-BE7B-14EF9929E245} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {47DCFECF-5631-4BDE-A1EC-BE41E90F60C4}
