@@ -995,6 +995,150 @@ public class ExistingAzureResourceTests
     }
 
     [Fact]
+    public async Task SupportsExistingAzureSqlServerWithResourceGroup()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var existingResourceName = builder.AddParameter("existingResourceName");
+        var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
+        var sqlServer = builder.AddAzureSqlServer("sqlServer")
+            .PublishAsExisting(existingResourceName, existingResourceGroupName);
+
+        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(sqlServer.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v1",
+              "connectionString": "Server=tcp:{sqlServer.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
+              "path": "sqlServer.module.bicep",
+              "params": {
+                "existingResourceName": "{existingResourceName.value}",
+                "principalId": "",
+                "principalName": ""
+              },
+              "scope": {
+                "resourceGroup": "{existingResourceGroupName.value}"
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, ManifestNode.ToString());
+
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param principalId string
+
+            param principalName string
+
+            param existingResourceName string
+
+            resource sqlServer 'Microsoft.Sql/servers@2021-11-01' existing = {
+              name: existingResourceName
+              properties: {
+                administrators: {
+                  administratorType: 'ActiveDirectory'
+                  login: principalName
+                  sid: principalId
+                  tenantId: subscription().tenantId
+                  azureADOnlyAuthentication: true
+                }
+              }
+            }
+
+            resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
+              name: 'AllowAllAzureIps'
+              properties: {
+                endIpAddress: '0.0.0.0'
+                startIpAddress: '0.0.0.0'
+              }
+              parent: sqlServer
+            }
+
+            output sqlServerFqdn string = sqlServer.properties.fullyQualifiedDomainName
+            """;
+
+        Assert.Equal(expectedBicep, BicepText);
+    }
+
+    [Fact]
+    public async Task SupportsExistingAzureSqlServerInRunMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        var existingResourceName = builder.AddParameter("existingResourceName");
+        var sqlServer = builder.AddAzureSqlServer("sqlServer")
+            .RunAsExisting(existingResourceName);
+
+        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(sqlServer.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "Server=tcp:{sqlServer.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
+              "path": "sqlServer.module.bicep",
+              "params": {
+                "existingResourceName": "{existingResourceName.value}",
+                "principalId": "",
+                "principalName": "",
+                "principalType": ""
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, ManifestNode.ToString());
+
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param principalId string
+
+            param principalName string
+
+            param existingResourceName string
+
+            param principalType string
+
+            resource sqlServer 'Microsoft.Sql/servers@2021-11-01' existing = {
+              name: existingResourceName
+              properties: {
+                administrators: {
+                  administratorType: 'ActiveDirectory'
+                  principalType: principalType
+                  login: principalName
+                  sid: principalId
+                  tenantId: subscription().tenantId
+                  azureADOnlyAuthentication: true
+                }
+              }
+            }
+
+            resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
+              name: 'AllowAllAzureIps'
+              properties: {
+                endIpAddress: '0.0.0.0'
+                startIpAddress: '0.0.0.0'
+              }
+              parent: sqlServer
+            }
+
+            resource sqlFirewallRule_AllowAllIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
+              name: 'AllowAllIps'
+              properties: {
+                endIpAddress: '255.255.255.255'
+                startIpAddress: '0.0.0.0'
+              }
+              parent: sqlServer
+            }
+
+            output sqlServerFqdn string = sqlServer.properties.fullyQualifiedDomainName
+            """;
+        Assert.Equal(expectedBicep, BicepText);
+    }
+
+    [Fact]
     public async Task SupportsExistingAzureRedisWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
@@ -1027,13 +1171,9 @@ public class ExistingAzureResourceTests
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
             param existingResourceName string
-
             param principalId string
-
             param principalName string
-
             resource redis 'Microsoft.Cache/redis@2024-03-01' existing = {
               name: existingResourceName
               properties: {
@@ -1043,7 +1183,6 @@ public class ExistingAzureResourceTests
                 }
               }
             }
-
             resource redis_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
               name: take('rediscontributor${uniqueString(resourceGroup().id)}', 24)
               properties: {
@@ -1053,7 +1192,6 @@ public class ExistingAzureResourceTests
               }
               parent: redis
             }
-
             output connectionString string = '${redis.properties.hostName},ssl=true'
             """;
 
@@ -1090,20 +1228,16 @@ public class ExistingAzureResourceTests
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
-
             param keyVaultName string
-
             resource redis 'Microsoft.Cache/redis@2024-03-01' existing = {
               name: 'existingResourceName'
               properties: {
                 disableAccessKeyAuthentication: false
               }
             }
-
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
-
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
               name: 'connectionString'
               properties: {

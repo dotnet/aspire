@@ -95,35 +95,70 @@ public static class AzureEventHubsExtensions
     /// <param name="builder">The Azure Event Hubs resource builder.</param>
     /// <param name="name">The name of the Event Hub.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(WithHub)} instead to add an Azure Event Hub.")]
+    [Obsolete($"This method is obsolete because it has the wrong return type and will be removed in a future version. Use {nameof(AddHub)} instead to add an Azure Event Hub.")]
     public static IResourceBuilder<AzureEventHubsResource> AddEventHub(this IResourceBuilder<AzureEventHubsResource> builder, [ResourceName] string name)
     {
-        return builder.WithHub(name);
+        builder.AddHub(name);
+
+        return builder;
     }
 
     /// <summary>
-    /// Adds an Azure Event Hubs hub resource to the application model. This resource requires an <see cref="AzureEventHubsResource"/> to be added to the application model.
+    /// Adds an Azure Event Hubs hub resource to the application model.
     /// </summary>
-    /// <remarks>
-    /// This version of the package defaults to the <inheritdoc cref="EventHubsEmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="EventHubsEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="EventHubsEmulatorContainerImageTags.Image"/> container image.
-    /// </remarks>
     /// <param name="builder">The Azure Event Hubs resource builder.</param>
-    /// <param name="name">The name of the Event Hub.</param>
-    /// <param name="configure">An optional method that can be used for customizing the <see cref="EventHub"/>.</param>
+    /// <param name="name">The name of the Event Hub resource.</param>
+    /// <param name="hubName">The name of the Event Hub. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureEventHubsResource> WithHub(this IResourceBuilder<AzureEventHubsResource> builder, [ResourceName] string name, Action<EventHub>? configure = null)
+    public static IResourceBuilder<AzureEventHubResource> AddHub(this IResourceBuilder<AzureEventHubsResource> builder, [ResourceName] string name, string? hubName = null)
     {
-        var hub = builder.Resource.Hubs.FirstOrDefault(x => x.Name == name);
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
 
-        if (hub == null)
-        {
-            hub = new EventHub(name);
-            builder.Resource.Hubs.Add(hub);
-        }
+        // Use the resource name as the hub name if it's not provided
+        hubName ??= name;
 
-        configure?.Invoke(hub);
+        var hub = new AzureEventHubResource(name, hubName, builder.Resource);
+        builder.Resource.Hubs.Add(hub);
+
+        return builder.ApplicationBuilder.AddResource(hub);
+    }
+
+    /// <summary>
+    /// Allows setting the properties of an Azure Event Hub resource.
+    /// </summary>
+    /// <param name="builder">The Azure Event Hub resource builder.</param>
+    /// <param name="configure">A method that can be used for customizing the <see cref="AzureEventHubResource"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureEventHubResource> WithProperties(this IResourceBuilder<AzureEventHubResource> builder, Action<AzureEventHubResource> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        configure(builder.Resource);
 
         return builder;
+    }
+
+    /// <summary>
+    /// Adds an Azure Event Hub Consumer Group resource to the application model.
+    /// </summary>
+    /// <param name="builder">The Azure Event Hub resource builder.</param>
+    /// <param name="name">The name of the Event Hub Consumer Group resource.</param>
+    /// <param name="groupName">The name of the Consumer Group. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureEventHubConsumerGroupResource> AddConsumerGroup(this IResourceBuilder<AzureEventHubResource> builder, [ResourceName] string name, string? groupName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
+        // Use the resource name as the group name if it's not provided
+        groupName ??= name;
+
+        var consumerGroup = new AzureEventHubConsumerGroupResource(name, groupName, builder.Resource);
+        builder.Resource.ConsumerGroups.Add(consumerGroup);
+
+        return builder.ApplicationBuilder.AddResource(consumerGroup);
     }
 
     /// <summary>
