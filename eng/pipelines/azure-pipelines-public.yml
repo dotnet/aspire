@@ -66,7 +66,7 @@ variables:
   # Use the build reason to decide whether to include helix_tests
   - ${{ if notin(variables['Build.Reason'], 'PullRequest') }}:
     - name: testVariants
-      value: ',_helix_tests'
+      value: '_pipeline_tests,_helix_tests'
   - ${{ else }}:
     - name: testVariants
       value: ''
@@ -167,7 +167,8 @@ stages:
                 repoLogPath: $(Build.Arcade.LogsPath)
                 repoTestResultsPath: $(Build.Arcade.TestResultsPath)
                 isWindows: false
-                runHelixTests: ${{ contains(testVariant, 'helix') }}
+                runHelixTests: ${{ contains(testVariant, '_helix') }}
+                runPipelineTests: ${{ contains(testVariant, '_pipeline') }}
 
 # ----------------------------------------------------------------
 # This stage performs quality gates checks
@@ -188,7 +189,7 @@ stages:
         runAsPublic: false
         workspace:
           clean: all
-  
+
         # ----------------------------------------------------------------
         # This stage downloads the code coverage reports from the build jobs,
         # merges those and validates the combined test coverage.
@@ -196,20 +197,20 @@ stages:
         jobs:
         - job: CodeCoverageReport
           timeoutInMinutes: 10
-  
+
           pool:
             name: $(DncEngPublicBuildPool)
             demands: ImageOverride -equals build.ubuntu.2004.amd64.open
-  
+
           preSteps:
             - checkout: self
               fetchDepth: 1
               clean: true
-  
+
           steps:
           - script: $(Build.SourcesDirectory)/build.sh --ci --restore
             displayName: Init toolset
-  
+
           - template: /eng/pipelines/templates/VerifyCoverageReport.yml
             parameters:
               # matches what is used in the conditions for the build/test jobs
