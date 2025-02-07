@@ -193,10 +193,6 @@ jobs:
             --no-restore \
             --no-build -- RunConfiguration.CollectSourceInformation=true
 
-      - name: Compress test results
-        if: always()
-        run: zip -r testresults.zip testresults
-
       - name: Upload bin log artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -209,4 +205,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: testresults-${{ matrix.name }}
-          path: testresults.zip
+          path: testresults/**
