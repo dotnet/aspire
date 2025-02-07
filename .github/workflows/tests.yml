@@ -176,6 +176,9 @@ jobs:
 
       - name: Run tests
         id: run-tests
+        env:
+          DCP_DIAGNOSTICS_LOG_LEVEL: debug
+          DCP_DIAGNOSTICS_LOG_FOLDER: testresults
         run: |
           export CI=false && ./dotnet.sh test ${{ github.workspace }}/${{ matrix.project }} \
             /p:ContinuousIntegrationBuild=true \
