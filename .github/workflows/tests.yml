@@ -184,23 +184,22 @@ jobs:
           # Create the testresults directory if it doesn't exist
           mkdir -p testresults
           
-          # Run tests and prepend each line of output with a timestamp using awk.
-          # The awk command executes 'date' to fetch the current timestamp and then
-          # prints it before each log line.
+          # Run tests and prepend a timestamp to each output line.
+          # This while-read loop processes each line of output and echoes it with a timestamp.
           ./dotnet.sh test ${{ github.workspace }}/${{ matrix.project }} \
             /p:ContinuousIntegrationBuild=true \
             -s eng/testing/.runsettings \
             --logger "console;verbosity=normal" \
             --logger "trx" \
-            --logger html \
             --logger "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true" \
             --blame \
             --blame-hang-timeout 7m \
             --results-directory testresults \
             --no-restore \
             --no-build -- RunConfiguration.CollectSourceInformation=true 2>&1 | \
-          awk '{ "date +\\\"[%Y-%m-%d %H:%M:%S]\\\"" | getline dt; print dt, $0; fflush(); }' \
-          > testresults/${{ matrix.name }}.log
+          while IFS= read -r line; do
+            echo "$(date '+[%Y-%m-%d %H:%M:%S]') $line"
+          done > testresults/${{ matrix.name }}.log
 
       - name: Upload bin log artifact
         if: always()
