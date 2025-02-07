@@ -276,7 +276,14 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
 
                 try
                 {
-                    result = await SendQueryToServerWithTimeoutAsync(serverEndPoint, name, queryType, index == _options.Servers.Length - 1, attempt, cancellationToken).ConfigureAwait(false);
+                    SendQueryResult newResult = await SendQueryToServerWithTimeoutAsync(serverEndPoint, name, queryType, index == _options.Servers.Length - 1, attempt, cancellationToken).ConfigureAwait(false);
+
+                    if (result.HasValue)
+                    {
+                        result.Value.Response.Dispose();
+                    }
+
+                    result = newResult;
                 }
                 catch (SocketException ex)
                 {
@@ -315,10 +322,10 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
 
         // we should have an error result by now, except when we threw an exception due to internal bug
         // (handled here), or cancellation (handled by the caller).
-        // if (!result.HasValue)
-        // {
-        //     result = new SendQueryResult { Error = SendQueryError.InternalError };
-        // }
+        if (!result.HasValue)
+        {
+            result = new SendQueryResult { Error = SendQueryError.InternalError };
+        }
 
         return result!.Value;
     }
