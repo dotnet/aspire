@@ -30,23 +30,36 @@
                           Label="@(ViewportInformation.IsDesktop ? null : ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)].Value)"
                           @bind-Value:after="HandleSearchFilterChangedAsync" />
             <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+
             @if (ViewportInformation.IsDesktop)
             {
-                <AspireMenuButton ButtonAppearance="@(NoFiltersSet ? Appearance.Stealth : Appearance.Accent)"
-                                  IconEnd="@(new Icons.Regular.Size20.Settings())"
-                                  Items="@_resourcesMenuItems"
-                                  Title="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSettings)]"
-                                  MenuButtonId="resourceMenuButton"
-                                  slot="end" />
+                <FluentButton id="resourceFilterButton" slot="end"
+                              Appearance="@(NoFiltersSet ? Appearance.Stealth : Appearance.Accent)"
+                              IconEnd="@(new Icons.Regular.Size20.Filter())"
+                              @onclick="() => _isFilterPopupVisible = !_isFilterPopupVisible"
+                              Title="@(NoFiltersSet ? Loc[nameof(Dashboard.Resources.Resources.ResourcesNotFiltered)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesFiltered)])"
+                              aria-label="@(NoFiltersSet ? Loc[nameof(Dashboard.Resources.Resources.ResourcesNotFiltered)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesFiltered)])" />
+
+                @if (HasAnyChildResources())
+                {
+                    <AspireMenuButton ButtonAppearance="Appearance.Stealth"
+                                      IconEnd="@(new Icons.Regular.Size20.Settings())"
+                                      Items="@_resourcesMenuItems"
+                                      Title="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSettings)]"
+                                      slot="end" />
+                }
             }
             else
             {
-                var showExpandAllButton = _collapsedResourceNames.Count > 0;
+                @if (HasAnyChildResources())
+                {
+                    var showExpandAllButton = _collapsedResourceNames.Count > 0;
 
-                <FluentButton IconStart="@(showExpandAllButton ? new Icons.Regular.Size16.Eye() : new Icons.Regular.Size16.EyeOff())"
-                              OnClick="@(async () => { await OnToggleCollapseAll(); _contentLayout?.CloseMobileToolbarAsync(); })">
-                    @(showExpandAllButton ? Loc[nameof(Dashboard.Resources.Resources.ResourceExpandAllChildren)] : Loc[nameof(Dashboard.Resources.Resources.ResourceCollapseAllChildren)])
-                </FluentButton>
+                    <FluentButton IconStart="@(showExpandAllButton ? new Icons.Regular.Size16.Eye() : new Icons.Regular.Size16.EyeOff())"
+                                  OnClick="@(async () => { await OnToggleCollapseAll(); _contentLayout?.CloseMobileToolbarAsync(); })">
+                        @(showExpandAllButton ? Loc[nameof(Dashboard.Resources.Resources.ResourceExpandAllChildren)] : Loc[nameof(Dashboard.Resources.Resources.ResourceCollapseAllChildren)])
+                    </FluentButton>
+                }
 
                 <div>
                     <ResourceFilters
@@ -60,7 +73,7 @@
         </ToolbarSection>
 
         <MainSection>
-            <FluentPopover AnchorId="resourceMenuButton"
+            <FluentPopover AnchorId="resourceFilterButton"
                            @bind-Open="_isFilterPopupVisible"
                            AutoFocus="true"
                            FixedPlacement="true"

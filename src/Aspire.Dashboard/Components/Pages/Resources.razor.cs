@@ -311,23 +311,6 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     {
         _resourcesMenuItems.Clear();
 
-        _resourcesMenuItems.Add(new MenuButtonItem
-        {
-            IsDisabled = false,
-            OnClick = () =>
-            {
-                _isFilterPopupVisible = !_isFilterPopupVisible;
-                StateHasChanged();
-                return Task.CompletedTask;
-            },
-            Text = NoFiltersSet
-                ? Loc[nameof(Dashboard.Resources.Resources.ResourcesNotFiltered)]
-                : Loc[nameof(Dashboard.Resources.Resources.ResourcesFiltered)],
-            Icon = new Icons.Regular.Size20.Filter(),
-            // Used for ResourcesTests
-            AdditionalAttributes = new Dictionary<string, object> { { "id", "resourceFilterButton" } }
-        });
-
         if (_collapsedResourceNames.Count > 0)
         {
             _resourcesMenuItems.Add(new MenuButtonItem
@@ -549,6 +532,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private static List<DisplayedEndpoint> GetDisplayedEndpoints(ResourceViewModel resource)
     {
         return ResourceEndpointHelpers.GetEndpoints(resource, includeInternalUrls: false);
+    }
+
+    private bool HasAnyChildResources()
+    {
+        return _resourceByName.Values.Any(r => !string.IsNullOrEmpty(r.GetResourcePropertyValue(KnownProperties.Resource.ParentName)));
     }
 
     public async ValueTask DisposeAsync()
