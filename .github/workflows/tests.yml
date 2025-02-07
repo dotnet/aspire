@@ -176,7 +176,6 @@ jobs:
 
       - name: Run tests
         id: run-tests
-        continue-on-error: true
         env:
           CI: false
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
