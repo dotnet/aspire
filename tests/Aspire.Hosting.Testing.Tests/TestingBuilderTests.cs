@@ -6,15 +6,17 @@ using System.Reflection;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Tests;
 using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Utils;
 using Aspire.TestProject;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Testing.Tests;
 
-public class TestingBuilderTests
+public class TestingBuilderTests(ITestOutputHelper output)
 {
     [Fact]
     public void TestingBuilderHasAllPropertiesFromRealBuilder()
@@ -51,8 +53,9 @@ public class TestingBuilderTests
             ?? throw new InvalidOperationException("Generated AppHost type not found.");
 
         TestResourceNames resourcesToSkip = ~TestResourceNames.redis;
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync(appHostType, ["--skip-resources", resourcesToSkip.ToCSVString()]);
-        await using var app = await appHost.BuildAsync();
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync(appHostType, ["--skip-resources", resourcesToSkip.ToCSVString()]);
+        builder.WithTestAndResourceLogging(output);
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
 
         // Sanity check that the app is running as expected
@@ -83,12 +86,13 @@ public class TestingBuilderTests
             settings.EnvironmentName = testEnvironmentName;
         };
 
-        var appHost = await (genericEntryPoint
+        var builder = await (genericEntryPoint
             ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>([], configureBuilder)
             : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), [], configureBuilder));
-        Assert.Equal(testEnvironmentName, appHost.Environment.EnvironmentName);
+        builder.WithTestAndResourceLogging(output);
+        Assert.Equal(testEnvironmentName, builder.Environment.EnvironmentName);
 
-        await using var app = await appHost.BuildAsync();
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -107,10 +111,11 @@ public class TestingBuilderTests
     [InlineData(true)]
     public async Task HasEndPoints(bool genericEntryPoint)
     {
-        var appHost = await (genericEntryPoint
+        var builder = await (genericEntryPoint
             ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
             : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
-        await using var app = await appHost.BuildAsync();
+        builder.WithTestAndResourceLogging(output);
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
 
         // Get an endpoint from a resource
@@ -130,10 +135,11 @@ public class TestingBuilderTests
     [InlineData(true)]
     public async Task CanGetResources(bool genericEntryPoint)
     {
-        var appHost = await (genericEntryPoint
+        var builder = await (genericEntryPoint
             ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
             : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
-        await using var app = await appHost.BuildAsync();
+        builder.WithTestAndResourceLogging(output);
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
 
         // Ensure that the resource which we added is present in the model.
@@ -148,10 +154,11 @@ public class TestingBuilderTests
     [InlineData(true)]
     public async Task HttpClientGetTest(bool genericEntryPoint)
     {
-        var appHost = await (genericEntryPoint
+        var builder = await (genericEntryPoint
             ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
             : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
-        await using var app = await appHost.BuildAsync();
+        builder.WithTestAndResourceLogging(output);
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
 
         // Wait for the application to be ready
@@ -169,10 +176,11 @@ public class TestingBuilderTests
     [InlineData(true)]
     public async Task GetHttpClientBeforeStart(bool genericEntryPoint)
     {
-        var appHost = await (genericEntryPoint
+        var builder = await (genericEntryPoint
             ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
             : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
-        await using var app = await appHost.BuildAsync();
+        builder.WithTestAndResourceLogging(output);
+        await using var app = await builder.BuildAsync();
         Assert.Throws<InvalidOperationException>(() => app.CreateHttpClient("mywebapp1"));
     }
 
@@ -197,13 +205,14 @@ public class TestingBuilderTests
         IDistributedApplicationTestingBuilder builder;
         if (genericEntryPoint)
         {
-            builder = await (DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(args, configureBuilder));
+            builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(args, configureBuilder);
         }
         else
         {
-            builder = await (DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), args, configureBuilder));
+            builder = await DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), args, configureBuilder);
         }
 
+        builder.WithTestAndResourceLogging(output);
         await using var app = await builder.BuildAsync();
         await app.StartAsync();
 
@@ -235,6 +244,7 @@ public class TestingBuilderTests
             builder = DistributedApplicationTestingBuilder.Create([], (dao, habs) => habs.Args = ["APP_HOST_ARG=42"]);
         }
 
+        builder.WithTestAndResourceLogging(output);
         builder.AddProject<Projects.TestingAppHost1_MyWebApp>("mywebapp1")
             .WithEnvironment("APP_HOST_ARG", builder.Configuration["APP_HOST_ARG"])
             .WithEnvironment("LAUNCH_PROFILE_VAR_FROM_APP_HOST", builder.Configuration["LAUNCH_PROFILE_VAR_FROM_APP_HOST"]);
@@ -276,8 +286,9 @@ public class TestingBuilderTests
             configureBuilder = (dao, habs) => habs.Args = [arg];
         }
 
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(args, configureBuilder);
-        await using var app = await appHost.BuildAsync();
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(args, configureBuilder);
+        builder.WithTestAndResourceLogging(output);
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
 
         // Wait for the application to be ready
@@ -321,6 +332,7 @@ public class TestingBuilderTests
         }
 
         var builder = DistributedApplicationTestingBuilder.Create(args, configureBuilder);
+        builder.WithTestAndResourceLogging(output);
         builder.AddProject<Projects.TestingAppHost1_MyWebApp>("mywebapp1")
             .WithEnvironment("LAUNCH_PROFILE_VAR_FROM_APP_HOST", builder.Configuration["LAUNCH_PROFILE_VAR_FROM_APP_HOST"]);
         await using var app = await builder.BuildAsync();
@@ -346,10 +358,11 @@ public class TestingBuilderTests
     [InlineData(true)]
     public async Task SetsCorrectContentRoot(bool genericEntryPoint)
     {
-        var appHost = await (genericEntryPoint
+        var builder = await (genericEntryPoint
             ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
             : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
-        await using var app = await appHost.BuildAsync();
+        builder.WithTestAndResourceLogging(output);
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
         var hostEnvironment = app.Services.GetRequiredService<IHostEnvironment>();
         Assert.Contains("TestingAppHost1", hostEnvironment.ContentRootPath);
@@ -361,10 +374,11 @@ public class TestingBuilderTests
     [InlineData(true)]
     public async Task SelectsFirstLaunchProfile(bool genericEntryPoint)
     {
-        var appHost = await (genericEntryPoint
+        var builder = await (genericEntryPoint
             ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
             : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
-        await using var app = await appHost.BuildAsync();
+        builder.WithTestAndResourceLogging(output);
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
         var config = app.Services.GetRequiredService<IConfiguration>();
         var profileName = config["DOTNET_LAUNCH_PROFILE"];
@@ -397,7 +411,7 @@ public class TestingBuilderTests
         using var cts = new CancellationTokenSource(timeout);
         DistributedApplication? app = null;
 
-        IDistributedApplicationTestingBuilder appHost;
+        IDistributedApplicationTestingBuilder builder;
         if (crashArg == "before-build")
         {
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -408,13 +422,14 @@ public class TestingBuilderTests
         }
         else
         {
-            appHost = genericEntryPoint
+            builder = genericEntryPoint
                 ? await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>([$"--crash-{crashArg}"], cts.Token).WaitAsync(cts.Token)
             : await DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), [$"--crash-{crashArg}"], cts.Token).WaitAsync(cts.Token);
         }
 
         cts.CancelAfter(timeout);
-        app = await appHost.BuildAsync().WaitAsync(cts.Token);
+        builder.WithTestAndResourceLogging(output);
+        app = await builder.BuildAsync().WaitAsync(cts.Token);
 
         cts.CancelAfter(timeout);
         if (crashArg == "after-build")
