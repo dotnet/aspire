@@ -265,18 +265,24 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
 
     async ValueTask<SendQueryResult> SendQueryWithRetriesAsync(string name, QueryType queryType, CancellationToken cancellationToken)
     {
-        SendQueryResult result = default;
+        SendQueryResult? result = default;
 
         for (int index = 0; index < _options.Servers.Length; index++)
         {
             IPEndPoint serverEndPoint = _options.Servers[index];
 
-            for (int attempt = 0; attempt < _options.Attempts; attempt++)
+            for (int attempt = 1; attempt <= _options.Attempts; attempt++)
             {
 
                 try
                 {
                     result = await SendQueryToServerWithTimeoutAsync(serverEndPoint, name, queryType, index == _options.Servers.Length - 1, attempt, cancellationToken).ConfigureAwait(false);
+                }
+                catch (SocketException ex)
+                {
+                    Log.NetworkError(_logger, queryType, name, serverEndPoint, attempt, ex);
+                    result = new SendQueryResult { Error = SendQueryError.NetworkError };
+                    continue; // retry or skip to the next server
                 }
                 catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
                 {
@@ -284,27 +290,37 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
                     continue; // retry or skip to the next server
                 }
 
-                switch (result.Error)
+                Debug.Assert(result.HasValue);
+
+                switch (result.Value.Error)
                 {
                     case SendQueryError.NoError:
-                        return result;
+                        return result.Value;
                     case SendQueryError.Timeout:
                         // TODO: should we retry on timeout or skip to the next server?
                         Log.Timeout(_logger, queryType, name, serverEndPoint, attempt);
                         break;
                     case SendQueryError.ServerError:
-                        Log.ErrorResponseCode(_logger, queryType, name, serverEndPoint, result.Response.Header.ResponseCode);
+                        Log.ErrorResponseCode(_logger, queryType, name, serverEndPoint, result.Value.Response.Header.ResponseCode);
                         break;
                     case SendQueryError.NoData:
                         Log.NoData(_logger, queryType, name, serverEndPoint, attempt);
+                        break;
+                    case SendQueryError.MalformedResponse:
+                        Log.MalformedResponse(_logger, queryType, name, serverEndPoint, attempt);
                         break;
                 }
             }
         }
 
-        // return the last error received
-        // TODO: will this always have nondefault value?
-        return result;
+        // we should have an error result by now, except when we threw an exception due to internal bug
+        // (handled here), or cancellation (handled by the caller).
+        // if (!result.HasValue)
+        // {
+        //     result = new SendQueryResult { Error = SendQueryError.InternalError };
+        // }
+
+        return result!.Value;
     }
 
     internal async ValueTask<SendQueryResult> SendQueryToServerWithTimeoutAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, bool isLastServer, int attempt, CancellationToken cancellationToken)
@@ -343,6 +359,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
     {
         Log.Query(_logger, queryType, name, serverEndPoint, attempt);
 
+        SendQueryError sendError = SendQueryError.NoError;
         DateTime queryStartedTime = _timeProvider.GetUtcNow().DateTime;
         (DnsDataReader responseReader, DnsMessageHeader header) = await SendDnsQueryCoreUdpAsync(serverEndPoint, name, queryType, cancellationToken).ConfigureAwait(false);
 
@@ -353,7 +370,13 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
                 Log.ResultTruncated(_logger, queryType, name, serverEndPoint, 0);
                 responseReader.Dispose();
                 // TCP fallback
-                (responseReader, header) = await SendDnsQueryCoreTcpAsync(serverEndPoint, name, queryType, cancellationToken).ConfigureAwait(false);
+                (responseReader, header, sendError) = await SendDnsQueryCoreTcpAsync(serverEndPoint, name, queryType, cancellationToken).ConfigureAwait(false);
+            }
+
+            if (sendError != SendQueryError.NoError)
+            {
+                // we failed to get back any response
+                return new SendQueryResult { Error = sendError };
             }
 
             if (header.QueryCount != 1 ||
@@ -364,23 +387,21 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
                 return new SendQueryResult
                 {
                     Response = new DnsResponse(Array.Empty<byte>(), header, queryStartedTime, queryStartedTime, null!, null!, null!),
-                    Error = SendQueryError.ServerError
+                    Error = SendQueryError.MalformedResponse
                 };
             }
 
-            if (header.ResponseCode != QueryResponseCode.NoError)
+            // we are interested in returned RRs only in case of NOERROR response code,
+            // if this is not a successful response and we have attempts remaining,
+            // we skip parsing the response and retry.
+            // TODO: test server failover behavior
+            if (header.ResponseCode != QueryResponseCode.NoError && (!isLastServer || attempt != _options.Attempts))
             {
                 return new SendQueryResult
                 {
                     Response = new DnsResponse(Array.Empty<byte>(), header, queryStartedTime, queryStartedTime, null!, null!, null!),
                     Error = SendQueryError.ServerError
                 };
-            }
-
-            if (header.ResponseCode != QueryResponseCode.NoError && !isLastServer)
-            {
-                // we exhausted attempts on this server, try the next one
-                return default;
             }
 
             int ttl = int.MaxValue;
@@ -506,9 +527,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
             (ushort transactionId, int length) = EncodeQuestion(memory, name, queryType);
 
             using var socket = new Socket(serverEndPoint.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
-            await socket.ConnectAsync(serverEndPoint, cancellationToken).ConfigureAwait(false);
-
-            await socket.SendAsync(memory.Slice(0, length), SocketFlags.None, cancellationToken).ConfigureAwait(false);
+            await socket.SendToAsync(memory.Slice(0, length), SocketFlags.None, serverEndPoint, cancellationToken).ConfigureAwait(false);
 
             DnsDataReader responseReader;
             DnsMessageHeader header;
@@ -527,8 +546,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
                     header.TransactionId != transactionId ||
                     !header.IsResponse)
                 {
-                    // the message is not a response for our query.
-                    // don't dispose reader, we will reuse the buffer
+                    // header mismatch, this is not a response to our query
                     continue;
                 }
 
@@ -546,7 +564,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
         }
     }
 
-    internal static async ValueTask<(DnsDataReader reader, DnsMessageHeader header)> SendDnsQueryCoreTcpAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, CancellationToken cancellationToken)
+    internal static async ValueTask<(DnsDataReader reader, DnsMessageHeader header, SendQueryError error)> SendDnsQueryCoreTcpAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, CancellationToken cancellationToken)
     {
         var buffer = ArrayPool<byte>.Shared.Rent(8 * 1024);
         try
@@ -566,12 +584,20 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
                 int read = await socket.ReceiveAsync(buffer.AsMemory(bytesRead), SocketFlags.None, cancellationToken).ConfigureAwait(false);
                 bytesRead += read;
 
+                if (read == 0)
+                {
+                    // connection closed before receiving complete response message
+                    return (default, default, SendQueryError.MalformedResponse);
+                }
+
                 if (responseLength < 0 && bytesRead >= 2)
                 {
                     responseLength = BinaryPrimitives.ReadUInt16BigEndian(buffer.AsSpan(0, 2));
 
                     if (responseLength > buffer.Length)
                     {
+                        // even though this is user-controlled pre-allocation, it is limited to
+                        // 64 kB, so it should be fine.
                         var largerBuffer = ArrayPool<byte>.Shared.Rent(responseLength);
                         Array.Copy(buffer, largerBuffer, bytesRead);
                         ArrayPool<byte>.Shared.Return(buffer);
@@ -585,12 +611,13 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
                 header.TransactionId != transactionId ||
                 !header.IsResponse)
             {
-                throw new InvalidOperationException("Invalid response: Header mismatch");
+                // header mismatch on TCP fallback
+                return (default, default, SendQueryError.MalformedResponse);
             }
 
             // transfer ownership of buffer to the caller
             buffer = null!;
-            return (responseReader, header);
+            return (responseReader, header, SendQueryError.NoError);
         }
         finally
         {

@@ -36,4 +36,48 @@ public class TcpFailoverTests : LoopbackDnsTestBase
         Assert.Equal(address, res.Address);
         Assert.Equal(TimeProvider.GetUtcNow().DateTime.AddSeconds(3600), res.ExpiresAt);
     }
+
+    [Fact]
+    public async Task TcpFailover_ServerClosesWithoutData_EmptyResult()
+    {
+        Options.Attempts = 1;
+        Options.Timeout = TimeSpan.FromSeconds(60);
+
+        IPAddress address = IPAddress.Parse("172.213.245.111");
+        _ = DnsServer.ProcessUdpRequest(builder =>
+        {
+            builder.Flags |= QueryFlags.ResultTruncated;
+            return Task.CompletedTask;
+        });
+
+        Task serverTask = DnsServer.ProcessTcpRequest(builder =>
+        {
+            throw new InvalidOperationException("This forces closing the socket without writing any data");
+        });
+
+        AddressResult[] results = await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetwork).AsTask().WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.Empty(results);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => serverTask);
+    }
+
+    [Fact]
+    public async Task TcpFailover_TcpNotAvailable_EmptyResult()
+    {
+        Options.Attempts = 1;
+        Options.Timeout = TimeSpan.FromMilliseconds(100000);
+
+        IPAddress address = IPAddress.Parse("172.213.245.111");
+        _ = DnsServer.ProcessUdpRequest(builder =>
+        {
+            builder.Flags |= QueryFlags.ResultTruncated;
+            return Task.CompletedTask;
+        });
+
+        // turn off TCP support the server
+        DnsServer.DisableTcpFallback();
+
+        AddressResult[] results = await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetwork);
+        Assert.Empty(results);
+    }
 }

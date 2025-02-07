@@ -31,6 +31,11 @@ internal sealed class LoopbackDnsServer : IDisposable
         _tcpSocket.Dispose();
     }
 
+    public void DisableTcpFallback()
+    {
+        _tcpSocket.Close();
+    }
+
     private static async Task<int> ProcessRequestCore(ReadOnlyMemory<byte> message, Func<LoopbackDnsResponseBuilder, Task> action, Memory<byte> responseBuffer)
     {
         DnsDataReader reader = new DnsDataReader(message);
@@ -62,7 +67,6 @@ internal sealed class LoopbackDnsServer : IDisposable
         {
             throw new InvalidOperationException("Failed to write header");
         }
-        ;
 
         foreach (var (questionName, questionType, questionClass) in responseBuilder.Questions)
         {
