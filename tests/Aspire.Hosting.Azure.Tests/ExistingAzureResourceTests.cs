@@ -1199,7 +1199,7 @@ public class ExistingAzureResourceTests
     }
 
     [Fact]
-    public async Task SupportsExistingAzureRedisWithResouceGroupAndAccessKeyAuth()
+    public async Task SupportsExistingAzureRedisWithResourceGroupAndAccessKeyAuth()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
