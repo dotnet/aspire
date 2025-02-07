@@ -269,9 +269,9 @@
     <value>No telemetry found for this resource.</value>
   </data>
   <data name="ResourceCollapseAllChildren" xml:space="preserve">
-    <value>Hide child resources</value>
+    <value>Collapse child resources</value>
   </data>
   <data name="ResourceExpandAllChildren" xml:space="preserve">
-    <value>Show child resources</value>
+    <value>Expand child resources</value>
   </data>
 </root>
