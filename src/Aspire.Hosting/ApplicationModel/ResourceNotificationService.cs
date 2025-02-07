@@ -682,7 +682,7 @@ public class ResourceEvent(IResource resource, string resourceId, CustomResource
 /// <summary>
 /// Options for the <see cref="ResourceNotificationService"/>.
 /// </summary>
-public class ResourceNotificationServiceOptions
+public sealed class ResourceNotificationServiceOptions
 {
     /// <summary>
     /// The default behavior to use when waiting for dependencies.
