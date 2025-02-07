@@ -215,6 +215,24 @@ public static class AzureEventHubsExtensions
                 .AddAzureStorage($"{builder.Resource.Name}-storage")
                 .WithParentRelationship(builder.Resource);
 
+        var lifetime = ContainerLifetime.Session;
+
+        // Copy the lifetime from the main resource to the storage resource
+
+        if (configureContainer != null)
+        {
+            var surrogate = new AzureEventHubsEmulatorResource(builder.Resource);
+            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
+            configureContainer(surrogateBuilder);
+
+            if (surrogate.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
+            {
+                lifetime = lifetimeAnnotation.Lifetime;
+            }
+        }
+
+        storageResource = storageResource.RunAsEmulator(c => c.WithLifetime(lifetime));
+
         var storage = storageResource.Resource;
 
         builder.WithAnnotation(new EnvironmentCallbackAnnotation((EnvironmentCallbackContext context) =>
@@ -255,24 +273,6 @@ public static class AzureEventHubsExtensions
             );
 
         builder.WithHealthCheck(healthCheckKey);
-
-        var lifetime = ContainerLifetime.Session;
-
-        // Copy the lifetime from the main resource to the storage resource
-
-        if (configureContainer != null)
-        {
-            var surrogate = new AzureEventHubsEmulatorResource(builder.Resource);
-            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
-            configureContainer(surrogateBuilder);
-
-            if (surrogate.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
-            {
-                lifetime = lifetimeAnnotation.Lifetime;
-            }
-        }
-
-        storageResource = storageResource.RunAsEmulator(c => c.WithLifetime(lifetime));
 
         // RunAsEmulator() can be followed by custom model configuration so we need to delay the creation of the Config.json file
         // until all resources are about to be prepared and annotations can't be updated anymore.
