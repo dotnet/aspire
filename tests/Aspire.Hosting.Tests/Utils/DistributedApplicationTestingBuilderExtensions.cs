@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Testing;
@@ -21,6 +21,11 @@ public static class DistributedApplicationTestingBuilderExtensions
     {
         builder.Services.AddXunitLogging(testOutputHelper);
         builder.Services.AddLogging(builder => builder.AddFilter("Aspire.Hosting", LogLevel.Trace));
+        return builder;
+    }
+    public static IDistributedApplicationTestingBuilder WithTempAspireStore(this IDistributedApplicationTestingBuilder builder)
+    {
+        builder.Configuration["Aspire:Store:Path"] = Path.GetTempPath();
         return builder;
     }
 }

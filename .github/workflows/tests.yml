@@ -11,58 +11,59 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 60 
+    timeout-minutes: 60
+    name: ${{ matrix.name }}
     strategy:
       fail-fast: false
       matrix:
         include:
           # Hosting projects
           - project: tests/Aspire.Hosting.Analyzers.Tests/Aspire.Hosting.Analyzers.Tests.csproj
-            name: Analyzers
+            name: Hosting.Analyzers
           - project: tests/Aspire.Hosting.Azure.Tests/Aspire.Hosting.Azure.Tests.csproj
-            name: Azure
+            name: Hosting.Azure
           - project: tests/Aspire.Hosting.Containers.Tests/Aspire.Hosting.Containers.Tests.csproj
-            name: Containers
+            name: Hosting.Containers
           - project: tests/Aspire.Hosting.Elasticsearch.Tests/Aspire.Hosting.Elasticsearch.Tests.csproj
-            name: Elasticsearch
+            name: Hosting.Elasticsearch
           - project: tests/Aspire.Hosting.Garnet.Tests/Aspire.Hosting.Garnet.Tests.csproj
-            name: Garnet
+            name: Hosting.Garnet
           - project: tests/Aspire.Hosting.Kafka.Tests/Aspire.Hosting.Kafka.Tests.csproj
-            name: Kafka
+            name: Hosting.Kafka
           - project: tests/Aspire.Hosting.Keycloak.Tests/Aspire.Hosting.Keycloak.Tests.csproj
-            name: Keycloak
+            name: Hosting.Keycloak
           - project: tests/Aspire.Hosting.Milvus.Tests/Aspire.Hosting.Milvus.Tests.csproj
-            name: Milvus
+            name: Hosting.Milvus
           - project: tests/Aspire.Hosting.MongoDB.Tests/Aspire.Hosting.MongoDB.Tests.csproj
-            name: MongoDB
+            name: Hosting.MongoDB
           - project: tests/Aspire.Hosting.MySql.Tests/Aspire.Hosting.MySql.Tests.csproj
-            name: MySQL
+            name: Hosting.MySql
           - project: tests/Aspire.Hosting.Nats.Tests/Aspire.Hosting.Nats.Tests.csproj
-            name: NATS
+            name: Hosting.Nats
           - project: tests/Aspire.Hosting.NodeJs.Tests/Aspire.Hosting.NodeJs.Tests.csproj
-            name: NodeJS
+            name: Hosting.NodeJs
           - project: tests/Aspire.Hosting.Oracle.Tests/Aspire.Hosting.Oracle.Tests.csproj
-            name: Oracle
+            name: Hosting.Oracle
           - project: tests/Aspire.Hosting.PostgreSQL.Tests/Aspire.Hosting.PostgreSQL.Tests.csproj
-            name: PostgreSQL
+            name: Hosting.PostgreSQL
           - project: tests/Aspire.Hosting.Python.Tests/Aspire.Hosting.Python.Tests.csproj
-            name: Python
+            name: Hosting.Python
           - project: tests/Aspire.Hosting.Qdrant.Tests/Aspire.Hosting.Qdrant.Tests.csproj
-            name: Qdrant
+            name: Hosting.Qdrant
           - project: tests/Aspire.Hosting.RabbitMQ.Tests/Aspire.Hosting.RabbitMQ.Tests.csproj
-            name: RabbitMQ
+            name: Hosting.RabbitMQ
           - project: tests/Aspire.Hosting.Redis.Tests/Aspire.Hosting.Redis.Tests.csproj
-            name: Redis
+            name: Hosting.Redis
           - project: tests/Aspire.Hosting.Sdk.Tests/Aspire.Hosting.Sdk.Tests.csproj
-            name: SDK
+            name: Hosting.Sdk
           - project: tests/Aspire.Hosting.SqlServer.Tests/Aspire.Hosting.SqlServer.Tests.csproj
-            name: SQLServer
+            name: Hosting.SqlServer
           - project: tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj
-            name: Testing
+            name: Hosting.Testing
           - project: tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj
             name: Hosting
           - project: tests/Aspire.Hosting.Valkey.Tests/Aspire.Hosting.Valkey.Tests.csproj
-            name: Valkey
+            name: Hosting.Valkey
 
           # Client projects
           - project: tests/Aspire.Azure.AI.OpenAI.Tests/Aspire.Azure.AI.OpenAI.Tests.csproj
@@ -137,14 +138,14 @@ jobs:
 
           # These are failing due to globalization issues
           # Dashboard projects
-          # - project: tests/Aspire.Dashboard.Components.Tests/Aspire.Dashboard.Components.Tests.csproj
-          #   name: Dashboard.Components
-          # - project: tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj
-          #   name: Dashboard
+          - project: tests/Aspire.Dashboard.Components.Tests/Aspire.Dashboard.Components.Tests.csproj
+            name: Dashboard.Components
+          - project: tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj
+            name: Dashboard
 
           # Playground project
-          # - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
-          #   name: Playground
+          - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
+            name: Playground
           # Add more projects as needed
     steps:
       - name: Checkout code
@@ -175,6 +176,9 @@ jobs:
 
       - name: Run tests
         id: run-tests
+        env:
+          DCP_DIAGNOSTICS_LOG_LEVEL: debug
+          DCP_DIAGNOSTICS_LOG_FOLDER:  ${{ github.workspace }}/testresults
         run: |
           export CI=false && ./dotnet.sh test ${{ github.workspace }}/${{ matrix.project }} \
             /p:ContinuousIntegrationBuild=true \
@@ -182,15 +186,12 @@ jobs:
             --logger "console;verbosity=normal" \
             --logger "trx" \
             --logger html \
+            --logger "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true" \
             --blame \
             --blame-hang-timeout 7m \
             --results-directory testresults \
             --no-restore \
-            --no-build
-
-      - name: Compress test results
-        if: always()
-        run: zip -r testresults.zip testresults
+            --no-build -- RunConfiguration.CollectSourceInformation=true
 
       - name: Upload bin log artifact
         if: always()
@@ -204,4 +205,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: testresults-${{ matrix.name }}
-          path: testresults.zip
+          path: testresults/**

@@ -36,10 +36,10 @@ serviceBus
     })
     ;
 
-serviceBus.RunAsEmulator(configure => configure.ConfigureEmulator(document =>
+serviceBus.RunAsEmulator(configure => configure.WithConfiguration(document =>
 {
     document["UserConfig"]!["Logging"] = new JsonObject { ["Type"] = "Console" };
-}));
+}).WithLifetime(ContainerLifetime.Persistent));
 
 builder.AddProject<Projects.ServiceBusWorker>("worker")
     .WithReference(serviceBus).WaitFor(serviceBus);

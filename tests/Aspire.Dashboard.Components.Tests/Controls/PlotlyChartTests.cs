@@ -47,6 +47,7 @@ public class PlotlyChartTests : TestContext
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/7433")]
     public async Task Render_HasInstrument_InitializeChartInvocation()
     {
         // Arrange

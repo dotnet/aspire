@@ -983,7 +983,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
         spec.Args ??= [];
 
-        await er.ModelResource.ProcessArgumentValuesAsync(_executionContext, (unprocessed, value, ex) =>
+        await er.ModelResource.ProcessArgumentValuesAsync(_executionContext, (unprocessed, value, ex, isSensitive) =>
         {
             if (ex is not null)
             {
@@ -992,9 +992,10 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                 resourceLogger.LogCritical(ex, "Failed to apply argument value '{ArgKey}'. A dependency may have failed to start.", ex.Data["ArgKey"]);
                 _logger.LogDebug(ex, "Failed to apply argument value '{ArgKey}' to '{ResourceName}'. A dependency may have failed to start.", ex.Data["ArgKey"], er.ModelResource.Name);
             }
-            else if (value is string a)
+            else if (value is { } argument)
             {
-                spec.Args.Add(a);
+                er.DcpResource.AnnotateAsObjectList(CustomResource.ResourceAppArgsAnnotation, new AppLaunchArgumentAnnotation(argument, isSensitive: isSensitive));
+                spec.Args.Add(argument);
             }
         },
         resourceLogger,
@@ -1238,7 +1239,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
         spec.Args ??= [];
 
-        await cr.ModelResource.ProcessArgumentValuesAsync(_executionContext, (unprocessed, value, ex) =>
+        await cr.ModelResource.ProcessArgumentValuesAsync(_executionContext, (unprocessed, value, ex, isSensitive) =>
         {
             if (ex is not null)
             {
@@ -1247,9 +1248,10 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                 resourceLogger.LogCritical(ex, "Failed to apply argument value '{ArgKey}'. A dependency may have failed to start.", value);
                 _logger.LogDebug(ex, "Failed to apply argument value '{ArgKey}' to '{ResourceName}'. A dependency may have failed to start.", value, cr.ModelResource.Name);
             }
-            else if (value is string a)
+            else if (value is { } argument)
             {
-                spec.Args.Add(a);
+                cr.DcpResource.AnnotateAsObjectList(CustomResource.ResourceAppArgsAnnotation, new AppLaunchArgumentAnnotation(argument, isSensitive: isSensitive));
+                spec.Args.Add(argument);
             }
         },
         resourceLogger,

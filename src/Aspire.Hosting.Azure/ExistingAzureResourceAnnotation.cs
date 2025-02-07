@@ -9,16 +9,21 @@ namespace Aspire.Hosting.Azure;
 /// Represents a resource that is not managed by Aspire's provisioning or
 /// container management layer.
 /// </summary>
-public sealed class ExistingAzureResourceAnnotation(ParameterResource nameParameter,
-    ParameterResource? resourceGroupParameter = null) : IResourceAnnotation
+public sealed class ExistingAzureResourceAnnotation(object name, object? resourceGroup = null) : IResourceAnnotation
 {
     /// <summary>
     /// Gets the name of the existing resource.
     /// </summary>
-    public ParameterResource NameParameter { get; } = nameParameter;
+    /// <remarks>
+    /// Supports a <see cref="string"/> or a <see cref="ParameterResource"/> via runtime validation.
+    /// </remarks>
+    public object Name { get; } = name;
 
     /// <summary>
     /// Gets the name of the existing resource group. If <see langword="null"/>, use the current resource group.
     /// </summary>
-    public ParameterResource? ResourceGroupParameter { get; } = resourceGroupParameter;
+    /// <remarks>
+    /// Supports a <see cref="string"/> or a <see cref="ParameterResource"/> via runtime validation.
+    /// </remarks>
+    public object? ResourceGroup { get; } = resourceGroup;
 }

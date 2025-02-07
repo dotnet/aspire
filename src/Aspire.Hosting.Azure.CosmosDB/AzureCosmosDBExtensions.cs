@@ -229,7 +229,7 @@ public static class AzureCosmosExtensions
     /// <param name="name">The name of the database resource.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<CosmosDBDatabase> AddCosmosDatabase(this IResourceBuilder<AzureCosmosDBResource> builder, [ResourceName] string name, string? databaseName = null)
+    public static IResourceBuilder<AzureCosmosDBDatabaseResource> AddCosmosDatabase(this IResourceBuilder<AzureCosmosDBResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
@@ -237,7 +237,7 @@ public static class AzureCosmosExtensions
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
 
-        var database = new CosmosDBDatabase(name, databaseName, builder.Resource);
+        var database = new AzureCosmosDBDatabaseResource(name, databaseName, builder.Resource);
         builder.Resource.Databases.Add(database);
 
         return builder.ApplicationBuilder.AddResource(database);
@@ -251,7 +251,7 @@ public static class AzureCosmosExtensions
     /// <param name="partitionKeyPath">Partition key path for the container.</param>
     /// <param name="containerName">The name of the container. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<CosmosDBContainer> AddContainer(this IResourceBuilder<CosmosDBDatabase> builder, [ResourceName] string name, string partitionKeyPath, string? containerName = null)
+    public static IResourceBuilder<AzureCosmosDBContainerResource> AddContainer(this IResourceBuilder<AzureCosmosDBDatabaseResource> builder, [ResourceName] string name, string partitionKeyPath, string? containerName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
@@ -260,7 +260,7 @@ public static class AzureCosmosExtensions
         // Use the resource name as the container name if it's not provided
         containerName ??= name;
 
-        var container = new CosmosDBContainer(name, containerName, partitionKeyPath, builder.Resource);
+        var container = new AzureCosmosDBContainerResource(name, containerName, partitionKeyPath, builder.Resource);
         builder.Resource.Containers.Add(container);
 
         return builder.ApplicationBuilder.AddResource(container);
