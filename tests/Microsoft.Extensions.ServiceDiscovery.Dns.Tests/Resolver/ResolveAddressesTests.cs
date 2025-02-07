@@ -69,7 +69,7 @@ public class ResolveAddressesTests : LoopbackDnsTestBase
     }
 
     [Fact]
-    public async Task ResolveIPv4_Aliases_Success()
+    public async Task ResolveIPv4_Aliases_InOrder_Success()
     {
         IPAddress address = IPAddress.Parse("172.213.245.111");
         _ = DnsServer.ProcessUdpRequest(builder =>
@@ -85,6 +85,42 @@ public class ResolveAddressesTests : LoopbackDnsTestBase
         AddressResult res = Assert.Single(results);
         Assert.Equal(address, res.Address);
         Assert.Equal(TimeProvider.GetUtcNow().DateTime.AddSeconds(3600), res.ExpiresAt);
+    }
+
+    [Fact]
+    public async Task ResolveIPv4_Aliases_OutOfOrder_Success()
+    {
+        IPAddress address = IPAddress.Parse("172.213.245.111");
+        _ = DnsServer.ProcessUdpRequest(builder =>
+        {
+            builder.Answers.AddCname("www.example2.com", 3600, "www.example3.com");
+            builder.Answers.AddAddress("www.example3.com", 3600, address);
+            builder.Answers.AddCname("www.example.com", 3600, "www.example2.com");
+            return Task.CompletedTask;
+        });
+
+        AddressResult[] results = await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetwork);
+
+        AddressResult res = Assert.Single(results);
+        Assert.Equal(address, res.Address);
+        Assert.Equal(TimeProvider.GetUtcNow().DateTime.AddSeconds(3600), res.ExpiresAt);
+    }
+
+    [Fact]
+    public async Task ResolveIPv4_Aliases_Loop_ReturnsEmpty()
+    {
+        IPAddress address = IPAddress.Parse("172.213.245.111");
+        _ = DnsServer.ProcessUdpRequest(builder =>
+        {
+            builder.Answers.AddCname("www.example1.com", 3600, "www.example2.com");
+            builder.Answers.AddCname("www.example2.com", 3600, "www.example3.com");
+            builder.Answers.AddCname("www.example3.com", 3600, "www.example1.com");
+            return Task.CompletedTask;
+        });
+
+        AddressResult[] results = await Resolver.ResolveIPAddressesAsync("www.example1.com", AddressFamily.InterNetwork);
+
+        Assert.Empty(results);
     }
 
     [Fact]

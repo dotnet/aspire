@@ -137,6 +137,8 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
             {
                 res[index] = new AddressResult(DateTime.MaxValue, IPAddress.Loopback);
             }
+
+            return res;
         }
 
         var ipv4AddressesTask = ResolveIPAddressesAsync(name, AddressFamily.InterNetwork, cancellationToken);
@@ -188,39 +190,67 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
         }
 
         using DnsResponse response = result.Response;
+
+        // Given that result.Error is NoError, there should be at least one answer.
+        Debug.Assert(response.Answers.Count > 0);
         var results = new List<AddressResult>(response.Answers.Count);
 
-        // servers send back CNAME records together with associated A/AAAA records
+        // Servers send back CNAME records together with associated A/AAAA records. Servers
+        // send only those CNAME records relevant to the query, and if there is a CNAME record,
+        // there should not be other records associated with the name. Therefore, we simply follow
+        // the list of CNAME aliases until we get to the primary name and return the A/AAAA records
+        // associated.
+        //
+        // more info: https://datatracker.ietf.org/doc/html/rfc1034#section-3.6.2
+        //
+        // Most of the servers send the CNAME records in order so that we can sequentially scan the
+        // answers, but nothing prevents the records from being in arbitrary order. Therefore, when
+        // we encounter a CNAME record, we continue down the list and allow looping back to the beginning
+        // in case the CNAME chain is not in order.
+        //
         string currentAlias = name;
+        int i = 0;
+        int endIndex = 0;
 
-        foreach (var answer in response.Answers)
+        do
         {
-            if (answer.Name != currentAlias)
-            {
-                continue;
-            }
+            DnsResourceRecord answer = response.Answers[i];
 
-            if (answer.Type == QueryType.CNAME)
+            if (answer.Name == currentAlias)
             {
-                // Although RFC does not necessarily allow pointers segments in CNAME domain names, some servers do use them
-                // so we need to pass the entire buffer to TryReadQName with the proper offset. The data should be always
-                // backed by the array containing the full response.
-
-                var success = MemoryMarshal.TryGetArray(answer.Data, out ArraySegment<byte> segment);
-                Debug.Assert(success, "Failed to get array segment");
-                if (!DnsPrimitives.TryReadQName(segment.Array.AsSpan(0, segment.Offset + segment.Count), segment.Offset, out currentAlias!, out _))
+                if (answer.Type == QueryType.CNAME)
                 {
-                    throw new InvalidOperationException("Invalid response: CNAME record");
+                    // Although RFC does not necessarily allow pointer segments in CNAME domain names, some servers do use them
+                    // so we need to pass the entire buffer to TryReadQName with the proper offset. The data should be always
+                    // backed by the array containing the full response.
+
+                    var success = MemoryMarshal.TryGetArray(answer.Data, out ArraySegment<byte> segment);
+                    Debug.Assert(success, "Failed to get array segment");
+                    if (!DnsPrimitives.TryReadQName(segment.Array.AsSpan(0, segment.Offset + segment.Count), segment.Offset, out currentAlias!, out _))
+                    {
+                        // TODO: how to handle corrupted responses?
+                        throw new InvalidOperationException("Failed to parse CNAME record");
+                    }
+
+                    // We need to start over. start with following answers and allow looping back
+                    endIndex = i;
+
+                    if (string.Equals(currentAlias, name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // CNAME records looped back to original question dns name (=> malformed response). Stop processing.
+                        break;
+                    }
                 }
-                continue;
+                else if (answer.Type == queryType)
+                {
+                    Debug.Assert(answer.Data.Length == IPv4Length || answer.Data.Length == IPv6Length);
+                    results.Add(new AddressResult(response.CreatedAt.AddSeconds(answer.Ttl), new IPAddress(answer.Data.Span)));
+                }
             }
 
-            else if (answer.Type == queryType)
-            {
-                Debug.Assert(answer.Data.Length == IPv4Length || answer.Data.Length == IPv6Length);
-                results.Add(new AddressResult(response.CreatedAt.AddSeconds(answer.Ttl), new IPAddress(answer.Data.Span)));
-            }
+            i = (i + 1) % response.Answers.Count;
         }
+        while (i != endIndex);
 
         AddressResult[] res = results.ToArray();
         Telemetry.StopNameResolution(name, queryType, activity, res, result.Error, _timeProvider.GetTimestamp());
@@ -273,6 +303,7 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
         }
 
         // return the last error received
+        // TODO: will this always have nondefault value?
         return result;
     }
 
@@ -329,9 +360,12 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
                 !responseReader.TryReadQuestion(out var qName, out var qType, out var qClass) ||
                 qName != name || qType != queryType || qClass != QueryClass.Internet)
             {
-                // TODO: do we care?
-                throw new InvalidOperationException("Invalid response: Query mismatch");
-                // return default;
+                // DNS Question mismatch
+                return new SendQueryResult
+                {
+                    Response = new DnsResponse(Array.Empty<byte>(), header, queryStartedTime, queryStartedTime, null!, null!, null!),
+                    Error = SendQueryError.ServerError
+                };
             }
 
             if (header.ResponseCode != QueryResponseCode.NoError)
