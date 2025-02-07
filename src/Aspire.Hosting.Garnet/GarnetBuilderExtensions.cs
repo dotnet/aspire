@@ -19,6 +19,8 @@ public static class GarnetBuilderExtensions
     /// <summary>
     /// Adds a Garnet container to the application model.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="GarnetContainerImageTags.Tag"/> tag of the <inheritdoc cref="GarnetContainerImageTags.Registry"/>/<inheritdoc cref="GarnetContainerImageTags.Image"/> container image.
     /// <example>
     /// Use in application host
     /// <code lang="csharp">
@@ -27,8 +29,8 @@ public static class GarnetBuilderExtensions
     /// var garnet = builder.AddGarnet("garnet");
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api)
     ///                  .WithReference(garnet);
-    ///  
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     /// <example>
@@ -39,12 +41,13 @@ public static class GarnetBuilderExtensions
     ///
     /// var multiplexer = builder.Services.BuildServiceProvider()
     ///                                   .GetRequiredService&lt;IConnectionMultiplexer&gt;();
-    /// 
+    ///
     /// var db = multiplexer.GetDatabase();
     /// db.HashSet("key", [new HashEntry("hash", "value")]);
     /// var value = db.HashGet("key", "hash");
     /// </code>
     /// </example>
+    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port to bind the underlying container to.</param>
@@ -82,6 +85,7 @@ public static class GarnetBuilderExtensions
     /// <summary>
     /// Adds a named volume for the data folder to a Garnet container resource and enables Garnet persistence.
     /// </summary>
+    /// <remarks>
     /// <example>
     /// Use <see cref="WithPersistence(IResourceBuilder{GarnetResource}, TimeSpan?)"/> to adjust Garnet persistence configuration, e.g.:
     /// <code lang="csharp">
@@ -90,6 +94,7 @@ public static class GarnetBuilderExtensions
     ///                    .WithPersistence(TimeSpan.FromSeconds(10));
     /// </code>
     /// </example>
+    /// </remarks>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <param name="isReadOnly">
@@ -102,7 +107,7 @@ public static class GarnetBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), GarnetContainerDataDirectory,
+        builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), GarnetContainerDataDirectory,
             isReadOnly);
         if (!isReadOnly)
         {
@@ -115,6 +120,7 @@ public static class GarnetBuilderExtensions
     /// <summary>
     /// Adds a bind mount for the data folder to a Garnet container resource and enables Garnet persistence.
     /// </summary>
+    /// <remarks>
     /// <example>
     /// Use <see cref="WithPersistence(IResourceBuilder{GarnetResource}, TimeSpan?)"/> to adjust Garnet persistence configuration, e.g.:
     /// <code lang="csharp">
@@ -123,6 +129,7 @@ public static class GarnetBuilderExtensions
     ///                    .WithPersistence(TimeSpan.FromSeconds(10));
     /// </code>
     /// </example>
+    /// </remarks>
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <param name="isReadOnly">
@@ -169,6 +176,7 @@ public static class GarnetBuilderExtensions
     /// <summary>
     /// Configures a Garnet container resource for persistence.
     /// </summary>
+    /// <remarks>
     /// <example>
     /// Use with <see cref="WithDataBindMount(IResourceBuilder{GarnetResource}, string, bool)"/>
     /// or <see cref="WithDataVolume(IResourceBuilder{GarnetResource}, string?, bool)"/> to persist Garnet data across sessions with custom persistence configuration, e.g.:
@@ -178,6 +186,7 @@ public static class GarnetBuilderExtensions
     ///                    .WithPersistence(TimeSpan.FromSeconds(10));
     /// </code>
     /// </example>
+    /// </remarks>
     /// <param name="builder">The resource builder.</param>
     /// <param name="interval">The interval between snapshot exports. Defaults to 60 seconds.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>

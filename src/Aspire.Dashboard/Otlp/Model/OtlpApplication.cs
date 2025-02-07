@@ -4,7 +4,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Dashboard.Configuration;
+using System.Runtime.InteropServices;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
@@ -21,6 +21,7 @@ public class OtlpApplication
 
     public string ApplicationName { get; }
     public string InstanceId { get; }
+    public OtlpContext Context { get; }
 
     public ApplicationKey ApplicationKey => new ApplicationKey(ApplicationName, InstanceId);
 
@@ -29,16 +30,11 @@ public class OtlpApplication
     private readonly Dictionary<OtlpInstrumentKey, OtlpInstrument> _instruments = new();
     private readonly ConcurrentDictionary<KeyValuePair<string, string>[], OtlpApplicationView> _applicationViews = new(ApplicationViewKeyComparer.Instance);
 
-    private readonly ILogger _logger;
-    private readonly TelemetryLimitOptions _options;
-
-    public OtlpApplication(string name, string instanceId, ILogger logger, TelemetryLimitOptions options)
+    public OtlpApplication(string name, string instanceId, OtlpContext context)
     {
         ApplicationName = name;
         InstanceId = instanceId;
-
-        _logger = logger;
-        _options = options;
+        Context = context;
     }
 
     public void AddMetrics(AddContext context, RepeatedField<ScopeMetrics> scopeMetrics)
@@ -54,34 +50,128 @@ public class OtlpApplication
             {
                 foreach (var metric in sm.Metrics)
                 {
+                    OtlpInstrument instrument;
+
                     try
                     {
-                        var instrumentKey = new OtlpInstrumentKey(sm.Scope.Name, metric.Name);
-                        if (!_instruments.TryGetValue(instrumentKey, out var instrument))
+                        if (string.IsNullOrEmpty(metric.Name))
                         {
-                            _instruments.Add(instrumentKey, instrument = new OtlpInstrument
-                            {
-                                Summary = new OtlpInstrumentSummary
-                                {
-                                    Name = metric.Name,
-                                    Description = metric.Description,
-                                    Unit = metric.Unit,
-                                    Type = MapMetricType(metric.DataCase),
-                                    Parent = GetMeter(sm.Scope)
-                                },
-                                Options = _options
-                            });
+                            throw new InvalidOperationException("Instrument name is required.");
                         }
 
-                        instrument.AddMetrics(metric, ref tempAttributes);
+                        var instrumentKey = new OtlpInstrumentKey(sm.Scope.Name, metric.Name);
+                        ref var instrumentRef = ref CollectionsMarshal.GetValueRefOrAddDefault(_instruments, instrumentKey, out _);
+                        // Adds to dictionary if not present.
+                        instrumentRef ??= new OtlpInstrument
+                        {
+                            Summary = new OtlpInstrumentSummary
+                            {
+                                Name = metric.Name,
+                                Description = metric.Description,
+                                Unit = metric.Unit,
+                                Type = MapMetricType(metric.DataCase),
+                                Parent = GetMeter(sm.Scope)
+                            },
+                            Context = Context
+                        };
+
+                        instrument = instrumentRef;
+                    }
+                    catch (Exception ex)
+                    {
+                        // If we can't create the instrument then all data points for it are failures.
+                        context.FailureCount += GetMetricDataPointCount(metric);
+                        Context.Logger.LogInformation(ex, "Error adding metric instrument {MetricName}.", metric.Name);
+                        continue;
+                    }
+
+                    AddMetrics(instrument, metric, context, ref tempAttributes);
+                }
+            }
+        }
+        finally
+        {
+            _metricsLock.ExitWriteLock();
+        }
+    }
+
+    private static int GetMetricDataPointCount(Metric metric)
+    {
+        return metric.DataCase switch
+        {
+            Metric.DataOneofCase.Gauge => metric.Gauge.DataPoints.Count,
+            Metric.DataOneofCase.Sum => metric.Sum.DataPoints.Count,
+            Metric.DataOneofCase.Histogram => metric.Histogram.DataPoints.Count,
+            Metric.DataOneofCase.Summary => metric.Summary.DataPoints.Count,
+            Metric.DataOneofCase.ExponentialHistogram => metric.ExponentialHistogram.DataPoints.Count,
+            _ => 0,
+        };
+    }
+
+    private void AddMetrics(OtlpInstrument instrument, Metric metric, AddContext context, ref KeyValuePair<string, string>[]? tempAttributes)
+    {
+        switch (metric.DataCase)
+        {
+            case Metric.DataOneofCase.Gauge:
+                foreach (var d in metric.Gauge.DataPoints)
+                {
+                    try
+                    {
+                        instrument.FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Context);
                     }
                     catch (Exception ex)
                     {
                         context.FailureCount++;
-                        _logger.LogInformation(ex, "Error adding metric.");
+                        Context.Logger.LogInformation(ex, "Error adding metric.");
                     }
                 }
-            }
+                break;
+            case Metric.DataOneofCase.Sum:
+                foreach (var d in metric.Sum.DataPoints)
+                {
+                    try
+                    {
+                        instrument.FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Context);
+                    }
+                    catch (Exception ex)
+                    {
+                        context.FailureCount++;
+                        Context.Logger.LogInformation(ex, "Error adding metric.");
+                    }
+                }
+                break;
+            case Metric.DataOneofCase.Histogram:
+                foreach (var d in metric.Histogram.DataPoints)
+                {
+                    try
+                    {
+                        instrument.FindScope(d.Attributes, ref tempAttributes).AddHistogramValue(d, Context);
+                    }
+                    catch (Exception ex)
+                    {
+                        context.FailureCount++;
+                        Context.Logger.LogInformation(ex, "Error adding metric.");
+                    }
+                }
+                break;
+            case Metric.DataOneofCase.Summary:
+                context.FailureCount += metric.Summary.DataPoints.Count;
+                Context.Logger.LogInformation("Error adding summary metrics. Summary is not supported.");
+                break;
+            case Metric.DataOneofCase.ExponentialHistogram:
+                context.FailureCount += metric.ExponentialHistogram.DataPoints.Count;
+                Context.Logger.LogInformation("Error adding exponential histogram metrics. Exponential histogram is not supported.");
+                break;
+        }
+    }
+
+    public void ClearMetrics()
+    {
+        _metricsLock.EnterWriteLock();
+
+        try
+        {
+            _instruments.Clear();
         }
         finally
         {
@@ -102,10 +192,10 @@ public class OtlpApplication
 
     private OtlpMeter GetMeter(InstrumentationScope scope)
     {
-        if (!_meters.TryGetValue(scope.Name, out var meter))
-        {
-            _meters.Add(scope.Name, meter = new OtlpMeter(scope, _options));
-        }
+        ref var meter = ref CollectionsMarshal.GetValueRefOrAddDefault(_meters, scope.Name, out _);
+        // Adds to dictionary if not present.
+        meter ??= new OtlpMeter(scope, Context);
+
         return meter;
     }
 

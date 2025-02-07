@@ -36,6 +36,8 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
 
     protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
+    protected override string? ConfigurationSectionName => "Aspire:Npgsql";
+
     protected override string ValidJsonConfig => """
         {
           "Aspire": {

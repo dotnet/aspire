@@ -1,10 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable AZPROVISION001
-
 using Aspire.Hosting.ApplicationModel;
-using Azure.Provisioning.EventHubs;
 
 namespace Aspire.Hosting.Azure;
 
@@ -12,14 +9,25 @@ namespace Aspire.Hosting.Azure;
 /// Represents an Azure Event Hubs resource.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="configureConstruct">Callback to configure the Azure Event Hubs resource.</param>
-public class AzureEventHubsResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
-    AzureConstructResource(name, configureConstruct),
+/// <param name="configureInfrastructure">Callback to configure the Azure Event Hubs resource.</param>
+public class AzureEventHubsResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
+    AzureProvisioningResource(name, configureInfrastructure),
     IResourceWithConnectionString,
     IResourceWithEndpoints,
     IResourceWithAzureFunctionsConfig
 {
-    internal List<(string Name, Action<IResourceBuilder<AzureEventHubsResource>, ResourceModuleConstruct, EventHub>? Configure)> Hubs { get; } = [];
+    private static readonly string[] s_eventHubClientNames =
+    [
+        "EventHubProducerClient",
+        "EventHubConsumerClient",
+        "EventProcessorClient",
+        "PartitionReceiver",
+        "EventHubBufferedProducerClient"
+    ];
+
+    private const string ConnectionKeyPrefix = "Aspire__Azure__Messaging__EventHubs";
+
+    internal List<AzureEventHubResource> Hubs { get; } = [];
 
     /// <summary>
     /// Gets the "eventHubsEndpoint" output reference from the bicep template for the Azure Event Hubs resource.
@@ -45,11 +53,23 @@ public class AzureEventHubsResource(string name, Action<ResourceModuleConstruct>
     {
         if (IsEmulator)
         {
+            // Injected to support Azure Functions listener initialization.
             target[connectionName] = ConnectionStringExpression;
+            // Injected to support Aspire client integration for each EventHubs client in Azure Functions projects.
+            foreach (var clientName in s_eventHubClientNames)
+            {
+                target[$"{ConnectionKeyPrefix}__{clientName}__{connectionName}__ConnectionString"] = ConnectionStringExpression;
+            }
         }
         else
         {
+            // Injected to support Azure Functions listener initialization.
             target[$"{connectionName}__fullyQualifiedNamespace"] = EventHubsEndpoint;
+            // Injected to support Aspire client integration for each EventHubs client in Azure Functions projects.
+            foreach (var clientName in s_eventHubClientNames)
+            {
+                target[$"{ConnectionKeyPrefix}__{clientName}__{connectionName}__FullyQualifiedNamespace"] = EventHubsEndpoint;
+            }
         }
     }
 }

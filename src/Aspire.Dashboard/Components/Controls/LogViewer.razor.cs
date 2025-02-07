@@ -2,12 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components;
@@ -18,7 +16,8 @@ namespace Aspire.Dashboard.Components;
 public sealed partial class LogViewer
 {
     private readonly bool _convertTimestampsFromUtc = true;
-    private bool _logsCleared;
+    private LogEntries? _logEntries;
+    private bool _logsChanged;
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
@@ -29,27 +28,36 @@ public sealed partial class LogViewer
     [Inject]
     public required ILogger<LogViewer> Logger { get; init; }
 
-    [Inject]
-    public required IOptions<DashboardOptions> Options { get; init; }
+    [Parameter]
+    public LogEntries? LogEntries { get; set; } = null!;
 
-    internal LogEntries LogEntries { get; set; } = null!;
+    [Parameter]
+    public bool ShowTimestamp { get; set; }
 
-    public string? ResourceName { get; set; }
-
-    protected override void OnInitialized()
+    protected override void OnParametersSet()
     {
-        LogEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
+        if (_logEntries != LogEntries)
+        {
+            Logger.LogDebug("Log entries changed.");
+
+            _logsChanged = true;
+            _logEntries = LogEntries;
+        }
+
+        base.OnParametersSet();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_logsCleared)
+        if (_logsChanged)
         {
             await JS.InvokeVoidAsync("resetContinuousScrollPosition");
-            _logsCleared = false;
+            _logsChanged = false;
         }
         if (firstRender)
         {
+            Logger.LogDebug("Initializing log viewer.");
+
             await JS.InvokeVoidAsync("initializeContinuousScroll");
             DimensionManager.OnViewportInformationChanged += OnBrowserResize;
         }
@@ -71,27 +79,11 @@ public sealed partial class LogViewer
         return date.ToString(KnownFormats.ConsoleLogsUITimestampFormat, CultureInfo.InvariantCulture);
     }
 
-    internal void ClearLogs()
-    {
-        Logger.LogDebug("Clearing logs for {ResourceName}.", ResourceName);
-
-        _logsCleared = true;
-        LogEntries.Clear();
-        ResourceName = null;
-        StateHasChanged();
-    }
-
     public ValueTask DisposeAsync()
     {
+        Logger.LogDebug("Disposing log viewer.");
+
         DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
         return ValueTask.CompletedTask;
-    }
-
-    // Calling StateHasChanged on the page isn't updating the LogViewer.
-    // This exposes way to tell the log view it has updated and to re-render.
-    internal async Task LogsAddedAsync()
-    {
-        Logger.LogDebug("Logs added.");
-        await InvokeAsync(StateHasChanged);
     }
 }

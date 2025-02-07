@@ -17,9 +17,8 @@ public class AddMilvusTests
     public void AddMilvusWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:apikey"] = "pass";
 
-        var pass = appBuilder.AddParameter("apikey");
+        var pass = appBuilder.AddParameter("apikey", "pass");
         appBuilder.AddMilvus("my-milvus", apiKey: pass);
 
         using var app = appBuilder.Build();
@@ -48,9 +47,8 @@ public class AddMilvusTests
     public void AddMilvusAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:apikey"] = "pass";
 
-        var pass = appBuilder.AddParameter("apikey");
+        var pass = appBuilder.AddParameter("apikey", "pass");
         appBuilder.AddMilvus("my-milvus", apiKey: pass);
 
         using var app = appBuilder.Build();
@@ -80,8 +78,7 @@ public class AddMilvusTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        appBuilder.Configuration["Parameters:apikey"] = "pass";
-        var pass = appBuilder.AddParameter("apikey");
+        var pass = appBuilder.AddParameter("apikey", "pass");
 
         var milvus = appBuilder.AddMilvus("my-milvus", pass)
                                  .WithEndpoint("grpc", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", MilvusPortGrpc));
@@ -97,8 +94,7 @@ public class AddMilvusTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        appBuilder.Configuration["Parameters:apikey"] = "pass";
-        var pass = appBuilder.AddParameter("apikey");
+        var pass = appBuilder.AddParameter("apikey", "pass");
 
         var milvus = appBuilder.AddMilvus("my-milvus", pass)
             .WithEndpoint("grpc", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", MilvusPortGrpc));
@@ -123,15 +119,14 @@ public class AddMilvusTests
         var containerServicesKeysCount = containerConfig.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(1, containerServicesKeysCount);
 
-        Assert.Contains(containerConfig, kvp => kvp.Key == "ConnectionStrings__my-milvus" && kvp.Value == "Endpoint=http://localhost:19530;Key=root:pass");
+        Assert.Contains(containerConfig, kvp => kvp.Key == "ConnectionStrings__my-milvus" && kvp.Value == "Endpoint=http://my-milvus:19530;Key=root:pass");
     }
 
     [Fact]
     public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions() { Args = new string[] { "--publisher", "manifest" } });
-        appBuilder.Configuration["Parameters:apikey"] = "pass";
-        var pass = appBuilder.AddParameter("apikey");
+        var pass = appBuilder.AddParameter("apikey", "pass");
         var milvus = appBuilder.AddMilvus("milvus", pass);
         var db1 = milvus.AddDatabase("db1");
 
@@ -181,8 +176,7 @@ public class AddMilvusTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        builder.Configuration["Parameters:apikey"] = "pass";
-        var pass = builder.AddParameter("apikey");
+        var pass = builder.AddParameter("apikey", "pass");
 
         var milvus = builder.AddMilvus("my-milvus", grpcPort: 5503, apiKey: pass);
 

@@ -1,13 +1,14 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <OutputType>Library</OutputType>
     <IsPackable>true</IsPackable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>$(NoWarn);CS8002</NoWarn>
     <PackageTags>aspire testing</PackageTags>
     <Description>Testing support for the .NET Aspire application model.</Description>
+    <IsAspireHost>false</IsAspireHost>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -15,12 +16,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)LaunchSettings.cs" Link="LaunchSettings.cs" />
-    <Compile Include="$(SharedDir)LaunchProfile.cs" Link="LaunchProfile.cs" />
-    <Compile Include="$(SharedDir)LaunchSettingsSerializerContext.cs" Link="LaunchSettingsSerializerContext.cs" />
+    <Compile Include="$(SharedDir)LaunchProfiles\LaunchSettingsSerializerContext.cs" Link="LaunchSettingsSerializerContext.cs" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" />
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
 

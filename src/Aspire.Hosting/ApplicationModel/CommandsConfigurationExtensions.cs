@@ -1,17 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Dashboard;
+using Aspire.Hosting.Orchestrator;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.ApplicationModel;
 
 internal static class CommandsConfigurationExtensions
 {
-    internal const string StartType = "start";
-    internal const string StopType = "stop";
-    internal const string RestartType = "restart";
-
     internal static void AddLifeCycleCommands(this IResource resource)
     {
         if (resource.TryGetLastAnnotation<ExcludeLifecycleCommandsAnnotation>(out _))
@@ -20,22 +17,23 @@ internal static class CommandsConfigurationExtensions
         }
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
-            type: StartType,
+            name: KnownResourceCommands.StartCommand,
             displayName: "Start",
             executeCommand: async context =>
             {
-                var executor = context.ServiceProvider.GetRequiredService<ApplicationExecutor>();
+                var orchestrator = context.ServiceProvider.GetRequiredService<ApplicationOrchestrator>();
 
-                await executor.StartResourceAsync(context.ResourceName, context.CancellationToken).ConfigureAwait(false);
+                await orchestrator.StartResourceAsync(context.ResourceName, context.CancellationToken).ConfigureAwait(false);
                 return CommandResults.Success();
             },
             updateState: context =>
             {
-                if (IsStarting(context.ResourceSnapshot.State?.Text) || IsWaiting(context.ResourceSnapshot.State?.Text))
+                var state = context.ResourceSnapshot.State?.Text;
+                if (IsStarting(state) || IsRuntimeUnhealthy(state))
                 {
                     return ResourceCommandState.Disabled;
                 }
-                else if (IsStopped(context.ResourceSnapshot.State?.Text))
+                else if (IsStopped(state) || IsWaiting(state))
                 {
                     return ResourceCommandState.Enabled;
                 }
@@ -44,27 +42,31 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Hidden;
                 }
             },
+            displayDescription: "Start resource",
+            parameter: null,
+            confirmationMessage: null,
             iconName: "Play",
             iconVariant: IconVariant.Filled,
             isHighlighted: true));
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
-            type: StopType,
+            name: KnownResourceCommands.StopCommand,
             displayName: "Stop",
             executeCommand: async context =>
             {
-                var executor = context.ServiceProvider.GetRequiredService<ApplicationExecutor>();
+                var orchestrator = context.ServiceProvider.GetRequiredService<ApplicationOrchestrator>();
 
-                await executor.StopResourceAsync(context.ResourceName, context.CancellationToken).ConfigureAwait(false);
+                await orchestrator.StopResourceAsync(context.ResourceName, context.CancellationToken).ConfigureAwait(false);
                 return CommandResults.Success();
             },
             updateState: context =>
             {
-                if (IsStopping(context.ResourceSnapshot.State?.Text))
+                var state = context.ResourceSnapshot.State?.Text;
+                if (IsStopping(state))
                 {
                     return ResourceCommandState.Disabled;
                 }
-                else if (!IsStopped(context.ResourceSnapshot.State?.Text) && !IsStarting(context.ResourceSnapshot.State?.Text) && !IsWaiting(context.ResourceSnapshot.State?.Text))
+                else if (!IsStopped(state) && !IsStarting(state) && !IsWaiting(state) && !IsRuntimeUnhealthy(state) && context.ResourceSnapshot.State is not null)
                 {
                     return ResourceCommandState.Enabled;
                 }
@@ -73,24 +75,28 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Hidden;
                 }
             },
+            displayDescription: "Stop resource",
+            parameter: null,
+            confirmationMessage: null,
             iconName: "Stop",
             iconVariant: IconVariant.Filled,
             isHighlighted: true));
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
-            type: RestartType,
+            name: KnownResourceCommands.RestartCommand,
             displayName: "Restart",
             executeCommand: async context =>
             {
-                var executor = context.ServiceProvider.GetRequiredService<ApplicationExecutor>();
+                var orchestrator = context.ServiceProvider.GetRequiredService<ApplicationOrchestrator>();
 
-                await executor.StopResourceAsync(context.ResourceName, context.CancellationToken).ConfigureAwait(false);
-                await executor.StartResourceAsync(context.ResourceName, context.CancellationToken).ConfigureAwait(false);
+                await orchestrator.StopResourceAsync(context.ResourceName, context.CancellationToken).ConfigureAwait(false);
+                await orchestrator.StartResourceAsync(context.ResourceName, context.CancellationToken).ConfigureAwait(false);
                 return CommandResults.Success();
             },
             updateState: context =>
             {
-                if (IsWaiting(context.ResourceSnapshot.State?.Text) || IsStarting(context.ResourceSnapshot.State?.Text) || IsStopping(context.ResourceSnapshot.State?.Text) || IsStopped(context.ResourceSnapshot.State?.Text))
+                var state = context.ResourceSnapshot.State?.Text;
+                if (IsStarting(state) || IsStopping(state) || IsStopped(state) || IsWaiting(state) || IsRuntimeUnhealthy(state) || context.ResourceSnapshot.State is null)
                 {
                     return ResourceCommandState.Disabled;
                 }
@@ -99,13 +105,19 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Enabled;
                 }
             },
+            displayDescription: "Restart resource",
+            parameter: null,
+            confirmationMessage: null,
             iconName: "ArrowCounterclockwise",
             iconVariant: IconVariant.Regular,
             isHighlighted: false));
 
-        static bool IsStopped(string? state) => state is "Exited" or "Finished" or "FailedToStart";
-        static bool IsStopping(string? state) => state is "Stopping";
-        static bool IsStarting(string? state) => state is "Starting";
-        static bool IsWaiting(string? state) => state is "Waiting";
+        // Treat "Unknown" as stopped so the command to start the resource is available when "Unknown".
+        // There is a situation where a container can be stopped with this state: https://github.com/dotnet/aspire/issues/5977
+        static bool IsStopped(string? state) => KnownResourceStates.TerminalStates.Contains(state) || state == KnownResourceStates.NotStarted || state == "Unknown";
+        static bool IsStopping(string? state) => state == KnownResourceStates.Stopping;
+        static bool IsStarting(string? state) => state == KnownResourceStates.Starting;
+        static bool IsWaiting(string? state) => state == KnownResourceStates.Waiting;
+        static bool IsRuntimeUnhealthy(string? state) => state == KnownResourceStates.RuntimeUnhealthy;
     }
 }

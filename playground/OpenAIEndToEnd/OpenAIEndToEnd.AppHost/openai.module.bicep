@@ -1,11 +1,11 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param principalId string
-
 param principalType string
 
-resource openai 'Microsoft.CognitiveServices/accounts@2022-12-01' = {
+param principalId string
+
+resource openai 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   name: take('openai-${uniqueString(resourceGroup().id)}', 64)
   location: location
   kind: 'OpenAI'
@@ -32,7 +32,7 @@ resource openai_CognitiveServicesOpenAIContributor 'Microsoft.Authorization/role
   scope: openai
 }
 
-resource gpt-4o 'Microsoft.CognitiveServices/accounts/deployments@2022-12-01' = {
+resource gpt_4o 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   name: 'gpt-4o'
   properties: {
     model: {

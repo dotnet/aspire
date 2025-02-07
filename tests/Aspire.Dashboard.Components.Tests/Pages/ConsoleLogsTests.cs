@@ -132,7 +132,7 @@ public partial class ConsoleLogsTests : TestContext
 
         logger.LogInformation("Log results are added to log viewer.");
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "Hello world", IsErrorMessage: false)]);
-        cut.WaitForState(() => instance.LogViewer.LogEntries.EntriesCount > 0);
+        cut.WaitForState(() => instance._logEntries.EntriesCount > 0);
     }
 
     private void SetupConsoleLogsServices(TestDashboardClient? dashboardClient = null)
@@ -162,6 +162,7 @@ public partial class ConsoleLogsTests : TestContext
         Services.AddSingleton<ILoggerFactory>(loggerFactory);
         Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
         Services.AddSingleton<IMessageService, MessageService>();
+        Services.AddSingleton<IToastService, ToastService>();
         Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));
         Services.AddSingleton<DimensionManager>();
         Services.AddSingleton<IDialogService, DialogService>();
@@ -171,6 +172,7 @@ public partial class ConsoleLogsTests : TestContext
         Services.AddSingleton<LibraryConfiguration>();
         Services.AddSingleton<IKeyCodeService, KeyCodeService>();
         Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient());
+        Services.AddSingleton<DashboardCommandExecutor>();
     }
 
     private static string GetFluentFile(string filePath, Version version)

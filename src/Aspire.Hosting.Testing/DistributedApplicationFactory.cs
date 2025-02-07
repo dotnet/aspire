@@ -137,47 +137,134 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         OnBuilt(application);
     }
 
-    private void OnBuilderCreatingCore(DistributedApplicationOptions applicationOptions, HostApplicationBuilderSettings hostBuilderOptions)
+    private static void PreConfigureBuilderOptions(
+        DistributedApplicationOptions applicationOptions,
+        HostApplicationBuilderSettings hostBuilderOptions,
+        string[] args,
+        Assembly entryPointAssembly)
     {
         hostBuilderOptions.Args = hostBuilderOptions.Args switch
         {
             { } existing => [.. existing, .. args],
             null => args
         };
-
-        applicationOptions.Args = applicationOptions.Args switch
-        {
-            { } existing => [.. existing, .. args],
-            null => args
-        };
+        applicationOptions.Args = hostBuilderOptions.Args;
 
         hostBuilderOptions.EnvironmentName = Environments.Development;
-        hostBuilderOptions.ApplicationName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
-        applicationOptions.AssemblyName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
+        hostBuilderOptions.ApplicationName = entryPointAssembly.GetName().Name ?? string.Empty;
+        applicationOptions.AssemblyName = entryPointAssembly.GetName().Name ?? string.Empty;
         applicationOptions.DisableDashboard = true;
-        var cfg = hostBuilderOptions.Configuration ??= new();
-        var additionalConfig = new Dictionary<string, string?>
+        applicationOptions.EnableResourceLogging = true;
+        var existingConfig = new ConfigurationManager();
+        existingConfig.AddCommandLine(applicationOptions.Args ?? []);
+        if (hostBuilderOptions.Configuration is not null)
         {
-            ["DcpPublisher:RandomizePorts"] = "true",
-            ["DcpPublisher:DeleteResourcesOnShutdown"] = "true",
-            ["DcpPublisher:ResourceNameSuffix"] = $"{Random.Shared.Next():x}",
-        };
+            existingConfig.AddConfiguration(hostBuilderOptions.Configuration);
+        }
 
-        var appHostProjectPath = ResolveProjectPath(_entryPoint.Assembly);
-        if (!string.IsNullOrEmpty(appHostProjectPath))
+        var additionalConfig = new Dictionary<string, string?>();
+        SetDefault("DcpPublisher:ContainerRuntimeInitializationTimeout", "00:00:30");
+        SetDefault("DcpPublisher:RandomizePorts", "true");
+
+        // Make sure we have a dashboard URL and OTLP endpoint URL.
+        SetDefault("ASPNETCORE_URLS", "http://localhost:8080");
+        SetDefault("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL", "http://localhost:4317");
+
+        var appHostProjectPath = ResolveProjectPath(entryPointAssembly);
+        if (!string.IsNullOrEmpty(appHostProjectPath) && Directory.Exists(appHostProjectPath))
         {
             hostBuilderOptions.ContentRootPath = appHostProjectPath;
         }
 
-        var appHostLaunchSettings = GetLaunchSettings(appHostProjectPath);
-        if (appHostLaunchSettings?.Profiles.FirstOrDefault().Key is { } profileName)
+        hostBuilderOptions.Configuration ??= new();
+        hostBuilderOptions.Configuration.AddInMemoryCollection(additionalConfig);
+
+        void SetDefault(string key, string? value)
         {
-            additionalConfig["AppHost:DefaultLaunchProfileName"] = profileName;
+            if (existingConfig[key] is null)
+            {
+                additionalConfig[key] = value;
+            }
+        }
+    }
+
+    internal static void ConfigureBuilder(
+        string[] args,
+        DistributedApplicationOptions applicationOptions,
+        HostApplicationBuilderSettings hostBuilderOptions,
+        Assembly entryPointAssembly,
+        Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)
+    {
+        PreConfigureBuilderOptions(applicationOptions, hostBuilderOptions, args, entryPointAssembly);
+        configureBuilder(applicationOptions, hostBuilderOptions);
+        PostConfigureBuilderOptions(hostBuilderOptions, entryPointAssembly);
+    }
+
+    private void OnBuilderCreatingCore(
+        DistributedApplicationOptions applicationOptions,
+        HostApplicationBuilderSettings hostBuilderOptions)
+    {
+        ConfigureBuilder(args, applicationOptions, hostBuilderOptions, _entryPoint.Assembly, OnBuilderCreating);
+    }
+
+    private static void PostConfigureBuilderOptions(
+        HostApplicationBuilderSettings hostBuilderOptions,
+        Assembly entryPointAssembly)
+    {
+        var existingConfig = new ConfigurationManager();
+        existingConfig.AddCommandLine(hostBuilderOptions.Args ?? []);
+        if (hostBuilderOptions.Configuration is not null)
+        {
+            existingConfig.AddConfiguration(hostBuilderOptions.Configuration);
         }
 
-        cfg.AddInMemoryCollection(additionalConfig);
+        var additionalConfig = new Dictionary<string, string?>();
+        var appHostProjectPath = ResolveProjectPath(entryPointAssembly);
 
-        OnBuilderCreating(applicationOptions, hostBuilderOptions);
+        // Populate the launch profile name.
+        var appHostLaunchSettings = GetLaunchSettings(appHostProjectPath);
+        var launchProfileName = existingConfig["DOTNET_LAUNCH_PROFILE"];
+
+        // Load the launch profile and populate configuration with environment variables.
+        if (appHostLaunchSettings is not null)
+        {
+            var launchProfiles = appHostLaunchSettings.Profiles;
+            LaunchProfile? launchProfile;
+            if (string.IsNullOrEmpty(launchProfileName))
+            {
+                // If a launch profile was not specified, select the first launch profile.
+                var firstLaunchProfile = launchProfiles.FirstOrDefault();
+                launchProfile = firstLaunchProfile.Value;
+                SetDefault("DOTNET_LAUNCH_PROFILE", firstLaunchProfile.Key);
+            }
+            else
+            {
+                if (!launchProfiles.TryGetValue(launchProfileName, out launchProfile))
+                {
+                    throw new InvalidOperationException($"The configured launch profile, '{launchProfileName}', was not found in the launch settings file.");
+                }
+            }
+
+            // Populate config from env vars.
+            if (launchProfile?.EnvironmentVariables is { Count: > 0 } envVars)
+            {
+                foreach (var (key, value) in envVars)
+                {
+                    SetDefault(key, value);
+                }
+            }
+        }
+
+        hostBuilderOptions.Configuration ??= new();
+        hostBuilderOptions.Configuration.AddInMemoryCollection(additionalConfig);
+
+        void SetDefault(string key, string? value)
+        {
+            if (existingConfig[key] is null)
+            {
+                additionalConfig[key] = value;
+            }
+        }
     }
 
     private static string? ResolveProjectPath(Assembly? assembly)
@@ -226,15 +313,13 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
 
     private void OnBuilderCreatedCore(DistributedApplicationBuilder applicationBuilder)
     {
+        var services = applicationBuilder.Services;
+        services.AddHttpClient();
         OnBuilderCreated(applicationBuilder);
     }
 
     private void OnBuildingCore(DistributedApplicationBuilder applicationBuilder)
     {
-        var services = applicationBuilder.Services;
-        services.AddHostedService<ResourceLoggerForwarderService>();
-        services.AddHttpClient();
-
         InterceptHostCreation(applicationBuilder);
 
         _builderTcs.TrySetResult(applicationBuilder);

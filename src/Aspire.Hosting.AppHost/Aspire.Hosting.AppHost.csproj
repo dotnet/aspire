@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="$(RepoRoot)eng/ReplaceText.targets" />
+
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting</PackageTags>
     <Description>Core library and MSBuild logic for .NET Aspire AppHost projects.</Description>
@@ -16,12 +18,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <TextReplacementValue Include="VERSION" NewValue="$(PackageVersion)" />
+
     <None Include="**/*.props;**/*.targets;AspireAppHostConfiguration.json" Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Update="build\Aspire.Hosting.AppHost.in.targets" Pack="true" PerformTextReplacement="True" PackagePath="build\Aspire.Hosting.AppHost.targets" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- 
-        Note that this package won't add a transitive dependency to DCP and Dashboard, as those will dynamically be added by Aspire.Hosting.Sdk.
+        Note that this package won't add a transitive dependency to DCP and Dashboard, as those will dynamically be added by Aspire.AppHost.Sdk.
         This is done so that we don't pull in DCP and Dashboard packages for all of the platforms. 
     -->
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
@@ -29,7 +34,7 @@
 
   <!-- Download DCP orchestrator components for local development -->
   <ItemGroup>
-    <PackageDownload Include="Microsoft.DeveloperControlPlane.$(BuildOs)-$(BuildArch)" Version="[$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)]" />
+    <PackageDownload Include="Microsoft.DeveloperControlPlane.$(BuildOs)-$(BuildArch)" Version="[$(MicrosoftDeveloperControlPlanedarwinamd64Version)]" />
   </ItemGroup>
 
   <ItemGroup>

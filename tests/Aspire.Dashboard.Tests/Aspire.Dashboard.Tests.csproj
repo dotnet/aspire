@@ -21,6 +21,7 @@
 
     <ProjectReference Include="..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
 
+    <Compile Include="$(TestsSharedDir)AsyncTestHelpers.cs" Link="shared/AsyncTestHelpers.cs" />
     <Compile Include="$(TestsSharedDir)TestCertificateLoader.cs" Link="shared/TestCertificateLoader.cs" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
     <Compile Include="$(TestsSharedDir)Telemetry\*.cs" LinkBase="shared/Telemetry" />

@@ -14,8 +14,8 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <remarks>
 /// The holder of this annotation is waiting on the resource in the <see cref="WaitAnnotation.Resource"/> property.
 /// </remarks>
-[DebuggerDisplay("Resource = {Resource.Name}")]
-public class WaitAnnotation(IResource resource, WaitType waitType, int exitCode = 0) : IResourceAnnotation
+[DebuggerDisplay("Type = {GetType().Name,nq}, Resource = {Resource.Name}")]
+public sealed class WaitAnnotation(IResource resource, WaitType waitType, int exitCode = 0) : IResourceAnnotation
 {
     /// <summary>
     /// The resource that will be waited on.
@@ -26,6 +26,11 @@ public class WaitAnnotation(IResource resource, WaitType waitType, int exitCode 
     /// The type of wait to apply to the dependency resource.
     /// </summary>
     public WaitType WaitType { get; } = waitType;
+
+    /// <summary>
+    /// The behavior of the wait. Only applicable when <see cref="WaitType"/> is <see cref="WaitType.WaitUntilHealthy"/>.
+    /// </summary>
+    public WaitBehavior? WaitBehavior { get; init; }
 
     /// <summary>
     /// The exit code that the resource must return for the wait to be satisfied.
@@ -47,4 +52,20 @@ public enum WaitType
     /// Dependent resource will wait until resource completes.
     /// </summary>
     WaitForCompletion
+}
+
+/// <summary>
+/// Specifies the behavior of the wait.
+/// </summary>
+public enum WaitBehavior
+{
+    /// <summary>
+    /// If the dependency fails, ignore the failure and continue waiting.
+    /// </summary>
+    WaitOnDependencyFailure,
+
+    /// <summary>
+    /// If the dependency fails, stop waiting and fail the wait.
+    /// </summary>
+    StopOnDependencyFailure
 }

@@ -2,8 +2,8 @@ using Azure.Messaging.WebPubSub;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.AddKeyedAzureWebPubSubServiceClient("wps1", "chatHub");
-builder.AddKeyedAzureWebPubSubServiceClient("wps1", "notificationHub");
+builder.AddKeyedAzureWebPubSubServiceClient("wps1", Constants.ChatHubName);
+builder.AddKeyedAzureWebPubSubServiceClient("wps1", Constants.NotificationHubName);
 
 // add a background service to periodically broadcast messages to the client
 builder.Services.AddHostedService<NotificationService>();
@@ -31,7 +31,7 @@ app.UseAuthorization();
 app.MapRazorPages();
 
 // return the Client Access URL with negotiate endpoint
-app.MapGet("/negotiate/chat", ([FromKeyedServices("chatHub")] WebPubSubServiceClient service) =>
+app.MapGet("/negotiate/chat", ([FromKeyedServices(Constants.ChatHubName)] WebPubSubServiceClient service) =>
 {
     return
         new
@@ -40,7 +40,7 @@ app.MapGet("/negotiate/chat", ([FromKeyedServices("chatHub")] WebPubSubServiceCl
         };
 });
 
-app.MapGet("/negotiate/notification", ([FromKeyedServices("notificationHub")] WebPubSubServiceClient service) =>
+app.MapGet("/negotiate/notification", ([FromKeyedServices(Constants.NotificationHubName)] WebPubSubServiceClient service) =>
 {
     return
         new
@@ -48,9 +48,33 @@ app.MapGet("/negotiate/notification", ([FromKeyedServices("notificationHub")] We
             url = service.GetClientAccessUri().AbsoluteUri
         };
 });
+
+// handle events for chat
+app.Map($"/eventhandler/{Constants.ChatHubName}", async ([FromKeyedServices(Constants.ChatHubName)] WebPubSubServiceClient service, HttpContext context, ILogger logger) => {
+    context.Response.Headers["WebHook-Allowed-Origin"] = "*";
+    if (context.Request.Method == "OPTIONS")
+    {
+        context.Response.StatusCode = 200;
+        return;
+    }
+
+    if (context.Request.Method != "POST" || !context.Request.Headers.TryGetValue("ce-type", out var eventType))
+    {
+        context.Response.StatusCode = 400;
+        return;
+    }
+    context.Response.StatusCode = 200;
+    var userId = context.Request.Headers["ce-userId"];
+    if (eventType == "azure.webpubsub.sys.connected")
+    {
+        logger.LogInformation($"[SYSTEM] {userId} joined.");
+        await service.SendToAllAsync($"[SYSTEM] {userId} joined.");
+    }
+});
+
 app.Run();
 
-sealed class NotificationService([FromKeyedServices("notificationHub")] WebPubSubServiceClient service) : BackgroundService
+sealed class NotificationService([FromKeyedServices(Constants.NotificationHubName)] WebPubSubServiceClient service) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -62,4 +86,10 @@ sealed class NotificationService([FromKeyedServices("notificationHub")] WebPubSu
             await service.SendToAllAsync($"{DateTime.Now}: Hello from background service.");
         }
     }
+}
+
+static class Constants
+{
+    public const string ChatHubName = "ChatForAspire";
+    public const string NotificationHubName = "NotificationForAspire";
 }

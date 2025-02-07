@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -26,12 +27,22 @@ public interface IPropertyGridItem
     /// <summary>
     /// Gets the display name of the item.
     /// </summary>
-    string? Name { get; }
+    string Name { get; }
+
+    /// <summary>
+    /// Gets the key of the item. Must be unique.
+    /// </summary>
+    public object Key => Name;
 
     /// <summary>
     /// Gets the display value of the item.
     /// </summary>
     string? Value { get; }
+
+    /// <summary>
+    /// Overrides the value to visualize. If <see langword="null"/>, <see cref="Value"/> is visualized.
+    /// </summary>
+    public string? ValueToVisualize => null;
 
     /// <summary>
     /// Gets whether this item's value is sensitive and should be masked.
@@ -61,11 +72,13 @@ public interface IPropertyGridItem
     /// Gets whether this item matches a filter string.
     /// </summary>
     /// <remarks>
-    /// Default implementation returns <see langword="false"/>.
+    /// Default implementation checks against <see cref="Name"/> and <see cref="Value"/>.
     /// </remarks>
     /// <param name="filter">The search text to match against.</param>
     /// <returns><see langword="true"/> if this item matches the filter, otherwise <see langword="false"/>.</returns>
-    public bool MatchesFilter(string filter) => false;
+    public bool MatchesFilter(string filter)
+        => Name?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
+           Value?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
 }
 
 public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem
@@ -73,13 +86,13 @@ public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem
     private static readonly RenderFragment<TItem> s_emptyChildContent = _ => builder => { };
 
     private static readonly GridSort<TItem> s_defaultNameSort = GridSort<TItem>.ByAscending(vm => vm.Name);
-    private static readonly GridSort<TItem> s_defaultValueSort = GridSort<TItem>.ByAscending(vm => vm.Value);
+    private static readonly GridSort<TItem> s_defaultValueSort = GridSort<TItem>.ByAscending(vm => vm.IsValueMasked ? null : vm.Value);
 
     [Parameter, EditorRequired]
     public IQueryable<TItem>? Items { get; set; }
 
     [Parameter]
-    public Func<TItem, object?> ItemKey { get; init; } = static item => item.Name;
+    public Func<TItem, object?> ItemKey { get; init; } = static item => item.Key;
 
     [Parameter]
     public string GridTemplateColumns { get; set; } = "1fr 1fr";
@@ -121,7 +134,23 @@ public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem
     public RenderFragment<TItem> ExtraValueContent { get; set; } = s_emptyChildContent;
 
     [Parameter]
-    public GenerateHeaderOption GenerateHeader { get; set; } = GenerateHeaderOption.Sticky;
+    public GenerateHeaderOption GenerateHeader { get; set; } = GenerateHeaderOption.Default;
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
+    private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
+
+    protected override void OnInitialized()
+    {
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(Loc);
+    }
+
+    // Return null if empty so GridValue knows there is no template.
+    private RenderFragment? GetContentAfterValue(TItem context) => ContentAfterValue == s_emptyChildContent
+        ? null
+        : ContentAfterValue(context);
 
     private async Task OnIsValueMaskedChanged(TItem item, bool isValueMasked)
     {

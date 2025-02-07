@@ -60,61 +60,6 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    public async Task VerifyWaitForOnSqlServerDatabaseBlocksDependentResources()
-    {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
-
-        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
-        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
-        {
-            return healthCheckTcs.Task;
-        });
-
-        var resource = builder.AddSqlServer("resource")
-                              .WithHealthCheck("blocking_check");
-
-        var db = resource.AddDatabase("db");
-
-        var dependentResource = builder.AddSqlServer("dependentresource")
-                                       .WaitFor(db);
-
-        using var app = builder.Build();
-
-        var pendingStart = app.StartAsync(cts.Token);
-
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(db.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
-
-        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
-
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
-
-        // Create the database.
-        var connectionString = await resource.Resource.GetConnectionStringAsync(cts.Token);
-        using var connection = new SqlConnection(connectionString);
-        await connection.OpenAsync(cts.Token);
-
-        var command = connection.CreateCommand();
-        command.CommandText = "CREATE DATABASE db;";
-        await command.ExecuteNonQueryAsync(cts.Token);
-
-        await rns.WaitForResourceHealthyAsync(db.Resource.Name, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await pendingStart;
-
-        await app.StopAsync();
-    }
-
-    [Fact]
-    [RequiresDocker]
     public async Task VerifySqlServerResource()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
@@ -197,7 +142,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             if (useVolume)
             {
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
-                volumeName = VolumeNameGenerator.CreateVolumeName(sqlserver1, nameof(WithDataShouldPersistStateBetweenUsages));
+                volumeName = VolumeNameGenerator.Generate(sqlserver1, nameof(WithDataShouldPersistStateBetweenUsages));
 
                 // if the volume already exists (because of a crashing previous run), delete it
                 DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
@@ -229,7 +174,11 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using var app1 = builder1.Build();
 
+            var rns = app1.Services.GetRequiredService<ResourceNotificationService>();
+
             await app1.StartAsync();
+
+            await rns.WaitForResourceHealthyAsync(masterdb1.Resource.Name, cts.Token);
 
             try
             {
@@ -294,11 +243,9 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             using var builder2 = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
-            var passwordParameter2 = builder2.AddParameter("pwd");
+            var passwordParameter2 = builder2.AddParameter("pwd", password);
 
-            builder2.Configuration["Parameters:pwd"] = password;
-
-            var sqlserver2 = builder2.AddSqlServer("sqlserver", passwordParameter2);
+            var sqlserver2 = builder2.AddSqlServer("sqlserver2", passwordParameter2);
             var masterdb2 = sqlserver2.AddDatabase("master");
 
             if (useVolume)
@@ -312,7 +259,12 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app2 = builder2.Build())
             {
+                rns = app2.Services.GetRequiredService<ResourceNotificationService>();
+
                 await app2.StartAsync();
+
+                await rns.WaitForResourceHealthyAsync(masterdb2.Resource.Name, cts.Token);
+
                 try
                 {
                     var hb2 = Host.CreateApplicationBuilder();

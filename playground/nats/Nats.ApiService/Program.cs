@@ -6,10 +6,6 @@ using Nats.Common;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
 builder.AddServiceDefaults();
 
 builder.AddNatsClient("nats", configureOptions: opts =>
@@ -23,12 +19,6 @@ builder.AddNatsJetStream();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
 app.MapDefaultEndpoints();
 app.MapGet("/ping", async (INatsConnection nats) =>
 {

@@ -4,6 +4,7 @@
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -147,7 +148,7 @@ public class AddParameterTests
         Assert.Equal($"DefaultValue", parameterResource.Value);
 
         // The manifest should not include anything about the default value
-        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass"));
+        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass")).DefaultTimeout();
         var expectedManifest = $$"""
             {
               "type": "parameter.v0",
@@ -197,7 +198,7 @@ public class AddParameterTests
         Assert.Equal($"DefaultValue", parameterResource.Value);
 
         // The manifest should include the default value, since we passed publishValueAsDefault: true
-        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass"));
+        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass")).DefaultTimeout();
         var expectedManifest = $$"""
             {
               "type": "parameter.v0",
@@ -215,10 +216,22 @@ public class AddParameterTests
         Assert.Equal(expectedManifest, paramManifest.ToString());
     }
 
+    [Fact]
+    public void AddParameterWithBothPublishValueAsDefaultAndSecretFails()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        // publishValueAsDefault and secret are mutually exclusive. Test both overloads.
+        var ex1 = Assert.Throws<ArgumentException>(() => appBuilder.AddParameter("pass", () => "SomeSecret", publishValueAsDefault: true, secret: true));
+        Assert.Equal($"A parameter cannot be both secret and published as a default value. (Parameter 'secret')", ex1.Message);
+        var ex2 = Assert.Throws<ArgumentException>(() => appBuilder.AddParameter("pass", "SomeSecret", publishValueAsDefault: true, secret: true));
+        Assert.Equal($"A parameter cannot be both secret and published as a default value. (Parameter 'secret')", ex2.Message);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task ParametersWithDefaultValueObjectOverloadUsedRegardlessOfConfigurationValue(bool hasConfig)
+    public async Task ParametersWithDefaultValueObjectOverloadUseConfigurationValueWhenPresent(bool hasConfig)
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
@@ -237,13 +250,21 @@ public class AddParameterTests
         using var app = appBuilder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        // Make sure the the generated default value is used, regardless of the config value
-        // We can't test the exact value since it's random, but we can test the length
+        // Make sure the the generated default value is only used when there isn't a config value
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "pass");
-        Assert.Equal(10, parameterResource.Value.Length);
+        if (hasConfig)
+        {
+            Assert.Equal("ValueFromConfiguration", parameterResource.Value);
+        }
+        else
+        {
+            Assert.NotEqual("ValueFromConfiguration", parameterResource.Value);
+            // We can't test the exact value since it's random, but we can test the length
+            Assert.Equal(10, parameterResource.Value.Length);
+        }
 
-        // The manifest should include the fields for the generated default value
-        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass"));
+        // The manifest should always include the fields for the generated default value
+        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass")).DefaultTimeout();
         var expectedManifest = $$"""
             {
               "type": "parameter.v0",
@@ -298,7 +319,7 @@ public class AddParameterTests
         Assert.Equal($"MyAccessToken", parameterResource.Value);
 
         // The manifest is not affected by the custom configuration key
-        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "val"));
+        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "val")).DefaultTimeout();
         var expectedManifest = $$"""
                 {
                   "type": "parameter.v0",

@@ -1,8 +1,0 @@
-#nullable enable
-Aspire.Hosting.ApplicationModel.AzureWebPubSubResource
-Aspire.Hosting.ApplicationModel.AzureWebPubSubResource.AzureWebPubSubResource(string! name, System.Action<Aspire.Hosting.ResourceModuleConstruct!>! configureConstruct) -> void
-Aspire.Hosting.ApplicationModel.AzureWebPubSubResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
-Aspire.Hosting.ApplicationModel.AzureWebPubSubResource.Endpoint.get -> Aspire.Hosting.Azure.BicepOutputReference!
-Aspire.Hosting.AzureWebPubSubExtensions
-static Aspire.Hosting.AzureWebPubSubExtensions.AddAzureWebPubSub(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.AzureWebPubSubResource!>!
-static Aspire.Hosting.AzureWebPubSubExtensions.AddAzureWebPubSub(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.AzureWebPubSubResource!>!, Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.WebPubSub.WebPubSubService!>? configureResource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.AzureWebPubSubResource!>!

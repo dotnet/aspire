@@ -1,3 +1,0 @@
-#nullable enable
-*REMOVED*Aspire.Hosting.ApplicationModel.AzureOpenAIDeployment.AzureOpenAIDeployment(string! name, string! modelName, string! modelVersion, string! skuName = "Standard", int skuCapacity = 1) -> void
-Aspire.Hosting.ApplicationModel.AzureOpenAIDeployment.AzureOpenAIDeployment(string! name, string! modelName, string! modelVersion, string! skuName = "Standard", int skuCapacity = 8) -> void

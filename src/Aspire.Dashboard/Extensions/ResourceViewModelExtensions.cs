@@ -9,12 +9,12 @@ internal static class ResourceViewModelExtensions
 {
     public static bool IsHiddenState(this ResourceViewModel resource)
     {
-        return resource.KnownState == KnownResourceState.Hidden;
+        return resource.KnownState is KnownResourceState.Hidden;
     }
 
     public static bool IsRunningState(this ResourceViewModel resource)
     {
-        return resource.KnownState == KnownResourceState.Running;
+        return resource.KnownState is KnownResourceState.Running;
     }
 
     public static bool IsFinishedState(this ResourceViewModel resource)
@@ -32,9 +32,17 @@ internal static class ResourceViewModelExtensions
         return resource.KnownState is KnownResourceState.Starting or KnownResourceState.Building or KnownResourceState.Waiting or KnownResourceState.Stopping;
     }
 
-    public static bool HasNoState(this ResourceViewModel resource) => string.IsNullOrEmpty(resource.State);
+    public static bool IsRuntimeUnhealthy(this ResourceViewModel resource)
+    {
+        return resource.KnownState is KnownResourceState.RuntimeUnhealthy;
+    }
 
-    // We only care about the readiness state if the resource is running
-    public static bool ShowReadinessState(this ResourceViewModel resource) =>
-        resource.IsRunningState() && resource.ReadinessState is ReadinessState.NotReady;
+    public static bool IsNotStarted(this ResourceViewModel resource)
+    {
+        return resource.KnownState is KnownResourceState.NotStarted;
+    }
+
+    public static bool IsUnknownState(this ResourceViewModel resource) => resource.KnownState is KnownResourceState.Unknown;
+
+    public static bool HasNoState(this ResourceViewModel resource) => string.IsNullOrEmpty(resource.State);
 }

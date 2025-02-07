@@ -1,38 +1,37 @@
 ﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 
 @inject IStringLocalizer<Columns> Loc
 @inject IStringLocalizer<Resources> ResourcesLoc
 
-@if (ContentAfterValue is not null)
-{
-    <GridValue Value="@Value"
-               ValueToCopy="@ValueToCopy"
-               ValueDescription="@ResourcesLoc[nameof(Resources.ResourcesSourceColumnHeader)]"
-               EnableHighlighting="true"
-               HighlightText="@FilterText"
-               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnDisplayCopyCommandToClipboard)]"
-               ToolTip="@Tooltip">
-        <ContentAfterValue>
-            <span class="subtext">@ContentAfterValue</span>
-        </ContentAfterValue>
-    </GridValue>
-}
-else
-{
-    <GridValue Value="@Value"
-               ValueToCopy="@ValueToCopy"
-               ValueDescription="@ResourcesLoc[nameof(Resources.ResourcesSourceColumnHeader)]"
-               EnableHighlighting="true"
-               HighlightText="@FilterText"
-               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyFullPathToClipboard)]"
-               ToolTip="@Tooltip" />
-}
+<GridValue Value="@Value"
+           ValueToVisualize="@ValueToVisualize"
+           ValueDescription="@ResourcesLoc[nameof(Resources.ResourcesSourceColumnHeader)]"
+           EnableHighlighting="true"
+           HighlightText="@FilterText"
+           PreCopyToolTip="@Loc[nameof(Columns.SourceColumnDisplayCopyCommandToClipboard)]"
+           ToolTip="@Tooltip"
+           StopClickPropagation="true">
+    <ContentAfterValue>
+        @if (ContentAfterValue is not null)
+        {
+            foreach (var launchArgument in ContentAfterValue)
+            {
+                if (launchArgument.IsShown)
+                {
+                    <span class="subtext">&nbsp;@launchArgument.Value</span>
+                }
+                else
+                {
+                    <span class="subtext">&nbsp;@DashboardUIHelpers.GetMaskingText(length: 6)</span>
+                }
+            }
+        }
+    </ContentAfterValue>
+</GridValue>
 
 @code {
-    [Parameter, EditorRequired]
-    public required ResourceViewModel Resource { get; set; }
-
     [Parameter, EditorRequired]
     public required string FilterText { get; set; }
 
@@ -40,12 +39,11 @@ else
     public required string Value { get; set; }
 
     [Parameter]
-    public required string? ContentAfterValue { get; set; }
+    public required List<LaunchArgument>? ContentAfterValue { get; set; }
 
     [Parameter, EditorRequired]
-    public required string ValueToCopy { get; set; }
+    public required string ValueToVisualize { get; set; }
 
     [Parameter, EditorRequired]
     public required string Tooltip { get; set; }
-
 }

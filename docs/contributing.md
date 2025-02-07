@@ -21,8 +21,8 @@ If you are using Visual Studio:
 
 Otherwise:
 ```shell
-dotnet restore playground/TestShop/AppHost/AppHost.csproj
-dotnet run --project playground/TestShop/AppHost/AppHost.csproj
+dotnet restore playground/TestShop/TestShop.AppHost/TestShop.AppHost.csproj
+dotnet run --project playground/TestShop/TestShop.AppHost/TestShop.AppHost.csproj
 ```
 
 ## View Dashboard
@@ -71,5 +71,7 @@ Or edit the `NuGet.config` file and add this line to the `<packageSources>` list
 ## Tips and known issues
 
 Make sure you have started Docker before trying to run an Aspire app.
+
+For information on who can help in PRs and issues, see the [area owners](area-owners.md) page.
 
 See the [tips and known issues](tips-and-known-issues.md) page.

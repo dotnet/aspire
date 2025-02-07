@@ -39,6 +39,7 @@ internal sealed class EventProcessorClientComponent()
         return azureFactoryBuilder.AddClient<EventProcessorClient, EventProcessorClientOptions>(
             (options, cred, provider) =>
             {
+                // ensure that the connection string or namespace+eventhubname is provided 
                 EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
 
                 options.Identifier ??= GenerateClientIdentifier(settings.EventHubName, settings.ConsumerGroup);
@@ -47,29 +48,26 @@ internal sealed class EventProcessorClientComponent()
 
                 var consumerGroup = settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName;
 
-                if (!string.IsNullOrEmpty(settings.ConnectionString))
-                {
-                    if (!string.IsNullOrEmpty(settings.EventHubName))
-                    {
-                        return new EventProcessorClient(containerClient,
-                                                consumerGroup,
-                                                settings.ConnectionString,
-                                                settings.EventHubName);
-                    }
-                    else
-                    {
-                        return new EventProcessorClient(containerClient,
-                                                consumerGroup,
-                                                settings.ConnectionString);
-                    }
-                }
-                else
+                if (string.IsNullOrEmpty(settings.ConnectionString))
                 {
                     return new EventProcessorClient(containerClient,
                         consumerGroup,
                         settings.FullyQualifiedNamespace,
                         settings.EventHubName, cred, options);
                 }
+
+                if (string.IsNullOrEmpty(settings.EventHubName))
+                {
+                    return new EventProcessorClient(containerClient,
+                        consumerGroup,
+                        settings.ConnectionString, options);
+                }
+
+                return new EventProcessorClient(containerClient,
+                    consumerGroup,
+                    settings.ConnectionString,
+                    settings.EventHubName, options);
+
             });
     }
 
@@ -99,17 +97,14 @@ internal sealed class EventProcessorClientComponent()
         // name specified in the settings.
         bool shouldTryCreateIfNotExists = false;
 
+        // Do we have a container name provided in the settings?
         if (string.IsNullOrWhiteSpace(settings.BlobContainerName))
         {
+            // If not, we'll create a container name based on the namespace, event hub name and consumer group
             var ns = GetNamespaceFromSettings(settings);
 
-            // Do we have a container name provided in the settings?
-            if (string.IsNullOrWhiteSpace(settings.BlobContainerName))
-            {
-                // If not, we'll create a container name based on the namespace, event hub name and consumer group
-                settings.BlobContainerName = $"{ns}-{settings.EventHubName}-{consumerGroup}";
-                shouldTryCreateIfNotExists = true;
-            }
+            settings.BlobContainerName = $"{ns}-{settings.EventHubName}-{consumerGroup}";
+            shouldTryCreateIfNotExists = true;
         }
 
         var containerClient = blobClient.GetBlobContainerClient(settings.BlobContainerName);

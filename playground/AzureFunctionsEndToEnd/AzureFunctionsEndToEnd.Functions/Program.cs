@@ -1,17 +1,18 @@
-using Microsoft.Azure.Functions.Worker.OpenTelemetry;
+using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Hosting;
-using OpenTelemetry;
-using Microsoft.Extensions.DependencyInjection;
 
-var host = new HostBuilder()
-    .AddServiceDefaults()
-    .ConfigureFunctionsWebApplication()
-    .ConfigureServices(services =>
-    {
-        services.AddOpenTelemetry()
-            .UseFunctionsWorkerDefaults()
-            .UseOtlpExporter();
-    })
-    .Build();
+var builder = FunctionsApplication.CreateBuilder(args);
+
+builder.AddServiceDefaults();
+builder.AddAzureQueueClient("queue");
+builder.AddAzureBlobClient("blob");
+builder.AddAzureEventHubProducerClient("eventhubs", static settings => settings.EventHubName = "myhub");
+#if !SKIP_UNSTABLE_EMULATORS
+builder.AddAzureServiceBusClient("messaging");
+#endif
+
+builder.ConfigureFunctionsWebApplication();
+
+var host = builder.Build();
 
 host.Run();

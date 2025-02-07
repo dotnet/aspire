@@ -56,10 +56,10 @@ public class Class1
 
     <!-- 
       Test applications have their own way of referencing Aspire.Hosting.AppHost, as well as DCP and Dashboard, so we disable
-      the Aspire.Hosting.SDK targets that will automatically add these references to projects. 
+      the Aspire.AppHost.SDK targets that will automatically add these references to projects. 
     -->
     <SkipAddAspireDefaultReferences Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">true</SkipAddAspireDefaultReferences>
-    <AspireHostingSDKVersion>8.2.0</AspireHostingSDKVersion>
+    <AspireHostingSDKVersion>9.0.0</AspireHostingSDKVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -86,8 +86,8 @@ builder.Build().Run();
 """);
             File.WriteAllText(Path.Combine(appHostDirectory, "Directory.Build.targets"), $"""
 <Project>
-  <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets" />
-  <Import Project="{repoRoot}\src\Aspire.Hosting.Sdk\SDK\Sdk.in.targets" />
+  <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.in.targets" />
+  <Import Project="{repoRoot}\src\Aspire.AppHost.Sdk\SDK\Sdk.in.targets" />
 </Project>
 """);
 

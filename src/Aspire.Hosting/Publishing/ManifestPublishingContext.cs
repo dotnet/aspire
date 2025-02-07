@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
@@ -146,8 +147,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
     private async Task WriteProjectAsync(ProjectResource project)
     {
-        Writer.WriteString("type", "project.v0");
-
         if (!project.TryGetLastAnnotation<IProjectMetadata>(out var metadata))
         {
             throw new DistributedApplicationException("Project metadata not found.");
@@ -155,12 +154,38 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         var relativePathToProjectFile = GetManifestRelativePath(metadata.ProjectPath);
 
+        if (project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var deploymentTarget))
+        {
+            Writer.WriteString("type", "project.v1");
+        }
+        else
+        {
+            Writer.WriteString("type", "project.v0");
+        }
+
         Writer.WriteString("path", relativePathToProjectFile);
+
+        if (deploymentTarget is not null)
+        {
+            await WriteDeploymentTarget(deploymentTarget).ConfigureAwait(false);
+        }
 
         await WriteCommandLineArgumentsAsync(project).ConfigureAwait(false);
 
         await WriteEnvironmentVariablesAsync(project).ConfigureAwait(false);
+
         WriteBindings(project);
+    }
+
+    private async Task WriteDeploymentTarget(DeploymentTargetAnnotation deploymentTarget)
+    {
+        if (deploymentTarget.DeploymentTarget.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var manifestPublishingCallbackAnnotation) &&
+            manifestPublishingCallbackAnnotation.Callback is not null)
+        {
+            Writer.WriteStartObject("deployment");
+            await manifestPublishingCallbackAnnotation.Callback(this).ConfigureAwait(false);
+            Writer.WriteEndObject();
+        }
     }
 
     private async Task WriteExecutableAsync(ExecutableResource executable)
@@ -224,6 +249,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <exception cref="DistributedApplicationException">Thrown if the container resource does not contain a <see cref="ContainerImageAnnotation"/>.</exception>
     public async Task WriteContainerAsync(ContainerResource container)
     {
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var deploymentTarget);
+
         if (container.Annotations.OfType<DockerfileBuildAnnotation>().Any())
         {
             Writer.WriteString("type", "container.v1");
@@ -232,13 +259,27 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         }
         else
         {
-            Writer.WriteString("type", "container.v0");
             if (!container.TryGetContainerImageName(out var image))
             {
                 throw new DistributedApplicationException("Could not get container image name.");
             }
+
+            if (deploymentTarget is not null)
+            {
+                Writer.WriteString("type", "container.v1");
+            }
+            else
+            {
+                Writer.WriteString("type", "container.v0");
+            }
+
             WriteConnectionString(container);
             Writer.WriteString("image", image);
+        }
+
+        if (deploymentTarget is not null)
+        {
+            await WriteDeploymentTarget(deploymentTarget).ConfigureAwait(false);
         }
 
         if (container.Entrypoint is not null)
@@ -442,30 +483,35 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <param name="resource">The <see cref="IResource"/> which contains <see cref="EnvironmentCallbackAnnotation"/> annotations.</param>
     public async Task WriteEnvironmentVariablesAsync(IResource resource)
     {
-        var config = new Dictionary<string, object>();
+        var env = new Dictionary<string, (object, string)>();
 
-        var envContext = new EnvironmentCallbackContext(ExecutionContext, config, CancellationToken);
+        await resource.ProcessEnvironmentVariableValuesAsync(ExecutionContext,
+                     (key, unprocessed, processed, ex) =>
+                     {
+                         if (ex is not null)
+                         {
+                             ExceptionDispatchInfo.Throw(ex);
+                         }
 
-        if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var callbacks))
+                         if (unprocessed is not null && processed is not null)
+                         {
+                             env[key] = (unprocessed, processed);
+                         }
+                     },
+                     cancellationToken: CancellationToken)
+                     .ConfigureAwait(false);
+
+        if (env.Count > 0)
         {
             Writer.WriteStartObject("env");
-            foreach (var callback in callbacks)
+
+            foreach (var (key, value) in env)
             {
-                await callback.Callback(envContext).ConfigureAwait(false);
-            }
+                var (unprocessed, processed) = value;
 
-            foreach (var (key, value) in config)
-            {
-                var valueString = value switch
-                {
-                    string stringValue => stringValue,
-                    IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
-                    _ => throw new DistributedApplicationException($"The value of the environment variable '{key}' is not supported.")
-                };
+                Writer.WriteString(key, processed);
 
-                Writer.WriteString(key, valueString);
-
-                TryAddDependentResources(value);
+                TryAddDependentResources(unprocessed);
             }
 
             Writer.WriteEndObject();
@@ -479,34 +525,34 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <returns>The <see cref="Task"/> to await for completion.</returns>
     public async Task WriteCommandLineArgumentsAsync(IResource resource)
     {
-        var args = new List<object>();
+        var args = new List<(object, string)>();
 
-        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallback))
-        {
-            var commandLineArgsContext = new CommandLineArgsCallbackContext(args, CancellationToken);
-
-            foreach (var callback in argsCallback)
+        await resource.ProcessArgumentValuesAsync(
+            ExecutionContext,
+            (unprocessed, expression, ex, _) =>
             {
-                await callback.Callback(commandLineArgsContext).ConfigureAwait(false);
-            }
-        }
+                if (ex is not null)
+                {
+                    ExceptionDispatchInfo.Throw(ex);
+                }
+
+                if (unprocessed is not null && expression is not null)
+                {
+                    args.Add((unprocessed, expression));
+                }
+            },
+           cancellationToken: CancellationToken)
+          .ConfigureAwait(false);
 
         if (args.Count > 0)
         {
             Writer.WriteStartArray("args");
 
-            foreach (var arg in args)
+            foreach (var (unprocessed, expression) in args)
             {
-                var valueString = arg switch
-                {
-                    string stringValue => stringValue,
-                    IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
-                    _ => throw new DistributedApplicationException($"The value of the argument '{arg}' is not supported.")
-                };
+                Writer.WriteStringValue(expression);
 
-                Writer.WriteStringValue(valueString);
-
-                TryAddDependentResources(arg);
+                TryAddDependentResources(unprocessed);
             }
 
             Writer.WriteEndArray();

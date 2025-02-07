@@ -166,7 +166,7 @@ public class AspireOpenAIExtensionsTests
 
         builder.AddOpenAIClient("openai", configureOptions: options =>
         {
-            options.ApplicationId = "myapplication";
+            options.UserAgentApplicationId = "myapplication";
         });
 
         using var host = builder.Build();
@@ -175,6 +175,25 @@ public class AspireOpenAIExtensionsTests
 
         Assert.NotNull(options);
         Assert.Equal("myproject", options.ProjectId);
-        Assert.Equal("myapplication", options.ApplicationId);
+        Assert.Equal("myapplication", options.UserAgentApplicationId);
+    }
+
+    [Fact]
+    public void BindsToNamedClientOptions()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("Aspire:OpenAI:ClientOptions:ProjectId", "myproject"),
+            new KeyValuePair<string, string?>("Aspire:OpenAI:openai:ClientOptions:ProjectId", "myproject2")
+        ]);
+
+        builder.AddOpenAIClient("openai");
+
+        using var host = builder.Build();
+
+        var options = host.Services.GetRequiredService<IOptions<OpenAIClientOptions>>().Value;
+
+        Assert.NotNull(options);
+        Assert.Equal("myproject2", options.ProjectId);
     }
 }

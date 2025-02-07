@@ -12,14 +12,13 @@ using Xunit.Sdk;
 
 namespace Aspire.Workload.Tests;
 
-public class AspireProject : IAsyncDisposable
+public partial class AspireProject : IAsyncDisposable
 {
     public const int DashboardAvailabilityTimeoutSecs = 60;
     private const int AppStartupWaitTimeoutSecs = 5 * 60;
-    public const string DefaultTargetFramework = "net8.0";
     private static readonly Regex s_dashboardUrlRegex = new(@"Login to the dashboard at (?<url>.*)", RegexOptions.Compiled);
 
-    public static string GetNuGetConfigPathFor(string targetFramework) =>
+    public static string GetNuGetConfigPathFor(TestTargetFramework targetFramework) =>
         Path.Combine(BuildEnvironment.TestAssetsPath, "nuget8.config");
 
     public static Lazy<HttpClient> Client => new(CreateHttpClient);
@@ -27,6 +26,7 @@ public class AspireProject : IAsyncDisposable
     public string Id { get; init; }
     public string RootDir { get; init; }
     public string LogPath { get; init; }
+    public TestTargetFramework TargetFramework { get; init; }
     public string AppHostProjectDirectory => Path.Combine(RootDir, $"{Id}.AppHost");
     public string ServiceDefaultsProjectPath => Path.Combine(RootDir, $"{Id}.ServiceDefaults");
     public string TestsProjectDirectory => Path.Combine(RootDir, $"{Id}.Tests");
@@ -38,13 +38,14 @@ public class AspireProject : IAsyncDisposable
     private readonly ITestOutputHelper _testOutput;
     private readonly BuildEnvironment _buildEnv;
 
-    public AspireProject(string id, string baseDir, ITestOutputHelper testOutput, BuildEnvironment buildEnv)
+    public AspireProject(string id, string baseDir, ITestOutputHelper testOutput, BuildEnvironment buildEnv, TestTargetFramework? tfm = default)
     {
         Id = id;
         RootDir = baseDir;
         _testOutput = testOutput;
         _buildEnv = buildEnv;
         LogPath = Path.Combine(_buildEnv.LogRootPath, Id);
+        TargetFramework = tfm ?? BuildEnvironment.DefaultTargetFramework;
     }
 
     protected void InitPaths()
@@ -52,44 +53,81 @@ public class AspireProject : IAsyncDisposable
         Directory.CreateDirectory(LogPath);
     }
 
-    protected static void InitProjectDir(string dir, string targetFramework = DefaultTargetFramework)
+    protected static void InitProjectDir(string dir, TestTargetFramework tfm)
     {
+        if (Directory.Exists(dir))
+        {
+            Directory.Delete(dir, recursive: true);
+        }
         Directory.CreateDirectory(dir);
         File.WriteAllText(Path.Combine(dir, "Directory.Build.props"), "<Project />");
         File.WriteAllText(Path.Combine(dir, "Directory.Build.targets"), "<Project />");
 
-        string srcNuGetConfigPath = GetNuGetConfigPathFor(targetFramework);
+        string srcNuGetConfigPath = GetNuGetConfigPathFor(tfm);
         string targetNuGetConfigPath = Path.Combine(dir, "nuget.config");
         File.Copy(srcNuGetConfigPath, targetNuGetConfigPath);
     }
 
-    public static async Task<AspireProject> CreateNewTemplateProjectAsync(string id, string template, ITestOutputHelper testOutput, BuildEnvironment buildEnvironment, string extraArgs = "", bool addEndpointsHook = true)
+    public static async Task<AspireProject> CreateNewTemplateProjectAsync(
+        string id,
+        string template,
+        ITestOutputHelper testOutput,
+        BuildEnvironment buildEnvironment,
+        string extraArgs = "",
+        TestTargetFramework? targetFramework = default,
+        bool addEndpointsHook = true,
+        string? customHiveForTemplates = null)
     {
         string rootDir = Path.Combine(BuildEnvironment.TestRootPath, id);
         string logPath = Path.Combine(BuildEnvironment.ForDefaultFramework.LogRootPath, id);
-        if (!Directory.Exists(logPath))
-        {
-            Directory.CreateDirectory(logPath);
-        }
+        Directory.CreateDirectory(logPath);
 
-        InitProjectDir(rootDir);
+        var tfmToUse = targetFramework ?? BuildEnvironment.DefaultTargetFramework;
+        InitProjectDir(rootDir, tfmToUse);
 
         File.WriteAllText(Path.Combine(rootDir, "Directory.Build.props"), "<Project />");
         File.WriteAllText(Path.Combine(rootDir, "Directory.Build.targets"), "<Project />");
 
-        using var cmd = new DotNetCommand(testOutput, useDefaultArgs: true, label: "dotnet-new")
-                            .WithWorkingDirectory(Path.GetDirectoryName(rootDir)!)
-                            .WithTimeout(TimeSpan.FromMinutes(5));
+        using var cmd = new DotNetNewCommand(
+            testOutput,
+            useDefaultArgs: true,
+            buildEnv: buildEnvironment,
+            hiveDirectory: customHiveForTemplates);
 
-        var res = await cmd.ExecuteAsync($"new {template} {extraArgs} -o \"{id}\"").ConfigureAwait(false);
+        cmd.WithWorkingDirectory(Path.GetDirectoryName(rootDir)!)
+           .WithTimeout(TimeSpan.FromMinutes(5));
+
+        var tfmToUseString = tfmToUse.ToTFMString();
+        var cmdString = $"{template} {extraArgs} -o \"{id}\" -f {tfmToUseString}";
+
+        var res = await cmd.ExecuteAsync(cmdString).ConfigureAwait(false);
         res.EnsureSuccessful();
         if (res.Output.Contains("Restore failed", StringComparison.OrdinalIgnoreCase) ||
             res.Output.Contains("Post action failed", StringComparison.OrdinalIgnoreCase))
         {
-            throw new XunitException($"`dotnet {$"new {template} {extraArgs} -o \"{id}\""}` . Output: {res.Output}");
+            throw new ToolCommandException($"`dotnet new {cmdString}` . Output: {res.Output}", res);
         }
 
-        var project = new AspireProject(id, rootDir, testOutput, buildEnvironment);
+        foreach (var csprojPath in Directory.EnumerateFiles(rootDir, "*.csproj", SearchOption.AllDirectories))
+        {
+            var csprojContent = File.ReadAllText(csprojPath);
+            var matches = TargetFrameworkPropertyRegex().Matches(csprojContent);
+            if (matches.Count == 0)
+            {
+                throw new XunitException($"Expected to find a <TargetFramework> element in {csprojPath}: {csprojContent}");
+            }
+            if (matches.Count > 1)
+            {
+                throw new XunitException($"Expected to find exactly one <TargetFramework> element in {csprojPath}: {csprojContent}");
+            }
+
+            if (matches[0].Groups["tfm"].Value != tfmToUseString)
+            {
+                throw new XunitException($"Expected to find {tfmToUseString} but found '{matches[0].Groups["tfm"].Value}' in {csprojPath}: {csprojContent}");
+            }
+        }
+
+        var project = new AspireProject(id, rootDir, testOutput, buildEnvironment, tfm: tfmToUse);
         if (addEndpointsHook)
         {
             File.Copy(Path.Combine(BuildEnvironment.TestAssetsPath, "EndPointWriterHook_cs"), Path.Combine(project.AppHostProjectDirectory, "EndPointWriterHook.cs"));
@@ -261,7 +299,7 @@ public class AspireProject : IAsyncDisposable
         _testOutput.WriteLine($"-- Ready to run tests --");
     }
 
-    public async Task BuildAsync(string[]? extraBuildArgs = default, CancellationToken token = default, string? workingDirectory = null)
+    public async Task<CommandResult> BuildAsync(string[]? extraBuildArgs = default, CancellationToken token = default, string? workingDirectory = null)
     {
         workingDirectory ??= Path.Combine(RootDir, $"{Id}.AppHost");
 
@@ -279,6 +317,7 @@ public class AspireProject : IAsyncDisposable
                                         .WithWorkingDirectory(workingDirectory);
         res = await buildCmd.ExecuteAsync(buildArgs);
         res.EnsureSuccessful();
+        return res;
     }
 
     public async Task<IPage> OpenDashboardPageAsync(IBrowserContext context, int timeoutSecs = DashboardAvailabilityTimeoutSecs)
@@ -471,4 +510,7 @@ public class AspireProject : IAsyncDisposable
         });
         app.Run();
         """;
+
+    [GeneratedRegex(@"<TargetFramework>(?<tfm>[^<]*)</TargetFramework>")]
+    private static partial Regex TargetFrameworkPropertyRegex();
 }

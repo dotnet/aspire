@@ -5,30 +5,30 @@ namespace Aspire.Hosting.Postgres;
 
 internal static class PostgresContainerImageTags
 {
-    /// <summary>docker.io</summary>
+    /// <remarks>docker.io</remarks>
     public const string Registry = "docker.io";
 
-    /// <summary>library/postgres</summary>
+    /// <remarks>library/postgres</remarks>
     public const string Image = "library/postgres";
 
-    /// <summary>16.4</summary>
-    public const string Tag = "16.4";
+    /// <remarks>17.2</remarks>
+    public const string Tag = "17.2";
 
-    /// <summary>docker.io</summary>
+    /// <remarks>docker.io</remarks>
     public const string PgAdminRegistry = "docker.io";
 
-    /// <summary>dpage/pgadmin4</summary>
+    /// <remarks>dpage/pgadmin4</remarks>
     public const string PgAdminImage = "dpage/pgadmin4";
 
-    /// <summary>8.11</summary>
-    public const string PgAdminTag = "8.11";
+    /// <remarks>8.14</remarks>
+    public const string PgAdminTag = "8.14";
 
-    /// <summary>docker.io</summary>
+    /// <remarks>docker.io</remarks>
     public const string PgWebRegistry = "docker.io";
 
-    /// <summary>sosedoff/pgweb</summary>
+    /// <remarks>sosedoff/pgweb</remarks>
     public const string PgWebImage = "sosedoff/pgweb";
 
-    /// <summary>0.15.0</summary>
-    public const string PgWebTag = "0.15.0";
+    /// <remarks>0.16.2</remarks>
+    public const string PgWebTag = "0.16.2";
 }

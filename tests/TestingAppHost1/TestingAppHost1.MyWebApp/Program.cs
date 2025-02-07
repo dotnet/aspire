@@ -6,20 +6,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 // Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
 
 app.UseHttpsRedirection();
 
@@ -40,8 +32,22 @@ app.MapGet("/weatherforecast", () =>
         .ToArray();
     return forecast;
 })
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+.WithName("GetWeatherForecast");
+
+app.MapGet("/get-launch-profile-var", () =>
+{
+    return app.Configuration["LAUNCH_PROFILE_VAR"];
+}).WithName("GetLaunchProfileVar");
+
+app.MapGet("/get-app-host-arg", () =>
+{
+    return app.Configuration["APP_HOST_ARG"];
+}).WithName("GetAppHostArg");
+
+app.MapGet("/get-launch-profile-var-from-app-host", () =>
+{
+    return app.Configuration["LAUNCH_PROFILE_VAR_FROM_APP_HOST"];
+}).WithName("GetLaunchProfileVarFromAppHost");
 
 app.Run();
 

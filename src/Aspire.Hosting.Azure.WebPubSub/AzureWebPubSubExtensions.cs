@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -25,62 +24,179 @@ public static class AzureWebPubSubExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureWebPubSubResource> AddAzureWebPubSub(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
-#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.AddAzureWebPubSub(name, null);
-#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        builder.AddAzureProvisioning();
+
+        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
+        {
+            var service = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+                (identifier, name) =>
+                {
+                    var resource = WebPubSubService.FromExisting(identifier);
+                    resource.Name = name;
+                    return resource;
+                },
+                (infrastructure) =>
+                {
+                    // Supported values are Free_F1 Standard_S1 Premium_P1
+                    var skuParameter = new ProvisioningParameter("sku", typeof(string))
+                    {
+                        Value = "Free_F1"
+                    };
+                    infrastructure.Add(skuParameter);
+
+                    // Supported values are 1 2 5 10 20 50 100
+                    var capacityParameter = new ProvisioningParameter("capacity", typeof(int))
+                    {
+                        Value = new BicepValue<int>(1)
+                    };
+                    infrastructure.Add(capacityParameter);
+
+                    var service = new WebPubSubService(infrastructure.AspireResource.GetBicepIdentifier())
+                    {
+                        Sku = new BillingInfoSku()
+                        {
+                            Name = skuParameter,
+                            Capacity = capacityParameter
+                        },
+                        Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                    };
+                    return service;
+                }
+            );
+
+            infrastructure.Add(new ProvisioningOutput("endpoint", typeof(string)) { Value = BicepFunction.Interpolate($"https://{service.HostName}") });
+
+            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            infrastructure.Add(principalTypeParameter);
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalIdParameter);
+
+            infrastructure.Add(service.CreateRoleAssignment(WebPubSubBuiltInRole.WebPubSubServiceOwner, principalTypeParameter, principalIdParameter));
+
+            var resource = (AzureWebPubSubResource)infrastructure.AspireResource;
+            foreach (var setting in resource.Hubs)
+            {
+                var hubName = setting.Key;
+
+                var hubBuilder = setting.Value;
+                var hubResource = hubBuilder;
+                var hub = new WebPubSubHub(Infrastructure.NormalizeBicepIdentifier(hubResource.Name))
+                {
+                    Name = setting.Key,
+                    Parent = service,
+                    Properties = new WebPubSubHubProperties()
+                };
+
+                var hubProperties = hub.Properties;
+
+                // invoke the configure from AddEventHandler
+                for (var i = 0; i < hubResource.EventHandlers.Count; i++)
+                {
+                    var (url, userEvents, systemEvents, auth) = hubResource.EventHandlers[i];
+                    var urlExpression = url;
+
+                    BicepValue<string> urlParameter;
+                    if (urlExpression.ManifestExpressions.Count == 0)
+                    {
+                        // when urlExpression is literal string, simply add
+                        urlParameter = urlExpression.Format;
+                    }
+                    else
+                    {
+                        // otherwise add parameter to the construct
+                        var parameter = new ProvisioningParameter($"{hubName}_url_{i}", typeof(string));
+                        infrastructure.Add(parameter);
+                        resource.Parameters[parameter.BicepIdentifier] = urlExpression;
+                        urlParameter = parameter;
+                    }
+
+                    var eventHandler = GetWebPubSubEventHandler(urlParameter, userEvents, systemEvents, auth);
+
+                    hubProperties.EventHandlers.Add(eventHandler);
+                }
+
+                // add to construct
+                infrastructure.Add(hub);
+            }
+        };
+
+        var resource = new AzureWebPubSubResource(name, configureInfrastructure);
+        return builder.AddResource(resource)
+                      .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
     /// <summary>
-    /// Adds an Azure Web PubSub resource to the application model.
+    /// Add hub settings
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
-    /// <param name="name">The name of the resource.</param>
-    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.WebPubSub.WebPubSubService"/> resource.</param>
+    /// <param name="hubName">The hub name. Hub name is case-insensitive.</param>
     /// <returns></returns>
-    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureWebPubSubResource> AddAzureWebPubSub(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<IResourceBuilder<AzureWebPubSubResource>, ResourceModuleConstruct, WebPubSubService>? configureResource)
+    public static IResourceBuilder<AzureWebPubSubHubResource> AddHub(this IResourceBuilder<AzureWebPubSubResource> builder, [ResourceName] string hubName)
     {
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        AzureWebPubSubHubResource? hubResource;
+        if (!builder.Resource.Hubs.TryGetValue(hubName, out hubResource))
         {
-            // Supported values are Free_F1 Standard_S1 Premium_P1
-            var skuParameter = new BicepParameter("sku", typeof(string))
-            {
-                Value = new StringLiteral("Free_F1")
-            };
-            construct.Add(skuParameter);
+            hubResource = new AzureWebPubSubHubResource(hubName, builder.Resource);
+            builder.Resource.Hubs[hubName] = hubResource;
+        }
+        var hubBuilder = builder.ApplicationBuilder.CreateResourceBuilder(hubResource);
+        return hubBuilder;
+    }
 
-            // Supported values are 1 2 5 10 20 50 100
-            var capacityParameter = new BicepParameter("capacity", typeof(int))
-            {
-                Value = new BicepValue<int>(1)
-            };
-            construct.Add(capacityParameter);
+    /// <summary>
+    /// Add event handler setting with expression
+    /// </summary>
+    /// <param name="builder">The builder for a Web PubSub hub.</param>
+    /// <param name="urlTemplateExpression">The expression to evaluate the URL template configured for the event handler.</param>
+    /// <param name="userEventPattern">The user event pattern for the event handler.</param>
+    /// <param name="systemEvents">The system events for the event handler.</param>
+    /// <param name="authSettings">The auth settings configured for the event handler.</param>
+    /// <returns></returns>
+#pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
+    public static IResourceBuilder<AzureWebPubSubHubResource> AddEventHandler(this IResourceBuilder<AzureWebPubSubHubResource> builder,
+#pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
+        ReferenceExpression.ExpressionInterpolatedStringHandler urlTemplateExpression, string userEventPattern = "*", string[]? systemEvents = null, UpstreamAuthSettings? authSettings = null)
+    {
+        var urlExpression = ReferenceExpression.Create(urlTemplateExpression);
 
-            var service = new WebPubSubService(name, "2021-10-01") // TODO: resource version should come from CDK
-            {
-                Sku = new BillingInfoSku()
-                {
-                    Name = skuParameter,
-                    Capacity = capacityParameter
-                },
-                Tags = { { "aspire-resource-name", construct.Resource.Name } }
-            };
-            construct.Add(service);
+        return builder.AddEventHandler(urlExpression, userEventPattern, systemEvents, authSettings);
+    }
 
-            construct.Add(new BicepOutput("endpoint", typeof(string)) { Value = BicepFunction.Interpolate($"https://{service.HostName}") });
+    /// <summary>
+    /// Add event handler setting with expression
+    /// </summary>
+    /// <param name="builder">The builder for a Web PubSub hub.</param>
+    /// <param name="urlExpression">The expression to evaluate the URL template configured for the event handler.</param>
+    /// <param name="userEventPattern">The user event pattern for the event handler.</param>
+    /// <param name="systemEvents">The system events for the event handler.</param>
+    /// <param name="authSettings">The auth settings configured for the event handler.</param>
+    /// <returns></returns>
+#pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
+    public static IResourceBuilder<AzureWebPubSubHubResource> AddEventHandler(this IResourceBuilder<AzureWebPubSubHubResource> builder,
+#pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
+        ReferenceExpression urlExpression, string userEventPattern = "*", string[]? systemEvents = null, UpstreamAuthSettings? authSettings = null)
+    {
+        builder.Resource.EventHandlers.Add((urlExpression, userEventPattern, systemEvents, authSettings));
+        return builder;
+    }
 
-            construct.Add(service.AssignRole(WebPubSubBuiltInRole.WebPubSubServiceOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
-
-            var resource = (AzureWebPubSubResource)construct.Resource;
-            var resourceBuilder = builder.CreateResourceBuilder(resource);
-            configureResource?.Invoke(resourceBuilder, construct, service);
+    private static WebPubSubEventHandler GetWebPubSubEventHandler(BicepValue<string> urlValue, string userEventPattern, string[]? systemEvents, UpstreamAuthSettings? authSettings)
+    {
+        var handler = new WebPubSubEventHandler
+        {
+            UrlTemplate = urlValue,
+            UserEventPattern = userEventPattern,
         };
 
-        var resource = new AzureWebPubSubResource(name, configureConstruct);
+        if (systemEvents != null)
+        {
+            handler.SystemEvents = [.. systemEvents];
+        }
 
-        return builder.AddResource(resource)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        if (authSettings != null)
+        {
+            handler.Auth = authSettings;
+        }
+        return handler;
     }
 }

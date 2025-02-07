@@ -1,13 +1,11 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param keyVaultName string
+param principalType string
 
-resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
-  name: keyVaultName
-}
+param principalId string
 
-resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-05-15-preview' = {
+resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
   name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
   location: location
   properties: {
@@ -21,6 +19,7 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-05-15-preview' = {
       defaultConsistencyLevel: 'Session'
     }
     databaseAccountOfferType: 'Standard'
+    disableLocalAuth: true
   }
   kind: 'GlobalDocumentDB'
   tags: {
@@ -28,7 +27,7 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-05-15-preview' = {
   }
 }
 
-resource db3 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15-preview' = {
+resource db3 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
   name: 'db3'
   location: location
   properties: {
@@ -39,10 +38,19 @@ resource db3 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15-prev
   parent: cosmos
 }
 
-resource connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
-  name: 'connectionString'
-  properties: {
-    value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
-  }
-  parent: keyVault
+resource cosmos_roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-08-15' existing = {
+  name: '00000000-0000-0000-0000-000000000002'
+  parent: cosmos
 }
+
+resource cosmos_roleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-08-15' = {
+  name: guid(principalId, cosmos_roleDefinition.id, cosmos.id)
+  properties: {
+    principalId: principalId
+    roleDefinitionId: cosmos_roleDefinition.id
+    scope: cosmos.id
+  }
+  parent: cosmos
+}
+
+output connectionString string = cosmos.properties.documentEndpoint

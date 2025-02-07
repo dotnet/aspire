@@ -5,8 +5,8 @@
       "type": "azure.bicep.v0",
       "path": "storage.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "principalId": ""
       }
     },
     "clustering": {

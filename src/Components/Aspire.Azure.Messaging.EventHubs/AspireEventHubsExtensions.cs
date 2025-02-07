@@ -55,12 +55,8 @@ public static class AspireEventHubsExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        string configurationSectionName = EventProcessorClientComponent
-            .GetKeyedConfigurationSectionName(name, DefaultConfigSectionName +
-                                                    nameof(EventProcessorClient));
-
         new EventProcessorClientComponent()
-            .AddClient(builder, configurationSectionName, configureSettings,
+            .AddClient(builder, DefaultConfigSectionName + nameof(EventProcessorClient), configureSettings,
                 configureClientBuilder, connectionName: name, serviceKey: name);
     }
 
@@ -101,12 +97,8 @@ public static class AspireEventHubsExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        string configurationSectionName = PartitionReceiverClientComponent
-            .GetKeyedConfigurationSectionName(name, DefaultConfigSectionName +
-                                                    nameof(PartitionReceiver));
-
         new PartitionReceiverClientComponent()
-            .AddClient(builder, configurationSectionName, configureSettings,
+            .AddClient(builder, DefaultConfigSectionName + nameof(PartitionReceiver), configureSettings,
                 configureClientBuilder, connectionName: name, serviceKey: name);
     }
 
@@ -147,12 +139,8 @@ public static class AspireEventHubsExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        string configurationSectionName = EventHubProducerClientComponent
-            .GetKeyedConfigurationSectionName(name, DefaultConfigSectionName +
-                                                    nameof(EventHubProducerClient));
-
         new EventHubProducerClientComponent()
-            .AddClient(builder, configurationSectionName, configureSettings,
+            .AddClient(builder, DefaultConfigSectionName + nameof(EventHubProducerClient), configureSettings,
                 configureClientBuilder, connectionName: name, serviceKey: name);
     }
 
@@ -195,11 +183,8 @@ public static class AspireEventHubsExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        string configurationSectionName = EventHubBufferedProducerClientComponent
-            .GetKeyedConfigurationSectionName(name, DefaultConfigSectionName + nameof(EventHubBufferedProducerClient));
-
         new EventHubBufferedProducerClientComponent()
-            .AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder,
+            .AddClient(builder, DefaultConfigSectionName + nameof(EventHubBufferedProducerClient), configureSettings, configureClientBuilder,
                 connectionName: name, serviceKey: name);
     }
 
@@ -241,12 +226,8 @@ public static class AspireEventHubsExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        string configurationSectionName = EventHubConsumerClientComponent
-            .GetKeyedConfigurationSectionName(name, DefaultConfigSectionName +
-                                                    nameof(EventHubConsumerClient));
-
         new EventHubConsumerClientComponent()
-            .AddClient(builder, configurationSectionName, configureSettings,
+            .AddClient(builder, DefaultConfigSectionName + nameof(EventHubConsumerClient), configureSettings,
                 configureClientBuilder, connectionName: name, serviceKey: name);
     }
 }

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <!-- This list of runtimes needs to match the set of runtimes specified in eng/workloads/workloads.csproj -->
@@ -17,6 +17,8 @@
     Given we want to be able to support people running on environments where they only have the 9.0 SDK/runtime installed,
     we allow roll-forward to the next major in order to support these customers.-->
     <RollForward>Major</RollForward>
+
+    <DefineConstants>$(DefineConstants);ASPIRE_DASHBOARD</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -33,12 +35,15 @@
     <Protobuf Include="Otlp\**\*.proto">
       <ProtoRoot>Otlp</ProtoRoot>
     </Protobuf>
-    
+
     <Protobuf Include="..\Aspire.Hosting\Dashboard\proto\resource_service.proto">
       <Access>Internal</Access>
       <Link>ResourceService\resource_service.proto</Link>
     </Protobuf>
   </ItemGroup>
+
+  <!-- Used by publishing infrastructure to get the version to use for blob publishing -->
+  <Target Name="ReturnPackageVersion" Returns="$(PackageVersion)" />
 
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />
@@ -60,6 +65,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Resources\Columns.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Columns.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\Commands.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Commands.resx</DependentUpon>
+    </Compile>
     <Compile Update="Resources\ControlsStrings.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -79,11 +94,6 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Layout.resx</DependentUpon>
-    </Compile>
-    <Compile Update="Resources\Columns.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Columns.resx</DependentUpon>
     </Compile>
     <Compile Update="Resources\Metrics.Designer.cs">
       <DesignTime>True</DesignTime>
@@ -219,6 +229,13 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>StructuredFiltering.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <EmbeddedResource Update="Resources\Commands.resx">
+      <XlfSourceFormat>Resx</XlfSourceFormat>
+      <XlfOutputItem>EmbeddedResource</XlfOutputItem>
+      <SubType>Designer</SubType>
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Commands.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
@@ -230,6 +247,7 @@
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
     <Compile Include="$(SharedDir)TaskHelpers.cs" Link="Utils\TaskHelpers.cs" />
     <Compile Include="$(SharedDir)Model\KnownProperties.cs" Link="Utils\KnownProperties.cs" />
+    <Compile Include="$(SharedDir)Model\KnownResourceCommands.cs" Link="Utils\KnownResourceCommands.cs" />
     <Compile Include="$(SharedDir)Model\KnownResourceTypes.cs" Link="Utils\KnownResourceTypes.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="Otlp\Storage\CircularBuffer.cs" />
     <Compile Include="$(SharedDir)DashboardConfigNames.cs" Link="Utils\DashboardConfigNames.cs" />

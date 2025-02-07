@@ -143,4 +143,19 @@ internal sealed class TestKubernetesService : IKubernetesService
     {
         return Task.FromResult(obj);
     }
+
+    public Task StopServerAsync(string resourceCleanup = "Full", CancellationToken cancellation = default)
+    {
+        cancellation.ThrowIfCancellationRequested();
+
+        lock (CreatedResources)
+        {
+            foreach (var c in _watchChannels)
+            {
+                _ = c.Writer.TryComplete();
+            }
+        }
+
+        return Task.CompletedTask;
+    }
 }

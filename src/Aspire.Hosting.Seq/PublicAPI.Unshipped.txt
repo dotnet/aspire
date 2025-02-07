@@ -1,2 +1,0 @@
-#nullable enable
-static Aspire.Hosting.SeqBuilderExtensions.AddSeq(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, int? port = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SeqResource!>!

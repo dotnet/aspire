@@ -14,10 +14,14 @@
 
   <ItemGroup>
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
-    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
+    <Compile Include="$(ComponentsDir)Aspire.Qdrant.Client\QdrantHealthCheck.cs" Link="QdrantHealthCheck.cs"></Compile>
   </ItemGroup>
   
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Qdrant.Client" />
   </ItemGroup>
 </Project>

@@ -27,7 +27,7 @@ message ApplicationInformationResponse {
 // using data from this message.
 message ResourceCommand {
     // Unique identifier for the command. Not intended for display.
-    string command_type = 1;
+    string name = 1;
     // The display name of the command, to be shown in the UI. May be localized.
     string display_name = 2;
     // When present, this message must be shown to the user and their confirmation obtained
@@ -64,7 +64,7 @@ enum IconVariant {
 message ResourceCommandRequest {
     // Unique identifier for the command.
     // Copied from the ResourceCommand that this request object is initialized from.
-    string command_type = 1;
+    string command_name = 1;
     // The name of the resource to apply the command to. Matches Resource.name.
     // Copied from the ResourceCommand that this request object is initialized from.
     string resource_name = 2;
@@ -145,6 +145,30 @@ message Volume {
     bool is_read_only = 4;
 }
 
+message HealthReport {
+    // The health status of the resource. Not provided if we have not yet received an initial report from the check.
+    optional HealthStatus status = 1;
+    // Identifies the health check that produced this report.
+    string key = 2;
+    // The reason for the health status.
+    string description = 3;
+    // Any exception details.
+    string exception = 4;
+}
+
+enum HealthStatus {
+    HEALTHY = 0;
+    UNHEALTHY = 1;
+    DEGRADED = 2;
+}
+
+message ResourceRelationship {
+    // The name of the resource.
+    string resource_name = 1;
+    // The type of relationship.
+    string type = 2;
+}
+
 message ResourceProperty {
     // Name of the data item, e.g. "container.id", "executable.pid", "project.path", ...
     string name = 1;
@@ -161,7 +185,7 @@ message ResourceProperty {
 
 // Models the full state of an resource (container, executable, project, etc) at a particular point in time.
 message Resource {
-    reserved 8, 9, 10;
+    reserved 8, 9, 10, 16;
     string name = 1;
     string resource_type = 2;
     string display_name = 3;
@@ -180,7 +204,7 @@ message Resource {
     // - Projects: process_id, project_path
     repeated ResourceProperty properties = 12;
 
-    // The list of urls that this resource exposes
+    // The list of urls that this resource exposes.
     repeated Url urls = 13;
 
     // The style of the state. This is used to determine the state icon.
@@ -191,20 +215,16 @@ message Resource {
     // The set of volumes mounted to the resource. Only applies to containers.
     repeated Volume volumes = 15;
 
-    // The aggregate health state of the resource
-    optional HealthStateKind HealthState = 16;
+    // Reports from health checks, about this resource.
+    repeated HealthReport health_reports = 17;
 
     // The resource start time.
-    optional google.protobuf.Timestamp started_at = 17;
+    optional google.protobuf.Timestamp started_at = 18;
     // The resource stop time.
-    optional google.protobuf.Timestamp stopped_at = 18;
-}
+    optional google.protobuf.Timestamp stopped_at = 19;
 
-enum HealthStateKind {
-    UNKNOWN = 0;
-    HEALTHY = 1;
-    UNHEALTHY = 2;
-    DEGRADED = 3;
+    // The list of relationships for this resource.
+    repeated ResourceRelationship relationships = 20;
 }
 
 ////////////////////////////////////////////

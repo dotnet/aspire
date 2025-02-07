@@ -16,8 +16,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     [Fact]
     public async Task WithDockerfileTest()
     {
-        var appHostPath = Directory.GetFiles(AppContext.BaseDirectory, "WithDockerfile.AppHost.dll").Single();
-        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
+        var appHost = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.WithDockerfile_AppHost), _testOutput);
         await using var app = await appHost.BuildAsync();
 
         await app.StartAsync();
@@ -31,10 +30,10 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/6867")]
     public async Task KafkaTest()
     {
-        var appHostPath = Directory.GetFiles(AppContext.BaseDirectory, "KafkaBasic.AppHost.dll").Single();
-        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
+        var appHost = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.KafkaBasic_AppHost), _testOutput);
         await using var app = await appHost.BuildAsync();
 
         await app.StartAsync();
@@ -58,36 +57,36 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     [Fact]
     [RequiresDocker]
     [RequiresTools(["func"])]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/7437")]
     public async Task AzureFunctionsTest()
     {
-        var appHostPath = Directory.GetFiles(AppContext.BaseDirectory, "AzureFunctionsEndToEnd.AppHost.dll").Single();
-        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
+        var appHost = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.AzureFunctionsEndToEnd_AppHost), _testOutput);
         await using var app = await appHost.BuildAsync();
 
         await app.StartAsync();
         await app.WaitForResources().WaitAsync(TimeSpan.FromMinutes(2));
 
-        // Wait for the blobTrigger to be discovered as an indication that the host and worker
-        // has been successfully launched
+        // Wait for the 'Job host started' message as an indication
+        // that the Functions host has initialized correctly
         await WaitForAllTextAsync(app,
             [
-                "MyAzureBlobTrigger: blobTrigger"
+                "Worker process started and initialized."
             ],
             resourceName: "funcapp",
             timeoutSecs: 160);
 
         // Assert that HTTP triggers work correctly
-        await app.CreateHttpClient("funcapp").GetAsync("/api/weatherforecast");
+        await AppHostTests.CreateHttpClientWithResilience(app, "funcapp").GetAsync("/api/injected-resources");
         await WaitForAllTextAsync(app,
             [
-                "Executing HTTP request:",
-                "api/weatherforecast"
+                "Executed 'Functions.injected-resources'"
             ],
             resourceName: "funcapp",
             timeoutSecs: 160);
 
+        using var apiServiceClient = AppHostTests.CreateHttpClientWithResilience(app, "apiservice");
         // Assert that Azure Storage Queue triggers work correctly
-        await app.CreateHttpClient("apiservice").GetAsync("/publish/asq");
+        await apiServiceClient.GetAsync("/publish/asq");
         await WaitForAllTextAsync(app,
             [
                 "Executed 'Functions.MyAzureQueueTrigger'"
@@ -96,7 +95,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             timeoutSecs: 160);
 
         // Assert that Azure Storage Blob triggers work correctly
-        await app.CreateHttpClient("apiservice").GetAsync("/publish/blob");
+        await apiServiceClient.GetAsync("/publish/blob");
         await WaitForAllTextAsync(app,
             [
                 "Executed 'Functions.MyAzureBlobTrigger'"
@@ -104,9 +103,8 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             resourceName: "funcapp",
             timeoutSecs: 160);
 
-#if !SKIP_EVENTHUBS_EMULATION
         // Assert that EventHubs triggers work correctly
-        await app.CreateHttpClient("apiservice").GetAsync("/publish/eventhubs");
+        await apiServiceClient.GetAsync("/publish/eventhubs");
         await WaitForAllTextAsync(app,
             [
                 "Executed 'Functions.MyEventHubTrigger'"
@@ -114,8 +112,9 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             resourceName: "funcapp",
             timeoutSecs: 160);
 
+#if !SKIP_UNSTABLE_EMULATORS // https://github.com/dotnet/aspire/issues/7066
         // Assert that ServiceBus triggers work correctly
-        await app.CreateHttpClient("apiservice").GetAsync("/publish/asb");
+        await apiServiceClient.GetAsync("/publish/asb");
         await WaitForAllTextAsync(app,
             [
                 "Executed 'Functions.MyServiceBusTrigger'"

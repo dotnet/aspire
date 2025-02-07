@@ -3,14 +3,12 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <!-- This library can't ship stable until Azure.AI.OpenAI ships stable. -->
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <PackageTags>$(ComponentAzurePackageTags) ai openai</PackageTags>
     <Description>A client for Azure OpenAI that integrates with Aspire, including logging and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzureOpenAI_256x.png</PackageIconFullPath>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
-    <!-- Disable package validation as this package hasn't shipped stable yet. -->
-    <EnablePackageValidation>false</EnablePackageValidation>
+    <!-- In preview until the public API is validated and the Microsoft.Extensions.AI integration is designed.. -->
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -31,5 +29,11 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.OpenAI\Aspire.OpenAI.csproj" />
+  </ItemGroup>
+
+  <Import Project="..\Aspire.OpenAI\MEAIPackageOverrides.targets" />
 
 </Project>

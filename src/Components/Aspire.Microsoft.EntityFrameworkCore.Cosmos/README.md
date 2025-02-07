@@ -112,7 +112,7 @@ dotnet add package Aspire.Hosting.Azure.CosmosDB
 Then, in the _Program.cs_ file of `AppHost`, add a Cosmos DB connection and consume the connection using the following methods:
 
 ```csharp
-var cosmosdb = builder.AddAzureCosmosDB("cdb").AddDatabase("cosmosdb");
+var cosmosdb = builder.AddAzureCosmosDB("cdb").AddCosmosDatabase("cosmosdb");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(cosmosdb);

@@ -80,9 +80,8 @@ public class AddSqlServerTests
     public async Task SqlServerCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:pass"] = "p@ssw0rd1";
 
-        var pass = appBuilder.AddParameter("pass");
+        var pass = appBuilder.AddParameter("pass", "p@ssw0rd1");
         appBuilder
             .AddSqlServer("sqlserver", pass)
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 1433));
@@ -102,9 +101,8 @@ public class AddSqlServerTests
     public async Task SqlServerDatabaseCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:pass"] = "p@ssw0rd1";
 
-        var pass = appBuilder.AddParameter("pass");
+        var pass = appBuilder.AddParameter("pass", "p@ssw0rd1");
         appBuilder
             .AddSqlServer("sqlserver", pass)
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 1433))

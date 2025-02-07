@@ -1,44 +1,39 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Otlp.Model;
 
 namespace Aspire.Dashboard.Components;
 
 public partial class LogMessageColumnDisplay
 {
-    private bool _hasErrorInfo;
-    private string? _errorInfo;
+    private string? _exceptionText;
 
     protected override void OnInitialized()
     {
-       _hasErrorInfo = TryGetErrorInformation(out _errorInfo);
+        _exceptionText = GetExceptionText();
     }
 
-    private bool TryGetErrorInformation([NotNullWhen(true)] out string? errorInfo)
+    private string? GetExceptionText()
     {
         // exception.stacktrace includes the exception message and type.
         // https://opentelemetry.io/docs/specs/semconv/attributes-registry/exception/
         if (GetProperty("exception.stacktrace") is { Length: > 0 } stackTrace)
         {
-            errorInfo = stackTrace;
-            return true;
+            return stackTrace;
         }
+
         if (GetProperty("exception.message") is { Length: > 0 } message)
         {
             if (GetProperty("exception.type") is { Length: > 0 } type)
             {
-                errorInfo = $"{type}: {message}";
-                return true;
+                return $"{type}: {message}";
             }
 
-            errorInfo = message;
-            return true;
+            return message;
         }
 
-        errorInfo = null;
-        return false;
+        return null;
 
         string? GetProperty(string propertyName)
         {

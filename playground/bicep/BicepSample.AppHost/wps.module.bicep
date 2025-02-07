@@ -5,11 +5,11 @@ param sku string = 'Free_F1'
 
 param capacity int = 1
 
-param principalId string
-
 param principalType string
 
-resource wps 'Microsoft.SignalRService/webPubSub@2021-10-01' = {
+param principalId string
+
+resource wps 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
   name: take('wps-${uniqueString(resourceGroup().id)}', 63)
   location: location
   sku: {

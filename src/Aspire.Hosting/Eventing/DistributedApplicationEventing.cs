@@ -2,36 +2,78 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Eventing;
 
 /// <inheritdoc cref="IDistributedApplicationEventing" />
-[Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
 public class DistributedApplicationEventing : IDistributedApplicationEventing
 {
     private readonly ConcurrentDictionary<Type, List<DistributedApplicationEventSubscription>> _eventSubscriptionListLookup = new();
     private readonly ConcurrentDictionary<DistributedApplicationEventSubscription, Type> _subscriptionEventTypeLookup = new();
 
     /// <inheritdoc cref="IDistributedApplicationEventing.PublishAsync{T}(T, CancellationToken)" />
-    [Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public async Task PublishAsync<T>(T @event, CancellationToken cancellationToken = default) where T : IDistributedApplicationEvent
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Cancellation token")]
+    public Task PublishAsync<T>(T @event, CancellationToken cancellationToken = default) where T : IDistributedApplicationEvent
+    {
+        return PublishAsync(@event, EventDispatchBehavior.BlockingSequential, cancellationToken);
+    }
+
+    /// <inheritdoc cref="IDistributedApplicationEventing.PublishAsync{T}(T, CancellationToken)" />
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Cancellation token")]
+    public async Task PublishAsync<T>(T @event, EventDispatchBehavior dispatchBehavior, CancellationToken cancellationToken = default) where T : IDistributedApplicationEvent
     {
         if (_eventSubscriptionListLookup.TryGetValue(typeof(T), out var subscriptions))
         {
-            // Taking a snapshot of the subscription list to avoid any concurrency issues
-            // whilst we iterate over the subscriptions. Subscribers could result in the
-            // subscriptions being removed from the list.
-            foreach (var subscription in subscriptions.ToArray())
+            if (dispatchBehavior == EventDispatchBehavior.BlockingConcurrent || dispatchBehavior == EventDispatchBehavior.NonBlockingConcurrent)
             {
-                await subscription.Callback(@event, cancellationToken).ConfigureAwait(false);
+                var pendingSubscriptionCallbacks = new List<Task>(subscriptions.Count);
+                foreach (var subscription in subscriptions.ToArray())
+                {
+                    var pendingSubscriptionCallback = subscription.Callback(@event, cancellationToken);
+                    pendingSubscriptionCallbacks.Add(pendingSubscriptionCallback);
+                }
+
+                if (dispatchBehavior == EventDispatchBehavior.NonBlockingConcurrent)
+                {
+                    // Non-blocking concurrent.
+                    _ = Task.Run(async () =>
+                    {
+                        await Task.WhenAll(pendingSubscriptionCallbacks).ConfigureAwait(false);
+                    }, default);
+                }
+                else
+                {
+                    // Blocking concurrent.
+                    await Task.WhenAll(pendingSubscriptionCallbacks).ConfigureAwait(false);
+                }
+            }
+            else
+            {
+                if (dispatchBehavior == EventDispatchBehavior.NonBlockingSequential)
+                {
+                    // Non-blocking sequential.
+                    _ = Task.Run(async () =>
+                    {
+                        foreach (var subscription in subscriptions.ToArray())
+                        {
+                            await subscription.Callback(@event, cancellationToken).ConfigureAwait(false);
+                        }
+                    }, default);
+                }
+                else
+                {
+                    // Blocking sequential.
+                    foreach (var subscription in subscriptions.ToArray())
+                    {
+                        await subscription.Callback(@event, cancellationToken).ConfigureAwait(false);
+                    }
+                }
             }
         }
     }
 
     /// <inheritdoc cref="IDistributedApplicationEventing.Subscribe{T}(Func{T, CancellationToken, Task})" />
-    [Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public DistributedApplicationEventSubscription Subscribe<T>(Func<T, CancellationToken, Task> callback) where T : IDistributedApplicationEvent
     {
         var subscription = new DistributedApplicationEventSubscription(async (@event, ct) =>
@@ -61,7 +103,6 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
     }
 
     /// <inheritdoc cref="IDistributedApplicationEventing.Subscribe{T}(Func{T, CancellationToken, Task})" />
-    [Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public DistributedApplicationEventSubscription Subscribe<T>(IResource resource, Func<T, CancellationToken, Task> callback) where T : IDistributedApplicationResourceEvent
     {
         var resourceFilteredCallback = async (T @event, CancellationToken cancellationToken) =>
@@ -76,7 +117,6 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
     }
 
     /// <inheritdoc cref="IDistributedApplicationEventing.Unsubscribe(DistributedApplicationEventSubscription)" />
-    [Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public void Unsubscribe(DistributedApplicationEventSubscription subscription)
     {
         if (_subscriptionEventTypeLookup.TryGetValue(subscription, out var eventType))

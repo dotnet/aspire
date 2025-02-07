@@ -6,6 +6,7 @@ using Aspire.Dashboard.Authentication.OtlpApiKey;
 using Aspire.Dashboard.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
@@ -18,10 +19,10 @@ public class OtlpApiKeyAuthenticationHandlerTests
     public async Task AuthenticateAsync_NoHeader_Failure()
     {
         // Arrange
-        var handler = await CreateAuthHandlerAsync(primaryApiKey: "abc", secondaryApiKey: null, otlpApiKeyHeader: null);
+        var handler = await CreateAuthHandlerAsync(primaryApiKey: "abc", secondaryApiKey: null, otlpApiKeyHeader: null).DefaultTimeout();
 
         // Act
-        var result = await handler.AuthenticateAsync();
+        var result = await handler.AuthenticateAsync().DefaultTimeout();
 
         // Assert
         Assert.NotNull(result.Failure);
@@ -32,10 +33,10 @@ public class OtlpApiKeyAuthenticationHandlerTests
     public async Task AuthenticateAsync_BigApiKeys_NoMatch_Failure()
     {
         // Arrange
-        var handler = await CreateAuthHandlerAsync(primaryApiKey: new string('!', 1000), secondaryApiKey: null, otlpApiKeyHeader: new string('!', 999));
+        var handler = await CreateAuthHandlerAsync(primaryApiKey: new string('!', 1000), secondaryApiKey: null, otlpApiKeyHeader: new string('!', 999)).DefaultTimeout();
 
         // Act
-        var result = await handler.AuthenticateAsync();
+        var result = await handler.AuthenticateAsync().DefaultTimeout();
 
         // Assert
         Assert.NotNull(result.Failure);
@@ -46,10 +47,10 @@ public class OtlpApiKeyAuthenticationHandlerTests
     public async Task AuthenticateAsync_BigApiKeys_Match_Success()
     {
         // Arrange
-        var handler = await CreateAuthHandlerAsync(primaryApiKey: new string('!', 1000), secondaryApiKey: null, otlpApiKeyHeader: new string('!', 1000));
+        var handler = await CreateAuthHandlerAsync(primaryApiKey: new string('!', 1000), secondaryApiKey: null, otlpApiKeyHeader: new string('!', 1000)).DefaultTimeout();
 
         // Act
-        var result = await handler.AuthenticateAsync();
+        var result = await handler.AuthenticateAsync().DefaultTimeout();
 
         // Assert
         Assert.Null(result.Failure);
@@ -63,10 +64,10 @@ public class OtlpApiKeyAuthenticationHandlerTests
     public async Task AuthenticateAsync_MatchHeader_Success(string primaryApiKey, string? secondaryApiKey, string otlpApiKeyHeader, bool success)
     {
         // Arrange
-        var handler = await CreateAuthHandlerAsync(primaryApiKey, secondaryApiKey, otlpApiKeyHeader);
+        var handler = await CreateAuthHandlerAsync(primaryApiKey, secondaryApiKey, otlpApiKeyHeader).DefaultTimeout();
 
         // Act
-        var result = await handler.AuthenticateAsync();
+        var result = await handler.AuthenticateAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(success, result.Failure == null);

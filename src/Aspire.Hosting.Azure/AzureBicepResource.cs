@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Utils;
 using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.Azure;
@@ -45,6 +46,16 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     /// The task completion source for the provisioning operation.
     /// </summary>
     public TaskCompletionSource? ProvisioningTaskCompletionSource { get; set; }
+
+    /// <summary>
+    /// The scope of the resource that will be configured in the main Bicep file.
+    /// </summary>
+    /// <remarks>
+    /// The property is used to configure the Bicep scope that is emitted
+    /// in the module definition for a given resource. It is
+    /// only emitted for schema versions azure.bicep.v1.
+    /// </remarks>
+    public AzureBicepResourceScope? Scope { get; set; }
 
     /// <summary>
     /// For testing purposes only.
@@ -133,10 +144,17 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     /// <param name="context">The <see cref="ManifestPublishingContext"/>.</param>
     public virtual void WriteToManifest(ManifestPublishingContext context)
     {
-        context.Writer.WriteString("type", "azure.bicep.v0");
-
         using var template = GetBicepTemplateFile(Path.GetDirectoryName(context.ManifestPath), deleteTemporaryFileOnDispose: false);
         var path = template.Path;
+
+        if (Scope is null)
+        {
+            context.Writer.WriteString("type", "azure.bicep.v0");
+        }
+        else
+        {
+            context.Writer.WriteString("type", "azure.bicep.v1");
+        }
 
         // Write a connection string if it exists.
         context.WriteConnectionString(this);
@@ -173,6 +191,19 @@ public class AzureBicepResource(string name, string? templateFile = null, string
             }
             context.Writer.WriteEndObject();
         }
+
+        if (Scope is not null)
+        {
+            context.Writer.WriteStartObject("scope");
+            var resourceGroup = Scope.ResourceGroup switch
+            {
+                IManifestExpressionProvider output => output.ValueExpression,
+                object obj => obj.ToString(),
+                null => ""
+            };
+            context.Writer.WriteString("resourceGroup", resourceGroup);
+            context.Writer.WriteEndObject();
+        }
     }
 
     /// <summary>
@@ -180,35 +211,46 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     /// </summary>
     public static class KnownParameters
     {
+        private const string PrincipalIdConst = "principalId";
+        private const string PrincipalNameConst = "principalName";
+        private const string PrincipalTypeConst = "principalType";
+        private const string KeyVaultNameConst = "keyVaultName";
+        private const string LocationConst = "location";
+        private const string LogAnalyticsWorkspaceIdConst = "logAnalyticsWorkspaceId";
+
         /// <summary>
         /// The principal id of the current user or managed identity.
         /// </summary>
-        public static readonly string PrincipalId = "principalId";
+        public static readonly string PrincipalId = PrincipalIdConst;
 
         /// <summary>
         /// The principal name of the current user or managed identity.
         /// </summary>
-        public static readonly string PrincipalName = "principalName";
+        public static readonly string PrincipalName = PrincipalNameConst;
 
         /// <summary>
         /// The principal type of the current user or managed identity. Either 'User' or 'ServicePrincipal'.
         /// </summary>
-        public static readonly string PrincipalType = "principalType";
+        public static readonly string PrincipalType = PrincipalTypeConst;
 
         /// <summary>
         /// The name of the key vault resource used to store secret outputs.
         /// </summary>
-        public static readonly string KeyVaultName = "keyVaultName";
+        public static readonly string KeyVaultName = KeyVaultNameConst;
 
         /// <summary>
         /// The location of the resource. This is required for all resources.
         /// </summary>
-        public static readonly string Location = "location";
+        public static readonly string Location = LocationConst;
 
         /// <summary>
         /// The resource id of the log analytics workspace.
         /// </summary>
-        public static readonly string LogAnalyticsWorkspaceId = "logAnalyticsWorkspaceId";
+        public static readonly string LogAnalyticsWorkspaceId = LogAnalyticsWorkspaceIdConst;
+
+        internal static bool IsKnownParameterName(string name) =>
+            name is PrincipalIdConst or PrincipalNameConst or PrincipalTypeConst or KeyVaultNameConst or LocationConst or LogAnalyticsWorkspaceIdConst;
+
     }
 }
 
@@ -237,14 +279,14 @@ public readonly struct BicepTemplateFile(string path, bool deleteFileOnDispose) 
 }
 
 /// <summary>
-/// A reference to a secret output from a bicep template.
+/// A reference to a KeyVault secret from a bicep template.
 /// </summary>
-/// <param name="name">The name of the secret output.</param>
+/// <param name="name">The name of the KeyVault secret.</param>
 /// <param name="resource">The <see cref="AzureBicepResource"/>.</param>
-public class BicepSecretOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
+public sealed class BicepSecretOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>
-    /// Name of the output.
+    /// Name of the KeyVault secret.
     /// </summary>
     public string Name { get; } = name;
 
@@ -295,12 +337,12 @@ public class BicepSecretOutputReference(string name, AzureBicepResource resource
 /// </summary>
 /// <param name="name">The name of the output</param>
 /// <param name="resource">The <see cref="AzureBicepResource"/>.</param>
-public class BicepOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
+public sealed class BicepOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>
     /// Name of the output.
     /// </summary>
-    public string Name { get; } = name;
+    public string Name { get; } = BicepIdentifierHelpers.ThrowIfInvalid(name);
 
     /// <summary>
     /// The instance of the bicep resource.

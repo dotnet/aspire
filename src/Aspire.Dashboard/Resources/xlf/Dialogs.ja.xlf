@@ -2,40 +2,50 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ja" original="../Dialogs.resx">
     <body>
-      <trans-unit id="ExemplarsDialogCloseButtonText">
+      <trans-unit id="DialogCloseButtonText">
         <source>Close</source>
-        <target state="new">Close</target>
+        <target state="translated">閉じる</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogDetailsColumnHeader">
         <source>Details</source>
-        <target state="new">Details</target>
+        <target state="translated">詳細</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogTimestampColumnHeader">
         <source>Timestamp</source>
-        <target state="new">Timestamp</target>
+        <target state="translated">タイムスタンプ</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogTitle">
         <source>Exemplars</source>
-        <target state="new">Exemplars</target>
+        <target state="translated">手本</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogTrace">
         <source>Trace</source>
-        <target state="new">Trace</target>
+        <target state="translated">トレース</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogTraceColumnHeader">
         <source>Trace</source>
-        <target state="new">Trace</target>
+        <target state="translated">トレース</target>
         <note />
       </trans-unit>
       <trans-unit id="ExemplarsDialogValueColumnHeader">
         <source>Value</source>
-        <target state="new">Value</target>
+        <target state="translated">値</target>
         <note />
+      </trans-unit>
+      <trans-unit id="FieldRequired">
+        <source>A value is required.</source>
+        <target state="translated">値が必要です。</target>
+        <note>{0} is the literal, untranslated field name which we do not want to show, so it is missing.</note>
+      </trans-unit>
+      <trans-unit id="FieldTooLong">
+        <source>A maximum length of {1} characters is allowed.</source>
+        <target state="translated">最大長の {1} 文字を使用できます。</target>
+        <note>{0} is the field name, whereas {1} is the length. We don't want to show the field name, so it is missing.</note>
       </trans-unit>
       <trans-unit id="FilterDialogApplyFilterButtonText">
         <source>Apply filter</source>
@@ -49,7 +59,7 @@
       </trans-unit>
       <trans-unit id="FilterDialogConditionInputLabel">
         <source>Condition</source>
-        <target state="new">Condition</target>
+        <target state="translated">条件</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
@@ -59,7 +69,7 @@
       </trans-unit>
       <trans-unit id="FilterDialogParameterInputLabel">
         <source>Parameter</source>
-        <target state="new">Parameter</target>
+        <target state="translated">パラメーター</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogRemoveFilterButtonText">
@@ -159,22 +169,37 @@
       </trans-unit>
       <trans-unit id="OpenInTextVisualizer">
         <source>Open in text visualizer</source>
-        <target state="new">Open in text visualizer</target>
+        <target state="translated">テキスト ビジュアライザーで開く</target>
         <note />
       </trans-unit>
       <trans-unit id="OpenTraceDialogCancelButtonText">
         <source>Cancel</source>
-        <target state="new">Cancel</target>
+        <target state="translated">キャンセル</target>
         <note />
       </trans-unit>
       <trans-unit id="OpenTraceDialogMessage">
         <source>Waiting for trace {0} to load...</source>
-        <target state="new">Waiting for trace {0} to load...</target>
+        <target state="translated">トレース {0} の読み込みを待機しています...</target>
         <note>{0} is a trace ID</note>
+      </trans-unit>
+      <trans-unit id="SettingsDashboardTelemetry">
+        <source>Dashboard telemetry</source>
+        <target state="new">Dashboard telemetry</target>
+        <note />
       </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>
         <target state="translated">ダーク</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogLanguage">
+        <source>Language</source>
+        <target state="translated">言語</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogLanguagePageReloads">
+        <source>The page will reload on language change.</source>
+        <target state="translated">言語の変更時にページが再読み込みされます。</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">
@@ -199,22 +224,22 @@
       </trans-unit>
       <trans-unit id="TextVisualizerDialogJsonFormat">
         <source>Format JSON</source>
-        <target state="new">Format JSON</target>
+        <target state="translated">JSON の書式設定</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerDialogPlaintextFormat">
         <source>Unformatted</source>
-        <target state="new">Unformatted</target>
+        <target state="translated">書式設定なし</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerDialogXmlFormat">
         <source>Format XML</source>
-        <target state="new">Format XML</target>
+        <target state="translated">XML の書式設定</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerSelectFormatType">
         <source>Select format</source>
-        <target state="new">Select format</target>
+        <target state="translated">形式の選択</target>
         <note />
       </trans-unit>
     </body>

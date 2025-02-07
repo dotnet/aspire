@@ -63,6 +63,14 @@ variables:
   - name: _InternalBuildArgs
     value: ''
 
+  # Use the build reason to decide whether to include helix_tests
+  - ${{ if notin(variables['Build.Reason'], 'PullRequest') }}:
+    - name: testVariants
+      value: '_pipeline_tests,_helix_tests'
+  - ${{ else }}:
+    - name: testVariants
+      value: ''
+
 resources:
   containers:
   - container: LinuxContainer
@@ -88,7 +96,6 @@ stages:
       enablePublishUsingPipelines: true
       publishAssetsImmediately: true
       enablePublishTestResults: true
-      enableSourceBuild: true
       testResultsFormat: vstest
       enableSourceIndex: false
       workspace:
@@ -96,7 +103,8 @@ stages:
 
       jobs:
 
-      - ${{ each testVariant in split(',_helix_tests', ',') }}:
+      # Windows jobs
+      - ${{ each testVariant in split( variables.testVariants, ',' ) }}:
         - job: Windows${{ testVariant }}
 
           # timeout accounts for wait times for helix agents up to 30mins
@@ -128,7 +136,8 @@ stages:
                 isWindows: true
                 runHelixTests: ${{ contains(testVariant, 'helix') }}
 
-      - ${{ each testVariant in split(',_helix_tests', ',') }}:
+      # Linux jobs
+      - ${{ each testVariant in split( variables.testVariants, ',' ) }}:
         - job: Linux${{ testVariant }}
 
           # timeout accounts for wait times for helix agents up to 30mins
@@ -158,49 +167,51 @@ stages:
                 repoLogPath: $(Build.Arcade.LogsPath)
                 repoTestResultsPath: $(Build.Arcade.TestResultsPath)
                 isWindows: false
-                runHelixTests: ${{ contains(testVariant, 'helix') }}
+                runHelixTests: ${{ contains(testVariant, '_helix') }}
+                runPipelineTests: ${{ contains(testVariant, '_pipeline') }}
 
 # ----------------------------------------------------------------
 # This stage performs quality gates checks
 # ----------------------------------------------------------------
-- stage: codecoverage
-  displayName: CodeCoverage
-  dependsOn:
-    - build
-  condition: succeeded('build')
-  variables:
-  - template: /eng/common/templates/variables/pool-providers.yml
-  jobs:
-  - template: /eng/common/templates/jobs/jobs.yml
-    parameters:
-      enableMicrobuild: true
-      enableTelemetry: true
-      runAsPublic: false
-      workspace:
-        clean: all
+- ${{ if notin(variables['Build.Reason'], 'PullRequest') }}:
+  - stage: codecoverage
+    displayName: CodeCoverage
+    dependsOn:
+      - build
+    condition: succeeded('build')
+    variables:
+    - template: /eng/common/templates/variables/pool-providers.yml
+    jobs:
+    - template: /eng/common/templates/jobs/jobs.yml
+      parameters:
+        enableMicrobuild: true
+        enableTelemetry: true
+        runAsPublic: false
+        workspace:
+          clean: all
 
-      # ----------------------------------------------------------------
-      # This stage downloads the code coverage reports from the build jobs,
-      # merges those and validates the combined test coverage.
-      # ----------------------------------------------------------------
-      jobs:
-      - job: CodeCoverageReport
-        timeoutInMinutes: 10
+        # ----------------------------------------------------------------
+        # This stage downloads the code coverage reports from the build jobs,
+        # merges those and validates the combined test coverage.
+        # ----------------------------------------------------------------
+        jobs:
+        - job: CodeCoverageReport
+          timeoutInMinutes: 10
 
-        pool:
-          name: $(DncEngPublicBuildPool)
-          demands: ImageOverride -equals build.ubuntu.2004.amd64.open
+          pool:
+            name: $(DncEngPublicBuildPool)
+            demands: ImageOverride -equals build.ubuntu.2004.amd64.open
 
-        preSteps:
-          - checkout: self
-            fetchDepth: 1
-            clean: true
+          preSteps:
+            - checkout: self
+              fetchDepth: 1
+              clean: true
 
-        steps:
-        - script: $(Build.SourcesDirectory)/build.sh --ci --restore
-          displayName: Init toolset
+          steps:
+          - script: $(Build.SourcesDirectory)/build.sh --ci --restore
+            displayName: Init toolset
 
-        - template: /eng/pipelines/templates/VerifyCoverageReport.yml
-          parameters:
-            # matches what is used in the conditions for the build/test jobs
-            testVariants: ',_helix_tests'
+          - template: /eng/pipelines/templates/VerifyCoverageReport.yml
+            parameters:
+              # matches what is used in the conditions for the build/test jobs
+              testVariants: ',_helix_tests'

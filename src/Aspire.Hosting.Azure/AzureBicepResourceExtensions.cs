@@ -112,7 +112,7 @@ public static class AzureBicepResourceExtensions
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name)
         where T : AzureBicepResource
     {
-        BicepParameterNameValidator.ThrowIfInvalid(name);
+        BicepIdentifierHelpers.ThrowIfInvalid(name);
         builder.Resource.Parameters[name] = null;
         return builder;
     }
@@ -128,7 +128,7 @@ public static class AzureBicepResourceExtensions
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, string value)
         where T : AzureBicepResource
     {
-        BicepParameterNameValidator.ThrowIfInvalid(name);
+        BicepIdentifierHelpers.ThrowIfInvalid(name);
         builder.Resource.Parameters[name] = value;
         return builder;
     }
@@ -144,7 +144,7 @@ public static class AzureBicepResourceExtensions
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, IEnumerable<string> value)
         where T : AzureBicepResource
     {
-        BicepParameterNameValidator.ThrowIfInvalid(name);
+        BicepIdentifierHelpers.ThrowIfInvalid(name);
         builder.Resource.Parameters[name] = value;
         return builder;
     }
@@ -160,7 +160,7 @@ public static class AzureBicepResourceExtensions
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, JsonNode value)
         where T : AzureBicepResource
     {
-        BicepParameterNameValidator.ThrowIfInvalid(name);
+        BicepIdentifierHelpers.ThrowIfInvalid(name);
         builder.Resource.Parameters[name] = value;
         return builder;
     }
@@ -176,7 +176,7 @@ public static class AzureBicepResourceExtensions
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, Func<object?> valueCallback)
         where T : AzureBicepResource
     {
-        BicepParameterNameValidator.ThrowIfInvalid(name);
+        BicepIdentifierHelpers.ThrowIfInvalid(name);
         builder.Resource.Parameters[name] = valueCallback;
         return builder;
     }
@@ -206,7 +206,7 @@ public static class AzureBicepResourceExtensions
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, ParameterResource value)
         where T : AzureBicepResource
     {
-        BicepParameterNameValidator.ThrowIfInvalid(name);
+        BicepIdentifierHelpers.ThrowIfInvalid(name);
         builder.Resource.Parameters[name] = value;
         return builder;
     }
@@ -222,7 +222,7 @@ public static class AzureBicepResourceExtensions
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<IResourceWithConnectionString> value)
         where T : AzureBicepResource
     {
-        BicepParameterNameValidator.ThrowIfInvalid(name);
+        BicepIdentifierHelpers.ThrowIfInvalid(name);
         builder.Resource.Parameters[name] = value.Resource;
         return builder;
     }
@@ -238,7 +238,7 @@ public static class AzureBicepResourceExtensions
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, BicepOutputReference value)
         where T : AzureBicepResource
     {
-        BicepParameterNameValidator.ThrowIfInvalid(name);
+        BicepIdentifierHelpers.ThrowIfInvalid(name);
         builder.Resource.Parameters[name] = value;
         return builder;
     }
@@ -254,7 +254,7 @@ public static class AzureBicepResourceExtensions
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, ReferenceExpression value)
         where T : AzureBicepResource
     {
-        BicepParameterNameValidator.ThrowIfInvalid(name);
+        BicepIdentifierHelpers.ThrowIfInvalid(name);
         builder.Resource.Parameters[name] = value;
         return builder;
     }
@@ -270,7 +270,7 @@ public static class AzureBicepResourceExtensions
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, EndpointReference value)
         where T : AzureBicepResource
     {
-        BicepParameterNameValidator.ThrowIfInvalid(name);
+        BicepIdentifierHelpers.ThrowIfInvalid(name);
         builder.Resource.Parameters[name] = value;
         return builder;
     }

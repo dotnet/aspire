@@ -1,6 +1,5 @@
 <Project>
   <Import Project="Sdk.props" Sdk="Microsoft.DotNet.Arcade.Sdk" />
-  <Import Project="$(RepositoryEngineeringDir)/apicompat/PublicApiAnalyzer.props" />
 
   <PropertyGroup>
     <Copyright>$(CopyrightNetFoundation)</Copyright>
@@ -44,7 +43,7 @@
     <BuildArch Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'X86' ">386</BuildArch>
     <BuildArch Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64' ">arm64</BuildArch>
     <BuildArch Condition=" '$(BuildArch)' == '' ">amd64</BuildArch>
-    <DcpDir>$(NuGetPackageRoot)microsoft.developercontrolplane.$(BuildOs)-$(BuildArch)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools/</DcpDir>
+    <DcpDir>$(NuGetPackageRoot)microsoft.developercontrolplane.$(BuildOs)-$(BuildArch)/$(MicrosoftDeveloperControlPlanedarwinamd64Version)/tools/</DcpDir>
 
     <!-- TODO: Need to figure out we can automatically detect target framework here. This property
                is specified to support dashboard path metadata generation on the inner loop. -->

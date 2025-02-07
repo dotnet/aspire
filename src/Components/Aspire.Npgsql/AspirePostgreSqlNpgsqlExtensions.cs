@@ -1,14 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Data.Common;
 using Aspire;
 using Aspire.Npgsql;
 using HealthChecks.NpgSql;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace Microsoft.Extensions.Hosting;
@@ -32,7 +30,7 @@ public static class AspirePostgreSqlNpgsqlExtensions
     /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="NpgsqlSettings.ConnectionString"/> is not provided.</exception>
     public static void AddNpgsqlDataSource(this IHostApplicationBuilder builder, string connectionName, Action<NpgsqlSettings>? configureSettings = null, Action<NpgsqlDataSourceBuilder>? configureDataSourceBuilder = null)
-        => AddNpgsqlDataSource(builder, DefaultConfigSectionName, configureSettings, connectionName, serviceKey: null, configureDataSourceBuilder: configureDataSourceBuilder);
+        => AddNpgsqlDataSource(builder, configureSettings, connectionName, serviceKey: null, configureDataSourceBuilder: configureDataSourceBuilder);
 
     /// <summary>
     /// Registers <see cref="NpgsqlDataSource"/> as a keyed service for given <paramref name="name"/> for connecting PostgreSQL database with Npgsql client.
@@ -50,16 +48,19 @@ public static class AspirePostgreSqlNpgsqlExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddNpgsqlDataSource(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, connectionName: name, serviceKey: name, configureDataSourceBuilder: configureDataSourceBuilder);
+        AddNpgsqlDataSource(builder, configureSettings, connectionName: name, serviceKey: name, configureDataSourceBuilder: configureDataSourceBuilder);
     }
 
-    private static void AddNpgsqlDataSource(IHostApplicationBuilder builder, string configurationSectionName,
+    private static void AddNpgsqlDataSource(IHostApplicationBuilder builder,
         Action<NpgsqlSettings>? configureSettings, string connectionName, object? serviceKey, Action<NpgsqlDataSourceBuilder>? configureDataSourceBuilder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         NpgsqlSettings settings = new();
-        builder.Configuration.GetSection(configurationSectionName).Bind(settings);
+        var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
+        configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -68,9 +69,9 @@ public static class AspirePostgreSqlNpgsqlExtensions
 
         configureSettings?.Invoke(settings);
 
-        builder.RegisterNpgsqlServices(settings, configurationSectionName, connectionName, serviceKey, configureDataSourceBuilder);
+        builder.RegisterNpgsqlServices(settings, connectionName, serviceKey, configureDataSourceBuilder);
 
-        // Same as SqlClient connection pooling is on by default and can be handled with connection string 
+        // Same as SqlClient connection pooling is on by default and can be handled with connection string
         // https://www.npgsql.org/doc/connection-string-parameters.html#pooling
         if (!settings.DisableHealthChecks)
         {
@@ -101,43 +102,14 @@ public static class AspirePostgreSqlNpgsqlExtensions
         }
     }
 
-    private static void RegisterNpgsqlServices(this IHostApplicationBuilder builder, NpgsqlSettings settings, string configurationSectionName, string connectionName, object? serviceKey, Action<NpgsqlDataSourceBuilder>? configureDataSourceBuilder)
+    private static void RegisterNpgsqlServices(this IHostApplicationBuilder builder, NpgsqlSettings settings, string connectionName, object? serviceKey, Action<NpgsqlDataSourceBuilder>? configureDataSourceBuilder)
     {
-        if (serviceKey is null)
+        builder.Services.AddNpgsqlDataSource(settings.ConnectionString ?? string.Empty, dataSourceBuilder =>
         {
             // delay validating the ConnectionString until the DataSource is requested. This ensures an exception doesn't happen until a Logger is established.
-            builder.Services.AddNpgsqlDataSource(settings.ConnectionString ?? string.Empty, dataSourceBuilder =>
-            {
-                ValidateConnection();
+            ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName);
 
-                configureDataSourceBuilder?.Invoke(dataSourceBuilder);
-            });
-        }
-        else
-        {
-            // Currently Npgsql does not support Keyed DI Registration, so we implement it on our own.
-            // Register a NpgsqlDataSource factory method, based on https://github.com/npgsql/npgsql/blob/c2fc02a858176f2b5eab7a2c2336ff5ab4748ad0/src/Npgsql.DependencyInjection/NpgsqlServiceCollectionExtensions.cs#L147-L150
-            builder.Services.AddKeyedSingleton<NpgsqlDataSource>(serviceKey, (serviceProvider, _) =>
-            {
-                ValidateConnection();
-
-                var dataSourceBuilder = new NpgsqlDataSourceBuilder(settings.ConnectionString);
-                dataSourceBuilder.UseLoggerFactory(serviceProvider.GetService<ILoggerFactory>());
-
-                configureDataSourceBuilder?.Invoke(dataSourceBuilder);
-
-                return dataSourceBuilder.Build();
-            });
-            // Common Services, based on https://github.com/npgsql/npgsql/blob/c2fc02a858176f2b5eab7a2c2336ff5ab4748ad0/src/Npgsql.DependencyInjection/NpgsqlServiceCollectionExtensions.cs#L165
-            // They let the users resolve NpgsqlConnection directly.
-            builder.Services.AddKeyedSingleton<DbDataSource>(serviceKey, static (serviceProvider, key) => serviceProvider.GetRequiredKeyedService<NpgsqlDataSource>(key));
-            builder.Services.AddKeyedTransient<NpgsqlConnection>(serviceKey, static (serviceProvider, key) => serviceProvider.GetRequiredKeyedService<NpgsqlDataSource>(key).CreateConnection());
-            builder.Services.AddKeyedTransient<DbConnection>(serviceKey, static (serviceProvider, key) => serviceProvider.GetRequiredKeyedService<NpgsqlConnection>(key));
-        }
-
-        void ValidateConnection()
-        {
-            ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, configurationSectionName);
-        }
+            configureDataSourceBuilder?.Invoke(dataSourceBuilder);
+        }, serviceKey: serviceKey);
     }
 }

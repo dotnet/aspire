@@ -9,6 +9,7 @@ using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -26,7 +27,6 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyWaitForOnPostgresServerBlocksDependentResources()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         // We use the following check added to the Postgres resource to block
@@ -48,97 +48,29 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        var pendingStart = app.StartAsync(cts.Token);
+        var pendingStart = app.StartAsync();
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
         // What for the postgres server to start.
-        await rns.WaitForResourceAsync(postgres.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await rns.WaitForResourceAsync(postgres.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Wait for the dependent resource to be in the Waiting state.
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Now unblock the health check.
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
         // ... and wait for the resource as a whole to move into the health state.
-        await rns.WaitForResourceHealthyAsync(postgres.Resource.Name, cts.Token);
+        await rns.WaitForResourceHealthyAsync(postgres.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // ... then the dependent resource should be able to move into a running state.
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        await pendingStart; // Startup should now complete.
-
-        // ... but we'll shut everything down immediately because we are done.
-        await app.StopAsync();
-    }
-
-    [Fact]
-    [RequiresDocker]
-    public async Task VerifyWaitForOnPostgresDatabaseBlocksDependentResources()
-    {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-
-        // We use the following check added to the Postgres resource to block
-        // dependent reosurces from starting. This means we'll have two checks
-        // associated with the postgres resource ... the built in one and the
-        // one that we add here. We'll manipulate the TCS to allow us to check
-        // states at various stages of the execution.
-        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
-        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
-        {
-            return healthCheckTcs.Task;
-        });
-
-        var postgres = builder.AddPostgres("postgres")
-                              .WithHealthCheck("blocking_check");
-
-        var db = postgres.AddDatabase("db");
-
-        var dependentResource = builder.AddPostgres("dependentresource")
-                                       .WaitFor(db); // Wait on the database instead of the server!
-
-        using var app = builder.Build();
-
-        var pendingStart = app.StartAsync(cts.Token);
-
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
-        // What for the postgres server to start.
-        await rns.WaitForResourceAsync(postgres.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        // The database should adopt the state of the parent resource.
-        await rns.WaitForResourceAsync(db.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        // Wait for the dependent resource to be in the Waiting state.
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
-
-        // Now unblock the health check.
-        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
-
-        // ... and wait for the resource as a whole to move into the health state.
-        await rns.WaitForResourceHealthyAsync(postgres.Resource.Name, cts.Token);
-
-        // Create the database.
-        var connectionString = await postgres.Resource.GetConnectionStringAsync(cts.Token);
-        using var connection = new NpgsqlConnection(connectionString);
-        await connection.OpenAsync(cts.Token);
-
-        var command = connection.CreateCommand();
-        command.CommandText = "CREATE DATABASE db;";
-        await command.ExecuteNonQueryAsync(cts.Token);
-
-        // ... then wait for the database to turn healthy.
-        await rns.WaitForResourceHealthyAsync(db.Resource.Name, cts.Token);
-
-        // ... then the dependent resource should be able to move into a running state.
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await pendingStart; // Startup should now complete.
+        await pendingStart.DefaultTimeout(TestConstants.LongTimeoutTimeSpan); // Startup should now complete.
 
         // ... but we'll shut everything down immediately because we are done.
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
     }
 
     [Fact]
@@ -212,23 +144,31 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/5785")]
     public async Task VerifyWithPgWeb()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         IResourceBuilder<PgWebContainerResource>? pgWebBuilder = null;
         var dbName = "postgres";
-        var pg = builder.AddPostgres("pg1").WithPgWeb(c => pgWebBuilder = c).AddDatabase(dbName);
+        var pg = builder.AddPostgres("pg1");
+        var db = pg.AddDatabase(dbName);
+        pg.WithPgWeb(c =>
+        {
+            c.WaitFor(pg);
+            pgWebBuilder = c;
+        });
+
         Assert.NotNull(pgWebBuilder);
 
         using var app = builder.Build();
 
+        var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
+
         await app.StartAsync();
 
-        await app.WaitForTextAsync("Starting server...", resourceName: pgWebBuilder.Resource.Name);
-
         var client = app.CreateHttpClient(pgWebBuilder.Resource.Name, "http");
+
+        await resourceNotificationService.WaitForResourceHealthyAsync(pgWebBuilder.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         var httpContent = new MultipartFormDataContent
         {
@@ -239,6 +179,9 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var response = await client.PostAsync("/api/connect", httpContent);
         var d = await response.Content.ReadAsStringAsync();
+
+        testOutputHelper.WriteLine("RESPONSE: \r\n" + d);
+
         response.EnsureSuccessStatusCode();
     }
 
@@ -265,10 +208,8 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             var username = "postgres";
             var password = "p@ssw0rd1";
 
-            var usernameParameter = builder1.AddParameter("user");
-            var passwordParameter = builder1.AddParameter("pwd");
-            builder1.Configuration["Parameters:user"] = username;
-            builder1.Configuration["Parameters:pwd"] = password;
+            var usernameParameter = builder1.AddParameter("user", username);
+            var passwordParameter = builder1.AddParameter("pwd", password, secret: true);
             var postgres1 = builder1.AddPostgres("pg", usernameParameter, passwordParameter).WithEnvironment("POSTGRES_DB", postgresDbName);
 
             var db1 = postgres1.AddDatabase(postgresDbName);
@@ -276,7 +217,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             if (useVolume)
             {
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
-                volumeName = VolumeNameGenerator.CreateVolumeName(postgres1, nameof(WithDataShouldPersistStateBetweenUsages));
+                volumeName = VolumeNameGenerator.Generate(postgres1, nameof(WithDataShouldPersistStateBetweenUsages));
 
                 // if the volume already exists (because of a crashing previous run), delete it
                 DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
@@ -290,7 +231,11 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder1.Build())
             {
+                var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
                 await app.StartAsync();
+
+                await rns.WaitForResourceHealthyAsync(db1.Resource.Name, cts.Token);
 
                 try
                 {
@@ -333,10 +278,8 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-            usernameParameter = builder2.AddParameter("user");
-            passwordParameter = builder2.AddParameter("pwd");
-            builder2.Configuration["Parameters:user"] = username;
-            builder2.Configuration["Parameters:pwd"] = password;
+            usernameParameter = builder2.AddParameter("user", username);
+            passwordParameter = builder2.AddParameter("pwd", password, secret: true);
 
             var postgres2 = builder2.AddPostgres("pg", usernameParameter, passwordParameter);
             var db2 = postgres2.AddDatabase(postgresDbName);
@@ -352,7 +295,12 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder2.Build())
             {
+                var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
                 await app.StartAsync();
+
+                await rns.WaitForResourceHealthyAsync(db2.Resource.Name, cts.Token);
+
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();

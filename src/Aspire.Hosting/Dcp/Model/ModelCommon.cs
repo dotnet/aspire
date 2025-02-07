@@ -25,6 +25,9 @@ internal abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMet
     public const string OtelServiceNameAnnotation = "otel-service-name";
     public const string OtelServiceInstanceIdAnnotation = "otel-service-instance-id";
     public const string ResourceStateAnnotation = "resource-state";
+    public const string ResourceAppArgsAnnotation = "resource-app-args";
+    public const string ResourceReplicaCount = "resource-replica-count";
+    public const string ResourceReplicaIndex = "resource-replica-index";
 
     public string? AppModelResourceName => Metadata.Annotations?.TryGetValue(ResourceNameAnnotation, out var value) is true ? value : null;
 
@@ -110,7 +113,7 @@ internal abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMet
             values = [value];
         }
 
-        var newAnnotationVal = JsonSerializer.Serialize(values);
+        var newAnnotationVal = JsonSerializer.Serialize<List<TValue>>(values);
         annotations[annotationName] = newAnnotationVal;
     }
 }
