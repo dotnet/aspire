@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text;
 using Aspire.Components.ConformanceTests;
+using Azure.Core;
 using Azure.Identity;
 using Azure.Messaging.EventHubs;
 using Azure.Storage.Blobs;
@@ -79,7 +81,8 @@ public class ConformanceTests : ConformanceTests<EventProcessorClient, AzureMess
             builder.AddKeyedAzureEventProcessorClient(key, ConfigureCredentials);
         }
 
-        var blobClient = new BlobServiceClient(new Uri(BlobsConnectionString), new DefaultAzureCredential());
+        var mockTransport = new MockTransport(CreateResponse("""{}"""));
+        var blobClient = new BlobServiceClient(new Uri(BlobsConnectionString), new DefaultAzureCredential(), new BlobClientOptions() { Transport = mockTransport });
         builder.Services.AddKeyedSingleton("blobs", blobClient);
 
         void ConfigureCredentials(AzureMessagingEventHubsProcessorSettings settings)
@@ -90,6 +93,20 @@ public class ConformanceTests : ConformanceTests<EventProcessorClient, AzureMess
             }
             settings.BlobClientServiceKey = "blobs";
             configure?.Invoke(settings);
+        }
+
+        MockResponse CreateResponse(string content)
+        {
+            var buffer = Encoding.UTF8.GetBytes(content);
+            var response = new MockResponse(201)
+            {
+                ClientRequestId = Guid.NewGuid().ToString(),
+                ContentStream = new MemoryStream(buffer),
+            };
+
+            response.AddHeader(new HttpHeader("Content-Type", "application/json; charset=utf-8"));
+
+            return response;
         }
     }
 
