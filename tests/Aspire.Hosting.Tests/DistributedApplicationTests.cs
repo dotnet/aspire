@@ -348,7 +348,7 @@ public class DistributedApplicationTests
                 Assert.Equal(["--add-host", "testlocalhost:127.0.0.1"], item.Spec.RunArgs);
             });
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -402,7 +402,7 @@ public class DistributedApplicationTests
         redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, containerPattern, r => r.Status?.State == ContainerState.Running, token);
         Assert.NotNull(redisContainer);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -436,7 +436,7 @@ public class DistributedApplicationTests
         serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Running).DefaultTimeout(TestConstants.LongTimeoutDuration);
         Assert.NotNull(serviceA);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -488,7 +488,7 @@ public class DistributedApplicationTests
         Assert.False(string.IsNullOrEmpty(nodeAppPortValue));
         Assert.NotEqual(0, int.Parse(nodeAppPortValue, CultureInfo.InvariantCulture));
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
         {
@@ -529,7 +529,7 @@ public class DistributedApplicationTests
         var keyBytes = Convert.FromHexString(GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__OTLP__PRIMARYAPIKEY")!);
         Assert.Equal(16, keyBytes.Length);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
         {
@@ -565,7 +565,7 @@ public class DistributedApplicationTests
         Assert.Equal("Unsecured", GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__FRONTEND__AUTHMODE"));
         Assert.Equal("Unsecured", GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__OTLP__AUTHMODE"));
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
         {
@@ -600,7 +600,7 @@ public class DistributedApplicationTests
         Assert.Equal("redis:latest", redisContainer.Spec.Image);
         Assert.Equal("bob", redisContainer.Spec.Command);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -631,7 +631,7 @@ public class DistributedApplicationTests
         Assert.NotEmpty(redisContainer.Spec.VolumeMounts);
         Assert.Equal(sourcePath, redisContainer.Spec.VolumeMounts[0].Source);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -662,7 +662,7 @@ public class DistributedApplicationTests
         Assert.NotEqual("etc/path-here", redisContainer.Spec.VolumeMounts[0].Source);
         Assert.True(Path.IsPathRooted(redisContainer.Spec.VolumeMounts[0].Source));
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -692,7 +692,7 @@ public class DistributedApplicationTests
         Assert.NotEmpty(redisContainer.Spec.VolumeMounts);
         Assert.Equal($"{testName}-volume", redisContainer.Spec.VolumeMounts[0].Source);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -936,7 +936,7 @@ public class DistributedApplicationTests
         Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter?.Value}", env.Value);
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
-        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(),$"{testName}-redis-{ReplicaIdRegex}"))) ;
+        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}")));
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
         var otherRedisEnv = Assert.Single(service.Spec.Env!.Where(e => e.Name == $"ConnectionStrings__{testName}-redisNoPort"));
@@ -945,7 +945,7 @@ public class DistributedApplicationTests
         var otherRedisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}")));
         Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -990,7 +990,7 @@ public class DistributedApplicationTests
         Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter!.Value}", env.Value);
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
-        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(),$"{testName}-redis-{ReplicaIdRegex}"))) ;
+        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}")));
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
         var otherRedisEnv = Assert.Single(service.Spec.Env!.Where(e => e.Name == $"ConnectionStrings__{testName}-redisNoPort"));
@@ -999,7 +999,7 @@ public class DistributedApplicationTests
         var otherRedisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}")));
         Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]

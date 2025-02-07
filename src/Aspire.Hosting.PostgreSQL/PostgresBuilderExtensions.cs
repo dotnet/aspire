@@ -5,7 +5,6 @@ using System.Text;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Postgres;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 

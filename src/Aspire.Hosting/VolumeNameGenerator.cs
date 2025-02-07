@@ -3,7 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.Utils;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Utility class for generating volume names.

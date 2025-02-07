@@ -175,6 +175,11 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
         try
         {
+            if (_options.Value.WaitForResourceCleanup)
+            {
+                await _kubernetesService.CleanupResourcesAsync(cancellationToken).ConfigureAwait(false);
+            }
+
             // The app orchestrator (represented by kubernetesService here) will perform a resource cleanup
             // (if not done already) when the app host process exits.
             // This is just a perf optimization, so we do not care that much if this call fails.

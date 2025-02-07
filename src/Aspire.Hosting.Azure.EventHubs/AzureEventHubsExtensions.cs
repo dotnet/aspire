@@ -5,12 +5,12 @@ using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.EventHubs;
-using Aspire.Hosting.Utils;
 using Azure.Messaging.EventHubs.Producer;
 using Azure.Provisioning;
 using AzureProvisioning = Azure.Provisioning.EventHubs;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json.Nodes;
+using Aspire.Hosting;
 
 namespace Aspire.Hosting;
 

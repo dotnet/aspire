@@ -17,6 +17,7 @@ using Xunit;
 using Xunit.Abstractions;
 using Aspire.Hosting.Tests.Dcp;
 using System.Text.Json.Nodes;
+using Aspire.Hosting;
 
 namespace Aspire.Hosting.Redis.Tests;
 
