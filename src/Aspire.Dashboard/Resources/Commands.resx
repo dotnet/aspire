@@ -1,17 +1,13 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!--
     Microsoft ResX Schema
-
     Version 2.0
-
     The primary goals of this format is to allow a simple XML format
     that is mostly human readable. The generation and parsing of the
     various data types are done through the TypeConverter classes
     associated with the data types.
-
     Example:
-
     ... ado.net/XML headers & schema ...
     <resheader name="resmimetype">text/microsoft-resx</resheader>
     <resheader name="version">2.0</resheader>
@@ -26,34 +22,27 @@
         <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
         <comment>This is a comment</comment>
     </data>
-
     There are any number of "resheader" rows that contain simple
     name/value pairs.
-
     Each data row contains a name, and value. The row also contains a
     type or mimetype. Type corresponds to a .NET class that support
     text/value conversion through the TypeConverter architecture.
     Classes that don't support this are serialized and stored with the
     mimetype set.
-
     The mimetype is used for serialized objects, and tells the
     ResXResourceReader how to depersist the object. This is currently not
     extensible. For a given mimetype the value must be set accordingly:
-
     Note - application/x-microsoft.net.object.binary.base64 is the format
     that the ResXResourceWriter will generate, however the reader can
     read any of the formats listed below.
-
     mimetype: application/x-microsoft.net.object.binary.base64
     value   : The object must be serialized with
             : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
             : and then encoded with base64 encoding.
-
     mimetype: application/x-microsoft.net.object.soap.base64
     value   : The object must be serialized with
             : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
             : and then encoded with base64 encoding.
-
     mimetype: application/x-microsoft.net.object.bytearray.base64
     value   : The object must be serialized into a byte array
             : using a System.ComponentModel.TypeConverter
@@ -117,152 +106,22 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="FilterDialogFieldPlaceholder" xml:space="preserve">
-    <value>Field</value>
+  <data name="StartCommandDisplayName" xml:space="preserve">
+    <value>Start</value>
   </data>
-  <data name="FilterDialogTextValuePlaceholder" xml:space="preserve">
-    <value>Value</value>
+  <data name="StartCommandDisplayDescription" xml:space="preserve">
+    <value>Start resource</value>
   </data>
-  <data name="FilterDialogCancelButtonText" xml:space="preserve">
-    <value>Cancel</value>
+  <data name="StopCommandDisplayName" xml:space="preserve">
+    <value>Stop</value>
   </data>
-  <data name="FilterDialogApplyFilterButtonText" xml:space="preserve">
-    <value>Apply filter</value>
+  <data name="StopCommandDisplayDescription" xml:space="preserve">
+    <value>Stop resource</value>
   </data>
-  <data name="FilterDialogRemoveFilterButtonText" xml:space="preserve">
-    <value>Remove filter</value>
+  <data name="RestartCommandDisplayName" xml:space="preserve">
+    <value>Restart</value>
   </data>
-  <data name="SettingsDialogSystemTheme" xml:space="preserve">
-    <value>System</value>
-  </data>
-  <data name="SettingsDialogLightTheme" xml:space="preserve">
-    <value>Light</value>
-  </data>
-  <data name="SettingsDialogDarkTheme" xml:space="preserve">
-    <value>Dark</value>
-  </data>
-  <data name="SettingsDialogTheme" xml:space="preserve">
-    <value>Theme</value>
-  </data>
-  <data name="SettingsDialogVersion" xml:space="preserve">
-    <value>Version: {0}</value>
-    <comment>{0} is the dashboard version string</comment>
-  </data>
-  <data name="SettingsDialogLanguage" xml:space="preserve">
-    <value>Language</value>
-  </data>
-  <data name="SettingsDialogLanguagePageReloads" xml:space="preserve">
-    <value>The page will reload on language change.</value>
-  </data>
-  <data name="FilterDialogParameterInputLabel" xml:space="preserve">
-    <value>Parameter</value>
-  </data>
-  <data name="FilterDialogConditionInputLabel" xml:space="preserve">
-    <value>Condition</value>
-  </data>
-  <data name="HelpDialogGetHelpLinkText" xml:space="preserve">
-    <value>Go to Microsoft Learn documentation</value>
-  </data>
-  <data name="HelpDialogCategoryPanels" xml:space="preserve">
-    <value>Panels</value>
-  </data>
-  <data name="HelpDialogCategoryPageNavigation" xml:space="preserve">
-    <value>Page navigation</value>
-  </data>
-  <data name="HelpDialogCategoryNavigation" xml:space="preserve">
-    <value>Site-wide navigation</value>
-  </data>
-  <data name="HelpDialogIncreasePanelSize" xml:space="preserve">
-    <value>Increase panel size</value>
-  </data>
-  <data name="HelpDialogDecreasePanelSize" xml:space="preserve">
-    <value>Decrease panel size</value>
-  </data>
-  <data name="HelpDialogResetPanelSize" xml:space="preserve">
-    <value>Reset panel sizes</value>
-  </data>
-  <data name="HelpDialogTogglePanelOrientation" xml:space="preserve">
-    <value>Toggle panel orientation</value>
-  </data>
-  <data name="HelpDialogTogglePanelOpen" xml:space="preserve">
-    <value>Close panel</value>
-  </data>
-  <data name="HelpDialogGoToResources" xml:space="preserve">
-    <value>Go to Resources</value>
-  </data>
-  <data name="HelpDialogGoToConsoleLogs" xml:space="preserve">
-    <value>Go to Console Logs</value>
-  </data>
-  <data name="HelpDialogGoToStructuredLogs" xml:space="preserve">
-    <value>Go to Structured Logs</value>
-  </data>
-  <data name="HelpDialogGoToTraces" xml:space="preserve">
-    <value>Go to Traces</value>
-  </data>
-  <data name="HelpDialogGoToMetrics" xml:space="preserve">
-    <value>Go to Metrics</value>
-  </data>
-  <data name="HelpDialogGoToHelp" xml:space="preserve">
-    <value>Go to Help</value>
-  </data>
-  <data name="HelpDialogGoToSettings" xml:space="preserve">
-    <value>Go to Settings</value>
-  </data>
-  <data name="HelpDialogKeyboardShortcutsTitle" xml:space="preserve">
-    <value>Keyboard Shortcuts</value>
-  </data>
-  <data name="DialogCloseButtonText" xml:space="preserve">
-    <value>Close</value>
-  </data>
-  <data name="ExemplarsDialogTitle" xml:space="preserve">
-    <value>Exemplars</value>
-  </data>
-  <data name="ExemplarsDialogTraceColumnHeader" xml:space="preserve">
-    <value>Trace</value>
-  </data>
-  <data name="ExemplarsDialogTimestampColumnHeader" xml:space="preserve">
-    <value>Timestamp</value>
-  </data>
-  <data name="ExemplarsDialogValueColumnHeader" xml:space="preserve">
-    <value>Value</value>
-  </data>
-  <data name="ExemplarsDialogDetailsColumnHeader" xml:space="preserve">
-    <value>Details</value>
-  </data>
-  <data name="ExemplarsDialogTrace" xml:space="preserve">
-    <value>Trace</value>
-  </data>
-  <data name="OpenTraceDialogMessage" xml:space="preserve">
-    <value>Waiting for trace {0} to load...</value>
-    <comment>{0} is a trace ID</comment>
-  </data>
-  <data name="OpenTraceDialogCancelButtonText" xml:space="preserve">
-    <value>Cancel</value>
-  </data>
-  <data name="TextVisualizerDialogPlaintextFormat" xml:space="preserve">
-    <value>Unformatted</value>
-  </data>
-  <data name="TextVisualizerDialogJsonFormat" xml:space="preserve">
-    <value>Format JSON</value>
-  </data>
-  <data name="TextVisualizerDialogXmlFormat" xml:space="preserve">
-    <value>Format XML</value>
-  </data>
-  <data name="TextVisualizerSelectFormatType" xml:space="preserve">
-    <value>Select format</value>
-  </data>
-  <data name="OpenInTextVisualizer" xml:space="preserve">
-    <value>Open in text visualizer</value>
-  </data>
-  <data name="FieldRequired" xml:space="preserve">
-    <value>A value is required.</value>
-    <comment>{0} is the literal, untranslated field name which we do not want to show, so it is missing.</comment>
-  </data>
-  <data name="FieldTooLong" xml:space="preserve">
-    <value>A maximum length of {1} characters is allowed.</value>
-    <comment>{0} is the field name, whereas {1} is the length. We don't want to show the field name, so it is missing.</comment>
-  </data>
-  <data name="SettingsDashboardTelemetry" xml:space="preserve">
-    <value>Dashboard telemetry</value>
+  <data name="RestartCommandDisplayDescription" xml:space="preserve">
+    <value>Restart resource</value>
   </data>
 </root>

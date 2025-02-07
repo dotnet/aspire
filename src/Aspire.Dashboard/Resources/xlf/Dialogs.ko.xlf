@@ -182,6 +182,11 @@
         <target state="translated">추적 {0}이(가) 로드되기를 기다리는 중...</target>
         <note>{0} is a trace ID</note>
       </trans-unit>
+      <trans-unit id="SettingsDashboardTelemetry">
+        <source>Dashboard telemetry</source>
+        <target state="new">Dashboard telemetry</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>
         <target state="translated">어두움</target>

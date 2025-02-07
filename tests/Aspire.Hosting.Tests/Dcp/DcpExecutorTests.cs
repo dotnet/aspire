@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO.Pipelines;
 using System.Text;
 using System.Threading.Channels;
+using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Tests.Utils;
@@ -1013,9 +1014,9 @@ public class DcpExecutorTests
     {
         var commandAnnotations = resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
         Assert.Collection(commandAnnotations,
-            a => Assert.Equal(CommandsConfigurationExtensions.StartCommandName, a.Name),
-            a => Assert.Equal(CommandsConfigurationExtensions.StopCommandName, a.Name),
-            a => Assert.Equal(CommandsConfigurationExtensions.RestartCommandName, a.Name));
+            a => Assert.Equal(KnownResourceCommands.StartCommand, a.Name),
+            a => Assert.Equal(KnownResourceCommands.StopCommand, a.Name),
+            a => Assert.Equal(KnownResourceCommands.RestartCommand, a.Name));
     }
 
     private static DcpExecutor CreateAppExecutor(
