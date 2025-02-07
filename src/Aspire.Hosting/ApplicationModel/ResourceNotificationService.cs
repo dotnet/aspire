@@ -501,9 +501,9 @@ public class ResourceNotificationService : IDisposable
                 {
                     const int spaces = 2;
                     var indent = new string(' ', spaces);
-                    var seperator = Environment.NewLine + indent;
+                    var separator = Environment.NewLine + indent;
 
-                    var result = string.Join(seperator, values);
+                    var result = string.Join(separator, values);
                     if (string.IsNullOrEmpty(result))
                     {
                         return result;
