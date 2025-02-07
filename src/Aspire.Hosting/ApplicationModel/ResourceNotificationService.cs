@@ -485,9 +485,9 @@ public class ResourceNotificationService : IDisposable
                     newState.ResourceReadyEvent is not null,
                     newState.ExitCode,
                     string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
-                    string.Join(Environment.NewLine, newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")),
-                    string.Join(Environment.NewLine, newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")),
-                    string.Join(Environment.NewLine, newState.HealthReports.Select(p => $"{p.Name} = {Stringify(p.Status)}")));
+                    JoinIndentLines(newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")),
+                    JoinIndentLines(newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")),
+                    JoinIndentLines(newState.HealthReports.Select(p => $"{p.Name} = {Stringify(p.Status)}")));
 
                 static string Stringify(object? o) => o switch
                 {
@@ -496,6 +496,22 @@ public class ResourceNotificationService : IDisposable
                     null => "(null)",
                     _ => o.ToString()!
                 };
+
+                static string JoinIndentLines(IEnumerable<string> values)
+                {
+                    const int spaces = 2;
+                    var indent = new string(' ', spaces);
+                    var seperator = Environment.NewLine + indent;
+
+                    var result = string.Join(seperator, values);
+                    if (string.IsNullOrEmpty(result))
+                    {
+                        return result;
+                    }
+
+                    // Indent first line.
+                    return indent + result;
+                }
             }
         }
 
