@@ -70,8 +70,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
-    private readonly Dictionary<string, bool> _resourceNamesToExpanded = [];
-    private readonly Dictionary<string, bool> _resourceNamesToExpandInitialState = [];
+    private readonly HashSet<string> _collapsedResourceNames = new(StringComparers.ResourceName);
+    private readonly HashSet<string> _initialCollapsedResourceNames = [];
     private string _filter = "";
     private bool _isFilterPopupVisible;
     private Task? _resourceSubscriptionTask;
@@ -156,9 +156,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             var settings = await LocalStorage.GetUnprotectedAsync<ResourcesPageSettings>(BrowserStorageKeys.ResourcesPageSettings);
             if (settings.Value is not null)
             {
-                foreach (var (key, value) in settings.Value.ResourceNamesToExpanded)
+                foreach (var resourceName in settings.Value.CollapsedResourceNames)
                 {
-                    _resourceNamesToExpandInitialState.Add(key, value);
+                    _initialCollapsedResourceNames.Add(resourceName);
                 }
             }
 
@@ -265,7 +265,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             ResourceStatesToVisibility.TryAdd(resource.State ?? string.Empty, stateVisible(resource.State ?? string.Empty));
             ResourceHealthStatusesToVisibility.TryAdd(resource.HealthStatus?.Humanize() ?? string.Empty, healthStatusVisible(resource.HealthStatus?.Humanize() ?? string.Empty));
 
-            _resourceNamesToExpanded.TryAdd(resource.Name, !_resourceNamesToExpandInitialState.TryGetValue(resource.Name, out var initialisExpanded) || initialisExpanded);
+            if (_initialCollapsedResourceNames.Contains(resource.Name))
+            {
+                _collapsedResourceNames.Add(resource.Name);
+            }
+
             UpdateMenuButtons();
 
             return added;
@@ -290,7 +294,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         // Rearrange resources based on parent information.
         // This must happen after resources are ordered so nested resources are in the right order.
         // Collapsed resources are filtered out of results.
-        var orderedResources = ResourceGridViewModel.OrderNestedResources(filteredResources.ToList(), r => !_resourceNamesToExpanded[r.Name])
+        var orderedResources = ResourceGridViewModel.OrderNestedResources(filteredResources.ToList(), r => _collapsedResourceNames.Contains(r.Name))
             .Where(r => !r.IsHidden)
             .ToList();
 
@@ -324,7 +328,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             AdditionalAttributes = new Dictionary<string, object> { { "id", "resourceFilterButton" } }
         });
 
-        if (_resourceNamesToExpanded.Values.Any(v => !v))
+        if (_collapsedResourceNames.Count > 0)
         {
             _resourcesMenuItems.Add(new MenuButtonItem
             {
@@ -419,7 +423,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 {
                     if (_resourceByName.TryGetValue(value, out current))
                     {
-                        _resourceNamesToExpanded[value] = true;
+                        _collapsedResourceNames.Remove(value);
                         continue;
                     }
                 }
@@ -508,22 +512,36 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         // View model data is recreated if data updates.
         // Persist the collapsed state in a separate list.
         viewModel.IsCollapsed = !viewModel.IsCollapsed;
-        _resourceNamesToExpanded[viewModel.Resource.Name] = !viewModel.IsCollapsed;
 
-        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ResourcesPageSettings, new ResourcesPageSettings(ResourceNamesToExpanded: _resourceNamesToExpanded));
+        if (viewModel.IsCollapsed)
+        {
+            _collapsedResourceNames.Add(viewModel.Resource.Name);
+        }
+        else
+        {
+            _collapsedResourceNames.Remove(viewModel.Resource.Name);
+        }
+
+        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ResourcesPageSettings, new ResourcesPageSettings(CollapsedResourceNames: _collapsedResourceNames));
         await _dataGrid.SafeRefreshDataAsync();
         UpdateMenuButtons();
     }
 
     private async Task OnToggleCollapseAll()
     {
-        var expandAll = _resourceNamesToExpanded.Values.Any(v => !v);
-        foreach (var resourceName in _resourceNamesToExpanded.Keys)
+        if (_collapsedResourceNames.Count > 0)
         {
-            _resourceNamesToExpanded[resourceName] = expandAll;
+            _collapsedResourceNames.Clear();
+        }
+        else
+        {
+            foreach (var resourceName in _resourceByName.Keys)
+            {
+                _collapsedResourceNames.Add(resourceName);
+            }
         }
 
-        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ResourcesPageSettings, new ResourcesPageSettings(ResourceNamesToExpanded: _resourceNamesToExpanded));
+        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ResourcesPageSettings, new ResourcesPageSettings(CollapsedResourceNames: _collapsedResourceNames));
         await _dataGrid.SafeRefreshDataAsync();
         UpdateMenuButtons();
     }
@@ -542,5 +560,5 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);
     }
 
-    public record ResourcesPageSettings(Dictionary<string, bool> ResourceNamesToExpanded);
+    public record ResourcesPageSettings(HashSet<string> CollapsedResourceNames);
 }

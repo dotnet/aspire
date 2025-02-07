@@ -41,7 +41,7 @@
             }
             else
             {
-                var showExpandAllButton = _resourceNamesToExpanded.Values.Any(v => !v);
+                var showExpandAllButton = _collapsedResourceNames.Count > 0;
 
                 <FluentButton IconStart="@(showExpandAllButton ? new Icons.Regular.Size16.Eye() : new Icons.Regular.Size16.EyeOff())"
                               OnClick="@(async () => { await OnToggleCollapseAll(); _contentLayout?.CloseMobileToolbarAsync(); })">
