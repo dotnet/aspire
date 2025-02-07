@@ -38,6 +38,10 @@ var basketService = builder.AddProject("basketservice", @"..\BasketService\Baske
 
 builder.AddProject<Projects.MyFrontend>("frontend")
        .WithExternalHttpEndpoints()
+       .WithModifiedEndpoints(c =>
+       {
+           c.DisplayProperties.DisplayName = "TestShop frontend access";
+       })
        .WithReference(basketService)
        .WithReference(catalogService);
 
