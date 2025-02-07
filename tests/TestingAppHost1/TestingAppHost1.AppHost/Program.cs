@@ -20,7 +20,7 @@ if (builder.Configuration.GetValue("USE_HTTPS", false))
 }
 
 builder.AddProject<Projects.TestingAppHost1_MyWorker>("myworker1")
-    .WithEndpoint(name: "myendpoint1");
+    .WithEndpoint(name: "myendpoint1", env: "myendpoint1_port");
 builder.AddPostgres("postgres1");
 
 if (args.Contains("--crash-before-build"))
