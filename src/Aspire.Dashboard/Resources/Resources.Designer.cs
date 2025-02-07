@@ -105,7 +105,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Hide child resources.
+        ///   Looks up a localized string similar to Collapse child resources.
         /// </summary>
         public static string ResourceCollapseAllChildren {
             get {
@@ -177,7 +177,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Show child resources.
+        ///   Looks up a localized string similar to Expand child resources.
         /// </summary>
         public static string ResourceExpandAllChildren {
             get {
