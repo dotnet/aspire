@@ -596,10 +596,7 @@ public class AspireEventHubsExtensionsTests
             new KeyValuePair<string, string?>("Aspire:Azure:Messaging:EventHubs:EventProcessorClient:EventHubName", "MyHub"),
         ]);
 
-        var mockTransport = new MockTransport(
-            CreateResponse("""{}"""));
-        var blobClient = new BlobServiceClient(new Uri(BlobsConnectionString), new BlobClientOptions() { Transport = mockTransport });
-        builder.Services.AddSingleton(blobClient);
+        var mockTransport = InjectMockBlobClient(builder);
 
         builder.AddAzureEventProcessorClient("eh1");
 
@@ -611,6 +608,15 @@ public class AspireEventHubsExtensionsTests
         Assert.Single(mockTransport.Requests);
         // the container name should be based on the Endpoint, EventHubName, and ConsumerGroup
         Assert.Equal("https://fake.blob.core.windows.net/127-0-0-1-MyHub-default?restype=container", mockTransport.Requests[0].Uri.ToString());
+    }
+
+    private static MockTransport InjectMockBlobClient(HostApplicationBuilder builder)
+    {
+        var mockTransport = new MockTransport(
+            CreateResponse("""{}"""));
+        var blobClient = new BlobServiceClient(new Uri(BlobsConnectionString), new BlobClientOptions() { Transport = mockTransport });
+        builder.Services.AddSingleton(blobClient);
+        return mockTransport;
     }
 
     private static MockResponse CreateResponse(string content)
@@ -625,5 +631,138 @@ public class AspireEventHubsExtensionsTests
         response.AddHeader(new HttpHeader("Content-Type", "application/json; charset=utf-8"));
 
         return response;
+    }
+
+    [Theory]
+    [MemberData(nameof(ConnectionString_MemberData))]
+    public void AddAzureCosmosClient_EnsuresConnectionStringIsCorrect(EventHubTestConnectionInfo testInfo)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:eh1", testInfo.TestConnectionString),
+            new KeyValuePair<string, string?>("Aspire:Azure:Messaging:EventHubs:EventHubProducerClient:EventHubName", "NotInConnectionInfo"),
+            new KeyValuePair<string, string?>("Aspire:Azure:Messaging:EventHubs:EventHubConsumerClient:EventHubName", "NotInConnectionInfo"),
+            new KeyValuePair<string, string?>("Aspire:Azure:Messaging:EventHubs:EventProcessorClient:EventHubName", "NotInConnectionInfo"),
+            new KeyValuePair<string, string?>("Aspire:Azure:Messaging:EventHubs:PartitionReceiver:EventHubName", "NotInConnectionInfo"),
+            new KeyValuePair<string, string?>("Aspire:Azure:Messaging:EventHubs:PartitionReceiver:PartitionId", "foo"),
+            new KeyValuePair<string, string?>("Aspire:Azure:Messaging:EventHubs:EventHubBufferedProducerClient:EventHubName", "NotInConnectionInfo"),
+        ]);
+
+        var expectedEventHubName = testInfo.EventHubName ?? "NotInConnectionInfo";
+
+        var settingsCalled = 0;
+        void VerifySettings(AzureMessagingEventHubsSettings settings)
+        {
+            settingsCalled++;
+
+            Assert.Equal(testInfo.ConnectionString, settings.ConnectionString);
+            Assert.Equal(testInfo.FullyQualifiedNamespace, settings.FullyQualifiedNamespace);
+            Assert.Equal(expectedEventHubName, settings.EventHubName);
+
+            var consumerGroupProperty = settings.GetType().GetProperty("ConsumerGroup");
+            if (consumerGroupProperty != null)
+            {
+                Assert.Equal(testInfo.ConsumerGroup, consumerGroupProperty.GetValue(settings));
+            }
+        }
+
+        InjectMockBlobClient(builder);
+
+        builder.AddAzureEventHubProducerClient("eh1", VerifySettings);
+        builder.AddAzureEventHubConsumerClient("eh1", VerifySettings);
+        builder.AddAzureEventProcessorClient("eh1", VerifySettings);
+        builder.AddAzurePartitionReceiverClient("eh1", VerifySettings);
+        builder.AddAzureEventHubBufferedProducerClient("eh1", VerifySettings);
+
+        Assert.Equal(5, settingsCalled);
+
+        using var app = builder.Build();
+
+        var producerClient = app.Services.GetRequiredService<EventHubProducerClient>();
+        Assert.Equal(testInfo.ClientFullyQualifiedNamespace, producerClient.FullyQualifiedNamespace);
+        Assert.Equal(expectedEventHubName, producerClient.EventHubName);
+
+        var consumerClient = app.Services.GetRequiredService<EventHubConsumerClient>();
+        Assert.Equal(testInfo.ClientFullyQualifiedNamespace, consumerClient.FullyQualifiedNamespace);
+        Assert.Equal(expectedEventHubName, consumerClient.EventHubName);
+
+        var processorClient = app.Services.GetRequiredService<EventProcessorClient>();
+        Assert.Equal(testInfo.ClientFullyQualifiedNamespace, processorClient.FullyQualifiedNamespace);
+        Assert.Equal(expectedEventHubName, processorClient.EventHubName);
+
+        var partitionReceiver = app.Services.GetRequiredService<PartitionReceiver>();
+        Assert.Equal(testInfo.ClientFullyQualifiedNamespace, partitionReceiver.FullyQualifiedNamespace);
+        Assert.Equal(expectedEventHubName, partitionReceiver.EventHubName);
+
+        var bufferedProducerClient = app.Services.GetRequiredService<EventHubBufferedProducerClient>();
+        Assert.Equal(testInfo.ClientFullyQualifiedNamespace, bufferedProducerClient.FullyQualifiedNamespace);
+        Assert.Equal(expectedEventHubName, bufferedProducerClient.EventHubName);
+    }
+
+    public static TheoryData<EventHubTestConnectionInfo> ConnectionString_MemberData()
+    {
+        return new()
+        {
+            new EventHubTestConnectionInfo()
+            {
+                TestConnectionString = "Endpoint=sb://localhost:55184;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
+                ConnectionString = "Endpoint=sb://localhost:55184;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
+                ClientFullyQualifiedNamespace = "localhost"
+            },
+            new EventHubTestConnectionInfo()
+            {
+                TestConnectionString ="Endpoint=sb://localhost:55184;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;EntityPath=myhub",
+                ConnectionString = "Endpoint=sb://localhost:55184;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;EntityPath=myhub",
+                EventHubName = "myhub",
+                ClientFullyQualifiedNamespace = "localhost"
+            },
+            new EventHubTestConnectionInfo()
+            {
+                TestConnectionString ="Endpoint=sb://localhost:55184;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;ConsumerGroup=mygroup;EntityPath=myhub",
+                ConnectionString = "Endpoint=sb://localhost:55184;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;ConsumerGroup=mygroup;EntityPath=myhub",
+                EventHubName = "myhub",
+                ConsumerGroup = "mygroup",
+                ClientFullyQualifiedNamespace = "localhost"
+            },
+            new EventHubTestConnectionInfo()
+            {
+                TestConnectionString ="Endpoint=https://eventhubns-cetg3lr.servicebus.windows.net:443/;EntityPath=myhub;ConsumerGroup=mygroup",
+                FullyQualifiedNamespace = "https://eventhubns-cetg3lr.servicebus.windows.net:443/",
+                EventHubName = "myhub",
+                ConsumerGroup = "mygroup",
+                ClientFullyQualifiedNamespace = "eventhubns-cetg3lr.servicebus.windows.net"
+            },
+            new EventHubTestConnectionInfo()
+            {
+                TestConnectionString ="Endpoint=https://eventhubns-cetg3lr.servicebus.windows.net:443/;EntityPath=myhub",
+                FullyQualifiedNamespace = "https://eventhubns-cetg3lr.servicebus.windows.net:443/",
+                EventHubName = "myhub",
+                ClientFullyQualifiedNamespace = "eventhubns-cetg3lr.servicebus.windows.net"
+            },
+            new EventHubTestConnectionInfo()
+            {
+                TestConnectionString ="Endpoint=https://eventhubns-cetg3lr.servicebus.windows.net:443/;ConsumerGroup=mygroup",
+                FullyQualifiedNamespace = "https://eventhubns-cetg3lr.servicebus.windows.net:443/",
+                ConsumerGroup = "mygroup",
+                ClientFullyQualifiedNamespace = "eventhubns-cetg3lr.servicebus.windows.net"
+            },
+            new EventHubTestConnectionInfo()
+            {
+                TestConnectionString ="https://eventhubns-cetg3lr.servicebus.windows.net:443/",
+                FullyQualifiedNamespace = "https://eventhubns-cetg3lr.servicebus.windows.net:443/",
+                ClientFullyQualifiedNamespace = "eventhubns-cetg3lr.servicebus.windows.net"
+            }
+        };
+    }
+
+    public record EventHubTestConnectionInfo
+    {
+        public required string TestConnectionString { get; set; }
+        public string? FullyQualifiedNamespace { get; set; }
+        public string? ConnectionString { get; set; }
+        public string? EventHubName { get; set; }
+        public string? ConsumerGroup { get; set; }
+        public string? ClientFullyQualifiedNamespace { get; set; }
     }
 }

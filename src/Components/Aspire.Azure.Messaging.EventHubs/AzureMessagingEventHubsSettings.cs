@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Data.Common;
 using Aspire.Azure.Common;
 
 using Azure.Core;
@@ -89,13 +90,49 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
             if (!connectionString.Contains(';'))
             {
                 FullyQualifiedNamespace = connectionString;
+                return;
             }
-            else
+
+            var connectionBuilder = new DbConnectionStringBuilder()
             {
-                ConnectionString = connectionString;
+                ConnectionString = connectionString
+            };
+
+            if (connectionBuilder.TryGetValue("ConsumerGroup", out var group))
+            {
+                SetConsumerGroup(group.ToString());
+
+                // remove ConsumerGroup from the connection builder since it isn't a connection property
+                // in regular Event Hubs connection strings
+                connectionBuilder.Remove("ConsumerGroup");
             }
+
+            var hasEntityPath = connectionBuilder.TryGetValue("EntityPath", out var entityPath);
+            if (hasEntityPath)
+            {
+                // don't strip off EntityPath from the connection string because
+                // it is a valid connection property in regular Event Hubs connection strings
+                EventHubName = entityPath!.ToString();
+            }
+
+            if (connectionBuilder.Count == 1 ||
+                (connectionBuilder.Count == 2 && hasEntityPath))
+            {
+                if (connectionBuilder.TryGetValue("Endpoint", out var endpoint))
+                {
+                    // if all that's left is Endpoint or Endpoint+EntityPath,
+                    // it is a fully qualified namespace
+                    FullyQualifiedNamespace = endpoint.ToString();
+                    return;
+                }
+            }
+
+            // if we got here, it's a full connection string
+            ConnectionString = connectionString;
         }
     }
+
+    internal virtual void SetConsumerGroup(string? consumerGroup) { }
 }
 
 /// <summary>
@@ -117,6 +154,11 @@ public sealed class AzureMessagingEventHubsConsumerSettings : AzureMessagingEven
     /// Gets or sets the name of the consumer group.
     /// </summary>
     public string? ConsumerGroup { get; set; }
+
+    internal override void SetConsumerGroup(string? consumerGroup)
+    {
+        ConsumerGroup = consumerGroup;
+    }
 }
 
 /// <summary>
@@ -145,6 +187,11 @@ public sealed class AzureMessagingEventHubsProcessorSettings : AzureMessagingEve
     /// If a container is provided in the connection string, it will override this value and the container will be assumed to exist.
     /// </summary>
     public string? BlobContainerName { get; set; }
+
+    internal override void SetConsumerGroup(string? consumerGroup)
+    {
+        ConsumerGroup = consumerGroup;
+    }
 }
 
 /// <summary>
@@ -166,5 +213,10 @@ public sealed class AzureMessagingEventHubsPartitionReceiverSettings : AzureMess
     /// Gets or sets the event position to start from in the bound partition. Defaults to <see cref="EventPosition.Earliest" />.
     /// </summary>
     public EventPosition EventPosition { get; set; } = EventPosition.Earliest;
+
+    internal override void SetConsumerGroup(string? consumerGroup)
+    {
+        ConsumerGroup = consumerGroup;
+    }
 }
 
