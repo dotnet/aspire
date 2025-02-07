@@ -177,10 +177,11 @@ jobs:
       - name: Run tests
         id: run-tests
         env:
+          CI: false
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER:  ${{ github.workspace }}/testresults
         run: |
-          export CI=false && ./dotnet.sh test ${{ github.workspace }}/${{ matrix.project }} \
+          ./dotnet.sh test ${{ github.workspace }}/${{ matrix.project }} \
             /p:ContinuousIntegrationBuild=true \
             -s eng/testing/.runsettings \
             --logger "console;verbosity=normal" \
@@ -191,7 +192,7 @@ jobs:
             --blame-hang-timeout 7m \
             --results-directory testresults \
             --no-restore \
-            --no-build -- RunConfiguration.CollectSourceInformation=true
+            --no-build -- RunConfiguration.CollectSourceInformation=true > testresults/${{ matrix.name }}.log
 
       - name: Upload bin log artifact
         if: always()
