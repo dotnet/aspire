@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Testing;
+using Aspire.Hosting.Testing.Tests;
 using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
 
@@ -31,13 +31,13 @@ public class SlimTestProgramTests
     private static async Task EnsureServicesAreRunning(TestProgram testProgram, CancellationToken cancellationToken)
     {
         var app = testProgram.App ?? throw new ArgumentException("TestProgram.App is null");
-        using var clientA = app.CreateHttpClient(testProgram.ServiceABuilder.Resource.Name, "http");
+        using var clientA = app.CreateHttpClientWithResilience(testProgram.ServiceABuilder.Resource.Name, "http");
         await clientA.GetStringAsync("/", cancellationToken);
 
-        using var clientB = app.CreateHttpClient(testProgram.ServiceBBuilder.Resource.Name, "http");
+        using var clientB = app.CreateHttpClientWithResilience(testProgram.ServiceBBuilder.Resource.Name, "http");
         await clientB.GetStringAsync("/", cancellationToken);
 
-        using var clientC = app.CreateHttpClient(testProgram.ServiceCBuilder.Resource.Name, "http");
+        using var clientC = app.CreateHttpClientWithResilience(testProgram.ServiceCBuilder.Resource.Name, "http");
         await clientC.GetStringAsync("/", cancellationToken);
     }
 
