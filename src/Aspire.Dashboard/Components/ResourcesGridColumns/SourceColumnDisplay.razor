@@ -1,5 +1,6 @@
 ﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 
 @inject IStringLocalizer<Columns> Loc
 @inject IStringLocalizer<Resources> ResourcesLoc
@@ -23,7 +24,7 @@
                 }
                 else
                 {
-                    <span class="subtext">&nbsp;●●●●●●</span>
+                    <span class="subtext">&nbsp;@DashboardUIHelpers.GetMaskingText(length: 6)</span>
                 }
             }
         }
