@@ -129,27 +129,10 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
 
             // if we got here, it's a full connection string
             ConnectionString = connectionString;
-            //ConnectionString = connectionBuilder.ConnectionString;
         }
     }
 
     internal virtual void SetConsumerGroup(string? consumerGroup) { }
-    //internal virtual void ParseConnectionProperties(DbConnectionStringBuilder connectionBuilder) { }
-
-    //internal static bool TryParseConsumerGroup(DbConnectionStringBuilder connectionBuilder, out string? consumerGroup)
-    //{
-    //    if (connectionBuilder.TryGetValue("ConsumerGroup", out var group))
-    //    {
-    //        consumerGroup = group?.ToString();
-    //        // remove ConsumerGroup from the connection builder since it isn't a connection property
-    //        // in regular Event Hubs connection strings
-    //        //connectionBuilder.Remove("ConsumerGroup");
-    //        return true;
-    //    }
-
-    //    consumerGroup = null;
-    //    return false;
-    //}
 }
 
 /// <summary>
