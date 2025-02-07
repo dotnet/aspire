@@ -114,6 +114,10 @@ public class DcpExecutorTests
 
         var callCount = 0;
         var resource = builder.AddProject<Projects.ServiceA>("ServiceA")
+            .WithArgs(c =>
+            {
+                c.Args.Add("--test");
+            })
             .WithEnvironment(c =>
             {
                 Interlocked.Increment(ref callCount);
@@ -137,6 +141,10 @@ public class DcpExecutorTests
         var callCount1 = exe1.Spec.Env!.Single(e => e.Name == "CALL_COUNT");
         Assert.Equal("1", callCount1.Value);
 
+        Assert.Single(exe1.Spec.Args!.Where(a => a == "--test"));
+        Assert.True(exe1.TryGetAnnotationAsObjectList<AppLaunchArgumentAnnotation>(CustomResource.ResourceAppArgsAnnotation, out var argAnnotations1));
+        Assert.Single(argAnnotations1.Where(a => a.Argument == "--test"));
+
         var reference = appExecutor.GetResource(exe1.Metadata.Name);
 
         await appExecutor.StopResourceAsync(reference, CancellationToken.None);
@@ -149,6 +157,10 @@ public class DcpExecutorTests
         var exe2 = executables[1];
         var callCount2 = exe2.Spec.Env!.Single(e => e.Name == "CALL_COUNT");
         Assert.Equal("2", callCount2.Value);
+
+        Assert.Single(exe1.Spec.Args!.Where(a => a == "--test"));
+        Assert.True(exe1.TryGetAnnotationAsObjectList<AppLaunchArgumentAnnotation>(CustomResource.ResourceAppArgsAnnotation, out var argAnnotations2));
+        Assert.Single(argAnnotations2.Where(a => a.Argument == "--test"));
     }
 
     [Fact]
