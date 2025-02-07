@@ -184,4 +184,43 @@ public sealed class ResourceEndpointHelpersTests
             e => Assert.Equal("B", e.Name),
             e => Assert.Equal("D", e.Name));
     }
+
+    [Fact]
+    public void GetEndpoints_SortOrder_Combinations()
+    {
+        var endpoints = GetEndpoints(ModelTestHelpers.CreateResource(urls: [
+            new("NoProperty", new("https://localhost:8079"), isInternal: false, displayProperties: null),
+            new("Zero", new("http://localhost:8080"), isInternal: false, displayProperties: new UrlDisplayPropertiesViewModel(null, 0)),
+            new("Null", new("http://localhost:8081"), isInternal: false, displayProperties: new UrlDisplayPropertiesViewModel(null, null)),
+            new("Positive", new("http://localhost:8082"), isInternal: false, displayProperties: new UrlDisplayPropertiesViewModel(null, 1)),
+            new("Negative", new("http://localhost:8083"), isInternal: false, displayProperties: new UrlDisplayPropertiesViewModel(null, -1))
+        ]));
+
+        Assert.Collection(endpoints,
+            e =>
+            {
+                Assert.Equal("Positive", e.Name);
+                Assert.Equal("http://localhost:8082", e.Url);
+            },
+            e =>
+            {
+                Assert.Equal("NoProperty", e.Name); // tie broken by protocol (https)
+                Assert.Equal("https://localhost:8079", e.Url);
+            },
+            e =>
+            {
+                Assert.Equal("Null", e.Name); // tie broken by name
+                Assert.Equal("http://localhost:8081", e.Url);
+            },
+            e =>
+            {
+                Assert.Equal("Zero", e.Name);
+                Assert.Equal("http://localhost:8080", e.Url);
+            },
+            e =>
+            {
+                Assert.Equal("Negative", e.Name);
+                Assert.Equal("http://localhost:8083", e.Url);
+            });
+    }
 }

@@ -31,8 +31,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <param name="targetPort">This is the port the resource is listening on. If the endpoint is used for the container, it is the container port.</param>
     /// <param name="isExternal">Indicates that this endpoint should be exposed externally at publish time.</param>
     /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
-    /// <param name="displayProperties">Function to configure Aspire Dashboard display properties for this endpoint.</param>
-    public EndpointAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, [EndpointName] string? name = null, int? port = null, int? targetPort = null, bool? isExternal = null, bool isProxied = true, Action<EndpointDisplayProperties>? displayProperties = null)
+    public EndpointAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, [EndpointName] string? name = null, int? port = null, int? targetPort = null, bool? isExternal = null, bool isProxied = true)
     {
         // If the URI scheme is null, we'll adopt either udp:// or tcp:// based on the
         // protocol. If the name is null, we'll use the URI scheme as the default. This
@@ -53,7 +52,6 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         IsExternal = isExternal ?? false;
         IsProxied = isProxied;
         DisplayProperties = new EndpointDisplayProperties();
-        displayProperties?.Invoke(DisplayProperties);
     }
 
     /// <summary>

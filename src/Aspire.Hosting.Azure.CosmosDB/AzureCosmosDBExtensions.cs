@@ -14,7 +14,6 @@ using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
-using EndpointDisplayProperties = Aspire.Hosting.ApplicationModel.EndpointDisplayProperties;
 
 namespace Aspire.Hosting;
 
