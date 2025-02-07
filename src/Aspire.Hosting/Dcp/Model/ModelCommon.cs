@@ -56,6 +56,16 @@ internal abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMet
         AnnotateAsObjectList<TValue>(Metadata.Annotations, annotationName, value);
     }
 
+    public void SetAnnotationAsObjectList<TValue>(string annotationName, IEnumerable<TValue> list)
+    {
+        if (Metadata.Annotations is null)
+        {
+            Metadata.Annotations = new Dictionary<string, string>();
+        }
+
+        Metadata.Annotations[annotationName] = JsonSerializer.Serialize<List<TValue>>(list.ToList());
+    }
+
     public bool TryGetAnnotationAsObjectList<TValue>(string annotationName, [NotNullWhen(true)] out List<TValue>? list)
     {
         return TryGetAnnotationAsObjectList<TValue>(Metadata.Annotations, annotationName, out list);
