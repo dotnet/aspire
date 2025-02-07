@@ -309,7 +309,6 @@ public static class AzureEventHubsExtensions
 
                     foreach (var annotation in configJsonAnnotations)
                     {
-
                         annotation.Configure(jsonObject);
                     }
 
