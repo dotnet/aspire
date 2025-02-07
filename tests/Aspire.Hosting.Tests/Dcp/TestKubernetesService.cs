@@ -10,7 +10,6 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text;
 using k8s.Models;
-using k8s.Autorest;
 
 namespace Aspire.Hosting.Tests.Dcp;
 
@@ -21,29 +20,18 @@ internal sealed class TestKubernetesService : IKubernetesService
     public const int StartOfAutoPortRange = 52000;
 
     public ConcurrentQueue<CustomResource> CreatedResources { get; } = [];
-    public ConcurrentQueue<string> DeletedResources { get; } = [];
 
     private readonly List<Channel<(WatchEventType, CustomResource)>> _watchChannels = [];
     private readonly Func<CustomResource, string, Stream> _startStream;
-    private readonly bool _ignoreDeletes;
     private int _nextPort = StartOfAutoPortRange;
 
-    public TestKubernetesService(Func<CustomResource, string, Stream>? startStream = null, bool ignoreDeletes = false)
+    public TestKubernetesService(Func<CustomResource, string, Stream>? startStream = null)
     {
         _startStream = startStream ?? ((obj, logStreamType) => new MemoryStream(Encoding.UTF8.GetBytes($"Logs for {obj.Metadata.Name} ({logStreamType})")));
-        _ignoreDeletes = ignoreDeletes;
     }
 
     public Task<T> GetAsync<T>(string name, string? namespaceParameter = null, CancellationToken _ = default) where T : CustomResource
     {
-        if (DeletedResources.Contains(name))
-        {
-            throw new HttpOperationException("Not found")
-            {
-                Response = new HttpResponseMessageWrapper(new HttpResponseMessage { StatusCode = System.Net.HttpStatusCode.NotFound }, "Not found")
-            };
-        }
-
         var res = CreatedResources.OfType<T>().FirstOrDefault(r =>
             r.Metadata.Name == name &&
             string.Equals(r.Metadata.NamespaceProperty ?? string.Empty, namespaceParameter ?? string.Empty)
@@ -100,24 +88,9 @@ internal sealed class TestKubernetesService : IKubernetesService
         }
     }
 
-    public async Task<T> DeleteAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default) where T : CustomResource
+    public Task<T> DeleteAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default) where T : CustomResource
     {
-        try
-        {
-            var resource = await GetAsync<T>(name, namespaceParameter, cancellationToken);
-            if (!_ignoreDeletes)
-            {
-                DeletedResources.Enqueue(name);
-            }
-            return resource;
-        }
-        catch (Exception ex)
-        {
-            throw new HttpOperationException(ex.Message)
-            {
-                Response = new HttpResponseMessageWrapper(new HttpResponseMessage { StatusCode = System.Net.HttpStatusCode.NotFound }, ex.Message)
-            };
-        }
+        return GetAsync<T>(name, namespaceParameter, cancellationToken);
     }
 
     public Task<List<T>> ListAsync<T>(string? namespaceParameter = null, CancellationToken cancellationToken = default) where T : CustomResource
