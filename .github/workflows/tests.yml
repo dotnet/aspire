@@ -185,8 +185,7 @@ jobs:
           # Create the testresults directory if it doesn't exist
           mkdir -p testresults
           
-          # Run tests and prepend a timestamp to each output line.
-          # The while-read loop echoes each output line with a timestamp.
+          # Run tests, prepend each output line with a timestamp, and write to a log file.
           ./dotnet.sh test ${{ github.workspace }}/${{ matrix.project }} \
             /p:ContinuousIntegrationBuild=true \
             -s eng/testing/.runsettings \
@@ -201,6 +200,9 @@ jobs:
           while IFS= read -r line; do
             echo "$(date '+[%Y-%m-%d %H:%M:%S]') $line"
           done > testresults/${{ matrix.name }}.log
+          
+          # Capture and propagate the test command's exit code
+          exit ${PIPESTATUS[0]}
 
       - name: Dump test log on failure
         if: failure()  # This runs only if the previous "Run tests" step failed.
