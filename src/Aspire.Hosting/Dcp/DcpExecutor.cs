@@ -976,7 +976,10 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                 throw new InvalidOperationException($"Expected an Executable resource, but got {er.DcpResource.Kind} instead");
         }
 
-        (spec.Args, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
+        (var args, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
+        spec.Args = args.Select(a => a.Value).ToList();
+        er.DcpResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, args.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
+
         (spec.Env, var failedToApplyConfiguration) = await BuildEnvVarsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
 
         if (failedToApplyConfiguration || failedToApplyArgs)
@@ -1146,7 +1149,9 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
         (spec.RunArgs, var failedToApplyRunArgs) = await BuildRunArgsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
 
-        (spec.Args, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
+        (var args, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
+        spec.Args = args.Select(a => a.Value).ToList();
+        dcpContainerResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, args.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
 
         (spec.Env, var failedToApplyConfiguration) = await BuildEnvVarsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
 
@@ -1468,14 +1473,14 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         }
     }
 
-    private async Task<(List<string>, bool)> BuildArgsAsync(ILogger resourceLogger, IResource modelResource, CancellationToken cancellationToken)
+    private async Task<(List<(string Value, bool IsSensitive)>, bool)> BuildArgsAsync(ILogger resourceLogger, IResource modelResource, CancellationToken cancellationToken)
     {
         var failedToApplyArgs = false;
-        var args = new List<string>();
+        var args = new List<(string Value, bool IsSensitive)>();
 
         await modelResource.ProcessArgumentValuesAsync(
             _executionContext,
-            (unprocessed, value, ex) =>
+            (unprocessed, value, ex, isSensitive) =>
             {
                 if (ex is not null)
                 {
@@ -1484,9 +1489,9 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                     resourceLogger.LogCritical(ex, "Failed to apply argument value '{ArgKey}'. A dependency may have failed to start.", ex.Data["ArgKey"]);
                     _logger.LogDebug(ex, "Failed to apply argument value '{ArgKey}' to '{ResourceName}'. A dependency may have failed to start.", ex.Data["ArgKey"], modelResource.Name);
                 }
-                else if (value is string a)
+                else if (value is { } argument)
                 {
-                    args.Add(a);
+                    args.Add((argument, isSensitive));
                 }
             },
             resourceLogger,
