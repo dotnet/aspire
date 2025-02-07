@@ -384,6 +384,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Dashboard telemetry.
+        /// </summary>
+        public static string SettingsDashboardTelemetry {
+            get {
+                return ResourceManager.GetString("SettingsDashboardTelemetry", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Dark.
         /// </summary>
         public static string SettingsDialogDarkTheme {

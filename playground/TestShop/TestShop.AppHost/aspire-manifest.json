@@ -4,10 +4,10 @@
     "postgres": {
       "type": "container.v0",
       "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",
-      "image": "docker.io/library/postgres:17.0",
+      "image": "docker.io/library/postgres:17.2",
       "volumes": [
         {
-          "name": "testshop.apphost-a23213a1a9-postgres-data",
+          "name": "testshop.apphost-48e1ce2b9b-postgres-data",
           "target": "/var/lib/postgresql/data",
           "readOnly": false
         }
@@ -33,16 +33,18 @@
     },
     "basketcache": {
       "type": "container.v0",
-      "connectionString": "{basketcache.bindings.tcp.host}:{basketcache.bindings.tcp.port}",
+      "connectionString": "{basketcache.bindings.tcp.host}:{basketcache.bindings.tcp.port},password={basketcache-password.value}",
       "image": "docker.io/library/redis:7.4",
       "args": [
+        "--requirepass",
+        "{basketcache-password.value}",
         "--save",
         "60",
         "1"
       ],
       "volumes": [
         {
-          "name": "testshop.apphost-a23213a1a9-basketcache-data",
+          "name": "testshop.apphost-48e1ce2b9b-basketcache-data",
           "target": "/data",
           "readOnly": false
         }
@@ -110,7 +112,7 @@
       "image": "docker.io/library/rabbitmq:4.0-management",
       "volumes": [
         {
-          "name": "testshop.apphost-a23213a1a9-messaging-data",
+          "name": "testshop.apphost-48e1ce2b9b-messaging-data",
           "target": "/var/lib/rabbitmq",
           "readOnly": false
         }
@@ -228,6 +230,21 @@
     "postgres-password": {
       "type": "parameter.v0",
       "value": "{postgres-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
+        }
+      }
+    },
+    "basketcache-password": {
+      "type": "parameter.v0",
+      "value": "{basketcache-password.inputs.value}",
       "inputs": {
         "value": {
           "type": "string",

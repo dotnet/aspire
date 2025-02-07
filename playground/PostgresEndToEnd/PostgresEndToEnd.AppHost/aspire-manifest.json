@@ -4,7 +4,7 @@
     "pg1": {
       "type": "container.v0",
       "connectionString": "Host={pg1.bindings.tcp.host};Port={pg1.bindings.tcp.port};Username=postgres;Password={pg1-password.value}",
-      "image": "docker.io/library/postgres:17.0",
+      "image": "docker.io/library/postgres:17.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
         "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -27,7 +27,7 @@
     "pg2": {
       "type": "container.v0",
       "connectionString": "Host={pg2.bindings.tcp.host};Port={pg2.bindings.tcp.port};Username=postgres;Password={pg2-password.value}",
-      "image": "docker.io/library/postgres:17.0",
+      "image": "docker.io/library/postgres:17.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
         "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -50,7 +50,7 @@
     "pg3": {
       "type": "container.v0",
       "connectionString": "Host={pg3.bindings.tcp.host};Port={pg3.bindings.tcp.port};Username=postgres;Password={pg3-password.value}",
-      "image": "docker.io/library/postgres:17.0",
+      "image": "docker.io/library/postgres:17.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
         "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -77,7 +77,7 @@
     "pg4": {
       "type": "container.v0",
       "connectionString": "Host={pg4.bindings.tcp.host};Port={pg4.bindings.tcp.port};Username=postgres;Password={pg4-password.value}",
-      "image": "docker.io/library/postgres:17.0",
+      "image": "docker.io/library/postgres:17.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
         "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -100,7 +100,7 @@
     "pg5": {
       "type": "container.v0",
       "connectionString": "Host={pg5.bindings.tcp.host};Port={pg5.bindings.tcp.port};Username=postgres;Password={pg5-password.value}",
-      "image": "docker.io/library/postgres:17.0",
+      "image": "docker.io/library/postgres:17.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
         "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -123,7 +123,7 @@
     "pg6": {
       "type": "container.v0",
       "connectionString": "Host={pg6.bindings.tcp.host};Port={pg6.bindings.tcp.port};Username=postgres;Password={pg6-password.value}",
-      "image": "docker.io/library/postgres:17.0",
+      "image": "docker.io/library/postgres:17.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
         "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -169,7 +169,7 @@
     "pg11": {
       "type": "container.v0",
       "connectionString": "Host={pg11.bindings.tcp.host};Port={pg11.bindings.tcp.port};Username=postgres;Password={pg11-password.value}",
-      "image": "docker.io/library/postgres:17.0",
+      "image": "docker.io/library/postgres:17.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
         "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",

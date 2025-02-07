@@ -19,6 +19,9 @@ parameters:
   - name: runHelixTests
     type: boolean
     default: false
+  - name: runPipelineTests
+    type: boolean
+    default: false
 
 steps:
   # Internal pipeline: Build with pack+sign
@@ -46,7 +49,7 @@ steps:
       displayName: Build
 
   # Non-helix tests are run only on the public pipeline
-  - ${{ if and(eq(parameters.runAsPublic, 'true'), ne(parameters.runHelixTests, 'true')) }}:
+  - ${{ if and(eq(parameters.runAsPublic, 'true'), eq(parameters.runPipelineTests, 'true')) }}:
     # non-helix tests
     - ${{ if ne(parameters.isWindows, 'true') }}:
       - script: mkdir ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
@@ -61,6 +64,14 @@ steps:
       - script: dotnet dev-certs https
         displayName: Install dev-certs
 
+    - ${{ if ne(parameters.isWindows, 'true') }}:
+      - script: |
+          docker info
+          docker container ls
+          docker network ls
+          docker network prune -f
+        displayName: List Docker containers and networks, and prune networks
+
     - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
               --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
               --output ${{ parameters.repoTestResultsPath }}/NonHelix.cobertura.xml
@@ -71,7 +82,9 @@ steps:
         DISABLE_PLAYWRIGHT_TESTS: ${{ ne(parameters.isWindows, 'true') }}
         # https://github.com/dotnet/aspire/issues/5195#issuecomment-2271687822
         DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
-
+        DCP_DIAGNOSTICS_LOG_LEVEL: debug
+        DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
+        DCP_PRESERVE_EXECUTABLE_LOGS: 1
       displayName: Run non-helix tests
 
   # Helix tests are run only on the public pipeline
@@ -120,7 +133,7 @@ steps:
       condition: always()
 
   # Code coverage - only on public pipelines
-  - ${{ if eq(parameters.runAsPublic, 'true') }}:
+  - ${{ if and(eq(parameters.runAsPublic, 'true'), or(eq(parameters.runHelixTests, 'true'), eq(parameters.runPipelineTests, 'true'))) }}:
     - task: CopyFiles@2
       inputs:
         Contents: '${{ parameters.repoArtifactsPath }}/**/*.cobertura.xml'

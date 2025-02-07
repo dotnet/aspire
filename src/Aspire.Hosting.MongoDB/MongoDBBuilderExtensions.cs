@@ -2,10 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MongoDB;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
 
@@ -158,6 +156,7 @@ public static class MongoDBBuilderExtensions
                                                         .WithImageRegistry(MongoDBContainerImageTags.MongoExpressRegistry)
                                                         .WithEnvironment(context => ConfigureMongoExpressContainer(context, builder.Resource))
                                                         .WithHttpEndpoint(targetPort: 8081, name: "http")
+                                                        .WithParentRelationship(builder.Resource)
                                                         .ExcludeFromManifest();
 
         configureContainer?.Invoke(resourceBuilder);

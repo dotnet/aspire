@@ -4,7 +4,9 @@
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Aspire.Dashboard.Model;
+using Aspire.Hosting.Dashboard;
 using FluentUIIconVariant = Microsoft.FluentUI.AspNetCore.Components.IconVariant;
+using CommandsResources = Aspire.Dashboard.Resources.Commands;
 
 namespace Aspire.ResourceService.Proto.V1;
 
@@ -107,8 +109,25 @@ partial class Resource
         ImmutableArray<CommandViewModel> GetCommands()
         {
             return Commands
-                .Select(c => new CommandViewModel(c.Name, MapState(c.State), c.DisplayName, c.DisplayDescription, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.IconName, MapIconVariant(c.IconVariant)))
+                .Select(c =>
+                {
+                    var (displayName, displayDescription) = GetDisplayNameAndDescription(c.Name, c.DisplayName, c.DisplayDescription);
+                    return new CommandViewModel(c.Name, MapState(c.State), displayName, displayDescription, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.IconName, MapIconVariant(c.IconVariant));
+                })
                 .ToImmutableArray();
+
+            // Use custom localizations for built-in lifecycle commands
+            static (string DisplayName, string DisplayDescription) GetDisplayNameAndDescription(string commandName, string displayName, string description)
+            {
+                return commandName switch
+                {
+                    KnownResourceCommands.StartCommand => (CommandsResources.StartCommandDisplayName, CommandsResources.StartCommandDisplayDescription),
+                    KnownResourceCommands.StopCommand => (CommandsResources.StopCommandDisplayName, CommandsResources.StopCommandDisplayDescription),
+                    KnownResourceCommands.RestartCommand => (CommandsResources.RestartCommandDisplayName, CommandsResources.RestartCommandDisplayDescription),
+                    _ => (displayName, description)
+                };
+            }
+
             static CommandViewModelState MapState(ResourceCommandState state)
             {
                 return state switch
@@ -119,6 +138,7 @@ partial class Resource
                     _ => throw new InvalidOperationException("Unknown state: " + state),
                 };
             }
+
             static FluentUIIconVariant MapIconVariant(IconVariant iconVariant)
             {
                 return iconVariant switch

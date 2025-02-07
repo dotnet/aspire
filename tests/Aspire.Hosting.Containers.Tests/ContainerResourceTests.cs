@@ -100,7 +100,7 @@ public class ContainerResourceTests
             .WithEndpoint("ep", e =>
             {
                 e.UriScheme = "http";
-                e.AllocatedEndpoint = new(e, "localhost", 1234);
+                e.AllocatedEndpoint = new(e, "localhost", 1234, targetPortExpression: "1234");
             });
 
         var c2 = appBuilder.AddContainer("container", "none")
@@ -117,7 +117,7 @@ public class ContainerResourceTests
 
         Assert.Collection(args,
             arg => Assert.Equal("arg1", arg),
-            arg => Assert.Equal("http://localhost:1234", arg),
+            arg => Assert.Equal("http://c1:1234", arg), // this is the container hostname
             arg => Assert.Equal("connectionString", arg));
 
         var manifest = await ManifestUtils.GetManifest(c2.Resource);

@@ -1,4 +1,0 @@
-#nullable enable
-*REMOVED*static Aspire.Hosting.AzureSearchExtensions.AddAzureSearch(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureSearchResource!>!, Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.Search.SearchService!>? configureResource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureSearchResource!>!
-*REMOVED*Aspire.Hosting.Azure.AzureSearchResource.AzureSearchResource(string! name, System.Action<Aspire.Hosting.ResourceModuleConstruct!>! configureConstruct) -> void
-Aspire.Hosting.Azure.AzureSearchResource.AzureSearchResource(string! name, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureInfrastructure) -> void

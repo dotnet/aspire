@@ -709,6 +709,48 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(dependency);
 
+        return WaitForCore(builder, dependency, waitBehavior: null);
+    }
+
+    /// <summary>
+    /// Waits for the dependency resource to enter the Running state before starting the resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder for the resource that will be waiting.</param>
+    /// <param name="dependency">The resource builder for the dependency resource.</param>
+    /// <param name="waitBehavior">The wait behavior to use.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>This method is useful when a resource should wait until another has started running. This can help
+    /// reduce errors in logs during local development where dependency resources.</para>
+    /// <para>Some resources automatically register health checks with the application host container. For these
+    /// resources, calling <see cref="WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource}, WaitBehavior)"/> also results
+    /// in the resource being blocked from starting until the health checks associated with the dependency resource
+    /// return <see cref="HealthStatus.Healthy"/>.</para>
+    /// <para>The <see cref="WithHealthCheck{T}(IResourceBuilder{T}, string)"/> method can be used to associate
+    /// additional health checks with a resource.</para>
+    /// <para>The <paramref name="waitBehavior"/> parameter can be used to control the behavior of the wait operation.</para>
+    /// </remarks>
+    /// <example>
+    /// Start message queue before starting the worker service.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var messaging = builder.AddRabbitMQ("messaging");
+    /// builder.AddProject&lt;Projects.MyApp&gt;("myapp")
+    ///        .WithReference(messaging)
+    ///        .WaitFor(messaging, WaitBehavior.StopOnDependencyFailure);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, WaitBehavior waitBehavior) where T : IResourceWithWaitSupport
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return WaitForCore(builder, dependency, waitBehavior);
+    }
+
+    private static IResourceBuilder<T> WaitForCore<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, WaitBehavior? waitBehavior) where T : IResourceWithWaitSupport
+    {
         if (builder.Resource as IResource == dependency.Resource)
         {
             throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for itself.");
@@ -725,12 +767,38 @@ public static class ResourceBuilderExtensions
             // the WaitFor to the parent resource. This caters for situations where
             // the child resource itself does not have any health checks setup.
             var parentBuilder = builder.ApplicationBuilder.CreateResourceBuilder(dependencyResourceWithParent.Parent);
-            builder.WaitFor(parentBuilder);
+            builder.WaitForCore(parentBuilder, waitBehavior);
         }
 
         builder.WithRelationship(dependency.Resource, KnownRelationshipTypes.WaitFor);
 
-        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilHealthy));
+        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilHealthy) { WaitBehavior = waitBehavior });
+    }
+
+    /// <summary>
+    /// Adds a <see cref="ExplicitStartupAnnotation" /> annotation to the resource so it doesn't automatically start
+    /// with the app host startup.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>This method is useful when a resource shouldn't automatically start when the app host starts.</para>
+    /// </remarks>
+    /// <example>
+    /// The database clean up tool project isn't started with the app host.
+    /// The resource start command can be used to run it ondemand later.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var pgsql = builder.AddPostgres("postgres");
+    /// builder.AddProject&lt;Projects.CleanUpDatabase&gt;("dbcleanuptool")
+    ///        .WithReference(pgsql)
+    ///        .WithExplicitStart();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithExplicitStart<T>(this IResourceBuilder<T> builder) where T : IResource
+    {
+        return builder.WithAnnotation(new ExplicitStartupAnnotation());
     }
 
     /// <summary>
@@ -1063,5 +1131,35 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(type);
 
         return builder.WithAnnotation(new ResourceRelationshipAnnotation(resource, type));
+    }
+
+    /// <summary>
+    /// Adds a <see cref="ResourceRelationshipAnnotation"/> to the resource annotations to add a parent-child relationship.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="parent">The parent of <paramref name="builder"/>.</param>
+    /// <returns>A resource builder.</returns>
+    /// <remarks>
+    /// <para>
+    /// The <c>WithParentRelationship</c> method is used to add parent relationships to the resource. Relationships are used to link
+    /// resources together in UI.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// This example shows adding a relationship between two resources.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var backend = builder.AddProject&lt;Projects.Backend&gt;("backend");
+    /// 
+    /// var frontend = builder.AddProject&lt;Projects.Manager&gt;("frontend")
+    ///                      .WithParentRelationship(backend.Resource);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithParentRelationship<T>(
+        this IResourceBuilder<T> builder,
+        IResource parent) where T : IResource
+    {
+        return builder.WithRelationship(parent, KnownRelationshipTypes.Parent);
     }
 }

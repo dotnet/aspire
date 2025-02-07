@@ -10,6 +10,14 @@
         "principalId": ""
       }
     },
+    "db": {
+      "type": "value.v0",
+      "connectionString": "{cosmos.outputs.connectionString}"
+    },
+    "entries": {
+      "type": "value.v0",
+      "connectionString": "{cosmos.outputs.connectionString}"
+    },
     "api": {
       "type": "project.v0",
       "path": "../CosmosEndToEnd.ApiService/CosmosEndToEnd.ApiService.csproj",

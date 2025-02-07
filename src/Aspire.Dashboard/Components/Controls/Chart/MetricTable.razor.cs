@@ -103,6 +103,7 @@ public partial class MetricTable : ChartBase
         {
             Title = DialogsLoc[nameof(Resources.Dialogs.ExemplarsDialogTitle)],
             PrimaryAction = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
+            DismissTitle = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
             SecondaryAction = string.Empty,
             Width = "800px",
             Height = "auto"

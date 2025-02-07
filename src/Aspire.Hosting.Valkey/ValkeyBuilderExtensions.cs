@@ -4,7 +4,6 @@
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Valkey;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
@@ -25,6 +24,7 @@ public static class ValkeyBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port to bind the underlying container to.</param>
+    /// <remarks>
     /// <example>
     /// Use in application host
     /// <code lang="csharp">
@@ -51,6 +51,7 @@ public static class ValkeyBuilderExtensions
     /// var value = db.HashGet("key", "hash");
     /// </code>
     /// </example>
+    /// </remarks>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<ValkeyResource> AddValkey(this IDistributedApplicationBuilder builder,
         string name,
@@ -90,6 +91,7 @@ public static class ValkeyBuilderExtensions
     /// A flag that indicates if this is a read-only volume. Setting this to <c>true</c> will disable Valkey persistence.<br/>
     /// Defaults to <c>false</c>.
     /// </param>
+    /// <remarks>
     /// <example>
     /// Use <see cref="WithPersistence(IResourceBuilder{ValkeyResource}, TimeSpan?, long)"/> to adjust Valkey persistence configuration, e.g.:
     /// <code lang="csharp">
@@ -98,6 +100,7 @@ public static class ValkeyBuilderExtensions
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
     /// </code>
     /// </example>
+    /// </remarks>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<ValkeyResource> WithDataVolume(this IResourceBuilder<ValkeyResource> builder,
         string? name = null, bool isReadOnly = false)
@@ -121,6 +124,7 @@ public static class ValkeyBuilderExtensions
     /// A flag that indicates if this is a read-only mount. Setting this to <c>true</c> will disable Valkey persistence.<br/>
     /// Defaults to <c>false</c>.
     /// </param>
+    /// <remarks>
     /// <example>
     /// Use <see cref="WithPersistence(IResourceBuilder{ValkeyResource}, TimeSpan?, long)"/> to adjust Valkey persistence configuration, e.g.:
     /// <code lang="csharp">
@@ -129,6 +133,7 @@ public static class ValkeyBuilderExtensions
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
     /// </code>
     /// </example>
+    /// </remarks>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<ValkeyResource> WithDataBindMount(this IResourceBuilder<ValkeyResource> builder,
         string source, bool isReadOnly = false)
@@ -148,6 +153,7 @@ public static class ValkeyBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="interval">The interval between snapshot exports. Defaults to 60 seconds.</param>
     /// <param name="keysChangedThreshold">The number of key change operations required to trigger a snapshot at the interval. Defaults to 1.</param>
+    /// <remarks>
     /// <example>
     /// Use with <see cref="WithDataBindMount(IResourceBuilder{ValkeyResource}, string, bool)"/>
     /// or <see cref="WithDataVolume(IResourceBuilder{ValkeyResource}, string?, bool)"/> to persist Valkey data across sessions with custom persistence configuration, e.g.:
@@ -157,6 +163,7 @@ public static class ValkeyBuilderExtensions
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
     /// </code>
     /// </example>
+    /// </remarks>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<ValkeyResource> WithPersistence(this IResourceBuilder<ValkeyResource> builder,
         TimeSpan? interval = null, long keysChangedThreshold = 1)

@@ -1,8 +1,0 @@
-#nullable enable
-*REMOVED*Aspire.Hosting.ApplicationModel.AzureOpenAIDeployment.AzureOpenAIDeployment(string! name, string! modelName, string! modelVersion, string! skuName = "Standard", int skuCapacity = 1) -> void
-*REMOVED*static Aspire.Hosting.AzureOpenAIExtensions.AddAzureOpenAI(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.AzureOpenAIResource!>!, Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.CognitiveServices.CognitiveServicesAccount!, System.Collections.Generic.IEnumerable<Azure.Provisioning.CognitiveServices.CognitiveServicesAccountDeployment!>!>? configureResource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.AzureOpenAIResource!>!
-*REMOVED*Aspire.Hosting.ApplicationModel.AzureOpenAIResource.AzureOpenAIResource(string! name, System.Action<Aspire.Hosting.ResourceModuleConstruct!>! configureConstruct) -> void
-Aspire.Hosting.ApplicationModel.AzureOpenAIDeployment.AzureOpenAIDeployment(string! name, string! modelName, string! modelVersion, string? skuName = null, int? skuCapacity = null) -> void
-Aspire.Hosting.ApplicationModel.AzureOpenAIDeployment.SkuCapacity.set -> void
-Aspire.Hosting.ApplicationModel.AzureOpenAIDeployment.SkuName.set -> void
-Aspire.Hosting.ApplicationModel.AzureOpenAIResource.AzureOpenAIResource(string! name, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureInfrastructure) -> void

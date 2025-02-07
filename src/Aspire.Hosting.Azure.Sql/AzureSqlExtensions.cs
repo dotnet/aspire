@@ -200,22 +200,39 @@ public static class AzureSqlExtensions
         var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
         infrastructure.Add(principalNameParameter);
 
-        var sqlServer = new SqlServer(infrastructure.AspireResource.GetBicepIdentifier())
+        var sqlServer = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+        (identifier, name) =>
         {
-            Administrators = new ServerExternalAdministrator()
+            var resource = SqlServer.FromExisting(identifier);
+            resource.Name = name;
+            resource.Administrators = new ServerExternalAdministrator()
             {
                 AdministratorType = SqlAdministratorType.ActiveDirectory,
                 IsAzureADOnlyAuthenticationEnabled = true,
                 Sid = principalIdParameter,
                 Login = principalNameParameter,
                 TenantId = BicepFunction.GetSubscription().TenantId
-            },
-            Version = "12.0",
-            PublicNetworkAccess = ServerNetworkAccessFlag.Enabled,
-            MinTlsVersion = SqlMinimalTlsVersion.Tls1_2,
-            Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-        };
-        infrastructure.Add(sqlServer);
+            };
+            return resource;
+        },
+        (infrastructure) =>
+        {
+            return new SqlServer(infrastructure.AspireResource.GetBicepIdentifier())
+            {
+                Administrators = new ServerExternalAdministrator()
+                {
+                    AdministratorType = SqlAdministratorType.ActiveDirectory,
+                    IsAzureADOnlyAuthenticationEnabled = true,
+                    Sid = principalIdParameter,
+                    Login = principalNameParameter,
+                    TenantId = BicepFunction.GetSubscription().TenantId
+                },
+                Version = "12.0",
+                PublicNetworkAccess = ServerNetworkAccessFlag.Enabled,
+                MinTlsVersion = SqlMinimalTlsVersion.Tls1_2,
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+            };
+        });
 
         infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllAzureIps")
         {
