@@ -102,14 +102,9 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     public string Url => AllocatedEndpoint.UriString;
 
     /// <summary>
-    /// Gets the display name for this endpoint.
+    /// Gets the display properties for this endpoint.
     /// </summary>
-    public string? DisplayName => EndpointAnnotation.DisplayName;
-
-    /// <summary>
-    /// Gets the visual priority for this endpoint.
-    /// </summary>
-    public int? Priority => EndpointAnnotation.Priority;
+    public EndpointDisplayProperties DisplayProperties => EndpointAnnotation.DisplayProperties;
 
     internal AllocatedEndpoint AllocatedEndpoint =>
         GetAllocatedEndpoint()

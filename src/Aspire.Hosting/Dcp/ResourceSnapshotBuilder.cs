@@ -236,21 +236,21 @@ internal class ResourceSnapshotBuilder
                     {
                         var url = CombineUrls(ep.Url, launchUrl);
 
-                        urls.Add(new(Name: ep.EndpointName, Url: url, IsInternal: false, DisplayName: ep.DisplayName, Priority: ep.Priority));
+                        urls.Add(new(Name: ep.EndpointName, Url: url, IsInternal: false, DisplayProperties: new(ep.DisplayProperties.DisplayName, ep.DisplayProperties.SortOrder)));
                     }
                 }
                 else
                 {
                     if (ep.IsAllocated)
                     {
-                        urls.Add(new(Name: ep.EndpointName, Url: ep.Url, IsInternal: false, DisplayName: ep.DisplayName, Priority: ep.Priority));
+                        urls.Add(new(Name: ep.EndpointName, Url: ep.Url, IsInternal: false, DisplayProperties: new(ep.DisplayProperties.DisplayName, ep.DisplayProperties.SortOrder)));
                     }
                 }
 
                 if (ep.EndpointAnnotation.IsProxied)
                 {
                     var endpointString = $"{ep.Scheme}://{endpoint.Spec.Address}:{endpoint.Spec.Port}";
-                    urls.Add(new(Name: $"{ep.EndpointName} target port", Url: endpointString, IsInternal: true, DisplayName: ep.DisplayName, Priority: ep.Priority));
+                    urls.Add(new(Name: $"{ep.EndpointName} target port", Url: endpointString, IsInternal: true, DisplayProperties: new(ep.DisplayProperties.DisplayName, ep.DisplayProperties.SortOrder)));
                 }
             }
         }

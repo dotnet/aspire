@@ -25,9 +25,10 @@ internal static class ResourceEndpointHelpers
                     Address = url.Url.Host,
                     Port = url.Url.Port,
                     Url = url.Url.Scheme is "http" or "https" ? url.Url.OriginalString : null,
-                    Priority = url.Priority,
+                    SortOrder = url.DisplayProperties?.SortOrder,
+                    DisplayName = url.DisplayProperties?.DisplayName,
                     OriginalUrlString = url.Url.OriginalString,
-                    Text = url.DisplayName ?? url.Url.OriginalString
+                    Text = url.DisplayProperties?.DisplayName ?? url.Url.OriginalString
                 });
             }
         }
@@ -38,7 +39,7 @@ internal static class ResourceEndpointHelpers
         // - other urls
         // - endpoint name
         var orderedEndpoints = endpoints
-            .OrderByDescending(e => e.Priority ?? 0)
+            .OrderByDescending(e => e.SortOrder ?? 0)
             .ThenByDescending(e => e.Url?.StartsWith("https") == true)
             .ThenByDescending(e => e.Url != null)
             .ThenBy(e => e.Name, StringComparers.EndpointAnnotationName)
@@ -48,7 +49,7 @@ internal static class ResourceEndpointHelpers
     }
 }
 
-[DebuggerDisplay("Name = {Name}, Text = {Text}, Address = {Address}:{Port}, Url = {Url}")]
+[DebuggerDisplay("Name = {Name}, Text = {Text}, Address = {Address}:{Port}, Url = {Url}, DisplayName = {DisplayName}, OriginalUrlString = {OriginalUrlString}, SortOrder = {SortOrder}")]
 public sealed class DisplayedEndpoint : IPropertyGridItem
 {
     public required string Name { get; set; }
@@ -56,7 +57,7 @@ public sealed class DisplayedEndpoint : IPropertyGridItem
     public string? Address { get; set; }
     public int? Port { get; set; }
     public string? Url { get; set; }
-    public int? Priority { get; set; }
+    public int? SortOrder { get; set; }
     public string? DisplayName { get; set; }
     public required string OriginalUrlString { get; set; }
 

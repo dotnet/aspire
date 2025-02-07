@@ -43,16 +43,18 @@ partial class Resource
         foreach (var urlSnapshot in snapshot.Urls)
         {
             var url = new Url { Name = urlSnapshot.Name, FullUrl = urlSnapshot.Url, IsInternal = urlSnapshot.IsInternal };
-            if (urlSnapshot.DisplayName is not null)
+            var displayProperties = new EndpointDisplayProperties();
+            if (urlSnapshot.DisplayProperties?.DisplayName is not null)
             {
-                url.DisplayName = urlSnapshot.DisplayName;
+                displayProperties.DisplayName = urlSnapshot.DisplayProperties.DisplayName;
             }
 
-            if (urlSnapshot.Priority is not null)
+            if (urlSnapshot.DisplayProperties?.SortOrder is not null)
             {
-                url.Priority = urlSnapshot.Priority.Value;
+                displayProperties.SortOrder = urlSnapshot.DisplayProperties.SortOrder.Value;
             }
 
+            url.DisplayProperties = displayProperties;
             resource.Urls.Add(url);
         }
 
