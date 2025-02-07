@@ -806,6 +806,8 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                 var projectLaunchConfiguration = new ProjectLaunchConfiguration();
                 projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
 
+                var projectArgs = new List<string>();
+
                 if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]))
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.IDE;
@@ -819,29 +821,30 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                 else
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.Process;
+
                     if (_configuration.GetBool("DOTNET_WATCH") is not true)
                     {
-                        exeSpec.Spec.Args = [
+                        projectArgs.AddRange([
                             "run",
                             "--no-build",
                             "--project",
                             projectMetadata.ProjectPath,
-                        ];
+                        ]);
                     }
                     else
                     {
-                        exeSpec.Spec.Args = [
+                        projectArgs.AddRange([
                             "watch",
                             "--non-interactive",
                             "--no-hot-reload",
                             "--project",
                             projectMetadata.ProjectPath
-                        ];
+                        ]);
                     }
 
                     if (!string.IsNullOrEmpty(_distributedApplicationOptions.Configuration))
                     {
-                        exeSpec.Spec.Args.AddRange(new[] { "-c", _distributedApplicationOptions.Configuration });
+                        projectArgs.AddRange(new[] { "-c", _distributedApplicationOptions.Configuration });
                     }
 
                     // We pretty much always want to suppress the normal launch profile handling
@@ -850,7 +853,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                     // and should be HIGHER priority than the launch profile settings).
                     // This means we need to apply the launch profile settings manually--the invocation parameters here,
                     // and the environment variables/application URLs inside CreateExecutableAsync().
-                    exeSpec.Spec.Args.Add("--no-launch-profile");
+                    projectArgs.Add("--no-launch-profile");
 
                     var launchProfile = project.GetEffectiveLaunchProfile()?.LaunchProfile;
                     if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
@@ -858,14 +861,15 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                         var cmdArgs = CommandLineArgsParser.Parse(launchProfile.CommandLineArgs);
                         if (cmdArgs.Count > 0)
                         {
-                            exeSpec.Spec.Args.Add("--");
-                            exeSpec.Spec.Args.AddRange(cmdArgs);
+                            projectArgs.Add("--");
+                            projectArgs.AddRange(cmdArgs);
                         }
                     }
                 }
 
                 // We want this annotation even if we are not using IDE execution; see ToSnapshot() for details.
                 exeSpec.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
+                exeSpec.SetAnnotationAsObjectList(CustomResource.ResourceProjectArgsAnnotation, projectArgs);
 
                 var exeAppResource = new AppResource(project, exeSpec);
                 AddServicesProducedInfo(project, exeSpec, exeAppResource);
@@ -976,50 +980,19 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                 throw new InvalidOperationException($"Expected an Executable resource, but got {er.DcpResource.Kind} instead");
         }
 
-        var failedToApplyArgs = false;
-        var failedToApplyConfiguration = false;
+        (var args, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
 
-        spec.Args ??= [];
-
-        er.DcpResource.Metadata.Annotations?.Remove(CustomResource.ResourceAppArgsAnnotation);
-
-        await er.ModelResource.ProcessArgumentValuesAsync(_executionContext, (unprocessed, value, ex, isSensitive) =>
+        // An executable can be restarted so args must be reset to an empty state.
+        // After resetting, first apply any dotnet project related args, e.g. configuration, and then add args from the model resource.
+        spec.Args = [];
+        if (er.DcpResource.TryGetAnnotationAsObjectList<string>(CustomResource.ResourceProjectArgsAnnotation, out var projectArgs))
         {
-            if (ex is not null)
-            {
-                failedToApplyArgs = true;
+            spec.Args.AddRange(projectArgs);
+        }
+        spec.Args.AddRange(args.Select(a => a.Value));
+        er.DcpResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, args.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
 
-                resourceLogger.LogCritical(ex, "Failed to apply argument value '{ArgKey}'. A dependency may have failed to start.", ex.Data["ArgKey"]);
-                _logger.LogDebug(ex, "Failed to apply argument value '{ArgKey}' to '{ResourceName}'. A dependency may have failed to start.", ex.Data["ArgKey"], er.ModelResource.Name);
-            }
-            else if (value is { } argument)
-            {
-                er.DcpResource.AnnotateAsObjectList(CustomResource.ResourceAppArgsAnnotation, new AppLaunchArgumentAnnotation(argument, isSensitive: isSensitive));
-                spec.Args.Add(argument);
-            }
-        },
-        resourceLogger,
-        DefaultContainerHostName,
-        cancellationToken).ConfigureAwait(false);
-
-        spec.Env = [];
-
-        await er.ModelResource.ProcessEnvironmentVariableValuesAsync(_executionContext, (key, unprocessed, value, ex) =>
-        {
-            if (ex is not null)
-            {
-                failedToApplyConfiguration = true;
-                resourceLogger.LogCritical(ex, "Failed to apply environment variable '{Name}'. A dependency may have failed to start.", key);
-                _logger.LogDebug(ex, "Failed to apply environment variable '{Name}' to '{ResourceName}'. A dependency may have failed to start.", key, er.ModelResource.Name);
-            }
-            else if (value is string s)
-            {
-                spec.Env.Add(new EnvVar { Name = key, Value = s });
-            }
-        },
-        resourceLogger,
-        DefaultContainerHostName,
-        cancellationToken).ConfigureAwait(false);
+        (spec.Env, var failedToApplyConfiguration) = await BuildEnvVarsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
 
         if (failedToApplyConfiguration || failedToApplyArgs)
         {

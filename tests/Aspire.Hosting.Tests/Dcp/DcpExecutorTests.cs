@@ -141,6 +141,7 @@ public class DcpExecutorTests
         var callCount1 = exe1.Spec.Env!.Single(e => e.Name == "CALL_COUNT");
         Assert.Equal("1", callCount1.Value);
 
+        Assert.Single(exe1.Spec.Args!.Where(a => a == "--no-build"));
         Assert.Single(exe1.Spec.Args!.Where(a => a == "--test"));
         Assert.True(exe1.TryGetAnnotationAsObjectList<AppLaunchArgumentAnnotation>(CustomResource.ResourceAppArgsAnnotation, out var argAnnotations1));
         Assert.Single(argAnnotations1.Where(a => a.Argument == "--test"));
@@ -158,8 +159,9 @@ public class DcpExecutorTests
         var callCount2 = exe2.Spec.Env!.Single(e => e.Name == "CALL_COUNT");
         Assert.Equal("2", callCount2.Value);
 
-        Assert.Single(exe1.Spec.Args!.Where(a => a == "--test"));
-        Assert.True(exe1.TryGetAnnotationAsObjectList<AppLaunchArgumentAnnotation>(CustomResource.ResourceAppArgsAnnotation, out var argAnnotations2));
+        Assert.Single(exe2.Spec.Args!.Where(a => a == "--no-build"));
+        Assert.Single(exe2.Spec.Args!.Where(a => a == "--test"));
+        Assert.True(exe2.TryGetAnnotationAsObjectList<AppLaunchArgumentAnnotation>(CustomResource.ResourceAppArgsAnnotation, out var argAnnotations2));
         Assert.Single(argAnnotations2.Where(a => a.Argument == "--test"));
     }
 
