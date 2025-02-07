@@ -976,11 +976,50 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                 throw new InvalidOperationException($"Expected an Executable resource, but got {er.DcpResource.Kind} instead");
         }
 
-        (var args, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
-        spec.Args = args.Select(a => a.Value).ToList();
-        er.DcpResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, args.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
+        var failedToApplyArgs = false;
+        var failedToApplyConfiguration = false;
 
-        (spec.Env, var failedToApplyConfiguration) = await BuildEnvVarsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
+        spec.Args ??= [];
+
+        er.DcpResource.Metadata.Annotations?.Remove(CustomResource.ResourceAppArgsAnnotation);
+
+        await er.ModelResource.ProcessArgumentValuesAsync(_executionContext, (unprocessed, value, ex, isSensitive) =>
+        {
+            if (ex is not null)
+            {
+                failedToApplyArgs = true;
+
+                resourceLogger.LogCritical(ex, "Failed to apply argument value '{ArgKey}'. A dependency may have failed to start.", ex.Data["ArgKey"]);
+                _logger.LogDebug(ex, "Failed to apply argument value '{ArgKey}' to '{ResourceName}'. A dependency may have failed to start.", ex.Data["ArgKey"], er.ModelResource.Name);
+            }
+            else if (value is { } argument)
+            {
+                er.DcpResource.AnnotateAsObjectList(CustomResource.ResourceAppArgsAnnotation, new AppLaunchArgumentAnnotation(argument, isSensitive: isSensitive));
+                spec.Args.Add(argument);
+            }
+        },
+        resourceLogger,
+        DefaultContainerHostName,
+        cancellationToken).ConfigureAwait(false);
+
+        spec.Env = [];
+
+        await er.ModelResource.ProcessEnvironmentVariableValuesAsync(_executionContext, (key, unprocessed, value, ex) =>
+        {
+            if (ex is not null)
+            {
+                failedToApplyConfiguration = true;
+                resourceLogger.LogCritical(ex, "Failed to apply environment variable '{Name}'. A dependency may have failed to start.", key);
+                _logger.LogDebug(ex, "Failed to apply environment variable '{Name}' to '{ResourceName}'. A dependency may have failed to start.", key, er.ModelResource.Name);
+            }
+            else if (value is string s)
+            {
+                spec.Env.Add(new EnvVar { Name = key, Value = s });
+            }
+        },
+        resourceLogger,
+        DefaultContainerHostName,
+        cancellationToken).ConfigureAwait(false);
 
         if (failedToApplyConfiguration || failedToApplyArgs)
         {
