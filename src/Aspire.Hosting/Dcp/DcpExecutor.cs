@@ -1547,6 +1547,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                     runArgs.Add(s);
                 }
             },
+            resourceLogger,
             DefaultContainerHostName,
             cancellationToken).ConfigureAwait(false);
 
