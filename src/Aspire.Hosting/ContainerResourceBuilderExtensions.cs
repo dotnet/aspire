@@ -40,7 +40,7 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
     public static IResourceBuilder<ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, [ResourceName] string name, string image, string tag)
     {
-       return AddContainer(builder, name, image)
+        return AddContainer(builder, name, image)
            .WithImageTag(tag);
     }
 
@@ -180,7 +180,7 @@ public static class ContainerResourceBuilderExtensions
         }
 
         // For continuity with 9.0 and earlier behaviour, keep the registry and image combined.
-        var parsedRegistryAndImage = parsedReference.Registry is {} 
+        var parsedRegistryAndImage = parsedReference.Registry is { }
             ? $"{parsedReference.Registry}/{parsedReference.Image}"
             : parsedReference.Image;
 
@@ -202,10 +202,11 @@ public static class ContainerResourceBuilderExtensions
                 throw new ArgumentOutOfRangeException(nameof(image), parsedReference.Digest, "invalid digest format");
             }
 
-            var digest = parsedReference.Digest.Substring(prefix.Length);
+            var digest = parsedReference.Digest[prefix.Length..];
             imageAnnotation.SHA256 = digest;
         }
-        else {
+        else
+        {
             imageAnnotation.Tag = parsedReference.Tag ?? tag ?? "latest";
         }
 
@@ -381,12 +382,14 @@ public static class ContainerResourceBuilderExtensions
 
         var fullyQualifiedDockerfilePath = Path.GetFullPath(dockerfilePath, fullyQualifiedContextPath);
 
-        var imageName = builder.GenerateImageName();
+        var imageName = ImageNameGenerator.GenerateImageName(builder);
+        var imageTag = ImageNameGenerator.GenerateImageTag(builder);
         var annotation = new DockerfileBuildAnnotation(fullyQualifiedContextPath, fullyQualifiedDockerfilePath, stage);
+
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
                       .WithImageRegistry(registry: null)
                       .WithImage(imageName)
-                      .WithImageTag("latest");
+                      .WithImageTag(imageTag);
     }
 
     /// <summary>
