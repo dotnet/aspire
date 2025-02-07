@@ -529,7 +529,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         await resource.ProcessArgumentValuesAsync(
             ExecutionContext,
-            (unprocessed, expression, ex) =>
+            (unprocessed, expression, ex, _) =>
             {
                 if (ex is not null)
                 {

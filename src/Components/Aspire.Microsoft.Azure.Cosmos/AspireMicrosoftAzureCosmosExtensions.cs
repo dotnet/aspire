@@ -73,13 +73,15 @@ public static class AspireMicrosoftAzureCosmosExtensions
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
-            if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+            var cosmosConnectionInfo = CosmosUtils.ParseConnectionString(connectionString);
+
+            if (cosmosConnectionInfo.AccountEndpoint is not null)
             {
-                settings.AccountEndpoint = uri;
+                settings.AccountEndpoint = cosmosConnectionInfo.AccountEndpoint;
             }
             else
             {
-                settings.ConnectionString = connectionString;
+                settings.ConnectionString = cosmosConnectionInfo.ConnectionString;
             }
         }
 

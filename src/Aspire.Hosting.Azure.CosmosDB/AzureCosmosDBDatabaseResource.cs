@@ -3,7 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.Azure.CosmosDB;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents an Azure Cosmos DB Database.
@@ -11,12 +11,12 @@ namespace Aspire.Hosting.Azure.CosmosDB;
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-public class CosmosDBDatabase : Resource, IResourceWithParent<AzureCosmosDBResource>, IResourceWithConnectionString
+public class AzureCosmosDBDatabaseResource : Resource, IResourceWithParent<AzureCosmosDBResource>, IResourceWithConnectionString
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="CosmosDBDatabase"/> class.
+    /// Initializes a new instance of the <see cref="AzureCosmosDBDatabaseResource"/> class.
     /// </summary>
-    public CosmosDBDatabase(string name, string databaseName, AzureCosmosDBResource parent) : base(name)
+    public AzureCosmosDBDatabaseResource(string name, string databaseName, AzureCosmosDBResource parent) : base(name)
     {
         DatabaseName = databaseName;
         Parent = parent;
@@ -30,7 +30,7 @@ public class CosmosDBDatabase : Resource, IResourceWithParent<AzureCosmosDBResou
     /// <summary>
     /// The containers for this database.
     /// </summary>
-    internal List<CosmosDBContainer> Containers { get; } = [];
+    internal List<AzureCosmosDBContainerResource> Containers { get; } = [];
 
     /// <summary>
     /// Gets the parent Azure Cosmos DB account resource.

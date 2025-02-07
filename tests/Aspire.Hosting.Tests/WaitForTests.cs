@@ -161,6 +161,171 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
+    // Add a test that verifies the wait for behavior when the dependency is in varying states
+    // and the dependent resource is waiting for the dependency.
+    // Use a theory to test the different states and expected behavior.
+
+    [Theory]
+    [InlineData(nameof(KnownResourceStates.Exited))]
+    [InlineData(nameof(KnownResourceStates.FailedToStart))]
+    [InlineData(nameof(KnownResourceStates.RuntimeUnhealthy))]
+    [InlineData(nameof(KnownResourceStates.Finished))]
+    [RequiresDocker]
+    public async Task WaitForBehaviorStopOnDependencyFailure(string status)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+
+        var dependency = builder.AddResource(new CustomResource("test"));
+        var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
+                           .WithReference(dependency)
+                           .WaitFor(dependency, WaitBehavior.StopOnDependencyFailure);
+
+        using var app = builder.Build();
+
+        var startupCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+        var startTask = app.StartAsync(startupCts.Token);
+
+        var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+
+        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        {
+            State = status
+        });
+
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.FailedToStart, waitingStateCts.Token);
+
+        await startTask;
+    }
+
+    [Theory]
+    [InlineData(nameof(KnownResourceStates.Exited))]
+    [InlineData(nameof(KnownResourceStates.FailedToStart))]
+    [InlineData(nameof(KnownResourceStates.RuntimeUnhealthy))]
+    [InlineData(nameof(KnownResourceStates.Finished))]
+    [RequiresDocker]
+    public async Task WaitForBehaviorStopOnDependencyIsDefaultWithNoDashboardFailure(string status)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+
+        var dependency = builder.AddResource(new CustomResource("test"));
+        var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
+                           .WithReference(dependency)
+                           .WaitFor(dependency);
+
+        using var app = builder.Build();
+
+        var startupCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+        var startTask = app.StartAsync(startupCts.Token);
+
+        var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+
+        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        {
+            State = status
+        });
+
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.FailedToStart, waitingStateCts.Token);
+
+        await startTask;
+    }
+
+    [Theory]
+    [InlineData(nameof(KnownResourceStates.Exited))]
+    [InlineData(nameof(KnownResourceStates.FailedToStart))]
+    [InlineData(nameof(KnownResourceStates.RuntimeUnhealthy))]
+    [InlineData(nameof(KnownResourceStates.Finished))]
+    [RequiresDocker]
+    public async Task WaitForBehaviorWaitOnDependencyFailure(string status)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+
+        var dependency = builder.AddResource(new CustomResource("test"));
+        var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
+                           .WithReference(dependency)
+                           .WaitFor(dependency, WaitBehavior.WaitOnDependencyFailure);
+
+        using var app = builder.Build();
+
+        var startupCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+        var startTask = app.StartAsync(startupCts.Token);
+
+        var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+
+        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        {
+            State = status
+        });
+
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+
+        // Fake a restart of the dependency
+        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        {
+            State = KnownResourceStates.Running
+        });
+
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, waitingStateCts.Token);
+
+        await startTask;
+    }
+
+    [Theory]
+    [InlineData(nameof(KnownResourceStates.Exited))]
+    [InlineData(nameof(KnownResourceStates.FailedToStart))]
+    [InlineData(nameof(KnownResourceStates.RuntimeUnhealthy))]
+    [InlineData(nameof(KnownResourceStates.Finished))]
+    [RequiresDocker]
+    public async Task WaitForBehaviorWaitOnDependencyFailureViaOptions(string status)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+
+        builder.Services.Configure<ResourceNotificationServiceOptions>(o =>
+        {
+            o.DefaultWaitBehavior = WaitBehavior.WaitOnDependencyFailure;
+        });
+
+        var dependency = builder.AddResource(new CustomResource("test"));
+        var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
+                           .WithReference(dependency)
+                           .WaitFor(dependency);
+
+        using var app = builder.Build();
+
+        var startupCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+        var startTask = app.StartAsync(startupCts.Token);
+
+        var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+
+        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        {
+            State = status
+        });
+
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+
+        // Fake a restart of the dependency
+        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        {
+            State = KnownResourceStates.Running
+        });
+
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, waitingStateCts.Token);
+
+        await startTask;
+    }
+
     [Fact]
     [RequiresDocker]
     public async Task WaitForCompletionWaitsForTerminalStateOfDependencyResource()
@@ -325,7 +490,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
     public async Task EnsureDependencyResourceThatReturnsNonMatchingExitCodeResultsInDependentResourceFailingToStart()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
-        
+
         var dependency = builder.AddResource(new CustomResource("test"));
         var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                            .WithReference(dependency)
