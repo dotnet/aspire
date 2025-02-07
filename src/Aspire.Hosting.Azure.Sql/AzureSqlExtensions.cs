@@ -200,7 +200,7 @@ public static class AzureSqlExtensions
         var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
         infrastructure.Add(principalNameParameter);
 
-        var sqlServer = infrastructure.CreateExistingOrNewProvisionableResource(
+        var sqlServer = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
         (identifier, name) =>
         {
             var resource = SqlServer.FromExisting(identifier);

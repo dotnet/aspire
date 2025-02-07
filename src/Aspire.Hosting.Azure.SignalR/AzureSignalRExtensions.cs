@@ -37,7 +37,7 @@ public static class AzureSignalRExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var service = infrastructure.CreateExistingOrNewProvisionableResource((identifier, name) =>
+            var service = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,(identifier, name) =>
             {
                 var resource = SignalRService.FromExisting(identifier);
                 resource.Name = name;

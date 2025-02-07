@@ -32,7 +32,7 @@ public static class AzureServiceBusExtensions
 
         var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
-            AzureProvisioning.ServiceBusNamespace serviceBusNamespace = infrastructure.CreateExistingOrNewProvisionableResource(
+            AzureProvisioning.ServiceBusNamespace serviceBusNamespace = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
                 (identifier, name) =>
                 {
                     var resource = AzureProvisioning.ServiceBusNamespace.FromExisting(identifier);
@@ -439,7 +439,7 @@ public static class AzureServiceBusExtensions
     /// Here is an example of how to configure the emulator to use a different logging mechanism:
     /// <code language="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// builder.AddAzureServiceBus("servicebusns")
     ///        .RunAsEmulator(configure => configure
     ///            .WithConfiguration(document =>

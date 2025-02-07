@@ -1137,4 +1137,126 @@ public class ExistingAzureResourceTests
             """;
         Assert.Equal(expectedBicep, BicepText);
     }
+
+    [Fact]
+    public async Task SupportsExistingAzureRedisWithResourceGroup()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var existingResourceName = builder.AddParameter("existingResourceName");
+        var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
+        var redis = builder.AddAzureRedis("redis")
+            .PublishAsExisting(existingResourceName, existingResourceGroupName);
+
+        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(redis.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v1",
+              "connectionString": "{redis.outputs.connectionString}",
+              "path": "redis.module.bicep",
+              "params": {
+                "existingResourceName": "{existingResourceName.value}",
+                "principalId": "",
+                "principalName": ""
+              },
+              "scope": {
+                "resourceGroup": "{existingResourceGroupName.value}"
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, ManifestNode.ToString());
+
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param existingResourceName string
+
+            param principalId string
+
+            param principalName string
+
+            resource redis 'Microsoft.Cache/redis@2024-03-01' existing = {
+              name: existingResourceName
+              properties: {
+                disableAccessKeyAuthentication: true
+                redisConfiguration: {
+                  'aad-enabled': 'true'
+                }
+              }
+            }
+
+            resource redis_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
+              name: take('rediscontributor${uniqueString(resourceGroup().id)}', 24)
+              properties: {
+                accessPolicyName: 'Data Contributor'
+                objectId: principalId
+                objectIdAlias: principalName
+              }
+              parent: redis
+            }
+
+            output connectionString string = '${redis.properties.hostName},ssl=true'
+            """;
+
+        Assert.Equal(expectedBicep, BicepText);
+    }
+
+    [Fact]
+    public async Task SupportsExistingAzureRedisWithResouceGroupAndAccessKeyAuth()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var redis = builder.AddAzureRedis("redis")
+            .PublishAsExisting("existingResourceName", "existingResourceGroupName")
+            .WithAccessKeyAuthentication();
+
+        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(redis.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v1",
+              "connectionString": "{redis.secretOutputs.connectionString}",
+              "path": "redis.module.bicep",
+              "params": {
+                "keyVaultName": ""
+              },
+              "scope": {
+                "resourceGroup": "existingResourceGroupName"
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, ManifestNode.ToString());
+
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param keyVaultName string
+
+            resource redis 'Microsoft.Cache/redis@2024-03-01' existing = {
+              name: 'existingResourceName'
+              properties: {
+                disableAccessKeyAuthentication: false
+              }
+            }
+
+            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+              name: keyVaultName
+            }
+
+            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'connectionString'
+              properties: {
+                value: '${redis.properties.hostName},ssl=true,password=${redis.listKeys().primaryKey}'
+              }
+              parent: keyVault
+            }
+            """;
+
+        Assert.Equal(expectedBicep, BicepText);
+    }
 }
