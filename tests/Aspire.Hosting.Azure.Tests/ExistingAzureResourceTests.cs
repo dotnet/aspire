@@ -1171,9 +1171,13 @@ public class ExistingAzureResourceTests
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
+
             param existingResourceName string
+
             param principalId string
+
             param principalName string
+
             resource redis 'Microsoft.Cache/redis@2024-03-01' existing = {
               name: existingResourceName
               properties: {
@@ -1183,6 +1187,7 @@ public class ExistingAzureResourceTests
                 }
               }
             }
+
             resource redis_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
               name: take('rediscontributor${uniqueString(resourceGroup().id)}', 24)
               properties: {
@@ -1192,6 +1197,7 @@ public class ExistingAzureResourceTests
               }
               parent: redis
             }
+
             output connectionString string = '${redis.properties.hostName},ssl=true'
             """;
 
@@ -1199,7 +1205,7 @@ public class ExistingAzureResourceTests
     }
 
     [Fact]
-    public async Task SupportsExistingAzureRedisWithResourceGroupAndAccessKeyAuth()
+    public async Task SupportsExistingAzureRedisWithResouceGroupAndAccessKeyAuth()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -1228,16 +1234,20 @@ public class ExistingAzureResourceTests
         var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
+
             param keyVaultName string
+
             resource redis 'Microsoft.Cache/redis@2024-03-01' existing = {
               name: 'existingResourceName'
               properties: {
                 disableAccessKeyAuthentication: false
               }
             }
+
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: keyVaultName
             }
+
             resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
               name: 'connectionString'
               properties: {
