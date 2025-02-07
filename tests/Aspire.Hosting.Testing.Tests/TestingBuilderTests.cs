@@ -18,6 +18,8 @@ namespace Aspire.Hosting.Testing.Tests;
 
 public class TestingBuilderTests(ITestOutputHelper output)
 {
+    private static readonly TimeSpan s_appAliveCheckTimeout = TimeSpan.FromMinutes(1);
+
     [Fact]
     public void TestingBuilderHasAllPropertiesFromRealBuilder()
     {
@@ -164,7 +166,10 @@ public class TestingBuilderTests(ITestOutputHelper output)
         // Wait for the application to be ready
         await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
 
-        var httpClient = app.CreateHttpClientWithResilience("mywebapp1");
+        var httpClient = app.CreateHttpClientWithResilience("mywebapp1", null, opts =>
+        {
+            opts.TotalRequestTimeout.Timeout = s_appAliveCheckTimeout;
+        });
         var result1 = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
         Assert.NotNull(result1);
         Assert.True(result1.Length > 0);
@@ -198,7 +203,8 @@ public class TestingBuilderTests(ITestOutputHelper output)
         string[] args = directArgs ? ["APP_HOST_ARG=42"] : [];
         Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder = directArgs switch
         {
-            true => (_, _) => { },
+            true => (_, _) => { }
+            ,
             false => (dao, habs) => habs.Args = ["APP_HOST_ARG=42"]
         };
 
@@ -219,7 +225,10 @@ public class TestingBuilderTests(ITestOutputHelper output)
         // Wait for the application to be ready
         await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
 
-        var httpClient = app.CreateHttpClientWithResilience("mywebapp1");
+        var httpClient = app.CreateHttpClientWithResilience("mywebapp1", null, opts =>
+        {
+            opts.TotalRequestTimeout.Timeout = s_appAliveCheckTimeout;
+        });
         var appHostArg = await httpClient.GetStringAsync("/get-app-host-arg");
         Assert.NotNull(appHostArg);
         Assert.Equal("42", appHostArg);
@@ -254,7 +263,10 @@ public class TestingBuilderTests(ITestOutputHelper output)
         // Wait for the application to be ready
         await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
 
-        var httpClient = app.CreateHttpClientWithResilience("mywebapp1");
+        var httpClient = app.CreateHttpClientWithResilience("mywebapp1", null, opts =>
+        {
+            opts.TotalRequestTimeout.Timeout = s_appAliveCheckTimeout;
+        });
         var appHostArg = await httpClient.GetStringAsync("/get-app-host-arg");
         Assert.NotNull(appHostArg);
         Assert.Equal("42", appHostArg);
@@ -294,7 +306,10 @@ public class TestingBuilderTests(ITestOutputHelper output)
         // Wait for the application to be ready
         await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
 
-        var httpClient = app.CreateHttpClientWithResilience("mywebapp1");
+        var httpClient = app.CreateHttpClientWithResilience("mywebapp1", null, opts =>
+        {
+            opts.TotalRequestTimeout.Timeout = s_appAliveCheckTimeout;
+        });
         var appHostArg = await httpClient.GetStringAsync("/get-launch-profile-var");
         Assert.NotNull(appHostArg);
         Assert.Equal($"it-is-{launchProfileName}", appHostArg);
@@ -341,7 +356,10 @@ public class TestingBuilderTests(ITestOutputHelper output)
         // Wait for the application to be ready
         await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
 
-        var httpClient = app.CreateHttpClientWithResilience("mywebapp1");
+        var httpClient = app.CreateHttpClientWithResilience("mywebapp1", null, opts =>
+        {
+            opts.TotalRequestTimeout.Timeout = s_appAliveCheckTimeout;
+        });
         var appHostArg = await httpClient.GetStringAsync("/get-launch-profile-var");
         Assert.NotNull(appHostArg);
         Assert.Equal($"it-is-{launchProfileName}", appHostArg);
@@ -388,7 +406,10 @@ public class TestingBuilderTests(ITestOutputHelper output)
         await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
 
         // Explicitly get the HTTPS endpoint - this is only available on the "https" launch profile.
-        var httpClient = app.CreateHttpClientWithResilience("mywebapp1", "https");
+        var httpClient = app.CreateHttpClientWithResilience("mywebapp1", "https", opts =>
+        {
+            opts.TotalRequestTimeout.Timeout = s_appAliveCheckTimeout;
+        });
         var result = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
         Assert.NotNull(result);
         Assert.True(result.Length > 0);
