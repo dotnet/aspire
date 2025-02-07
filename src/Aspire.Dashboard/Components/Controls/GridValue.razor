@@ -1,4 +1,5 @@
 ﻿@using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 @inject IStringLocalizer<ControlsStrings> Loc
 @inject IStringLocalizer<Dialogs> DialogsLoc
 
@@ -9,7 +10,7 @@
     @if (EnableMasking && IsMasked)
     {
         <span class="grid-value masked" id="@_cellTextId">
-            &#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;
+            @DashboardUIHelpers.GetMaskingText(length: 8)
         </span>
     }
     else
