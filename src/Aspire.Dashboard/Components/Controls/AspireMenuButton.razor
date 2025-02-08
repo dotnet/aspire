@@ -13,40 +13,17 @@
     };
 }
 
-@if (IconEnd is not null)
-{
-    <FluentButton Id="@MenuButtonId"
-                  Title="@Title"
-                  Appearance="@ButtonAppearance"
-                  IconStart="@IconStart"
-                  IconEnd="@IconEnd"
-                  @onclick="ToggleMenu"
-                  Disabled="@(!Items.Where(i => !i.IsDivider).Any())"
-                  AdditionalAttributes="@additionalButtonAttributes"
-                  Class="@ButtonClass" />
-}
-else
-{
-    <FluentButton Id="@MenuButtonId"
-                  Title="@Title"
-                  Appearance="@ButtonAppearance"
-                  IconStart="@IconStart"
-                  @onclick="ToggleMenu"
-                  Disabled="@(!Items.Where(i => !i.IsDivider).Any())"
-                  AdditionalAttributes="@additionalButtonAttributes"
-                  Class="@ButtonClass">
-        @if (string.IsNullOrWhiteSpace(Text))
-        {
-            <FluentIcon Value="@_icon" Color="@IconColor" />
-        }
-        else if (!string.IsNullOrWhiteSpace(Text))
-        {
-            @Text
-
-            <FluentIcon Value="@_icon" Color="@IconColor" Slot="end" />
-        }
-    </FluentButton>
-}
+<FluentButton Id="@MenuButtonId" Title="@Title" Appearance="@ButtonAppearance" IconStart="@IconStart" @onclick="ToggleMenu" Disabled="@(!Items.Where(i => !i.IsDivider).Any())" AdditionalAttributes="@additionalButtonAttributes" Class="@ButtonClass">
+    @if (string.IsNullOrWhiteSpace(Text))
+    {
+        <FluentIcon Value="@_icon" Color="@IconColor" />
+    }
+    else
+    {
+        @Text
+        <FluentIcon Value="@_icon" Color="@IconColor" Slot="end" />
+    }
+</FluentButton>
 
 <FluentMenu Anchor="@MenuButtonId" aria-labelledby="button" @bind-Open="@_visible" VerticalThreshold="200">
     @foreach (var item in Items)

@@ -45,7 +45,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     [Inject]
     public required IJSRuntime JS { get; init; }
     [Inject]
-    public required ILocalStorage LocalStorage { get; init; }
+    public required ISessionStorage SessionStorage { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
@@ -71,7 +71,6 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly HashSet<string> _collapsedResourceNames = new(StringComparers.ResourceName);
-    private readonly HashSet<string> _initialCollapsedResourceNames = [];
     private string _filter = "";
     private bool _isFilterPopupVisible;
     private Task? _resourceSubscriptionTask;
@@ -153,12 +152,12 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         if (DashboardClient.IsEnabled)
         {
-            var settings = await LocalStorage.GetUnprotectedAsync<ResourcesPageSettings>(BrowserStorageKeys.ResourcesPageSettings);
-            if (settings.Value is not null)
+            var collapsedResult = await SessionStorage.GetAsync<List<string>>(BrowserStorageKeys.ResourcesCollapsedResourceNames);
+            if (collapsedResult.Success)
             {
-                foreach (var resourceName in settings.Value.CollapsedResourceNames)
+                foreach (var resourceName in collapsedResult.Value)
                 {
-                    _initialCollapsedResourceNames.Add(resourceName);
+                    _collapsedResourceNames.Add(resourceName);
                 }
             }
 
@@ -265,11 +264,6 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             ResourceStatesToVisibility.TryAdd(resource.State ?? string.Empty, stateVisible(resource.State ?? string.Empty));
             ResourceHealthStatusesToVisibility.TryAdd(resource.HealthStatus?.Humanize() ?? string.Empty, healthStatusVisible(resource.HealthStatus?.Humanize() ?? string.Empty));
 
-            if (_initialCollapsedResourceNames.Contains(resource.Name))
-            {
-                _collapsedResourceNames.Add(resource.Name);
-            }
-
             UpdateMenuButtons();
 
             return added;
@@ -311,7 +305,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     {
         _resourcesMenuItems.Clear();
 
-        if (_collapsedResourceNames.Count > 0)
+        if (HasCollapsedResources())
         {
             _resourcesMenuItems.Add(new MenuButtonItem
             {
@@ -331,6 +325,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 Icon = new Icons.Regular.Size16.EyeOff()
             });
         }
+    }
+
+    private bool HasCollapsedResources()
+    {
+        return _resourceByName.Any(r => !r.Value.IsHiddenState() && _collapsedResourceNames.Contains(r.Key));
     }
 
     private void UpdateMaxHighlightedCount()
@@ -505,26 +504,34 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             _collapsedResourceNames.Remove(viewModel.Resource.Name);
         }
 
-        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ResourcesPageSettings, new ResourcesPageSettings(CollapsedResourceNames: _collapsedResourceNames));
+        await SessionStorage.SetAsync(BrowserStorageKeys.ResourcesCollapsedResourceNames, _collapsedResourceNames.ToList());
         await _dataGrid.SafeRefreshDataAsync();
         UpdateMenuButtons();
     }
 
     private async Task OnToggleCollapseAll()
     {
-        if (_collapsedResourceNames.Count > 0)
+        var resourcesWithChildren = _resourceByName.Values
+            .Where(r => !r.IsHiddenState())
+            .Where(r => _resourceByName.Values.Any(nested => nested.GetResourcePropertyValue(KnownProperties.Resource.ParentName) == r.Name))
+            .ToList();
+
+        if (HasCollapsedResources())
         {
-            _collapsedResourceNames.Clear();
+            foreach (var resource in resourcesWithChildren)
+            {
+                _collapsedResourceNames.Remove(resource.Name);
+            }
         }
         else
         {
-            foreach (var resourceName in _resourceByName.Keys)
+            foreach (var resource in resourcesWithChildren)
             {
-                _collapsedResourceNames.Add(resourceName);
+                _collapsedResourceNames.Add(resource.Name);
             }
         }
 
-        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ResourcesPageSettings, new ResourcesPageSettings(CollapsedResourceNames: _collapsedResourceNames));
+        await SessionStorage.SetAsync(BrowserStorageKeys.ResourcesCollapsedResourceNames, _collapsedResourceNames.ToList());
         await _dataGrid.SafeRefreshDataAsync();
         UpdateMenuButtons();
     }
@@ -547,6 +554,4 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);
     }
-
-    public record ResourcesPageSettings(HashSet<string> CollapsedResourceNames);
 }

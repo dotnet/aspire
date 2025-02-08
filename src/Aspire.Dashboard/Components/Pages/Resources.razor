@@ -43,7 +43,7 @@
                 @if (HasAnyChildResources())
                 {
                     <AspireMenuButton ButtonAppearance="Appearance.Stealth"
-                                      IconEnd="@(new Icons.Regular.Size20.Settings())"
+                                      Icon="@(new Icons.Regular.Size20.Settings())"
                                       Items="@_resourcesMenuItems"
                                       Title="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSettings)]"
                                       slot="end" />
@@ -53,7 +53,7 @@
             {
                 @if (HasAnyChildResources())
                 {
-                    var showExpandAllButton = _collapsedResourceNames.Count > 0;
+                    var showExpandAllButton = HasCollapsedResources();
 
                     <FluentButton IconStart="@(showExpandAllButton ? new Icons.Regular.Size16.Eye() : new Icons.Regular.Size16.EyeOff())"
                                   OnClick="@(async () => { await OnToggleCollapseAll(); _contentLayout?.CloseMobileToolbarAsync(); })">
