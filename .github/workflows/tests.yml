@@ -206,6 +206,7 @@ jobs:
             --no-build -- RunConfiguration.CollectSourceInformation=true
 
       - name: Dump docker info
+        if: always()
         run: |
           docker container ls --all
           docker volume ls
