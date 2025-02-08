@@ -71,6 +71,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     [Inject]
     public required DashboardCommandExecutor DashboardCommandExecutor { get; init; }
 
+    [Inject]
+    public required BrowserTimeProvider TimeProvider { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 
@@ -556,22 +559,23 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         using var streamReference = new DotNetStreamReference(stream);
         var safeDisplayName = string.Join("_", PageViewModel.SelectedResource!.DisplayName.Split(Path.GetInvalidFileNameChars()));
-        var fileName = $"{safeDisplayName}-{DateTime.Now.ToString("yyyyMMddhhmmss", CultureInfo.InvariantCulture)}.txt";
+        var fileName = $"{safeDisplayName}-{TimeProvider.GetLocalNow().ToString("yyyyMMddhhmmss", CultureInfo.InvariantCulture)}.txt";
 
         await JS.InvokeVoidAsync("downloadStreamAsFile", fileName, streamReference);
     }
 
     private async Task ClearConsoleLogs(ApplicationKey? key)
     {
+        var now = TimeProvider.GetUtcNow().UtcDateTime;
         if (key is null)
         {
-            _consoleLogFilters.FilterAllLogsDate = DateTime.UtcNow;
+            _consoleLogFilters.FilterAllLogsDate = now;
             _consoleLogFilters.FilterResourceLogsDates?.Clear();
         }
         else
         {
             _consoleLogFilters.FilterResourceLogsDates ??= [];
-            _consoleLogFilters.FilterResourceLogsDates[key.Value.ToString()] = DateTime.UtcNow;
+            _consoleLogFilters.FilterResourceLogsDates[key.Value.ToString()] = now;
         }
 
         // Save filters to session storage so they're persisted when navigating to and from the console logs page.

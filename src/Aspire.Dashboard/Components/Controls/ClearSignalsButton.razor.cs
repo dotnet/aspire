@@ -35,6 +35,7 @@ public partial class ClearSignalsButton : ComponentBase
 
         _clearMenuItems.Add(new()
         {
+            Id = "clear-menu-all",
             Icon = s_clearAllResourcesIcon,
             OnClick = () => HandleClearSignal(null),
             Text = ControlsStringsLoc[name: nameof(ControlsStrings.ClearAllResources)],
@@ -42,6 +43,7 @@ public partial class ClearSignalsButton : ComponentBase
 
         _clearMenuItems.Add(new()
         {
+            Id = "clear-menu-resource",
             Icon = s_clearSelectedResourceIcon,
             OnClick = () => HandleClearSignal(SelectedResource.Id?.GetApplicationKey()),
             IsDisabled = SelectedResource.Id == null,

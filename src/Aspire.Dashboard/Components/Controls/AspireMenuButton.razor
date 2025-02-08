@@ -39,7 +39,7 @@
                 { "title", item.Tooltip ?? string.Empty }
             };
 
-            <FluentMenuItem OnClick="() => HandleItemClicked(item)" Disabled="@item.IsDisabled" AdditionalAttributes="@additionalMenuItemAttributes">
+            <FluentMenuItem Id="@item.Id" OnClick="() => HandleItemClicked(item)" Disabled="@item.IsDisabled" AdditionalAttributes="@additionalMenuItemAttributes">
                 @item.Text
                 @if (item.Icon != null)
                 {
