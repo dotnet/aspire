@@ -25,7 +25,7 @@ public class ConformanceTests : ConformanceTests<EventProcessorClient, AzureMess
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
-    protected override string ActivitySourceName => "Aspire.Azure.Messaging.EventHubs.EventProcessorClient";
+    protected override string ActivitySourceName => "Azure.Messaging.EventHubs.EventProcessorClient";
 
     protected override string[] RequiredLogCategories => ["Azure.Messaging.EventHubs"];
 
@@ -112,11 +112,11 @@ public class ConformanceTests : ConformanceTests<EventProcessorClient, AzureMess
 
     [Fact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null), EnableTelemetry()).Dispose();
+        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null), EnableTracingForAzureSdk()).Dispose();
 
     [Fact]
     public void TracingEnablesTheRightActivitySource_Keyed()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key"), EnableTelemetry()).Dispose();
+        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key"), EnableTracingForAzureSdk()).Dispose();
 
     protected override void SetHealthCheck(AzureMessagingEventHubsProcessorSettings options, bool enabled)
         => options.DisableHealthChecks = !enabled;
@@ -141,8 +141,9 @@ public class ConformanceTests : ConformanceTests<EventProcessorClient, AzureMess
         }
     }
 
-    private static RemoteInvokeOptions EnableTelemetry()
-    {
-        return new RemoteInvokeOptions();
-    }
+    private static RemoteInvokeOptions EnableTracingForAzureSdk()
+        => new()
+        {
+            RuntimeConfigurationOptions = { { "Azure.Experimental.EnableActivitySource", true } }
+        };
 }
