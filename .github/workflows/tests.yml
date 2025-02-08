@@ -181,10 +181,6 @@ jobs:
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
         run: |
-          # Create the testresults directory if it doesn't exist
-          mkdir -p testresults
-          
-          # Run tests, prepend each output line with a timestamp, and write to a log file.
           ./dotnet.sh test ${{ github.workspace }}/${{ matrix.project }} \
             /p:ContinuousIntegrationBuild=true \
             -s eng/testing/.runsettings \
@@ -195,22 +191,13 @@ jobs:
             --blame-hang-timeout 7m \
             --results-directory testresults \
             --no-restore \
-            --no-build -- RunConfiguration.CollectSourceInformation=true 2>&1 | \
-          while IFS= read -r line; do
-            echo "$(date '+[%Y-%m-%d %H:%M:%S]') $line"
-          done > testresults/${{ matrix.name }}.log
-          
-          # Capture the exit code of the test command
-          exit_code=${PIPESTATUS[0]}
-          
-          # If the test run failed, dump the log file to stdout
-          if [ $exit_code -ne 0 ]; then
-            echo "Test run failed with exit code $exit_code. Dumping test log:"
-            cat testresults/${{ matrix.name }}.log
-          fi
-          
-          # Exit with the test command's exit code
-          exit $exit_code
+            --no-build -- RunConfiguration.CollectSourceInformation=true
+
+      - name: Dump docker info
+        run: |
+          docker container ls --all
+          docker volume ls
+          docker network ls
 
       - name: Upload bin log artifact
         if: always()

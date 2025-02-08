@@ -28,7 +28,6 @@ public class ContainerResourceTests
         Assert.Equal("latest", containerAnnotation.Tag);
         Assert.Equal("none", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
-        Assert.NotNull(containerAnnotation.Registry);
     }
 
     [Fact]
