@@ -171,8 +171,10 @@ jobs:
           sudo apt-get install -y azure-functions-core-tools-4
 
       - name: Build test project
+        env:
+          CI: false
         run: |
-          export CI=false && ./build.sh -restore -ci -build -projects ${{ github.workspace }}/${{ matrix.project }} /bl
+          ./build.sh -restore -ci -build -projects ${{ github.workspace }}/${{ matrix.project }} /bl
 
       - name: Run tests
         id: run-tests
