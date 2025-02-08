@@ -96,8 +96,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private bool _showTimestamp;
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
 
-    private readonly Dictionary<ApplicationKey, DateTime> _ignoreLogsBeforeTimeByApplicationKey = new Dictionary<ApplicationKey, DateTime>();
-    private DateTime _ignoreAllLogsBefore { get; set; } = DateTime.MinValue;
+    private ConsoleLogFilters _consoleLogFilters = new();
 
     public string BasePath => DashboardUrls.ConsoleLogBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ConsoleLogsPageState;
@@ -113,6 +112,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         if (timestampStorageResult.Value?.ShowTimestamp is { } showTimestamp)
         {
             _showTimestamp = showTimestamp;
+        }
+
+        var filtersResult = await SessionStorage.GetAsync<ConsoleLogFilters>(BrowserStorageKeys.ConsoleLogFilters);
+        if (filtersResult.Value is { } filters)
+        {
+            _consoleLogFilters = filters;
         }
 
         var loadingTcs = new TaskCompletionSource();
@@ -421,15 +426,21 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             try
             {
-                var ignoreLogsBefore = _ignoreAllLogsBefore; // 'Global' ignore before timestamp, defaults to DateTime.Min
+                // Console logs are filtered in the UI by the timestamp of the log entry.
+                DateTime? timestampFilterDate;
+
                 if (PageViewModel.SelectedOption.Id is not null &&
-                    _ignoreLogsBeforeTimeByApplicationKey.TryGetValue(
-                        PageViewModel.SelectedOption.Id.GetApplicationKey(),
-                        out var _ignoreBeforeForApp) &&
-                    _ignoreBeforeForApp > ignoreLogsBefore)
+                    _consoleLogFilters.FilterResourceLogsDates.TryGetValue(
+                        PageViewModel.SelectedOption.Id.GetApplicationKey().ToString(),
+                        out var filterResourceLogsDate))
                 {
-                    // If we have an entry for the specific app that is a higher value than the 'global' ignore, we use that.
-                    ignoreLogsBefore = _ignoreBeforeForApp;
+                    // There is a filter for this individual resource.
+                    timestampFilterDate = filterResourceLogsDate;
+                }
+                else
+                {
+                    // Fallback to the global filter (if any, it could be null).
+                    timestampFilterDate = _consoleLogFilters.FilterAllLogsDate;
                 }
 
                 var logParser = new LogParser();
@@ -449,7 +460,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                         }
 
                         var logEntry = logParser.CreateLogEntry(content, isErrorOutput);
-                        if (logEntry.Timestamp is null || logEntry.Timestamp > ignoreLogsBefore)
+                        if (timestampFilterDate is null || logEntry.Timestamp is null || logEntry.Timestamp > timestampFilterDate)
                         {
                             // Only add entries that are not ignored, or if they are null as we cannot know when they happened.
                             _logEntries.InsertSorted(logEntry);
@@ -554,15 +565,21 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     {
         if (key is null)
         {
-            _ignoreAllLogsBefore = DateTime.UtcNow;
+            _consoleLogFilters.FilterAllLogsDate = DateTime.UtcNow;
+            _consoleLogFilters.FilterResourceLogsDates?.Clear();
         }
         else
         {
-            _ignoreLogsBeforeTimeByApplicationKey[key.Value] = DateTime.UtcNow;
+            _consoleLogFilters.FilterResourceLogsDates ??= [];
+            _consoleLogFilters.FilterResourceLogsDates[key.Value.ToString()] = DateTime.UtcNow;
         }
 
+        // Save filters to session storage so they're persisted when navigating to and from the console logs page.
+        // This makes remove behavior persistant which matches removing telemetry.
+        await SessionStorage.SetAsync(BrowserStorageKeys.ConsoleLogFilters, _consoleLogFilters);
+
         _logEntries.Clear();
-        await InvokeAsync(StateHasChanged);
+        StateHasChanged();
     }
 
     public async ValueTask DisposeAsync()
@@ -584,6 +601,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public record ConsoleLogsPageState(string? SelectedResource);
 
     public record ConsoleLogConsoleSettings(bool ShowTimestamp);
+
+    public class ConsoleLogFilters
+    {
+        public DateTime? FilterAllLogsDate { get; set; }
+        public Dictionary<string, DateTime> FilterResourceLogsDates { get; set; } = [];
+    }
 
     public Task UpdateViewModelFromQueryAsync(ConsoleLogsViewModel viewModel)
     {
