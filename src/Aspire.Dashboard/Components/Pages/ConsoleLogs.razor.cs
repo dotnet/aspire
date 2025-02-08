@@ -221,35 +221,35 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             Logger.LogDebug("New resource {ResourceName} selected.", selectedResourceName);
 
             ConsoleLogsSubscription? newConsoleLogsSubscription = null;
-        if (selectedResourceName is not null)
-        {
-            newConsoleLogsSubscription = new ConsoleLogsSubscription { Name = selectedResourceName };
-            Logger.LogDebug("Creating new subscription {SubscriptionId}.", newConsoleLogsSubscription.SubscriptionId);
-
-            if (Logger.IsEnabled(LogLevel.Debug))
+            if (selectedResourceName is not null)
             {
-                newConsoleLogsSubscription.CancellationToken.Register(state =>
+                newConsoleLogsSubscription = new ConsoleLogsSubscription { Name = selectedResourceName };
+                Logger.LogDebug("Creating new subscription {SubscriptionId}.", newConsoleLogsSubscription.SubscriptionId);
+
+                if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    var s = (ConsoleLogsSubscription)state!;
-                    Logger.LogDebug("Canceling subscription {SubscriptionId} to {ResourceName}.", s.SubscriptionId, s.Name);
-                }, newConsoleLogsSubscription);
+                    newConsoleLogsSubscription.CancellationToken.Register(state =>
+                    {
+                        var s = (ConsoleLogsSubscription)state!;
+                        Logger.LogDebug("Canceling subscription {SubscriptionId} to {ResourceName}.", s.SubscriptionId, s.Name);
+                    }, newConsoleLogsSubscription);
+                }
             }
-        }
 
-        if (_consoleLogsSubscription is { } currentSubscription)
-        {
-            currentSubscription.Cancel();
-            _consoleLogsSubscription = newConsoleLogsSubscription;
+            if (_consoleLogsSubscription is { } currentSubscription)
+            {
+                currentSubscription.Cancel();
+                _consoleLogsSubscription = newConsoleLogsSubscription;
 
-            await TaskHelpers.WaitIgnoreCancelAsync(currentSubscription.SubscriptionTask);
-        }
-        else
-        {
-            _consoleLogsSubscription = newConsoleLogsSubscription;
-        }
+                await TaskHelpers.WaitIgnoreCancelAsync(currentSubscription.SubscriptionTask);
+            }
+            else
+            {
+                _consoleLogsSubscription = newConsoleLogsSubscription;
+            }
 
-        Logger.LogDebug("Creating new log entries collection.");
-        _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
+            Logger.LogDebug("Creating new log entries collection.");
+            _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
 
             if (newConsoleLogsSubscription is not null)
             {
