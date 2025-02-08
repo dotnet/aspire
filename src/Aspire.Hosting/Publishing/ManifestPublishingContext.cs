@@ -560,35 +560,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             Writer.WriteEndArray();
         }
     }
-
-    internal void WriteDockerBuildArgs(IEnumerable<DockerBuildArg>? buildArgs)
-    {
-        if (buildArgs?.ToArray() is { Length: > 0 } args)
-        {
-            Writer.WriteStartObject("buildArgs");
-
-            for (var i = 0; i < args.Length; i++)
-            {
-                var buildArg = args[i];
-
-                var valueString = buildArg.Value switch
-                {
-                    string stringValue => stringValue,
-                    IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
-                    bool boolValue => boolValue ? "true" : "false",
-                    null => null, // null means let docker build pull from env var.
-                    _ => buildArg.Value.ToString()
-                };
-
-                Writer.WriteString(buildArg.Name, valueString);
-
-                TryAddDependentResources(buildArg.Value);
-            }
-
-            Writer.WriteEndObject();
-        }
-    }
-
     private void WriteContainerMounts(ContainerResource container)
     {
         if (container.TryGetAnnotationsOfType<ContainerMountAnnotation>(out var mounts))
