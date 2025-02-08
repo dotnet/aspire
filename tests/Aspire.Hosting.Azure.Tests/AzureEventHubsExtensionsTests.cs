@@ -605,7 +605,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
         var resourceEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running, cts.Token);
-        var ehContainerId = resourceEvent.Snapshot.Properties.FirstOrDefault(x => x.Name == "container.id")?.Value?.ToString();
+        var ehContainerId1 = resourceEvent.Snapshot.Properties.FirstOrDefault(x => x.Name == "container.id")?.Value?.ToString();
 
         resourceEvent = await rns.WaitForResourceAsync("resource-storage", e => e.Snapshot.State?.Text == KnownResourceStates.Running, cts.Token);
         var storageContainerId1 = resourceEvent.Snapshot.Properties.FirstOrDefault(x => x.Name == "container.id")?.Value?.ToString();
@@ -633,7 +633,10 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         resourceEvent = await rns2.WaitForResourceAsync("resource-storage", e => e.Snapshot.State?.Text == KnownResourceStates.Running, cts.Token);
         var storageContainerId2 = resourceEvent.Snapshot.Properties.FirstOrDefault(x => x.Name == "container.id")?.Value?.ToString();
 
-        Assert.Equal(ehContainerId, ehContainerId2);
+        Assert.NotNull(ehContainerId1);
+        Assert.NotNull(storageContainerId1);
+
+        Assert.Equal(ehContainerId1, ehContainerId2);
         Assert.Equal(storageContainerId1, storageContainerId2);
 
         await app2.StopAsync(cts.Token);
