@@ -17,6 +17,10 @@ namespace Aspire.Azure.Messaging.EventHubs.Tests;
 
 public class ConformanceTests : ConformanceTests<EventProcessorClient, AzureMessagingEventHubsProcessorSettings>
 {
+    private static readonly Lazy<bool> s_canConnectToServer = new(GetCanConnect);
+
+    public const string ServiceUri = "https://fake.blob.core.windows.net/";
+
     // Fake connection string for cases when credentials are unavailable and need to switch to raw connection string
     protected const string ConnectionString = "Endpoint=sb://aspireeventhubstests.servicebus.windows.net/;" +
                                               "SharedAccessKeyName=fake;SharedAccessKey=fake;EntityPath=MyHub";
@@ -28,6 +32,8 @@ public class ConformanceTests : ConformanceTests<EventProcessorClient, AzureMess
     protected override string ActivitySourceName => "Azure.Messaging.EventHubs.EventProcessorClient";
 
     protected override string[] RequiredLogCategories => ["Azure.Messaging.EventHubs"];
+
+    protected override bool CanConnectToServer => s_canConnectToServer.Value;
 
     protected override bool SupportsKeyedRegistrations => true;
 
@@ -146,4 +152,22 @@ public class ConformanceTests : ConformanceTests<EventProcessorClient, AzureMess
         {
             RuntimeConfigurationOptions = { { "Azure.Experimental.EnableActivitySource", true } }
         };
+
+    private static bool GetCanConnect()
+    {
+        BlobClientOptions clientOptions = new();
+        clientOptions.Retry.MaxRetries = 0; // don't enable retries (test runs few times faster)
+        BlobServiceClient tableClient = new(new Uri(ServiceUri), new DefaultAzureCredential(), clientOptions);
+
+        try
+        {
+            tableClient.GetBlobContainers().AsPages(pageSizeHint: 1).FirstOrDefault();
+
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
 }
