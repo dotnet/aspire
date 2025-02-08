@@ -140,6 +140,7 @@ public class AspireElasticClientExtensionsTest : IClassFixture<ElasticsearchCont
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/7452")]
     public void ElasticsearchInstrumentationEndToEnd()
     {
         RemoteExecutor.Invoke(async (connectionString) =>
