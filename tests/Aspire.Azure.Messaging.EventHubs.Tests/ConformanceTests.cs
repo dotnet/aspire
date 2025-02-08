@@ -157,11 +157,11 @@ public class ConformanceTests : ConformanceTests<EventProcessorClient, AzureMess
     {
         BlobClientOptions clientOptions = new();
         clientOptions.Retry.MaxRetries = 0; // don't enable retries (test runs few times faster)
-        BlobServiceClient tableClient = new(new Uri(ServiceUri), new DefaultAzureCredential(), clientOptions);
+        BlobServiceClient ebClient = new(new Uri(ServiceUri), new DefaultAzureCredential(), clientOptions);
 
         try
         {
-            tableClient.GetBlobContainers().AsPages(pageSizeHint: 1).FirstOrDefault();
+            ebClient.GetBlobContainers().AsPages(pageSizeHint: 1).FirstOrDefault();
 
             return true;
         }
