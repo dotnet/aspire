@@ -27,7 +27,7 @@ public class ConformanceTests : ConformanceTests<EventProcessorClient, AzureMess
 
     protected override string ActivitySourceName => "Aspire.Azure.Messaging.EventHubs.EventProcessorClient";
 
-    protected override string[] RequiredLogCategories => ["Aspire.Azure.Messaging.EventHubs"];
+    protected override string[] RequiredLogCategories => ["Azure.Messaging.EventHubs"];
 
     protected override bool SupportsKeyedRegistrations => true;
 
@@ -81,7 +81,7 @@ public class ConformanceTests : ConformanceTests<EventProcessorClient, AzureMess
             builder.AddKeyedAzureEventProcessorClient(key, ConfigureCredentials);
         }
 
-        var mockTransport = new MockTransport(CreateResponse("""{}"""));
+        var mockTransport = new MockTransport([CreateResponse("""{}"""), CreateResponse("""{}""")]);
         var blobClient = new BlobServiceClient(new Uri(BlobsConnectionString), new DefaultAzureCredential(), new BlobClientOptions() { Transport = mockTransport });
         builder.Services.AddKeyedSingleton("blobs", blobClient);
 
@@ -129,7 +129,16 @@ public class ConformanceTests : ConformanceTests<EventProcessorClient, AzureMess
 
     protected override void TriggerActivity(EventProcessorClient service)
     {
-        //
+        service.ProcessEventAsync += (_) => Task.CompletedTask;
+        service.ProcessErrorAsync += (_) => Task.CompletedTask;
+        try
+        {
+            service.StartProcessing();
+        }
+        catch (Exception)
+        {
+            // Expected exception
+        }
     }
 
     private static RemoteInvokeOptions EnableTelemetry()
