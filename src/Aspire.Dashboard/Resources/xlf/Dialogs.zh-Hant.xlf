@@ -184,7 +184,7 @@
       </trans-unit>
       <trans-unit id="SettingsDashboardTelemetry">
         <source>Dashboard telemetry</source>
-        <target state="new">Dashboard telemetry</target>
+        <target state="translated">儀錶板遙測</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
