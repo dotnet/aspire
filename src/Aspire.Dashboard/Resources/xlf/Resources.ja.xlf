@@ -178,12 +178,12 @@
         <note />
       </trans-unit>
       <trans-unit id="ResourcesFiltered">
-        <source>Update filters</source>
+        <source>Has filters</source>
         <target state="needs-review-translation">フィルターあり</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
-        <source>Add filters</source>
+        <source>No filters</source>
         <target state="needs-review-translation">フィルターなし</target>
         <note />
       </trans-unit>
