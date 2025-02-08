@@ -6,6 +6,7 @@ using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Publishing;
 
@@ -485,21 +486,22 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     {
         var env = new Dictionary<string, (object, string)>();
 
-        await resource.ProcessEnvironmentVariableValuesAsync(ExecutionContext,
-                     (key, unprocessed, processed, ex) =>
-                     {
-                         if (ex is not null)
-                         {
-                             ExceptionDispatchInfo.Throw(ex);
-                         }
+        await resource.ProcessEnvironmentVariableValuesAsync(
+            ExecutionContext,
+            (key, unprocessed, processed, ex) =>
+            {
+                if (ex is not null)
+                {
+                    ExceptionDispatchInfo.Throw(ex);
+                }
 
-                         if (unprocessed is not null && processed is not null)
-                         {
-                             env[key] = (unprocessed, processed);
-                         }
-                     },
-                     cancellationToken: CancellationToken)
-                     .ConfigureAwait(false);
+                if (unprocessed is not null && processed is not null)
+                {
+                    env[key] = (unprocessed, processed);
+                }
+            },
+            NullLogger.Instance,
+            cancellationToken: CancellationToken).ConfigureAwait(false);
 
         if (env.Count > 0)
         {
@@ -541,8 +543,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                     args.Add((unprocessed, expression));
                 }
             },
-           cancellationToken: CancellationToken)
-          .ConfigureAwait(false);
+            NullLogger.Instance,
+            cancellationToken: CancellationToken).ConfigureAwait(false);
 
         if (args.Count > 0)
         {

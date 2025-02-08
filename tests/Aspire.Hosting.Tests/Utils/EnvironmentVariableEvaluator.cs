@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.ExceptionServices;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Tests.Utils;
 
@@ -17,20 +18,22 @@ public static class EnvironmentVariableEvaluator
         });
 
         var environmentVariables = new Dictionary<string, string>();
-        await resource.ProcessEnvironmentVariableValuesAsync(executionContext,
-                        (key, unprocessed, value, ex) =>
-                        {
-                            if (ex is not null)
-                            {
-                                ExceptionDispatchInfo.Throw(ex);
-                            }
+        await resource.ProcessEnvironmentVariableValuesAsync(
+            executionContext,
+            (key, unprocessed, value, ex) =>
+            {
+                if (ex is not null)
+                {
+                    ExceptionDispatchInfo.Throw(ex);
+                }
 
-                            if (value is string s)
-                            {
-                                environmentVariables[key] = s;
-                            }
-                        },
-                        containerHostName: containerHostName);
+                if (value is string s)
+                {
+                    environmentVariables[key] = s;
+                }
+            },
+            NullLogger.Instance,
+            containerHostName: containerHostName);
 
         return environmentVariables;
     }
