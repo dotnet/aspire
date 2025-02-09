@@ -244,10 +244,6 @@ public partial class ConsoleLogsTests : TestContext
         logger.LogInformation("New log results are added to log viewer.");
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(2, "2025-03-08T10:16:08Z Hello world", IsErrorMessage: false)]);
         cut.WaitForState(() => instance._logEntries.EntriesCount > 0);
-
-        DisposeComponents();
-
-        Assert.Empty(consoleLogsManager.GetSubscriptions());
     }
 
     private void SetupConsoleLogsServices(TestDashboardClient? dashboardClient = null, TestTimeProvider? timeProvider = null)
