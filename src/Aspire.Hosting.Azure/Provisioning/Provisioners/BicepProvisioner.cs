@@ -541,7 +541,7 @@ internal sealed class BicepProvisioner(
 
     internal static async Task SetScopeAsync(JsonObject scope, AzureBicepResource resource, CancellationToken cancellationToken = default)
     {
-        // Resole the scope from the AzureBicepResource if it has already been set
+        // Resolve the scope from the AzureBicepResource if it has already been set
         // via the ConfigureInfrastructure callback. If not, fallback to the ExistingAzureResourceAnnotation.
         var targetScope = resource.Scope;
         if (targetScope is null
