@@ -26,19 +26,6 @@ public class ConformanceTestsEventHubsProcessor : ConformanceTestsBase<EventProc
     protected override void SetTracing(AzureMessagingEventHubsProcessorSettings options, bool enabled)
         => options.DisableTracing = !enabled;
 
-    protected override void TriggerActivity(EventProcessorClient service)
-    {
-        service.ProcessEventAsync += (_) => Task.CompletedTask;
-        service.ProcessErrorAsync += (_) => Task.CompletedTask;
-        try
-        {
-            service.StartProcessing();
-        }
-        catch (Exception)
-        {
-            // Expected exception
-        }
-    }
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureMessagingEventHubsProcessorSettings>? configure = null, string? key = null)
     {
         if (key is null)
@@ -55,7 +42,7 @@ public class ConformanceTestsEventHubsProcessor : ConformanceTestsBase<EventProc
 }
 
 public abstract class ConformanceTestsBase<TService, TOptions> : ConformanceTests<TService, TOptions>
-    where TService : class
+    where TService : EventProcessorClient
     where TOptions : class, new()
 {
     private static readonly Lazy<bool> s_canConnectToServer = new(GetCanConnect);
@@ -147,6 +134,20 @@ public abstract class ConformanceTestsBase<TService, TOptions> : ConformanceTest
         response.AddHeader(new HttpHeader("Content-Type", "application/json; charset=utf-8"));
 
         return response;
+    }
+
+    protected override void TriggerActivity(TService service)
+    {
+        service.ProcessEventAsync += (_) => Task.CompletedTask;
+        service.ProcessErrorAsync += (_) => Task.CompletedTask;
+        try
+        {
+            service.StartProcessing();
+        }
+        catch (Exception)
+        {
+            // Expected exception
+        }
     }
 
     protected void ConfigureMockBlobServiceClient(HostApplicationBuilder builder)
