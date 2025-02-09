@@ -182,9 +182,9 @@
         <target state="translated">正在等待跟踪 {0} 加载...</target>
         <note>{0} is a trace ID</note>
       </trans-unit>
-      <trans-unit id="SettingsDashboardTelemetry">
-        <source>Dashboard telemetry</source>
-        <target state="new">Dashboard telemetry</target>
+      <trans-unit id="SettingsDialogConsoleLogsAndTelemetry">
+        <source>Console logs and telemetry</source>
+        <target state="new">Console logs and telemetry</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
@@ -221,6 +221,11 @@
         <source>Version: {0}</source>
         <target state="translated">版本: {0}</target>
         <note>{0} is the dashboard version string</note>
+      </trans-unit>
+      <trans-unit id="SettingsRemoveAllButtonText">
+        <source>Remove all</source>
+        <target state="new">Remove all</target>
+        <note />
       </trans-unit>
       <trans-unit id="TextVisualizerDialogJsonFormat">
         <source>Format JSON</source>
