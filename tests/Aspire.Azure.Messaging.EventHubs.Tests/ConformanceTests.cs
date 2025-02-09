@@ -15,7 +15,112 @@ using Xunit;
 
 namespace Aspire.Azure.Messaging.EventHubs.Tests;
 
-public class ConformanceTestsEventHubsProcessor : ConformanceTestsBase<EventProcessorClient, AzureMessagingEventHubsProcessorSettings>
+public class ConformanceTestsAzureMessagingEventHubsBufferedProducerClient : ConformanceTestsBase<EventProcessorClient, AzureMessagingEventHubsBufferedProducerSettings>
+{
+    protected override void SetHealthCheck(AzureMessagingEventHubsBufferedProducerSettings options, bool enabled)
+        => options.DisableHealthChecks = !enabled;
+
+    protected override void SetMetrics(AzureMessagingEventHubsBufferedProducerSettings options, bool enabled)
+        => throw new NotImplementedException();
+
+    protected override void SetTracing(AzureMessagingEventHubsBufferedProducerSettings options, bool enabled)
+        => options.DisableTracing = !enabled;
+
+    protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureMessagingEventHubsBufferedProducerSettings>? configure = null, string? key = null)
+    {
+        if (key is null)
+        {
+            builder.AddAzureEventHubBufferedProducerClient("ehbps", settings => ConfigureCredentials(configure, settings));
+        }
+        else
+        {
+            builder.AddKeyedAzureEventHubBufferedProducerClient(key, settings => ConfigureCredentials(configure, settings));
+        }
+
+        ConfigureMockBlobServiceClient(builder);
+
+        void ConfigureCredentials(Action<AzureMessagingEventHubsBufferedProducerSettings>? configure, AzureMessagingEventHubsBufferedProducerSettings settings)
+        {
+            if (CanConnectToServer)
+            {
+                settings.Credential = new DefaultAzureCredential();
+            }
+            configure?.Invoke(settings);
+        }
+    }
+}
+
+public class ConformanceTestsAzureMessagingEventHubsConsumerClient : ConformanceTestsBase<EventProcessorClient, AzureMessagingEventHubsConsumerSettings>
+{
+    protected override void SetHealthCheck(AzureMessagingEventHubsConsumerSettings options, bool enabled)
+        => options.DisableHealthChecks = !enabled;
+
+    protected override void SetMetrics(AzureMessagingEventHubsConsumerSettings options, bool enabled)
+        => throw new NotImplementedException();
+
+    protected override void SetTracing(AzureMessagingEventHubsConsumerSettings options, bool enabled)
+        => options.DisableTracing = !enabled;
+
+    protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureMessagingEventHubsConsumerSettings>? configure = null, string? key = null)
+    {
+        if (key is null)
+        {
+            builder.AddAzureEventHubConsumerClient("ehcc", settings => ConfigureCredentials(configure, settings));
+        }
+        else
+        {
+            builder.AddKeyedAzureEventHubConsumerClient(key, settings => ConfigureCredentials(configure, settings));
+        }
+
+        ConfigureMockBlobServiceClient(builder);
+
+        void ConfigureCredentials(Action<AzureMessagingEventHubsConsumerSettings>? configure, AzureMessagingEventHubsConsumerSettings settings)
+        {
+            if (CanConnectToServer)
+            {
+                settings.Credential = new DefaultAzureCredential();
+            }
+            configure?.Invoke(settings);
+        }
+    }
+}
+
+public class ConformanceTestsAzureMessagingEventHubsProducerClient : ConformanceTestsBase<EventProcessorClient, AzureMessagingEventHubsProducerSettings>
+{
+    protected override void SetHealthCheck(AzureMessagingEventHubsProducerSettings options, bool enabled)
+        => options.DisableHealthChecks = !enabled;
+
+    protected override void SetMetrics(AzureMessagingEventHubsProducerSettings options, bool enabled)
+        => throw new NotImplementedException();
+
+    protected override void SetTracing(AzureMessagingEventHubsProducerSettings options, bool enabled)
+        => options.DisableTracing = !enabled;
+
+    protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureMessagingEventHubsProducerSettings>? configure = null, string? key = null)
+    {
+        if (key is null)
+        {
+            builder.AddAzureEventHubProducerClient("ehprc", settings => ConfigureCredentials(configure, settings));
+        }
+        else
+        {
+            builder.AddKeyedAzureEventHubProducerClient(key, settings => ConfigureCredentials(configure, settings));
+        }
+
+        ConfigureMockBlobServiceClient(builder);
+
+        void ConfigureCredentials(Action<AzureMessagingEventHubsProducerSettings>? configure, AzureMessagingEventHubsProducerSettings settings)
+        {
+            if (CanConnectToServer)
+            {
+                settings.Credential = new DefaultAzureCredential();
+            }
+            configure?.Invoke(settings);
+        }
+    }
+}
+
+public class ConformanceTestsEventHubsProcessorClient : ConformanceTestsBase<EventProcessorClient, AzureMessagingEventHubsProcessorSettings>
 {
     protected override void SetHealthCheck(AzureMessagingEventHubsProcessorSettings options, bool enabled)
         => options.DisableHealthChecks = !enabled;
@@ -30,7 +135,7 @@ public class ConformanceTestsEventHubsProcessor : ConformanceTestsBase<EventProc
     {
         if (key is null)
         {
-            builder.AddAzureEventProcessorClient("ehps", settings => ConfigureCredentials(configure, settings));
+            builder.AddAzureEventProcessorClient("ehpc", settings => ConfigureCredentials(configure, settings));
         }
         else
         {
@@ -38,6 +143,51 @@ public class ConformanceTestsEventHubsProcessor : ConformanceTestsBase<EventProc
         }
 
         ConfigureMockBlobServiceClient(builder);
+
+        void ConfigureCredentials(Action<AzureMessagingEventHubsProcessorSettings>? configure, AzureMessagingEventHubsProcessorSettings settings)
+        {
+            if (CanConnectToServer)
+            {
+                settings.Credential = new DefaultAzureCredential();
+            }
+            settings.BlobClientServiceKey = "blobs";
+            configure?.Invoke(settings);
+        }
+    }
+}
+
+public class ConformanceTestsPartitionReceiverClient : ConformanceTestsBase<EventProcessorClient, AzureMessagingEventHubsPartitionReceiverSettings>
+{
+    protected override void SetHealthCheck(AzureMessagingEventHubsPartitionReceiverSettings options, bool enabled)
+        => options.DisableHealthChecks = !enabled;
+
+    protected override void SetMetrics(AzureMessagingEventHubsPartitionReceiverSettings options, bool enabled)
+        => throw new NotImplementedException();
+
+    protected override void SetTracing(AzureMessagingEventHubsPartitionReceiverSettings options, bool enabled)
+        => options.DisableTracing = !enabled;
+
+    protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureMessagingEventHubsPartitionReceiverSettings>? configure = null, string? key = null)
+    {
+        if (key is null)
+        {
+            builder.AddAzurePartitionReceiverClient("ehprc", settings => ConfigureCredentials(configure, settings));
+        }
+        else
+        {
+            builder.AddKeyedAzurePartitionReceiverClient(key, settings => ConfigureCredentials(configure, settings));
+        }
+
+        ConfigureMockBlobServiceClient(builder);
+
+        void ConfigureCredentials(Action<AzureMessagingEventHubsPartitionReceiverSettings>? configure, AzureMessagingEventHubsPartitionReceiverSettings settings)
+        {
+            if (CanConnectToServer)
+            {
+                settings.Credential = new DefaultAzureCredential();
+            }
+            configure?.Invoke(settings);
+        }
     }
 }
 
@@ -111,16 +261,6 @@ public abstract class ConformanceTestsBase<TService, TOptions> : ConformanceTest
     [Fact]
     public void TracingEnablesTheRightActivitySource_Keyed()
         => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key"), EnableTracingForAzureSdk()).Dispose();
-
-    protected void ConfigureCredentials(Action<AzureMessagingEventHubsProcessorSettings>? configure, AzureMessagingEventHubsProcessorSettings settings)
-    {
-        if (CanConnectToServer)
-        {
-            settings.Credential = new DefaultAzureCredential();
-        }
-        settings.BlobClientServiceKey = "blobs";
-        configure?.Invoke(settings);
-    }
 
     protected MockResponse CreateResponse(string content)
     {
