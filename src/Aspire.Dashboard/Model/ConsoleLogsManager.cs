@@ -84,15 +84,18 @@ public sealed class ConsoleLogsManager
         _hasInitialized = true;
 
         await _sessionStorage.SetAsync(BrowserStorageKeys.ConsoleLogFilters, filters).ConfigureAwait(false);
-        if (_subscriptions.Count == 0)
-        {
-            return;
-        }
+
         ModelSubscription[] subscriptions;
         lock (_lock)
         {
+            if (_subscriptions.Count == 0)
+            {
+                return;
+            }
+
             subscriptions = _subscriptions.ToArray();
         }
+
         foreach (var subscription in subscriptions)
         {
             await subscription.ExecuteAsync().ConfigureAwait(false);
