@@ -37,8 +37,6 @@ public class ConformanceTestsAzureMessagingEventHubsBufferedProducerClient : Con
             builder.AddKeyedAzureEventHubBufferedProducerClient(key, settings => ConfigureCredentials(configure, settings));
         }
 
-        ConfigureMockBlobServiceClient(builder);
-
         void ConfigureCredentials(Action<AzureMessagingEventHubsBufferedProducerSettings>? configure, AzureMessagingEventHubsBufferedProducerSettings settings)
         {
             if (CanConnectToServer)
@@ -72,8 +70,6 @@ public class ConformanceTestsAzureMessagingEventHubsConsumerClient : Conformance
             builder.AddKeyedAzureEventHubConsumerClient(key, settings => ConfigureCredentials(configure, settings));
         }
 
-        ConfigureMockBlobServiceClient(builder);
-
         void ConfigureCredentials(Action<AzureMessagingEventHubsConsumerSettings>? configure, AzureMessagingEventHubsConsumerSettings settings)
         {
             if (CanConnectToServer)
@@ -106,8 +102,6 @@ public class ConformanceTestsAzureMessagingEventHubsProducerClient : Conformance
         {
             builder.AddKeyedAzureEventHubProducerClient(key, settings => ConfigureCredentials(configure, settings));
         }
-
-        ConfigureMockBlobServiceClient(builder);
 
         void ConfigureCredentials(Action<AzureMessagingEventHubsProducerSettings>? configure, AzureMessagingEventHubsProducerSettings settings)
         {
@@ -177,8 +171,6 @@ public class ConformanceTestsPartitionReceiverClient : ConformanceTestsBase<Even
         {
             builder.AddKeyedAzurePartitionReceiverClient(key, settings => ConfigureCredentials(configure, settings));
         }
-
-        ConfigureMockBlobServiceClient(builder);
 
         void ConfigureCredentials(Action<AzureMessagingEventHubsPartitionReceiverSettings>? configure, AzureMessagingEventHubsPartitionReceiverSettings settings)
         {
