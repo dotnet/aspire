@@ -69,6 +69,15 @@ public sealed class ConsoleLogsManager
         }
     }
 
+    // Internal for tests.
+    internal List<ModelSubscription> GetSubscriptions()
+    {
+        lock (_lock)
+        {
+            return _subscriptions.ToList();
+        }
+    }
+
     public async Task UpdateFiltersAsync(ConsoleLogsFilters filters)
     {
         _filters = filters;
