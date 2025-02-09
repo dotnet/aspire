@@ -659,9 +659,6 @@ public class ExistingAzureResourceTests
 
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: existingResourceName
-              tags: {
-                'aspire-resource-name': 'keyVault'
-              }
             }
 
             resource keyVault_KeyVaultAdministrator 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
