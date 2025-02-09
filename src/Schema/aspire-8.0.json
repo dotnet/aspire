@@ -488,7 +488,7 @@
   "definitions": {
     "resource.azure.bicep.v0": {
       "type": "object",
-      "default": "Represents a resource that is deployed using Azure Bicep.",
+      "description": "Represents a resource that is deployed using Azure Bicep.",
       "required": [ "path" ],
       "properties": {
         "type": {
@@ -523,18 +523,19 @@
           "$ref": "#/definitions/resource.azure.bicep.v0"
         },
         {
+          "type": "object",
           "properties": {
             "type": {
               "const": "azure.bicep.v1"
             },
             "scope": {
-                "type": "object",
-                "properties": {
-                  "resourceGroup": {
-                    "type": "string",
-                    "description": "The name of the resource group to deploy the resource to."
-                  }
+              "type": "object",
+              "properties": {
+                "resourceGroup": {
+                  "type": "string",
+                  "description": "The name of the resource group to deploy the resource to."
                 }
+              }
             }
           }
         }
