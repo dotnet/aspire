@@ -43,40 +43,14 @@ public class ConformanceTestsEventHubsProcessor : ConformanceTestsBase<EventProc
     {
         if (key is null)
         {
-            builder.AddAzureEventProcessorClient("ehps", ConfigureCredentials);
+            builder.AddAzureEventProcessorClient("ehps", settings => ConfigureCredentials(configure, settings));
         }
         else
         {
-            builder.AddKeyedAzureEventProcessorClient(key, ConfigureCredentials);
+            builder.AddKeyedAzureEventProcessorClient(key, settings => ConfigureCredentials(configure, settings));
         }
 
-        var mockTransport = new MockTransport([CreateResponse("""{}"""), CreateResponse("""{}""")]);
-        var blobClient = new BlobServiceClient(new Uri(BlobsConnectionString), new DefaultAzureCredential(), new BlobClientOptions() { Transport = mockTransport });
-        builder.Services.AddKeyedSingleton("blobs", blobClient);
-
-        void ConfigureCredentials(AzureMessagingEventHubsProcessorSettings settings)
-        {
-            if (CanConnectToServer)
-            {
-                settings.Credential = new DefaultAzureCredential();
-            }
-            settings.BlobClientServiceKey = "blobs";
-            configure?.Invoke(settings);
-        }
-
-        MockResponse CreateResponse(string content)
-        {
-            var buffer = Encoding.UTF8.GetBytes(content);
-            var response = new MockResponse(201)
-            {
-                ClientRequestId = Guid.NewGuid().ToString(),
-                ContentStream = new MemoryStream(buffer),
-            };
-
-            response.AddHeader(new HttpHeader("Content-Type", "application/json; charset=utf-8"));
-
-            return response;
-        }
+        ConfigureMockBlobServiceClient(builder);
     }
 }
 
@@ -150,6 +124,37 @@ public abstract class ConformanceTestsBase<TService, TOptions> : ConformanceTest
     [Fact]
     public void TracingEnablesTheRightActivitySource_Keyed()
         => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key"), EnableTracingForAzureSdk()).Dispose();
+
+    protected void ConfigureCredentials(Action<AzureMessagingEventHubsProcessorSettings>? configure, AzureMessagingEventHubsProcessorSettings settings)
+    {
+        if (CanConnectToServer)
+        {
+            settings.Credential = new DefaultAzureCredential();
+        }
+        settings.BlobClientServiceKey = "blobs";
+        configure?.Invoke(settings);
+    }
+
+    protected MockResponse CreateResponse(string content)
+    {
+        var buffer = Encoding.UTF8.GetBytes(content);
+        var response = new MockResponse(201)
+        {
+            ClientRequestId = Guid.NewGuid().ToString(),
+            ContentStream = new MemoryStream(buffer),
+        };
+
+        response.AddHeader(new HttpHeader("Content-Type", "application/json; charset=utf-8"));
+
+        return response;
+    }
+
+    protected void ConfigureMockBlobServiceClient(HostApplicationBuilder builder)
+    {
+        var mockTransport = new MockTransport([CreateResponse("""{}"""), CreateResponse("""{}""")]);
+        var blobClient = new BlobServiceClient(new Uri(BlobsConnectionString), new DefaultAzureCredential(), new BlobClientOptions() { Transport = mockTransport });
+        builder.Services.AddKeyedSingleton("blobs", blobClient);
+    }
 
     private static RemoteInvokeOptions EnableTracingForAzureSdk()
         => new()
