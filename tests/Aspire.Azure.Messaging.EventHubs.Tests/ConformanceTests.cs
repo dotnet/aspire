@@ -15,7 +15,74 @@ using Xunit;
 
 namespace Aspire.Azure.Messaging.EventHubs.Tests;
 
-public class ConformanceTests : ConformanceTests<EventProcessorClient, AzureMessagingEventHubsProcessorSettings>
+public class ConformanceTestsEventHubsProcessor : ConformanceTestsBase<EventProcessorClient, AzureMessagingEventHubsProcessorSettings>
+{
+    protected override void SetHealthCheck(AzureMessagingEventHubsProcessorSettings options, bool enabled)
+        => options.DisableHealthChecks = !enabled;
+
+    protected override void SetMetrics(AzureMessagingEventHubsProcessorSettings options, bool enabled)
+        => throw new NotImplementedException();
+
+    protected override void SetTracing(AzureMessagingEventHubsProcessorSettings options, bool enabled)
+        => options.DisableTracing = !enabled;
+
+    protected override void TriggerActivity(EventProcessorClient service)
+    {
+        service.ProcessEventAsync += (_) => Task.CompletedTask;
+        service.ProcessErrorAsync += (_) => Task.CompletedTask;
+        try
+        {
+            service.StartProcessing();
+        }
+        catch (Exception)
+        {
+            // Expected exception
+        }
+    }
+    protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureMessagingEventHubsProcessorSettings>? configure = null, string? key = null)
+    {
+        if (key is null)
+        {
+            builder.AddAzureEventProcessorClient("ehps", ConfigureCredentials);
+        }
+        else
+        {
+            builder.AddKeyedAzureEventProcessorClient(key, ConfigureCredentials);
+        }
+
+        var mockTransport = new MockTransport([CreateResponse("""{}"""), CreateResponse("""{}""")]);
+        var blobClient = new BlobServiceClient(new Uri(BlobsConnectionString), new DefaultAzureCredential(), new BlobClientOptions() { Transport = mockTransport });
+        builder.Services.AddKeyedSingleton("blobs", blobClient);
+
+        void ConfigureCredentials(AzureMessagingEventHubsProcessorSettings settings)
+        {
+            if (CanConnectToServer)
+            {
+                settings.Credential = new DefaultAzureCredential();
+            }
+            settings.BlobClientServiceKey = "blobs";
+            configure?.Invoke(settings);
+        }
+
+        MockResponse CreateResponse(string content)
+        {
+            var buffer = Encoding.UTF8.GetBytes(content);
+            var response = new MockResponse(201)
+            {
+                ClientRequestId = Guid.NewGuid().ToString(),
+                ContentStream = new MemoryStream(buffer),
+            };
+
+            response.AddHeader(new HttpHeader("Content-Type", "application/json; charset=utf-8"));
+
+            return response;
+        }
+    }
+}
+
+public abstract class ConformanceTestsBase<TService, TOptions> : ConformanceTests<TService, TOptions>
+    where TService : class
+    where TOptions : class, new()
 {
     private static readonly Lazy<bool> s_canConnectToServer = new(GetCanConnect);
 
@@ -25,7 +92,7 @@ public class ConformanceTests : ConformanceTests<EventProcessorClient, AzureMess
     protected const string ConnectionString = "Endpoint=sb://aspireeventhubstests.servicebus.windows.net/;" +
                                               "SharedAccessKeyName=fake;SharedAccessKey=fake;EntityPath=MyHub";
 
-    private const string BlobsConnectionString = "https://fake.blob.core.windows.net";
+    protected const string BlobsConnectionString = "https://fake.blob.core.windows.net";
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
@@ -76,46 +143,6 @@ public class ConformanceTests : ConformanceTests<EventProcessorClient, AzureMess
             new("Aspire:Azure:Messaging:EventHubs:EventProcessorClient:ConnectionString", ConnectionString)
         ]);
 
-    protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureMessagingEventHubsProcessorSettings>? configure = null, string? key = null)
-    {
-        if (key is null)
-        {
-            builder.AddAzureEventProcessorClient("ehps", ConfigureCredentials);
-        }
-        else
-        {
-            builder.AddKeyedAzureEventProcessorClient(key, ConfigureCredentials);
-        }
-
-        var mockTransport = new MockTransport([CreateResponse("""{}"""), CreateResponse("""{}""")]);
-        var blobClient = new BlobServiceClient(new Uri(BlobsConnectionString), new DefaultAzureCredential(), new BlobClientOptions() { Transport = mockTransport });
-        builder.Services.AddKeyedSingleton("blobs", blobClient);
-
-        void ConfigureCredentials(AzureMessagingEventHubsProcessorSettings settings)
-        {
-            if (CanConnectToServer)
-            {
-                settings.Credential = new DefaultAzureCredential();
-            }
-            settings.BlobClientServiceKey = "blobs";
-            configure?.Invoke(settings);
-        }
-
-        MockResponse CreateResponse(string content)
-        {
-            var buffer = Encoding.UTF8.GetBytes(content);
-            var response = new MockResponse(201)
-            {
-                ClientRequestId = Guid.NewGuid().ToString(),
-                ContentStream = new MemoryStream(buffer),
-            };
-
-            response.AddHeader(new HttpHeader("Content-Type", "application/json; charset=utf-8"));
-
-            return response;
-        }
-    }
-
     [Fact]
     public void TracingEnablesTheRightActivitySource()
         => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null), EnableTracingForAzureSdk()).Dispose();
@@ -123,29 +150,6 @@ public class ConformanceTests : ConformanceTests<EventProcessorClient, AzureMess
     [Fact]
     public void TracingEnablesTheRightActivitySource_Keyed()
         => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key"), EnableTracingForAzureSdk()).Dispose();
-
-    protected override void SetHealthCheck(AzureMessagingEventHubsProcessorSettings options, bool enabled)
-        => options.DisableHealthChecks = !enabled;
-
-    protected override void SetMetrics(AzureMessagingEventHubsProcessorSettings options, bool enabled)
-        => throw new NotImplementedException();
-
-    protected override void SetTracing(AzureMessagingEventHubsProcessorSettings options, bool enabled)
-        => options.DisableTracing = !enabled;
-
-    protected override void TriggerActivity(EventProcessorClient service)
-    {
-        service.ProcessEventAsync += (_) => Task.CompletedTask;
-        service.ProcessErrorAsync += (_) => Task.CompletedTask;
-        try
-        {
-            service.StartProcessing();
-        }
-        catch (Exception)
-        {
-            // Expected exception
-        }
-    }
 
     private static RemoteInvokeOptions EnableTracingForAzureSdk()
         => new()
