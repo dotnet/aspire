@@ -52,7 +52,7 @@
                 "type": "nuget",
                 "nuget": {
                     "name": "Microsoft.Extensions.Http.Resilience",
-                    "version": "8.9.1"
+                    "version": "9.1.0"
                 }
             }
         },
@@ -70,7 +70,7 @@
                 "type": "nuget",
                 "nuget": {
                     "name": "MSTest",
-                    "version": "3.5.2"
+                    "version": "3.6.1"
                 }
             }
         },
@@ -88,7 +88,7 @@
                 "type": "nuget",
                 "nuget": {
                     "name": "NUnit",
-                    "version": "4.2.1"
+                    "version": "4.2.2"
                 }
             }
         },
@@ -115,7 +115,7 @@
                 "type": "nuget",
                 "nuget": {
                     "name": "xunit",
-                    "version": "2.9.0"
+                    "version": "2.9.2"
                 }
             }
         },
