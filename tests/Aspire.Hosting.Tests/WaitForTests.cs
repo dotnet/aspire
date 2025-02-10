@@ -30,10 +30,9 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
         await app.StartAsync(abortCts.Token);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(throwingResource.Resource.Name, KnownResourceStates.FailedToStart, abortCts.Token);
-        await rns.WaitForResourceAsync(dependingContainerResource.Resource.Name, KnownResourceStates.FailedToStart, abortCts.Token);
-        await rns.WaitForResourceAsync(dependingExecutableResource.Resource.Name, KnownResourceStates.FailedToStart, abortCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(throwingResource.Resource.Name, KnownResourceStates.FailedToStart, abortCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependingContainerResource.Resource.Name, KnownResourceStates.FailedToStart, abortCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependingExecutableResource.Resource.Name, KnownResourceStates.FailedToStart, abortCts.Token);
 
         await app.StopAsync(abortCts.Token);
     }
@@ -102,15 +101,13 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
         using var startupCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
         var startTask = app.StartAsync(startupCts.Token);
 
         using var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
 
-        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        await app.ResourceNotifications.PublishUpdateAsync(dependency.Resource, s => s with
         {
             State = KnownResourceStates.Running
         });
@@ -146,13 +143,12 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // CI machine is chugging (also useful when collecting code coverage).
         var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
 
         // Now that we know we successfully entered the Waiting state, we can swap
         // the dependency into a running state which will unblock startup and
         // we can continue executing.
-        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        await app.ResourceNotifications.PublishUpdateAsync(dependency.Resource, s => s with
         {
             State = KnownResourceStates.Running
         });
@@ -187,16 +183,15 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         var startTask = app.StartAsync(startupCts.Token);
 
         var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
 
-        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        await app.ResourceNotifications.PublishUpdateAsync(dependency.Resource, s => s with
         {
             State = status
         });
 
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.FailedToStart, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.FailedToStart, waitingStateCts.Token);
 
         await startTask;
     }
@@ -222,16 +217,15 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         var startTask = app.StartAsync(startupCts.Token);
 
         var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
 
-        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        await app.ResourceNotifications.PublishUpdateAsync(dependency.Resource, s => s with
         {
             State = status
         });
 
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.FailedToStart, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.FailedToStart, waitingStateCts.Token);
 
         await startTask;
     }
@@ -257,24 +251,23 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         var startTask = app.StartAsync(startupCts.Token);
 
         var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
 
-        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        await app.ResourceNotifications.PublishUpdateAsync(dependency.Resource, s => s with
         {
             State = status
         });
 
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
 
         // Fake a restart of the dependency
-        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        await app.ResourceNotifications.PublishUpdateAsync(dependency.Resource, s => s with
         {
             State = KnownResourceStates.Running
         });
 
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, waitingStateCts.Token);
 
         await startTask;
     }
@@ -305,24 +298,23 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         var startTask = app.StartAsync(startupCts.Token);
 
         var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
 
-        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        await app.ResourceNotifications.PublishUpdateAsync(dependency.Resource, s => s with
         {
             State = status
         });
 
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
 
         // Fake a restart of the dependency
-        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        await app.ResourceNotifications.PublishUpdateAsync(dependency.Resource, s => s with
         {
             State = KnownResourceStates.Running
         });
 
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, waitingStateCts.Token);
 
         await startTask;
     }
@@ -352,13 +344,12 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // CI machine is chugging (also useful when collecting code coverage).
         var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
 
         // Now that we know we successfully entered the Waiting state, we can swap
         // the dependency into a running state which will unblock startup and
         // we can continue executing.
-        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        await app.ResourceNotifications.PublishUpdateAsync(dependency.Resource, s => s with
         {
             State = KnownResourceStates.Finished,
             ExitCode = 0
@@ -368,7 +359,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // it successfully started after we moved the dependency resource into the Finished, but
         // we need to give it more time since we have to download the image in CI.
         var runningStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, runningStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, runningStateCts.Token);
 
         await startTask;
 
@@ -400,13 +391,12 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // CI machine is chugging (also useful when collecting code coverage).
         var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(nginx.Resource.Name, "Waiting", waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, "Waiting", waitingStateCts.Token);
 
         // Now that we know we successfully entered the Waiting state, we can swap
         // the dependency into a running state which will unblock startup and
         // we can continue executing.
-        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        await app.ResourceNotifications.PublishUpdateAsync(dependency.Resource, s => s with
         {
             State = KnownResourceStates.Finished,
             ExitCode = 0
@@ -416,7 +406,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // it successfully started after we moved the dependency resource into the Finished, but
         // we need to give it more time since we have to download the image in CI.
         var runningStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.FailedToStart, runningStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.FailedToStart, runningStateCts.Token);
 
         await startTask;
 
@@ -456,13 +446,12 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // CI machine is chugging (also useful when collecting code coverage).
         var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(nginx.Resource.Name, "Waiting", waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, "Waiting", waitingStateCts.Token);
 
         // Now that we know we successfully entered the Waiting state, we can swap
         // the dependency into a running state which will unblock startup and
         // we can continue executing.
-        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        await app.ResourceNotifications.PublishUpdateAsync(dependency.Resource, s => s with
         {
             State = KnownResourceStates.Running
         });
@@ -473,7 +462,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // it successfully started after we moved the dependency resource into the Finished, but
         // we need to give it more time since we have to download the image in CI.
         var runningStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.FailedToStart, runningStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.FailedToStart, runningStateCts.Token);
 
         await startTask;
 
@@ -511,13 +500,12 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // CI machine is chugging (also useful when collecting code coverage).
         var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
 
         // Now that we know we successfully entered the Waiting state, we can swap
         // the dependency into a finished state which will unblock startup and
         // we can continue executing.
-        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        await app.ResourceNotifications.PublishUpdateAsync(dependency.Resource, s => s with
         {
             State = KnownResourceStates.Finished,
             ExitCode = 3 // Exit code does not match expected exit code above intentionally.
@@ -526,7 +514,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // This time we want to wait for Nginx to move into a FailedToStart state to verify that
         // it didn't start if the dependency resource didn't finish with the correct exit code.
         var runningStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.FailedToStart, runningStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.FailedToStart, runningStateCts.Token);
 
         await startTask;
 
@@ -563,24 +551,23 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // CI machine is chugging (also useful when collecting code coverage).
         var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
 
         // Publish the first replica as finished
-        await rns.PublishUpdateAsync(dependency.Resource, "test0", s => s with
+        await app.ResourceNotifications.PublishUpdateAsync(dependency.Resource, "test0", s => s with
         {
             State = KnownResourceStates.Running,
         });
 
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
 
         // Publish the second replica as finished
-        await rns.PublishUpdateAsync(dependency.Resource, "test1", s => s with
+        await app.ResourceNotifications.PublishUpdateAsync(dependency.Resource, "test1", s => s with
         {
             State = KnownResourceStates.Running,
         });
 
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, waitingStateCts.Token);
 
         await startTask;
 
@@ -617,24 +604,23 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // CI machine is chugging (also useful when collecting code coverage).
         var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
 
         // Publish the first replica as finished
-        await rns.PublishUpdateAsync(dependency.Resource, "test0", s => s with
+        await app.ResourceNotifications.PublishUpdateAsync(dependency.Resource, "test0", s => s with
         {
             State = KnownResourceStates.Finished,
         });
 
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
 
         // Publish the second replica as finished
-        await rns.PublishUpdateAsync(dependency.Resource, "test1", s => s with
+        await app.ResourceNotifications.PublishUpdateAsync(dependency.Resource, "test1", s => s with
         {
             State = KnownResourceStates.Finished,
         });
 
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, waitingStateCts.Token);
 
         await startTask;
 
@@ -667,16 +653,15 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // CI machine is chugging (also useful when collecting code coverage).
         var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
 
         // Now that we know we successfully entered the Waiting state, we can end the dependency
-        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        await app.ResourceNotifications.PublishUpdateAsync(dependency.Resource, s => s with
         {
             State = KnownResourceStates.Finished
         });
 
-        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, waitingStateCts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, waitingStateCts.Token);
 
         await startTask;
 
