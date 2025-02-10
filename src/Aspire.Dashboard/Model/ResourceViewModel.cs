@@ -324,12 +324,13 @@ public sealed class UrlViewModel
     public string Name { get; }
     public Uri Url { get; }
     public bool IsInternal { get; }
-    public UrlDisplayPropertiesViewModel? DisplayProperties { get; }
+    public UrlDisplayPropertiesViewModel DisplayProperties { get; }
 
-    public UrlViewModel(string name, Uri url, bool isInternal, UrlDisplayPropertiesViewModel? displayProperties = null)
+    public UrlViewModel(string name, Uri url, bool isInternal, UrlDisplayPropertiesViewModel displayProperties)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(url);
+        ArgumentNullException.ThrowIfNull(displayProperties);
 
         Name = name;
         Url = url;
@@ -338,7 +339,7 @@ public sealed class UrlViewModel
     }
 }
 
-public record UrlDisplayPropertiesViewModel(string? DisplayName, int? SortOrder);
+public record UrlDisplayPropertiesViewModel(string DisplayName, int SortOrder);
 
 public sealed record class VolumeViewModel(int index, string Source, string Target, string MountType, bool IsReadOnly) : IPropertyGridItem
 {

@@ -65,7 +65,7 @@
                 </div>
 
                 @{
-                    var hasAnyEndpointDisplayNames = FilteredEndpoints.Any(e => e.DisplayName != null);
+                    var hasAnyEndpointDisplayNames = FilteredEndpoints.Any(e => !string.IsNullOrEmpty(e.DisplayName));
                 }
 
                 <FluentDataGrid TGridItem="DisplayedEndpoint"
@@ -80,7 +80,7 @@
                                 RowSize="DataGridRowSize.Medium"
                                 GridTemplateColumns="@(hasAnyEndpointDisplayNames ? "1fr 1.5fr 1.5fr" : "1.5fr 1.5fr")"
                                 ShowHover="true">
-                    <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<DisplayedEndpoint>.ByAscending(i => i.Name))" Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]">
+                    <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<DisplayedEndpoint>.ByAscending(i => i.DisplayName))" Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]">
                         <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]"
                                    Value="@context.Name"
                                    EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
@@ -88,18 +88,15 @@
                     </AspireTemplateColumn>
                     @if (hasAnyEndpointDisplayNames)
                     {
-                        <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<DisplayedEndpoint>.ByAscending(i => i.Name))" Title="@ControlStringsLoc[nameof(ControlsStrings.DisplayNameColumnHeader)]">
-                            @if (context.DisplayName is not null)
-                            {
-                                <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.DisplayNameColumnHeader)]"
-                                           Value="@context.DisplayName"
-                                           EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
-                                           HighlightText="@_filter" />
-                            }
+                        <AspireTemplateColumn Sortable="true" SortBy="@(GridSort<DisplayedEndpoint>.ByAscending(i => i.DisplayName))" Title="@ControlStringsLoc[nameof(ControlsStrings.DisplayNameColumnHeader)]">
+                            <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.DisplayNameColumnHeader)]"
+                                       Value="@context.DisplayName"
+                                       EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
+                                       HighlightText="@_filter" />
                         </AspireTemplateColumn>
                     }
                     <AspireTemplateColumn Sortable="true" SortBy="@_endpointValueSort" Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]">
-                        <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]"
+                        <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]"
                                    Value="@context.OriginalUrlString"
                                    ContentAfterValue="vm => GetContentAfterValue(context)"
                                    EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"

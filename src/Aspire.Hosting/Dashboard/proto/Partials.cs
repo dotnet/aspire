@@ -51,7 +51,7 @@ partial class Resource
 
             if (urlSnapshot.DisplayProperties?.SortOrder is not null)
             {
-                displayProperties.SortOrder = urlSnapshot.DisplayProperties.SortOrder.Value;
+                displayProperties.SortOrder = urlSnapshot.DisplayProperties.SortOrder;
             }
 
             url.DisplayProperties = displayProperties;

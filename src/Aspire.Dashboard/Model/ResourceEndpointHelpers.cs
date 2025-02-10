@@ -25,10 +25,10 @@ internal static class ResourceEndpointHelpers
                     Address = url.Url.Host,
                     Port = url.Url.Port,
                     Url = url.Url.Scheme is "http" or "https" ? url.Url.OriginalString : null,
-                    SortOrder = url.DisplayProperties?.SortOrder,
-                    DisplayName = url.DisplayProperties?.DisplayName,
+                    SortOrder = url.DisplayProperties.SortOrder,
+                    DisplayName = url.DisplayProperties.DisplayName,
                     OriginalUrlString = url.Url.OriginalString,
-                    Text = url.DisplayProperties?.DisplayName ?? url.Url.OriginalString
+                    Text = string.IsNullOrEmpty(url.DisplayProperties.DisplayName) ? url.Url.OriginalString : url.DisplayProperties.DisplayName
                 });
             }
         }
@@ -39,7 +39,7 @@ internal static class ResourceEndpointHelpers
         // - other urls
         // - endpoint name
         var orderedEndpoints = endpoints
-            .OrderByDescending(e => e.SortOrder ?? 0)
+            .OrderByDescending(e => e.SortOrder)
             .ThenByDescending(e => e.Url?.StartsWith("https") == true)
             .ThenByDescending(e => e.Url != null)
             .ThenBy(e => e.Name, StringComparers.EndpointAnnotationName)
@@ -57,8 +57,8 @@ public sealed class DisplayedEndpoint : IPropertyGridItem
     public string? Address { get; set; }
     public int? Port { get; set; }
     public string? Url { get; set; }
-    public int? SortOrder { get; set; }
-    public string? DisplayName { get; set; }
+    public int SortOrder { get; set; }
+    public required string DisplayName { get; set; }
     public required string OriginalUrlString { get; set; }
 
     /// <summary>

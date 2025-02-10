@@ -177,16 +177,21 @@ public sealed record EnvironmentVariableSnapshot(string Name, string? Value, boo
 /// <param name="Name">Name of the url.</param>
 /// <param name="Url">The full uri.</param>
 /// <param name="IsInternal">Determines if this url is internal.</param>
-/// <param name="DisplayProperties">The UI display properties for the url.</param>
 [DebuggerDisplay("{Url}", Name = "{Name}")]
-public sealed record UrlSnapshot(string Name, string Url, bool IsInternal, UrlDisplayPropertiesSnapshot? DisplayProperties = null);
+public sealed record UrlSnapshot(string Name, string Url, bool IsInternal)
+{
+    /// <summary>
+    /// The UI display properties for the url.
+    /// </summary>
+    public UrlDisplayPropertiesSnapshot DisplayProperties { get; init; } = new();
+}
 
 /// <summary>
 /// A snapshot of the display properties for a url.
 /// </summary>
 /// <param name="DisplayName">The display name of the url.</param>
 /// <param name="SortOrder">The order of the url in UI. Higher numbers are displayed first in the UI.</param>
-public sealed record UrlDisplayPropertiesSnapshot(string? DisplayName = null, int? SortOrder = null);
+public sealed record UrlDisplayPropertiesSnapshot(string DisplayName = "", int SortOrder = 0);
 
 /// <summary>
 /// A snapshot of a volume, mounted to a container.

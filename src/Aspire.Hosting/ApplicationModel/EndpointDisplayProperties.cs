@@ -9,13 +9,13 @@ namespace Aspire.Hosting.ApplicationModel;
 public sealed class EndpointDisplayProperties
 {
     /// <summary>
-    /// Display name of the endpoint, to be displayed in the Aspire Dashboard.
+    /// Display name of the endpoint, to be displayed in the Aspire Dashboard. An empty display name will default to the endpoint name.
     /// </summary>
-    public string? DisplayName { get; set; }
+    public string DisplayName { get; set; } = string.Empty;
 
     /// <summary>
     /// Integer to control visual ordering of endpoints in the Aspire Dashboard. Higher values are displayed first.
     /// Ties are broken by protocol type first (https before others), then by endpoint name.
     /// </summary>
-    public int? SortOrder { get; set; }
+    public int SortOrder { get; set; }
 }
