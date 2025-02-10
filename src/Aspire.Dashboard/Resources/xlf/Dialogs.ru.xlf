@@ -182,14 +182,14 @@
         <target state="translated">Ожидание загрузки трассировки {0}...</target>
         <note>{0} is a trace ID</note>
       </trans-unit>
-      <trans-unit id="SettingsDashboardTelemetry">
-        <source>Dashboard telemetry</source>
-        <target state="new">Dashboard telemetry</target>
-        <note />
-      </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>
         <target state="translated">Темная</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogDashboardLogsAndTelemetry">
+        <source>Dashboard logs and telemetry</source>
+        <target state="new">Dashboard logs and telemetry</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
@@ -221,6 +221,11 @@
         <source>Version: {0}</source>
         <target state="translated">Версия: {0}</target>
         <note>{0} is the dashboard version string</note>
+      </trans-unit>
+      <trans-unit id="SettingsRemoveAllButtonText">
+        <source>Remove all</source>
+        <target state="new">Remove all</target>
+        <note />
       </trans-unit>
       <trans-unit id="TextVisualizerDialogJsonFormat">
         <source>Format JSON</source>

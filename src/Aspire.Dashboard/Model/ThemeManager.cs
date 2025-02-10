@@ -135,15 +135,15 @@ public sealed class ThemeManager
 
         SelectedTheme = theme;
 
-        if (_subscriptions.Count == 0)
-        {
-            return;
-        }
-
         ModelSubscription[] subscriptions;
         lock (_lock)
         {
-            subscriptions = _subscriptions.ToArray();
+          if (_subscriptions.Count == 0)
+            {
+                return;
+            }
+
+          subscriptions = _subscriptions.ToArray();
         }
 
         foreach (var subscription in subscriptions)

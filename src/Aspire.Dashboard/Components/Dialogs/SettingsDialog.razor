@@ -4,7 +4,6 @@
 @using Aspire.Dashboard.Utils
 @using Humanizer
 @inject IStringLocalizer<Dialogs> Loc
-@inject IStringLocalizer<ControlsStrings> ControlStringsLoc
 
 <FluentDialogBody>
     <FluentStack Orientation="Orientation.Vertical" Style="display: flex; height: 100%" VerticalGap="12">
@@ -36,13 +35,13 @@
         </div>
 
         <div>
-            <span class="setting-title">@Loc[nameof(Dialogs.SettingsDashboardTelemetry)]</span>
+            <span class="setting-title">@Loc[nameof(Dialogs.SettingsDialogDashboardLogsAndTelemetry)]</span>
             <div>
                 <FluentButton IconStart="@(new Icons.Regular.Size16.Delete())"
                               OnClick="ClearAllSignals"
-                              Title="@Loc[nameof(ControlsStrings.ClearAllResources)]"
-                              aria-label="@Loc[nameof(ControlsStrings.ClearAllResources)]">
-                    @ControlStringsLoc[nameof(ControlsStrings.ClearAllResources)]
+                              Title="@Loc[nameof(Dialogs.SettingsRemoveAllButtonText)]"
+                              aria-label="@Loc[nameof(Dialogs.SettingsRemoveAllButtonText)]">
+                    @Loc[nameof(Dialogs.SettingsRemoveAllButtonText)]
                 </FluentButton>
             </div>
         </div>

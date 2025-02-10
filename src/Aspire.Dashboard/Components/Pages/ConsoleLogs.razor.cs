@@ -72,6 +72,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public required DashboardCommandExecutor DashboardCommandExecutor { get; init; }
 
     [Inject]
+    public required ConsoleLogsManager ConsoleLogsManager { get; init; }
+
+    [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
 
     [CascadingParameter]
@@ -98,8 +101,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     // State
     private bool _showTimestamp;
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
-
-    private ConsoleLogFilters _consoleLogFilters = new();
+    private IDisposable? _consoleLogsFiltersChangedSubscription;
+    private ConsoleLogsFilters _consoleLogFilters = new();
 
     public string BasePath => DashboardUrls.ConsoleLogBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ConsoleLogsPageState;
@@ -111,17 +114,21 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelNone)] };
         PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
 
+        _consoleLogsFiltersChangedSubscription = ConsoleLogsManager.OnFiltersChanged(async () =>
+        {
+            _consoleLogFilters = ConsoleLogsManager.Filters;
+            _logEntries.Clear();
+            await InvokeAsync(StateHasChanged);
+        });
+
         var timestampStorageResult = await LocalStorage.GetUnprotectedAsync<ConsoleLogConsoleSettings>(BrowserStorageKeys.ConsoleLogConsoleSettings);
         if (timestampStorageResult.Value?.ShowTimestamp is { } showTimestamp)
         {
             _showTimestamp = showTimestamp;
         }
 
-        var filtersResult = await SessionStorage.GetAsync<ConsoleLogFilters>(BrowserStorageKeys.ConsoleLogFilters);
-        if (filtersResult.Value is { } filters)
-        {
-            _consoleLogFilters = filters;
-        }
+        await ConsoleLogsManager.EnsureInitializedAsync();
+        _consoleLogFilters = ConsoleLogsManager.Filters;
 
         var loadingTcs = new TaskCompletionSource();
 
@@ -580,14 +587,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         // Save filters to session storage so they're persisted when navigating to and from the console logs page.
         // This makes remove behavior persistant which matches removing telemetry.
-        await SessionStorage.SetAsync(BrowserStorageKeys.ConsoleLogFilters, _consoleLogFilters);
-
-        _logEntries.Clear();
-        StateHasChanged();
+        await ConsoleLogsManager.UpdateFiltersAsync(_consoleLogFilters);
     }
 
     public async ValueTask DisposeAsync()
     {
+        _consoleLogsFiltersChangedSubscription?.Dispose();
+
         _resourceSubscriptionCts.Cancel();
         _resourceSubscriptionCts.Dispose();
         await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);
@@ -605,12 +611,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public record ConsoleLogsPageState(string? SelectedResource);
 
     public record ConsoleLogConsoleSettings(bool ShowTimestamp);
-
-    public class ConsoleLogFilters
-    {
-        public DateTime? FilterAllLogsDate { get; set; }
-        public Dictionary<string, DateTime> FilterResourceLogsDates { get; set; } = [];
-    }
 
     public Task UpdateViewModelFromQueryAsync(ConsoleLogsViewModel viewModel)
     {
