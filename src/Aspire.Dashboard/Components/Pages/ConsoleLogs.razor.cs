@@ -195,7 +195,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                         }
                     }
 
-                    UpdateMenuButtons();
                     await InvokeAsync(StateHasChanged);
                 }
             });
