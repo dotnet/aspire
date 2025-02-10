@@ -14,13 +14,12 @@ public sealed class ResourceGridViewModel
     public int Depth { get; set; }
     public bool IsHidden { get; set; }
 
-    private bool _isCollapsed;
     public bool IsCollapsed
     {
-        get => _isCollapsed;
+        get;
         set
         {
-            _isCollapsed = value;
+            field = value;
             UpdateHidden();
         }
     }
