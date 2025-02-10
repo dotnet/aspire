@@ -41,17 +41,15 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var pendingStart = app.StartAsync(cts.Token);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
         await pendingStart;
 
@@ -174,11 +172,9 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using var app1 = builder1.Build();
 
-            var rns = app1.Services.GetRequiredService<ResourceNotificationService>();
-
             await app1.StartAsync();
 
-            await rns.WaitForResourceHealthyAsync(masterdb1.Resource.Name, cts.Token);
+            await app1.ResourceNotifications.WaitForResourceHealthyAsync(masterdb1.Resource.Name, cts.Token);
 
             try
             {
@@ -259,11 +255,9 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app2 = builder2.Build())
             {
-                rns = app2.Services.GetRequiredService<ResourceNotificationService>();
-
                 await app2.StartAsync();
 
-                await rns.WaitForResourceHealthyAsync(masterdb2.Resource.Name, cts.Token);
+                await app2.ResourceNotifications.WaitForResourceHealthyAsync(masterdb2.Resource.Name, cts.Token);
 
                 try
                 {

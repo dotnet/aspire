@@ -111,7 +111,6 @@ public static class LoggerNotificationExtensions
 
     private static async Task WatchNotifications(DistributedApplication app, string? resourceName, Predicate<string> predicate, TaskCompletionSource tcs, CancellationTokenSource cancellationTokenSource)
     {
-        var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
         var resourceLoggerService = app.Services.GetRequiredService<ResourceLoggerService>();
         var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(LoggerNotificationExtensions));
 
@@ -120,7 +119,7 @@ public static class LoggerNotificationExtensions
 
         try
         {
-            await foreach (var resourceEvent in resourceNotificationService.WatchAsync(cancellationTokenSource.Token).ConfigureAwait(false))
+            await foreach (var resourceEvent in app.ResourceNotifications.WatchAsync(cancellationTokenSource.Token).ConfigureAwait(false))
             {
                 if (resourceName != null && !string.Equals(resourceEvent.Resource.Name, resourceName, StringComparison.OrdinalIgnoreCase))
                 {
