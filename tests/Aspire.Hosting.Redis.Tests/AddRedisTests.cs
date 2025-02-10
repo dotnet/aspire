@@ -300,85 +300,65 @@ public class AddRedisTests
     }
 
     [Fact]
-    public void WithDataVolumeAddsPersistenceAnnotation()
+    public async Task WithDataVolumeAddsPersistenceAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("myRedis")
                               .WithDataVolume();
 
-        Assert.True(redis.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
-
-        var args = new List<object>();
-        foreach (var argsAnnotation in argsCallbacks)
-        {
-            Assert.NotNull(argsAnnotation.Callback);
-            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
-        }
-
-        Assert.Equal("--save 60 1".Split(" "), args);
+        var args = await GetCommandLineArgs(redis);
+        Assert.Equal("--save 60 1", args);
     }
 
     [Fact]
-    public void WithDataVolumeDoesNotAddPersistenceAnnotationIfIsReadOnly()
+    public async Task WithDataVolumeDoesNotAddPersistenceAnnotationIfIsReadOnly()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("myRedis")
                            .WithDataVolume(isReadOnly: true);
 
-        var persistenceAnnotation = redis.Resource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().SingleOrDefault();
-
-        Assert.Null(persistenceAnnotation);
+        var args = await GetCommandLineArgs(redis);
+        Assert.Empty(args);
     }
 
     [Fact]
-    public void WithDataBindMountAddsPersistenceAnnotation()
+    public async Task WithDataBindMountAddsPersistenceAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("myRedis")
                            .WithDataBindMount("myredisdata");
 
-        Assert.True(redis.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
-
-        var args = new List<object>();
-        foreach (var argsAnnotation in argsCallbacks)
-        {
-            Assert.NotNull(argsAnnotation.Callback);
-            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
-        }
-
-        Assert.Equal("--save 60 1".Split(" "), args);
+        var args = await GetCommandLineArgs(redis);
+        Assert.Equal("--save 60 1", args);
     }
 
     [Fact]
-    public void WithDataBindMountDoesNotAddPersistenceAnnotationIfIsReadOnly()
+    public async Task WithDataBindMountDoesNotAddPersistenceAnnotationIfIsReadOnly()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("myRedis")
                            .WithDataBindMount("myredisdata", isReadOnly: true);
 
-        var persistenceAnnotation = redis.Resource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().SingleOrDefault();
-
-        Assert.Null(persistenceAnnotation);
+        var args = await GetCommandLineArgs(redis);
+        Assert.Empty(args);
     }
 
     [Fact]
-    public void WithPersistenceReplacesPreviousAnnotationInstances()
+    public async Task WithPersistenceReplacesPreviousAnnotationInstances()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("myRedis")
                            .WithDataVolume()
                            .WithPersistence(TimeSpan.FromSeconds(10), 2);
 
-        Assert.True(redis.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
+        var args = await GetCommandLineArgs(redis);
+        Assert.Equal("--save 10 2", args);
+    }
 
-        var args = new List<object>();
-        foreach (var argsAnnotation in argsCallbacks)
-        {
-            Assert.NotNull(argsAnnotation.Callback);
-            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
-        }
-
-        Assert.Equal("--save 10 2".Split(" "), args);
+    private static async Task<string> GetCommandLineArgs(IResourceBuilder<RedisResource> builder)
+    {
+        var args = await ArgumentEvaluator.GetArgumentListAsync(builder.Resource);
+        return string.Join(" ", args);
     }
 
     [Fact]
