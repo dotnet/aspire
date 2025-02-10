@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Xml;
+using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
 
 namespace Aspire.Hosting.Azure;
@@ -13,20 +14,31 @@ namespace Aspire.Hosting.Azure;
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-public class AzureServiceBusTopicResource
+public class AzureServiceBusTopicResource : Resource, IResourceWithParent<AzureServiceBusResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureServiceBusTopicResource"/> class.
     /// </summary>
-    public AzureServiceBusTopicResource(string name)
+    public AzureServiceBusTopicResource(string name, string topicName, AzureServiceBusResource parent) : base(name)
     {
-        Name = name;
+        TopicName = topicName;
+        Parent = parent;
     }
 
     /// <summary>
     /// The topic name.
     /// </summary>
-    public string Name { get; set; }
+    public string TopicName { get; set; }
+
+    /// <summary>
+    /// Gets the parent Azure Service Bus resource.
+    /// </summary>
+    public AzureServiceBusResource Parent { get; }
+
+    /// <summary>
+    /// Gets the connection string expression for the Azure Service Bus Topic.
+    /// </summary>
+    public ReferenceExpression ConnectionStringExpression => Parent.ConnectionStringExpression;
 
     /// <summary>
     /// ISO 8601 default message timespan to live value. This is the duration
@@ -43,14 +55,18 @@ public class AzureServiceBusTopicResource
     public TimeSpan? DuplicateDetectionHistoryTimeWindow { get; set; }
 
     /// <summary>
-    /// A value indicating if this queue requires duplicate detection.
+    /// A value indicating if this topic requires duplicate detection.
     /// </summary>
     public bool? RequiresDuplicateDetection { get; set; }
 
     /// <summary>
     /// The subscriptions for this topic.
     /// </summary>
-    public List<AzureServiceBusSubscriptionResource> Subscriptions { get; } = [];
+    internal List<AzureServiceBusSubscriptionResource> Subscriptions { get; } = [];
+
+    // ensure Azure Functions projects can WithReference a ServiceBus topic
+    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
+        => ((IResourceWithAzureFunctionsConfig)Parent).ApplyAzureFunctionsConfiguration(target, connectionName);
 
     /// <summary>
     /// Converts the current instance to a provisioning entity.
@@ -60,9 +76,9 @@ public class AzureServiceBusTopicResource
     {
         var topic = new global::Azure.Provisioning.ServiceBus.ServiceBusTopic(Infrastructure.NormalizeBicepIdentifier(Name));
 
-        if (Name != null)
+        if (TopicName != null)
         {
-            topic.Name = Name;
+            topic.Name = TopicName;
         }
 
         if (DefaultMessageTimeToLive.HasValue)
@@ -90,7 +106,7 @@ public class AzureServiceBusTopicResource
 
         if (topic.Name != null)
         {
-            writer.WriteString(nameof(Name), topic.Name);
+            writer.WriteString(nameof(Name), topic.TopicName);
         }
         writer.WriteStartObject("Properties");
 

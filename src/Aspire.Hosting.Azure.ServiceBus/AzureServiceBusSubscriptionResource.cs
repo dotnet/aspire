@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Xml;
+using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
 
 namespace Aspire.Hosting.Azure;
@@ -13,20 +14,31 @@ namespace Aspire.Hosting.Azure;
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-public class AzureServiceBusSubscriptionResource
+public class AzureServiceBusSubscriptionResource : Resource, IResourceWithParent<AzureServiceBusTopicResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureServiceBusSubscriptionResource"/> class.
     /// </summary>
-    public AzureServiceBusSubscriptionResource(string name)
+    public AzureServiceBusSubscriptionResource(string name, string subscriptionName, AzureServiceBusTopicResource parent) : base(name)
     {
-        Name = name;
+        SubscriptionName = subscriptionName;
+        Parent = parent;
     }
 
     /// <summary>
     /// The subscription name.
     /// </summary>
-    public string Name { get; set; }
+    public string SubscriptionName { get; set; }
+
+    /// <summary>
+    /// Gets the parent Azure Service Bus Topic resource.
+    /// </summary>
+    public AzureServiceBusTopicResource Parent { get; }
+
+    /// <summary>
+    /// Gets the connection string expression for the Azure Service Bus Subscription.
+    /// </summary>
+    public ReferenceExpression ConnectionStringExpression => Parent.ConnectionStringExpression;
 
     /// <summary>
     /// A value that indicates whether this queue has dead letter support when
@@ -76,6 +88,10 @@ public class AzureServiceBusSubscriptionResource
     /// </summary>
     public List<AzureServiceBusRule> Rules { get; } = [];
 
+    // ensure Azure Functions projects can WithReference a ServiceBus queue
+    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
+        => ((IResourceWithAzureFunctionsConfig)Parent).ApplyAzureFunctionsConfiguration(target, connectionName);
+
     /// <summary>
     /// Converts the current instance to a provisioning entity.
     /// </summary>
@@ -84,9 +100,9 @@ public class AzureServiceBusSubscriptionResource
     {
         var subscription = new global::Azure.Provisioning.ServiceBus.ServiceBusSubscription(Infrastructure.NormalizeBicepIdentifier(Name));
 
-        if (Name != null)
+        if (SubscriptionName != null)
         {
-            subscription.Name = Name;
+            subscription.Name = SubscriptionName;
         }
 
         if (DeadLetteringOnMessageExpiration.HasValue)
@@ -128,9 +144,9 @@ public class AzureServiceBusSubscriptionResource
     {
         var subscription = this;
 
-        if (subscription.Name != null)
+        if (subscription.SubscriptionName != null)
         {
-            writer.WriteString(nameof(AzureServiceBusQueueResource.Name), subscription.Name);
+            writer.WriteString(nameof(Name), subscription.SubscriptionName);
         }
 
         writer.WriteStartObject("Properties");
