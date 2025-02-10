@@ -105,6 +105,15 @@ public class AspireStoreTests
         Assert.Equal("updated", content2);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("./folder")]
+    public void AspireStoreConstructor_ShouldThrow_IfNotAbsolutePath(string? basePath)
+    {
+        Assert.ThrowsAny<Exception>(() => new AspireStore(basePath!));
+    }
+
     private static IAspireStore CreateStore()
     {
         var builder = TestDistributedApplicationBuilder.Create();
