@@ -262,8 +262,8 @@
     <value>A maximum length of {1} characters is allowed.</value>
     <comment>{0} is the field name, whereas {1} is the length. We don't want to show the field name, so it is missing.</comment>
   </data>
-  <data name="SettingsDialogConsoleLogsAndTelemetry" xml:space="preserve">
-    <value>Console logs and telemetry</value>
+  <data name="SettingsDialogDashboardLogsAndTelemetry" xml:space="preserve">
+    <value>Dashboard logs and telemetry</value>
   </data>
   <data name="SettingsRemoveAllButtonText" xml:space="preserve">
     <value>Remove all</value>

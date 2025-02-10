@@ -182,14 +182,14 @@
         <target state="translated">正在等候追蹤 {0} 載入...</target>
         <note>{0} is a trace ID</note>
       </trans-unit>
-      <trans-unit id="SettingsDialogConsoleLogsAndTelemetry">
-        <source>Console logs and telemetry</source>
-        <target state="new">Console logs and telemetry</target>
-        <note />
-      </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>
         <target state="translated">深色</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogDashboardLogsAndTelemetry">
+        <source>Dashboard logs and telemetry</source>
+        <target state="new">Dashboard logs and telemetry</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">

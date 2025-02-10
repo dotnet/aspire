@@ -385,20 +385,20 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Console logs and telemetry.
-        /// </summary>
-        public static string SettingsDialogConsoleLogsAndTelemetry {
-            get {
-                return ResourceManager.GetString("SettingsDialogConsoleLogsAndTelemetry", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Dark.
         /// </summary>
         public static string SettingsDialogDarkTheme {
             get {
                 return ResourceManager.GetString("SettingsDialogDarkTheme", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Dashboard logs and telemetry.
+        /// </summary>
+        public static string SettingsDialogDashboardLogsAndTelemetry {
+            get {
+                return ResourceManager.GetString("SettingsDialogDashboardLogsAndTelemetry", resourceCulture);
             }
         }
         
