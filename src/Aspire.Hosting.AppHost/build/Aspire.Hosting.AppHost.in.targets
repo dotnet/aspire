@@ -247,7 +247,7 @@ namespace Projects%3B
       <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
         <_Parameter1>apphostprojectbaseintermediateoutputpath</_Parameter1>
         <_Parameter2>$(BaseIntermediateOutputPath)</_Parameter2>
-        <_Parameter2 Condition="'$([System.IO.Path]::IsPathRooted($(BaseIntermediateOutputPath)))' == 'false'">$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)</_Parameter2>
+        <_Parameter2 Condition="'$([System.IO.Path]::IsPathRooted($(BaseIntermediateOutputPath)))' == 'false'">$([System.IO.Path]::Combine('$(MSBuildProjectDirectory)', '$(BaseIntermediateOutputPath)')</_Parameter2>
       </AssemblyAttribute>
     </ItemGroup>
   </Target>
