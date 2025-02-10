@@ -692,12 +692,20 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
                                        .WaitFor(childResource);
 
         Assert.True(containerResource.Resource.TryGetAnnotationsOfType<WaitAnnotation>(out var waitAnnotations));
-
         Assert.Collection(
             waitAnnotations,
             a => Assert.Equal(a.Resource, parentResource.Resource),
             a => Assert.Equal(a.Resource, childResource.Resource)
             );
+
+        Assert.True(containerResource.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationshipAnnotations));
+        Assert.Collection(
+            relationshipAnnotations,
+            a =>
+            {
+                Assert.Equal(a.Resource, childResource.Resource);
+                Assert.Equal(a.Type, childResource.Resource);
+            });
     }
 
     private sealed class CustomChildResource(string name, CustomResource parent) : Resource(name), IResourceWithParent<CustomResource>, IResourceWithWaitSupport
