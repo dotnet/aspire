@@ -209,6 +209,7 @@ jobs:
         if: always()
         run: |
           docker container ls --all
+          docker container ls --all --format json
           docker volume ls
           docker network ls
 
