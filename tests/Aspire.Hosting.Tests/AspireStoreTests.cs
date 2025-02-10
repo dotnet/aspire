@@ -109,6 +109,8 @@ public class AspireStoreTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("./folder")]
+    [InlineData("folder")]
+    [InlineData("obj/")]
     public void AspireStoreConstructor_ShouldThrow_IfNotAbsolutePath(string? basePath)
     {
         Assert.ThrowsAny<Exception>(() => new AspireStore(basePath!));
