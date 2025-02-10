@@ -2,8 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure;
 
-namespace Aspire.Hosting.Azure;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Extension methods for interacting with resources that are not managed by Aspire's provisioning or
