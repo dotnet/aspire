@@ -110,13 +110,13 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         {
             await WriteResourceObjectAsync(executable, () => WriteExecutableAsync(executable)).ConfigureAwait(false);
         }
-        else if (resource is IResourceWithConnectionString resourceWithConnectionString)
-        {
-            await WriteResourceObjectAsync(resource, () => WriteConnectionStringAsync(resourceWithConnectionString)).ConfigureAwait(false);
-        }
         else if (resource is ParameterResource parameter)
         {
             await WriteResourceObjectAsync(parameter, () => WriteParameterAsync(parameter)).ConfigureAwait(false);
+        }
+        else if (resource is IResourceWithConnectionString resourceWithConnectionString)
+        {
+            await WriteResourceObjectAsync(resource, () => WriteConnectionStringAsync(resourceWithConnectionString)).ConfigureAwait(false);
         }
         else
         {
