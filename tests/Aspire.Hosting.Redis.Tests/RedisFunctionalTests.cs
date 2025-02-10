@@ -1,11 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Http.Json;
 using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json.Nodes;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
+using Aspire.Hosting.Tests.Dcp;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
@@ -15,9 +17,6 @@ using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 using Xunit;
 using Xunit.Abstractions;
-using Aspire.Hosting.Tests.Dcp;
-using System.Text.Json.Nodes;
-using Aspire.Hosting;
 
 namespace Aspire.Hosting.Redis.Tests;
 
