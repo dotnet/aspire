@@ -582,7 +582,7 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         public async Task StopAsync(CancellationToken cancellationToken = default)
         {
             using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, appFactory._disposingCts.Token);
-            await innerHost.StopAsync(cancellationToken).ConfigureAwait(false);
+            await innerHost.StopAsync(linkedToken.Token).ConfigureAwait(false);
         }
     }
 }
