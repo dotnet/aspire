@@ -51,7 +51,21 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                             _resourceMonitoringStates[resourceName] = state;
                         }
 
-                        _ = Task.Run(() => MonitorResourceHealthAsync(state), state.CancellationToken);
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await MonitorResourceHealthAsync(state).ConfigureAwait(false);
+                            }
+                            catch (OperationCanceledException)
+                            {
+                                // Ignore cancellation errors.
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogDebug(ex, "Unexpected error ended health monitoring for resource '{Resource}'.", resourceName);
+                            }
+                        }, state.CancellationToken);
                     }
                 }
                 else if (KnownResourceStates.TerminalStates.Contains(resourceEvent.Snapshot.State?.Text))
