@@ -298,7 +298,14 @@ internal sealed class AzureProvisioner(
         }
         else
         {
-            resourceLogger.LogInformation("Provisioning {resourceName}...", resource.AzureResource.Name);
+            if (resource.AzureResource.IsExisting())
+            {
+                resourceLogger.LogInformation("Resolving {resourceName} as existing resource...", resource.AzureResource.Name);
+            }
+            else
+            {
+                resourceLogger.LogInformation("Provisioning {resourceName}...", resource.AzureResource.Name);
+            }
 
             try
             {

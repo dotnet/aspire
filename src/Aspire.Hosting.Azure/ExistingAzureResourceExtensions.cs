@@ -2,8 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure;
 
-namespace Aspire.Hosting.Azure;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Extension methods for interacting with resources that are not managed by Aspire's provisioning or
@@ -103,6 +104,24 @@ public static class ExistingAzureResourceExtensions
         {
             builder.WithAnnotation(new ExistingAzureResourceAnnotation(name, resourceGroup));
         }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Marks the resource as an existing resource in both run and publish modes.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="nameParameter">The name of the existing resource.</param>
+    /// <param name="resourceGroupParameter">The name of the existing resource group, or <see langword="null"/> to use the current resource group.</param>
+    /// <returns>The resource builder with the existing resource annotation added.</returns>
+    public static IResourceBuilder<T> AsExisting<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource>? resourceGroupParameter = null)
+        where T : IAzureResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.WithAnnotation(new ExistingAzureResourceAnnotation(nameParameter.Resource, resourceGroupParameter?.Resource));
 
         return builder;
     }

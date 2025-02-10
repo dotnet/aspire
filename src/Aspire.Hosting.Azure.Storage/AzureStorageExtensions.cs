@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Storage;
-using Aspire.Hosting.Utils;
 using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;

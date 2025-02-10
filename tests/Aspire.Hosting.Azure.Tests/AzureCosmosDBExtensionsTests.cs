@@ -87,4 +87,48 @@ public class AzureCosmosDBExtensionsTests
         Assert.Throws<NotSupportedException>(() => cosmos2.RunAsEmulator(e => e.WithDataExplorer()));
 #pragma warning restore ASPIRECOSMOS001 // RunAsPreviewEmulator is experimental
     }
+
+    [Fact]
+    public void AzureCosmosDBHasCorrectConnectionStrings()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos");
+        var db1 = cosmos.AddCosmosDatabase("db1");
+        var container1 = db1.AddContainer("container1", "id");
+
+        // database and container should have the same connection string as the cosmos account, for now.
+        // In the future, we can add the database and container info to the connection string.
+        Assert.Equal("{cosmos.outputs.connectionString}", cosmos.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{cosmos.outputs.connectionString}", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{cosmos.outputs.connectionString}", container1.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public void AzureCosmosDBAppliesAzureFunctionsConfiguration()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos");
+        var db1 = cosmos.AddCosmosDatabase("db1");
+        var container1 = db1.AddContainer("container1", "id");
+
+        var target = new Dictionary<string, object>();
+        ((IResourceWithAzureFunctionsConfig)cosmos.Resource).ApplyAzureFunctionsConfiguration(target, "cosmos");
+        Assert.Collection(target.Keys.OrderBy(k => k),
+            k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__cosmos__AccountEndpoint", k),
+            k => Assert.Equal("cosmos__accountEndpoint", k));
+
+        target.Clear();
+        ((IResourceWithAzureFunctionsConfig)db1.Resource).ApplyAzureFunctionsConfiguration(target, "db1");
+        Assert.Collection(target.Keys.OrderBy(k => k),
+            k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__db1__AccountEndpoint", k),
+            k => Assert.Equal("db1__accountEndpoint", k));
+
+        target.Clear();
+        ((IResourceWithAzureFunctionsConfig)container1.Resource).ApplyAzureFunctionsConfiguration(target, "container1");
+        Assert.Collection(target.Keys.OrderBy(k => k),
+            k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__container1__AccountEndpoint", k),
+            k => Assert.Equal("container1__accountEndpoint", k));
+    }
 }

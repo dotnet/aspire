@@ -187,6 +187,11 @@
         <target state="translated">Oscuro</target>
         <note />
       </trans-unit>
+      <trans-unit id="SettingsDialogDashboardLogsAndTelemetry">
+        <source>Dashboard logs and telemetry</source>
+        <target state="new">Dashboard logs and telemetry</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
         <source>Language</source>
         <target state="translated">Idioma</target>
@@ -216,6 +221,11 @@
         <source>Version: {0}</source>
         <target state="translated">Versión: {0}</target>
         <note>{0} is the dashboard version string</note>
+      </trans-unit>
+      <trans-unit id="SettingsRemoveAllButtonText">
+        <source>Remove all</source>
+        <target state="new">Remove all</target>
+        <note />
       </trans-unit>
       <trans-unit id="TextVisualizerDialogJsonFormat">
         <source>Format JSON</source>

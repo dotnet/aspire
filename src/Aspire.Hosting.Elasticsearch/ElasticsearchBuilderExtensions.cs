@@ -4,7 +4,6 @@
 using Aspire.Elastic.Clients.Elasticsearch;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Elasticsearch;
-using Aspire.Hosting.Utils;
 using Elastic.Clients.Elasticsearch;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;

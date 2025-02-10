@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Keycloak;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 

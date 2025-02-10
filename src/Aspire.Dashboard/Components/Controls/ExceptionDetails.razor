@@ -1,11 +1,10 @@
 ﻿@namespace Aspire.Dashboard.Components
 
-@using Aspire.Dashboard.Extensions
 @using Aspire.Dashboard.Components.Dialogs
-@using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 
 @inject IStringLocalizer<ControlsStrings> Loc
+@inject IStringLocalizer<Dashboard.Resources.Dialogs> DialogsLoc
 
 @if (!string.IsNullOrWhiteSpace(ExceptionText))
 {
@@ -30,6 +29,6 @@
 
     private void OnExceptionDetailsClicked(MouseEventArgs e)
     {
-        _ = TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, Loc[nameof(ControlsStrings.ExceptionDetailsTitle)], ExceptionText);
+        _ = TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, Loc[nameof(ControlsStrings.ExceptionDetailsTitle)], ExceptionText);
     }
 }

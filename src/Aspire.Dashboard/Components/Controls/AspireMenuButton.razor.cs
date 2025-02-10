@@ -40,7 +40,8 @@ public partial class AspireMenuButton : FluentComponentBase
     [Parameter]
     public string? Title { get; set; }
 
-    public string MenuButtonId { get; } = Identifier.NewId();
+    [Parameter]
+    public string MenuButtonId { get; set; } = Identifier.NewId();
 
     protected override void OnParametersSet()
     {

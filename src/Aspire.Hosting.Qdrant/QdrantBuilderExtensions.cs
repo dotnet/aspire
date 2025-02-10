@@ -4,7 +4,6 @@
 using System.Data.Common;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Qdrant;
-using Aspire.Hosting.Utils;
 using Aspire.Qdrant.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;

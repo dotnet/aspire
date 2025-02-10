@@ -63,23 +63,35 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
-    [Fact]
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     [RequiresDocker]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/6751")]
-    public async Task VerifyAzureEventHubsEmulatorResource()
+    public async Task VerifyAzureEventHubsEmulatorResource(bool referenceHub)
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
-        var eventHub = builder.AddAzureEventHubs("eventhubns")
+        var eventHubns = builder.AddAzureEventHubs("eventhubns")
             .RunAsEmulator();
-        eventHub.AddHub("hub");
+        var eventHub = eventHubns.AddHub("hub");
 
         using var app = builder.Build();
         await app.StartAsync();
 
         var hb = Host.CreateApplicationBuilder();
-        hb.Configuration["ConnectionStrings:eventhubns"] = await eventHub.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
-        hb.AddAzureEventHubProducerClient("eventhubns", settings => settings.EventHubName = "hub");
-        hb.AddAzureEventHubConsumerClient("eventhubns", settings => settings.EventHubName = "hub");
+
+        if (referenceHub)
+        {
+            hb.Configuration["ConnectionStrings:hub"] = await eventHub.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+            hb.AddAzureEventHubProducerClient("hub");
+            hb.AddAzureEventHubConsumerClient("hub");
+        }
+        else
+        {
+            hb.Configuration["ConnectionStrings:eventhubns"] = await eventHubns.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+            hb.AddAzureEventHubProducerClient("eventhubns", settings => settings.EventHubName = "hub");
+            hb.AddAzureEventHubConsumerClient("eventhubns", settings => settings.EventHubName = "hub");
+        }
 
         using var host = hb.Build();
         await host.StartAsync();
@@ -361,10 +373,16 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
 
         var eventHubs = builder
             .AddAzureEventHubs("eh")
-            .RunAsEmulator(configure => configure.WithConfiguration(document =>
+            .RunAsEmulator(configure => configure
+            .WithConfiguration(document =>
             {
                 document["UserConfig"]!["LoggingConfig"] = new JsonObject { ["Type"] = "Console" };
+            })
+            .WithConfiguration(document =>
+            {
+                document["Custom"] = JsonValue.Create(42);
             }));
+
         eventHubs.AddHub("hub1");
 
         using var app = builder.Build();
@@ -394,7 +412,8 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
             "LoggingConfig": {
               "Type": "Console"
             }
-          }
+          },
+          "Custom": 42
         }
         """, configJsonContent);
 
@@ -458,5 +477,110 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         catch
         {
         }
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddAzureEventHubsWithEmulator_SetsStorageLifetime(bool isPersistent)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var lifetime = isPersistent ? ContainerLifetime.Persistent : ContainerLifetime.Session;
+
+        var serviceBus = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
+        {
+            builder.WithLifetime(lifetime);
+        });
+
+        var azurite = builder.Resources.FirstOrDefault(x => x.Name == "eh-storage");
+
+        Assert.NotNull(azurite);
+
+        serviceBus.Resource.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var sbLifetimeAnnotation);
+        azurite.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var sqlLifetimeAnnotation);
+
+        Assert.Equal(lifetime, sbLifetimeAnnotation?.Lifetime);
+        Assert.Equal(lifetime, sqlLifetimeAnnotation?.Lifetime);
+    }
+
+    [Fact]
+    public void RunAsEmulator_CalledTwice_Throws()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var serviceBus = builder.AddAzureEventHubs("eh").RunAsEmulator();
+
+        Assert.Throws<InvalidOperationException>(() => serviceBus.RunAsEmulator());
+    }
+
+    [Fact]
+    public void AzureEventHubsHasCorrectConnectionStrings()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var eventHubs = builder.AddAzureEventHubs("eh");
+        var eventHub = eventHubs.AddHub("hub1");
+        var consumerGroup = eventHub.AddConsumerGroup("cg1");
+
+        Assert.Equal("{eh.outputs.eventHubsEndpoint}", eventHubs.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Endpoint={eh.outputs.eventHubsEndpoint};EntityPath=hub1", eventHub.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Endpoint={eh.outputs.eventHubsEndpoint};EntityPath=hub1;ConsumerGroup=cg1", consumerGroup.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public void AzureEventHubsAppliesAzureFunctionsConfiguration()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var eventHubs = builder.AddAzureEventHubs("eh");
+        var eventHub = eventHubs.AddHub("hub1");
+        var consumerGroup = eventHub.AddConsumerGroup("cg1");
+
+        var target = new Dictionary<string, object>();
+        ((IResourceWithAzureFunctionsConfig)eventHubs.Resource).ApplyAzureFunctionsConfiguration(target, "eh");
+        Assert.Collection(target.Keys.OrderBy(k => k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventHubBufferedProducerClient__eh__FullyQualifiedNamespace", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventHubConsumerClient__eh__FullyQualifiedNamespace", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventHubProducerClient__eh__FullyQualifiedNamespace", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventProcessorClient__eh__FullyQualifiedNamespace", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__PartitionReceiver__eh__FullyQualifiedNamespace", k),
+            k => Assert.Equal("eh__fullyQualifiedNamespace", k));
+
+        target.Clear();
+        ((IResourceWithAzureFunctionsConfig)eventHub.Resource).ApplyAzureFunctionsConfiguration(target, "hub1");
+        Assert.Collection(target.Keys.OrderBy(k => k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventHubBufferedProducerClient__hub1__EventHubName", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventHubBufferedProducerClient__hub1__FullyQualifiedNamespace", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventHubConsumerClient__hub1__EventHubName", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventHubConsumerClient__hub1__FullyQualifiedNamespace", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventHubProducerClient__hub1__EventHubName", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventHubProducerClient__hub1__FullyQualifiedNamespace", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventProcessorClient__hub1__EventHubName", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventProcessorClient__hub1__FullyQualifiedNamespace", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__PartitionReceiver__hub1__EventHubName", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__PartitionReceiver__hub1__FullyQualifiedNamespace", k),
+            k => Assert.Equal("hub1__fullyQualifiedNamespace", k));
+        Assert.Equal("hub1", target["Aspire__Azure__Messaging__EventHubs__EventHubBufferedProducerClient__hub1__EventHubName"]);
+
+        target.Clear();
+        ((IResourceWithAzureFunctionsConfig)consumerGroup.Resource).ApplyAzureFunctionsConfiguration(target, "cg1");
+        Assert.Collection(target.Keys.OrderBy(k => k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventHubBufferedProducerClient__cg1__ConsumerGroup", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventHubBufferedProducerClient__cg1__EventHubName", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventHubBufferedProducerClient__cg1__FullyQualifiedNamespace", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventHubConsumerClient__cg1__ConsumerGroup", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventHubConsumerClient__cg1__EventHubName", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventHubConsumerClient__cg1__FullyQualifiedNamespace", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventHubProducerClient__cg1__ConsumerGroup", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventHubProducerClient__cg1__EventHubName", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventHubProducerClient__cg1__FullyQualifiedNamespace", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventProcessorClient__cg1__ConsumerGroup", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventProcessorClient__cg1__EventHubName", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__EventProcessorClient__cg1__FullyQualifiedNamespace", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__PartitionReceiver__cg1__ConsumerGroup", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__PartitionReceiver__cg1__EventHubName", k),
+            k => Assert.Equal("Aspire__Azure__Messaging__EventHubs__PartitionReceiver__cg1__FullyQualifiedNamespace", k),
+            k => Assert.Equal("cg1__fullyQualifiedNamespace", k));
+        Assert.Equal("cg1", target["Aspire__Azure__Messaging__EventHubs__EventHubBufferedProducerClient__cg1__ConsumerGroup"]);
+        Assert.Equal("hub1", target["Aspire__Azure__Messaging__EventHubs__EventHubBufferedProducerClient__cg1__EventHubName"]);
     }
 }

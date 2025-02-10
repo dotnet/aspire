@@ -27,6 +27,8 @@
                             @bind-SelectedResource:after="HandleSelectedOptionChangedAsync"
                             LabelClass="toolbar-left" />
 
+            <ClearSignalsButton SelectedResource="PageViewModel.SelectedOption" HandleClearSignal="ClearConsoleLogs" />
+
             @foreach (var command in _highlightedCommands)
             {
                 <FluentButton Appearance="Appearance.Lightweight"

@@ -709,7 +709,7 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(dependency);
 
-        return WaitForCore(builder, dependency, waitBehavior: null);
+        return WaitForCore(builder, dependency, waitBehavior: null, addRelationship: true);
     }
 
     /// <summary>
@@ -746,10 +746,10 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(dependency);
 
-        return WaitForCore(builder, dependency, waitBehavior);
+        return WaitForCore(builder, dependency, waitBehavior, addRelationship: true);
     }
 
-    private static IResourceBuilder<T> WaitForCore<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, WaitBehavior? waitBehavior) where T : IResourceWithWaitSupport
+    private static IResourceBuilder<T> WaitForCore<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, WaitBehavior? waitBehavior, bool addRelationship) where T : IResourceWithWaitSupport
     {
         if (builder.Resource as IResource == dependency.Resource)
         {
@@ -767,10 +767,15 @@ public static class ResourceBuilderExtensions
             // the WaitFor to the parent resource. This caters for situations where
             // the child resource itself does not have any health checks setup.
             var parentBuilder = builder.ApplicationBuilder.CreateResourceBuilder(dependencyResourceWithParent.Parent);
-            builder.WaitForCore(parentBuilder, waitBehavior);
+
+            // Waiting for the parent is an internal implementaiton detail. Don't add a relationship here.
+            builder.WaitForCore(parentBuilder, waitBehavior, addRelationship: false);
         }
 
-        builder.WithRelationship(dependency.Resource, KnownRelationshipTypes.WaitFor);
+        if (addRelationship)
+        {
+            builder.WithRelationship(dependency.Resource, KnownRelationshipTypes.WaitFor);
+        }
 
         return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilHealthy) { WaitBehavior = waitBehavior });
     }

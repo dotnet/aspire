@@ -88,9 +88,8 @@ jobs:
             name: Components.Common
           - project: tests/Aspire.Confluent.Kafka.Tests/Aspire.Confluent.Kafka.Tests.csproj
             name: Confluent.Kafka
-          # This is failing
-          # - project: tests/Aspire.Elastic.Clients.Elasticsearch.Tests/Aspire.Elastic.Clients.Elasticsearch.Tests.csproj
-          #   name: Elastic.Clients.Elasticsearch
+          - project: tests/Aspire.Elastic.Clients.Elasticsearch.Tests/Aspire.Elastic.Clients.Elasticsearch.Tests.csproj
+            name: Elastic.Clients.Elasticsearch
           - project: tests/Aspire.Keycloak.Authentication.Tests/Aspire.Keycloak.Authentication.Tests.csproj
             name: Keycloak.Authentication
           - project: tests/Aspire.Microsoft.Azure.Cosmos.Tests/Aspire.Microsoft.Azure.Cosmos.Tests.csproj
@@ -136,7 +135,6 @@ jobs:
           - project: tests/Aspire.StackExchange.Redis.Tests/Aspire.StackExchange.Redis.Tests.csproj
             name: StackExchange.Redis
 
-          # These are failing due to globalization issues
           # Dashboard projects
           - project: tests/Aspire.Dashboard.Components.Tests/Aspire.Dashboard.Components.Tests.csproj
             name: Dashboard.Components
@@ -146,7 +144,18 @@ jobs:
           # Playground project
           - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
             name: Playground
-          # Add more projects as needed
+          
+          # Schema generator project
+          - project: tests/ConfigurationSchemaGenerator.Tests/ConfigurationSchemaGenerator.Tests.csproj
+            name: ConfigurationSchemaGenerator
+
+          # Service discovery projects
+          - project: tests/Microsoft.Extensions.ServiceDiscovery.Tests/Microsoft.Extensions.ServiceDiscovery.Tests.csproj
+            name: Extensions.ServiceDiscovery
+          - project: tests/Microsoft.Extensions.ServiceDiscovery.Dns.Tests/Microsoft.Extensions.ServiceDiscovery.Dns.Tests.csproj
+            name: Extensions.ServiceDiscovery.Dns
+          - project: tests/Microsoft.Extensions.ServiceDiscovery.Yarp.Tests/Microsoft.Extensions.ServiceDiscovery.Yarp.Tests.csproj
+            name: Extensions.ServiceDiscovery.Yarp
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -171,27 +180,38 @@ jobs:
           sudo apt-get install -y azure-functions-core-tools-4
 
       - name: Build test project
+        env:
+          CI: false
         run: |
-          export CI=false && ./build.sh -restore -ci -build -projects ${{ github.workspace }}/${{ matrix.project }} /bl
+          ./build.sh -restore -ci -build -projects ${{ github.workspace }}/${{ matrix.project }} /bl
 
       - name: Run tests
         id: run-tests
         env:
+          CI: false
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
-          DCP_DIAGNOSTICS_LOG_FOLDER:  ${{ github.workspace }}/testresults
+          DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
         run: |
-          export CI=false && ./dotnet.sh test ${{ github.workspace }}/${{ matrix.project }} \
+          ./dotnet.sh test ${{ github.workspace }}/${{ matrix.project }} \
             /p:ContinuousIntegrationBuild=true \
             -s eng/testing/.runsettings \
             --logger "console;verbosity=normal" \
             --logger "trx" \
-            --logger html \
             --logger "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true" \
             --blame \
             --blame-hang-timeout 7m \
+            --blame-crash \
             --results-directory testresults \
             --no-restore \
             --no-build -- RunConfiguration.CollectSourceInformation=true
+
+      - name: Dump docker info
+        if: always()
+        run: |
+          docker container ls --all
+          docker container ls --all --format json
+          docker volume ls
+          docker network ls
 
       - name: Upload bin log artifact
         if: always()
