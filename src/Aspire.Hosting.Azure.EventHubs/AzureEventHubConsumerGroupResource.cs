@@ -13,7 +13,7 @@ namespace Aspire.Hosting.Azure;
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-public class AzureEventHubConsumerGroupResource : Resource, IResourceWithParent<AzureEventHubResource>, IResourceWithConnectionString
+public class AzureEventHubConsumerGroupResource : Resource, IResourceWithParent<AzureEventHubResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureEventHubConsumerGroupResource"/> class.
@@ -35,9 +35,14 @@ public class AzureEventHubConsumerGroupResource : Resource, IResourceWithParent<
     public AzureEventHubResource Parent { get; }
 
     /// <summary>
-    /// Gets the connection string expression for the Azure Event Hub.
+    /// Gets the connection string expression for the Azure Event Hub Consumer Group.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => Parent.ConnectionStringExpression;
+    public ReferenceExpression ConnectionStringExpression => Parent.Parent.GetConnectionString(Parent.HubName, ConsumerGroupName);
+
+    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
+    {
+        Parent.Parent.ApplyAzureFunctionsConfiguration(target, connectionName, Parent.HubName, ConsumerGroupName);
+    }
 
     /// <summary>
     /// Converts the current instance to a provisioning entity.

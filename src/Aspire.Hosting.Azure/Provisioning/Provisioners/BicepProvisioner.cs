@@ -114,9 +114,9 @@ internal sealed class BicepProvisioner(
             existingResource.ResourceGroup is { } existingResourceGroup)
         {
             var existingResourceGroupName = existingResourceGroup is ParameterResource parameterResource
-                ? parameterResource.Name
+                ? parameterResource.Value
                 : (string)existingResourceGroup;
-            resourceGroup = await context.GetResourceGroup(existingResourceGroupName, resourceLogger, cancellationToken).ConfigureAwait(false);
+            resourceGroup = await context.Subscription.GetResourceGroupAsync(existingResourceGroupName, cancellationToken).ConfigureAwait(false);
         }
 
         await notificationService.PublishUpdateAsync(resource, state => state with
@@ -310,6 +310,12 @@ internal sealed class BicepProvisioner(
         {
             // Same for outputs
             resourceConfig["Outputs"] = outputObj.ToJsonString();
+        }
+
+        // Write resource scope to config for consistent checksums
+        if (scope is not null)
+        {
+            resourceConfig["Scope"] = scope.ToJsonString();
         }
 
         // Save the checksum to the configuration
@@ -535,12 +541,22 @@ internal sealed class BicepProvisioner(
 
     internal static async Task SetScopeAsync(JsonObject scope, AzureBicepResource resource, CancellationToken cancellationToken = default)
     {
-        scope["resourceGroup"] = resource.Scope?.ResourceGroup switch
+        // Resolve the scope from the AzureBicepResource if it has already been set
+        // via the ConfigureInfrastructure callback. If not, fallback to the ExistingAzureResourceAnnotation.
+        var targetScope = resource.Scope;
+        if (targetScope is null
+            && resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingResource)
+            && existingResource.ResourceGroup is { } existingResourceGroup)
+        {
+            targetScope = new AzureBicepResourceScope(existingResourceGroup);
+        }
+
+        scope["resourceGroup"] = targetScope?.ResourceGroup switch
         {
             string s => s,
             IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
             null => null,
-            _ => throw new NotSupportedException($"The scope value type {resource.Scope.ResourceGroup.GetType()} is not supported.")
+            _ => throw new NotSupportedException($"The scope value type {targetScope.ResourceGroup.GetType()} is not supported.")
         };
     }
 

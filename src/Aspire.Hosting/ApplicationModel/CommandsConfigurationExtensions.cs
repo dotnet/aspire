@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Orchestrator;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -8,10 +9,6 @@ namespace Aspire.Hosting.ApplicationModel;
 
 internal static class CommandsConfigurationExtensions
 {
-    internal const string StartCommandName = "resource-start";
-    internal const string StopCommandName = "resource-stop";
-    internal const string RestartCommandName = "resource-restart";
-
     internal static void AddLifeCycleCommands(this IResource resource)
     {
         if (resource.TryGetLastAnnotation<ExcludeLifecycleCommandsAnnotation>(out _))
@@ -20,7 +17,7 @@ internal static class CommandsConfigurationExtensions
         }
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
-            name: StartCommandName,
+            name: KnownResourceCommands.StartCommand,
             displayName: "Start",
             executeCommand: async context =>
             {
@@ -53,7 +50,7 @@ internal static class CommandsConfigurationExtensions
             isHighlighted: true));
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
-            name: StopCommandName,
+            name: KnownResourceCommands.StopCommand,
             displayName: "Stop",
             executeCommand: async context =>
             {
@@ -86,7 +83,7 @@ internal static class CommandsConfigurationExtensions
             isHighlighted: true));
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
-            name: RestartCommandName,
+            name: KnownResourceCommands.RestartCommand,
             displayName: "Restart",
             executeCommand: async context =>
             {

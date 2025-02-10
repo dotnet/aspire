@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Azure;
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-public class AzureCosmosDBContainerResource : Resource, IResourceWithParent<AzureCosmosDBDatabaseResource>, IResourceWithConnectionString
+public class AzureCosmosDBContainerResource : Resource, IResourceWithParent<AzureCosmosDBDatabaseResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureCosmosDBContainerResource"/> class.
@@ -42,4 +42,8 @@ public class AzureCosmosDBContainerResource : Resource, IResourceWithParent<Azur
     /// Gets the connection string expression for the Azure Cosmos DB Database Container.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression => Parent.ConnectionStringExpression;
+
+    // ensure Azure Functions projects can WithReference a CosmosDB database container
+    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName) =>
+        ((IResourceWithAzureFunctionsConfig)Parent).ApplyAzureFunctionsConfiguration(target, connectionName);
 }

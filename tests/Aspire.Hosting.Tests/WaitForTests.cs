@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
@@ -692,12 +693,17 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
                                        .WaitFor(childResource);
 
         Assert.True(containerResource.Resource.TryGetAnnotationsOfType<WaitAnnotation>(out var waitAnnotations));
-
         Assert.Collection(
             waitAnnotations,
             a => Assert.Equal(a.Resource, parentResource.Resource),
             a => Assert.Equal(a.Resource, childResource.Resource)
             );
+
+        Assert.True(containerResource.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationshipAnnotations));
+        var relationshipAnnotation = Assert.Single(relationshipAnnotations);
+
+        Assert.Equal(childResource.Resource, relationshipAnnotation.Resource);
+        Assert.Equal(KnownRelationshipTypes.WaitFor, relationshipAnnotation.Type);
     }
 
     private sealed class CustomChildResource(string name, CustomResource parent) : Resource(name), IResourceWithParent<CustomResource>, IResourceWithWaitSupport

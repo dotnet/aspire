@@ -43,16 +43,15 @@ public static class AzureKeyVaultResourceExtensions
                         Family = KeyVaultSkuFamily.A,
                         Name = KeyVaultSkuName.Standard
                     },
-                    EnableRbacAuthorization = true
-                }
+                    EnableRbacAuthorization = true,
+                },
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
             });
 
             infrastructure.Add(new ProvisioningOutput("vaultUri", typeof(string))
             {
                 Value = keyVault.Properties.VaultUri
             });
-
-            keyVault.Tags["aspire-resource-name"] = infrastructure.AspireResource.Name;
 
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
             infrastructure.Add(principalTypeParameter);

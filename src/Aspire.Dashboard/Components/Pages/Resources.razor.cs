@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -13,6 +14,7 @@ using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -42,6 +44,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     public required BrowserTimeProvider TimeProvider { get; init; }
     [Inject]
     public required IJSRuntime JS { get; init; }
+    [Inject]
+    public required ISessionStorage SessionStorage { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
@@ -66,7 +70,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
-    private readonly HashSet<string> _expandedResourceNames = [];
+    private readonly HashSet<string> _collapsedResourceNames = new(StringComparers.ResourceName);
     private string _filter = "";
     private bool _isFilterPopupVisible;
     private Task? _resourceSubscriptionTask;
@@ -75,6 +79,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private FluentDataGrid<ResourceGridViewModel> _dataGrid = null!;
     private GridColumnManager _manager = null!;
     private int _maxHighlightedCount;
+    private readonly List<MenuButtonItem> _resourcesMenuItems = new();
+    private AspirePageContentLayout? _contentLayout;
 
     private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
     private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
@@ -100,12 +106,14 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     {
         await ClearSelectedResourceAsync();
         await _dataGrid.SafeRefreshDataAsync();
+        UpdateMenuButtons();
     }
 
     private async Task OnResourceFilterVisibilityChangedAsync(string resourceType, bool isVisible)
     {
         await ClearSelectedResourceAsync();
         await _dataGrid.SafeRefreshDataAsync();
+        UpdateMenuButtons();
     }
 
     private async Task HandleSearchFilterChangedAsync()
@@ -138,10 +146,21 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             new GridColumn(Name: EndpointsColumn, DesktopWidth: "2.25fr", MobileWidth: "2fr"),
             new GridColumn(Name: ActionsColumn, DesktopWidth: "minmax(150px, 1.5fr)", MobileWidth: "1fr")
         ];
+
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
+        UpdateMenuButtons();
 
         if (DashboardClient.IsEnabled)
         {
+            var collapsedResult = await SessionStorage.GetAsync<List<string>>(BrowserStorageKeys.ResourcesCollapsedResourceNames);
+            if (collapsedResult.Success)
+            {
+                foreach (var resourceName in collapsedResult.Value)
+                {
+                    _collapsedResourceNames.Add(resourceName);
+                }
+            }
+
             await SubscribeResourcesAsync();
         }
 
@@ -245,6 +264,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             ResourceStatesToVisibility.TryAdd(resource.State ?? string.Empty, stateVisible(resource.State ?? string.Empty));
             ResourceHealthStatusesToVisibility.TryAdd(resource.HealthStatus?.Humanize() ?? string.Empty, healthStatusVisible(resource.HealthStatus?.Humanize() ?? string.Empty));
 
+            UpdateMenuButtons();
+
             return added;
         }
     }
@@ -267,7 +288,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         // Rearrange resources based on parent information.
         // This must happen after resources are ordered so nested resources are in the right order.
         // Collapsed resources are filtered out of results.
-        var orderedResources = ResourceGridViewModel.OrderNestedResources(filteredResources.ToList(), r => !_expandedResourceNames.Contains(r.Name))
+        var orderedResources = ResourceGridViewModel.OrderNestedResources(filteredResources.ToList(), r => _collapsedResourceNames.Contains(r.Name))
             .Where(r => !r.IsHidden)
             .ToList();
 
@@ -278,6 +299,37 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             .ToList();
 
         return ValueTask.FromResult(GridItemsProviderResult.From(query, orderedResources.Count));
+    }
+
+    private void UpdateMenuButtons()
+    {
+        _resourcesMenuItems.Clear();
+
+        if (HasCollapsedResources())
+        {
+            _resourcesMenuItems.Add(new MenuButtonItem
+            {
+                IsDisabled = false,
+                OnClick = OnToggleCollapseAll,
+                Text = Loc[nameof(Dashboard.Resources.Resources.ResourceExpandAllChildren)],
+                Icon = new Icons.Regular.Size16.Eye()
+            });
+        }
+        else
+        {
+            _resourcesMenuItems.Add(new MenuButtonItem
+            {
+                IsDisabled = false,
+                OnClick = OnToggleCollapseAll,
+                Text = Loc[nameof(Dashboard.Resources.Resources.ResourceCollapseAllChildren)],
+                Icon = new Icons.Regular.Size16.EyeOff()
+            });
+        }
+    }
+
+    private bool HasCollapsedResources()
+    {
+        return _resourceByName.Any(r => !r.Value.IsHiddenState() && _collapsedResourceNames.Contains(r.Key));
     }
 
     private void UpdateMaxHighlightedCount()
@@ -353,7 +405,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 {
                     if (_resourceByName.TryGetValue(value, out current))
                     {
-                        _expandedResourceNames.Add(value);
+                        _collapsedResourceNames.Remove(value);
                         continue;
                     }
                 }
@@ -441,23 +493,57 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     {
         // View model data is recreated if data updates.
         // Persist the collapsed state in a separate list.
+        viewModel.IsCollapsed = !viewModel.IsCollapsed;
+
         if (viewModel.IsCollapsed)
         {
-            viewModel.IsCollapsed = false;
-            _expandedResourceNames.Add(viewModel.Resource.Name);
+            _collapsedResourceNames.Add(viewModel.Resource.Name);
         }
         else
         {
-            viewModel.IsCollapsed = true;
-            _expandedResourceNames.Remove(viewModel.Resource.Name);
+            _collapsedResourceNames.Remove(viewModel.Resource.Name);
         }
 
+        await SessionStorage.SetAsync(BrowserStorageKeys.ResourcesCollapsedResourceNames, _collapsedResourceNames.ToList());
         await _dataGrid.SafeRefreshDataAsync();
+        UpdateMenuButtons();
+    }
+
+    private async Task OnToggleCollapseAll()
+    {
+        var resourcesWithChildren = _resourceByName.Values
+            .Where(r => !r.IsHiddenState())
+            .Where(r => _resourceByName.Values.Any(nested => nested.GetResourcePropertyValue(KnownProperties.Resource.ParentName) == r.Name))
+            .ToList();
+
+        if (HasCollapsedResources())
+        {
+            foreach (var resource in resourcesWithChildren)
+            {
+                _collapsedResourceNames.Remove(resource.Name);
+            }
+        }
+        else
+        {
+            foreach (var resource in resourcesWithChildren)
+            {
+                _collapsedResourceNames.Add(resource.Name);
+            }
+        }
+
+        await SessionStorage.SetAsync(BrowserStorageKeys.ResourcesCollapsedResourceNames, _collapsedResourceNames.ToList());
+        await _dataGrid.SafeRefreshDataAsync();
+        UpdateMenuButtons();
     }
 
     private static List<DisplayedEndpoint> GetDisplayedEndpoints(ResourceViewModel resource)
     {
         return ResourceEndpointHelpers.GetEndpoints(resource, includeInternalUrls: false);
+    }
+
+    private bool HasAnyChildResources()
+    {
+        return _resourceByName.Values.Any(r => !string.IsNullOrEmpty(r.GetResourcePropertyValue(KnownProperties.Resource.ParentName)));
     }
 
     public async ValueTask DisposeAsync()

@@ -27,6 +27,11 @@
         <target state="translated">İzlemeler</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceCollapseAllChildren">
+        <source>Collapse child resources</source>
+        <target state="new">Collapse child resources</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceCommandFailed">
         <source>{0} "{1}" failed</source>
         <target state="translated">{0} "{1}" başarısız</target>
@@ -60,6 +65,11 @@
       <trans-unit id="ResourceDetailsViewConsoleLogs">
         <source>View console logs</source>
         <target state="translated">Konsol günlüklerini görüntüle</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceExpandAllChildren">
+        <source>Expand child resources</source>
+        <target state="new">Expand child resources</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceFilterOptionEmpty">
@@ -169,12 +179,12 @@
       </trans-unit>
       <trans-unit id="ResourcesFiltered">
         <source>Has filters</source>
-        <target state="translated">Filtreleri var</target>
+        <target state="needs-review-translation">Filtreleri var</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
         <source>No filters</source>
-        <target state="translated">Filtre mevcut değil</target>
+        <target state="needs-review-translation">Filtre mevcut değil</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesResourceStatesHeader">

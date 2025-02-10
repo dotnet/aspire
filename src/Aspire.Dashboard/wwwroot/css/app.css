@@ -711,6 +711,14 @@ fluent-switch.table-switch::part(label) {
     padding-left: calc(((var(--design-unit)* 3) + var(--focus-stroke-width) - var(--stroke-width) + 5)* 1px);
 }
 
+/* Line up the first column header with the content. TODO: A bit of a mess. See if it can be improved */
+.main-grid .column-header:not(.select-all):first-of-type {
+    padding-inline-start: calc(var(--design-unit)* 2px) !important;
+}
+.column-header:not(.select-all):first-of-type, .trace-view-grid .column-header:not(.select-all):first-of-type {
+    padding-inline-start: 0px !important;
+}
+
 .toolbar-left {
     margin-left: 0;
 }

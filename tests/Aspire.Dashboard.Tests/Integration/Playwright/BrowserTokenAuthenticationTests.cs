@@ -73,10 +73,12 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
             await submitButton.ClickAsync().DefaultTimeout();
 
             // Assert
+            const int pageVisibleTimeout = 10000;
+
             await Assertions
                 .Expect(page.GetByText("Invalid token"))
                 .ToBeVisibleAsync()
-                .DefaultTimeout();
+                .DefaultTimeout(pageVisibleTimeout);
         });
     }
 
