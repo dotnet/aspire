@@ -859,17 +859,6 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                     // This means we need to apply the launch profile settings manually--the invocation parameters here,
                     // and the environment variables/application URLs inside CreateExecutableAsync().
                     projectArgs.Add("--no-launch-profile");
-
-                    var launchProfile = project.GetEffectiveLaunchProfile()?.LaunchProfile;
-                    if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
-                    {
-                        var cmdArgs = CommandLineArgsParser.Parse(launchProfile.CommandLineArgs);
-                        if (cmdArgs.Count > 0)
-                        {
-                            projectArgs.Add("--");
-                            projectArgs.AddRange(cmdArgs);
-                        }
-                    }
                 }
 
                 // We want this annotation even if we are not using IDE execution; see ToSnapshot() for details.
@@ -972,20 +961,11 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 
     private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
     {
-        ExecutableSpec spec;
-        Func<Task<CustomResource>> createResource;
-
-        switch (er.DcpResource)
+        if (er.DcpResource is not Executable exe)
         {
-            case Executable exe:
-                spec = exe.Spec;
-                createResource = async () => await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
-                break;
-            default:
-                throw new InvalidOperationException($"Expected an Executable resource, but got {er.DcpResource.Kind} instead");
+            throw new InvalidOperationException($"Expected an Executable resource, but got {er.DcpResource.Kind} instead");
         }
-
-        (var args, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
+        var spec = exe.Spec;
 
         // An executable can be restarted so args must be reset to an empty state.
         // After resetting, first apply any dotnet project related args, e.g. configuration, and then add args from the model resource.
@@ -994,8 +974,29 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         {
             spec.Args.AddRange(projectArgs);
         }
-        spec.Args.AddRange(args.Select(a => a.Value));
-        er.DcpResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, args.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
+
+        var launchArgs = new List<(string Value, bool IsSensitive)>();
+
+        // If the executable is a project then include any command line args from the launch profile.
+        if (er.ModelResource is ProjectResource project)
+        {
+            var launchProfile = project.GetEffectiveLaunchProfile()?.LaunchProfile;
+            if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
+            {
+                var cmdArgs = CommandLineArgsParser.Parse(launchProfile.CommandLineArgs);
+                if (cmdArgs.Count > 0)
+                {
+                    launchArgs.Add(("--", IsSensitive: false));
+                    launchArgs.AddRange(cmdArgs.Select(a => (a, false)));
+                }
+            }
+        }
+
+        (var args, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
+        launchArgs.AddRange(args);
+
+        spec.Args.AddRange(launchArgs.Select(a => a.Value));
+        er.DcpResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, launchArgs.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
 
         (spec.Env, var failedToApplyConfiguration) = await BuildEnvVarsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
 
@@ -1004,7 +1005,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             throw new FailedToApplyEnvironmentException();
         }
 
-        await createResource().ConfigureAwait(false);
+        await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
     }
 
     private void PrepareContainers()
