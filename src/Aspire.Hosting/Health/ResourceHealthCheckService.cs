@@ -293,6 +293,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
         private readonly object _lock = new object();
         private readonly string _resourceName;
         private TaskCompletionSource? _delayInterruptTcs;
+        private CancellationTokenSource? _delayCts;
 
         public ResourceMonitorState(ILogger logger, ResourceEvent initialEvent, CancellationToken serviceStoppingToken)
         {
@@ -341,20 +342,25 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                     _logger.LogTrace("Health monitoring delay interrupted for resource '{Resource}'.", _resourceName);
                     return true;
                 }
+                if (_delayCts == null || !_delayCts.TryReset())
+                {
+                    _delayCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                }
                 _delayInterruptTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             }
 
-            try
-            {
-                await _delayInterruptTcs.Task.WaitAsync(delay, cancellationToken).ConfigureAwait(false);
+            var completedTask = await Task.WhenAny(Task.Delay(delay, _delayCts.Token), _delayInterruptTcs.Task).ConfigureAwait(false);
 
-                // Delay was interrupted.
-                return true;
-            }
-            catch (TimeoutException)
+            if (completedTask != _delayInterruptTcs.Task)
             {
-                // Delay interval has elapsed.
+                // Task.Delay won.
                 return false;
+            }
+            else
+            {
+                // Delay was interrupted. Cancel the delay task so it doesn't hang around when not needed.
+                _delayCts.Cancel();
+                return true;
             }
         }
 
