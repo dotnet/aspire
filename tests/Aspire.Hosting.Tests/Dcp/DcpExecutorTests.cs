@@ -106,6 +106,52 @@ public class DcpExecutorTests
     }
 
     [Fact]
+    public async Task CreateExecutable_LaunchProfileHasCommandLineArgs_AnnotationsAdded()
+    {
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
+        });
+
+        var resource = builder.AddProject<Projects.ServiceA>("ServiceA")
+            .WithArgs(c =>
+            {
+                c.Args.Add("--withargs-test");
+            }).Resource;
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix" };
+
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions, events: events);
+        await appExecutor.RunApplicationAsync();
+
+        var executables = kubernetesService.CreatedResources.OfType<Executable>().ToList();
+
+        var exe = Assert.Single(executables);
+        // ignore dotnet specific args for .NET project
+        var callArgs = exe.Spec.Args![^4..];
+
+        Assert.Collection(callArgs,
+            a => Assert.Equal("--", a),
+            a => Assert.Equal("--test1", a),
+            a => Assert.Equal("--test2", a),
+            a => Assert.Equal("--withargs-test", a));
+
+        Assert.True(exe.TryGetAnnotationAsObjectList<AppLaunchArgumentAnnotation>(CustomResource.ResourceAppArgsAnnotation, out var argAnnotations1));
+
+        Assert.Collection(argAnnotations1,
+            a => Assert.Equal("--", a.Argument),
+            a => Assert.Equal("--test1", a.Argument),
+            a => Assert.Equal("--test2", a.Argument),
+            a => Assert.Equal("--withargs-test", a.Argument));
+    }
+
+    [Fact]
     public async Task ResourceRestarted_EnvironmentCallbacksApplied()
     {
         var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
