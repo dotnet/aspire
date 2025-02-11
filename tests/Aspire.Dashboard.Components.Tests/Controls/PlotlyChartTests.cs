@@ -47,7 +47,6 @@ public class PlotlyChartTests : TestContext
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7433")]
     public async Task Render_HasInstrument_InitializeChartInvocation()
     {
         // Arrange
@@ -107,7 +106,7 @@ public class PlotlyChartTests : TestContext
                 Assert.Collection((IEnumerable<PlotlyTrace>)i.Arguments[1]!, trace =>
                 {
                     Assert.Equal("Unit-&lt;b&gt;Bold&lt;/b&gt;", trace.Name);
-                    Assert.Equal("<b>Name-&lt;b&gt;Bold&lt;/b&gt;</b><br />Unit-&lt;b&gt;Bold&lt;/b&gt;: 1<br />Time: 12:59:57 AM", trace.Tooltips[0]);
+                    Assert.Equal("<b>Name-&lt;b&gt;Bold&lt;/b&gt;</b><br />Unit-&lt;b&gt;Bold&lt;/b&gt;: 1<br />Time: 12:59:57 AM", trace.Tooltips[0], ignoreWhiteSpaceDifferences: true);
                 });
             });
     }
