@@ -4,7 +4,7 @@
 @inject IStringLocalizer<Layout> Loc
 @inject IDashboardClient DashboardClient
 
-<FluentAppBar PopoverShowSearch="false">
+<FluentAppBar PopoverShowSearch="false" Class="desktop-nav-menu">
     @if (DashboardClient.IsEnabled)
     {
         <FluentAppBarItem

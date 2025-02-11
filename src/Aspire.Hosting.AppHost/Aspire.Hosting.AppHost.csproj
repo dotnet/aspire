@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="$(RepoRoot)eng/ReplaceText.targets" />
+
   <PropertyGroup>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
@@ -16,7 +18,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <TextReplacementValue Include="VERSION" NewValue="$(PackageVersion)" />
+
     <None Include="**/*.props;**/*.targets;AspireAppHostConfiguration.json" Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Update="build\Aspire.Hosting.AppHost.in.targets" Pack="true" PerformTextReplacement="True" PackagePath="build\Aspire.Hosting.AppHost.targets" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,7 +34,7 @@
 
   <!-- Download DCP orchestrator components for local development -->
   <ItemGroup>
-    <PackageDownload Include="Microsoft.DeveloperControlPlane.$(BuildOs)-$(BuildArch)" Version="[$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)]" />
+    <PackageDownload Include="Microsoft.DeveloperControlPlane.$(BuildOs)-$(BuildArch)" Version="[$(MicrosoftDeveloperControlPlanedarwinamd64Version)]" />
   </ItemGroup>
 
   <ItemGroup>

@@ -113,11 +113,16 @@
     },
     "cosmos": {
       "type": "azure.bicep.v0",
-      "connectionString": "{cosmos.secretOutputs.connectionString}",
+      "connectionString": "{cosmos.outputs.connectionString}",
       "path": "cosmos.module.bicep",
       "params": {
-        "keyVaultName": ""
+        "principalType": "",
+        "principalId": ""
       }
+    },
+    "db3": {
+      "type": "value.v0",
+      "connectionString": "{cosmos.outputs.connectionString}"
     },
     "lawkspc": {
       "type": "azure.bicep.v0",

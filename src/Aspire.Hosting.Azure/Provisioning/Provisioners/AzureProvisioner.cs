@@ -99,13 +99,6 @@ internal sealed class AzureProvisioner(
             return;
         }
 
-        static IResource? SelectParentResource(IResource resource) => resource switch
-        {
-            IAzureResource ar => ar,
-            IResourceWithParent rp => SelectParentResource(rp.Parent),
-            _ => null
-        };
-
         // Create a map of parents to their children used to propagate state changes later.
         _parentChildLookup = appModel.Resources.OfType<IResourceWithParent>().ToLookup(r => r.Parent);
 
@@ -191,9 +184,16 @@ internal sealed class AzureProvisioner(
 
     private static async Task<JsonObject> GetUserSecretsAsync(string? userSecretsPath, CancellationToken cancellationToken)
     {
+        var jsonDocumentOptions = new JsonDocumentOptions
+        {
+            CommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true,
+        };
+
         var userSecrets = userSecretsPath is not null && File.Exists(userSecretsPath)
-                          ? JsonNode.Parse(await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false))!.AsObject()
-                          : [];
+            ? JsonNode.Parse(await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false),
+                documentOptions: jsonDocumentOptions)!.AsObject()
+            : [];
         return userSecrets;
     }
 
@@ -305,7 +305,14 @@ internal sealed class AzureProvisioner(
         }
         else
         {
-            resourceLogger.LogInformation("Provisioning {resourceName}...", resource.AzureResource.Name);
+            if (resource.AzureResource.IsExisting())
+            {
+                resourceLogger.LogInformation("Resolving {resourceName} as existing resource...", resource.AzureResource.Name);
+            }
+            else
+            {
+                resourceLogger.LogInformation("Provisioning {resourceName}...", resource.AzureResource.Name);
+            }
 
             try
             {

@@ -3,13 +3,16 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var db = builder.AddAzureCosmosDB("cosmos")
-                .AddDatabase("db")
-                .RunAsEmulator();
+#pragma warning disable ASPIRECOSMOS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+var cosmos = builder.AddAzureCosmosDB("cosmos")
+                .RunAsPreviewEmulator(e => e.WithDataExplorer());
+#pragma warning restore ASPIRECOSMOS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+var db = cosmos.AddCosmosDatabase("db");
+db.AddContainer("entries", "/id");
 
 builder.AddProject<Projects.CosmosEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()
-       .WithReference(db).WaitFor(db);
+       .WithReference(cosmos).WaitFor(cosmos);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

@@ -10,9 +10,14 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using RabbitMQ.Client;
-using RabbitMQ.Client.Logging;
 using Testcontainers.RabbitMq;
 using Xunit;
+
+#if RABBITMQ_V6
+using RabbitMQ.Client.Logging;
+#else
+using System.Reflection;
+#endif
 
 namespace Aspire.RabbitMQ.Client.Tests;
 
@@ -81,7 +86,7 @@ public class AspireRabbitMQLoggingTests
         host.Services.GetRequiredService<RabbitMQEventSourceLogForwarder>().Start();
 
         var message = "This is an informational message.";
-        RabbitMqClientEventSource.Log.Info(message);
+        LogInfo(message);
 
         var logs = logger.Logs.ToArray();
         Assert.Single(logs);
@@ -89,7 +94,7 @@ public class AspireRabbitMQLoggingTests
         Assert.Equal(message, logs[0].Message);
 
         var warningMessage = "This is a warning message.";
-        RabbitMqClientEventSource.Log.Warn(warningMessage);
+        LogWarn(warningMessage);
 
         logs = logger.Logs.ToArray();
         Assert.Equal(2, logs.Length);
@@ -98,7 +103,7 @@ public class AspireRabbitMQLoggingTests
     }
 
     [Fact]
-    public void TestException()
+    public void TestExceptionWithoutInnerException()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Services.AddSingleton<RabbitMQEventSourceLogForwarder>();
@@ -122,7 +127,7 @@ public class AspireRabbitMQLoggingTests
 
         Assert.NotNull(testException);
         var logMessage = "This is an error message.";
-        RabbitMqClientEventSource.Log.Error(logMessage, testException);
+        LogError(logMessage, testException);
 
         var logs = logger.Logs.ToArray();
         Assert.Single(logs);
@@ -130,22 +135,97 @@ public class AspireRabbitMQLoggingTests
         Assert.Equal(logMessage, logs[0].Message);
 
         var errorEvent = Assert.IsAssignableFrom<IReadOnlyList<KeyValuePair<string, object?>>>(logs[0].State);
-        Assert.Equal(5, errorEvent.Count);
+        Assert.Equal(3, errorEvent.Count);
 
-        Assert.Equal("message", errorEvent[0].Key);
-        Assert.Equal(logMessage, errorEvent[0].Value);
+        Assert.Equal("exception.type", errorEvent[0].Key);
+        Assert.Equal("System.InvalidOperationException", errorEvent[0].Value);
 
-        Assert.Equal("exception.type", errorEvent[1].Key);
-        Assert.Equal("System.InvalidOperationException", errorEvent[1].Value);
+        Assert.Equal("exception.message", errorEvent[1].Key);
+        Assert.Equal(exceptionMessage, errorEvent[1].Value);
 
-        Assert.Equal("exception.message", errorEvent[2].Key);
-        Assert.Equal(exceptionMessage, errorEvent[2].Value);
+        Assert.Equal("exception.stacktrace", errorEvent[2].Key);
+        Assert.Contains("AspireRabbitMQLoggingTests.TestException", errorEvent[2].Value?.ToString());
+    }
 
-        Assert.Equal("exception.stacktrace", errorEvent[3].Key);
-        Assert.Contains("AspireRabbitMQLoggingTests.TestException", errorEvent[3].Value?.ToString());
+    [Fact]
+    public void TestExceptionWithInnerException()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Services.AddSingleton<RabbitMQEventSourceLogForwarder>();
 
-        Assert.Equal("exception.innerexception", errorEvent[4].Key);
-        Assert.True(string.IsNullOrEmpty(errorEvent[4].Value?.ToString()));
+        var logger = new TestLogger();
+        builder.Services.AddSingleton<ILoggerProvider>(sp => new LoggerProvider(logger));
+
+        using var host = builder.Build();
+        host.Services.GetRequiredService<RabbitMQEventSourceLogForwarder>().Start();
+
+        var exceptionMessage = "Test exception";
+        Exception testException;
+        InvalidOperationException innerException = new("Inner exception");
+        try
+        {
+            throw new InvalidOperationException(exceptionMessage, innerException);
+        }
+        catch (Exception ex)
+        {
+            testException = ex;
+        }
+
+        Assert.NotNull(testException);
+        var logMessage = "This is an error message.";
+        LogError(logMessage, testException);
+
+        var logs = logger.Logs.ToArray();
+        Assert.Single(logs);
+        Assert.Equal(LogLevel.Error, logs[0].Level);
+        Assert.Equal(logMessage, logs[0].Message);
+
+        var errorEvent = Assert.IsAssignableFrom<IReadOnlyList<KeyValuePair<string, object?>>>(logs[0].State);
+        Assert.Equal(4, errorEvent.Count);
+
+        Assert.Equal("exception.type", errorEvent[0].Key);
+        Assert.Equal("System.InvalidOperationException", errorEvent[0].Value);
+
+        Assert.Equal("exception.message", errorEvent[1].Key);
+        Assert.Equal(exceptionMessage, errorEvent[1].Value);
+
+        Assert.Equal("exception.stacktrace", errorEvent[2].Key);
+        Assert.Contains("AspireRabbitMQLoggingTests.TestException", errorEvent[2].Value?.ToString());
+
+        Assert.Equal("exception.innerexception", errorEvent[3].Key);
+        Assert.Equal($"{innerException.GetType()}: {innerException.Message}", errorEvent[3].Value?.ToString());
+    }
+
+#if !RABBITMQ_V6
+    private static readonly object s_log =
+        Type.GetType("RabbitMQ.Client.Logging.RabbitMqClientEventSource, RabbitMQ.Client")!
+            .GetField("Log", BindingFlags.Static | BindingFlags.Public)!
+            .GetValue(null)!;
+#endif
+
+    private static void LogInfo(string message)
+    {
+#if RABBITMQ_V6
+        RabbitMqClientEventSource.Log.Info(message);
+#else
+        s_log.GetType().GetMethod("Info")!.Invoke(s_log, new object[] { message });
+#endif
+    }
+    private static void LogWarn(string message)
+    {
+#if RABBITMQ_V6
+        RabbitMqClientEventSource.Log.Warn(message);
+#else
+        s_log.GetType().GetMethod("Warn")!.Invoke(s_log, new object[] { message });
+#endif
+    }
+    private static void LogError(string message, Exception ex)
+    {
+#if RABBITMQ_V6
+        RabbitMqClientEventSource.Log.Error(message, ex);
+#else
+        s_log.GetType().GetMethod("Error", [typeof(string), typeof(Exception)])!.Invoke(s_log, new object[] { message, ex });
+#endif
     }
 
     private sealed class LoggerProvider(TestLogger logger) : ILoggerProvider

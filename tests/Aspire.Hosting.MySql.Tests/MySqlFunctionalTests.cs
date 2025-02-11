@@ -47,17 +47,15 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var pendingStart = app.StartAsync(cts.Token);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
         await pendingStart;
 
@@ -206,8 +204,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-            var passwordParameter2 = builder2.AddParameter("pwd");
-            builder2.Configuration["Parameters:pwd"] = password;
+            var passwordParameter2 = builder2.AddParameter("pwd", password);
 
             var mysql2 = builder2.AddMySql("mysql", passwordParameter2);
             var db2 = mysql2.AddDatabase(mySqlDbName);

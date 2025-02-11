@@ -6,7 +6,7 @@ Whether you want to contribute to Aspire, or just use the latest build of Aspire
 
 On Windows, Visual Studio contains special tooling support for .NET Aspire that you will want to have.
 
-[Visual Studio 2022 version 17.10](https://visualstudio.microsoft.com/vs) or later
+[Visual Studio 2022 version 17.12](https://visualstudio.microsoft.com/vs) or later
 
 When you install, ensure that both:
 * `ASP.NET and web development` Workload is checked.
@@ -37,7 +37,7 @@ Currently it's only tested with Docker Desktop.
 ### Install VS Code with DevContainers Extension
 
 * [VS Code](https://code.visualstudio.com/Download)
-* [DevContainers Extension](https://marketplace.visualstudio.com/items?itemName=ms-VS Code-remote.remote-containers)
+* [DevContainers Extension](https://marketplace.visualstudio.com/items?itemName=ms-VSCode-remote.remote-containers)
 
 ## (Browser) Codespaces
 

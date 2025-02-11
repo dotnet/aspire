@@ -52,9 +52,9 @@ public static class ProjectResourceBuilderExtensions
     /// Example of adding a project to the application model.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice");
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
@@ -67,7 +67,7 @@ public static class ProjectResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a .NET project to the application model. 
+    /// Adds a .NET project to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
@@ -85,9 +85,9 @@ public static class ProjectResourceBuilderExtensions
     /// Add a project to the app model via a project path.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// builder.AddProject("inventoryservice", @"..\InventoryService\InventoryService.csproj");
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
@@ -132,9 +132,9 @@ public static class ProjectResourceBuilderExtensions
     /// Example of adding a project to the application model.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice", launchProfileName: "otherLaunchProfile");
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
@@ -170,9 +170,9 @@ public static class ProjectResourceBuilderExtensions
     /// Add a project to the app model via a project path.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// builder.AddProject("inventoryservice", @"..\InventoryService\InventoryService.csproj", launchProfileName: "otherLaunchProfile");
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
@@ -219,9 +219,9 @@ public static class ProjectResourceBuilderExtensions
     /// Example of adding a project to the application model.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice", options => { options.LaunchProfileName = "otherLaunchProfile"; });
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
@@ -259,9 +259,9 @@ public static class ProjectResourceBuilderExtensions
     /// Add a project to the app model via a project path.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// builder.AddProject("inventoryservice", @"..\InventoryService\InventoryService.csproj", options => { options.LaunchProfileName = "otherLaunchProfile"; });
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
@@ -331,7 +331,7 @@ public static class ProjectResourceBuilderExtensions
         else
         {
             var appHostDefaultLaunchProfileName = builder.ApplicationBuilder.Configuration["AppHost:DefaultLaunchProfileName"]
-                ?? Environment.GetEnvironmentVariable("DOTNET_LAUNCH_PROFILE");
+                ?? builder.ApplicationBuilder.Configuration["DOTNET_LAUNCH_PROFILE"];
             if (!string.IsNullOrEmpty(appHostDefaultLaunchProfileName))
             {
                 builder.WithAnnotation(new DefaultLaunchProfileAnnotation(appHostDefaultLaunchProfileName));
@@ -358,7 +358,8 @@ public static class ProjectResourceBuilderExtensions
 
         // Helper to change the transport to http2 if needed
         var isHttp2ConfiguredInKestrelEndpointDefaults = config["Kestrel:EndpointDefaults:Protocols"] == nameof(HttpProtocols.Http2);
-        var adjustTransport = (EndpointAnnotation e, string? bindingLevelProtocols = null) => {
+        var adjustTransport = (EndpointAnnotation e, string? bindingLevelProtocols = null) =>
+        {
             if (bindingLevelProtocols != null)
             {
                 // If the Kestrel endpoint has an explicit protocol, use that and ignore any EndpointDefaults
@@ -620,6 +621,55 @@ public static class ProjectResourceBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Adds support for containerizing this <see cref="ProjectResource"/> during deployment.
+    /// The resulting container image is built, and when the optional <paramref name="configure"/> action is provided,
+    /// it is used to configure the container resource.
+    /// </summary>
+    /// <remarks>
+    /// When the executable resource is converted to a container resource, the arguments to the executable
+    /// are not used. This is because arguments to the project often contain physical paths that are not valid
+    /// in the container. The container can be set up with the correct arguments using the <paramref name="configure"/> action.
+    /// </remarks>
+    /// <typeparam name="T">Type of executable resource</typeparam>
+    /// <param name="builder">Resource builder</param>
+    /// <param name="configure">Optional action to configure the container resource</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> PublishAsDockerFile<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<ContainerResource>>? configure = null)
+        where T : ProjectResource
+    {
+        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
+
+        // The implementation here is less than ideal, but we don't have a clean way of building resource types
+        // that change their behavior based on the context. In this case, we want to change the behavior of the
+        // resource from a ProjectResource to a ContainerResource. We do this by removing the ProjectResource
+        // from the application model and adding a new ContainerResource in its place in publish mode.
+
+        // There are still dangling references to the original ProjectResource in the application model, but
+        // in publish mode, it won't be used. This is a limitation of the current design.
+        builder.ApplicationBuilder.Resources.Remove(builder.Resource);
+
+        var container = new ProjectContainerResource(builder.Resource);
+        var cb = builder.ApplicationBuilder.AddResource(container);
+        // WithImage makes this a container resource (adding the annotation)
+        cb.WithImage(builder.Resource.Name);
+        cb.WithDockerfile(contextPath: builder.Resource.GetProjectMetadata().ProjectPath);
+        // Arguments to the executable often contain physical paths that are not valid in the container
+        // Clear them out so that the container can be set up with the correct arguments
+        cb.WithArgs(c => c.Args.Clear());
+
+        configure?.Invoke(cb);
+
+        // Even through we're adding a ContainerResource
+        // update the manifest publishing callback on the original ProjectResource
+        // so that the container resource is written to the manifest
+        return builder.WithManifestPublishingCallback(context =>
+            context.WriteContainerAsync(container));
+    }
+
     private static IConfiguration GetConfiguration(ProjectResource projectResource)
     {
         var projectMetadata = projectResource.GetProjectMetadata();
@@ -674,7 +724,7 @@ public static class ProjectResourceBuilderExtensions
                 }
 
                 // If the endpoint is proxied, we will use localhost as the target host since DCP will be forwarding the traffic
-                var targetHost = e.EndpointAnnotation.IsProxied ? "localhost" : e.EndpointAnnotation.TargetHost;
+                var targetHost = e.EndpointAnnotation.IsProxied && builder.Resource.SupportsProxy() ? "localhost" : e.EndpointAnnotation.TargetHost;
 
                 aspnetCoreUrls.Append($"{e.Property(EndpointProperty.Scheme)}://{targetHost}:{e.Property(EndpointProperty.TargetPort)}");
                 first = false;
@@ -760,5 +810,11 @@ public static class ProjectResourceBuilderExtensions
                 }
             }
         });
+    }
+
+    // Allows us to mirror annotations from ProjectContainerResource to ContainerResource
+    private sealed class ProjectContainerResource(ProjectResource pr) : ContainerResource(pr.Name)
+    {
+        public override ResourceAnnotationCollection Annotations => pr.Annotations;
     }
 }

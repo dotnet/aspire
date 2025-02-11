@@ -27,7 +27,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
     private const string DatabaseReadyText = "Completed: ALTER DATABASE OPEN";
 
-    [Fact]
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/5362")]
     [RequiresDocker]
     public async Task VerifyEfOracle()
     {
@@ -68,7 +68,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("BatMobile", cars[0].Brand);
     }
 
-    [Theory]
+    [Theory(Skip = "https://github.com/dotnet/aspire/issues/5362")]
     [InlineData(true)]
     [InlineData(false, Skip = "https://github.com/dotnet/aspire/issues/5191")]
     [RequiresDocker]
@@ -167,8 +167,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             using var builder2 = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
-            var passwordParameter2 = builder2.AddParameter("pwd");
-            builder2.Configuration["Parameters:pwd"] = password;
+            var passwordParameter2 = builder2.AddParameter("pwd", password);
 
             var oracle2 = builder2.AddOracle("oracle", passwordParameter2);
 
@@ -244,7 +243,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         }
     }
 
-    [Theory]
+    [Theory(Skip = "https://github.com/dotnet/aspire/issues/5362")]
     [InlineData(true)]
     [InlineData(false, Skip = "https://github.com/dotnet/aspire/issues/5190")]
     [RequiresDocker]
@@ -347,7 +346,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         }
     }
 
-    [Fact]
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/5362")]
     [RequiresDocker]
     public async Task VerifyWaitForOnOracleBlocksDependentResources()
     {
@@ -370,17 +369,15 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var pendingStart = app.StartAsync(cts.Token);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
         await pendingStart;
 

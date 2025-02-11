@@ -4,22 +4,22 @@
     <body>
       <trans-unit id="ActionStructuredLogsText">
         <source>Structured logs</source>
-        <target state="new">Structured logs</target>
+        <target state="translated">Registros estructurados</target>
         <note />
       </trans-unit>
       <trans-unit id="ActionViewDetailsText">
         <source>View details</source>
-        <target state="new">View details</target>
+        <target state="translated">Ver detalles</target>
         <note />
       </trans-unit>
       <trans-unit id="ActionsButtonText">
         <source>Actions</source>
-        <target state="new">Actions</target>
+        <target state="translated">Acciones</target>
         <note />
       </trans-unit>
       <trans-unit id="ActionsColumnHeader">
         <source>Actions</source>
-        <target state="new">Actions</target>
+        <target state="translated">Acciones</target>
         <note />
       </trans-unit>
       <trans-unit id="ApplicationLower">
@@ -77,6 +77,21 @@
         <target state="translated">No se puede mostrar el gráfico</target>
         <note />
       </trans-unit>
+      <trans-unit id="ClearAllResources">
+        <source>Remove all</source>
+        <target state="translated">Quitar todo</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ClearPendingSelectedResource">
+        <source>Remove for resource</source>
+        <target state="translated">Quitar para el recurso</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ClearSelectedResource">
+        <source>Remove for {0}</source>
+        <target state="translated">Quitar para {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">Detalles</target>
@@ -94,7 +109,7 @@
       </trans-unit>
       <trans-unit id="ExceptionDetailsTitle">
         <source>Exception details</source>
-        <target state="new">Exception details</target>
+        <target state="translated">Detalles de la excepción</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
@@ -169,22 +184,22 @@
       </trans-unit>
       <trans-unit id="LabelAll">
         <source>(All)</source>
-        <target state="new">(All)</target>
+        <target state="translated">(Todas)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelEmpty">
         <source>(Empty)</source>
-        <target state="new">(Empty)</target>
+        <target state="translated">(Vacío)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelNone">
         <source>(None)</source>
-        <target state="new">(None)</target>
+        <target state="translated">(Ninguno)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelUnset">
         <source>(Unset)</source>
-        <target state="new">(Unset)</target>
+        <target state="translated">(Anular)</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -284,7 +299,7 @@
       </trans-unit>
       <trans-unit id="ResourceDetailsBackReferences">
         <source>Back references</source>
-        <target state="new">Back references</target>
+        <target state="translated">Referencias anteriores</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointsHeader">
@@ -299,7 +314,7 @@
       </trans-unit>
       <trans-unit id="ResourceDetailsReferences">
         <source>References</source>
-        <target state="new">References</target>
+        <target state="translated">Referencias</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsResourceHeader">
@@ -309,12 +324,12 @@
       </trans-unit>
       <trans-unit id="ResourceDetailsTypeHeader">
         <source>Type</source>
-        <target state="new">Type</target>
+        <target state="translated">Tipo</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsVolumesHeader">
         <source>Volumes</source>
-        <target state="new">Volumes</target>
+        <target state="translated">Volúmenes</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDropdownReplicaAccessibleTitle">
@@ -324,7 +339,7 @@
       </trans-unit>
       <trans-unit id="ResourceHealthChecksHeader">
         <source>Health checks</source>
-        <target state="new">Health checks</target>
+        <target state="translated">Comprobaciones de estado</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceLabel">
@@ -399,7 +414,7 @@
       </trans-unit>
       <trans-unit id="StateColumnHeader">
         <source>State</source>
-        <target state="new">State</target>
+        <target state="translated">Estado</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredFilteringAddFilter">
@@ -491,6 +506,16 @@
         <source>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</source>
         <target state="translated">Total: &lt;strong&gt;{0} resultados encontrados&lt;/strong&gt;</target>
         <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="VolumeMountTypeColumnHeader">
+        <source>Mount type</source>
+        <target state="translated">Tipo de montaje</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VolumePathColumnHeader">
+        <source>Path</source>
+        <target state="translated">Ruta de acceso</target>
+        <note />
       </trans-unit>
     </body>
   </file>

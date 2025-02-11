@@ -324,39 +324,6 @@ window.listenToWindowResize = function(dotnetHelper) {
     window.addEventListener('resize', throttledResizeListener);
 }
 
-window.registerOpenTextVisualizerOnClick = function(layout) {
-    const onClickListener = function (e) {
-        const fluentMenuItem = getFluentMenuItemForTarget(e.target);
-
-        if (!fluentMenuItem) {
-            return;
-        }
-
-        const text = fluentMenuItem.getAttribute("data-text");
-        const description = fluentMenuItem.getAttribute("data-textvisualizer-description");
-
-        if (text && description) {
-            e.stopPropagation();
-
-            // data-text may be larger than the max Blazor message size limit for very large strings
-            // we have to stream it
-            const textAsArray = new TextEncoder().encode(text);
-            const textAsStream = DotNet.createJSStreamReference(textAsArray);
-            layout.invokeMethodAsync("OpenTextVisualizerAsync", textAsStream, description);
-        }
-    }
-
-    document.addEventListener('click', onClickListener);
-
-    return {
-        onClickListener: onClickListener,
-    }
-}
-
-window.unregisterOpenTextVisualizerOnClick = function (obj) {
-    document.removeEventListener('click', obj.onClickListener);
-};
-
 window.setCellTextClickHandler = function (id) {
     var cellTextElement = document.getElementById(id);
     if (!cellTextElement) {
@@ -373,6 +340,13 @@ window.setCellTextClickHandler = function (id) {
     });
 };
 
+window.scrollToTop = function (selector) {
+    var element = document.querySelector(selector);
+    if (element) {
+        element.scrollTop = 0;
+    }
+};
+
 // taken from https://learn.microsoft.com/en-us/aspnet/core/blazor/file-downloads?view=aspnetcore-8.0#download-from-a-stream
 window.downloadStreamAsFile = async function (fileName, contentStreamReference) {
     const arrayBuffer = await contentStreamReference.arrayBuffer();
@@ -384,4 +358,4 @@ window.downloadStreamAsFile = async function (fileName, contentStreamReference) 
     anchorElement.click();
     anchorElement.remove();
     URL.revokeObjectURL(url);
-}
+};

@@ -6,6 +6,7 @@ using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Model;
 
@@ -30,18 +31,51 @@ public sealed class DashboardCommandExecutor(
 
         var messageResourceName = getResourceName(resource);
 
+        // When a resource command starts a toast is immediately shown.
+        // The toast is open for a certain amount of time and then automatically closed.
+        // When the resource command is finished the status is displayed in a toast.
+        // Either the open toast is updated and its time is exteneded, or the a new toast is shown with the finished status.
+        // Because of this logic we need to manage opening and closing the toasts manually.
         var toastParameters = new ToastParameters<CommunicationToastContent>()
         {
             Id = Guid.NewGuid().ToString(),
             Intent = ToastIntent.Progress,
             Title = string.Format(CultureInfo.InvariantCulture, loc[nameof(Dashboard.Resources.Resources.ResourceCommandStarting)], messageResourceName, command.DisplayName),
-            Content = new CommunicationToastContent()
+            Content = new CommunicationToastContent(),
+            Timeout = 0 // App logic will handle closing the toast
         };
 
-        // Show a toast immediately to indicate the command is starting.
-        toastService.ShowCommunicationToast(toastParameters);
+        // Track whether toast is closed by timeout or user action.
+        var toastClosed = false;
+        Action<string?> closeCallback = (id) =>
+        {
+            if (id == toastParameters.Id)
+            {
+                toastClosed = true;
+            }
+        };
 
-        var response = await dashboardClient.ExecuteResourceCommandAsync(resource.Name, resource.ResourceType, command, CancellationToken.None).ConfigureAwait(false);
+        ResourceCommandResponseViewModel response;
+        CancellationTokenSource closeToastCts;
+        try
+        {
+            toastService.OnClose += closeCallback;
+            // Show a toast immediately to indicate the command is starting.
+            toastService.ShowCommunicationToast(toastParameters);
+
+            closeToastCts = new CancellationTokenSource();
+            closeToastCts.Token.Register(() =>
+            {
+                toastService.CloseToast(toastParameters.Id);
+            });
+            closeToastCts.CancelAfter(DashboardUIHelpers.ToastTimeout);
+
+            response = await dashboardClient.ExecuteResourceCommandAsync(resource.Name, resource.ResourceType, command, CancellationToken.None).ConfigureAwait(false);
+        }
+        finally
+        {
+            toastService.OnClose -= closeCallback;
+        }
 
         // Update toast with the result;
         if (response.Kind == ResourceCommandResponseKind.Succeeded)
@@ -60,7 +94,21 @@ public sealed class DashboardCommandExecutor(
             toastParameters.OnPrimaryAction = EventCallback.Factory.Create<ToastResult>(this, () => navigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: resource.Name)));
         }
 
-        toastService.UpdateToast(toastParameters.Id, toastParameters);
+        if (!toastClosed)
+        {
+            // Extend cancel time.
+            closeToastCts.CancelAfter(DashboardUIHelpers.ToastTimeout);
+
+            // Update the open toast to display result. This only works if the toast is still open.
+            toastService.UpdateToast(toastParameters.Id, toastParameters);
+        }
+        else
+        {
+            toastParameters.Timeout = null; // Let the toast close automatically.
+
+            // Show toast to display result.
+            toastService.ShowCommunicationToast(toastParameters);
+        }
     }
 
     // Copied from FluentUI.

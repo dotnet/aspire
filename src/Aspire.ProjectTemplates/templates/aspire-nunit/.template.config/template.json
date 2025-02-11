@@ -9,7 +9,8 @@
     "Web API",
     "API",
     "Service",
-    "Test"
+    "Test",
+    "NUnit"
   ],
   "name": ".NET Aspire Test Project (NUnit)",
   "defaultName": "Tests",
@@ -26,6 +27,11 @@
   "thirdPartyNotices": "https://aka.ms/dotnet/aspire/third-party-notices",
   "groupIdentity": "Aspire.Tests.NUnit",
   "sources": [
+    {
+      "source": "./9.1",
+      "target": "./",
+      "condition": "AspireVersionActual == 9.1"
+    },
     {
       "source": "./9.0",
       "target": "./",
@@ -55,6 +61,30 @@
       "replaces": "net8.0",
       "defaultValue": "net9.0"
     },
+    "AspireVersionCli": {
+      "type": "parameter",
+      "description": "The version of .NET Aspire to use.",
+      "displayName": ".NET Aspire version",
+      "datatype": "choice",
+      "choices": [
+        {
+          "choice": "9.1",
+          "displayName": "9.1",
+          "description": "Chooses .NET Aspire 9.1"
+        },
+        {
+          "choice": "9.0",
+          "displayName": "9.0",
+          "description": "Chooses .NET Aspire 9.0"
+        },
+        {
+          "choice": "8.2",
+          "displayName": "8.2",
+          "description": "Chooses .NET Aspire 8.2 (only valid when '--framework net8.0' is specified)"
+        }
+      ],
+      "defaultValue": "9.1"
+    },
     "AspireVersion": {
       "type": "parameter",
       "description": "The version of .NET Aspire to use.",
@@ -62,34 +92,76 @@
       "datatype": "choice",
       "isEnabled": "Framework == net8.0",
       "choices": [
-          {
-             "choice": "9.0",
-             "displayName": "9.0",
-             "description": "Chooses .NET Aspire 9.0"
-          },
-          {
-            "choice": "8.2",
-            "displayName": "8.2",
-            "description": "Chooses .NET Aspire 8.2"
-         }
+        {
+          "choice": "9.1",
+          "displayName": "9.1",
+          "description": "Chooses .NET Aspire 9.1"
+        },
+        {
+          "choice": "9.0",
+          "displayName": "9.0",
+          "description": "Chooses .NET Aspire 9.0"
+        },
+        {
+          "choice": "8.2",
+          "displayName": "8.2",
+          "description": "Chooses .NET Aspire 8.2"
+        }
       ],
-      "defaultValue": "9.0"
+      "defaultValue": "9.1"
     },
-    "AspireVersionDefault": {
-      "type": "generated",
-      "generator": "constant",
-      "parameters": {
-        "value": "9.0"
-      }
+    "AspireVersionNet9": {
+      "type": "parameter",
+      "description": "The version of .NET Aspire to use.",
+      "displayName": ".NET Aspire version",
+      "datatype": "choice",
+      "isEnabled": "Framework == net9.0",
+      "choices": [
+        {
+          "choice": "9.1",
+          "displayName": "9.1",
+          "description": "Chooses .NET Aspire 9.1"
+        },
+        {
+          "choice": "9.0",
+          "displayName": "9.0",
+          "description": "Chooses .NET Aspire 9.0"
+        }
+      ],
+      "defaultValue": "9.1"
     },
     "AspireVersionActual": {
       "type": "generated",
-      "generator": "coalesce",
+      "generator": "switch",
+      "replaces": "aspireVersion",
       "parameters": {
-        "sourceVariableName": "AspireVersion",
-        "fallbackVariableName": "AspireVersionDefault"
-      },
-      "replaces": "aspireVersion"
+        "cases": [
+          {
+            "condition": "(AspireVersion == 8.2 && Framework == net8.0)",
+            "value": "8.2"
+          },
+          {
+            "condition": "(AspireVersionCli == 8.2 && Framework == net8.0)",
+            "value": "8.2"
+          },
+          {
+            "condition": "AspireVersionCli == 9.0",
+            "value": "9.0"
+          },
+          {
+            "condition": "AspireVersion == 9.0",
+            "value": "9.0"
+          },
+          {
+            "condition": "AspireVersionNet9 == 9.0",
+            "value": "9.0"
+          },
+          {
+            "condition": "",
+            "value": "9.1"
+          }
+        ]
+      }
     },
     "hostIdentifier": {
       "type": "bind",

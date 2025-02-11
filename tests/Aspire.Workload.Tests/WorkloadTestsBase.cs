@@ -16,7 +16,7 @@ public partial class WorkloadTestsBase
     [GeneratedRegex(@"^\s*//")]
     private static partial Regex CommentLineRegex();
 
-    // Regex is from src/Aspire.Hosting.AppHost/build/Aspire.Hosting.AppHost.targets - _GeneratedClassNameFixupRegex
+    // Regex is from src/Aspire.Hosting.AppHost/build/Aspire.Hosting.AppHost.in.targets - _GeneratedClassNameFixupRegex
     [GeneratedRegex(@"(((?<=\.)|^)(?=\d)|\W)")]
     private static partial Regex GeneratedClassNameFixupRegex();
     private static Lazy<IBrowser> Browser => new(CreateBrowser);
@@ -162,7 +162,7 @@ public partial class WorkloadTestsBase
             await Task.Delay(500);
 
             // _testOutput.WriteLine($"Checking for rows again");
-            var rowsLocator = dashboardPage.Locator("//fluent-data-grid-row[@class='hover resource-row']");
+            var rowsLocator = dashboardPage.Locator("//tr[@class='fluent-data-grid-row hover resource-row']");
             var allRows = await rowsLocator.AllAsync();
             // _testOutput.WriteLine($"found rows#: {allRows.Count}");
             if (allRows.Count == 0)
@@ -174,7 +174,7 @@ public partial class WorkloadTestsBase
             foreach (var rowLoc in allRows)
             {
                 // get the cells
-                var cellLocs = await rowLoc.Locator("//fluent-data-grid-cell[@role='gridcell']").AllAsync();
+                var cellLocs = await rowLoc.Locator("//td[@role='gridcell']").AllAsync();
 
                 // is the resource name expected?
                 var resourceNameCell = cellLocs[0];

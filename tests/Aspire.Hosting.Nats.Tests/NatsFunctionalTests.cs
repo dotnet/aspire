@@ -111,11 +111,9 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-        builder.Configuration["Parameters:user"] = "user";
-        builder.Configuration["Parameters:pass"] = "password";
 
-        var usernameParameter = builder.AddParameter("user");
-        var passwordParameter = builder.AddParameter("pass");
+        var usernameParameter = builder.AddParameter("user", "user");
+        var passwordParameter = builder.AddParameter("pass", "password");
 
         var nats = builder.AddNats("nats", userName: usernameParameter, password: passwordParameter);
 
@@ -342,17 +340,15 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var pendingStart = app.StartAsync(cts.Token);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
         await pendingStart;
 

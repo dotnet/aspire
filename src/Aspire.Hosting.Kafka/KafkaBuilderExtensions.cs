@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Utils;
 using Confluent.Kafka;
 using HealthChecks.Kafka;
 using Microsoft.Extensions.DependencyInjection;

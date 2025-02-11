@@ -41,17 +41,15 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var pendingStart = app.StartAsync(cts.Token);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
         await pendingStart;
 
@@ -176,6 +174,8 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
             await app1.StartAsync();
 
+            await app1.ResourceNotifications.WaitForResourceHealthyAsync(masterdb1.Resource.Name, cts.Token);
+
             try
             {
                 var hb1 = Host.CreateApplicationBuilder();
@@ -239,11 +239,9 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             using var builder2 = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
-            var passwordParameter2 = builder2.AddParameter("pwd");
+            var passwordParameter2 = builder2.AddParameter("pwd", password);
 
-            builder2.Configuration["Parameters:pwd"] = password;
-
-            var sqlserver2 = builder2.AddSqlServer("sqlserver", passwordParameter2);
+            var sqlserver2 = builder2.AddSqlServer("sqlserver2", passwordParameter2);
             var masterdb2 = sqlserver2.AddDatabase("master");
 
             if (useVolume)
@@ -258,6 +256,9 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             using (var app2 = builder2.Build())
             {
                 await app2.StartAsync();
+
+                await app2.ResourceNotifications.WaitForResourceHealthyAsync(masterdb2.Resource.Name, cts.Token);
+
                 try
                 {
                     var hb2 = Host.CreateApplicationBuilder();

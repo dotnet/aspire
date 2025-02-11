@@ -16,7 +16,14 @@
 				"ms-azuretools.vscode-bicep",
 				"GitHub.copilot-chat",
 				"GitHub.copilot"
-			]
+			],
+			"settings": {
+				"remote.autoForwardPorts": true,
+				"remote.autoForwardPortsSource": "hybrid",
+				"remote.otherPortsAttributes": {
+					"onAutoForward": "ignore"
+				}
+			}
 		}
 	},
 	"workspaceFolder": "/workspaces/dogfood",  // Empty directory for clean testing

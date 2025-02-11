@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Storage;
-using Aspire.Hosting.Utils;
 using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;
@@ -18,6 +17,8 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureStorageExtensions
 {
+    private const string SkipApiVersionCheckArgument = "--skipApiVersionCheck";
+
     /// <summary>
     /// Adds an Azure Storage resource to the application model. This resource can be used to create Azure blob, table, and queue resources.
     /// </summary>
@@ -30,27 +31,33 @@ public static class AzureStorageExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var storageAccount = new StorageAccount(infrastructure.AspireResource.GetBicepIdentifier())
-            {
-                Kind = StorageKind.StorageV2,
-                AccessTier = StorageAccountAccessTier.Hot,
-                Sku = new StorageSku() { Name = StorageSkuName.StandardGrs },
-                NetworkRuleSet = new StorageAccountNetworkRuleSet()
+            var storageAccount = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+                (identifier, name) =>
                 {
-                    // Unfortunately Azure Storage does not list ACA as one of the resource types in which
-                    // the AzureServices firewall policy works. This means that we need this Azure Storage
-                    // account to have its default action set to Allow.
-                    DefaultAction = StorageNetworkDefaultAction.Allow
+                    var resource = StorageAccount.FromExisting(identifier);
+                    resource.Name = name;
+                    return resource;
                 },
-                // Set the minimum TLS version to 1.2 to ensure resources provisioned are compliant
-                // with the pending deprecation of TLS 1.0 and 1.1.
-                MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_2,
-                // Disable shared key access to the storage account as managed identity is configured
-                // to access the storage account by default.
-                AllowSharedKeyAccess = false,
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-            };
-            infrastructure.Add(storageAccount);
+                (infrastructure) => new StorageAccount(infrastructure.AspireResource.GetBicepIdentifier())
+                {
+                    Kind = StorageKind.StorageV2,
+                    AccessTier = StorageAccountAccessTier.Hot,
+                    Sku = new StorageSku() { Name = StorageSkuName.StandardGrs },
+                    NetworkRuleSet = new StorageAccountNetworkRuleSet()
+                    {
+                        // Unfortunately Azure Storage does not list ACA as one of the resource types in which
+                        // the AzureServices firewall policy works. This means that we need this Azure Storage
+                        // account to have its default action set to Allow.
+                        DefaultAction = StorageNetworkDefaultAction.Allow
+                    },
+                    // Set the minimum TLS version to 1.2 to ensure resources provisioned are compliant
+                    // with the pending deprecation of TLS 1.0 and 1.1.
+                    MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_2,
+                    // Disable shared key access to the storage account as managed identity is configured
+                    // to access the storage account by default.
+                    AllowSharedKeyAccess = false,
+                    Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                });
 
             var blobs = new BlobService("blobs")
             {
@@ -126,12 +133,15 @@ public static class AzureStorageExtensions
 
         builder.WithHealthCheck(healthCheckKey);
 
-        if (configureContainer != null)
-        {
-            var surrogate = new AzureStorageEmulatorResource(builder.Resource);
-            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
-            configureContainer(surrogateBuilder);
-        }
+        // The default arguments list is coming from https://github.com/Azure/Azurite/blob/c3f93445fbd8fd54d380eb265a5665166c460d2b/Dockerfile#L47C6-L47C106
+        // They need to be repeated in order to be able to add --skipApiVersionCheck
+
+        var surrogate = new AzureStorageEmulatorResource(builder.Resource);
+        var surrogateBuilder = builder.ApplicationBuilder
+            .CreateResourceBuilder(surrogate)
+            .WithArgs("azurite", "-l", "/data", "--blobHost", "0.0.0.0", "--queueHost", "0.0.0.0", "--tableHost", "0.0.0.0", SkipApiVersionCheckArgument);
+
+        configureContainer?.Invoke(surrogateBuilder);
 
         return builder;
 
@@ -201,12 +211,36 @@ public static class AzureStorageExtensions
     /// </summary>
     /// <param name="builder">Storage emulator resource builder.</param>
     /// <param name="port">Host port to use.</param>
-    /// <returns></returns>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureStorageEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureStorageEmulatorResource> WithTablePort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
     {
         return builder.WithEndpoint("table", endpoint =>
         {
             endpoint.Port = port;
+        });
+    }
+
+    /// <summary>
+    /// Ensures the emulator checks that the requested API version is valid.
+    /// </summary>
+    /// <param name="builder">Storage emulator resource builder.</param>
+    /// <param name="enable">Whether to enable API version check or not. Default is <lang>true</lang>.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureStorageEmulatorResource"/>.</returns>
+    public static IResourceBuilder<AzureStorageEmulatorResource> WithApiVersionCheck(this IResourceBuilder<AzureStorageEmulatorResource> builder, bool enable = true)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder
+            .WithArgs(context =>
+        {
+            context.Args.Remove(SkipApiVersionCheckArgument);
+
+            if (enable)
+            {
+                context.Args.Add(SkipApiVersionCheckArgument);
+            }
+
+            return Task.CompletedTask;
         });
     }
 

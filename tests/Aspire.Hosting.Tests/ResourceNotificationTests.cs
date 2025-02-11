@@ -245,6 +245,24 @@ public class ResourceNotificationTests
     }
 
     [Fact]
+    public async Task WaitingOnResourceReturnsItReachesStateAfterApplicationStoppingCancellationTokenSignaled()
+    {
+        var resource1 = new CustomResource("myResource1");
+
+        using var hostApplicationLifetime = new TestHostApplicationLifetime();
+        var notificationService = ResourceNotificationServiceTestHelpers.Create(hostApplicationLifetime: hostApplicationLifetime);
+
+        var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState");
+        hostApplicationLifetime.StopApplication();
+
+        await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "SomeState" }).DefaultTimeout();
+
+        await waitTask.DefaultTimeout();
+
+        Assert.True(waitTask.IsCompletedSuccessfully);
+    }
+
+    [Fact]
     public async Task WaitingOnResourceThrowsOperationCanceledExceptionIfResourceDoesntReachStateBeforeCancellationTokenSignaled()
     {
         var notificationService = ResourceNotificationServiceTestHelpers.Create();
@@ -261,13 +279,13 @@ public class ResourceNotificationTests
     }
 
     [Fact]
-    public async Task WaitingOnResourceThrowsOperationCanceledExceptionIfResourceDoesntReachStateBeforeApplicationStoppingCancellationTokenSignaled()
+    public async Task WaitingOnResourceThrowsOperationCanceledExceptionIfResourceDoesntReachStateBeforeServiceIsDisposed()
     {
-        using var hostApplicationLifetime = new TestHostApplicationLifetime();
-        var notificationService = ResourceNotificationServiceTestHelpers.Create(hostApplicationLifetime: hostApplicationLifetime);
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
 
         var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState");
-        hostApplicationLifetime.StopApplication();
+
+        notificationService.Dispose();
 
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
         {

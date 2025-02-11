@@ -18,8 +18,8 @@ var redis = builder.AddRedis("cache")
 
 // Testing secret outputs
 var cosmosDb = builder.AddAzureCosmosDB("account")
-                      .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent))
-                      .AddDatabase("db");
+                      .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent));
+cosmosDb.AddCosmosDatabase("db");
 
 // Testing a connection string
 var blobs = builder.AddAzureStorage("storage")
