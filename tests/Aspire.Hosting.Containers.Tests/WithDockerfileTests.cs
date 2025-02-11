@@ -750,8 +750,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
     private static async Task WaitForResourceAsync(DistributedApplication app, string resourceName, string resourceState, TimeSpan? timeout = null)
     {
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(resourceName, resourceState).WaitAsync(timeout ?? TimeSpan.FromMinutes(3));
+        await app.ResourceNotifications.WaitForResourceAsync(resourceName, resourceState).WaitAsync(timeout ?? TimeSpan.FromMinutes(3));
     }
 
     private const string DefaultMessage = "aspire!";

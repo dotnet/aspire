@@ -18,6 +18,11 @@ internal sealed class AspireStore : IAspireStore
     {
         ArgumentNullException.ThrowIfNull(basePath);
 
+        if (!Path.IsPathRooted(basePath))
+        {
+            throw new ArgumentException($"An absolute path is required: '${basePath}'", nameof(basePath));
+        }
+
         _basePath = basePath;
         EnsureDirectory();
     }

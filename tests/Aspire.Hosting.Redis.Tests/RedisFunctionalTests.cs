@@ -46,17 +46,15 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var pendingStart = app.StartAsync(cts.Token);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
         await pendingStart;
 
@@ -221,8 +219,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         //       make sure that we have good test coverage for WithRedisInsight behavior, but we need a better
         //       long term solution in 9.x for folks that will want to do things like execute commands against
         //       resources to stop specific containers.
-        var rns = app2.Services.GetRequiredService<ResourceNotificationService>();
-        var latestEvent = await rns.WaitForResourceHealthyAsync(redisInsightBuilder.Resource.Name, cts.Token);
+        var latestEvent = await app2.ResourceNotifications.WaitForResourceHealthyAsync(redisInsightBuilder.Resource.Name, cts.Token);
         var executorProxy = app2.Services.GetRequiredService<ApplicationOrchestratorProxy>();
         await executorProxy.StopResourceAsync(latestEvent.ResourceId, cts.Token);
 
