@@ -56,7 +56,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
 
     // Internal for testing.
-    internal ResiliencePipeline DeleteResourceRetryPipeline { get; set; }
+    internal ResiliencePipeline<bool> DeleteResourceRetryPipeline { get; set; }
     internal ResiliencePipeline CreateServiceRetryPipeline { get; set; }
     internal ResiliencePipeline WatchResourceRetryPipeline { get; set; }
 
@@ -1511,16 +1511,17 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             // before resorting to more extreme measures.
             if (!resourceNotFound)
             {
-                await DeleteResourceRetryPipeline.ExecuteAsync(async (state, attemptCancellationToken) =>
+                await DeleteResourceRetryPipeline.ExecuteAsync<bool, string>(async (state, attemptCancellationToken) =>
                 {
                     try
                     {
                         await _kubernetesService.GetAsync<T>(state, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
-                        throw new DistributedApplicationException($"Failed to delete '{state}' successfully before restart.");
+                        return false;
                     }
                     catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
                         // Success.
+                        return true;
                     }
                 }, resourceName, cancellationToken).ConfigureAwait(false);
             }
