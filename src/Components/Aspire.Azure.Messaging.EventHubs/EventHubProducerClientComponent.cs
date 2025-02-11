@@ -4,8 +4,10 @@
 using Aspire.Azure.Messaging.EventHubs;
 using Azure.Core.Extensions;
 using Azure.Messaging.EventHubs.Producer;
+using HealthChecks.Azure.Messaging.EventHubs;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -48,5 +50,10 @@ internal sealed class EventHubProducerClientComponent : EventHubsComponent<Azure
             return new EventHubProducerClient(settings.ConnectionString, settings.EventHubName, options);
 
         }, requiresCredential: false);
+    }
+
+    protected override IHealthCheck CreateHealthCheck(EventHubProducerClient client, AzureMessagingEventHubsProducerSettings settings)
+    {
+        return new AzureEventHubHealthCheck(client);
     }
 }
