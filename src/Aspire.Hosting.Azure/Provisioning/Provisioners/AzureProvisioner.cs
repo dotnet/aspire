@@ -184,9 +184,16 @@ internal sealed class AzureProvisioner(
 
     private static async Task<JsonObject> GetUserSecretsAsync(string? userSecretsPath, CancellationToken cancellationToken)
     {
+        var jsonDocumentOptions = new JsonDocumentOptions
+        {
+            CommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true,
+        };
+
         var userSecrets = userSecretsPath is not null && File.Exists(userSecretsPath)
-                          ? JsonNode.Parse(await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false))!.AsObject()
-                          : [];
+            ? JsonNode.Parse(await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false),
+                documentOptions: jsonDocumentOptions)!.AsObject()
+            : [];
         return userSecrets;
     }
 
