@@ -105,13 +105,27 @@ public class DcpExecutorTests
         Assert.Equal(2, resourceIds.Count);
     }
 
-    [Fact]
-    public async Task CreateExecutable_LaunchProfileHasCommandLineArgs_AnnotationsAdded()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task CreateExecutable_LaunchProfileHasCommandLineArgs_AnnotationsAdded(bool isIDE)
     {
         var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
         {
             AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
         });
+
+        IConfiguration? configuration = null;
+        if (isIDE)
+        {
+            var configurationBuilder = new ConfigurationBuilder();
+            configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [DcpExecutor.DebugSessionPortVar] = "8080"
+            });
+
+            configuration = configurationBuilder.Build();
+        }
 
         var resource = builder.AddProject<Projects.ServiceA>("ServiceA")
             .WithArgs(c =>
@@ -127,24 +141,33 @@ public class DcpExecutorTests
         var events = new DcpExecutorEvents();
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
 
-        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions, events: events);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions, events: events, configuration: configuration);
         await appExecutor.RunApplicationAsync();
 
         var executables = kubernetesService.CreatedResources.OfType<Executable>().ToList();
 
         var exe = Assert.Single(executables);
-        // ignore dotnet specific args for .NET project
-        var callArgs = exe.Spec.Args![^4..];
 
-        Assert.Collection(callArgs,
-            a => Assert.Equal("--", a),
-            a => Assert.Equal("--test1", a),
-            a => Assert.Equal("--test2", a),
-            a => Assert.Equal("--withargs-test", a));
+        if (isIDE)
+        {
+            var callArg = Assert.Single(exe.Spec.Args!);
+            Assert.Equal("--withargs-test", callArg);
+        }
+        else
+        {
+            // ignore dotnet specific args for .NET project
+            var callArgs = exe.Spec.Args![^4..];
 
-        Assert.True(exe.TryGetAnnotationAsObjectList<AppLaunchArgumentAnnotation>(CustomResource.ResourceAppArgsAnnotation, out var argAnnotations1));
+            Assert.Collection(callArgs,
+                a => Assert.Equal("--", a),
+                a => Assert.Equal("--test1", a),
+                a => Assert.Equal("--test2", a),
+                a => Assert.Equal("--withargs-test", a));
+        }
 
-        Assert.Collection(argAnnotations1,
+        Assert.True(exe.TryGetAnnotationAsObjectList<AppLaunchArgumentAnnotation>(CustomResource.ResourceAppArgsAnnotation, out var argAnnotations));
+
+        Assert.Collection(argAnnotations,
             a => Assert.Equal("--", a.Argument),
             a => Assert.Equal("--test1", a.Argument),
             a => Assert.Equal("--test2", a.Argument),

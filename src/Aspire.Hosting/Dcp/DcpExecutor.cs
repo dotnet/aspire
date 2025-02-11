@@ -29,8 +29,8 @@ namespace Aspire.Hosting.Dcp;
 
 internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 {
-    private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
-    private const string DefaultAspireNetworkName = "default-aspire-network";
+    internal const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
+    internal const string DefaultAspireNetworkName = "default-aspire-network";
 
     // Disposal of te DcpExecutor means shutting down watches and log streams,
     // and asking DCP to start the shutdown process. If we cannot complete these tasks within 10 seconds,
@@ -856,8 +856,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                     // because the settings from the profile will override the ambient environment settings, which is not what we want
                     // (the ambient environment settings for service processes come from the application model
                     // and should be HIGHER priority than the launch profile settings).
-                    // This means we need to apply the launch profile settings manually--the invocation parameters here,
-                    // and the environment variables/application URLs inside CreateExecutableAsync().
+                    // This means we need to apply the launch profile settings manually inside CreateExecutableAsync().
                     projectArgs.Add("--no-launch-profile");
                 }
 
@@ -965,7 +964,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         {
             throw new InvalidOperationException($"Expected an Executable resource, but got {er.DcpResource.Kind} instead");
         }
-        var spec = exe.Spec;
+        ExecutableSpec spec = exe.Spec;
 
         // An executable can be restarted so args must be reset to an empty state.
         // After resetting, first apply any dotnet project related args, e.g. configuration, and then add args from the model resource.
@@ -975,27 +974,23 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             spec.Args.AddRange(projectArgs);
         }
 
-        var launchArgs = new List<(string Value, bool IsSensitive)>();
+        var launchArgs = new List<(string Value, bool IsSensitive, bool AnnotationOnly)>();
 
         // If the executable is a project then include any command line args from the launch profile.
         if (er.ModelResource is ProjectResource project)
         {
-            var launchProfile = project.GetEffectiveLaunchProfile()?.LaunchProfile;
-            if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
-            {
-                var cmdArgs = CommandLineArgsParser.Parse(launchProfile.CommandLineArgs);
-                if (cmdArgs.Count > 0)
-                {
-                    launchArgs.Add(("--", IsSensitive: false));
-                    launchArgs.AddRange(cmdArgs.Select(a => (a, false)));
-                }
-            }
+            // When the .NET project is launched from an IDE the launch profile args are automatically added.
+            // We still want to display the args in the dashboard so only add them to the custom arg annotations.
+            var annotationOnly = spec.ExecutionType == ExecutionType.IDE;
+
+            var launchProfileArgs = GetLaunchProfileArgs(project.GetEffectiveLaunchProfile()?.LaunchProfile);
+            launchArgs.AddRange(launchProfileArgs.Select(a => (a, isSensitive: false, annotationOnly)));
         }
 
         (var args, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
-        launchArgs.AddRange(args);
+        launchArgs.AddRange(args.Select(a => (a.Value, a.IsSensitive, annotationOnly: false)));
 
-        spec.Args.AddRange(launchArgs.Select(a => a.Value));
+        spec.Args.AddRange(launchArgs.Where(a => !a.AnnotationOnly).Select(a => a.Value));
         er.DcpResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, launchArgs.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
 
         (spec.Env, var failedToApplyConfiguration) = await BuildEnvVarsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
@@ -1006,6 +1001,21 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         }
 
         await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static List<string> GetLaunchProfileArgs(LaunchProfile? launchProfile)
+    {
+        var args = new List<string>();
+        if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
+        {
+            var cmdArgs = CommandLineArgsParser.Parse(launchProfile.CommandLineArgs);
+            if (cmdArgs.Count > 0)
+            {
+                args.Add("--");
+                args.AddRange(cmdArgs);
+            }
+        }
+        return args;
     }
 
     private void PrepareContainers()
