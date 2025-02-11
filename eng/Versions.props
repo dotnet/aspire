@@ -36,9 +36,13 @@
     <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.1-servicing.24603.14</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
     <!-- dotnet/extensions -->
     <MicrosoftExtensionsAIVersion>9.1.0-preview.1.25064.3</MicrosoftExtensionsAIVersion>
+
+    <!-- when updating this, also update cgmanifest.json as it is consumed in templates -->
     <MicrosoftExtensionsHttpResilienceVersion>9.1.0</MicrosoftExtensionsHttpResilienceVersion>
+
     <MicrosoftExtensionsDiagnosticsTestingVersion>9.1.0</MicrosoftExtensionsDiagnosticsTestingVersion>
     <MicrosoftExtensionsTimeProviderTestingVersion>9.1.0</MicrosoftExtensionsTimeProviderTestingVersion>
+
     <!-- for templates -->
     <MicrosoftAspNetCorePackageVersionForNet9>9.0.1</MicrosoftAspNetCorePackageVersionForNet9>
   </PropertyGroup>
