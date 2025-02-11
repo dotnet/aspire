@@ -28,8 +28,8 @@ resource eventhubns_AzureEventHubsDataOwner 'Microsoft.Authorization/roleAssignm
   scope: eventhubns
 }
 
-resource hub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = {
-  name: 'hub'
+resource eventhub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = {
+  name: 'eventhub'
   parent: eventhubns
 }
 

@@ -188,6 +188,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         using var builder = TestDistributedApplicationBuilder.Create(output);
+        
 
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
         builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
@@ -207,17 +208,15 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         var pendingStart = app.StartAsync(cts.Token);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
         await pendingStart;
 
@@ -231,6 +230,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
 
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(output);
+
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
             .RunAsEmulator()
             .WithQueue("queue123");
@@ -267,6 +267,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     public void AddAzureServiceBusWithEmulatorGetsExpectedPort(int? port = null)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
+
         var serviceBus = builder.AddAzureServiceBus("sb").RunAsEmulator(configureContainer: builder =>
         {
             builder.WithHostPort(port);
@@ -601,10 +602,16 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var serviceBus = builder.AddAzureServiceBus("servicebusns")
-            .RunAsEmulator(configure => configure.ConfigureEmulator(document =>
-            {
-                document["UserConfig"]!["Logging"] = new JsonObject { ["Type"] = "Console" };
-            }));
+            .RunAsEmulator(configure => configure
+                .WithConfiguration(document =>
+                {
+                    document["UserConfig"]!["Logging"] = new JsonObject { ["Type"] = "Console" };
+                })
+                .WithConfiguration(document =>
+                {
+                    document["Custom"] = JsonValue.Create(42);
+                })
+            );
 
         using var app = builder.Build();
         await app.StartAsync();
@@ -627,7 +634,8 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                 "Logging": {
                   "Type": "Console"
                 }
-              }
+              },
+              "Custom": 42
             }
             """, configJsonContent);
 
@@ -691,5 +699,38 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         catch
         {
         }
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddAzureServiceBusWithEmulator_SetsSqlLifetime(bool isPersistent)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var lifetime = isPersistent ? ContainerLifetime.Persistent : ContainerLifetime.Session;
+
+        var serviceBus = builder.AddAzureServiceBus("sb").RunAsEmulator(configureContainer: builder =>
+        {
+            builder.WithLifetime(lifetime);
+        });
+
+        var sql = builder.Resources.FirstOrDefault(x => x.Name == "sb-sqledge");
+
+        Assert.NotNull(sql);
+
+        serviceBus.Resource.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var sbLifetimeAnnotation);
+        sql.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var sqlLifetimeAnnotation);
+
+        Assert.Equal(lifetime, sbLifetimeAnnotation?.Lifetime);
+        Assert.Equal(lifetime, sqlLifetimeAnnotation?.Lifetime);
+    }
+
+    [Fact]
+    public void RunAsEmulator_CalledTwice_Throws()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var serviceBus = builder.AddAzureServiceBus("sb").RunAsEmulator();
+
+        Assert.Throws<InvalidOperationException>(() => serviceBus.RunAsEmulator());
     }
 }

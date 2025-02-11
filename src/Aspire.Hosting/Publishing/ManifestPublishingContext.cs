@@ -6,6 +6,7 @@ using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Publishing;
 
@@ -109,13 +110,13 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         {
             await WriteResourceObjectAsync(executable, () => WriteExecutableAsync(executable)).ConfigureAwait(false);
         }
-        else if (resource is IResourceWithConnectionString resourceWithConnectionString)
-        {
-            await WriteResourceObjectAsync(resource, () => WriteConnectionStringAsync(resourceWithConnectionString)).ConfigureAwait(false);
-        }
         else if (resource is ParameterResource parameter)
         {
             await WriteResourceObjectAsync(parameter, () => WriteParameterAsync(parameter)).ConfigureAwait(false);
+        }
+        else if (resource is IResourceWithConnectionString resourceWithConnectionString)
+        {
+            await WriteResourceObjectAsync(resource, () => WriteConnectionStringAsync(resourceWithConnectionString)).ConfigureAwait(false);
         }
         else
         {
@@ -485,21 +486,22 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     {
         var env = new Dictionary<string, (object, string)>();
 
-        await resource.ProcessEnvironmentVariableValuesAsync(ExecutionContext,
-                     (key, unprocessed, processed, ex) =>
-                     {
-                         if (ex is not null)
-                         {
-                             ExceptionDispatchInfo.Throw(ex);
-                         }
+        await resource.ProcessEnvironmentVariableValuesAsync(
+            ExecutionContext,
+            (key, unprocessed, processed, ex) =>
+            {
+                if (ex is not null)
+                {
+                    ExceptionDispatchInfo.Throw(ex);
+                }
 
-                         if (unprocessed is not null && processed is not null)
-                         {
-                             env[key] = (unprocessed, processed);
-                         }
-                     },
-                     cancellationToken: CancellationToken)
-                     .ConfigureAwait(false);
+                if (unprocessed is not null && processed is not null)
+                {
+                    env[key] = (unprocessed, processed);
+                }
+            },
+            NullLogger.Instance,
+            cancellationToken: CancellationToken).ConfigureAwait(false);
 
         if (env.Count > 0)
         {
@@ -529,7 +531,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         await resource.ProcessArgumentValuesAsync(
             ExecutionContext,
-            (unprocessed, expression, ex) =>
+            (unprocessed, expression, ex, _) =>
             {
                 if (ex is not null)
                 {
@@ -541,8 +543,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                     args.Add((unprocessed, expression));
                 }
             },
-           cancellationToken: CancellationToken)
-          .ConfigureAwait(false);
+            NullLogger.Instance,
+            cancellationToken: CancellationToken).ConfigureAwait(false);
 
         if (args.Count > 0)
         {
@@ -558,35 +560,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             Writer.WriteEndArray();
         }
     }
-
-    internal void WriteDockerBuildArgs(IEnumerable<DockerBuildArg>? buildArgs)
-    {
-        if (buildArgs?.ToArray() is { Length: > 0 } args)
-        {
-            Writer.WriteStartObject("buildArgs");
-
-            for (var i = 0; i < args.Length; i++)
-            {
-                var buildArg = args[i];
-
-                var valueString = buildArg.Value switch
-                {
-                    string stringValue => stringValue,
-                    IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
-                    bool boolValue => boolValue ? "true" : "false",
-                    null => null, // null means let docker build pull from env var.
-                    _ => buildArg.Value.ToString()
-                };
-
-                Writer.WriteString(buildArg.Name, valueString);
-
-                TryAddDependentResources(buildArg.Value);
-            }
-
-            Writer.WriteEndObject();
-        }
-    }
-
     private void WriteContainerMounts(ContainerResource container)
     {
         if (container.TryGetAnnotationsOfType<ContainerMountAnnotation>(out var mounts))

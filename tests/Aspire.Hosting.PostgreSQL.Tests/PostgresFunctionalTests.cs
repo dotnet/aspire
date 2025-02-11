@@ -50,22 +50,20 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var pendingStart = app.StartAsync();
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
         // What for the postgres server to start.
-        await rns.WaitForResourceAsync(postgres.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceAsync(postgres.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Wait for the dependent resource to be in the Waiting state.
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // Now unblock the health check.
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
         // ... and wait for the resource as a whole to move into the health state.
-        await rns.WaitForResourceHealthyAsync(postgres.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(postgres.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         // ... then the dependent resource should be able to move into a running state.
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         await pendingStart.DefaultTimeout(TestConstants.LongTimeoutTimeSpan); // Startup should now complete.
 
@@ -162,13 +160,11 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
-
         await app.StartAsync();
 
         var client = app.CreateHttpClient(pgWebBuilder.Resource.Name, "http");
 
-        await resourceNotificationService.WaitForResourceHealthyAsync(pgWebBuilder.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(pgWebBuilder.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         var httpContent = new MultipartFormDataContent
         {
@@ -231,11 +227,9 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder1.Build())
             {
-                var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
                 await app.StartAsync();
 
-                await rns.WaitForResourceHealthyAsync(db1.Resource.Name, cts.Token);
+                await app.ResourceNotifications.WaitForResourceHealthyAsync(db1.Resource.Name, cts.Token);
 
                 try
                 {
@@ -295,11 +289,9 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using (var app = builder2.Build())
             {
-                var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
                 await app.StartAsync();
 
-                await rns.WaitForResourceHealthyAsync(db2.Resource.Name, cts.Token);
+                await app.ResourceNotifications.WaitForResourceHealthyAsync(db2.Resource.Name, cts.Token);
 
                 try
                 {

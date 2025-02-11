@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Retry;
+using Polly.Timeout;
 using YamlDotNet.Core;
 
 namespace Aspire.Hosting.Dcp;
@@ -28,12 +29,13 @@ internal enum DcpApiOperationType
     Get = 6,
     Patch = 7,
     ServerStop = 8,
+    ResourceCleanup = 9
 }
 
 internal interface IKubernetesService
 {
     Task<T> GetAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default)
-        where T: CustomResource;
+        where T : CustomResource;
     Task<T> CreateAsync<T>(T obj, CancellationToken cancellationToken = default)
         where T : CustomResource;
     Task<T> PatchAsync<T>(T obj, V1Patch patch, CancellationToken cancellationToken = default)
@@ -53,10 +55,14 @@ internal interface IKubernetesService
         bool? timestamps = false,
         CancellationToken cancellationToken = default) where T : CustomResource;
     Task StopServerAsync(string resourceCleanup = ResourceCleanup.Full, CancellationToken cancellation = default);
+    Task CleanupResourcesAsync(CancellationToken cancellationToken = default);
 }
 
 internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOptions<DcpOptions> dcpOptions, Locations locations) : IKubernetesService, IDisposable
 {
+    // A pseudo-resource type used for log operations on the DCP execution document.
+    private const string DcpExecutionResourceType = "DcpExecution";
+
     private static readonly TimeSpan s_initialRetryDelay = TimeSpan.FromMilliseconds(100);
     private static GroupVersion GroupVersion => Model.Dcp.GroupVersion;
     private readonly SemaphoreSlim _kubeconfigReadSemaphore = new(1);
@@ -317,7 +323,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
         return ExecuteWithRetry(
             DcpApiOperationType.ServerStop,
-            "Execution",
+            DcpExecutionResourceType,
             async (kubernetes) =>
             {
                 await kubernetes.PatchExecutionDocumentAsync(
@@ -333,6 +339,52 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
             RetryOnConnectivityErrors,
             cancellationToken
         );
+    }
+
+    public async Task CleanupResourcesAsync(CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        var executionDoc = await ExecuteWithRetry(
+            DcpApiOperationType.ResourceCleanup,
+            DcpExecutionResourceType,
+            async (kubernetes) =>
+            {
+                return await kubernetes.PatchExecutionDocumentAsync(
+                    new ApiServerExecution
+                    {
+                        ApiServerStatus = ApiServerStatus.CleaningResources,
+                        ShutdownResourceCleanup = ResourceCleanup.Full
+                    },
+                    cancellationToken
+                    ).ConfigureAwait(false);
+            },
+            RetryOnConnectivityErrors,
+            cancellationToken
+        ).ConfigureAwait(false);
+
+        if (executionDoc.ResourcesCleanedUp)
+        {
+            return;
+        }
+
+        var retryPipeline = new ResiliencePipelineBuilder<ApiServerExecution>()
+            .AddRetry(new RetryStrategyOptions<ApiServerExecution>()
+            {
+                ShouldHandle = new PredicateBuilder<ApiServerExecution>()
+                    .Handle<Exception>(RetryOnConnectivityErrors)
+                    .HandleResult(executionDoc => !executionDoc.ResourcesCleanedUp),
+                BackoffType = DelayBackoffType.Constant,
+                MaxRetryAttempts = int.MaxValue,
+                Delay = s_initialRetryDelay,
+                MaxDelay = TimeSpan.FromSeconds(1),
+            })
+            .Build();
+
+        await retryPipeline.ExecuteAsync(async cancellationContext =>
+        {
+            return await _kubernetes!.GetExecutionDocumentAsync(cancellationToken).ConfigureAwait(false);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     public void Dispose()
@@ -378,29 +430,15 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
         var delay = s_initialRetryDelay;
         AspireEventSource.Instance.DcpApiCallStart(operationType, resourceType);
 
+        var resiliencePipeline = CreateKubernetesCallResiliencePipeline(operationType, resourceType, isRetryable);
+
         try
         {
-            while (true)
+            return await resiliencePipeline.ExecuteAsync<TResult>(async (cancellationToken) =>
             {
-                ObjectDisposedException.ThrowIf(_disposed, this);
-                try
-                {
-                    await EnsureKubernetesAsync(cancellationToken).ConfigureAwait(false);
-                    return await operation(_kubernetes!).ConfigureAwait(false);
-                }
-                catch (Exception e) when (isRetryable(e))
-                {
-                    if (DateTime.UtcNow.Subtract(currentTimestamp) > MaxRetryDuration)
-                    {
-                        AspireEventSource.Instance.DcpApiCallTimeout(operationType, resourceType);
-                        throw;
-                    }
-
-                    await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
-                    delay *= 2;
-                    AspireEventSource.Instance.DcpApiCallRetry(operationType, resourceType);
-                }
-            }
+                await EnsureKubernetesAsync(cancellationToken).ConfigureAwait(false);
+                return await operation(_kubernetes!).ConfigureAwait(false);
+            }, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -414,7 +452,39 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
         ex is KubeConfigException ||
         (ex is HttpOperationException hoe && hoe.Response.StatusCode == System.Net.HttpStatusCode.Conflict);
 
-    private ResiliencePipeline GetReadKubeconfigResiliencePipeline()
+    private ResiliencePipeline CreateKubernetesCallResiliencePipeline(
+        DcpApiOperationType operationType,
+        string resourceType,
+        Func<Exception, bool> isRetryable)
+    {
+        var resiliencePipeline = new ResiliencePipelineBuilder()
+            .AddTimeout(new TimeoutStrategyOptions
+            {
+                Timeout = MaxRetryDuration,
+                OnTimeout = (_) =>
+                {
+                    AspireEventSource.Instance.DcpApiCallTimeout(operationType, resourceType);
+                    return ValueTask.CompletedTask;
+                }
+            })
+            .AddRetry(new RetryStrategyOptions()
+            {
+                ShouldHandle = new PredicateBuilder().Handle<Exception>(isRetryable),
+                BackoffType = DelayBackoffType.Exponential,
+                MaxRetryAttempts = int.MaxValue,
+                Delay = s_initialRetryDelay,
+                MaxDelay = TimeSpan.FromSeconds(5),
+                OnRetry = (retry) =>
+                {
+                    AspireEventSource.Instance.DcpApiCallRetry(operationType, resourceType);
+                    return ValueTask.CompletedTask;
+                }
+            })
+            .Build();
+        return resiliencePipeline;
+    }
+
+    private ResiliencePipeline CreateReadKubeconfigResiliencePipeline()
     {
         if (_resiliencePipeline == null)
         {
@@ -469,7 +539,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
             var readStopwatch = new Stopwatch();
             readStopwatch.Start();
 
-            var pipeline = GetReadKubeconfigResiliencePipeline();
+            var pipeline = CreateReadKubeconfigResiliencePipeline();
             _kubernetes = await pipeline.ExecuteAsync<DcpKubernetesClient>(async (cancellationToken) =>
             {
                 var fileInfo = new FileInfo(locations.DcpKubeconfigPath);

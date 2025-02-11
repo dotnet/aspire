@@ -231,7 +231,7 @@ public class AddParameterTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task ParametersWithDefaultValueObjectOverloadUsedRegardlessOfConfigurationValue(bool hasConfig)
+    public async Task ParametersWithDefaultValueObjectOverloadUseConfigurationValueWhenPresent(bool hasConfig)
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
@@ -250,12 +250,20 @@ public class AddParameterTests
         using var app = appBuilder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        // Make sure the the generated default value is used, regardless of the config value
-        // We can't test the exact value since it's random, but we can test the length
+        // Make sure the the generated default value is only used when there isn't a config value
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "pass");
-        Assert.Equal(10, parameterResource.Value.Length);
+        if (hasConfig)
+        {
+            Assert.Equal("ValueFromConfiguration", parameterResource.Value);
+        }
+        else
+        {
+            Assert.NotEqual("ValueFromConfiguration", parameterResource.Value);
+            // We can't test the exact value since it's random, but we can test the length
+            Assert.Equal(10, parameterResource.Value.Length);
+        }
 
-        // The manifest should include the fields for the generated default value
+        // The manifest should always include the fields for the generated default value
         var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass")).DefaultTimeout();
         var expectedManifest = $$"""
             {
@@ -324,6 +332,40 @@ public class AddParameterTests
                 }
                 """;
         Assert.Equal(expectedManifest, paramManifest.ToString());
+    }
+
+    [Fact]
+    public async Task AddConnectionStringIsASecretParameterInTheManifest()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        appBuilder.AddConnectionString("mycs");
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
+
+        Assert.Equal("mycs", connectionStringResource.Name);
+        var connectionStringManifest = await ManifestUtils.GetManifest(connectionStringResource).DefaultTimeout();
+
+        var expectedManifest = $$"""
+            {
+              "type": "parameter.v0",
+              "connectionString": "{mycs.value}",
+              "value": "{mycs.inputs.value}",
+              "inputs": {
+                "value": {
+                  "type": "string",
+                  "secret": true
+                }
+              }
+            }
+            """;
+
+        var s = connectionStringManifest.ToString();
+
+        Assert.Equal(expectedManifest, s);
     }
 
     private sealed class TestParameterDefault(string defaultValue) : ParameterDefault

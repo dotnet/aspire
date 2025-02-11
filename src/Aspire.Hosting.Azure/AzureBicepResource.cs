@@ -48,6 +48,16 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     public TaskCompletionSource? ProvisioningTaskCompletionSource { get; set; }
 
     /// <summary>
+    /// The scope of the resource that will be configured in the main Bicep file.
+    /// </summary>
+    /// <remarks>
+    /// The property is used to configure the Bicep scope that is emitted
+    /// in the module definition for a given resource. It is
+    /// only emitted for schema versions azure.bicep.v1.
+    /// </remarks>
+    public AzureBicepResourceScope? Scope { get; set; }
+
+    /// <summary>
     /// For testing purposes only.
     /// </summary>
     internal string? TempDirectory { get; set; }
@@ -134,10 +144,17 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     /// <param name="context">The <see cref="ManifestPublishingContext"/>.</param>
     public virtual void WriteToManifest(ManifestPublishingContext context)
     {
-        context.Writer.WriteString("type", "azure.bicep.v0");
-
         using var template = GetBicepTemplateFile(Path.GetDirectoryName(context.ManifestPath), deleteTemporaryFileOnDispose: false);
         var path = template.Path;
+
+        if (Scope is null)
+        {
+            context.Writer.WriteString("type", "azure.bicep.v0");
+        }
+        else
+        {
+            context.Writer.WriteString("type", "azure.bicep.v1");
+        }
 
         // Write a connection string if it exists.
         context.WriteConnectionString(this);
@@ -172,6 +189,19 @@ public class AzureBicepResource(string name, string? templateFile = null, string
 
                 context.TryAddDependentResources(input.Value);
             }
+            context.Writer.WriteEndObject();
+        }
+
+        if (Scope is not null)
+        {
+            context.Writer.WriteStartObject("scope");
+            var resourceGroup = Scope.ResourceGroup switch
+            {
+                IManifestExpressionProvider output => output.ValueExpression,
+                object obj => obj.ToString(),
+                null => ""
+            };
+            context.Writer.WriteString("resourceGroup", resourceGroup);
             context.Writer.WriteEndObject();
         }
     }

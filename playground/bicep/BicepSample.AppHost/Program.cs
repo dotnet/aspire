@@ -41,8 +41,8 @@ var pg = builder.AddAzurePostgresFlexibleServer("postgres2")
                 .WithPasswordAuthentication(administratorLogin, administratorLoginPassword)
                 .AddDatabase("db2");
 
-var cosmosDb = builder.AddAzureCosmosDB("cosmos")
-                      .WithDatabase("db3");
+var cosmosDb = builder.AddAzureCosmosDB("cosmos");
+cosmosDb.AddCosmosDatabase("db3");
 
 var logAnalytics = builder.AddAzureLogAnalyticsWorkspace("lawkspc");
 var appInsights = builder.AddAzureApplicationInsights("ai", logAnalytics);

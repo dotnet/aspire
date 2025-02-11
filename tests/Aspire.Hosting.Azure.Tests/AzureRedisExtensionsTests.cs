@@ -143,19 +143,15 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        RedisResource? redisResource = null;
         var redis = builder.AddAzureRedis("cache")
             .RunAsContainer(c =>
             {
-                redisResource = c.Resource;
-
                 c.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455));
             });
 
         Assert.True(redis.Resource.IsContainer(), "The resource should now be a container resource.");
 
-        Assert.NotNull(redisResource?.PasswordParameter);
-        Assert.Equal($"localhost:12455,password={redisResource.PasswordParameter.Value}", await redis.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+        Assert.Equal("localhost:12455", await redis.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
     }
 
     [Theory]

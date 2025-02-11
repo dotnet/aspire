@@ -3,10 +3,10 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.CosmosDB;
-using Aspire.Hosting.Utils;
 using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.CosmosDB;
@@ -107,11 +107,11 @@ public static class AzureCosmosExtensions
 
             foreach (var database in builder.Resource.Databases)
             {
-                var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync(database.Name, cancellationToken: ct).ConfigureAwait(false)).Database;
+                var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync(database.DatabaseName, cancellationToken: ct).ConfigureAwait(false)).Database;
 
                 foreach (var container in database.Containers)
                 {
-                    await db.CreateContainerIfNotExistsAsync(container.Name, container.PartitionKeyPath, cancellationToken: ct).ConfigureAwait(false);
+                    await db.CreateContainerIfNotExistsAsync(container.ContainerName, container.PartitionKeyPath, cancellationToken: ct).ConfigureAwait(false);
                 }
             }
         });
@@ -214,31 +214,56 @@ public static class AzureCosmosExtensions
     /// <param name="builder">AzureCosmosDB resource builder.</param>
     /// <param name="databaseName">Name of database.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(WithDatabase)} instead to add a Cosmos DB database.")]
+    [Obsolete($"This method is obsolete because it has the wrong return type and will be removed in a future version. Use {nameof(AddCosmosDatabase)} instead to add a Cosmos DB database.")]
     public static IResourceBuilder<AzureCosmosDBResource> AddDatabase(this IResourceBuilder<AzureCosmosDBResource> builder, string databaseName)
     {
-        return builder.WithDatabase(databaseName);
+        builder.AddCosmosDatabase(databaseName);
+
+        return builder;
     }
 
     /// <summary>
     /// Adds a database to the associated Cosmos DB account resource.
     /// </summary>
     /// <param name="builder">AzureCosmosDB resource builder.</param>
-    /// <param name="name">Name of database.</param>
-    /// <param name="configure">An optional method that can be used for customizing the <see cref="CosmosDBDatabase"/>.</param>
+    /// <param name="name">The name of the database resource.</param>
+    /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureCosmosDBResource> WithDatabase(this IResourceBuilder<AzureCosmosDBResource> builder, string name, Action<CosmosDBDatabase>? configure = null)
+    public static IResourceBuilder<AzureCosmosDBDatabaseResource> AddCosmosDatabase(this IResourceBuilder<AzureCosmosDBResource> builder, [ResourceName] string name, string? databaseName = null)
     {
-        var database = builder.Resource.Databases.FirstOrDefault(x => x.Name == name);
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
 
-        if (database == null)
-        {
-            database = new CosmosDBDatabase(name);
-            builder.Resource.Databases.Add(database);
-        }
+        // Use the resource name as the database name if it's not provided
+        databaseName ??= name;
 
-        configure?.Invoke(database);
-        return builder;
+        var database = new AzureCosmosDBDatabaseResource(name, databaseName, builder.Resource);
+        builder.Resource.Databases.Add(database);
+
+        return builder.ApplicationBuilder.AddResource(database);
+    }
+
+    /// <summary>
+    /// Adds a container to the associated Cosmos DB database resource.
+    /// </summary>
+    /// <param name="builder">CosmosDBDatabase resource builder.</param>
+    /// <param name="name">Name of container resource.</param>
+    /// <param name="partitionKeyPath">Partition key path for the container.</param>
+    /// <param name="containerName">The name of the container. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureCosmosDBContainerResource> AddContainer(this IResourceBuilder<AzureCosmosDBDatabaseResource> builder, [ResourceName] string name, string partitionKeyPath, string? containerName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(partitionKeyPath);
+
+        // Use the resource name as the container name if it's not provided
+        containerName ??= name;
+
+        var container = new AzureCosmosDBContainerResource(name, containerName, partitionKeyPath, builder.Resource);
+        builder.Resource.Containers.Add(container);
+
+        return builder.ApplicationBuilder.AddResource(container);
     }
 
     /// <summary>
@@ -325,10 +350,10 @@ public static class AzureCosmosExtensions
             var cosmosSqlDatabase = new CosmosDBSqlDatabase(Infrastructure.NormalizeBicepIdentifier(database.Name))
             {
                 Parent = cosmosAccount,
-                Name = database.Name,
+                Name = database.DatabaseName,
                 Resource = new CosmosDBSqlDatabaseResourceInfo()
                 {
-                    DatabaseName = database.Name
+                    DatabaseName = database.DatabaseName
                 }
             };
             infrastructure.Add(cosmosSqlDatabase);
@@ -338,10 +363,10 @@ public static class AzureCosmosExtensions
                 var cosmosContainer = new CosmosDBSqlContainer(Infrastructure.NormalizeBicepIdentifier(container.Name))
                 {
                     Parent = cosmosSqlDatabase,
-                    Name = container.Name,
+                    Name = container.ContainerName,
                     Resource = new CosmosDBSqlContainerResourceInfo()
                     {
-                        ContainerName = container.Name,
+                        ContainerName = container.ContainerName,
                         PartitionKey = new CosmosDBContainerPartitionKey { Paths = [container.PartitionKeyPath] }
                     }
                 };

@@ -81,8 +81,7 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
         Assert.Equal("https", profileName);
 
         // Wait for resource to start.
-        var rns = _app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync("mywebapp1").WaitAsync(TimeSpan.FromSeconds(60));
+        await _app.ResourceNotifications.WaitForResourceAsync("mywebapp1").WaitAsync(TimeSpan.FromSeconds(60));
 
         // Explicitly get the HTTPS endpoint - this is only available on the "https" launch profile.
         var httpClient = _app.CreateHttpClientWithResilience("mywebapp1", "https");

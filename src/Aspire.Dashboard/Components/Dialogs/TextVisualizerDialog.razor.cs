@@ -8,6 +8,7 @@ using System.Xml.Linq;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -263,12 +264,13 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 
     public record StringLogLine(int LineNumber, string Content, bool IsFormatted);
 
-    public static async Task OpenDialogAsync(ViewportInformation viewportInformation, IDialogService dialogService, string valueDescription, string value)
+    public static async Task OpenDialogAsync(ViewportInformation viewportInformation, IDialogService dialogService, IStringLocalizer<Resources.Dialogs> dialogsLoc, string valueDescription, string value)
     {
         var width = viewportInformation.IsDesktop ? "75vw" : "100vw";
         var parameters = new DialogParameters
         {
             Title = valueDescription,
+            DismissTitle = dialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
             Width = $"min(1000px, {width})",
             TrapFocus = true,
             Modal = true,

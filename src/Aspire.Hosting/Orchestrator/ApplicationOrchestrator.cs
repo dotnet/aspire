@@ -100,7 +100,7 @@ internal sealed class ApplicationOrchestrator
         {
             case KnownResourceTypes.Project:
             case KnownResourceTypes.Executable:
-                await _notificationService.PublishUpdateAsync(context.Resource, s => s with
+                await PublishUpdateAsync(_notificationService, context.Resource, context.DcpResourceName, s => s with
                 {
                     State = KnownResourceStates.Starting,
                     ResourceType = context.ResourceType,
@@ -111,7 +111,7 @@ internal sealed class ApplicationOrchestrator
                 await SetExecutableChildResourceAsync(context.Resource).ConfigureAwait(false);
                 break;
             case KnownResourceTypes.Container:
-                await _notificationService.PublishUpdateAsync(context.Resource, s => s with
+                await PublishUpdateAsync(_notificationService, context.Resource, context.DcpResourceName, s => s with
                 {
                     State = KnownResourceStates.Starting,
                     Properties = s.Properties.SetResourceProperty(KnownProperties.Container.Image, context.Resource.TryGetContainerImageName(out var imageName) ? imageName : ""),
@@ -131,6 +131,13 @@ internal sealed class ApplicationOrchestrator
 
         var beforeResourceStartedEvent = new BeforeResourceStartedEvent(context.Resource, _serviceProvider);
         await _eventing.PublishAsync(beforeResourceStartedEvent, context.CancellationToken).ConfigureAwait(false);
+
+        static Task PublishUpdateAsync(ResourceNotificationService notificationService, IResource resource, string? resourceId, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
+        {
+            return resourceId != null
+                ? notificationService.PublishUpdateAsync(resource, resourceId, stateFactory)
+                : notificationService.PublishUpdateAsync(resource, stateFactory);
+        }
     }
 
     private async Task OnResourcesPrepared(OnResourcesPreparedContext _)
@@ -194,6 +201,7 @@ internal sealed class ApplicationOrchestrator
         var isWaiting = false;
         await _notificationService.PublishUpdateAsync(
             resourceReference.ModelResource,
+            resourceReference.DcpResourceName,
             s =>
             {
                 if (s.State?.Text == KnownResourceStates.Waiting)

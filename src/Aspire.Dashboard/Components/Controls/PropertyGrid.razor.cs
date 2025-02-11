@@ -86,7 +86,7 @@ public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem
     private static readonly RenderFragment<TItem> s_emptyChildContent = _ => builder => { };
 
     private static readonly GridSort<TItem> s_defaultNameSort = GridSort<TItem>.ByAscending(vm => vm.Name);
-    private static readonly GridSort<TItem> s_defaultValueSort = GridSort<TItem>.ByAscending(vm => vm.Value);
+    private static readonly GridSort<TItem> s_defaultValueSort = GridSort<TItem>.ByAscending(vm => vm.IsValueMasked ? null : vm.Value);
 
     [Parameter, EditorRequired]
     public IQueryable<TItem>? Items { get; set; }

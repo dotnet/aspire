@@ -25,15 +25,21 @@ public static class AzureLogAnalyticsWorkspaceExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var workspace = new OperationalInsightsWorkspace(infrastructure.AspireResource.GetBicepIdentifier())
-            {
-                Sku = new OperationalInsightsWorkspaceSku()
+            var workspace = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+                (identifier, name) =>
                 {
-                    Name = OperationalInsightsWorkspaceSkuName.PerGB2018
+                    var resource = OperationalInsightsWorkspace.FromExisting(identifier);
+                    resource.Name = name;
+                    return resource;
                 },
-                Tags = { { "aspire-resource-name", name } }
-            };
-            infrastructure.Add(workspace);
+                (infrastructure) => new OperationalInsightsWorkspace(infrastructure.AspireResource.GetBicepIdentifier())
+                {
+                    Sku = new OperationalInsightsWorkspaceSku()
+                    {
+                        Name = OperationalInsightsWorkspaceSkuName.PerGB2018
+                    },
+                    Tags = { { "aspire-resource-name", name } }
+                });
 
             infrastructure.Add(new ProvisioningOutput("logAnalyticsWorkspaceId", typeof(string))
             {

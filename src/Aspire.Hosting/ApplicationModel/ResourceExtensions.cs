@@ -189,14 +189,16 @@ public static class ResourceExtensions
     {
         var env = new Dictionary<string, string>();
         var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation));
-        await resource.ProcessEnvironmentVariableValuesAsync(executionContext,
-                        (key, unprocessed, value, ex) =>
-                        {
-                            if (value is string s)
-                            {
-                                env[key] = s;
-                            }
-                        }).ConfigureAwait(false);
+        await resource.ProcessEnvironmentVariableValuesAsync(
+            executionContext,
+            (key, unprocessed, value, ex) =>
+            {
+                if (value is string s)
+                {
+                    env[key] = s;
+                }
+            },
+            NullLogger.Instance).ConfigureAwait(false);
 
         return env;
     }
@@ -218,8 +220,8 @@ public static class ResourceExtensions
     /// <code>
     /// var builder = DistributedApplication.CreateBuilder();
     /// var container = builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
-    ///  .WithArgument("--discovery.type", "single-node")
-    ///  .WithArgument("--xpack.security.enabled", "true");
+    ///  .WithArgs("--discovery.type", "single-node")
+    ///  .WithArgs("--xpack.security.enabled", "true");
     ///
     /// var args = await container.Resource.GetArgumentsAsync();
     ///
@@ -240,15 +242,17 @@ public static class ResourceExtensions
         var args = new List<string>();
 
         var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation));
-        await resource.ProcessArgumentValuesAsync(executionContext,
-                        (unprocessed, value, ex) =>
-                        {
-                            if (value is string s)
-                            {
-                                args.Add(s);
-                            }
+        await resource.ProcessArgumentValuesAsync(
+            executionContext,
+            (unprocessed, value, ex, _) =>
+            {
+                if (value is string s)
+                {
+                    args.Add(s);
+                }
 
-                        }).ConfigureAwait(false);
+            },
+            NullLogger.Instance).ConfigureAwait(false);
 
         return [.. args];
     }
@@ -256,15 +260,14 @@ public static class ResourceExtensions
     internal static async ValueTask ProcessArgumentValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
-        Action<object?, string?, Exception?> processValue,
-        ILogger? logger = null,
+        // (unprocessed, processed, exception, isSensitive)
+        Action<object?, string?, Exception?, bool> processValue,
+        ILogger logger,
         string? containerHostName = null,
         CancellationToken cancellationToken = default)
     {
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
         {
-            logger ??= NullLogger.Instance;
-
             var args = new List<object>();
             var context = new CommandLineArgsCallbackContext(args, cancellationToken)
             {
@@ -281,23 +284,24 @@ public static class ResourceExtensions
             {
                 try
                 {
-                    var value = (executionContext.Operation, a) switch
+                    var resolvedValue = (executionContext.Operation, a) switch
                     {
-                        (_, string s) => s,
+                        (_, string s) => new(s, false),
                         (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key: null, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
-                        (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => provider.ValueExpression,
-                        (_, object o) => o.ToString(),
-                        (_, null) => null,
+                        (DistributedApplicationOperation.Run, DistributedApplicationResourceBuilder<ParameterResource> parameterResourceBuilder) => await GetValue(key: null, parameterResourceBuilder.Resource, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
+                        (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => new(provider.ValueExpression, false),
+                        (_, { } o) => new(o.ToString(), false),
+                        (_, null) => new(null, false),
                     };
 
-                    if (value is not null)
+                    if (resolvedValue?.Value != null)
                     {
-                        processValue(a, value, null);
+                        processValue(a, resolvedValue.Value, null, resolvedValue.IsSensitive);
                     }
                 }
                 catch (Exception ex)
                 {
-                    processValue(a, a.ToString(), ex);
+                    processValue(a, a.ToString(), ex, false);
                 }
             }
         }
@@ -307,14 +311,12 @@ public static class ResourceExtensions
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
         Action<string, object?, string?, Exception?> processValue,
-        ILogger? logger = null,
+        ILogger logger,
         string? containerHostName = null,
         CancellationToken cancellationToken = default)
     {
         if (resource.TryGetEnvironmentVariables(out var callbacks))
         {
-            logger ??= NullLogger.Instance;
-
             var config = new Dictionary<string, object>();
             var context = new EnvironmentCallbackContext(executionContext, config, cancellationToken)
             {
@@ -330,18 +332,18 @@ public static class ResourceExtensions
             {
                 try
                 {
-                    var value = (executionContext.Operation, expr) switch
+                    var resolvedValue = (executionContext.Operation, expr) switch
                     {
-                        (_, string s) => s,
+                        (_, string s) => new(s, false),
                         (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
-                        (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => provider.ValueExpression,
-                        (_, object o) => o.ToString(),
-                        (_, null) => null,
+                        (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => new(provider.ValueExpression, false),
+                        (_, { } o) => new(o.ToString(), false),
+                        (_, null) => new(null, false),
                     };
 
-                    if (value is not null)
+                    if (resolvedValue?.Value is not null)
                     {
-                        processValue(key, expr, value, null);
+                        processValue(key, expr, resolvedValue.Value, null);
                     }
                 }
                 catch (Exception ex)
@@ -355,6 +357,7 @@ public static class ResourceExtensions
     internal static async ValueTask ProcessContainerRuntimeArgValues(
         this IResource resource,
         Action<string?, Exception?> processValue,
+        ILogger logger,
         string? containerHostName = null,
         CancellationToken cancellationToken = default)
     {
@@ -377,8 +380,8 @@ public static class ResourceExtensions
                     var value = arg switch
                     {
                         string s => s,
-                        IValueProvider valueProvider => await GetValue(key: null, valueProvider, NullLogger.Instance, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
-                        object obj => obj.ToString(),
+                        IValueProvider valueProvider => (await GetValue(key: null, valueProvider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false))?.Value,
+                        { } obj => obj.ToString(),
                         null => null
                     };
 
@@ -395,7 +398,7 @@ public static class ResourceExtensions
         }
     }
 
-    private static async Task<string?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, bool isContainer, string? containerHostName, CancellationToken cancellationToken)
+    private static async Task<ResolvedValue?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, bool isContainer, string? containerHostName, CancellationToken cancellationToken)
     {
         containerHostName ??= "host.docker.internal";
 

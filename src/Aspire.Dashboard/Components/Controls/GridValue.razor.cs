@@ -146,6 +146,6 @@ public partial class GridValue
 
     private async Task OpenTextVisualizerAsync()
     {
-        await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, ValueDescription, ValueToVisualize ?? Value ?? string.Empty);
+        await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, ValueDescription, ValueToVisualize ?? Value ?? string.Empty);
     }
 }

@@ -59,15 +59,14 @@ public class AzureSignalREmulatorFunctionalTest(ITestOutputHelper testOutputHelp
         using var app = builder.Build();
 
         var pendingStart = app.StartAsync(cts.Token);
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(signalR.Resource.Name, KnownResourceStates.Running, cts.Token);
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(signalR.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceHealthyAsync(signalR.Resource.Name, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(signalR.Resource.Name, cts.Token);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
         await pendingStart;
 
