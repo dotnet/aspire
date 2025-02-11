@@ -246,10 +246,11 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// await dbContext.Database.EnsureCreatedAsync();
     /// if (!dbContext.Products.Any())
     /// {
-    ///     await dbContext.Products.AddRangeAsync(new[] {
+    ///     await dbContext.Products.AddRangeAsync(
+    ///     [
     ///         new Product { Name = "Product 1", Price = 10.99m },
     ///         new Product { Name = "Product 2", Price = 20.99m }
-    ///     });
+    ///     ]);
     ///     await dbContext.SaveChangesAsync();
     /// }
     /// </code>
