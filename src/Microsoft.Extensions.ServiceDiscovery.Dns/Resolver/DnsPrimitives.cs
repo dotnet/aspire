@@ -13,6 +13,54 @@ internal static class DnsPrimitives
     // Maximum length of a domain name in ASCII (excluding trailing dot)
     internal const int MaxDomainNameLength = 253;
 
+    internal static bool TryReadMessageHeader(ReadOnlySpan<byte> buffer, out DnsMessageHeader header, out int bytesRead)
+    {
+        // RFC 1035 4.1.1. Header section format
+        if (buffer.Length < DnsMessageHeader.HeaderLength)
+        {
+            header = default;
+            bytesRead = 0;
+            return false;
+        }
+
+        header = new DnsMessageHeader
+        {
+            TransactionId = BinaryPrimitives.ReadUInt16BigEndian(buffer),
+            QueryFlags = (QueryFlags)BinaryPrimitives.ReadUInt16BigEndian(buffer.Slice(2)),
+            QueryCount = BinaryPrimitives.ReadUInt16BigEndian(buffer.Slice(4)),
+            AnswerCount = BinaryPrimitives.ReadUInt16BigEndian(buffer.Slice(6)),
+            AuthorityCount = BinaryPrimitives.ReadUInt16BigEndian(buffer.Slice(8)),
+            AdditionalRecordCount = BinaryPrimitives.ReadUInt16BigEndian(buffer.Slice(10))
+        };
+
+        bytesRead = DnsMessageHeader.HeaderLength;
+        return true;
+    }
+
+    internal static bool TryWriteMessageHeader(Span<byte> buffer, DnsMessageHeader header, out int bytesWritten)
+    {
+        // RFC 1035 4.1.1. Header section format
+        if (buffer.Length < DnsMessageHeader.HeaderLength)
+        {
+            bytesWritten = 0;
+            return false;
+        }
+
+        BinaryPrimitives.WriteUInt16BigEndian(buffer, header.TransactionId);
+        BinaryPrimitives.WriteUInt16BigEndian(buffer.Slice(2), (ushort)header.QueryFlags);
+        BinaryPrimitives.WriteUInt16BigEndian(buffer.Slice(4), header.QueryCount);
+        BinaryPrimitives.WriteUInt16BigEndian(buffer.Slice(6), header.AnswerCount);
+        BinaryPrimitives.WriteUInt16BigEndian(buffer.Slice(8), header.AuthorityCount);
+        BinaryPrimitives.WriteUInt16BigEndian(buffer.Slice(10), header.AdditionalRecordCount);
+
+        bytesWritten = DnsMessageHeader.HeaderLength;
+        return true;
+    }
+
+    // https://www.rfc-editor.org/rfc/rfc1035#section-2.3.4
+    // labels          63 octets or less
+    // name            255 octets or less
+
     internal static bool TryWriteQName(Span<byte> destination, string name, out int written)
     {
         //

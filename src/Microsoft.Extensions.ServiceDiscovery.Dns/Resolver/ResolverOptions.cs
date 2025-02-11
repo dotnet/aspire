@@ -10,7 +10,6 @@ internal sealed class ResolverOptions
     public IPEndPoint[] Servers;
     public string DefaultDomain = string.Empty;
     public string[]? SearchDomains;
-    public bool UseHostsFile;
 
     public int Attempts = 2;
     public TimeSpan Timeout = TimeSpan.FromSeconds(3);

@@ -57,8 +57,7 @@ internal sealed class LoopbackDnsServer : IDisposable
         if (!writer.TryWriteHeader(new DnsMessageHeader
         {
             TransactionId = responseBuilder.TransactionId,
-            QueryFlags = responseBuilder.Flags,
-            ResponseCode = responseBuilder.ResponseCode,
+            QueryFlags = responseBuilder.Flags | (QueryFlags)responseBuilder.ResponseCode,
             QueryCount = (ushort)responseBuilder.Questions.Count,
             AnswerCount = (ushort)responseBuilder.Answers.Count,
             AuthorityCount = (ushort)responseBuilder.Authorities.Count,

@@ -8,12 +8,13 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
-internal partial class DnsResolver : IDnsResolver, IDisposable
+internal sealed partial class DnsResolver : IDnsResolver, IDisposable
 {
     private const int IPv4Length = 4;
     private const int IPv6Length = 16;
@@ -273,7 +274,6 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
 
             for (int attempt = 1; attempt <= _options.Attempts; attempt++)
             {
-
                 try
                 {
                     SendQueryResult newResult = await SendQueryToServerWithTimeoutAsync(serverEndPoint, name, queryType, index == _options.Servers.Length - 1, attempt, cancellationToken).ConfigureAwait(false);
@@ -637,13 +637,18 @@ internal partial class DnsResolver : IDnsResolver, IDisposable
 
     private static (ushort id, int length) EncodeQuestion(Memory<byte> buffer, string name, QueryType queryType)
     {
-        DnsMessageHeader header = default;
-        header.InitQueryHeader();
+        DnsMessageHeader header = new DnsMessageHeader
+        {
+            TransactionId = (ushort)RandomNumberGenerator.GetInt32(ushort.MaxValue + 1),
+            QueryFlags = QueryFlags.RecursionDesired,
+            QueryCount = 1
+        };
+
         DnsDataWriter writer = new DnsDataWriter(buffer);
         if (!writer.TryWriteHeader(header) ||
             !writer.TryWriteQuestion(name, queryType, QueryClass.Internet))
         {
-            // should never happen since we validated the name length
+            // should never happen since we validated the name length before
             throw new InvalidOperationException("Buffer too small");
         }
         return (header.TransactionId, writer.Position);

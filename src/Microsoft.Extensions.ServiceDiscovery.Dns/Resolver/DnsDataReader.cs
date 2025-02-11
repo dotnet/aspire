@@ -26,14 +26,13 @@ internal struct DnsDataReader : IDisposable
     {
         Debug.Assert(_position == 0);
 
-        if (_buffer.Length < DnsMessageHeader.HeaderLength)
+        if (!DnsPrimitives.TryReadMessageHeader(_buffer.Span, out header, out int bytesRead))
         {
             header = default;
             return false;
         }
 
-        _position += DnsMessageHeader.HeaderLength;
-        header = MemoryMarshal.AsRef<DnsMessageHeader>(_buffer.Span);
+        _position += bytesRead;
         return true;
     }
 

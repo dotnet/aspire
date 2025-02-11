@@ -2,11 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Buffers.Binary;
-using System.Runtime.InteropServices;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
-internal class DnsDataWriter
+internal sealed class DnsDataWriter
 {
     private readonly Memory<byte> _buffer;
     private int _position;
@@ -21,13 +20,12 @@ internal class DnsDataWriter
 
     internal bool TryWriteHeader(in DnsMessageHeader header)
     {
-        if (_buffer.Length - _position < DnsMessageHeader.HeaderLength)
+        if (!DnsPrimitives.TryWriteMessageHeader(_buffer.Span.Slice(_position), header, out int written))
         {
             return false;
         }
 
-        MemoryMarshal.Write(_buffer.Span, in header);
-        _position += DnsMessageHeader.HeaderLength;
+        _position += written;
         return true;
     }
 
