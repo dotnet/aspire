@@ -109,30 +109,48 @@ public static class AzureServiceBusExtensions
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the queue.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(WithQueue)} instead to add an Azure Service Bus Queue.")]
+    [Obsolete($"This method is obsolete because it has the wrong return type and will be removed in a future version. Use {nameof(AddServiceBusQueue)} instead to add an Azure Service Bus Queue.")]
     public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name)
     {
-        return builder.WithQueue(name);
+        builder.AddServiceBusQueue(name);
+
+        return builder;
     }
 
     /// <summary>
-    /// Adds an Azure Service Bus Queue resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// Adds an Azure Service Bus Queue resource to the application model.
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
-    /// <param name="name">The name of the queue.</param>
-    /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusQueue"/>.</param>
+    /// <param name="name">The name of the queue resource.</param>
+    /// <param name="queueName">The name of the Service Bus Queue. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureServiceBusResource> WithQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<ServiceBusQueue>? configure = null)
+    public static IResourceBuilder<AzureServiceBusQueueResource> AddServiceBusQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string? queueName = null)
     {
-        var queue = builder.Resource.Queues.FirstOrDefault(x => x.Name == name);
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
 
-        if (queue == null)
-        {
-            queue = new ServiceBusQueue(name);
-            builder.Resource.Queues.Add(queue);
-        }
+        // Use the resource name as the queue name if it's not provided
+        queueName ??= name;
 
-        configure?.Invoke(queue);
+        var queue = new AzureServiceBusQueueResource(name, queueName, builder.Resource);
+        builder.Resource.Queues.Add(queue);
+
+        return builder.ApplicationBuilder.AddResource(queue);
+    }
+
+    /// <summary>
+    /// Allows setting the properties of an Azure Service Bus Queue resource.
+    /// </summary>
+    /// <param name="builder">The Azure Service Bus Queue resource builder.</param>
+    /// <param name="configure">A method that can be used for customizing the <see cref="AzureServiceBusQueueResource"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureServiceBusQueueResource> WithProperties(this IResourceBuilder<AzureServiceBusQueueResource> builder, Action<AzureServiceBusQueueResource> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        configure(builder.Resource);
+
         return builder;
     }
 
@@ -141,10 +159,12 @@ public static class AzureServiceBusExtensions
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the topic.</param>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(WithTopic)} instead to add an Azure Service Bus Topic.")]
+    [Obsolete($"This method is obsolete because it has the wrong return type and will be removed in a future version. Use {nameof(AddServiceBusTopic)} instead to add an Azure Service Bus Topic.")]
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name)
     {
-        return builder.WithTopic(name);
+        builder.AddServiceBusTopic(name);
+
+        return builder;
     }
 
     /// <summary>
@@ -153,39 +173,53 @@ public static class AzureServiceBusExtensions
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the topic.</param>
     /// <param name="subscriptions">The name of the subscriptions.</param>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(WithTopic)} instead to add an Azure Service Bus Topic and Subscriptions.")]
+    [Obsolete($"This method is obsolete because it has the wrong return type and will be removed in a future version. Use {nameof(AddServiceBusTopic)} and {nameof(AddServiceBusSubscription)} instead to add an Azure Service Bus Topic and Subscriptions.")]
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string[] subscriptions)
     {
-        return builder.WithTopic(name, topic =>
+        var topic = builder.AddServiceBusTopic(name);
+
+        foreach (var subscription in subscriptions)
         {
-            foreach (var subscription in subscriptions)
-            {
-                if (!topic.Subscriptions.Any(x => x.Name == subscription))
-                {
-                    topic.Subscriptions.Add(new ServiceBusSubscription(subscription));
-                }
-            }
-        });
+            topic.AddServiceBusSubscription(subscription);
+        }
+
+        return builder;
     }
 
     /// <summary>
-    /// Adds an Azure Service Bus Topic resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// Adds an Azure Service Bus Topic resource to the application model.
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the topic.</param>
-    /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusTopic"/>.</param>
+    /// <param name="topicName">The name of the Service Bus Topic. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureServiceBusResource> WithTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<ServiceBusTopic>? configure = null)
+    public static IResourceBuilder<AzureServiceBusTopicResource> AddServiceBusTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string? topicName = null)
     {
-        var topic = builder.Resource.Topics.FirstOrDefault(x => x.Name == name);
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
 
-        if (topic == null)
-        {
-            topic = new ServiceBusTopic(name);
-            builder.Resource.Topics.Add(topic);
-        }
+        // Use the resource name as the topic name if it's not provided
+        topicName ??= name;
 
-        configure?.Invoke(topic);
+        var topic = new AzureServiceBusTopicResource(name, topicName, builder.Resource);
+        builder.Resource.Topics.Add(topic);
+
+        return builder.ApplicationBuilder.AddResource(topic);
+    }
+
+    /// <summary>
+    /// Allows setting the properties of an Azure Service Bus Topic resource.
+    /// </summary>
+    /// <param name="builder">The Azure Service Bus Topic resource builder.</param>
+    /// <param name="configure">A method that can be used for customizing the <see cref="AzureServiceBusTopicResource"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureServiceBusTopicResource> WithProperties(this IResourceBuilder<AzureServiceBusTopicResource> builder, Action<AzureServiceBusTopicResource> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        configure(builder.Resource);
+
         return builder;
     }
 
@@ -193,19 +227,60 @@ public static class AzureServiceBusExtensions
     /// Adds an Azure Service Bus Subscription resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
-    /// <param name="topicName">The name of the topic.</param>
+    /// <param name="topicName">The name of the topic resource.</param>
     /// <param name="subscriptionName">The name of the subscription.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(WithTopic)} instead to add an Azure Service Bus Subscription to a Topic.")]
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddServiceBusSubscription)} instead to add an Azure Service Bus Subscription to a Topic.")]
     public static IResourceBuilder<AzureServiceBusResource> AddSubscription(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName)
     {
-        builder.WithTopic(topicName, topic =>
+        IResourceBuilder<AzureServiceBusTopicResource> topicBuilder;
+        if (builder.Resource.Topics.FirstOrDefault(x => x.Name == topicName) is { } existingResource)
         {
-            if (!topic.Subscriptions.Any(x => x.Name == subscriptionName))
-            {
-                topic.Subscriptions.Add(new ServiceBusSubscription(subscriptionName));
-            }
-        });
+            topicBuilder = builder.ApplicationBuilder.CreateResourceBuilder(existingResource);
+        }
+        else
+        {
+            topicBuilder = builder.AddServiceBusTopic(topicName);
+        }
+
+        topicBuilder.AddServiceBusSubscription(subscriptionName);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds an Azure Service Bus Subscription resource to the application model.
+    /// </summary>
+    /// <param name="builder">The Azure Service Bus Topic resource builder.</param>
+    /// <param name="name">The name of the subscription.</param>
+    /// <param name="subscriptionName">The name of the Service Bus Subscription. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureServiceBusSubscriptionResource> AddServiceBusSubscription(this IResourceBuilder<AzureServiceBusTopicResource> builder, [ResourceName] string name, string? subscriptionName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
+        // Use the resource name as the subscription name if it's not provided
+        subscriptionName ??= name;
+
+        var subscription = new AzureServiceBusSubscriptionResource(name, subscriptionName, builder.Resource);
+        builder.Resource.Subscriptions.Add(subscription);
+
+        return builder.ApplicationBuilder.AddResource(subscription);
+    }
+
+    /// <summary>
+    /// Allows setting the properties of an Azure Service Bus Subscription resource.
+    /// </summary>
+    /// <param name="builder">The Azure Service Bus Subscription resource builder.</param>
+    /// <param name="configure">A method that can be used for customizing the <see cref="AzureServiceBusSubscriptionResource"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureServiceBusSubscriptionResource> WithProperties(this IResourceBuilder<AzureServiceBusSubscriptionResource> builder, Action<AzureServiceBusSubscriptionResource> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        configure(builder.Resource);
 
         return builder;
     }

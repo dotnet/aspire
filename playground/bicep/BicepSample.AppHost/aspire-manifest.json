@@ -162,6 +162,30 @@
         "principalId": ""
       }
     },
+    "queue1": {
+      "type": "value.v0",
+      "connectionString": "{sb.outputs.serviceBusEndpoint}"
+    },
+    "topic1": {
+      "type": "value.v0",
+      "connectionString": "{sb.outputs.serviceBusEndpoint}"
+    },
+    "subscription1": {
+      "type": "value.v0",
+      "connectionString": "{sb.outputs.serviceBusEndpoint}"
+    },
+    "subscription2": {
+      "type": "value.v0",
+      "connectionString": "{sb.outputs.serviceBusEndpoint}"
+    },
+    "topic2": {
+      "type": "value.v0",
+      "connectionString": "{sb.outputs.serviceBusEndpoint}"
+    },
+    "topic2sub": {
+      "type": "value.v0",
+      "connectionString": "{sb.outputs.serviceBusEndpoint}"
+    },
     "signalr": {
       "type": "azure.bicep.v0",
       "connectionString": "Endpoint=https://{signalr.outputs.hostName};AuthType=azure",

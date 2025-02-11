@@ -1825,12 +1825,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         }
         else
         {
-            serviceBus
-                .WithQueue("queue1")
-                .WithQueue("queue2")
-                .WithTopic("t1")
-                .WithTopic("t2")
-                .WithTopic("t1", topic => topic.Subscriptions.Add(new("s3")));
+            serviceBus.AddServiceBusQueue("queue1");
+            serviceBus.AddServiceBusQueue("queue2");
+            serviceBus.AddServiceBusTopic("t1")
+                .AddServiceBusSubscription("s3");
+            serviceBus.AddServiceBusTopic("t2");
         }
 
         serviceBus.Resource.Outputs["serviceBusEndpoint"] = "mynamespaceEndpoint";
