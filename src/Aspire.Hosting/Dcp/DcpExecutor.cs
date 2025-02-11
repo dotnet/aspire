@@ -964,7 +964,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         {
             throw new InvalidOperationException($"Expected an Executable resource, but got {er.DcpResource.Kind} instead");
         }
-        ExecutableSpec spec = exe.Spec;
+        var spec = exe.Spec;
 
         // An executable can be restarted so args must be reset to an empty state.
         // After resetting, first apply any dotnet project related args, e.g. configuration, and then add args from the model resource.
