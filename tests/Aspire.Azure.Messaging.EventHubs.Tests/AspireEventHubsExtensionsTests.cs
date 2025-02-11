@@ -19,9 +19,9 @@ namespace Aspire.Azure.Messaging.EventHubs.Tests;
 public class AspireEventHubsExtensionsTests
 {
     private const string AspireEventHubsSection = "Aspire:Azure:Messaging:EventHubs:";
-    private const string EhConnectionString = "Endpoint=sb://aspireeventhubstests.servicebus.windows.net/;" +
+    internal const string EhConnectionString = "Endpoint=sb://aspireeventhubstests.servicebus.windows.net/;" +
                                               "SharedAccessKeyName=fake;SharedAccessKey=fake;EntityPath=MyHub";
-    public const string FullyQualifiedNamespace = "aspireeventhubstests.servicebus.windows.net";
+    private const string FullyQualifiedNamespace = "aspireeventhubstests.servicebus.windows.net";
     private const string BlobsConnectionString = "https://fake.blob.core.windows.net";
 
     private const int EventHubProducerClientIndex = 0;
@@ -610,7 +610,7 @@ public class AspireEventHubsExtensionsTests
         Assert.Equal("https://fake.blob.core.windows.net/127-0-0-1-MyHub-default?restype=container", mockTransport.Requests[0].Uri.ToString());
     }
 
-    private static MockTransport InjectMockBlobClient(HostApplicationBuilder builder)
+    internal static MockTransport InjectMockBlobClient(HostApplicationBuilder builder)
     {
         var mockTransport = new MockTransport(
             CreateResponse("""{}"""));
@@ -619,7 +619,7 @@ public class AspireEventHubsExtensionsTests
         return mockTransport;
     }
 
-    private static MockResponse CreateResponse(string content)
+    internal static MockResponse CreateResponse(string content)
     {
         var buffer = Encoding.UTF8.GetBytes(content);
         var response = new MockResponse(201)
