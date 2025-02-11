@@ -88,6 +88,14 @@ public class AspireStoreTests
     }
 
     [Fact]
+    public void GetOrCreateFileWithContent_Throws_WhenSourceDoesntExist()
+    {
+        var store = CreateStore();
+
+        Assert.Throws<FileNotFoundException>(() => store.GetFileNameWithContent("testfile.txt", "randomfilename.txt"));
+    }
+
+    [Fact]
     public void GetOrCreateFileWithContent_ShouldNotRecreateFile()
     {
         var store = CreateStore();
