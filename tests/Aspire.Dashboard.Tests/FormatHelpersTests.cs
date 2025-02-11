@@ -78,7 +78,34 @@ public class FormatHelpersTests
     public void FormatDateTime_WithMilliseconds_NewZealandCulture(string expected, MillisecondsDisplay includeMilliseconds, string value)
     {
         var date = GetLocalDateTime(value);
-        Assert.Equal(expected, FormatHelpers.FormatDateTime(CreateTimeProvider(), date, includeMilliseconds, cultureInfo: CultureInfo.GetCultureInfo("en-NZ")));
+        var formattedDate = FormatHelpers.FormatDateTime(CreateTimeProvider(), date, includeMilliseconds, cultureInfo: CultureInfo.GetCultureInfo("en-NZ"));
+
+        try
+        {
+            Assert.Equal(expected, formattedDate);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Expected: {EncodeNonAscii(expected)}, formatted date: {EncodeNonAscii(formattedDate)}", ex);
+        }
+
+        static string EncodeNonAscii(string v)
+        {
+            var result = string.Empty;
+            for (var i = 0; i < v.Length; i++)
+            {
+                if (char.IsAscii(v[i]))
+                {
+                    result += v[i];
+                }
+                else
+                {
+                    result += $"\\u{(int)v[i]:x4}";
+                }
+            }
+
+            return result;
+        }
     }
 
     private static DateTime GetLocalDateTime(string value)
