@@ -39,7 +39,7 @@ namespace Aspire.Hosting.Properties {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Aspire.Hosting.Properties.Resources", typeof(Resources).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Aspire.Hosting.Azure.Functions.Properties.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -125,7 +125,7 @@ namespace Aspire.Hosting.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Newer version of .NET Aspire workload is required to run the application. Run &apos;dotnet workload update&apos; to get it..
+        ///   Looks up a localized string similar to Newer version of the Aspire.Hosting.AppHost package is required to run the application. Ensure you are referencing at least version &apos;{0}&apos;..
         /// </summary>
         internal static string DcpVersionCheckTooLowMessage {
             get {
