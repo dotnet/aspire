@@ -1131,7 +1131,7 @@ public class DcpExecutorTests
         var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, events: dcpEvents);
 
         // Set a custom pipeline without retries or delays to avoid waiting.
-        appExecutor.DeleteResourceRetryPipeline = new ResiliencePipelineBuilder().Build();
+        appExecutor.DeleteResourceRetryPipeline = new ResiliencePipelineBuilder<bool>().Build();
 
         await appExecutor.RunApplicationAsync();
 
