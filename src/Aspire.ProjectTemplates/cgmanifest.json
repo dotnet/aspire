@@ -52,6 +52,15 @@
                 "type": "nuget",
                 "nuget": {
                     "name": "Microsoft.Extensions.Http.Resilience",
+                    "version": "8.2.2"
+                }
+            }
+        },
+        {
+            "component": {
+                "type": "nuget",
+                "nuget": {
+                    "name": "Microsoft.Extensions.Http.Resilience",
                     "version": "9.1.0"
                 }
             }
@@ -62,6 +71,15 @@
                 "nuget": {
                     "name": "Microsoft.NET.Test.Sdk",
                     "version": "17.10.0"
+                }
+            }
+        },
+        {
+            "component": {
+                "type": "nuget",
+                "nuget": {
+                    "name": "MSTest",
+                    "version": "3.4.3"
                 }
             }
         },
@@ -89,6 +107,15 @@
                 "nuget": {
                     "name": "coverlet.collector",
                     "version": "6.0.2"
+                }
+            }
+        },
+        {
+            "component": {
+                "type": "nuget",
+                "nuget": {
+                    "name": "NUnit",
+                    "version": "4.1.0"
                 }
             }
         },
