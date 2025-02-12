@@ -147,6 +147,7 @@ public partial class MetricsTests : TestContext
         });
 
         // Act 1
+        // Initial page load
         var cut = RenderComponent<Metrics>(builder =>
         {
             builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
@@ -166,6 +167,7 @@ public partial class MetricsTests : TestContext
         }
 
         // Act 2
+        // New instruments added
         telemetryRepository.AddMetrics(new AddContext(), new RepeatedField<ResourceMetrics>
         {
             new ResourceMetrics
@@ -193,6 +195,7 @@ public partial class MetricsTests : TestContext
             }
         });
 
+        // Assert 2
         cut.WaitForState(() => cut.Instance.PageViewModel.Instruments?.Count == 3);
 
         var tree2 = cut.FindComponent<FluentTreeView>();
