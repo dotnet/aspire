@@ -31,7 +31,7 @@ public class ExecutableResource(string name, string command, string workingDirec
 
     private static string ThrowIfNullOrEmpty([NotNull] string? argument, string? paramName = null)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(argument, paramName);
+        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
         return argument;
     }
 }
