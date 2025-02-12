@@ -181,12 +181,12 @@ public static class PythonAppResourceBuilderExtensions
         {
             if (string.IsNullOrEmpty(scriptArg))
             {
-                var args = string.Join(", ", scriptArgs);
+                var values = string.Join(", ", scriptArgs);
                 if (scriptArg is null)
                 {
-                    throw new ArgumentNullException(nameof(scriptArgs), $"Array params contains null item: [{args}]");
+                    throw new ArgumentNullException(nameof(scriptArgs), $"Array params contains null item: [{values}]");
                 }
-                throw new ArgumentException($"Array params contains empty item: [{args}]", nameof(scriptArgs));
+                throw new ArgumentException($"Array params contains empty item: [{values}]", nameof(scriptArgs));
             }
         }
     }
