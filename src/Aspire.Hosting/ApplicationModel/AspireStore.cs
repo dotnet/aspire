@@ -36,7 +36,7 @@ internal sealed class AspireStore : IAspireStore
 
         if (!File.Exists(sourceFilename))
         {
-            throw new FileNotFoundException("The source file '{0}' does not exist.", sourceFilename);
+            throw new FileNotFoundException("The source file does not exist.", sourceFilename);
         }
 
         EnsureDirectory();
