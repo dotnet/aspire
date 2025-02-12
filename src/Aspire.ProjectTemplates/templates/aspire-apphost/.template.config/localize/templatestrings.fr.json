@@ -12,7 +12,7 @@
   "symbols/AspireVersionCli/choices/9.0/displayName": "9.0",
   "symbols/AspireVersionCli/choices/9.0/description": "Choisis .NET Aspire 9.0",
   "symbols/AspireVersionCli/choices/8.2/displayName": "8.2",
-  "symbols/AspireVersionCli/choices/8.2/description": "Choisit .NET Correctement 8.2 (valide uniquement quand '--framework net8.0' est spécifié)",
+  "symbols/AspireVersionCli/choices/8.2/description": "Choisit .NET Aspire 8.2 (valide uniquement quand '--framework net8.0' est spécifié)",
   "symbols/AspireVersion/description": "Version de .NET Aspire à utiliser.",
   "symbols/AspireVersion/displayName": "Version .NET Aspire",
   "symbols/AspireVersion/choices/9.1/displayName": "9.1",

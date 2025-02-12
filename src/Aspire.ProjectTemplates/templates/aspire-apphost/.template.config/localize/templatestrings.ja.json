@@ -14,7 +14,7 @@
   "symbols/AspireVersionCli/choices/8.2/displayName": "8.2",
   "symbols/AspireVersionCli/choices/8.2/description": ".NET Aspire 8.2 を選択します ('--framework net8.0' が指定されている場合にのみ有効)",
   "symbols/AspireVersion/description": "使用する .NET Aspire のバージョン。",
-  "symbols/AspireVersion/displayName": "Microsoft .NET バージョン",
+  "symbols/AspireVersion/displayName": ".NET Aspire バージョン",
   "symbols/AspireVersion/choices/9.1/displayName": "9.1",
   "symbols/AspireVersion/choices/9.1/description": ".NET Aspire 9.1 を選択します",
   "symbols/AspireVersion/choices/9.0/displayName": "9.0",
