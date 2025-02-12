@@ -26,9 +26,14 @@ internal enum SendQueryError
     MalformedResponse,
 
     /// <summary>
-    /// Server returned a response indicating no data are available.
+    /// Server returned a response indicating that the name exists, but no data are available.
     /// </summary>
     NoData,
+
+    /// <summary>
+    /// Server returned a response indicating the name does not exist.
+    /// </summary>
+    NameError,
 
     /// <summary>
     /// Network-level error occurred during the query.

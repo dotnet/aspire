@@ -276,7 +276,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
             {
                 try
                 {
-                    SendQueryResult newResult = await SendQueryToServerWithTimeoutAsync(serverEndPoint, name, queryType, index == _options.Servers.Length - 1, attempt, cancellationToken).ConfigureAwait(false);
+                    SendQueryResult newResult = await SendQueryToServerWithTimeoutAsync(serverEndPoint, name, queryType, attempt, cancellationToken).ConfigureAwait(false);
 
                     if (result.HasValue)
                     {
@@ -289,39 +289,73 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
                 {
                     Log.NetworkError(_logger, queryType, name, serverEndPoint, attempt, ex);
                     result = new SendQueryResult { Error = SendQueryError.NetworkError };
-                    continue; // retry or skip to the next server
                 }
                 catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
                 {
                     Log.QueryError(_logger, queryType, name, serverEndPoint, attempt, ex);
-                    continue; // retry or skip to the next server
+                    result = new SendQueryResult { Error = SendQueryError.InternalError };
                 }
-
-                Debug.Assert(result.HasValue);
 
                 switch (result.Value.Error)
                 {
+                    //
+                    // Definitive answers, no point retrying
+                    //
                     case SendQueryError.NoError:
                         return result.Value;
+
+                    case SendQueryError.NameError:
+                        // authoritative answer that the name does not exist, no point in retrying
+                        Log.NameError(_logger, queryType, name, serverEndPoint, attempt);
+                        return result.Value;
+
+                    case SendQueryError.NoData:
+                        // no data available for the name from authoritative server
+                        Log.NoData(_logger, queryType, name, serverEndPoint, attempt);
+                        return result.Value;
+
+                    //
+                    // Transient errors, retry on the same server
+                    //
                     case SendQueryError.Timeout:
-                        // TODO: should we retry on timeout or skip to the next server?
                         Log.Timeout(_logger, queryType, name, serverEndPoint, attempt);
-                        break;
+                        continue;
+
+                    case SendQueryError.NetworkError:
+                        // TODO: retry with exponential backoff?
+                        continue;
+
+                    case SendQueryError.ServerError when result.Value.Response!.Header.ResponseCode == QueryResponseCode.ServerFailure:
+                        // ServerFailure may indicate transient failure with upstream DNS servers, retry on the same server
+                        Log.ErrorResponseCode(_logger, queryType, name, serverEndPoint, result.Value.Response.Header.ResponseCode);
+                        continue;
+
+                    //
+                    // Persistent errors, skip to the next server
+                    //
                     case SendQueryError.ServerError:
+                        // this should cover all response codes except NoError, NameError which are definite and handled above, and
+                        // ServerFailure which is a transient error and handled above.
                         Log.ErrorResponseCode(_logger, queryType, name, serverEndPoint, result.Value.Response.Header.ResponseCode);
                         break;
-                    case SendQueryError.NoData:
-                        Log.NoData(_logger, queryType, name, serverEndPoint, attempt);
-                        break;
+
                     case SendQueryError.MalformedResponse:
                         Log.MalformedResponse(_logger, queryType, name, serverEndPoint, attempt);
                         break;
+
+                    case SendQueryError.InternalError:
+                        // exception logged above.
+                        break;
                 }
+
+                // actual break that causes skipping to the next server
+                break;
             }
         }
 
-        // we should have an error result by now, except when we threw an exception due to internal bug
-        // (handled here), or cancellation (handled by the caller).
+        // we should have a result by now
+        Debug.Assert(result.HasValue);
+
         if (!result.HasValue)
         {
             result = new SendQueryResult { Error = SendQueryError.InternalError };
@@ -330,13 +364,13 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         return result!.Value;
     }
 
-    internal async ValueTask<SendQueryResult> SendQueryToServerWithTimeoutAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, bool isLastServer, int attempt, CancellationToken cancellationToken)
+    internal async ValueTask<SendQueryResult> SendQueryToServerWithTimeoutAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, int attempt, CancellationToken cancellationToken)
     {
         (CancellationTokenSource cts, bool disposeTokenSource, CancellationTokenSource pendingRequestsCts) = PrepareCancellationTokenSource(cancellationToken);
 
         try
         {
-            return await SendQueryToServerAsync(serverEndPoint, name, queryType, isLastServer, attempt, cts.Token).ConfigureAwait(false);
+            return await SendQueryToServerAsync(serverEndPoint, name, queryType, attempt, cts.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (
             !cancellationToken.IsCancellationRequested && // not cancelled by the caller
@@ -362,7 +396,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         }
     }
 
-    private async ValueTask<SendQueryResult> SendQueryToServerAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, bool isLastServer, int attempt, CancellationToken cancellationToken)
+    private async ValueTask<SendQueryResult> SendQueryToServerAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, int attempt, CancellationToken cancellationToken)
     {
         Log.Query(_logger, queryType, name, serverEndPoint, attempt);
 
@@ -398,29 +432,21 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
                 };
             }
 
-            // we are interested in returned RRs only in case of NOERROR response code,
-            // if this is not a successful response and we have attempts remaining,
-            // we skip parsing the response and retry.
-            // TODO: test server failover behavior
-            if (header.ResponseCode != QueryResponseCode.NoError && (!isLastServer || attempt != _options.Attempts))
-            {
-                return new SendQueryResult
-                {
-                    Response = new DnsResponse(Array.Empty<byte>(), header, queryStartedTime, queryStartedTime, null!, null!, null!),
-                    Error = SendQueryError.ServerError
-                };
-            }
-
             int ttl = int.MaxValue;
             List<DnsResourceRecord> answers = ReadRecords(header.AnswerCount, ref ttl, ref responseReader);
             List<DnsResourceRecord> authorities = ReadRecords(header.AuthorityCount, ref ttl, ref responseReader);
             List<DnsResourceRecord> additionals = ReadRecords(header.AdditionalRecordCount, ref ttl, ref responseReader);
 
+            DateTime expirationTime =
+                (answers.Count + authorities.Count + additionals.Count) > 0 ? queryStartedTime.AddSeconds(ttl) : queryStartedTime;
+
+            SendQueryError validationError = ValidateResponse(header.ResponseCode, queryStartedTime, answers, authorities, ref expirationTime);
+
             // we transfer ownership of RawData to the response
-            DnsResponse response = new(responseReader.RawData!, header, queryStartedTime, queryStartedTime.AddSeconds(ttl), answers, authorities, additionals);
+            DnsResponse response = new(responseReader.RawData!, header, queryStartedTime, expirationTime, answers, authorities, additionals);
             responseReader = default; // avoid disposing (and returning RawData to the pool)
 
-            return new SendQueryResult { Response = response, Error = ValidateResponse(response) };
+            return new SendQueryResult { Response = response, Error = validationError };
         }
         finally
         {
@@ -447,7 +473,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         }
     }
 
-    internal static bool GetNegativeCacheExpiration(in DnsResponse response, out DateTime expiration)
+    internal static bool GetNegativeCacheExpiration(DateTime createdAt, List<DnsResourceRecord> authorities, out DateTime expiration)
     {
         //
         // RFC 2308 Section 5 - Caching Negative Answers
@@ -463,10 +489,10 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         //    be used again.
         //
 
-        DnsResourceRecord? soa = response.Authorities.FirstOrDefault(r => r.Type == QueryType.SOA);
+        DnsResourceRecord? soa = authorities.FirstOrDefault(r => r.Type == QueryType.SOA);
         if (soa != null && DnsPrimitives.TryReadSoa(soa.Value.Data.Span, out string? mname, out string? rname, out uint serial, out uint refresh, out uint retry, out uint expire, out uint minimum, out _))
         {
-            expiration = response.CreatedAt.AddSeconds(Math.Min(minimum, soa.Value.Ttl));
+            expiration = createdAt.AddSeconds(Math.Min(minimum, soa.Value.Ttl));
             return true;
         }
 
@@ -474,11 +500,11 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         return false;
     }
 
-    internal static SendQueryError ValidateResponse(in DnsResponse response)
+    internal static SendQueryError ValidateResponse(QueryResponseCode responseCode, DateTime createdAt, List<DnsResourceRecord> answers, List<DnsResourceRecord> authorities, ref DateTime expiration)
     {
-        if (response.Header.ResponseCode == QueryResponseCode.NoError)
+        if (responseCode == QueryResponseCode.NoError)
         {
-            if (response.Answers.Count > 0)
+            if (answers.Count > 0)
             {
                 return SendQueryError.NoError;
             }
@@ -497,14 +523,15 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
             //    another query for the same <QNAME, QTYPE, QCLASS> that resulted in
             //    the cached negative response.
             //
-            if (!response.Authorities.Any(r => r.Type == QueryType.NS) && GetNegativeCacheExpiration(response, out DateTime expiration))
+            if (!authorities.Any(r => r.Type == QueryType.NS) && GetNegativeCacheExpiration(createdAt, authorities, out DateTime newExpiration))
             {
+                expiration = newExpiration;
                 // _cache.TryAdd(name, queryType, expiration, Array.Empty<T>());
             }
             return SendQueryError.NoData;
         }
 
-        if (response.Header.ResponseCode == QueryResponseCode.NameError)
+        if (responseCode == QueryResponseCode.NameError)
         {
             //
             // RFC 2308 Section 5 - Caching Negative Answers
@@ -514,12 +541,13 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
             //    another query for the same <QNAME, QCLASS> that resulted in the
             //    cached negative response.
             //
-            if (GetNegativeCacheExpiration(response, out DateTime expiration))
+            if (GetNegativeCacheExpiration(createdAt, authorities, out DateTime newExpiration))
             {
+                expiration = newExpiration;
                 // _cache.TryAddNonexistent(name, expiration);
             }
 
-            return SendQueryError.ServerError;
+            return SendQueryError.NameError;
         }
 
         return SendQueryError.ServerError;

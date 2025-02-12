@@ -6,7 +6,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 /// <summary>
 /// The response code (RCODE) in a DNS query response.
 /// </summary>
-enum QueryResponseCode : byte
+internal enum QueryResponseCode : byte
 {
     /// <summary>
     /// No error condition
