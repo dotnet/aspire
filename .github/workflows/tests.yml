@@ -247,7 +247,7 @@ jobs:
           path: testresults/**
 
       - name: Upload built nugets
-        if: matrix.name == 'Workload'
+        if: ${{ matrix.name == 'Workload' }}
         uses: actions/upload-artifact@v4
         with:
           name: built-nugets
