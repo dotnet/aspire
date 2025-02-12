@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Aspire.Hosting.Testing.Tests;
 
-public class PublicApiTests
+public class TestingPublicApiTests
 {
     [Fact]
     public void CtorDistributedApplicationFactoryThrowsWhenEntryPointIsNull()
@@ -198,8 +198,6 @@ public class PublicApiTests
             : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(resourceName), exception.ParamName);
     }
-
-    //
 
     [Fact]
     public async Task CreateAsyncWithEntryPointThrowsWhenEntryPointIsNull()
