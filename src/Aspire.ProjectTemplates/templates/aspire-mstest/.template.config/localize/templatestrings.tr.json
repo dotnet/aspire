@@ -12,7 +12,7 @@
   "symbols/AspireVersionCli/choices/9.0/displayName": "9.0",
   "symbols/AspireVersionCli/choices/9.0/description": ".NET Aspire 9.0'ı seçer",
   "symbols/AspireVersionCli/choices/8.2/displayName": "8.2",
-  "symbols/AspireVersionCli/choices/8.2/description": ".NET Parola 8.2'i (yalnızca '--framework net8.0' belirtilirse geçerlidir)",
+  "symbols/AspireVersionCli/choices/8.2/description": ".NET Aspire 8.2'i (yalnızca '--framework net8.0' belirtilirse geçerlidir)",
   "symbols/AspireVersion/description": "Kullanılacak .NET Aspire sürümü.",
   "symbols/AspireVersion/displayName": ".NET Aspire sürümü",
   "symbols/AspireVersion/choices/9.1/displayName": "9.1",
