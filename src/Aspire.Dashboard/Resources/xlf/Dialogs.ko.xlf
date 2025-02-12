@@ -189,7 +189,7 @@
       </trans-unit>
       <trans-unit id="SettingsDialogDashboardLogsAndTelemetry">
         <source>Dashboard logs and telemetry</source>
-        <target state="new">Dashboard logs and telemetry</target>
+        <target state="translated">대시보드 로그 및 원격 분석</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
@@ -224,7 +224,7 @@
       </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">
         <source>Remove all</source>
-        <target state="new">Remove all</target>
+        <target state="translated">모두 제거</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerDialogJsonFormat">
