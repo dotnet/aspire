@@ -144,7 +144,11 @@ jobs:
           # Playground project
           - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
             name: Playground
-          
+
+          # Workload tests project
+          - project: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
+            name: Workload
+
           # Schema generator project
           - project: tests/ConfigurationSchemaGenerator.Tests/ConfigurationSchemaGenerator.Tests.csproj
             name: ConfigurationSchemaGenerator
