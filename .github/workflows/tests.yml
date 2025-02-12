@@ -207,7 +207,7 @@ jobs:
         id: run-tests
         env:
           CI: false
-          TEMPLATE_TESTS_ON_GITHUB_ACTIONS: matrix.name == 'Workload'
+          TEMPLATE_TESTS_ON_GITHUB_ACTIONS: ${{ matrix.name == 'Workload' }}
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
         run: |
