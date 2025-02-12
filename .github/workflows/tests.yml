@@ -187,8 +187,16 @@ jobs:
       - name: Build test project
         env:
           CI: false
+        if: matrix.name != 'Workload'
         run: |
           ./build.sh -restore -ci -build ${{ matrix.extraArgs }} -projects ${{ github.workspace }}/${{ matrix.project }} /bl
+
+      - name: Build product with nugets
+        env:
+          CI: false
+        if: matrix.name == 'Workload'
+        run: |
+          ./build.sh -restore -ci -pack /bl:${{ github.workspace }}/artifacts/log/Build.binlog
 
       - name: Install sdk for testing templates
         env:
