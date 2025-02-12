@@ -689,6 +689,89 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task AddContainerAppsEntrypointAndArgs()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppsInfrastructure();
+
+        builder.AddContainer("api", "myimage")
+               .WithEntrypoint("/bin/sh")
+               .WithArgs("my", "args with space");
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await ManifestUtils.GetManifestWithBicep(resource);
+
+        var expectedBicep =
+        """
+        @description('The location for the resource(s) to be deployed.')
+        param location string = resourceGroup().location
+    
+        param outputs_azure_container_registry_managed_identity_id string
+    
+        param outputs_managed_identity_client_id string
+    
+        param outputs_azure_container_apps_environment_id string
+    
+        resource api 'Microsoft.App/containerApps@2024-03-01' = {
+          name: 'api'
+          location: location
+          properties: {
+            configuration: {
+              activeRevisionsMode: 'Single'
+            }
+            environmentId: outputs_azure_container_apps_environment_id
+            template: {
+              containers: [
+                {
+                  image: 'myimage:latest'
+                  name: 'api'
+                  command: [
+                    '/bin/sh'
+                  ]
+                  args: [
+                    'my'
+                    'args with space'
+                  ]
+                  env: [
+                    {
+                      name: 'AZURE_CLIENT_ID'
+                      value: outputs_managed_identity_client_id
+                    }
+                  ]
+                }
+              ]
+              scale: {
+                minReplicas: 1
+              }
+            }
+          }
+          identity: {
+            type: 'UserAssigned'
+            userAssignedIdentities: {
+              '${outputs_azure_container_registry_managed_identity_id}': { }
+            }
+          }
+        }
+        """;
+
+        output.WriteLine(bicep);
+        Assert.Equal(expectedBicep, bicep);
+    }
+
+    [Fact]
     public async Task ProjectWithManyReferenceTypes()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
