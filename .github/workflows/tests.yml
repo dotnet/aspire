@@ -17,6 +17,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Playground project
+          - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
+            name: Playground
+
+          # Workload tests project
+          - project: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
+            name: Workload
+
           # Hosting projects
           - project: tests/Aspire.Hosting.Analyzers.Tests/Aspire.Hosting.Analyzers.Tests.csproj
             name: Hosting.Analyzers
@@ -141,15 +149,6 @@ jobs:
           - project: tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj
             name: Dashboard
 
-          # Playground project
-          - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
-            name: Playground
-
-          # Workload tests project
-          - project: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
-            name: Workload
-            extraArgs: -pack
-
           # Schema generator project
           - project: tests/ConfigurationSchemaGenerator.Tests/ConfigurationSchemaGenerator.Tests.csproj
             name: ConfigurationSchemaGenerator
@@ -207,7 +206,7 @@ jobs:
       - name: Run tests
         id: run-tests
         env:
-          CI: false
+          CI: matrix.name == 'Workload'
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
         run: |
