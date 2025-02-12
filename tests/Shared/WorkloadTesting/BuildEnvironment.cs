@@ -33,7 +33,7 @@ public class BuildEnvironment
 
     public static bool IsRunningOnHelix => Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is not null;
     public static bool IsRunningOnCIBuildMachine => Environment.GetEnvironmentVariable("BUILD_BUILDID") is not null;
-    public static bool IsRunningOnGithubActions => Environment.GetEnvironmentVariable("TEMPLATE_TESTS_ON_GITHUB_ACTIONS") is not null;
+    public static bool IsRunningOnGithubActions => Environment.GetEnvironmentVariable("TEMPLATE_TESTS_ON_GITHUB_ACTIONS") is "true";
     public static bool IsRunningOnCI => IsRunningOnHelix || IsRunningOnCIBuildMachine || IsRunningOnGithubActions;
 
     private static readonly Lazy<BuildEnvironment> s_instance_80 = new(() =>
@@ -72,6 +72,7 @@ public class BuildEnvironment
         UsesCustomDotNet = !useSystemDotNet;
         RepoRoot = TestUtils.FindRepoRoot();
 
+        Console.WriteLine($"TEMPLATE_TESTS_ON_GITHUB_ACTIONS: {Environment.GetEnvironmentVariable("TEMPLATE_TESTS_ON_GITHUB_ACTIONS")}");
         string sdkForWorkloadPath;
         if (RepoRoot is not null)
         {
