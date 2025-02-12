@@ -190,12 +190,12 @@ jobs:
         run: |
           ./build.sh -restore -ci -build ${{ matrix.extraArgs }} -projects ${{ github.workspace }}/${{ matrix.project }} /bl
 
-      - name: Build test project
+      - name: Install sdk for testing templates
         env:
           CI: false
-        if: ${{ matrix.name }} == 'Workload'
+        if: matrix.name == 'Workload'
         run: |
-          ./dotnet.sh build ${{ github.workspace }}/tests/workloads.proj /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
+          ./dotnet.sh build ${{ github.workspace }}/tests/workloads.proj /p:SkipPackageCheckForWorkloadTesting=true /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
 
       - name: Run tests
         id: run-tests
