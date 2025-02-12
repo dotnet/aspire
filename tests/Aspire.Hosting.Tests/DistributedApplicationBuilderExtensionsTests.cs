@@ -12,7 +12,7 @@ public class DistributedApplicationBuilderExtensionsTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var missingException = Assert.Throws<InvalidOperationException>(() => appBuilder.CreateResourceBuilder<RedisResource>("non-existent-resource"));
-        Assert.Contains("not found", missingException.Message);
+        Assert.Equals("not found", missingException.Message);
     }
 
     [Fact]
