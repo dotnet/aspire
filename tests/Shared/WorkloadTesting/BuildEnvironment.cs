@@ -33,7 +33,7 @@ public class BuildEnvironment
 
     public static bool IsRunningOnHelix => Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is not null;
     public static bool IsRunningOnCIBuildMachine => Environment.GetEnvironmentVariable("BUILD_BUILDID") is not null;
-    public static bool IsRunningOnGithubActions => Environment.GetEnvironmentVariable("GITHUB_ACTIONS") is "true";
+    public static bool IsRunningOnGithubActions => Environment.GetEnvironmentVariable("TEMPLATE_TESTS_ON_GITHUB_ACTIONS") is "true";
     public static bool IsRunningOnCI => IsRunningOnHelix || IsRunningOnCIBuildMachine || IsRunningOnGithubActions;
 
     private static readonly Lazy<BuildEnvironment> s_instance_80 = new(() =>
