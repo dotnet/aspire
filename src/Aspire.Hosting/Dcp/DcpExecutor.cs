@@ -1511,7 +1511,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             // before resorting to more extreme measures.
             if (!resourceNotFound)
             {
-                await DeleteResourceRetryPipeline.ExecuteAsync<bool, string>(async (state, attemptCancellationToken) =>
+                var result = await DeleteResourceRetryPipeline.ExecuteAsync<bool, string>(async (state, attemptCancellationToken) =>
                 {
                     try
                     {
@@ -1524,6 +1524,11 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                         return true;
                     }
                 }, resourceName, cancellationToken).ConfigureAwait(false);
+
+                if (!result)
+                {
+                    throw new DistributedApplicationException($"Failed to delete '{resourceName}' successfully before restart.");
+                }
             }
         }
     }
