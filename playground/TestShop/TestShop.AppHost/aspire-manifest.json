@@ -33,9 +33,11 @@
     },
     "basketcache": {
       "type": "container.v0",
-      "connectionString": "{basketcache.bindings.tcp.host}:{basketcache.bindings.tcp.port}",
+      "connectionString": "{basketcache.bindings.tcp.host}:{basketcache.bindings.tcp.port},password={basketcache-password.value}",
       "image": "docker.io/library/redis:7.4",
       "args": [
+        "--requirepass",
+        "{basketcache-password.value}",
         "--save",
         "60",
         "1"
@@ -228,6 +230,21 @@
     "postgres-password": {
       "type": "parameter.v0",
       "value": "{postgres-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
+        }
+      }
+    },
+    "basketcache-password": {
+      "type": "parameter.v0",
+      "value": "{basketcache-password.inputs.value}",
       "inputs": {
         "value": {
           "type": "string",
