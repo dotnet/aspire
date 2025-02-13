@@ -161,13 +161,13 @@ public partial class WorkloadTestsBase
         {
             await Task.Delay(500);
 
-            // _testOutput.WriteLine($"Checking for rows again");
+            testOutput.WriteLine($"Checking for rows again. Already found: {string.Join(", ", foundNames)}");
             var rowsLocator = dashboardPage.Locator("//tr[@class='fluent-data-grid-row hover resource-row']");
             var allRows = await rowsLocator.AllAsync();
-            // _testOutput.WriteLine($"found rows#: {allRows.Count}");
+            testOutput.WriteLine($"found rows#: {allRows.Count}");
             if (allRows.Count == 0)
             {
-                // Console.WriteLine ($"** no rows found ** elapsed: {sw.Elapsed.TotalSeconds} secs");
+                Console.WriteLine ($"** no rows found **");
                 continue;
             }
 
@@ -189,6 +189,7 @@ public partial class WorkloadTestsBase
                     continue;
                 }
 
+                testOutput.WriteLine($"-- checking for {resourceName} --");
                 AssertEqual(expectedRow.Name, resourceName, $"Name for '{resourceName}'");
 
                 var stateCell = cellLocs[1];
@@ -206,20 +207,33 @@ public partial class WorkloadTestsBase
                 var matchingEndpoints = 0;
                 var expectedEndpoints = expectedRow.Endpoints;
 
-                var endpointsFound =
-                    (await rowLoc.Locator("//div[@class='fluent-overflow-item']").AllAsync())
+                var overflowItems = await rowLoc.Locator("//div[@class='fluent-overflow-item']").AllAsync();
+                testOutput.WriteLine($"overflowItems#: {string.Join("---", overflowItems.Select(o => o.InnerTextAsync().Result))}");
+
+                IEnumerable<ILocator> endpointsTextLocs;
+                if (overflowItems.Count == 0)
+                {
+                    var tdItems = (await rowLoc.Locator("td").AllAsync()).ToArray();
+                    testOutput.WriteLine($"tdItems: {string.Join("---", tdItems.Select(o => o.InnerTextAsync().Result))}");
+                    endpointsTextLocs = [tdItems[5]];
+                }
+                else
+                {
+                    endpointsTextLocs = overflowItems;
+                }
+                var endpointsFound = endpointsTextLocs
                         .Select(async e => await e.InnerTextAsync())
                         .Select(t => t.Result.Trim(','))
-                        .ToList();
+                        .ToArray();
 
-                if (expectedEndpoints.Length != endpointsFound.Count)
+                if (expectedEndpoints.Length != endpointsFound.Length)
                 {
-                    // _testOutput.WriteLine($"For resource '{resourceName}, found ")
-                    // _testOutput.WriteLine($"-- expected: {expectedEndpoints.Length} found: {endpointsFound.Length}, expected: {string.Join(',', expectedEndpoints)} found: {string.Join(',', endpointsFound)} for {resourceName}");
+                    testOutput.WriteLine($"Endpoints: For resource '{resourceName}', found:");
+                    testOutput.WriteLine($"-- expected: {expectedEndpoints.Length} found: {endpointsFound.Length}, expected: {string.Join(',', expectedEndpoints)} found: {string.Join(',', endpointsFound)} for {resourceName}");
                     continue;
                 }
 
-                AssertEqual(expectedEndpoints.Length, endpointsFound.Count, $"#endpoints for {resourceName}");
+                AssertEqual(expectedEndpoints.Length, endpointsFound.Length, $"#endpoints for {resourceName}");
 
                 // endpointsFound: ["foo", "https://localhost:7589/"]
                 foreach (var endpointFound in endpointsFound)
@@ -228,6 +242,7 @@ public partial class WorkloadTestsBase
                     string[] matchedEndpoints = expectedEndpoints.Where(e => Regex.IsMatch(endpointFound, e)).ToArray();
                     if (matchedEndpoints.Length == 0)
                     {
+                        // await Task.Delay(1_000_000);
                         Assert.Fail($"Unexpected endpoint found: {endpointFound} for resource named {resourceName}. Expected endpoints: {string.Join(',', expectedEndpoints)}");
                     }
                     matchingEndpoints++;
@@ -243,6 +258,7 @@ public partial class WorkloadTestsBase
 
                 foundRows.Add(expectedRow with { Endpoints = endpointsFound.ToArray() });
                 foundNames.Add(resourceName);
+                testOutput.WriteLine($">>>>>>>>>>>>>>>>>>>>>>>> Found resource: {resourceName}");
             }
         }
 
