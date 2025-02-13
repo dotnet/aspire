@@ -167,6 +167,36 @@ public class RetryTests : LoopbackDnsTestBase
         }
     }
 
+    [Fact]
+    public async Task ExhaustedRetries_FailoverToNextServer()
+    {
+        IPAddress address = IPAddress.Parse("172.213.245.111");
+
+        int primaryAttempt = 0;
+        int secondaryAttempt = 0;
+
+        AddressResult[] results = await RunWithFallbackServerHelper("www.example.com",
+            builder =>
+            {
+                primaryAttempt++;
+                builder.ResponseCode = QueryResponseCode.ServerFailure;
+                return Task.CompletedTask;
+            },
+            builder =>
+            {
+                secondaryAttempt++;
+                builder.Answers.AddAddress("www.example.com", 3600, address);
+                return Task.CompletedTask;
+            });
+
+        Assert.Equal(Options.Attempts, primaryAttempt);
+        Assert.Equal(1, secondaryAttempt);
+
+        AddressResult res = Assert.Single(results);
+        Assert.Equal(address, res.Address);
+        Assert.Equal(TimeProvider.GetUtcNow().DateTime.AddSeconds(3600), res.ExpiresAt);
+    }
+
     public enum TransientErrorType
     {
         Timeout,
