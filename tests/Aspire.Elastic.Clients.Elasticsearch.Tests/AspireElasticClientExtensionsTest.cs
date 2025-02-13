@@ -142,6 +142,8 @@ public class AspireElasticClientExtensionsTest : IClassFixture<ElasticsearchCont
     [RequiresDocker]
     public void ElasticsearchInstrumentationEndToEnd()
     {
+        // RemoteExecutor is used because OTEL uses a static instance to capture activities
+
         RemoteExecutor.Invoke(async (connectionString) =>
         {
             var builder = CreateBuilder(connectionString);
@@ -161,7 +163,8 @@ public class AspireElasticClientExtensionsTest : IClassFixture<ElasticsearchCont
             Assert.Single(activityList);
 
             var activity = activityList[0];
-            Assert.Equal("ping", activity.OperationName);
+            Assert.Equal("ping", activity.DisplayName);
+            Assert.Equal("HEAD", activity.OperationName);
             Assert.Contains(activity.Tags, kvp => kvp.Key == "db.system" && kvp.Value == "elasticsearch");
         }, DefaultConnectionString, new RemoteInvokeOptions { TimeOut = 120_000 }).Dispose();
     }

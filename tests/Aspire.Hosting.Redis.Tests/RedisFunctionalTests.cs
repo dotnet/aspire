@@ -1,11 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Http.Json;
 using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json.Nodes;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
+using Aspire.Hosting.Tests.Dcp;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
@@ -15,9 +17,6 @@ using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 using Xunit;
 using Xunit.Abstractions;
-using Aspire.Hosting.Tests.Dcp;
-using System.Text.Json.Nodes;
-using Aspire.Hosting;
 
 namespace Aspire.Hosting.Redis.Tests;
 
@@ -47,17 +46,15 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var pendingStart = app.StartAsync(cts.Token);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
         await pendingStart;
 
@@ -222,8 +219,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         //       make sure that we have good test coverage for WithRedisInsight behavior, but we need a better
         //       long term solution in 9.x for folks that will want to do things like execute commands against
         //       resources to stop specific containers.
-        var rns = app2.Services.GetRequiredService<ResourceNotificationService>();
-        var latestEvent = await rns.WaitForResourceHealthyAsync(redisInsightBuilder.Resource.Name, cts.Token);
+        var latestEvent = await app2.ResourceNotifications.WaitForResourceHealthyAsync(redisInsightBuilder.Resource.Name, cts.Token);
         var executorProxy = app2.Services.GetRequiredService<ApplicationOrchestratorProxy>();
         await executorProxy.StopResourceAsync(latestEvent.ResourceId, cts.Token);
 
@@ -713,42 +709,5 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         public string? Name { get; set; }
         public int? Db { get; set; }
         public string? ConnectionType { get; set; }
-    }
-
-    [Fact]
-    [RequiresDocker]
-    public async Task WithRedisCommanderShouldWorkWithPassword()
-    {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-
-        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-
-        var passwordParameter = builder.AddParameter("pass", "p@ssw0rd1");
-
-        var redis = builder.AddRedis("redis", password: passwordParameter)
-           .WithRedisCommander();
-
-        builder.Services.AddHttpClient();
-        using var app = builder.Build();
-
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
-        await app.StartAsync();
-
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var redisCommander = Assert.Single(appModel.Resources.OfType<RedisCommanderResource>());
-
-        await rns.WaitForResourceHealthyAsync(redis.Resource.Name, cts.Token);
-        await rns.WaitForResourceHealthyAsync(redisCommander.Name, cts.Token);
-
-        var endpoint = redisCommander.GetEndpoint("http");
-        var redisCommanderUrl = endpoint.Url;
-        Assert.NotNull(redisCommanderUrl);
-
-        var clientFactory = app.Services.GetRequiredService<IHttpClientFactory>();
-        var client = clientFactory.CreateClient();
-
-        var httpResponse = await client.GetAsync(redisCommanderUrl!);
-        httpResponse.EnsureSuccessStatusCode();
     }
 }

@@ -334,6 +334,40 @@ public class AddParameterTests
         Assert.Equal(expectedManifest, paramManifest.ToString());
     }
 
+    [Fact]
+    public async Task AddConnectionStringIsASecretParameterInTheManifest()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        appBuilder.AddConnectionString("mycs");
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
+
+        Assert.Equal("mycs", connectionStringResource.Name);
+        var connectionStringManifest = await ManifestUtils.GetManifest(connectionStringResource).DefaultTimeout();
+
+        var expectedManifest = $$"""
+            {
+              "type": "parameter.v0",
+              "connectionString": "{mycs.value}",
+              "value": "{mycs.inputs.value}",
+              "inputs": {
+                "value": {
+                  "type": "string",
+                  "secret": true
+                }
+              }
+            }
+            """;
+
+        var s = connectionStringManifest.ToString();
+
+        Assert.Equal(expectedManifest, s);
+    }
+
     private sealed class TestParameterDefault(string defaultValue) : ParameterDefault
     {
         public override string GetDefaultValue() => defaultValue;

@@ -88,6 +88,14 @@ public class AspireStoreTests
     }
 
     [Fact]
+    public void GetOrCreateFileWithContent_Throws_WhenSourceDoesntExist()
+    {
+        var store = CreateStore();
+
+        Assert.Throws<FileNotFoundException>(() => store.GetFileNameWithContent("testfile.txt", "randomfilename.txt"));
+    }
+
+    [Fact]
     public void GetOrCreateFileWithContent_ShouldNotRecreateFile()
     {
         var store = CreateStore();
@@ -103,6 +111,17 @@ public class AspireStoreTests
         var content2 = File.ReadAllText(filePath2);
 
         Assert.Equal("updated", content2);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("./folder")]
+    [InlineData("folder")]
+    [InlineData("obj/")]
+    public void AspireStoreConstructor_ShouldThrow_IfNotAbsolutePath(string? basePath)
+    {
+        Assert.ThrowsAny<Exception>(() => new AspireStore(basePath!));
     }
 
     private static IAspireStore CreateStore()

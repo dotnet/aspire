@@ -4,7 +4,10 @@
 using Aspire.Azure.Common;
 using Aspire.Azure.Messaging.EventHubs;
 using Azure.Core;
+using Azure.Identity;
 using Azure.Messaging.EventHubs;
+using Azure.Messaging.EventHubs.Producer;
+using HealthChecks.Azure.Messaging.EventHubs;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Microsoft.Extensions.Hosting;
@@ -19,10 +22,23 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
     protected override string[] ActivitySourceNames => ["Azure.Messaging.EventHubs.*"];
 
     protected override IHealthCheck CreateHealthCheck(TClient client, TSettings settings)
-        => throw new NotImplementedException();
+    {
+        // HealthChecks.Azure.Messaging.EventHubs currently only supports EventHubProducerClient.
+        // https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks/issues/2258 tracks supporting other client types.
+
+        var producerClientOptions = new EventHubProducerClientOptions
+        {
+            Identifier = $"AspireEventHubHealthCheck-{settings.EventHubName}",
+        };
+        var producerClient = !string.IsNullOrEmpty(settings.ConnectionString) ?
+            new EventHubProducerClient(settings.ConnectionString, producerClientOptions) :
+            new EventHubProducerClient(settings.FullyQualifiedNamespace, settings.EventHubName, settings.Credential ?? new DefaultAzureCredential(), producerClientOptions);
+
+        return new AzureEventHubHealthCheck(producerClient);
+    }
 
     protected override bool GetHealthCheckEnabled(TSettings settings)
-        => false;
+        => !settings.DisableHealthChecks;
 
     protected override TokenCredential? GetTokenCredential(TSettings settings)
         => settings.Credential;
@@ -104,6 +120,8 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
                         $"A {typeof(TClient).Name} could not be configured. Ensure a valid EventHubName was provided in " +
                         $"the '{configurationSectionName}' configuration section, or include an EntityPath in the ConnectionString.");
                 }
+                // The connection string has an EventHubName, but we'll set this anyway so the health check can use it
+                settings.EventHubName = props.EventHubName;
             }
         }
         // If we have a namespace and no connection string, ensure there's an EventHubName

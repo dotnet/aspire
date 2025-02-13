@@ -15,8 +15,8 @@ public class ExistingAzureResourceTests
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .RunAsExisting(existingResourceName)
-            .WithQueue("queue");
+            .RunAsExisting(existingResourceName);
+        serviceBus.AddServiceBusQueue("queue");
 
         var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
@@ -75,8 +75,8 @@ public class ExistingAzureResourceTests
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .RunAsExisting(existingResourceName)
-            .WithQueue("queue");
+            .RunAsExisting(existingResourceName);
+        serviceBus.AddServiceBusQueue("queue");
 
         var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
@@ -144,8 +144,8 @@ public class ExistingAzureResourceTests
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .PublishAsExisting(existingResourceName)
-            .WithQueue("queue");
+            .PublishAsExisting(existingResourceName);
+        serviceBus.AddServiceBusQueue("queue");
 
         var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
@@ -205,8 +205,8 @@ public class ExistingAzureResourceTests
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .PublishAsExisting(existingResourceName, existingResourceGroupName)
-            .WithQueue("queue");
+            .PublishAsExisting(existingResourceName, existingResourceGroupName);
+        serviceBus.AddServiceBusQueue("queue");
 
         var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
@@ -269,8 +269,8 @@ public class ExistingAzureResourceTests
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .PublishAsExisting("existingResourceName", "existingResourceGroupName")
-            .WithQueue("queue");
+            .PublishAsExisting("existingResourceName", "existingResourceGroupName");
+        serviceBus.AddServiceBusQueue("queue");
 
         var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
@@ -659,9 +659,6 @@ public class ExistingAzureResourceTests
 
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
               name: existingResourceName
-              tags: {
-                'aspire-resource-name': 'keyVault'
-              }
             }
 
             resource keyVault_KeyVaultAdministrator 'Microsoft.Authorization/roleAssignments@2022-04-01' = {

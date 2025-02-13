@@ -170,7 +170,6 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         }
 
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
-        _treeMetricSelector?.OnResourceChanged();
     }
 
     private bool ShouldClearSelectedMetrics(List<OtlpInstrumentSummary> instruments)

@@ -18,6 +18,11 @@ internal sealed class AspireStore : IAspireStore
     {
         ArgumentNullException.ThrowIfNull(basePath);
 
+        if (!Path.IsPathRooted(basePath))
+        {
+            throw new ArgumentException($"An absolute path is required: '${basePath}'", nameof(basePath));
+        }
+
         _basePath = basePath;
         EnsureDirectory();
     }
@@ -31,7 +36,7 @@ internal sealed class AspireStore : IAspireStore
 
         if (!File.Exists(sourceFilename))
         {
-            throw new FileNotFoundException("The source file '{0}' does not exist.", sourceFilename);
+            throw new FileNotFoundException("The source file does not exist.", sourceFilename);
         }
 
         EnsureDirectory();

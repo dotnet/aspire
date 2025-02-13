@@ -20,6 +20,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AspNetCore.HealthChecks.Azure.Messaging.EventHubs" />
+    <PackageReference Include="Azure.Identity" />
     <PackageReference Include="Azure.Messaging.EventHubs.Processor" />
     <PackageReference Include="Microsoft.Extensions.Azure" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />

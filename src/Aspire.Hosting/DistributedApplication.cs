@@ -49,6 +49,7 @@ namespace Aspire.Hosting;
 public class DistributedApplication : IHost, IAsyncDisposable
 {
     private readonly IHost _host;
+    private ResourceNotificationService? _resourceNotifications;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplication"/> class.
@@ -203,6 +204,58 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </para>
     /// </remarks>
     public IServiceProvider Services => _host.Services;
+
+    /// <summary>
+    /// Gets the service for monitoring and responding to resource state changes in the distributed application.
+    /// </summary>
+    /// <remarks>
+    /// Two common use cases for the <see cref="ResourceNotificationService"/> are:
+    /// <list type="bullet">
+    /// <item>Database seeding.</item>
+    /// <item>Integration test readiness checks.</item>
+    /// </list>
+    /// </remarks>
+    /// <example>
+    /// Wait for resource readiness:
+    /// <code>
+    /// await app.ResourceNotifications.WaitForResourceHealthyAsync("postgres");
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Monitor state changes:
+    /// <code>
+    /// await foreach (var update in app.ResourceNotifications.WatchAsync(cancellationToken))
+    /// {
+    ///     Console.WriteLine($"Resource {update.Resource.Name} state: {update.Snapshot.State?.Text}");
+    /// }
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Wait for a specific state:
+    /// <code>
+    /// await app.ResourceNotifications.WaitForResourceAsync("worker", KnownResourceStates.Running);
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Seed a database once it becomes available:
+    /// <code>
+    /// // Wait for the database to be healthy before seeding
+    /// await app.ResourceNotifications.WaitForResourceHealthyAsync("postgres");
+    /// using var scope = app.Services.CreateScope();
+    /// var dbContext = scope.ServiceProvider.GetRequiredService&lt;ApplicationDbContext&gt;();
+    /// await dbContext.Database.EnsureCreatedAsync();
+    /// if (!dbContext.Products.Any())
+    /// {
+    ///     await dbContext.Products.AddRangeAsync(
+    ///     [
+    ///         new Product { Name = "Product 1", Price = 10.99m },
+    ///         new Product { Name = "Product 2", Price = 20.99m }
+    ///     ]);
+    ///     await dbContext.SaveChangesAsync();
+    /// }
+    /// </code>
+    /// </example>
+    public ResourceNotificationService ResourceNotifications => _resourceNotifications ??= _host.Services.GetRequiredService<ResourceNotificationService>();
 
     /// <summary>
     /// Disposes the distributed application by disposing the <see cref="IHost"/>.

@@ -4,7 +4,7 @@
 using System.Text.Json;
 using Azure.Provisioning;
 
-namespace Aspire.Hosting.Azure.ServiceBus;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents a Service Bus Rule.
@@ -12,12 +12,12 @@ namespace Aspire.Hosting.Azure.ServiceBus;
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-public class ServiceBusRule
+public class AzureServiceBusRule
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="ServiceBusRule"/> class.
+    /// Initializes a new instance of the <see cref="AzureServiceBusRule"/> class.
     /// </summary>
-    public ServiceBusRule(string name)
+    public AzureServiceBusRule(string name)
     {
         Name = name;
     }
@@ -30,12 +30,12 @@ public class ServiceBusRule
     /// <summary>
     /// Properties of correlation filter.
     /// </summary>
-    public ServiceBusCorrelationFilter CorrelationFilter { get; set; } = new();
+    public AzureServiceBusCorrelationFilter CorrelationFilter { get; set; } = new();
 
     /// <summary>
     /// Filter type that is evaluated against a BrokeredMessage.
     /// </summary>
-    public ServiceBusFilterType FilterType { get; set; } = ServiceBusFilterType.CorrelationFilter;
+    public AzureServiceBusFilterType FilterType { get; set; } = AzureServiceBusFilterType.CorrelationFilter;
 
     /// <summary>
     /// Converts the current instance to a provisioning entity.
@@ -98,8 +98,8 @@ public class ServiceBusRule
 
         rule.FilterType = FilterType switch
         {
-            ServiceBusFilterType.SqlFilter => global::Azure.Provisioning.ServiceBus.ServiceBusFilterType.SqlFilter,
-            ServiceBusFilterType.CorrelationFilter => global::Azure.Provisioning.ServiceBus.ServiceBusFilterType.CorrelationFilter,
+            AzureServiceBusFilterType.SqlFilter => global::Azure.Provisioning.ServiceBus.ServiceBusFilterType.SqlFilter,
+            AzureServiceBusFilterType.CorrelationFilter => global::Azure.Provisioning.ServiceBus.ServiceBusFilterType.CorrelationFilter,
             _ => throw new NotImplementedException()
         };
 
@@ -116,7 +116,7 @@ public class ServiceBusRule
 
         if (rule.Name != null)
         {
-            writer.WriteString(nameof(ServiceBusQueue.Name), rule.Name);
+            writer.WriteString(nameof(AzureServiceBusQueueResource.Name), rule.Name);
         }
 
         writer.WriteStartObject("Properties");
@@ -124,8 +124,8 @@ public class ServiceBusRule
         writer.WriteString(nameof(FilterType), rule.FilterType switch
         {
             // The Emulator uses "Sql/Correlation" instead of "SqlFilter/CorrelationFilter" in Azure.Provisioning (and Bicep template).
-            ServiceBusFilterType.SqlFilter => "Sql",
-            ServiceBusFilterType.CorrelationFilter => "Correlation",
+            AzureServiceBusFilterType.SqlFilter => "Sql",
+            AzureServiceBusFilterType.CorrelationFilter => "Correlation",
             _ => throw new NotImplementedException()
         });
 
@@ -139,11 +139,11 @@ public class ServiceBusRule
         }
         if (rule.CorrelationFilter.CorrelationId != null)
         {
-            writer.WriteString(nameof(ServiceBusCorrelationFilter.CorrelationId), rule.CorrelationFilter.CorrelationId);
+            writer.WriteString(nameof(AzureServiceBusCorrelationFilter.CorrelationId), rule.CorrelationFilter.CorrelationId);
         }
         if (rule.CorrelationFilter.MessageId != null)
         {
-            writer.WriteString(nameof(ServiceBusCorrelationFilter.MessageId), rule.CorrelationFilter.MessageId);
+            writer.WriteString(nameof(AzureServiceBusCorrelationFilter.MessageId), rule.CorrelationFilter.MessageId);
         }
         if (rule.CorrelationFilter.SendTo != null)
         {
@@ -152,7 +152,7 @@ public class ServiceBusRule
         }
         if (rule.CorrelationFilter.ReplyTo != null)
         {
-            writer.WriteString(nameof(ServiceBusCorrelationFilter.ReplyTo), rule.CorrelationFilter.ReplyTo);
+            writer.WriteString(nameof(AzureServiceBusCorrelationFilter.ReplyTo), rule.CorrelationFilter.ReplyTo);
         }
         if (rule.CorrelationFilter.Subject != null)
         {
@@ -161,19 +161,19 @@ public class ServiceBusRule
         }
         if (rule.CorrelationFilter.SessionId != null)
         {
-            writer.WriteString(nameof(ServiceBusCorrelationFilter.SessionId), rule.CorrelationFilter.SessionId);
+            writer.WriteString(nameof(AzureServiceBusCorrelationFilter.SessionId), rule.CorrelationFilter.SessionId);
         }
         if (rule.CorrelationFilter.ReplyToSessionId != null)
         {
-            writer.WriteString(nameof(ServiceBusCorrelationFilter.ReplyToSessionId), rule.CorrelationFilter.ReplyToSessionId);
+            writer.WriteString(nameof(AzureServiceBusCorrelationFilter.ReplyToSessionId), rule.CorrelationFilter.ReplyToSessionId);
         }
         if (rule.CorrelationFilter.ContentType != null)
         {
-            writer.WriteString(nameof(ServiceBusCorrelationFilter.ContentType), rule.CorrelationFilter.ContentType);
+            writer.WriteString(nameof(AzureServiceBusCorrelationFilter.ContentType), rule.CorrelationFilter.ContentType);
         }
         if (rule.CorrelationFilter.RequiresPreprocessing.HasValue)
         {
-            writer.WriteBoolean(nameof(ServiceBusCorrelationFilter.RequiresPreprocessing), rule.CorrelationFilter.RequiresPreprocessing.Value);
+            writer.WriteBoolean(nameof(AzureServiceBusCorrelationFilter.RequiresPreprocessing), rule.CorrelationFilter.RequiresPreprocessing.Value);
         }
 
         writer.WriteEndObject(); // CorrelationFilter
