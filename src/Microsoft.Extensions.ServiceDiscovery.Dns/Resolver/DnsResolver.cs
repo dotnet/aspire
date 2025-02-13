@@ -60,61 +60,55 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
     {
     }
 
-    public async ValueTask<ServiceResult[]> ResolveServiceAsync(string name, CancellationToken cancellationToken = default)
+    public ValueTask<ServiceResult[]> ResolveServiceAsync(string name, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
 
         name = GetNormalizedHostName(name);
 
-        NameResolutionActivity activity = Telemetry.StartNameResolution(name, QueryType.SRV, _timeProvider.GetTimestamp());
-        SendQueryResult result = await SendQueryWithRetriesAsync(name, QueryType.SRV, cancellationToken).ConfigureAwait(false);
+        return SendQueryWithTelemetry(name, QueryType.SRV, ProcessResponse, cancellationToken);
 
-        if (result.Error is not SendQueryError.NoError)
+        static (SendQueryError, ServiceResult[]) ProcessResponse(string name, QueryType queryType, DnsResponse response)
         {
-            Telemetry.StopNameResolution(name, QueryType.SRV, activity, null, result.Error, _timeProvider.GetTimestamp());
-            return Array.Empty<ServiceResult>();
-        }
+            var results = new List<ServiceResult>(response.Answers.Count);
 
-        using DnsResponse response = result.Response;
-
-        var results = new List<ServiceResult>(response.Answers.Count);
-
-        foreach (var answer in response.Answers)
-        {
-            if (answer.Type == QueryType.SRV)
+            foreach (var answer in response.Answers)
             {
-                bool success = DnsPrimitives.TryReadService(answer.Data.Span, out ushort priority, out ushort weight, out ushort port, out string? target, out _);
-                Debug.Assert(success, "Failed to read SRV");
-
-                List<AddressResult> addresses = new List<AddressResult>();
-                foreach (var additional in response.Additionals)
+                if (answer.Type == QueryType.SRV)
                 {
-                    // From RFC 2782:
-                    //
-                    //     Target
-                    //         The domain name of the target host.  There MUST be one or more
-                    //         address records for this name, the name MUST NOT be an alias (in
-                    //         the sense of RFC 1034 or RFC 2181).  Implementors are urged, but
-                    //         not required, to return the address record(s) in the Additional
-                    //         Data section.  Unless and until permitted by future standards
-                    //         action, name compression is not to be used for this field.
-                    //
-                    //         A Target of "." means that the service is decidedly not
-                    //         available at this domain.
-                    if (additional.Name == target && (additional.Type == QueryType.A || additional.Type == QueryType.AAAA))
+                    if (!DnsPrimitives.TryReadService(answer.Data.Span, out ushort priority, out ushort weight, out ushort port, out string? target, out int bytesRead) || bytesRead != answer.Data.Length)
                     {
-                        addresses.Add(new AddressResult(response.CreatedAt.AddSeconds(additional.Ttl), new IPAddress(additional.Data.Span)));
+                        return (SendQueryError.MalformedResponse, []);
                     }
+
+                    List<AddressResult> addresses = new List<AddressResult>();
+                    foreach (var additional in response.Additionals)
+                    {
+                        // From RFC 2782:
+                        //
+                        //     Target
+                        //         The domain name of the target host.  There MUST be one or more
+                        //         address records for this name, the name MUST NOT be an alias (in
+                        //         the sense of RFC 1034 or RFC 2181).  Implementors are urged, but
+                        //         not required, to return the address record(s) in the Additional
+                        //         Data section.  Unless and until permitted by future standards
+                        //         action, name compression is not to be used for this field.
+                        //
+                        //         A Target of "." means that the service is decidedly not
+                        //         available at this domain.
+                        if (additional.Name == target && (additional.Type == QueryType.A || additional.Type == QueryType.AAAA))
+                        {
+                            addresses.Add(new AddressResult(response.CreatedAt.AddSeconds(additional.Ttl), new IPAddress(additional.Data.Span)));
+                        }
+                    }
+
+                    results.Add(new ServiceResult(response.CreatedAt.AddSeconds(answer.Ttl), priority, weight, port, target!, addresses.ToArray()));
                 }
-
-                results.Add(new ServiceResult(response.CreatedAt.AddSeconds(answer.Ttl), priority, weight, port, target!, addresses.ToArray()));
             }
-        }
 
-        ServiceResult[] res = results.ToArray();
-        Telemetry.StopNameResolution(name, QueryType.SRV, activity, res, result.Error, _timeProvider.GetTimestamp());
-        return res;
+            return (SendQueryError.NoError, results.ToArray());
+        }
     }
 
     public async ValueTask<AddressResult[]> ResolveIPAddressesAsync(string name, CancellationToken cancellationToken = default)
@@ -151,7 +145,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         return results;
     }
 
-    public async ValueTask<AddressResult[]> ResolveIPAddressesAsync(string name, AddressFamily addressFamily, CancellationToken cancellationToken = default)
+    public ValueTask<AddressResult[]> ResolveIPAddressesAsync(string name, AddressFamily addressFamily, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
@@ -166,93 +160,95 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
             // name localhost exists outside of DNS and can't be resolved by a DNS server
             if (addressFamily == AddressFamily.InterNetwork && Socket.OSSupportsIPv4)
             {
-                return [new AddressResult(DateTime.MaxValue, IPAddress.Loopback)];
+                return ValueTask.FromResult<AddressResult[]>([new AddressResult(DateTime.MaxValue, IPAddress.Loopback)]);
             }
             else if (addressFamily == AddressFamily.InterNetworkV6 && Socket.OSSupportsIPv6)
             {
-                return [new AddressResult(DateTime.MaxValue, IPAddress.IPv6Loopback)];
+                return ValueTask.FromResult<AddressResult[]>([new AddressResult(DateTime.MaxValue, IPAddress.IPv6Loopback)]);
             }
 
-            return Array.Empty<AddressResult>();
+            return ValueTask.FromResult<AddressResult[]>([]);
         }
 
         name = GetNormalizedHostName(name);
-
         var queryType = addressFamily == AddressFamily.InterNetwork ? QueryType.A : QueryType.AAAA;
-        NameResolutionActivity activity = Telemetry.StartNameResolution(name, queryType, _timeProvider.GetTimestamp());
-        SendQueryResult result = await SendQueryWithRetriesAsync(name, queryType, cancellationToken).ConfigureAwait(false);
-        if (result.Error is not SendQueryError.NoError)
+        return SendQueryWithTelemetry(name, queryType, ProcessResponse, cancellationToken);
+
+        static (SendQueryError error, AddressResult[] result) ProcessResponse(string name, QueryType queryType, DnsResponse response)
         {
-            Telemetry.StopNameResolution(name, queryType, activity, null, result.Error, _timeProvider.GetTimestamp());
-            return Array.Empty<AddressResult>();
-        }
+            List<AddressResult> results = new List<AddressResult>(response.Answers.Count);
 
-        using DnsResponse response = result.Response;
+            // Servers send back CNAME records together with associated A/AAAA records. Servers
+            // send only those CNAME records relevant to the query, and if there is a CNAME record,
+            // there should not be other records associated with the name. Therefore, we simply follow
+            // the list of CNAME aliases until we get to the primary name and return the A/AAAA records
+            // associated.
+            //
+            // more info: https://datatracker.ietf.org/doc/html/rfc1034#section-3.6.2
+            //
+            // Most of the servers send the CNAME records in order so that we can sequentially scan the
+            // answers, but nothing prevents the records from being in arbitrary order. Therefore, when
+            // we encounter a CNAME record, we continue down the list and allow looping back to the beginning
+            // in case the CNAME chain is not in order.
+            //
+            string currentAlias = name;
+            int i = 0;
+            int endIndex = 0;
 
-        // Given that result.Error is NoError, there should be at least one answer.
-        Debug.Assert(response.Answers.Count > 0);
-        var results = new List<AddressResult>(response.Answers.Count);
-
-        // Servers send back CNAME records together with associated A/AAAA records. Servers
-        // send only those CNAME records relevant to the query, and if there is a CNAME record,
-        // there should not be other records associated with the name. Therefore, we simply follow
-        // the list of CNAME aliases until we get to the primary name and return the A/AAAA records
-        // associated.
-        //
-        // more info: https://datatracker.ietf.org/doc/html/rfc1034#section-3.6.2
-        //
-        // Most of the servers send the CNAME records in order so that we can sequentially scan the
-        // answers, but nothing prevents the records from being in arbitrary order. Therefore, when
-        // we encounter a CNAME record, we continue down the list and allow looping back to the beginning
-        // in case the CNAME chain is not in order.
-        //
-        string currentAlias = name;
-        int i = 0;
-        int endIndex = 0;
-
-        do
-        {
-            DnsResourceRecord answer = response.Answers[i];
-
-            if (answer.Name == currentAlias)
+            do
             {
-                if (answer.Type == QueryType.CNAME)
+                DnsResourceRecord answer = response.Answers[i];
+
+                if (answer.Name == currentAlias)
                 {
-                    // Although RFC does not necessarily allow pointer segments in CNAME domain names, some servers do use them
-                    // so we need to pass the entire buffer to TryReadQName with the proper offset. The data should be always
-                    // backed by the array containing the full response.
-
-                    var success = MemoryMarshal.TryGetArray(answer.Data, out ArraySegment<byte> segment);
-                    Debug.Assert(success, "Failed to get array segment");
-                    if (!DnsPrimitives.TryReadQName(segment.Array.AsSpan(0, segment.Offset + segment.Count), segment.Offset, out currentAlias!, out _))
+                    if (answer.Type == QueryType.CNAME)
                     {
-                        // TODO: how to handle corrupted responses?
-                        throw new InvalidOperationException("Failed to parse CNAME record");
+                        // Although RFC does not necessarily allow pointer segments in CNAME domain names, some servers do use them
+                        // so we need to pass the entire buffer to TryReadQName with the proper offset. The data should be always
+                        // backed by the array containing the full response.
+
+                        var success = MemoryMarshal.TryGetArray(answer.Data, out ArraySegment<byte> segment);
+                        Debug.Assert(success, "Failed to get array segment");
+                        if (!DnsPrimitives.TryReadQName(segment.Array.AsSpan(0, segment.Offset + segment.Count), segment.Offset, out currentAlias!, out int bytesRead) || bytesRead != answer.Data.Length)
+                        {
+                            return (SendQueryError.MalformedResponse, []);
+                        }
+
+                        // We need to start over. start with following answers and allow looping back
+                        endIndex = i;
+
+                        if (string.Equals(currentAlias, name, StringComparison.OrdinalIgnoreCase))
+                        {
+                            // CNAME records looped back to original question dns name (=> malformed response). Stop processing.
+                            return (SendQueryError.MalformedResponse, []);
+                        }
                     }
-
-                    // We need to start over. start with following answers and allow looping back
-                    endIndex = i;
-
-                    if (string.Equals(currentAlias, name, StringComparison.OrdinalIgnoreCase))
+                    else if (answer.Type == queryType)
                     {
-                        // CNAME records looped back to original question dns name (=> malformed response). Stop processing.
-                        break;
+                        if (answer.Data.Length != IPv4Length && answer.Data.Length != IPv6Length)
+                        {
+                            return (SendQueryError.MalformedResponse, []);
+                        }
+
+                        results.Add(new AddressResult(response.CreatedAt.AddSeconds(answer.Ttl), new IPAddress(answer.Data.Span)));
                     }
                 }
-                else if (answer.Type == queryType)
-                {
-                    Debug.Assert(answer.Data.Length == IPv4Length || answer.Data.Length == IPv6Length);
-                    results.Add(new AddressResult(response.CreatedAt.AddSeconds(answer.Ttl), new IPAddress(answer.Data.Span)));
-                }
+
+                i = (i + 1) % response.Answers.Count;
             }
+            while (i != endIndex);
 
-            i = (i + 1) % response.Answers.Count;
+            return (SendQueryError.NoError, results.ToArray());
         }
-        while (i != endIndex);
+    }
 
-        AddressResult[] res = results.ToArray();
-        Telemetry.StopNameResolution(name, queryType, activity, res, result.Error, _timeProvider.GetTimestamp());
-        return res;
+    private async ValueTask<TResult[]> SendQueryWithTelemetry<TResult>(string name, QueryType queryType, Func<string, QueryType, DnsResponse, (SendQueryError error, TResult[] result)> processResponseFunc, CancellationToken cancellationToken)
+    {
+        NameResolutionActivity activity = Telemetry.StartNameResolution(name, queryType, _timeProvider.GetTimestamp());
+        (SendQueryError error, TResult[] result) = await SendQueryWithRetriesAsync(name, queryType, processResponseFunc, cancellationToken).ConfigureAwait(false);
+        Telemetry.StopNameResolution(name, queryType, activity, null, error, _timeProvider.GetTimestamp());
+
+        return result;
     }
 
     internal struct SendQueryResult
@@ -261,104 +257,108 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         public SendQueryError Error;
     }
 
-    async ValueTask<SendQueryResult> SendQueryWithRetriesAsync(string name, QueryType queryType, CancellationToken cancellationToken)
+    async ValueTask<(SendQueryError error, TResult[] result)> SendQueryWithRetriesAsync<TResult>(string name, QueryType queryType, Func<string, QueryType, DnsResponse, (SendQueryError error, TResult[] result)> processResponseFunc, CancellationToken cancellationToken)
     {
-        SendQueryResult? result = default;
-
+        SendQueryError lastError = SendQueryError.InternalError; // will be overwritten by the first attempt
         for (int index = 0; index < _options.Servers.Count; index++)
         {
             IPEndPoint serverEndPoint = _options.Servers[index];
 
             for (int attempt = 1; attempt <= _options.Attempts; attempt++)
             {
+                DnsResponse response = default;
                 try
                 {
-                    SendQueryResult newResult = await SendQueryToServerWithTimeoutAsync(serverEndPoint, name, queryType, attempt, cancellationToken).ConfigureAwait(false);
+                    TResult[] results = Array.Empty<TResult>();
 
-                    if (result.HasValue)
+                    try
                     {
-                        result.Value.Response.Dispose();
+                        SendQueryResult queryResult = await SendQueryToServerWithTimeoutAsync(serverEndPoint, name, queryType, attempt, cancellationToken).ConfigureAwait(false);
+                        lastError = queryResult.Error;
+                        response = queryResult.Response;
+
+                        if (lastError == SendQueryError.NoError)
+                        {
+                            // Given that result.Error is NoError, there should be at least one answer.
+                            Debug.Assert(response.Answers.Count > 0);
+                            (lastError, results) = processResponseFunc(name, queryType, queryResult.Response);
+                        }
+                    }
+                    catch (SocketException ex)
+                    {
+                        Log.NetworkError(_logger, queryType, name, serverEndPoint, attempt, ex);
+                        lastError = SendQueryError.NetworkError;
+                    }
+                    catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+                    {
+                        Log.QueryError(_logger, queryType, name, serverEndPoint, attempt, ex);
+                        lastError = SendQueryError.InternalError;
                     }
 
-                    result = newResult;
+                    switch (lastError)
+                    {
+                        //
+                        // Definitive answers, no point retrying
+                        //
+                        case SendQueryError.NoError:
+                            return (lastError, results);
+
+                        case SendQueryError.NameError:
+                            // authoritative answer that the name does not exist, no point in retrying
+                            Log.NameError(_logger, queryType, name, serverEndPoint, attempt);
+                            return (lastError, results);
+
+                        case SendQueryError.NoData:
+                            // no data available for the name from authoritative server
+                            Log.NoData(_logger, queryType, name, serverEndPoint, attempt);
+                            return (lastError, results);
+
+                        //
+                        // Transient errors, retry on the same server
+                        //
+                        case SendQueryError.Timeout:
+                            Log.Timeout(_logger, queryType, name, serverEndPoint, attempt);
+                            continue;
+
+                        case SendQueryError.NetworkError:
+                            // TODO: retry with exponential backoff?
+                            continue;
+
+                        case SendQueryError.ServerError when response.Header.ResponseCode == QueryResponseCode.ServerFailure:
+                            // ServerFailure may indicate transient failure with upstream DNS servers, retry on the same server
+                            Log.ErrorResponseCode(_logger, queryType, name, serverEndPoint, response.Header.ResponseCode);
+                            continue;
+
+                        //
+                        // Persistent errors, skip to the next server
+                        //
+                        case SendQueryError.ServerError:
+                            // this should cover all response codes except NoError, NameError which are definite and handled above, and
+                            // ServerFailure which is a transient error and handled above.
+                            Log.ErrorResponseCode(_logger, queryType, name, serverEndPoint, response.Header.ResponseCode);
+                            break;
+
+                        case SendQueryError.MalformedResponse:
+                            Log.MalformedResponse(_logger, queryType, name, serverEndPoint, attempt);
+                            break;
+
+                        case SendQueryError.InternalError:
+                            // exception logged above.
+                            break;
+                    }
+
+                    // actual break that causes skipping to the next server
+                    break;
                 }
-                catch (SocketException ex)
+                finally
                 {
-                    Log.NetworkError(_logger, queryType, name, serverEndPoint, attempt, ex);
-                    result = new SendQueryResult { Error = SendQueryError.NetworkError };
+                    response.Dispose();
                 }
-                catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
-                {
-                    Log.QueryError(_logger, queryType, name, serverEndPoint, attempt, ex);
-                    result = new SendQueryResult { Error = SendQueryError.InternalError };
-                }
-
-                switch (result.Value.Error)
-                {
-                    //
-                    // Definitive answers, no point retrying
-                    //
-                    case SendQueryError.NoError:
-                        return result.Value;
-
-                    case SendQueryError.NameError:
-                        // authoritative answer that the name does not exist, no point in retrying
-                        Log.NameError(_logger, queryType, name, serverEndPoint, attempt);
-                        return result.Value;
-
-                    case SendQueryError.NoData:
-                        // no data available for the name from authoritative server
-                        Log.NoData(_logger, queryType, name, serverEndPoint, attempt);
-                        return result.Value;
-
-                    //
-                    // Transient errors, retry on the same server
-                    //
-                    case SendQueryError.Timeout:
-                        Log.Timeout(_logger, queryType, name, serverEndPoint, attempt);
-                        continue;
-
-                    case SendQueryError.NetworkError:
-                        // TODO: retry with exponential backoff?
-                        continue;
-
-                    case SendQueryError.ServerError when result.Value.Response!.Header.ResponseCode == QueryResponseCode.ServerFailure:
-                        // ServerFailure may indicate transient failure with upstream DNS servers, retry on the same server
-                        Log.ErrorResponseCode(_logger, queryType, name, serverEndPoint, result.Value.Response.Header.ResponseCode);
-                        continue;
-
-                    //
-                    // Persistent errors, skip to the next server
-                    //
-                    case SendQueryError.ServerError:
-                        // this should cover all response codes except NoError, NameError which are definite and handled above, and
-                        // ServerFailure which is a transient error and handled above.
-                        Log.ErrorResponseCode(_logger, queryType, name, serverEndPoint, result.Value.Response.Header.ResponseCode);
-                        break;
-
-                    case SendQueryError.MalformedResponse:
-                        Log.MalformedResponse(_logger, queryType, name, serverEndPoint, attempt);
-                        break;
-
-                    case SendQueryError.InternalError:
-                        // exception logged above.
-                        break;
-                }
-
-                // actual break that causes skipping to the next server
-                break;
             }
         }
 
-        // we should have a result by now
-        Debug.Assert(result.HasValue);
-
-        if (!result.HasValue)
-        {
-            result = new SendQueryResult { Error = SendQueryError.InternalError };
-        }
-
-        return result!.Value;
+        // if we get here, we exhausted all servers and all attempts
+        return (lastError, []);
     }
 
     internal async ValueTask<SendQueryResult> SendQueryToServerWithTimeoutAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, int attempt, CancellationToken cancellationToken)
@@ -417,6 +417,17 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
                 return new SendQueryResult { Error = sendError };
             }
 
+            if ((uint)header.ResponseCode > (uint)QueryResponseCode.Refused)
+            {
+                // Response code is outside of valid range
+                return new SendQueryResult
+                {
+                    Response = new DnsResponse(Array.Empty<byte>(), header, queryStartedTime, queryStartedTime, null!, null!, null!),
+                    Error = SendQueryError.MalformedResponse
+                };
+            }
+
+            // Recheck that the server echoes back the DNS question
             if (header.QueryCount != 1 ||
                 !responseReader.TryReadQuestion(out var qName, out var qType, out var qClass) ||
                 qName != name || qType != queryType || qClass != QueryClass.Internet)
@@ -429,10 +440,19 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
                 };
             }
 
+            // Structurally separate the resource records, this will validate only the
+            // "outside structure" of the resource record, it will not validate the content.
             int ttl = int.MaxValue;
-            List<DnsResourceRecord> answers = ReadRecords(header.AnswerCount, ref ttl, ref responseReader);
-            List<DnsResourceRecord> authorities = ReadRecords(header.AuthorityCount, ref ttl, ref responseReader);
-            List<DnsResourceRecord> additionals = ReadRecords(header.AdditionalRecordCount, ref ttl, ref responseReader);
+            if (!TryReadRecords(header.AnswerCount, ref ttl, ref responseReader, out List<DnsResourceRecord>? answers) ||
+                !TryReadRecords(header.AuthorityCount, ref ttl, ref responseReader, out List<DnsResourceRecord>? authorities) ||
+                !TryReadRecords(header.AdditionalRecordCount, ref ttl, ref responseReader, out List<DnsResourceRecord>? additionals))
+            {
+                return new SendQueryResult
+                {
+                    Response = new DnsResponse(Array.Empty<byte>(), header, queryStartedTime, queryStartedTime, null!, null!, null!),
+                    Error = SendQueryError.MalformedResponse
+                };
+            }
 
             DateTime expirationTime =
                 (answers.Count + authorities.Count + additionals.Count) > 0 ? queryStartedTime.AddSeconds(ttl) : queryStartedTime;
@@ -450,23 +470,22 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
             responseReader.Dispose();
         }
 
-        static List<DnsResourceRecord> ReadRecords(int count, ref int ttl, ref DnsDataReader reader)
+        static bool TryReadRecords(int count, ref int ttl, ref DnsDataReader reader, out List<DnsResourceRecord> records)
         {
-            List<DnsResourceRecord> records = new(count);
+            records = new(count);
 
             for (int i = 0; i < count; i++)
             {
                 if (!reader.TryReadResourceRecord(out var record))
                 {
-                    // TODO how to handle corrupted responses?
-                    throw new InvalidOperationException("Invalid response: corrupted record");
+                    return false;
                 }
 
                 ttl = Math.Min(ttl, record.Ttl);
                 records.Add(new DnsResourceRecord(record.Name, record.Type, record.Class, record.Ttl, record.Data));
             }
 
-            return records;
+            return true;
         }
     }
 

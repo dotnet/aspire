@@ -66,10 +66,18 @@ public class RetryTests : LoopbackDnsTestBase
         Assert.Equal(TimeProvider.GetUtcNow().DateTime.AddSeconds(3600), res.ExpiresAt);
     }
 
+    public enum PersistentErrorType
+    {
+        NotImplemented,
+        Refused,
+        MalformedResponse
+    }
+
     [Theory]
-    [InlineData(/* QueryResponseCode.NotImplemented */ 4)]
-    [InlineData(/* QueryResponseCode.Refused */ 5)]
-    public async Task PersistentErrorsResponseCode_FailoverToNextServer(int responseCode)
+    [InlineData(PersistentErrorType.NotImplemented)]
+    [InlineData(PersistentErrorType.Refused)]
+    [InlineData(PersistentErrorType.MalformedResponse)]
+    public async Task PersistentErrorsResponseCode_FailoverToNextServer(PersistentErrorType type)
     {
         IPAddress address = IPAddress.Parse("172.213.245.111");
 
@@ -80,7 +88,20 @@ public class RetryTests : LoopbackDnsTestBase
             builder =>
             {
                 primaryAttempt++;
-                builder.ResponseCode = (QueryResponseCode)responseCode;
+                switch (type)
+                {
+                    case PersistentErrorType.NotImplemented:
+                        builder.ResponseCode = QueryResponseCode.NotImplemented;
+                        break;
+
+                    case PersistentErrorType.Refused:
+                        builder.ResponseCode = QueryResponseCode.Refused;
+                        break;
+
+                    case PersistentErrorType.MalformedResponse:
+                        builder.ResponseCode = (QueryResponseCode)0xFF;
+                        break;
+                }
                 return Task.CompletedTask;
             },
             builder =>
