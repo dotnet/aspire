@@ -144,7 +144,7 @@ jobs:
           # Playground project
           - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
             name: Playground
-          
+
           # Schema generator project
           - project: tests/ConfigurationSchemaGenerator.Tests/ConfigurationSchemaGenerator.Tests.csproj
             name: ConfigurationSchemaGenerator
@@ -182,6 +182,8 @@ jobs:
       - name: Build test project
         env:
           CI: false
+          MSBUILDDEBUGENGINE: 1
+          MSBUILDDEBUGPATH: ${{ github.workspace }}/testresults/binlogs
         run: |
           ./build.sh -restore -ci -build -projects ${{ github.workspace }}/${{ matrix.project }} /bl
 
@@ -191,6 +193,8 @@ jobs:
           CI: false
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
+          MSBUILDDEBUGENGINE: 1
+          MSBUILDDEBUGPATH: ${{ github.workspace }}/testresults/binlogs
         run: |
           ./dotnet.sh test ${{ github.workspace }}/${{ matrix.project }} \
             /p:ContinuousIntegrationBuild=true \

@@ -1,3 +1,4 @@
+#if !SKIP_UNSTABLE_EMULATORS
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
@@ -11,3 +12,4 @@ public class MyEventHubTrigger(ILogger<MyEventHubTrigger> logger)
         logger.LogInformation("C# EventHub trigger function processed: {Count} messages", input.Length);
     }
 }
+#endif
