@@ -33,6 +33,7 @@ public partial class TraceDetail : ComponentBase, IDisposable
     private FluentDataGrid<SpanWaterfallViewModel> _dataGrid = null!;
     private GridColumnManager _manager = null!;
     private IList<GridColumn> _gridColumns = null!;
+    private string _filter = string.Empty;
 
     [Parameter]
     public required string TraceId { get; set; }
@@ -79,7 +80,7 @@ public partial class TraceDetail : ComponentBase, IDisposable
     {
         Debug.Assert(_spanWaterfallViewModels != null);
 
-        var visibleSpanWaterfallViewModels = _spanWaterfallViewModels.Where(viewModel => !viewModel.IsHidden).ToList();
+        var visibleSpanWaterfallViewModels = _spanWaterfallViewModels.Where(viewModel => !viewModel.IsHidden && Filter(_filter, viewModel)).ToList();
 
         var page = visibleSpanWaterfallViewModels.AsEnumerable();
         if (request.StartIndex > 0)
@@ -93,6 +94,24 @@ public partial class TraceDetail : ComponentBase, IDisposable
             Items = page.ToList(),
             TotalItemCount = visibleSpanWaterfallViewModels.Count
         });
+
+        bool Filter(string filter, SpanWaterfallViewModel viewModel)
+        {
+            if (string.IsNullOrWhiteSpace(filter))
+            {
+                return true;
+            }
+
+            List<string?> candidateStrings =
+            [
+                viewModel.Span.SpanId,
+                GetResourceName(viewModel.Span.Source),
+                SpanWaterfallViewModel.GetDisplaySummary(viewModel.Span),
+                viewModel.UninstrumentedPeer
+            ];
+
+            return candidateStrings.Any(s => s is not null && s.Contains(filter, StringComparison.CurrentCultureIgnoreCase));
+        }
     }
 
     private string? GetPageTitle()
@@ -167,6 +186,11 @@ public partial class TraceDetail : ComponentBase, IDisposable
         _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers, _collapsedSpanIds));
         _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
         return;
+    }
+
+    private async Task HandleAfterFilterBindAsync()
+    {
+        await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
     private void UpdateSubscription()
