@@ -38,18 +38,16 @@
         "path": "cache.module.bicep",
         "params": {
           "cache_volumes_0_storage": "{cache.volumes.0.storage}",
+          "cache_password_value": "{cache-password.value}",
           "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
           "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
-          "cache_password_value": "{cache-password.value}",
           "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
         }
       },
+      "entrypoint": "/bin/sh",
       "args": [
-        "--requirepass",
-        "{cache-password.value}",
-        "--save",
-        "60",
-        "1"
+        "-c",
+        "redis-server --requirepass $REDIS_PASSWORD --save 60 1"
       ],
       "volumes": [
         {
@@ -58,6 +56,9 @@
           "readOnly": false
         }
       ],
+      "env": {
+        "REDIS_PASSWORD": "{cache-password.value}"
+      },
       "bindings": {
         "tcp": {
           "scheme": "tcp",
