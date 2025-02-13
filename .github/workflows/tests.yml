@@ -247,7 +247,7 @@ jobs:
           path: testresults/**
 
       - name: Upload built nugets
-        # uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: built-nugets
           path: "artifacts/packages/**/*.nupkg"
