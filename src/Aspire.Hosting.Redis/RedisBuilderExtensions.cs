@@ -99,12 +99,25 @@ public static class RedisBuilderExtensions
     {
         if (!builder.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out _))
         {
-            builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
+            builder.WithEntrypoint("/bin/sh");
+
+            builder.WithEnvironment(context =>
             {
                 if (builder.Resource.PasswordParameter is { } password)
                 {
+                    context.EnvironmentVariables["REDIS_PASSWORD"] = password;
+                }
+            });
+
+            builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
+            {
+                context.Args.Add("-c");
+                context.Args.Add("redis-server");
+
+                if (builder.Resource.PasswordParameter is { } password)
+                {
                     context.Args.Add("--requirepass");
-                    context.Args.Add(password);
+                    context.Args.Add("$$REDIS_PASSWORD");
                 }
 
                 if (builder.Resource.TryGetAnnotationsOfType<PersistenceAnnotation>(out var annotations))
