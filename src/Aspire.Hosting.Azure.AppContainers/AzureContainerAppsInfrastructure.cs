@@ -187,6 +187,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                 containerAppContainer.Image = containerImageParam is null ? containerImageName! : containerImageParam;
                 containerAppContainer.Name = resource.Name;
 
+                SetEntryPoint(containerAppContainer);
                 AddEnvironmentVariablesAndCommandLineArgs(containerAppContainer);
 
                 foreach (var (_, mountedVolume) in Volumes)
@@ -822,6 +823,14 @@ internal sealed class AzureContainerAppsInfrastructure(
                 }
 
                 config.Ingress = caIngress;
+            }
+
+            private void SetEntryPoint(ContainerAppContainer container)
+            {
+                if (resource is ContainerResource containerResource && containerResource.Entrypoint is { } entrypoint)
+                {
+                    container.Command = [entrypoint];
+                }
             }
 
             private void AddEnvironmentVariablesAndCommandLineArgs(ContainerAppContainer container)
