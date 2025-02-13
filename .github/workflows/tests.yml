@@ -188,7 +188,7 @@ jobs:
           CI: false
         if: matrix.name == 'Workload'
         run: |
-          ./build.sh -restore -ci -pack /bl:${{ github.workspace }}/artifacts/log/Build.binlog
+          ./build.sh -restore -build -ci -pack /bl:${{ github.workspace }}/artifacts/log/Build.binlog
 
       - name: Install sdk for testing templates
         env:
@@ -247,7 +247,7 @@ jobs:
           path: testresults/**
 
       - name: Upload built nugets
-        uses: actions/upload-artifact@v4
+        # uses: actions/upload-artifact@v4
         with:
           name: built-nugets
           path: "artifacts/packages/**/*.nupkg"
