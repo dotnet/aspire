@@ -41,7 +41,7 @@ See https://aka.ms/dotnet/aspire/containers for more details on supported contai
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">
         <source>Newer version of the Aspire.Hosting.AppHost package is required to run the application. Ensure you are referencing at least version '{0}'.</source>
-        <target state="new">Newer version of the Aspire.Hosting.AppHost package is required to run the application. Ensure you are referencing at least version '{0}'.</target>
+        <target state="translated">アプリケーションを実行するには、Aspire.Hosting.AppHost パッケージの新しいバージョンが必要です。少なくともバージョン '{0}' を参照していることを確認してください。</target>
         <note />
       </trans-unit>
       <trans-unit id="LaunchSettingsFileDoesNotContainProfileExceptionMessage">
