@@ -634,6 +634,13 @@ internal sealed class AzureContainerAppsInfrastructure(
                     return (url, secretType);
                 }
 
+                if (value is ParameterResource param)
+                {
+                    var st = param.Secret ? SecretType.Normal : secretType;
+
+                    return (AllocateParameter(param, secretType: st), st);
+                }
+
                 if (value is ConnectionStringReference cs)
                 {
                     return await ProcessValueAsync(cs.Resource.ConnectionStringExpression, executionContext, cancellationToken, secretType: secretType, parent: parent).ConfigureAwait(false);
@@ -642,13 +649,6 @@ internal sealed class AzureContainerAppsInfrastructure(
                 if (value is IResourceWithConnectionString csrs)
                 {
                     return await ProcessValueAsync(csrs.ConnectionStringExpression, executionContext, cancellationToken, secretType: secretType, parent: parent).ConfigureAwait(false);
-                }
-
-                if (value is ParameterResource param)
-                {
-                    var st = param.Secret ? SecretType.Normal : secretType;
-
-                    return (AllocateParameter(param, secretType: st), st);
                 }
 
                 if (value is BicepOutputReference output)
