@@ -22,7 +22,7 @@ public class PlaywrightProvider
             throw new FileNotFoundException($"Browser path {BrowserPathEnvironmentVariableName}='{browserPath}' does not exist");
         }
 
-        options ??= new() { Headless = false };
+        options ??= new() { Headless = true };
         options.ExecutablePath ??= browserPath;
 
         if (OperatingSystem.IsMacOS() && string.IsNullOrEmpty(browserPath))
