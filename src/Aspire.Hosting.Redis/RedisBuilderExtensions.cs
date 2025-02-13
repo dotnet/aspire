@@ -111,23 +111,32 @@ public static class RedisBuilderExtensions
 
             builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
             {
-                context.Args.Add("-c");
-                context.Args.Add("redis-server");
+                var args = new List<string>
+                {
+                    "redis-server"
+                };
 
                 if (builder.Resource.PasswordParameter is { } password)
                 {
-                    context.Args.Add("--requirepass");
-                    context.Args.Add("$$REDIS_PASSWORD");
+                    args.Add("--requirepass");
+                    args.Add("$REDIS_PASSWORD");
                 }
 
                 if (builder.Resource.TryGetAnnotationsOfType<PersistenceAnnotation>(out var annotations))
                 {
                     var persistenceAnnotation = annotations.Single();
-                    context.Args.Add("--save");
-                    context.Args.Add(
-                        (persistenceAnnotation.Interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
-                    context.Args.Add(persistenceAnnotation.KeysChangedThreshold.ToString(CultureInfo.InvariantCulture));
+
+                    var interval = (persistenceAnnotation.Interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture);
+
+                    args.Add("--save");
+                    args.Add(interval);
+                    args.Add(persistenceAnnotation.KeysChangedThreshold.ToString(CultureInfo.InvariantCulture));
                 }
+
+                var redisCommand = string.Join(' ', args);
+
+                context.Args.Add("-c");
+                context.Args.Add(redisCommand);
 
                 return Task.CompletedTask;
             }));
