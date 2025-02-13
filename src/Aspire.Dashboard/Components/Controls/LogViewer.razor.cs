@@ -15,7 +15,6 @@ namespace Aspire.Dashboard.Components;
 /// </summary>
 public sealed partial class LogViewer
 {
-    private readonly bool _convertTimestampsFromUtc = true;
     private LogEntries? _logEntries;
     private bool _logsChanged;
 
@@ -32,7 +31,7 @@ public sealed partial class LogViewer
     public LogEntries? LogEntries { get; set; } = null!;
 
     [Parameter]
-    public bool ShowTimestamp { get; set; }
+    public TimestampDisplayMode TimestampDisplayMode { get; set; }
 
     protected override void OnParametersSet()
     {
@@ -74,7 +73,7 @@ public sealed partial class LogViewer
 
     private string GetDisplayTimestamp(DateTimeOffset timestamp)
     {
-        var date = _convertTimestampsFromUtc ? TimeProvider.ToLocal(timestamp) : timestamp.DateTime;
+        var date = TimestampDisplayMode is TimestampDisplayMode.Local ? TimeProvider.ToLocal(timestamp) : timestamp.DateTime;
 
         return date.ToString(KnownFormats.ConsoleLogsUITimestampFormat, CultureInfo.InvariantCulture);
     }
@@ -86,4 +85,11 @@ public sealed partial class LogViewer
         DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
         return ValueTask.CompletedTask;
     }
+}
+
+public enum TimestampDisplayMode
+{
+    None,
+    Local,
+    Utc
 }

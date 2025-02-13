@@ -99,7 +99,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private readonly List<MenuButtonItem> _resourceMenuItems = new();
 
     // State
-    private bool _showTimestamp;
+    private TimestampDisplayMode _timestampDisplayMode;
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
     private IDisposable? _consoleLogsFiltersChangedSubscription;
     private ConsoleLogsFilters _consoleLogFilters = new();
@@ -121,10 +121,14 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             await InvokeAsync(StateHasChanged);
         });
 
-        var timestampStorageResult = await LocalStorage.GetUnprotectedAsync<ConsoleLogConsoleSettings>(BrowserStorageKeys.ConsoleLogConsoleSettings);
-        if (timestampStorageResult.Value?.ShowTimestamp is { } showTimestamp)
+        var consoleSettingsResult = await LocalStorage.GetUnprotectedAsync<ConsoleLogConsoleSettings>(BrowserStorageKeys.ConsoleLogConsoleSettings);
+        if (consoleSettingsResult.Value is { } consoleSettings)
         {
-            _showTimestamp = showTimestamp;
+            _timestampDisplayMode = consoleSettings.TimestampDisplayMode;
+        }
+        else
+        {
+            _timestampDisplayMode = TimestampDisplayMode.Local;
         }
 
         await ConsoleLogsManager.EnsureInitializedAsync();
@@ -286,20 +290,31 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             Icon = new Icons.Regular.Size16.ArrowDownload()
         });
 
-        if (!_showTimestamp)
+        if (_timestampDisplayMode is not TimestampDisplayMode.Local)
         {
             _logsMenuItems.Add(new()
             {
-                OnClick = () => ToggleTimestampAsync(showTimestamp: true),
-                Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampShow)],
+                OnClick = () => ToggleTimestampAsync(displayMode: TimestampDisplayMode.Local),
+                Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampShowLocal)],
                 Icon = new Icons.Regular.Size16.CalendarClock()
             });
         }
-        else
+
+        if (_timestampDisplayMode is not TimestampDisplayMode.Utc)
         {
             _logsMenuItems.Add(new()
             {
-                OnClick = () => ToggleTimestampAsync(showTimestamp: false),
+                OnClick = () => ToggleTimestampAsync(displayMode: TimestampDisplayMode.Utc),
+                Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampShowUtc)],
+                Icon = new Icons.Regular.Size16.CalendarAdd()
+            });
+        }
+
+        if (_timestampDisplayMode is not TimestampDisplayMode.None)
+        {
+            _logsMenuItems.Add(new()
+            {
+                OnClick = () => ToggleTimestampAsync(displayMode: TimestampDisplayMode.None),
                 Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampHide)],
                 Icon = new Icons.Regular.Size16.DismissSquareMultiple()
             });
@@ -332,10 +347,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         }
     }
 
-    private async Task ToggleTimestampAsync(bool showTimestamp)
+    private async Task ToggleTimestampAsync(TimestampDisplayMode displayMode)
     {
-        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ConsoleLogConsoleSettings, new ConsoleLogConsoleSettings(ShowTimestamp: showTimestamp));
-        _showTimestamp = showTimestamp;
+        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ConsoleLogConsoleSettings, new ConsoleLogConsoleSettings(TimestampDisplayMode: displayMode));
+        _timestampDisplayMode = displayMode;
 
         UpdateMenuButtons();
         StateHasChanged();
@@ -609,7 +624,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     public record ConsoleLogsPageState(string? SelectedResource);
 
-    public record ConsoleLogConsoleSettings(bool ShowTimestamp);
+    public record ConsoleLogConsoleSettings(TimestampDisplayMode TimestampDisplayMode);
 
     public Task UpdateViewModelFromQueryAsync(ConsoleLogsViewModel viewModel)
     {

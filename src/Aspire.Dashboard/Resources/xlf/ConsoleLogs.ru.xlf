@@ -62,9 +62,14 @@
         <target state="translated">Скрыть метки времени</target>
         <note />
       </trans-unit>
-      <trans-unit id="ConsoleLogsTimestampShow">
-        <source>Show timestamps</source>
-        <target state="translated">Показать метки времени</target>
+      <trans-unit id="ConsoleLogsTimestampShowLocal">
+        <source>Show local timestamps</source>
+        <target state="new">Show local timestamps</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsTimestampShowUtc">
+        <source>Show UTC timestamps</source>
+        <target state="new">Show UTC timestamps</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
