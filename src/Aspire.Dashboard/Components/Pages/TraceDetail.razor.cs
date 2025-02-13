@@ -80,7 +80,7 @@ public partial class TraceDetail : ComponentBase, IDisposable
     {
         Debug.Assert(_spanWaterfallViewModels != null);
 
-        var visibleSpanWaterfallViewModels = _spanWaterfallViewModels.Where(viewModel => !viewModel.IsHidden && Filter(_filter, viewModel)).ToList();
+        var visibleSpanWaterfallViewModels = GetFilteredSpanWaterfalls(_spanWaterfallViewModels.Where(viewModel => !viewModel.IsHidden).ToList());
 
         var page = visibleSpanWaterfallViewModels.AsEnumerable();
         if (request.StartIndex > 0)
@@ -95,22 +95,41 @@ public partial class TraceDetail : ComponentBase, IDisposable
             TotalItemCount = visibleSpanWaterfallViewModels.Count
         });
 
-        bool Filter(string filter, SpanWaterfallViewModel viewModel)
+        // Return spans where any child span matches the filter.
+        List<SpanWaterfallViewModel> GetFilteredSpanWaterfalls(List<SpanWaterfallViewModel> viewModels)
         {
-            if (string.IsNullOrWhiteSpace(filter))
+            var viewModelsToFilterMatch = new Dictionary<SpanWaterfallViewModel, bool>();
+            return [.. viewModels.Where(AnyChildMatchFilter)];
+
+            bool AnyChildMatchFilter(SpanWaterfallViewModel span)
             {
-                return true;
+                if (viewModelsToFilterMatch.TryGetValue(span, out var matchesFilter))
+                {
+                    return matchesFilter;
+                }
+
+                matchesFilter = span.Children.Any(AnyChildMatchFilter) || Filter(_filter, span);
+                viewModelsToFilterMatch.Add(span, matchesFilter);
+                return matchesFilter;
             }
 
-            List<string?> candidateStrings =
-            [
-                viewModel.Span.SpanId,
-                GetResourceName(viewModel.Span.Source),
-                SpanWaterfallViewModel.GetDisplaySummary(viewModel.Span),
-                viewModel.UninstrumentedPeer
-            ];
+            bool Filter(string filter, SpanWaterfallViewModel viewModel)
+            {
+                if (string.IsNullOrWhiteSpace(filter))
+                {
+                    return true;
+                }
 
-            return candidateStrings.Any(s => s is not null && s.Contains(filter, StringComparison.CurrentCultureIgnoreCase));
+                List<string?> candidateStrings =
+                [
+                    viewModel.Span.SpanId,
+                    GetResourceName(viewModel.Span.Source),
+                    SpanWaterfallViewModel.GetDisplaySummary(viewModel.Span),
+                    viewModel.UninstrumentedPeer
+                ];
+
+                return candidateStrings.Any(s => s is not null && s.Contains(filter, StringComparison.CurrentCultureIgnoreCase));
+            }
         }
     }
 
