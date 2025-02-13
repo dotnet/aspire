@@ -20,10 +20,12 @@ jobs:
           # Playground project
           - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
             name: Playground
+            testSessionTimeoutMs: 1200000
 
           # Workload tests project
           - project: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
             name: Workload
+            testSessionTimeoutMs: 1200000
 
           # Hosting projects
           - project: tests/Aspire.Hosting.Analyzers.Tests/Aspire.Hosting.Analyzers.Tests.csproj
@@ -188,14 +190,16 @@ jobs:
           CI: false
         if: matrix.name == 'Workload'
         run: |
-          ./build.sh -restore -build -ci -pack /bl:${{ github.workspace }}/artifacts/log/Build.binlog
+          ./build.sh -restore -build -ci -pack /bl
 
       - name: Install sdk for testing templates
         env:
           CI: false
         if: matrix.name == 'Workload'
         run: |
-          ./dotnet.sh build ${{ github.workspace }}/tests/workloads.proj /p:SkipPackageCheckForWorkloadTesting=true /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
+          ./dotnet.sh build ${{ github.workspace }}/tests/workloads.proj \
+            /p:SkipPackageCheckForWorkloadTesting=true \
+            /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
 
       - name: Build test project
         env:
@@ -222,7 +226,10 @@ jobs:
             --blame-crash \
             --results-directory testresults \
             --no-restore \
-            --no-build -- RunConfiguration.CollectSourceInformation=true
+            --no-build
+            --
+            RunConfiguration.CollectSourceInformation=true
+            RunConfiguration.TestSessionTimeout=${{ matrix.testSessionTimeoutMs || 600000 }}
 
       - name: Dump docker info
         if: always()
