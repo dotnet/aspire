@@ -15,6 +15,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 using Xunit.Abstractions;
+using static Aspire.Dashboard.Model.KnownProperties;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -591,6 +592,9 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         using var builder1 = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
+        // We don't need to clean on StopAsync(), we just check that the new instances are not new ones
+        builder1.Configuration["DcpPublisher:WaitForResourceCleanup"] = "false";
+
         var resource = builder1.AddAzureEventHubs("resource")
                       .RunAsEmulator(x => x.WithLifetime(ContainerLifetime.Persistent));
 
@@ -604,15 +608,18 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
 
         await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
-        var resourceEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running, cts.Token);
-        var ehContainerId1 = resourceEvent.Snapshot.Properties.FirstOrDefault(x => x.Name == "container.id")?.Value?.ToString();
+        var resourceEvent = await rns.WaitForResourceAsync("resource", e => GetContainerId(e) is not null, cts.Token);
+        var ehContainerId1 = GetContainerId(resourceEvent);
 
-        resourceEvent = await rns.WaitForResourceAsync("resource-storage", e => e.Snapshot.State?.Text == KnownResourceStates.Running, cts.Token);
-        var storageContainerId1 = resourceEvent.Snapshot.Properties.FirstOrDefault(x => x.Name == "container.id")?.Value?.ToString();
+        // NOTE: Waiting for Running state doesn't guaranty that the container-id property is set (for this resource at least)
+
+        resourceEvent = await rns.WaitForResourceAsync("resource-storage", e => GetContainerId(e) is not null, cts.Token);
+        var storageContainerId1 = GetContainerId(resourceEvent);
 
         await app.StopAsync(cts.Token).WaitAsync(TimeSpan.FromMinutes(1));
 
         using var builder2 = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder2.Configuration["DcpPublisher:WaitForResourceCleanup"] = "false";
 
         var resource2 = builder2.AddAzureEventHubs("resource")
                       .RunAsEmulator(x => x.WithLifetime(ContainerLifetime.Persistent));
@@ -627,11 +634,11 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
 
         await rns2.WaitForResourceHealthyAsync("resource", cts.Token);
 
-        resourceEvent = await rns2.WaitForResourceAsync("resource", e => e.Snapshot.State?.Text == KnownResourceStates.Running, cts.Token);
-        var ehContainerId2 = resourceEvent.Snapshot.Properties.FirstOrDefault(x => x.Name == "container.id")?.Value?.ToString();
+        resourceEvent = await rns2.WaitForResourceAsync("resource", e => GetContainerId(e) is not null, cts.Token);
+        var ehContainerId2 = GetContainerId(resourceEvent);
 
-        resourceEvent = await rns2.WaitForResourceAsync("resource-storage", e => e.Snapshot.State?.Text == KnownResourceStates.Running, cts.Token);
-        var storageContainerId2 = resourceEvent.Snapshot.Properties.FirstOrDefault(x => x.Name == "container.id")?.Value?.ToString();
+        resourceEvent = await rns2.WaitForResourceAsync("resource-storage", e => GetContainerId(e) is not null, cts.Token);
+        var storageContainerId2 = GetContainerId(resourceEvent);
 
         Assert.NotNull(ehContainerId1);
         Assert.NotNull(storageContainerId1);
@@ -640,5 +647,10 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(storageContainerId1, storageContainerId2);
 
         await app2.StopAsync(cts.Token);
+
+        static string? GetContainerId(ResourceEvent resourceEvent)
+        {
+            return resourceEvent.Snapshot.Properties.FirstOrDefault(x => x.Name == Container.Id)?.Value?.ToString();
+        }
     }
 }
