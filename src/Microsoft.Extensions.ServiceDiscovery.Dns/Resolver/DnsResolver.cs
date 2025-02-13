@@ -43,10 +43,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
     {
         _logger = NullLogger<DnsResolver>.Instance;
         _options = options;
-        if (options.Servers.Length == 0)
-        {
-            throw new ArgumentException("There are no DNS servers configured.", nameof(options));
-        }
+        Debug.Assert(_options.Servers.Count > 0);
 
         if (options.Timeout != Timeout.InfiniteTimeSpan)
         {
@@ -268,7 +265,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
     {
         SendQueryResult? result = default;
 
-        for (int index = 0; index < _options.Servers.Length; index++)
+        for (int index = 0; index < _options.Servers.Count; index++)
         {
             IPEndPoint serverEndPoint = _options.Servers[index];
 

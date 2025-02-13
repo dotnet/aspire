@@ -31,6 +31,6 @@ internal static class NetworkInfo
             }
         }
 
-        return new ResolverOptions(servers!.ToArray());
+        return new ResolverOptions(servers);
     }
 }

@@ -7,18 +7,15 @@ namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
 internal sealed class ResolverOptions
 {
-    public IPEndPoint[] Servers;
-    public string DefaultDomain = string.Empty;
-    public string[]? SearchDomains;
-
+    public IReadOnlyList<IPEndPoint> Servers;
     public int Attempts = 2;
     public TimeSpan Timeout = TimeSpan.FromSeconds(3);
 
-    public ResolverOptions(IPEndPoint[] servers)
+    public ResolverOptions(IReadOnlyList<IPEndPoint> servers)
     {
-        if (servers.Length == 0)
+        if (servers.Count == 0)
         {
-            throw new ArgumentException("At least one server is required.", nameof(servers));
+            throw new ArgumentException("At least one DNS server is required.", nameof(servers));
         }
 
         Servers = servers;
