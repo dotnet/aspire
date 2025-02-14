@@ -83,6 +83,7 @@ public class ApplicationOrchestratorTests
         await appOrchestrator.RunApplicationAsync();
 
         string? parentResourceId = null;
+        string? childResourceId = null;
         string? childParentResourceId = null;
         string? child2ParentResourceId = null;
         string? nestedChildParentResourceId = null;
@@ -96,6 +97,7 @@ public class ApplicationOrchestratorTests
                 }
                 else if (item.Resource == child.Resource)
                 {
+                    childResourceId = item.ResourceId;
                     childParentResourceId = item.Snapshot.Properties.SingleOrDefault(p => p.Name == KnownProperties.Resource.ParentName)?.Value?.ToString();
                 }
                 else if (item.Resource == nestedChild.Resource)
@@ -121,8 +123,8 @@ public class ApplicationOrchestratorTests
         Assert.Equal(parentResourceId, childParentResourceId);
         Assert.Equal(parentResourceId, child2ParentResourceId);
 
-        // Nested child should have parent set to the root parent, not direct parent
-        Assert.Equal(parentResourceId, nestedChildParentResourceId);
+        // Nested child should be parented on the direct parent
+        Assert.Equal(childResourceId, nestedChildParentResourceId);
     }
 
     [Fact]
