@@ -124,6 +124,7 @@ public static class AzureFunctionsProjectResourceExtensions
                 var http = resource.GetEndpoint("http");
                 context.Args.Add("--port");
                 context.Args.Add(http.Property(EndpointProperty.TargetPort));
+                context.Args.Add("/bl");
             })
             .WithOtlpExporter()
             .WithFunctionsHttpEndpoint();
