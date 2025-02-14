@@ -42,7 +42,7 @@ Desteklenen konteyner çalışma zamanları hakkında daha fazla ayrıntı için
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">
         <source>Newer version of the Aspire.Hosting.AppHost package is required to run the application. Ensure you are referencing at least version '{0}'.</source>
-        <target state="new">Newer version of the Aspire.Hosting.AppHost package is required to run the application. Ensure you are referencing at least version '{0}'.</target>
+        <target state="translated">Uygulamayı çalıştırmak için Daha yeni Bir.Barındırma.AppHost paketi sürümü gerekiyor. En az sürüm denetimine başvurarak '{0}'.</target>
         <note />
       </trans-unit>
       <trans-unit id="LaunchSettingsFileDoesNotContainProfileExceptionMessage">

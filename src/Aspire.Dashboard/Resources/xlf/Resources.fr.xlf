@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="ResourceCollapseAllChildren">
         <source>Collapse child resources</source>
-        <target state="new">Collapse child resources</target>
+        <target state="translated">Réduire les ressources enfants</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceCommandFailed">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="ResourceExpandAllChildren">
         <source>Expand child resources</source>
-        <target state="new">Expand child resources</target>
+        <target state="translated">Développer les ressources enfants</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceFilterOptionEmpty">
@@ -179,12 +179,12 @@
       </trans-unit>
       <trans-unit id="ResourcesFiltered">
         <source>Has filters</source>
-        <target state="needs-review-translation">A des filtres</target>
+        <target state="translated">A des filtres</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
         <source>No filters</source>
-        <target state="needs-review-translation">Aucun filtre</target>
+        <target state="translated">Aucun filtre</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesResourceStatesHeader">
