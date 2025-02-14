@@ -32,7 +32,7 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
         }).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         Assert.Equal(
-            "The endpoint 'nonhttp' on resource 'resource' was not using the 'http' scheme.",
+            "The endpoint 'nonhttp' on resource 'resource' was using the 'http' scheme.",
             ex.Message
             );
     }
