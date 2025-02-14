@@ -109,7 +109,7 @@ public static class RedisBuilderExtensions
                 }
             });
 
-            builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
+            builder.WithArgs(context =>
             {
                 var args = new List<string>
                 {
@@ -139,7 +139,7 @@ public static class RedisBuilderExtensions
                 context.Args.Add(redisCommand);
 
                 return Task.CompletedTask;
-            }));
+            });
         }
         return builder;
     }
