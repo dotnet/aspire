@@ -17,7 +17,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     IResourceWithEndpoints,
     IResourceWithAzureFunctionsConfig
 {
-    internal List<CosmosDBDatabase> Databases { get; } = [];
+    internal List<AzureCosmosDBDatabaseResource> Databases { get; } = [];
 
     internal EndpointReference EmulatorEndpoint => new(this, "emulator");
 

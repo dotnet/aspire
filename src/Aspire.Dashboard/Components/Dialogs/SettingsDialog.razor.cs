@@ -27,6 +27,12 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
+    [Inject]
+    public required ConsoleLogsManager ConsoleLogsManager { get; init; }
+
+    [Inject]
+    public required BrowserTimeProvider TimeProvider { get; init; }
+
     protected override void OnInitialized()
     {
         // Order cultures in the dropdown with invariant culture. This prevents the order of languages changing when the culture changes.
@@ -79,9 +85,11 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
             forceLoad: true);
     }
 
-    private void ClearAllSignals()
+    private async Task ClearAllSignals()
     {
         TelemetryRepository.ClearAllSignals();
+
+        await ConsoleLogsManager.UpdateFiltersAsync(new ConsoleLogsFilters { FilterAllLogsDate = TimeProvider.GetUtcNow().UtcDateTime });
     }
 
     public void Dispose()

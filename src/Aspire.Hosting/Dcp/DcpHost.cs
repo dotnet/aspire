@@ -15,7 +15,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed class DcpHost : IAsyncDisposable
+internal sealed class DcpHost
 {
     private const int LoggingSocketConnectionBacklog = 3;
 
@@ -27,7 +27,6 @@ internal sealed class DcpHost : IAsyncDisposable
     private readonly Locations _locations;
     private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _logProcessorTask;
-    private IAsyncDisposable? _dcpRunDisposable;
 
     // These environment variables should never be inherited by DCP from app host.
     private static readonly string[] s_doNotInheritEnvironmentVars =
@@ -126,27 +125,6 @@ internal sealed class DcpHost : IAsyncDisposable
         await TaskHelpers.WaitIgnoreCancelAsync(_logProcessorTask, _logger, "Error in logging socket processor.").ConfigureAwait(false);
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        if (_dcpRunDisposable is { } disposable)
-        {
-            _dcpRunDisposable = null;
-
-            try
-            {
-                await disposable.DisposeAsync().AsTask().ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // Shutdown requested.
-            }
-            catch (Exception ex)
-            {
-                _logger.LogCritical(ex, "One or more monitoring tasks terminated with an error.");
-            }
-        }
-    }
-
     private void EnsureDcpHostRunning()
     {
         AspireEventSource.Instance.DcpApiServerLaunchStart();
@@ -175,7 +153,7 @@ internal sealed class DcpHost : IAsyncDisposable
                 AspireEventSource.Instance.DcpLogSocketCreateStop();
             }
 
-            (_, _dcpRunDisposable) = ProcessUtil.Run(dcpProcessSpec);
+            _ = ProcessUtil.Run(dcpProcessSpec);
         }
         finally
         {

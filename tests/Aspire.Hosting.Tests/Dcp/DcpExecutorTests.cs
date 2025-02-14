@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO.Pipelines;
 using System.Text;
 using System.Threading.Channels;
+using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Tests.Utils;
@@ -14,6 +15,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Polly;
 using Xunit;
 
 namespace Aspire.Hosting.Tests.Dcp;
@@ -101,6 +103,136 @@ public class DcpExecutorTests
         await watchResourceTask.DefaultTimeout();
 
         Assert.Equal(2, resourceIds.Count);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task CreateExecutable_LaunchProfileHasCommandLineArgs_AnnotationsAdded(bool isIDE)
+    {
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
+        });
+
+        IConfiguration? configuration = null;
+        if (isIDE)
+        {
+            var configurationBuilder = new ConfigurationBuilder();
+            configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [DcpExecutor.DebugSessionPortVar] = "8080"
+            });
+
+            configuration = configurationBuilder.Build();
+        }
+
+        var resource = builder.AddProject<Projects.ServiceA>("ServiceA")
+            .WithArgs(c =>
+            {
+                c.Args.Add("--withargs-test");
+            }).Resource;
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix" };
+
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions, events: events, configuration: configuration);
+        await appExecutor.RunApplicationAsync();
+
+        var executables = kubernetesService.CreatedResources.OfType<Executable>().ToList();
+
+        var exe = Assert.Single(executables);
+
+        if (isIDE)
+        {
+            var callArg = Assert.Single(exe.Spec.Args!);
+            Assert.Equal("--withargs-test", callArg);
+        }
+        else
+        {
+            // ignore dotnet specific args for .NET project
+            var callArgs = exe.Spec.Args![^4..];
+
+            Assert.Collection(callArgs,
+                a => Assert.Equal("--", a),
+                a => Assert.Equal("--test1", a),
+                a => Assert.Equal("--test2", a),
+                a => Assert.Equal("--withargs-test", a));
+        }
+
+        Assert.True(exe.TryGetAnnotationAsObjectList<AppLaunchArgumentAnnotation>(CustomResource.ResourceAppArgsAnnotation, out var argAnnotations));
+
+        Assert.Collection(argAnnotations,
+            a => Assert.Equal("--", a.Argument),
+            a => Assert.Equal("--test1", a.Argument),
+            a => Assert.Equal("--test2", a.Argument),
+            a => Assert.Equal("--withargs-test", a.Argument));
+    }
+
+    [Fact]
+    public async Task ResourceRestarted_EnvironmentCallbacksApplied()
+    {
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
+        });
+
+        var callCount = 0;
+        var resource = builder.AddProject<Projects.ServiceA>("ServiceA")
+            .WithArgs(c =>
+            {
+                c.Args.Add("--test");
+            })
+            .WithEnvironment(c =>
+            {
+                Interlocked.Increment(ref callCount);
+                c.EnvironmentVariables["CALL_COUNT"] = callCount.ToString();
+            }).Resource;
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix" };
+
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions, events: events);
+        await appExecutor.RunApplicationAsync();
+
+        var executables = kubernetesService.CreatedResources.OfType<Executable>().ToList();
+
+        var exe1 = Assert.Single(executables);
+        var callCount1 = exe1.Spec.Env!.Single(e => e.Name == "CALL_COUNT");
+        Assert.Equal("1", callCount1.Value);
+
+        Assert.Single(exe1.Spec.Args!.Where(a => a == "--no-build"));
+        Assert.Single(exe1.Spec.Args!.Where(a => a == "--test"));
+        Assert.True(exe1.TryGetAnnotationAsObjectList<AppLaunchArgumentAnnotation>(CustomResource.ResourceAppArgsAnnotation, out var argAnnotations1));
+        Assert.Single(argAnnotations1.Where(a => a.Argument == "--test"));
+
+        var reference = appExecutor.GetResource(exe1.Metadata.Name);
+
+        await appExecutor.StopResourceAsync(reference, CancellationToken.None);
+
+        await appExecutor.StartResourceAsync(reference, CancellationToken.None);
+
+        executables = kubernetesService.CreatedResources.OfType<Executable>().ToList();
+        Assert.Equal(2, executables.Count);
+
+        var exe2 = executables[1];
+        var callCount2 = exe2.Spec.Env!.Single(e => e.Name == "CALL_COUNT");
+        Assert.Equal("2", callCount2.Value);
+
+        Assert.Single(exe2.Spec.Args!.Where(a => a == "--no-build"));
+        Assert.Single(exe2.Spec.Args!.Where(a => a == "--test"));
+        Assert.True(exe2.TryGetAnnotationAsObjectList<AppLaunchArgumentAnnotation>(CustomResource.ResourceAppArgsAnnotation, out var argAnnotations2));
+        Assert.Single(argAnnotations2.Where(a => a.Argument == "--test"));
     }
 
     [Fact]
@@ -960,7 +1092,7 @@ public class DcpExecutorTests
         var builder = DistributedApplication.CreateBuilder();
         builder.AddContainer("database", "image");
 
-        var kubernetesService = new TestKubernetesService();
+        var kubernetesService = new TestKubernetesService(ignoreDeletes: true);
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var dcpEvents = new DcpExecutorEvents();
@@ -972,6 +1104,10 @@ public class DcpExecutorTests
         });
 
         var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, events: dcpEvents);
+
+        // Set a custom pipeline without retries or delays to avoid waiting.
+        appExecutor.DeleteResourceRetryPipeline = new ResiliencePipelineBuilder().Build();
+
         await appExecutor.RunApplicationAsync();
 
         var dcpCtr = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
@@ -1008,9 +1144,9 @@ public class DcpExecutorTests
     {
         var commandAnnotations = resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
         Assert.Collection(commandAnnotations,
-            a => Assert.Equal(CommandsConfigurationExtensions.StartCommandName, a.Name),
-            a => Assert.Equal(CommandsConfigurationExtensions.StopCommandName, a.Name),
-            a => Assert.Equal(CommandsConfigurationExtensions.RestartCommandName, a.Name));
+            a => Assert.Equal(KnownResourceCommands.StartCommand, a.Name),
+            a => Assert.Equal(KnownResourceCommands.StopCommand, a.Name),
+            a => Assert.Equal(KnownResourceCommands.RestartCommand, a.Name));
     }
 
     private static DcpExecutor CreateAppExecutor(

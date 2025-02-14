@@ -6,9 +6,11 @@ using System.Collections.Immutable;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -25,6 +27,9 @@ public class ResourceNotificationService : IDisposable
     private readonly ResourceLoggerService _resourceLoggerService;
 
     private Action<ResourceEvent>? OnResourceUpdated { get; set; }
+
+    // This is for testing
+    internal WaitBehavior DefaultWaitBehavior { get; set; }
 
     /// <summary>
     /// Creates a new instance of <see cref="ResourceNotificationService"/>.
@@ -45,6 +50,7 @@ public class ResourceNotificationService : IDisposable
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _serviceProvider = new NullServiceProvider();
         _resourceLoggerService = new ResourceLoggerService();
+        DefaultWaitBehavior = WaitBehavior.StopOnDependencyFailure;
     }
 
     /// <summary>
@@ -54,11 +60,16 @@ public class ResourceNotificationService : IDisposable
     /// <param name="hostApplicationLifetime">The host application lifetime.</param>
     /// <param name="resourceLoggerService">The resource logger service.</param>
     /// <param name="serviceProvider">The service provider.</param>
-    public ResourceNotificationService(ILogger<ResourceNotificationService> logger, IHostApplicationLifetime hostApplicationLifetime, IServiceProvider serviceProvider, ResourceLoggerService resourceLoggerService)
+    public ResourceNotificationService(
+        ILogger<ResourceNotificationService> logger,
+        IHostApplicationLifetime hostApplicationLifetime,
+        IServiceProvider serviceProvider,
+        ResourceLoggerService resourceLoggerService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _serviceProvider = serviceProvider;
         _resourceLoggerService = resourceLoggerService ?? throw new ArgumentNullException(nameof(resourceLoggerService));
+        DefaultWaitBehavior = serviceProvider.GetService<IOptions<ResourceNotificationServiceOptions>>()?.Value.DefaultWaitBehavior ?? WaitBehavior.StopOnDependencyFailure;
 
         // The IHostApplicationLifetime parameter is not used anymore, but we keep it for backwards compatibility.
         // Notification updates will be cancelled when the service is disposed.
@@ -128,59 +139,84 @@ public class ResourceNotificationService : IDisposable
         throw new OperationCanceledException($"The operation was cancelled before the resource reached one of the target states: [{string.Join(", ", targetStates)}]");
     }
 
-    private async Task WaitUntilHealthyAsync(IResource resource, IResource dependency, CancellationToken cancellationToken)
+    private async Task WaitUntilHealthyAsync(IResource resource, IResource dependency, WaitBehavior waitBehavior, CancellationToken cancellationToken)
     {
         var resourceLogger = _resourceLoggerService.GetLogger(resource);
         resourceLogger.LogInformation("Waiting for resource '{Name}' to enter the '{State}' state.", dependency.Name, KnownResourceStates.Running);
-
         await PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
-        var resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => IsContinuableState(re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
-        var snapshot = resourceEvent.Snapshot;
 
-        if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
+        var names = dependency.GetResolvedResourceNames();
+        var tasks = new Task[names.Length];
+
+        for (var i = 0; i < names.Length; i++)
         {
-            resourceLogger.LogError(
-                "Dependency resource '{ResourceName}' failed to start.",
-                dependency.Name
-                );
-
-            throw new DistributedApplicationException($"Dependency resource '{dependency.Name}' failed to start.");
-        }
-        else if (snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited)
-        {
-            resourceLogger.LogError(
-                "Resource '{ResourceName}' has entered the '{State}' state prematurely.",
-                dependency.Name,
-                snapshot.State.Text
-                );
-
-            throw new DistributedApplicationException(
-                $"Resource '{dependency.Name}' has entered the '{snapshot.State.Text}' state prematurely."
-                );
+            var displayName = names.Length > 1 ? names[i] : dependency.Name;
+            tasks[i] = Core(displayName, names[i]);
         }
 
-        // If our dependency resource has health check annotations we want to wait until they turn healthy
-        // otherwise we don't care about their health status.
-        if (dependency.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var _))
+        await Task.WhenAll(tasks).ConfigureAwait(false);
+
+        async Task Core(string displayName, string resourceId)
         {
-            resourceLogger.LogInformation("Waiting for resource '{Name}' to become healthy.", dependency.Name);
-            await WaitForResourceHealthyAsync(dependency.Name, cancellationToken).ConfigureAwait(false);
+            var resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => re.ResourceId == resourceId && IsContinuableState(waitBehavior, re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
+            var snapshot = resourceEvent.Snapshot;
+
+            if (waitBehavior == WaitBehavior.StopOnDependencyFailure)
+            {
+                if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
+                {
+                    resourceLogger.LogError(
+                        "Dependency resource '{ResourceName}' failed to start.",
+                        displayName
+                        );
+
+                    throw new DistributedApplicationException($"Dependency resource '{displayName}' failed to start.");
+                }
+                else if (snapshot.State!.Text == KnownResourceStates.Finished ||
+                         snapshot.State.Text == KnownResourceStates.Exited ||
+                         snapshot.State.Text == KnownResourceStates.RuntimeUnhealthy)
+                {
+                    resourceLogger.LogError(
+                        "Resource '{ResourceName}' has entered the '{State}' state prematurely.",
+                        displayName,
+                        snapshot.State.Text
+                        );
+
+                    throw new DistributedApplicationException(
+                        $"Resource '{displayName}' has entered the '{snapshot.State.Text}' state prematurely."
+                        );
+                }
+            }
+
+            // If our dependency resource has health check annotations we want to wait until they turn healthy
+            // otherwise we don't care about their health status.
+            if (dependency.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var _))
+            {
+                resourceLogger.LogInformation("Waiting for resource '{Name}' to become healthy.", displayName);
+                await WaitForResourceCoreAsync(dependency.Name, re => re.ResourceId == resourceId && re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken).ConfigureAwait(false);
+            }
+
+            // Now wait for the resource ready event to be executed.
+            resourceLogger.LogInformation("Waiting for resource ready to execute for '{Name}'.", displayName);
+            resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => re.ResourceId == resourceId && re.Snapshot.ResourceReadyEvent is not null, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            // Observe the result of the resource ready event task
+            await resourceEvent.Snapshot.ResourceReadyEvent!.EventTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+            resourceLogger.LogInformation("Finished waiting for resource '{Name}'.", displayName);
+
+            static bool IsContinuableState(WaitBehavior waitBehavior, CustomResourceSnapshot snapshot) =>
+                waitBehavior switch
+                {
+                    WaitBehavior.WaitOnDependencyFailure => snapshot.State?.Text == KnownResourceStates.Running,
+                    WaitBehavior.StopOnDependencyFailure => snapshot.State?.Text == KnownResourceStates.Running ||
+                                                            snapshot.State?.Text == KnownResourceStates.Finished ||
+                                                            snapshot.State?.Text == KnownResourceStates.Exited ||
+                                                            snapshot.State?.Text == KnownResourceStates.FailedToStart ||
+                                                            snapshot.State?.Text == KnownResourceStates.RuntimeUnhealthy,
+                    _ => throw new DistributedApplicationException($"Unexpected wait behavior: {waitBehavior}")
+                };
         }
-
-        // Now wait for the resource ready event to be executed.
-        resourceLogger.LogInformation("Waiting for resource ready to execute for '{Name}'.", dependency.Name);
-        resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => re.Snapshot.ResourceReadyEvent is not null, cancellationToken: cancellationToken).ConfigureAwait(false);
-
-        // Observe the result of the resource ready event task
-        await resourceEvent.Snapshot.ResourceReadyEvent!.EventTask.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-        resourceLogger.LogInformation("Finished waiting for resource '{Name}'.", dependency.Name);
-
-        static bool IsContinuableState(CustomResourceSnapshot snapshot) =>
-            snapshot.State?.Text == KnownResourceStates.Running ||
-            snapshot.State?.Text == KnownResourceStates.Finished ||
-            snapshot.State?.Text == KnownResourceStates.Exited ||
-            snapshot.State?.Text == KnownResourceStates.FailedToStart;
     }
 
     /// <summary>
@@ -204,47 +240,57 @@ public class ResourceNotificationService : IDisposable
 
     private async Task WaitUntilCompletionAsync(IResource resource, IResource dependency, int exitCode, CancellationToken cancellationToken)
     {
-        if (dependency.TryGetLastAnnotation<ReplicaAnnotation>(out var replicaAnnotation) && replicaAnnotation.Replicas > 1)
-        {
-            throw new DistributedApplicationException("WaitForCompletion cannot be used with resources that have replicas.");
-        }
+        var names = dependency.GetResolvedResourceNames();
+        var tasks = new Task[names.Length];
 
         var resourceLogger = _resourceLoggerService.GetLogger(resource);
         resourceLogger.LogInformation("Waiting for resource '{Name}' to complete.", dependency.Name);
 
         await PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
-        var resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => IsKnownTerminalState(re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
-        var snapshot = resourceEvent.Snapshot;
 
-        if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
+        for (var i = 0; i < names.Length; i++)
         {
-            resourceLogger.LogError(
-                "Dependency resource '{ResourceName}' failed to start.",
-                dependency.Name
-                );
-
-            throw new DistributedApplicationException($"Dependency resource '{dependency.Name}' failed to start.");
-        }
-        else if ((snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited) && snapshot.ExitCode is not null && snapshot.ExitCode != exitCode)
-        {
-            resourceLogger.LogError(
-                "Resource '{ResourceName}' has entered the '{State}' state with exit code '{ExitCode}' expected '{ExpectedExitCode}'.",
-                dependency.Name,
-                snapshot.State.Text,
-                snapshot.ExitCode,
-                exitCode
-                );
-
-            throw new DistributedApplicationException(
-                $"Resource '{dependency.Name}' has entered the '{snapshot.State.Text}' state with exit code '{snapshot.ExitCode}', expected '{exitCode}'."
-                );
+            var displayName = names.Length > 1 ? names[i] : dependency.Name;
+            tasks[i] = Core(displayName, names[i]);
         }
 
-        resourceLogger.LogInformation("Finished waiting for resource '{Name}'.", dependency.Name);
+        await Task.WhenAll(tasks).ConfigureAwait(false);
 
-        static bool IsKnownTerminalState(CustomResourceSnapshot snapshot) =>
-            KnownResourceStates.TerminalStates.Contains(snapshot.State?.Text) ||
-            snapshot.ExitCode is not null;
+        async Task Core(string displayName, string resourceId)
+        {
+            var resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => re.ResourceId == resourceId && IsKnownTerminalState(re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
+            var snapshot = resourceEvent.Snapshot;
+
+            if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
+            {
+                resourceLogger.LogError(
+                    "Dependency resource '{ResourceName}' failed to start.",
+                    displayName
+                    );
+
+                throw new DistributedApplicationException($"Dependency resource '{displayName}' failed to start.");
+            }
+            else if ((snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited) && snapshot.ExitCode is not null && snapshot.ExitCode != exitCode)
+            {
+                resourceLogger.LogError(
+                    "Resource '{ResourceName}' has entered the '{State}' state with exit code '{ExitCode}' expected '{ExpectedExitCode}'.",
+                    displayName,
+                    snapshot.State.Text,
+                    snapshot.ExitCode,
+                    exitCode
+                    );
+
+                throw new DistributedApplicationException(
+                    $"Resource '{displayName}' has entered the '{snapshot.State.Text}' state with exit code '{snapshot.ExitCode}', expected '{exitCode}'."
+                    );
+            }
+
+            resourceLogger.LogInformation("Finished waiting for resource '{Name}'.", displayName);
+
+            static bool IsKnownTerminalState(CustomResourceSnapshot snapshot) =>
+                KnownResourceStates.TerminalStates.Contains(snapshot.State?.Text) ||
+                snapshot.ExitCode is not null;
+        }
     }
 
     /// <summary>
@@ -274,7 +320,7 @@ public class ResourceNotificationService : IDisposable
 
             var pendingDependency = waitAnnotation.WaitType switch
             {
-                WaitType.WaitUntilHealthy => WaitUntilHealthyAsync(resource, waitAnnotation.Resource, cancellationToken),
+                WaitType.WaitUntilHealthy => WaitUntilHealthyAsync(resource, waitAnnotation.Resource, waitAnnotation.WaitBehavior ?? DefaultWaitBehavior, cancellationToken),
                 WaitType.WaitForCompletion => WaitUntilCompletionAsync(resource, waitAnnotation.Resource, waitAnnotation.ExitCode, cancellationToken),
                 _ => throw new DistributedApplicationException($"Unexpected wait type: {waitAnnotation.WaitType}")
             };
@@ -461,9 +507,9 @@ public class ResourceNotificationService : IDisposable
                     newState.ResourceReadyEvent is not null,
                     newState.ExitCode,
                     string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
-                    string.Join(Environment.NewLine, newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")),
-                    string.Join(Environment.NewLine, newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")),
-                    string.Join(Environment.NewLine, newState.HealthReports.Select(p => $"{p.Name} = {Stringify(p.Status)}")));
+                    JoinIndentLines(newState.EnvironmentVariables.Where(e => e.IsFromSpec).Select(e => $"{e.Name} = {e.Value}")),
+                    JoinIndentLines(newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")),
+                    JoinIndentLines(newState.HealthReports.Select(p => $"{p.Name} = {Stringify(p.Status)}")));
 
                 static string Stringify(object? o) => o switch
                 {
@@ -472,6 +518,22 @@ public class ResourceNotificationService : IDisposable
                     null => "(null)",
                     _ => o.ToString()!
                 };
+
+                static string JoinIndentLines(IEnumerable<string> values)
+                {
+                    const int spaces = 2;
+                    var indent = new string(' ', spaces);
+                    var separator = Environment.NewLine + indent;
+
+                    var result = string.Join(separator, values);
+                    if (string.IsNullOrEmpty(result))
+                    {
+                        return result;
+                    }
+
+                    // Indent first line.
+                    return indent + result;
+                }
             }
         }
 
@@ -631,4 +693,15 @@ public class ResourceEvent(IResource resource, string resourceId, CustomResource
     /// The snapshot of the resource state.
     /// </summary>
     public CustomResourceSnapshot Snapshot { get; } = snapshot;
+}
+
+/// <summary>
+/// Options for the <see cref="ResourceNotificationService"/>.
+/// </summary>
+public sealed class ResourceNotificationServiceOptions
+{
+    /// <summary>
+    /// The default behavior to use when waiting for dependencies.
+    /// </summary>
+    public WaitBehavior DefaultWaitBehavior { get; set; }
 }

@@ -24,15 +24,18 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
-using Polly.Retry;
-using Polly.Timeout;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed class DcpExecutor : IDcpExecutor
+internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
 {
-    private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
-    private const string DefaultAspireNetworkName = "default-aspire-network";
+    internal const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
+    internal const string DefaultAspireNetworkName = "default-aspire-network";
+
+    // Disposal of the DcpExecutor means shutting down watches and log streams,
+    // and asking DCP to start the shutdown process. If we cannot complete these tasks within 10 seconds,
+    // it probably means DCP crashed and there is no point trying further.
+    private static readonly TimeSpan s_disposeTimeout = TimeSpan.FromSeconds(10);
 
     private readonly ILogger<DistributedApplication> _distributedApplicationLogger;
     private readonly IKubernetesService _kubernetesService;
@@ -51,9 +54,16 @@ internal sealed class DcpExecutor : IDcpExecutor
 
     private readonly DcpResourceState _resourceState;
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
+
+    // Internal for testing.
+    internal ResiliencePipeline DeleteResourceRetryPipeline { get; set; }
+    internal ResiliencePipeline CreateServiceRetryPipeline { get; set; }
+    internal ResiliencePipeline WatchResourceRetryPipeline { get; set; }
+
     private readonly ConcurrentDictionary<string, (CancellationTokenSource Cancellation, Task Task)> _logStreams = new();
     private DcpInfo? _dcpInfo;
     private Task? _resourceWatchTask;
+    private int _stopped;
 
     private readonly record struct LogInformationEntry(string ResourceName, bool? LogsAvailable, bool? HasSubscribers);
     private readonly Channel<LogInformationEntry> _logInformationChannel = Channel.CreateUnbounded<LogInformationEntry>(
@@ -86,6 +96,10 @@ internal sealed class DcpExecutor : IDcpExecutor
         _executionContext = executionContext;
         _resourceState = new(model.Resources.ToDictionary(r => r.Name));
         _snapshotBuilder = new(_resourceState);
+
+        DeleteResourceRetryPipeline = DcpPipelineBuilder.BuildDeleteRetryPipeline(logger);
+        CreateServiceRetryPipeline = DcpPipelineBuilder.BuildCreateServiceRetryPipeline(options.Value, logger);
+        WatchResourceRetryPipeline = DcpPipelineBuilder.BuildWatchResourcePipeline(logger);
     }
 
     private string DefaultContainerHostName => _configuration["AppHost:ContainerHostname"] ?? _dcpInfo?.Containers?.ContainerHostName ?? "host.docker.internal";
@@ -128,6 +142,11 @@ internal sealed class DcpExecutor : IDcpExecutor
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
+        if (Interlocked.CompareExchange(ref _stopped, 1, 0) != 0)
+        {
+            return; // Already stopped/stop in progress.
+        }
+
         _shutdownCancellation.Cancel();
         var tasks = new List<Task>();
         if (_resourceWatchTask is { } resourceTask)
@@ -156,6 +175,11 @@ internal sealed class DcpExecutor : IDcpExecutor
 
         try
         {
+            if (_options.Value.WaitForResourceCleanup)
+            {
+                await _kubernetesService.CleanupResourcesAsync(cancellationToken).ConfigureAwait(false);
+            }
+
             // The app orchestrator (represented by kubernetesService here) will perform a resource cleanup
             // (if not done already) when the app host process exits.
             // This is just a perf optimization, so we do not care that much if this call fails.
@@ -172,6 +196,13 @@ internal sealed class DcpExecutor : IDcpExecutor
         {
             _logger.LogDebug(ex, "Application orchestrator could not be stopped programmatically.");
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        var disposeCts = new CancellationTokenSource();
+        disposeCts.CancelAfter(s_disposeTimeout);
+        await StopAsync(disposeCts.Token).ConfigureAwait(false);
     }
 
     private void WatchResourceChanges()
@@ -252,31 +283,10 @@ internal sealed class DcpExecutor : IDcpExecutor
 
         async Task WatchKubernetesResourceAsync<T>(Func<WatchEventType, T, Task> handler) where T : CustomResource
         {
-            var retryUntilCancelled = new RetryStrategyOptions()
-            {
-                ShouldHandle = new PredicateBuilder().HandleInner<EndOfStreamException>(),
-                BackoffType = DelayBackoffType.Exponential,
-                MaxRetryAttempts = int.MaxValue,
-                UseJitter = true,
-                MaxDelay = TimeSpan.FromSeconds(30),
-                OnRetry = (retry) =>
-                {
-                    _logger.LogDebug(
-                        retry.Outcome.Exception,
-                        "Long poll watch operation was ended by server after {LongPollDurationInMs} milliseconds (iteration {Iteration}).",
-                        retry.Duration.TotalMilliseconds,
-                        retry.AttemptNumber
-                        );
-                    return ValueTask.CompletedTask;
-                }
-            };
-
-            var pipeline = new ResiliencePipelineBuilder().AddRetry(retryUntilCancelled).Build();
-
             try
             {
                 _logger.LogDebug("Watching over DCP {ResourceType} resources.", typeof(T).Name);
-                await pipeline.ExecuteAsync(async (pipelineCancellationToken) =>
+                await WatchResourceRetryPipeline.ExecuteAsync(async (pipelineCancellationToken) =>
                 {
                     await foreach (var (eventType, resource) in _kubernetesService.WatchAsync<T>(cancellationToken: pipelineCancellationToken).ConfigureAwait<(global::k8s.WatchEventType, T)>(false))
                     {
@@ -585,33 +595,7 @@ internal sealed class DcpExecutor : IDcpExecutor
                 return;
             }
 
-            var withTimeout = new TimeoutStrategyOptions()
-            {
-                Timeout = _options.Value.ServiceStartupWatchTimeout
-            };
-
-            var tryTwice = new RetryStrategyOptions()
-            {
-                BackoffType = DelayBackoffType.Constant,
-                MaxDelay = TimeSpan.FromSeconds(1),
-                UseJitter = true,
-                MaxRetryAttempts = 1,
-                ShouldHandle = new PredicateBuilder().Handle<Exception>(),
-                OnRetry = (retry) =>
-                {
-                    _logger.LogDebug(
-                        retry.Outcome.Exception,
-                        "Watching for service port allocation ended with an error after {WatchDurationMs} (iteration {Iteration})",
-                        retry.Duration.TotalMilliseconds,
-                        retry.AttemptNumber
-                    );
-                    return ValueTask.CompletedTask;
-                }
-            };
-
-            var execution = new ResiliencePipelineBuilder().AddRetry(tryTwice).AddTimeout(withTimeout).Build();
-
-            await execution.ExecuteAsync(async (attemptCancellationToken) =>
+            await CreateServiceRetryPipeline.ExecuteAsync(async (attemptCancellationToken) =>
             {
                 var serviceChangeEnumerator = _kubernetesService.WatchAsync<Service>(cancellationToken: attemptCancellationToken);
                 await foreach (var (evt, updated) in serviceChangeEnumerator.ConfigureAwait(false))
@@ -827,6 +811,8 @@ internal sealed class DcpExecutor : IDcpExecutor
                 var projectLaunchConfiguration = new ProjectLaunchConfiguration();
                 projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
 
+                var projectArgs = new List<string>();
+
                 if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]))
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.IDE;
@@ -840,53 +826,43 @@ internal sealed class DcpExecutor : IDcpExecutor
                 else
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.Process;
+
                     if (_configuration.GetBool("DOTNET_WATCH") is not true)
                     {
-                        exeSpec.Spec.Args = [
+                        projectArgs.AddRange([
                             "run",
                             "--no-build",
                             "--project",
                             projectMetadata.ProjectPath,
-                        ];
+                        ]);
                     }
                     else
                     {
-                        exeSpec.Spec.Args = [
+                        projectArgs.AddRange([
                             "watch",
                             "--non-interactive",
                             "--no-hot-reload",
                             "--project",
                             projectMetadata.ProjectPath
-                        ];
+                        ]);
                     }
 
                     if (!string.IsNullOrEmpty(_distributedApplicationOptions.Configuration))
                     {
-                        exeSpec.Spec.Args.AddRange(new[] { "-c", _distributedApplicationOptions.Configuration });
+                        projectArgs.AddRange(new[] { "-c", _distributedApplicationOptions.Configuration });
                     }
 
                     // We pretty much always want to suppress the normal launch profile handling
                     // because the settings from the profile will override the ambient environment settings, which is not what we want
                     // (the ambient environment settings for service processes come from the application model
                     // and should be HIGHER priority than the launch profile settings).
-                    // This means we need to apply the launch profile settings manually--the invocation parameters here,
-                    // and the environment variables/application URLs inside CreateExecutableAsync().
-                    exeSpec.Spec.Args.Add("--no-launch-profile");
-
-                    var launchProfile = project.GetEffectiveLaunchProfile()?.LaunchProfile;
-                    if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
-                    {
-                        var cmdArgs = CommandLineArgsParser.Parse(launchProfile.CommandLineArgs);
-                        if (cmdArgs.Count > 0)
-                        {
-                            exeSpec.Spec.Args.Add("--");
-                            exeSpec.Spec.Args.AddRange(cmdArgs);
-                        }
-                    }
+                    // This means we need to apply the launch profile settings manually inside CreateExecutableAsync().
+                    projectArgs.Add("--no-launch-profile");
                 }
 
                 // We want this annotation even if we are not using IDE execution; see ToSnapshot() for details.
                 exeSpec.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
+                exeSpec.SetAnnotationAsObjectList(CustomResource.ResourceProjectArgsAnnotation, projectArgs);
 
                 var exeAppResource = new AppResource(project, exeSpec);
                 AddServicesProducedInfo(project, exeSpec, exeAppResource);
@@ -930,6 +906,12 @@ internal sealed class DcpExecutor : IDcpExecutor
 
                     foreach (var er in executables)
                     {
+                        if (er.ModelResource.TryGetAnnotationsOfType<ExplicitStartupAnnotation>(out _))
+                        {
+                            await _executorEvents.PublishAsync(new OnResourceChangedContext(cancellationToken, resourceType, resource, er.DcpResource.Metadata.Name, new ResourceStatus(KnownResourceStates.NotStarted, null, null), s => s with { State = new ResourceStateSnapshot(KnownResourceStates.NotStarted, null) })).ConfigureAwait(false);
+                            continue;
+                        }
+
                         try
                         {
                             await CreateExecutableAsync(er, resourceLogger, cancellationToken).ConfigureAwait(false);
@@ -978,142 +960,62 @@ internal sealed class DcpExecutor : IDcpExecutor
 
     private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
     {
-        ExecutableSpec spec;
-        Func<Task<CustomResource>> createResource;
-
-        switch (er.DcpResource)
+        if (er.DcpResource is not Executable exe)
         {
-            case Executable exe:
-                spec = exe.Spec;
-                createResource = async () => await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
-                break;
-            default:
-                throw new InvalidOperationException($"Expected an Executable resource, but got {er.DcpResource.Kind} instead");
+            throw new InvalidOperationException($"Expected an Executable resource, but got {er.DcpResource.Kind} instead");
+        }
+        var spec = exe.Spec;
+
+        // An executable can be restarted so args must be reset to an empty state.
+        // After resetting, first apply any dotnet project related args, e.g. configuration, and then add args from the model resource.
+        spec.Args = [];
+        if (er.DcpResource.TryGetAnnotationAsObjectList<string>(CustomResource.ResourceProjectArgsAnnotation, out var projectArgs))
+        {
+            spec.Args.AddRange(projectArgs);
         }
 
-        var failedToApplyArgs = false;
-        spec.Args ??= [];
+        var launchArgs = new List<(string Value, bool IsSensitive, bool AnnotationOnly)>();
 
-        if (er.ModelResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var exeArgsCallbacks))
+        // If the executable is a project then include any command line args from the launch profile.
+        if (er.ModelResource is ProjectResource project)
         {
-            var args = new List<object>();
-            var commandLineContext = new CommandLineArgsCallbackContext(args, cancellationToken);
+            // When the .NET project is launched from an IDE the launch profile args are automatically added.
+            // We still want to display the args in the dashboard so only add them to the custom arg annotations.
+            var annotationOnly = spec.ExecutionType == ExecutionType.IDE;
 
-            foreach (var exeArgsCallback in exeArgsCallbacks)
-            {
-                await exeArgsCallback.Callback(commandLineContext).ConfigureAwait(false);
-            }
-
-            foreach (var arg in args)
-            {
-                try
-                {
-                    var value = arg switch
-                    {
-                        string s => s,
-                        IValueProvider valueProvider => await GetValue(key: null, valueProvider, resourceLogger, isContainer: false, cancellationToken).ConfigureAwait(false),
-                        null => null,
-                        _ => throw new InvalidOperationException($"Unexpected value for {arg}")
-                    };
-
-                    if (value is not null)
-                    {
-                        spec.Args.Add(value);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    resourceLogger.LogCritical(ex, "Failed to apply argument '{ConfigKey}'. A dependency may have failed to start.", arg);
-                    _logger.LogDebug(ex, "Failed to apply argument '{ConfigKey}' to '{ResourceName}'. A dependency may have failed to start.", arg, er.ModelResource.Name);
-                    failedToApplyArgs = true;
-                }
-            }
+            var launchProfileArgs = GetLaunchProfileArgs(project.GetEffectiveLaunchProfile()?.LaunchProfile);
+            launchArgs.AddRange(launchProfileArgs.Select(a => (a, isSensitive: false, annotationOnly)));
         }
 
-        var config = new Dictionary<string, object>();
-        var context = new EnvironmentCallbackContext(_executionContext, config, cancellationToken)
-        {
-            Logger = resourceLogger
-        };
+        (var args, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
+        launchArgs.AddRange(args.Select(a => (a.Value, a.IsSensitive, annotationOnly: false)));
 
-        if (er.ModelResource.TryGetEnvironmentVariables(out var envVarAnnotations))
-        {
-            foreach (var ann in envVarAnnotations)
-            {
-                await ann.Callback(context).ConfigureAwait(false);
-            }
-        }
+        spec.Args.AddRange(launchArgs.Where(a => !a.AnnotationOnly).Select(a => a.Value));
+        er.DcpResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, launchArgs.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
 
-        var failedToApplyConfiguration = false;
-        spec.Env = [];
-        foreach (var c in config)
-        {
-            try
-            {
-                var value = c.Value switch
-                {
-                    string s => s,
-                    IValueProvider valueProvider => await GetValue(c.Key, valueProvider, resourceLogger, isContainer: false, cancellationToken).ConfigureAwait(false),
-                    null => null,
-                    _ => throw new InvalidOperationException($"Unexpected value for environment variable \"{c.Key}\".")
-                };
-
-                if (value is not null)
-                {
-                    spec.Env.Add(new EnvVar { Name = c.Key, Value = value });
-                }
-            }
-            catch (Exception ex)
-            {
-                resourceLogger.LogCritical(ex, "Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", c.Key);
-                _logger.LogDebug(ex, "Failed to apply configuration value '{ConfigKey}' to '{ResourceName}'. A dependency may have failed to start.", c.Key, er.ModelResource.Name);
-                failedToApplyConfiguration = true;
-            }
-        }
+        (spec.Env, var failedToApplyConfiguration) = await BuildEnvVarsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
 
         if (failedToApplyConfiguration || failedToApplyArgs)
         {
             throw new FailedToApplyEnvironmentException();
         }
 
-        await createResource().ConfigureAwait(false);
+        await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<string?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, bool isContainer, CancellationToken cancellationToken)
+    private static List<string> GetLaunchProfileArgs(LaunchProfile? launchProfile)
     {
-        var task = ExpressionResolver.ResolveAsync(isContainer, valueProvider, DefaultContainerHostName, cancellationToken);
-
-        if (!task.IsCompleted)
+        var args = new List<string>();
+        if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
         {
-            if (valueProvider is IResource resource)
+            var cmdArgs = CommandLineArgsParser.Parse(launchProfile.CommandLineArgs);
+            if (cmdArgs.Count > 0)
             {
-                if (key is null)
-                {
-                    logger.LogInformation("Waiting for value from resource '{ResourceName}'", resource.Name);
-                }
-                else
-                {
-                    logger.LogInformation("Waiting for value for environment variable value '{Name}' from resource '{ResourceName}'", key, resource.Name);
-                }
-            }
-            else if (valueProvider is ConnectionStringReference { Resource: var cs })
-            {
-                logger.LogInformation("Waiting for value for connection string from resource '{ResourceName}'", cs.Name);
-            }
-            else
-            {
-                if (key is null)
-                {
-                    logger.LogInformation("Waiting for value from {ValueProvider}.", valueProvider.ToString());
-                }
-                else
-                {
-                    logger.LogInformation("Waiting for value for environment variable value '{Name}' from {ValueProvider}.", key, valueProvider.ToString());
-                }
+                args.Add("--");
+                args.AddRange(cmdArgs);
             }
         }
-
-        return await task.ConfigureAwait(false);
+        return args;
     }
 
     private void PrepareContainers()
@@ -1201,7 +1103,7 @@ internal sealed class DcpExecutor : IDcpExecutor
         throw new DistributedApplicationException($"Couldn't find required instance ID for index {instanceIndex} on resource {resource.Name}.");
     }
 
-    private Task CreateContainersAsync(IEnumerable<AppResource> containerResources, CancellationToken cancellationToken)
+    private async Task CreateContainersAsync(IEnumerable<AppResource> containerResources, CancellationToken cancellationToken)
     {
         try
         {
@@ -1220,12 +1122,12 @@ internal sealed class DcpExecutor : IDcpExecutor
                     // For this exception we don't want the noise of the stack trace, we've already
                     // provided more detail where we detected the issue (e.g. envvar name). To get
                     // more diagnostic information reduce logging level for DCP log category to Debug.
-                    await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResource.Metadata.Name)).ConfigureAwait(false);
+                    await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName)).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Failed to create container resource {ResourceName}", cr.ModelResource.Name);
-                    await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResource.Metadata.Name)).ConfigureAwait(false);
+                    await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName)).ConfigureAwait(false);
                 }
             }
 
@@ -1240,10 +1142,16 @@ internal sealed class DcpExecutor : IDcpExecutor
 
             foreach (var cr in containerResources)
             {
+                if (cr.ModelResource.TryGetLastAnnotation<ExplicitStartupAnnotation>(out _))
+                {
+                    await _executorEvents.PublishAsync(new OnResourceChangedContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName, new ResourceStatus(KnownResourceStates.NotStarted, null, null), s => s with { State = new ResourceStateSnapshot(KnownResourceStates.NotStarted, null) })).ConfigureAwait(false);
+                    continue;
+                }
+
                 tasks.Add(CreateContainerAsyncCore(cr, cancellationToken));
             }
 
-            return Task.WhenAll(tasks);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
         }
         finally
         {
@@ -1260,162 +1168,27 @@ internal sealed class DcpExecutor : IDcpExecutor
 
         await ApplyBuildArgumentsAsync(dcpContainerResource, modelContainerResource, cancellationToken).ConfigureAwait(false);
 
-        var config = new Dictionary<string, object>();
-
-        dcpContainerResource.Spec.Env = [];
+        var spec = dcpContainerResource.Spec;
 
         if (cr.ServicesProduced.Count > 0)
         {
-            dcpContainerResource.Spec.Ports = new();
-
-            foreach (var sp in cr.ServicesProduced)
-            {
-                var ea = sp.EndpointAnnotation;
-
-                var portSpec = new ContainerPortSpec()
-                {
-                    ContainerPort = ea.TargetPort,
-                };
-
-                if (!ea.IsProxied && ea.Port is int)
-                {
-                    portSpec.HostPort = ea.Port;
-                }
-
-                switch (sp.EndpointAnnotation.Protocol)
-                {
-                    case ProtocolType.Tcp:
-                        portSpec.Protocol = PortProtocol.TCP; break;
-                    case ProtocolType.Udp:
-                        portSpec.Protocol = PortProtocol.UDP; break;
-                }
-
-                dcpContainerResource.Spec.Ports.Add(portSpec);
-            }
+            spec.Ports = BuildContainerPorts(cr);
         }
 
-        if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
-        {
-            var context = new EnvironmentCallbackContext(_executionContext, config, cancellationToken);
+        (spec.RunArgs, var failedToApplyRunArgs) = await BuildRunArgsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
 
-            foreach (var v in containerEnvironmentVariables)
-            {
-                await v.Callback(context).ConfigureAwait(false);
-            }
-        }
+        (var args, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
+        spec.Args = args.Select(a => a.Value).ToList();
+        dcpContainerResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, args.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
 
-        var failedToApplyConfiguration = false;
-        foreach (var kvp in config)
-        {
-            try
-            {
-                var value = kvp.Value switch
-                {
-                    string s => s,
-                    IValueProvider valueProvider => await GetValue(kvp.Key, valueProvider, resourceLogger, isContainer: true, cancellationToken).ConfigureAwait(false),
-                    null => null,
-                    _ => throw new InvalidOperationException($"Unexpected value for environment variable \"{kvp.Key}\".")
-                };
-
-                if (value is not null)
-                {
-                    dcpContainerResource.Spec.Env.Add(new EnvVar { Name = kvp.Key, Value = value });
-                }
-            }
-            catch (Exception ex)
-            {
-                resourceLogger.LogCritical(ex, "Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", kvp.Key);
-                _logger.LogDebug(ex, "Failed to apply configuration value '{ConfigKey}' to '{ResourceName}'. A dependency may have failed to start.", kvp.Key, modelContainerResource.Name);
-                failedToApplyConfiguration = true;
-            }
-        }
-
-        // Apply optional extra arguments to the container run command.
-        if (modelContainerResource.TryGetAnnotationsOfType<ContainerRuntimeArgsCallbackAnnotation>(out var runArgsCallback))
-        {
-            dcpContainerResource.Spec.RunArgs ??= [];
-
-            var args = new List<object>();
-
-            var containerRunArgsContext = new ContainerRuntimeArgsCallbackContext(args, cancellationToken);
-
-            foreach (var callback in runArgsCallback)
-            {
-                await callback.Callback(containerRunArgsContext).ConfigureAwait(false);
-            }
-
-            foreach (var arg in args)
-            {
-                try
-                {
-                    var value = arg switch
-                    {
-                        string s => s,
-                        IValueProvider valueProvider => await GetValue(key: null, valueProvider, resourceLogger, isContainer: true, cancellationToken).ConfigureAwait(false),
-                        null => null,
-                        _ => throw new InvalidOperationException($"Unexpected value for {arg}")
-                    };
-
-                    if (value is not null)
-                    {
-                        dcpContainerResource.Spec.RunArgs.Add(value);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    resourceLogger.LogCritical(ex, "Failed to apply container runtime argument '{ConfigKey}'. A dependency may have failed to start.", arg);
-                    _logger.LogDebug(ex, "Failed to apply container runtime argument '{ConfigKey}' to '{ResourceName}'. A dependency may have failed to start.", arg, modelContainerResource.Name);
-                    failedToApplyConfiguration = true;
-                }
-            }
-        }
-
-        var failedToApplyArgs = false;
-        if (modelContainerResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallback))
-        {
-            dcpContainerResource.Spec.Args ??= [];
-
-            var args = new List<object>();
-
-            var commandLineArgsContext = new CommandLineArgsCallbackContext(args, cancellationToken);
-
-            foreach (var callback in argsCallback)
-            {
-                await callback.Callback(commandLineArgsContext).ConfigureAwait(false);
-            }
-
-            foreach (var arg in args)
-            {
-                try
-                {
-                    var value = arg switch
-                    {
-                        string s => s,
-                        IValueProvider valueProvider => await GetValue(key: null, valueProvider, resourceLogger, isContainer: true, cancellationToken).ConfigureAwait(false),
-                        null => null,
-                        _ => throw new InvalidOperationException($"Unexpected value for {arg}")
-                    };
-
-                    if (value is not null)
-                    {
-                        dcpContainerResource.Spec.Args.Add(value);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    resourceLogger.LogCritical(ex, "Failed to apply container argument '{ConfigKey}'. A dependency may have failed to start.", arg);
-                    _logger.LogDebug(ex, "Failed to apply container argument '{ConfigKey}' to '{ResourceName}'. A dependency may have failed to start.", arg, modelContainerResource.Name);
-                    failedToApplyArgs = true;
-                }
-            }
-        }
+        (spec.Env, var failedToApplyConfiguration) = await BuildEnvVarsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
 
         if (modelContainerResource is ContainerResource containerResource)
         {
-            dcpContainerResource.Spec.Command = containerResource.Entrypoint;
+            spec.Command = containerResource.Entrypoint;
         }
 
-        if (failedToApplyArgs || failedToApplyConfiguration)
+        if (failedToApplyRunArgs || failedToApplyArgs || failedToApplyConfiguration)
         {
             throw new FailedToApplyEnvironmentException();
         }
@@ -1652,33 +1425,48 @@ internal sealed class DcpExecutor : IDcpExecutor
     {
         var appResource = (AppResource)resourceReference;
         var resourceType = GetResourceType(appResource.DcpResource, appResource.ModelResource);
+        var resourceLogger = _loggerService.GetLogger(appResource.DcpResourceName);
 
         try
         {
+            _logger.LogDebug("Starting {ResourceType} '{ResourceName}'.", resourceType, appResource.DcpResourceName);
+
+            // Raise event after resource has been deleted. This is required because the event sets the status to "Starting" and resources being
+            // deleted will temporarily override the status to a terminal state, such as "Exited".
             switch (appResource.DcpResource)
             {
                 case Container c:
-                    await StartExecutableOrContainerAsync(c).ConfigureAwait(false);
+                    await EnsureResourceDeletedAsync<Container>(appResource.DcpResourceName).ConfigureAwait(false);
+
+                    await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResourceName)).ConfigureAwait(false);
+                    await CreateContainerAsync(appResource, resourceLogger, cancellationToken).ConfigureAwait(false);
                     break;
                 case Executable e:
-                    await StartExecutableOrContainerAsync(e).ConfigureAwait(false);
+                    await EnsureResourceDeletedAsync<Executable>(appResource.DcpResourceName).ConfigureAwait(false);
+
+                    await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResourceName)).ConfigureAwait(false);
+                    await CreateExecutableAsync(appResource, resourceLogger, cancellationToken).ConfigureAwait(false);
                     break;
                 default:
                     throw new InvalidOperationException($"Unexpected resource type: {appResource.DcpResource.GetType().FullName}");
             }
         }
+        catch (FailedToApplyEnvironmentException)
+        {
+            // For this exception we don't want the noise of the stack trace, we've already
+            // provided more detail where we detected the issue (e.g. envvar name). To get
+            // more diagnostic information reduce logging level for DCP log category to Debug.
+            await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResourceName)).ConfigureAwait(false);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to start resource {ResourceName}", appResource.ModelResource.Name);
-            await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResource.Metadata.Name)).ConfigureAwait(false);
+            await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResourceName)).ConfigureAwait(false);
             throw;
         }
 
-        async Task StartExecutableOrContainerAsync<T>(T resource) where T : CustomResource
+        async Task EnsureResourceDeletedAsync<T>(string resourceName) where T : CustomResource
         {
-            var resourceName = resource.Metadata.Name;
-            _logger.LogDebug("Starting {ResourceType} '{ResourceName}'.", typeof(T).Name, resourceName);
-
             var resourceNotFound = false;
             try
             {
@@ -1697,42 +1485,134 @@ internal sealed class DcpExecutor : IDcpExecutor
             // before resorting to more extreme measures.
             if (!resourceNotFound)
             {
-                var ensureDeleteRetryStrategy = new RetryStrategyOptions()
-                {
-                    BackoffType = DelayBackoffType.Exponential,
-                    Delay = TimeSpan.FromMilliseconds(200),
-                    UseJitter = true,
-                    MaxRetryAttempts = 10, // Cumulative time for all attempts amounts to about 15 seconds
-                    MaxDelay = TimeSpan.FromSeconds(3),
-                    ShouldHandle = new PredicateBuilder().Handle<Exception>(),
-                    OnRetry = (retry) =>
-                    {
-                        _logger.LogDebug("Retrying check for deleted resource '{ResourceName}'. Attempt: {Attempt}", resourceName, retry.AttemptNumber);
-                        return ValueTask.CompletedTask;
-                    }
-                };
-
-                var execution = new ResiliencePipelineBuilder().AddRetry(ensureDeleteRetryStrategy).Build();
-
-                await execution.ExecuteAsync(async (attemptCancellationToken) =>
+                await DeleteResourceRetryPipeline.ExecuteAsync(async (state, attemptCancellationToken) =>
                 {
                     try
                     {
-                        await _kubernetesService.GetAsync<T>(resource.Metadata.Name, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
-                        throw new DistributedApplicationException($"Failed to delete '{resource.Metadata.Name}' successfully before restart.");
+                        await _kubernetesService.GetAsync<T>(state, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
+                        throw new DistributedApplicationException($"Failed to delete '{state}' successfully before restart.");
                     }
                     catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
                         // Success.
                     }
-                }, cancellationToken).ConfigureAwait(false);
+                }, resourceName, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private async Task<(List<(string Value, bool IsSensitive)>, bool)> BuildArgsAsync(ILogger resourceLogger, IResource modelResource, CancellationToken cancellationToken)
+    {
+        var failedToApplyArgs = false;
+        var args = new List<(string Value, bool IsSensitive)>();
+
+        await modelResource.ProcessArgumentValuesAsync(
+            _executionContext,
+            (unprocessed, value, ex, isSensitive) =>
+            {
+                if (ex is not null)
+                {
+                    failedToApplyArgs = true;
+
+                    resourceLogger.LogCritical(ex, "Failed to apply argument value '{ArgKey}'. A dependency may have failed to start.", ex.Data["ArgKey"]);
+                    _logger.LogDebug(ex, "Failed to apply argument value '{ArgKey}' to '{ResourceName}'. A dependency may have failed to start.", ex.Data["ArgKey"], modelResource.Name);
+                }
+                else if (value is { } argument)
+                {
+                    args.Add((argument, isSensitive));
+                }
+            },
+            resourceLogger,
+            DefaultContainerHostName,
+            cancellationToken).ConfigureAwait(false);
+
+        return (args, failedToApplyArgs);
+    }
+
+    private async Task<(List<EnvVar>, bool)> BuildEnvVarsAsync(ILogger resourceLogger, IResource modelResource, CancellationToken cancellationToken)
+    {
+        var failedToApplyConfiguration = false;
+        var env = new List<EnvVar>();
+
+        await modelResource.ProcessEnvironmentVariableValuesAsync(
+            _executionContext,
+            (key, unprocessed, value, ex) =>
+            {
+                if (ex is not null)
+                {
+                    failedToApplyConfiguration = true;
+                    resourceLogger.LogCritical(ex, "Failed to apply environment variable '{Name}'. A dependency may have failed to start.", key);
+                    _logger.LogDebug(ex, "Failed to apply environment variable '{Name}' to '{ResourceName}'. A dependency may have failed to start.", key, modelResource.Name);
+                }
+                else if (value is string s)
+                {
+                    env.Add(new EnvVar { Name = key, Value = s });
+                }
+            },
+            resourceLogger,
+            DefaultContainerHostName,
+            cancellationToken).ConfigureAwait(false);
+
+        return (env, failedToApplyConfiguration);
+    }
+
+    private async Task<(List<string>, bool)> BuildRunArgsAsync(ILogger resourceLogger, IResource modelResource, CancellationToken cancellationToken)
+    {
+        var failedToApplyArgs = false;
+        var runArgs = new List<string>();
+
+        await modelResource.ProcessContainerRuntimeArgValues(
+            (a, ex) =>
+            {
+                if (ex is not null)
+                {
+                    failedToApplyArgs = true;
+                    resourceLogger.LogCritical(ex, "Failed to apply argument value '{ArgKey}'. A dependency may have failed to start.", a);
+                    _logger.LogDebug(ex, "Failed to apply argument value '{ArgKey}' to '{ResourceName}'. A dependency may have failed to start.", a, modelResource.Name);
+                }
+                else if (a is string s)
+                {
+                    runArgs.Add(s);
+                }
+            },
+            resourceLogger,
+            DefaultContainerHostName,
+            cancellationToken).ConfigureAwait(false);
+
+        return (runArgs, failedToApplyArgs);
+    }
+
+    private static List<ContainerPortSpec> BuildContainerPorts(AppResource cr)
+    {
+        var ports = new List<ContainerPortSpec>();
+
+        foreach (var sp in cr.ServicesProduced)
+        {
+            var ea = sp.EndpointAnnotation;
+
+            var portSpec = new ContainerPortSpec()
+            {
+                ContainerPort = ea.TargetPort,
+            };
+
+            if (!ea.IsProxied && ea.Port is int)
+            {
+                portSpec.HostPort = ea.Port;
             }
 
-            // Raise event after resource has been deleted. This is required because the event sets the status to "Starting" and resources being
-            // deleted will temporarily override the status to a terminal state, such as "Exited".
-            await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResource.Metadata.Name)).ConfigureAwait(false);
+            switch (sp.EndpointAnnotation.Protocol)
+            {
+                case ProtocolType.Tcp:
+                    portSpec.Protocol = PortProtocol.TCP;
+                    break;
+                case ProtocolType.Udp:
+                    portSpec.Protocol = PortProtocol.UDP;
+                    break;
+            }
 
-            await _kubernetesService.CreateAsync(resource, cancellationToken).ConfigureAwait(false);
+            ports.Add(portSpec);
         }
+
+        return ports;
     }
 }

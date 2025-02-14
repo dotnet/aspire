@@ -10,6 +10,18 @@
         "principalId": ""
       }
     },
+    "queue1": {
+      "type": "value.v0",
+      "connectionString": "{sbemulator.outputs.serviceBusEndpoint}"
+    },
+    "topic1": {
+      "type": "value.v0",
+      "connectionString": "{sbemulator.outputs.serviceBusEndpoint}"
+    },
+    "sub1": {
+      "type": "value.v0",
+      "connectionString": "{sbemulator.outputs.serviceBusEndpoint}"
+    },
     "worker": {
       "type": "project.v0",
       "path": "../ServiceBusWorker/ServiceBusWorker.csproj",

@@ -3,10 +3,10 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.ServiceBus;
-using Aspire.Hosting.Utils;
 using Azure.Messaging.ServiceBus;
 using Azure.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,22 +32,31 @@ public static class AzureServiceBusExtensions
 
         var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
-            var skuParameter = new ProvisioningParameter("sku", typeof(string))
-            {
-                Value = "Standard"
-            };
-            infrastructure.Add(skuParameter);
-
-            var serviceBusNamespace = new AzureProvisioning.ServiceBusNamespace(infrastructure.AspireResource.GetBicepIdentifier())
-            {
-                Sku = new AzureProvisioning.ServiceBusSku()
+            AzureProvisioning.ServiceBusNamespace serviceBusNamespace = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+                (identifier, name) =>
                 {
-                    Name = skuParameter
+                    var resource = AzureProvisioning.ServiceBusNamespace.FromExisting(identifier);
+                    resource.Name = name;
+                    return resource;
                 },
-                DisableLocalAuth = true,
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-            };
-            infrastructure.Add(serviceBusNamespace);
+                (infrastructure) =>
+                {
+                    var skuParameter = new ProvisioningParameter("sku", typeof(string))
+                    {
+                        Value = "Standard"
+                    };
+                    infrastructure.Add(skuParameter);
+                    var resource = new AzureProvisioning.ServiceBusNamespace(infrastructure.AspireResource.GetBicepIdentifier())
+                    {
+                        Sku = new AzureProvisioning.ServiceBusSku()
+                        {
+                            Name = skuParameter
+                        },
+                        DisableLocalAuth = true,
+                        Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                    };
+                    return resource;
+                });
 
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
             infrastructure.Add(principalTypeParameter);
@@ -95,108 +104,183 @@ public static class AzureServiceBusExtensions
     }
 
     /// <summary>
-    /// Adds an Azure Service Bus Queue resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// Adds an Azure Service Bus Queue resource to the application model.
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
-    /// <param name="name">The name of the queue.</param>
+    /// <param name="name">The name of the queue resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(WithQueue)} instead to add an Azure Service Bus Queue.")]
+    [Obsolete($"This method is obsolete because it has the wrong return type and will be removed in a future version. Use {nameof(AddServiceBusQueue)} instead to add an Azure Service Bus Queue.")]
     public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name)
     {
-        return builder.WithQueue(name);
-    }
+        builder.AddServiceBusQueue(name);
 
-    /// <summary>
-    /// Adds an Azure Service Bus Queue resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
-    /// </summary>
-    /// <param name="builder">The Azure Service Bus resource builder.</param>
-    /// <param name="name">The name of the queue.</param>
-    /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusQueue"/>.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureServiceBusResource> WithQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<ServiceBusQueue>? configure = null)
-    {
-        var queue = builder.Resource.Queues.FirstOrDefault(x => x.Name == name);
-
-        if (queue == null)
-        {
-            queue = new ServiceBusQueue(name);
-            builder.Resource.Queues.Add(queue);
-        }
-
-        configure?.Invoke(queue);
         return builder;
     }
 
     /// <summary>
-    /// Adds an Azure Service Bus Topic resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// Adds an Azure Service Bus Queue resource to the application model.
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
-    /// <param name="name">The name of the topic.</param>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(WithTopic)} instead to add an Azure Service Bus Topic.")]
+    /// <param name="name">The name of the queue resource.</param>
+    /// <param name="queueName">The name of the Service Bus Queue. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureServiceBusQueueResource> AddServiceBusQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string? queueName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
+        // Use the resource name as the queue name if it's not provided
+        queueName ??= name;
+
+        var queue = new AzureServiceBusQueueResource(name, queueName, builder.Resource);
+        builder.Resource.Queues.Add(queue);
+
+        return builder.ApplicationBuilder.AddResource(queue);
+    }
+
+    /// <summary>
+    /// Allows setting the properties of an Azure Service Bus Queue resource.
+    /// </summary>
+    /// <param name="builder">The Azure Service Bus Queue resource builder.</param>
+    /// <param name="configure">A method that can be used for customizing the <see cref="AzureServiceBusQueueResource"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureServiceBusQueueResource> WithProperties(this IResourceBuilder<AzureServiceBusQueueResource> builder, Action<AzureServiceBusQueueResource> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        configure(builder.Resource);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds an Azure Service Bus Topic resource to the application model.
+    /// </summary>
+    /// <param name="builder">The Azure Service Bus resource builder.</param>
+    /// <param name="name">The name of the topic resource.</param>
+    [Obsolete($"This method is obsolete because it has the wrong return type and will be removed in a future version. Use {nameof(AddServiceBusTopic)} instead to add an Azure Service Bus Topic.")]
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name)
     {
-        return builder.WithTopic(name);
-    }
+        builder.AddServiceBusTopic(name);
 
-    /// <summary>
-    /// Adds an Azure Service Bus Topic resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
-    /// </summary>
-    /// <param name="builder">The Azure Service Bus resource builder.</param>
-    /// <param name="name">The name of the topic.</param>
-    /// <param name="subscriptions">The name of the subscriptions.</param>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(WithTopic)} instead to add an Azure Service Bus Topic and Subscriptions.")]
-    public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string[] subscriptions)
-    {
-        return builder.WithTopic(name, topic =>
-        {
-            foreach (var subscription in subscriptions)
-            {
-                if (!topic.Subscriptions.Any(x => x.Name == subscription))
-                {
-                    topic.Subscriptions.Add(new ServiceBusSubscription(subscription));
-                }
-            }
-        });
-    }
-
-    /// <summary>
-    /// Adds an Azure Service Bus Topic resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
-    /// </summary>
-    /// <param name="builder">The Azure Service Bus resource builder.</param>
-    /// <param name="name">The name of the topic.</param>
-    /// <param name="configure">An optional method that can be used for customizing the <see cref="ServiceBusTopic"/>.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureServiceBusResource> WithTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, Action<ServiceBusTopic>? configure = null)
-    {
-        var topic = builder.Resource.Topics.FirstOrDefault(x => x.Name == name);
-
-        if (topic == null)
-        {
-            topic = new ServiceBusTopic(name);
-            builder.Resource.Topics.Add(topic);
-        }
-
-        configure?.Invoke(topic);
         return builder;
     }
 
     /// <summary>
-    /// Adds an Azure Service Bus Subscription resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// Adds an Azure Service Bus Topic resource to the application model.
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
-    /// <param name="topicName">The name of the topic.</param>
+    /// <param name="name">The name of the topic resource.</param>
+    /// <param name="subscriptions">The name of the subscriptions.</param>
+    [Obsolete($"This method is obsolete because it has the wrong return type and will be removed in a future version. Use {nameof(AddServiceBusTopic)} and {nameof(AddServiceBusSubscription)} instead to add an Azure Service Bus Topic and Subscriptions.")]
+    public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string[] subscriptions)
+    {
+        var topic = builder.AddServiceBusTopic(name);
+
+        foreach (var subscription in subscriptions)
+        {
+            topic.AddServiceBusSubscription(subscription);
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds an Azure Service Bus Topic resource to the application model.
+    /// </summary>
+    /// <param name="builder">The Azure Service Bus resource builder.</param>
+    /// <param name="name">The name of the topic resource.</param>
+    /// <param name="topicName">The name of the Service Bus Topic. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureServiceBusTopicResource> AddServiceBusTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string? topicName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
+        // Use the resource name as the topic name if it's not provided
+        topicName ??= name;
+
+        var topic = new AzureServiceBusTopicResource(name, topicName, builder.Resource);
+        builder.Resource.Topics.Add(topic);
+
+        return builder.ApplicationBuilder.AddResource(topic);
+    }
+
+    /// <summary>
+    /// Allows setting the properties of an Azure Service Bus Topic resource.
+    /// </summary>
+    /// <param name="builder">The Azure Service Bus Topic resource builder.</param>
+    /// <param name="configure">A method that can be used for customizing the <see cref="AzureServiceBusTopicResource"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureServiceBusTopicResource> WithProperties(this IResourceBuilder<AzureServiceBusTopicResource> builder, Action<AzureServiceBusTopicResource> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        configure(builder.Resource);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds an Azure Service Bus Subscription resource to the application model.
+    /// </summary>
+    /// <param name="builder">The Azure Service Bus resource builder.</param>
+    /// <param name="topicName">The name of the topic resource.</param>
     /// <param name="subscriptionName">The name of the subscription.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(WithTopic)} instead to add an Azure Service Bus Subscription to a Topic.")]
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddServiceBusSubscription)} instead to add an Azure Service Bus Subscription to a Topic.")]
     public static IResourceBuilder<AzureServiceBusResource> AddSubscription(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName)
     {
-        builder.WithTopic(topicName, topic =>
+        IResourceBuilder<AzureServiceBusTopicResource> topicBuilder;
+        if (builder.Resource.Topics.FirstOrDefault(x => x.Name == topicName) is { } existingResource)
         {
-            if (!topic.Subscriptions.Any(x => x.Name == subscriptionName))
-            {
-                topic.Subscriptions.Add(new ServiceBusSubscription(subscriptionName));
-            }
-        });
+            topicBuilder = builder.ApplicationBuilder.CreateResourceBuilder(existingResource);
+        }
+        else
+        {
+            topicBuilder = builder.AddServiceBusTopic(topicName);
+        }
+
+        topicBuilder.AddServiceBusSubscription(subscriptionName);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds an Azure Service Bus Subscription resource to the application model.
+    /// </summary>
+    /// <param name="builder">The Azure Service Bus Topic resource builder.</param>
+    /// <param name="name">The name of the subscription resource.</param>
+    /// <param name="subscriptionName">The name of the Service Bus Subscription. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureServiceBusSubscriptionResource> AddServiceBusSubscription(this IResourceBuilder<AzureServiceBusTopicResource> builder, [ResourceName] string name, string? subscriptionName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
+        // Use the resource name as the subscription name if it's not provided
+        subscriptionName ??= name;
+
+        var subscription = new AzureServiceBusSubscriptionResource(name, subscriptionName, builder.Resource);
+        builder.Resource.Subscriptions.Add(subscription);
+
+        return builder.ApplicationBuilder.AddResource(subscription);
+    }
+
+    /// <summary>
+    /// Allows setting the properties of an Azure Service Bus Subscription resource.
+    /// </summary>
+    /// <param name="builder">The Azure Service Bus Subscription resource builder.</param>
+    /// <param name="configure">A method that can be used for customizing the <see cref="AzureServiceBusSubscriptionResource"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureServiceBusSubscriptionResource> WithProperties(this IResourceBuilder<AzureServiceBusSubscriptionResource> builder, Action<AzureServiceBusSubscriptionResource> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        configure(builder.Resource);
 
         return builder;
     }
@@ -228,25 +312,20 @@ public static class AzureServiceBusExtensions
     /// </example>
     public static IResourceBuilder<AzureServiceBusResource> RunAsEmulator(this IResourceBuilder<AzureServiceBusResource> builder, Action<IResourceBuilder<AzureServiceBusEmulatorResource>>? configureContainer = null)
     {
+        if (builder.Resource.IsEmulator)
+        {
+            throw new InvalidOperationException("The Azure Service Bus resource is already configured to run as an emulator.");
+        }
+
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return builder;
         }
 
-        // Create a default file mount. This could be replaced by a user-provided file mount.
-        var configHostFile = Path.Combine(Directory.CreateTempSubdirectory("AspireServiceBusEmulator").FullName, "Config.json");
-
-        var defaultConfigFileMount = new ContainerMountAnnotation(
-                configHostFile,
-                AzureServiceBusEmulatorResource.EmulatorConfigJsonPath,
-                ContainerMountType.BindMount,
-                isReadOnly: true);
-
-        builder.WithAnnotation(defaultConfigFileMount);
-
         // Add emulator container
 
-        var password = PasswordGenerator.Generate(16, true, true, true, true, 0, 0, 0, 0);
+        // The password must be at least 8 characters long and contain characters from three of the following four sets: Uppercase letters, Lowercase letters, Base 10 digits, and Symbols
+        var passwordParameter = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder.ApplicationBuilder, $"{builder.Resource.Name}-sql-pwd", minLower: 1, minUpper: 1, minNumeric: 1);
 
         builder
             .WithEndpoint(name: "emulator", targetPort: 5672)
@@ -264,7 +343,11 @@ public static class AzureServiceBusExtensions
                 .WithImageRegistry(ServiceBusEmulatorContainerImageTags.AzureSqlEdgeRegistry)
                 .WithEndpoint(targetPort: 1433, name: "tcp")
                 .WithEnvironment("ACCEPT_EULA", "Y")
-                .WithEnvironment("MSSQL_SA_PASSWORD", password);
+                .WithEnvironment(context =>
+                {
+                    context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = passwordParameter;
+                })
+                .WithParentRelationship(builder);
 
         builder.WithAnnotation(new EnvironmentCallbackAnnotation((EnvironmentCallbackContext context) =>
         {
@@ -272,22 +355,99 @@ public static class AzureServiceBusExtensions
 
             context.EnvironmentVariables.Add("ACCEPT_EULA", "Y");
             context.EnvironmentVariables.Add("SQL_SERVER", $"{sqlEndpoint.Resource.Name}:{sqlEndpoint.TargetPort}");
-            context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", password);
+            context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", passwordParameter);
         }));
+
+        var lifetime = ContainerLifetime.Session;
+
+        if (configureContainer != null)
+        {
+            var surrogate = new AzureServiceBusEmulatorResource(builder.Resource);
+            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
+            configureContainer(surrogateBuilder);
+
+            if (surrogate.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
+            {
+                lifetime = lifetimeAnnotation.Lifetime;
+            }
+        }
+
+        sqlEdgeResource = sqlEdgeResource.WithLifetime(lifetime);
+
+        // RunAsEmulator() can be followed by custom model configuration so we need to delay the creation of the Config.json file
+        // until all resources are about to be prepared and annotations can't be updated anymore.
+
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((@event, ct) =>
+        {
+            // Create JSON configuration file
+
+            var hasCustomConfigJson = builder.Resource.Annotations.OfType<ContainerMountAnnotation>().Any(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath);
+
+            if (hasCustomConfigJson)
+            {
+                return Task.CompletedTask;
+            }
+
+            // Create Config.json file content and its alterations in a temporary file
+            var tempConfigFile = WriteEmulatorConfigJson(builder.Resource);
+
+            try
+            {
+                // Apply ConfigJsonAnnotation modifications
+                var configJsonAnnotations = builder.Resource.Annotations.OfType<ConfigJsonAnnotation>();
+
+                if (configJsonAnnotations.Any())
+                {
+                    using var readStream = new FileStream(tempConfigFile, FileMode.Open, FileAccess.Read);
+                    var jsonObject = JsonNode.Parse(readStream);
+                    readStream.Close();
+
+                    if (jsonObject == null)
+                    {
+                        throw new InvalidOperationException("The configuration file mount could not be parsed.");
+                    }
+
+                    foreach (var annotation in configJsonAnnotations)
+                    {
+
+                        annotation.Configure(jsonObject);
+                    }
+
+                    using var writeStream = new FileStream(tempConfigFile, FileMode.Open, FileAccess.Write);
+                    using var writer = new Utf8JsonWriter(writeStream, new JsonWriterOptions { Indented = true });
+                    jsonObject.WriteTo(writer);
+                }
+
+                var aspireStore = builder.ApplicationBuilder.CreateStore();
+
+                // Deterministic file path for the configuration file based on its content
+                var configJsonPath = aspireStore.GetFileNameWithContent($"{builder.Resource.Name}-Config.json", tempConfigFile);
+
+                builder.WithAnnotation(new ContainerMountAnnotation(
+                    configJsonPath,
+                    AzureServiceBusEmulatorResource.EmulatorConfigJsonPath,
+                    ContainerMountType.BindMount,
+                    isReadOnly: true));
+            }
+            finally
+            {
+                try
+                {
+                    File.Delete(tempConfigFile);
+                }
+                catch
+                {
+                }
+            }
+
+            return Task.CompletedTask;
+        });
 
         ServiceBusClient? serviceBusClient = null;
         string? queueOrTopicName = null;
 
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (@event, ct) =>
         {
-            var serviceBusEmulatorResources = builder.ApplicationBuilder.Resources.OfType<AzureServiceBusResource>().Where(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
-
-            if (!serviceBusEmulatorResources.Any())
-            {
-                // No-op if there is no Azure Service Bus emulator resource.
-                return;
-            }
-
             var connectionString = await builder.Resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
 
             if (connectionString == null)
@@ -301,122 +461,11 @@ public static class AzureServiceBusExtensions
             serviceBusClient = new ServiceBusClient(connectionString, noRetryOptions);
 
             queueOrTopicName =
-                serviceBusEmulatorResources.SelectMany(x => x.Queues).Select(x => x.Name).FirstOrDefault()
-                ?? serviceBusEmulatorResources.SelectMany(x => x.Topics).Select(x => x.Name).FirstOrDefault();
-
-            // Create JSON configuration file
-
-            foreach (var emulatorResource in serviceBusEmulatorResources)
-            {
-                var configFileMount = emulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath);
-
-                // If there is a custom mount for EmulatorConfigJsonPath we don't need to create the Config.json file.
-                if (configFileMount != defaultConfigFileMount)
-                {
-                    continue;
-                }
-
-                var fileStreamOptions = new FileStreamOptions() { Mode = FileMode.Create, Access = FileAccess.Write };
-
-                if (!OperatingSystem.IsWindows())
-                {
-                    fileStreamOptions.UnixCreateMode =
-                        UnixFileMode.UserRead | UnixFileMode.UserWrite
-                        | UnixFileMode.GroupRead | UnixFileMode.GroupWrite
-                        | UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
-                }
-
-                using (var stream = new FileStream(configFileMount.Source!, fileStreamOptions))
-                {
-                    using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
-
-                    writer.WriteStartObject();                      // {
-                    writer.WriteStartObject("UserConfig");          //   "UserConfig": {
-                    writer.WriteStartArray("Namespaces");           //     "Namespaces": [
-                    writer.WriteStartObject();                      //       {
-                    writer.WriteString("Name", emulatorResource.Name);
-                    writer.WriteStartArray("Queues");               //         "Queues": [
-
-                    foreach (var queue in emulatorResource.Queues)
-                    {
-                        writer.WriteStartObject();
-                        queue.WriteJsonObjectProperties(writer);
-                        writer.WriteEndObject();
-                    }
-
-                    writer.WriteEndArray();                         //         ] (/Queues)
-
-                    writer.WriteStartArray("Topics");               //         "Topics": [
-                    foreach (var topic in emulatorResource.Topics)
-                    {
-                        writer.WriteStartObject();                  //           "{ (Topic)"
-                        topic.WriteJsonObjectProperties(writer);
-
-                        writer.WriteStartArray("Subscriptions");    //             "Subscriptions": [
-                        foreach (var subscription in topic.Subscriptions)
-                        {
-                            writer.WriteStartObject();              //               "{ (Subscription)"
-                            subscription.WriteJsonObjectProperties(writer);
-
-                            writer.WriteStartArray("Rules");        //                 "Rules": [
-                            foreach (var rule in subscription.Rules)
-                            {
-                                writer.WriteStartObject();
-                                rule.WriteJsonObjectProperties(writer);
-                                writer.WriteEndObject();
-                            }
-
-                            writer.WriteEndArray();                 //                  ] (/Rules)
-
-                            writer.WriteEndObject();                //               } (/Subscription)
-                        }
-
-                        writer.WriteEndArray();                     //             ] (/Subscriptions)
-
-                        writer.WriteEndObject();                    //           } (/Topic)
-                    }
-                    writer.WriteEndArray();                         //         ] (/Topics)
-
-                    writer.WriteEndObject();                        //       } (/Namespace)
-                    writer.WriteEndArray();                         //     ], (/Namespaces)
-                    writer.WriteStartObject("Logging");             //     "Logging": {
-                    writer.WriteString("Type", "File");             //       "Type": "File"
-                    writer.WriteEndObject();                        //     } (/LoggingConfig)
-
-                    writer.WriteEndObject();                        //   } (/UserConfig)
-                    writer.WriteEndObject();                        // } (/Root)
-                }
-
-                // Apply ConfigJsonAnnotation modifications
-                var configJsonAnnotations = emulatorResource.Annotations.OfType<ConfigJsonAnnotation>();
-
-                foreach (var annotation in configJsonAnnotations)
-                {
-                    using var readStream = new FileStream(configFileMount.Source!, FileMode.Open, FileAccess.Read);
-                    var jsonObject = JsonNode.Parse(readStream);
-                    readStream.Close();
-
-                    using var writeStream = new FileStream(configFileMount.Source!, FileMode.Open, FileAccess.Write);
-                    using var writer = new Utf8JsonWriter(writeStream, new JsonWriterOptions { Indented = true });
-
-                    if (jsonObject == null)
-                    {
-                        throw new InvalidOperationException("The configuration file mount could not be parsed.");
-                    }
-                    annotation.Configure(jsonObject);
-                    jsonObject.WriteTo(writer);
-                }
-            }
+                builder.Resource.Queues.Select(x => x.Name).FirstOrDefault()
+                ?? builder.Resource.Topics.Select(x => x.Name).FirstOrDefault();
         });
 
         var healthCheckKey = $"{builder.Resource.Name}_check";
-
-        if (configureContainer != null)
-        {
-            var surrogate = new AzureServiceBusEmulatorResource(builder.Resource);
-            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
-            configureContainer(surrogateBuilder);
-        }
 
         // To use the existing ServiceBus health check we would need to know if there is any queue or topic defined.
         // We can register a health check for a queue and then no-op if there are no queues. Same for topics.
@@ -461,7 +510,21 @@ public static class AzureServiceBusExtensions
     /// <param name="builder">The builder for the <see cref="AzureServiceBusEmulatorResource"/>.</param>
     /// <param name="configJson">A callback to update the JSON object representation of the configuration.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureServiceBusEmulatorResource> ConfigureEmulator(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, Action<JsonNode> configJson)
+    /// <example>
+    /// Here is an example of how to configure the emulator to use a different logging mechanism:
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddAzureServiceBus("servicebusns")
+    ///        .RunAsEmulator(configure => configure
+    ///            .WithConfiguration(document =>
+    ///            {
+    ///                document["UserConfig"]!["Logging"] = new JsonObject { ["Type"] = "Console" };
+    ///            });
+    ///        );
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<AzureServiceBusEmulatorResource> WithConfiguration(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, Action<JsonNode> configJson)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configJson);
@@ -483,5 +546,71 @@ public static class AzureServiceBusExtensions
         {
             endpoint.Port = port;
         });
+    }
+
+    private static string WriteEmulatorConfigJson(AzureServiceBusResource emulatorResource)
+    {
+        var filePath = Path.GetTempFileName();
+
+        using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Write);
+        using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
+
+        writer.WriteStartObject();                      // {
+        writer.WriteStartObject("UserConfig");          //   "UserConfig": {
+        writer.WriteStartArray("Namespaces");           //     "Namespaces": [
+        writer.WriteStartObject();                      //       {
+        writer.WriteString("Name", emulatorResource.Name);
+        writer.WriteStartArray("Queues");               //         "Queues": [
+
+        foreach (var queue in emulatorResource.Queues)
+        {
+            writer.WriteStartObject();
+            queue.WriteJsonObjectProperties(writer);
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();                         //         ] (/Queues)
+
+        writer.WriteStartArray("Topics");               //         "Topics": [
+        foreach (var topic in emulatorResource.Topics)
+        {
+            writer.WriteStartObject();                  //           "{ (Topic)"
+            topic.WriteJsonObjectProperties(writer);
+
+            writer.WriteStartArray("Subscriptions");    //             "Subscriptions": [
+            foreach (var subscription in topic.Subscriptions)
+            {
+                writer.WriteStartObject();              //               "{ (Subscription)"
+                subscription.WriteJsonObjectProperties(writer);
+
+                writer.WriteStartArray("Rules");        //                 "Rules": [
+                foreach (var rule in subscription.Rules)
+                {
+                    writer.WriteStartObject();
+                    rule.WriteJsonObjectProperties(writer);
+                    writer.WriteEndObject();
+                }
+
+                writer.WriteEndArray();                 //                  ] (/Rules)
+
+                writer.WriteEndObject();                //               } (/Subscription)
+            }
+
+            writer.WriteEndArray();                     //             ] (/Subscriptions)
+
+            writer.WriteEndObject();                    //           } (/Topic)
+        }
+        writer.WriteEndArray();                         //         ] (/Topics)
+
+        writer.WriteEndObject();                        //       } (/Namespace)
+        writer.WriteEndArray();                         //     ], (/Namespaces)
+        writer.WriteStartObject("Logging");             //     "Logging": {
+        writer.WriteString("Type", "File");             //       "Type": "File"
+        writer.WriteEndObject();                        //     } (/LoggingConfig)
+
+        writer.WriteEndObject();                        //   } (/UserConfig)
+        writer.WriteEndObject();                        // } (/Root)
+
+        return filePath;
     }
 }

@@ -188,11 +188,11 @@ public class DistributedApplicationBuilderEventingTests
         });
 
         using var app = builder.Build();
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         await beforeResourceStartedTcs.Task.DefaultTimeout();
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -215,12 +215,12 @@ public class DistributedApplicationBuilderEventingTests
         });
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var fired = countdownEvent.Wait(TimeSpan.FromSeconds(10));
 
         Assert.True(fired);
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]

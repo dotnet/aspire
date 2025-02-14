@@ -12,7 +12,7 @@
       ],
       "volumes": [
         {
-          "name": "redis.apphost-468a945e22-redis-data",
+          "name": "redis.apphost-7855b85e05-redis-data",
           "target": "/data",
           "readOnly": false
         }
@@ -40,7 +40,7 @@
       ],
       "volumes": [
         {
-          "name": "redis.apphost-468a945e22-garnet-data",
+          "name": "redis.apphost-7855b85e05-garnet-data",
           "target": "/data",
           "readOnly": false
         }

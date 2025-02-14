@@ -10,6 +10,10 @@
         "principalId": ""
       }
     },
+    "cosmosdb": {
+      "type": "value.v0",
+      "connectionString": "{cosmos.outputs.connectionString}"
+    },
     "storagesku": {
       "type": "parameter.v0",
       "value": "{storagesku.inputs.value}",
@@ -139,6 +143,38 @@
         "principalType": "",
         "principalId": ""
       }
+    },
+    "queue1": {
+      "type": "value.v0",
+      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+    },
+    "topic1": {
+      "type": "value.v0",
+      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+    },
+    "subscription2": {
+      "type": "value.v0",
+      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+    },
+    "topic2": {
+      "type": "value.v0",
+      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+    },
+    "subscription1": {
+      "type": "value.v0",
+      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+    },
+    "topic3": {
+      "type": "value.v0",
+      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+    },
+    "sub1": {
+      "type": "value.v0",
+      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
+    },
+    "sub2": {
+      "type": "value.v0",
+      "connectionString": "{servicebus.outputs.serviceBusEndpoint}"
     },
     "appConfig": {
       "type": "azure.bicep.v0",

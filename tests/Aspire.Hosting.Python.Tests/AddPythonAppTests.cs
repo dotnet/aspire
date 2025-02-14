@@ -99,9 +99,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         await app.StartAsync();
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
-        await rns.WaitForResourceAsync("pyproj", "Finished").WaitAsync(TimeSpan.FromSeconds(30));
+        await app.ResourceNotifications.WaitForResourceAsync("pyproj", "Finished").WaitAsync(TimeSpan.FromSeconds(30));
 
         await app.StopAsync();
 

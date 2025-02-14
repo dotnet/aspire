@@ -16,7 +16,7 @@ internal sealed class ApplicationOrchestrator
 {
     private readonly IDcpExecutor _dcpExecutor;
     private readonly DistributedApplicationModel _model;
-    private readonly ILookup<IResource?, IResourceWithParent> _parentChildLookup;
+    private readonly ILookup<IResource, IResource> _parentChildLookup;
     private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks;
     private readonly ResourceNotificationService _notificationService;
     private readonly IDistributedApplicationEventing _eventing;
@@ -33,7 +33,7 @@ internal sealed class ApplicationOrchestrator
     {
         _dcpExecutor = dcpExecutor;
         _model = model;
-        _parentChildLookup = GetParentChildLookup(model);
+        _parentChildLookup = RelationshipEvaluator.GetParentChildLookup(model);
         _lifecycleHooks = lifecycleHooks.ToArray();
         _notificationService = notificationService;
         _eventing = eventing;
@@ -100,16 +100,18 @@ internal sealed class ApplicationOrchestrator
         {
             case KnownResourceTypes.Project:
             case KnownResourceTypes.Executable:
-                await _notificationService.PublishUpdateAsync(context.Resource, s => s with
+                await PublishUpdateAsync(_notificationService, context.Resource, context.DcpResourceName, s => s with
                 {
                     State = KnownResourceStates.Starting,
                     ResourceType = context.ResourceType,
                     HealthReports = GetInitialHealthReports(context.Resource)
                 })
                 .ConfigureAwait(false);
+
+                await SetExecutableChildResourceAsync(context.Resource).ConfigureAwait(false);
                 break;
             case KnownResourceTypes.Container:
-                await _notificationService.PublishUpdateAsync(context.Resource, s => s with
+                await PublishUpdateAsync(_notificationService, context.Resource, context.DcpResourceName, s => s with
                 {
                     State = KnownResourceStates.Starting,
                     Properties = s.Properties.SetResourceProperty(KnownProperties.Container.Image, context.Resource.TryGetContainerImageName(out var imageName) ? imageName : ""),
@@ -129,6 +131,13 @@ internal sealed class ApplicationOrchestrator
 
         var beforeResourceStartedEvent = new BeforeResourceStartedEvent(context.Resource, _serviceProvider);
         await _eventing.PublishAsync(beforeResourceStartedEvent, context.CancellationToken).ConfigureAwait(false);
+
+        static Task PublishUpdateAsync(ResourceNotificationService notificationService, IResource resource, string? resourceId, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
+        {
+            return resourceId != null
+                ? notificationService.PublishUpdateAsync(resource, resourceId, stateFactory)
+                : notificationService.PublishUpdateAsync(resource, stateFactory);
+        }
     }
 
     private async Task OnResourcesPrepared(OnResourcesPreparedContext _)
@@ -192,6 +201,7 @@ internal sealed class ApplicationOrchestrator
         var isWaiting = false;
         await _notificationService.PublishUpdateAsync(
             resourceReference.ModelResource,
+            resourceReference.DcpResourceName,
             s =>
             {
                 if (s.State?.Text == KnownResourceStates.Waiting)
@@ -217,22 +227,6 @@ internal sealed class ApplicationOrchestrator
         await _dcpExecutor.StopResourceAsync(resourceReference, cancellationToken).ConfigureAwait(false);
     }
 
-    private static ILookup<IResource?, IResourceWithParent> GetParentChildLookup(DistributedApplicationModel model)
-    {
-        static IResource? SelectParentContainerResource(IResource resource) => resource switch
-        {
-            IResourceWithParent rp => SelectParentContainerResource(rp.Parent),
-            IResource r when r.IsContainer() => r,
-            _ => null
-        };
-
-        // parent -> children lookup
-        return model.Resources.OfType<IResourceWithParent>()
-                              .Select(x => (Child: x, Root: SelectParentContainerResource(x.Parent)))
-                              .Where(x => x.Root is not null)
-                              .ToLookup(x => x.Root, x => x.Child);
-    }
-
     private async Task SetChildResourceAsync(IResource resource, string parentName, string? state, DateTime? startTimeStamp, DateTime? stopTimeStamp)
     {
         foreach (var child in _parentChildLookup[resource])
@@ -244,6 +238,28 @@ internal sealed class ApplicationOrchestrator
                 StopTimeStamp = stopTimeStamp,
                 Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, parentName)
             }).ConfigureAwait(false);
+
+            // the parent name needs to be an instance name, not the resource name.
+            // parent the children of the child under the first resource instance.
+            await SetChildResourceAsync(child, child.GetResolvedResourceNames()[0], state, startTimeStamp, stopTimeStamp)
+                .ConfigureAwait(false);
+        }
+    }
+
+    private async Task SetExecutableChildResourceAsync(IResource resource)
+    {
+        // the parent name needs to be an instance name, not the resource name.
+        // parent the children under the first resource instance.
+        var parentName = resource.GetResolvedResourceNames()[0];
+
+        foreach (var child in _parentChildLookup[resource])
+        {
+            await _notificationService.PublishUpdateAsync(child, s => s with
+            {
+                Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, parentName)
+            }).ConfigureAwait(false);
+
+            await SetExecutableChildResourceAsync(child).ConfigureAwait(false);
         }
     }
 
@@ -286,7 +302,8 @@ internal sealed class ApplicationOrchestrator
         // we need to dispatch the event for the children.
         if (_parentChildLookup[resource] is { } children)
         {
-            foreach (var child in children.OfType<IResourceWithConnectionString>())
+            // only dispatch the event for children that have a connection string and are IResourceWithParent, not parented by annotations.
+            foreach (var child in children.OfType<IResourceWithConnectionString>().Where(c => c is IResourceWithParent))
             {
                 var childConnectionStringAvailableEvent = new ConnectionStringAvailableEvent(child, _serviceProvider);
                 await _eventing.PublishAsync(childConnectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);

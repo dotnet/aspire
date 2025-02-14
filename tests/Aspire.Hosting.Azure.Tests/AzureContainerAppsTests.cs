@@ -689,6 +689,89 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task AddContainerAppsEntrypointAndArgs()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppsInfrastructure();
+
+        builder.AddContainer("api", "myimage")
+               .WithEntrypoint("/bin/sh")
+               .WithArgs("my", "args with space");
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await ManifestUtils.GetManifestWithBicep(resource);
+
+        var expectedBicep =
+        """
+        @description('The location for the resource(s) to be deployed.')
+        param location string = resourceGroup().location
+    
+        param outputs_azure_container_registry_managed_identity_id string
+    
+        param outputs_managed_identity_client_id string
+    
+        param outputs_azure_container_apps_environment_id string
+    
+        resource api 'Microsoft.App/containerApps@2024-03-01' = {
+          name: 'api'
+          location: location
+          properties: {
+            configuration: {
+              activeRevisionsMode: 'Single'
+            }
+            environmentId: outputs_azure_container_apps_environment_id
+            template: {
+              containers: [
+                {
+                  image: 'myimage:latest'
+                  name: 'api'
+                  command: [
+                    '/bin/sh'
+                  ]
+                  args: [
+                    'my'
+                    'args with space'
+                  ]
+                  env: [
+                    {
+                      name: 'AZURE_CLIENT_ID'
+                      value: outputs_managed_identity_client_id
+                    }
+                  ]
+                }
+              ]
+              scale: {
+                minReplicas: 1
+              }
+            }
+          }
+          identity: {
+            type: 'UserAssigned'
+            userAssignedIdentities: {
+              '${outputs_azure_container_registry_managed_identity_id}': { }
+            }
+          }
+        }
+        """;
+
+        output.WriteLine(bicep);
+        Assert.Equal(expectedBicep, bicep);
+    }
+
+    [Fact]
     public async Task ProjectWithManyReferenceTypes()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
@@ -696,10 +779,13 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         builder.AddAzureContainerAppsInfrastructure();
 
         // CosmosDB uses secret outputs
-        var db = builder.AddAzureCosmosDB("mydb").WithDatabase("db");
+        var db = builder.AddAzureCosmosDB("mydb");
+        db.AddCosmosDatabase("cosmosdb", databaseName: "db");
 
         // Postgres uses secret outputs + a literal connection string
         var pgdb = builder.AddAzurePostgresFlexibleServer("pg").WithPasswordAuthentication().AddDatabase("db");
+
+        var rawCs = builder.AddConnectionString("cs");
 
         // Connection string (should be considered a secret)
         var blob = builder.AddAzureStorage("storage").AddBlobs("blobs");
@@ -719,7 +805,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             .WithReference(pgdb)
             .WithEnvironment("SecretVal", secretValue)
             .WithEnvironment("secret_value_1", secretValue)
-            .WithEnvironment("Value", value);
+            .WithEnvironment("Value", value)
+            .WithEnvironment("CS", rawCs);
 
         project.WithEnvironment(context =>
         {
@@ -767,6 +854,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "value0_value": "{value0.value}",
             "value1_value": "{value1.value}",
+            "cs_connectionstring": "{cs.connectionString}",
             "outputs_azure_container_apps_environment_default_domain": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
             "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
             "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
@@ -797,6 +885,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         param value0_value string
 
         param value1_value string
+
+        @secure()
+        param cs_connectionstring string
 
         param outputs_azure_container_apps_environment_default_domain string
 
@@ -835,6 +926,10 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                 {
                   name: 'secret-value-1'
                   value: value0_value
+                }
+                {
+                  name: 'cs'
+                  value: cs_connectionstring
                 }
               ]
               activeRevisionsMode: 'Single'
@@ -910,6 +1005,10 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
                     {
                       name: 'Value'
                       value: value1_value
+                    }
+                    {
+                      name: 'CS'
+                      secretRef: 'cs'
                     }
                     {
                       name: 'HTTP_EP'
@@ -1316,7 +1415,8 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         builder.AddAzureContainerAppsInfrastructure();
 
-        var db = builder.AddAzureCosmosDB("mydb").WithAccessKeyAuthentication().WithDatabase("db");
+        var db = builder.AddAzureCosmosDB("mydb").WithAccessKeyAuthentication();
+        db.AddCosmosDatabase("db");
 
         builder.AddContainer("api", "image")
             .WithReference(db)

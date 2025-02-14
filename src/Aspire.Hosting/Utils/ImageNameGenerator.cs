@@ -9,11 +9,18 @@ namespace Aspire.Hosting.Utils;
 
 internal static class ImageNameGenerator
 {
-    public static string GenerateImageName<T>(this IResourceBuilder<T> builder) where T: IResource
+    public static string GenerateImageName<T>(this IResourceBuilder<T> builder) where T : IResource
     {
-        var bytes = Encoding.UTF8.GetBytes(builder.ApplicationBuilder.AppHostDirectory);
+        // Resource names are already constrained to [a-zA-Z0-9-_] by the resource name validation
+        // so we just have to lowercase it and return it.
+        return builder.Resource.Name.ToLowerInvariant();
+    }
+
+    public static string GenerateImageTag<T>(this IResourceBuilder<T> builder) where T : IResource
+    {
+        var bytes = Encoding.UTF8.GetBytes($"{builder.ApplicationBuilder.AppHostDirectory}{DateTime.UtcNow.Ticks}");
         var hash = SHA1.HashData(bytes);
-        var hex = Convert.ToHexString(hash).ToLower();
-        return $"{builder.Resource.Name}-image-{hex}";
+        var hex = Convert.ToHexString(hash).ToLowerInvariant();
+        return hex;
     }
 }

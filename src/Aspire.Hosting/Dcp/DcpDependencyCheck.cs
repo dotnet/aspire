@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -106,7 +107,9 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
                 _dcpInfo = dcpInfo;
                 return dcpInfo;
             }
-            catch (Exception ex) when (ex is not DistributedApplicationException)
+            catch (Exception ex) when
+                (ex is not DistributedApplicationException
+                && !(ex is OperationCanceledException && cancellationToken.IsCancellationRequested))
             {
                 throw new DistributedApplicationException(string.Format(
                     CultureInfo.InvariantCulture,
@@ -159,7 +162,8 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
                 {
                     throw new DistributedApplicationException(string.Format(
                         CultureInfo.InvariantCulture,
-                        Resources.DcpVersionCheckTooLowMessage
+                        Resources.DcpVersionCheckTooLowMessage,
+                        GetCurrentPackageVersion(typeof(DcpDependencyCheck).Assembly)
                     ));
                 }
 
@@ -170,6 +174,35 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
         {
             AspireEventSource.Instance.DcpVersionCheckStop();
         }
+    }
+
+    private static string GetCurrentPackageVersion(Assembly assembly)
+    {
+        // The package version is stamped into the assembly's AssemblyInformationalVersionAttribute at build time, followed by a '+' and
+        // the commit hash, e.g.:
+        // [assembly: AssemblyInformationalVersion("9.1.0-preview.1.25111.1+ad18db0213e9db8209bca0feb83fc801f34634f5)]
+
+        var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+
+        if (version is not null)
+        {
+            var plusIndex = version.IndexOf('+');
+
+            if (plusIndex > 0)
+            {
+                return version[..plusIndex];
+            }
+
+            return version;
+        }
+
+        // Fallback to the first 3 parts of the assembly version
+        if (Version.TryParse(assembly.GetCustomAttribute<AssemblyVersionAttribute>()?.Version, out var assemblyVersion))
+        {
+            return assemblyVersion.ToString(3);
+        }
+
+        return "<unknown>";
     }
 
     internal static void CheckDcpInfoAndLogErrors(ILogger logger, DcpOptions options, DcpInfo dcpInfo, bool throwIfUnhealthy = false)

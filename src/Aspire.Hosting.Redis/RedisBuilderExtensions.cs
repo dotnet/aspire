@@ -6,9 +6,9 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Redis;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Polly;
@@ -249,7 +249,7 @@ public static class RedisBuilderExtensions
                         writer.WriteNumber("port", endpoint.TargetPort!.Value);
                         writer.WriteString("name", redisResource.Name);
                         writer.WriteNumber("db", 0);
-                        //todo: provide username and password when https://github.com/dotnet/aspire/pull/4642 merged.
+                        //todo: provide username and password when https://github.com/dotnet/aspire/issues/3838 is fixed.
                         writer.WriteNull("username");
                         writer.WriteNull("password");
                         writer.WriteString("connectionType", "STANDALONE");
@@ -305,7 +305,7 @@ public static class RedisBuilderExtensions
                 {
                     resourceLogger.LogError("Could not import Redis databases into RedisInsight. Reason: {reason}", ex.Message);
                 }
-            };
+            }
         }
     }
 

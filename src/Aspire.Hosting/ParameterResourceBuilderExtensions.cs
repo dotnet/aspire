@@ -27,7 +27,12 @@ public static class ParameterResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
 
-        return builder.AddParameter(name, parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault), secret: secret);
+        return builder.AddParameter(
+                new ParameterResource(
+                    name,
+                    parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault),
+                    secret)
+                );
     }
 
     /// <summary>
@@ -78,10 +83,14 @@ public static class ParameterResourceBuilderExtensions
         // If publishValueAsDefault is set, we wrap the valueGetter in a ConstantParameterDefault, which gives
         // us both the runtime value and the value to publish to the manifest.
         // Otherwise, we just use the valueGetter directly, which only gives us the runtime value.
-        return builder.AddParameter(name,
-            parameterDefault => parameterDefault != null ? parameterDefault.GetDefaultValue() : valueGetter(),
-            secret: secret,
-            parameterDefault: publishValueAsDefault ? new ConstantParameterDefault(valueGetter) : null);
+        return builder.AddParameter(
+                new ParameterResource(
+                    name,
+                    parameterDefault => parameterDefault is not null ? parameterDefault.GetDefaultValue() : valueGetter(),
+                    secret)
+                {
+                    Default = publishValueAsDefault ? new ConstantParameterDefault(valueGetter) : null
+                });
     }
 
     /// <summary>
@@ -99,18 +108,19 @@ public static class ParameterResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(configurationKey);
 
         return builder.AddParameter(
-            name,
-            parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault, configurationKey),
-            secret,
-            configurationKey: configurationKey);
+                new ParameterResource(
+                    name,
+                    parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault, configurationKey),
+                    secret),
+                configurationKey);
     }
 
     /// <summary>
-    /// Adds a parameter resource to the application, with a value coming from a ParameterDefault.
+    /// Adds a parameter resource to the application, with a value coming from a <see cref="ParameterDefault"/> if not supplied from configuration.
     /// </summary>
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">Name of parameter resource</param>
-    /// <param name="value">A <see cref="ParameterDefault"/> that is used to provide the parameter value</param>
+    /// <param name="value">A <see cref="ParameterDefault"/> that is used to provide the parameter value if a value is not present in configuration</param>
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
     /// <param name="persist">Persist the value to the app host project's user secrets store. This is typically
     /// done when the value is generated, so that it stays stable across runs. This is only relevant when
@@ -132,13 +142,13 @@ public static class ParameterResourceBuilderExtensions
         }
 
         return builder.AddParameter(
-            name,
-            parameterDefault => parameterDefault!.GetDefaultValue(),
-            secret: secret,
-            parameterDefault: value);
+            new ParameterResource(name, p => GetParameterValue(builder.Configuration, name, value), secret)
+            {
+                Default = value
+            });
     }
 
-    private static string GetParameterValue(IConfiguration configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
+    private static string GetParameterValue(ConfigurationManager configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
     {
         configurationKey ??= $"Parameters:{name}";
         return configuration[configurationKey]
@@ -146,19 +156,13 @@ public static class ParameterResourceBuilderExtensions
             ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing and the Parameter has no default value."); ;
     }
 
-    internal static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder,
-                                                                     string name,
-                                                                     Func<ParameterDefault?, string> callback,
-                                                                     bool secret = false,
-                                                                     bool connectionString = false,
-                                                                     ParameterDefault? parameterDefault = null,
-                                                                     string? configurationKey = null)
+    internal static IResourceBuilder<T> AddParameter<T>(this IDistributedApplicationBuilder builder,
+                                                        T resource,
+                                                        string? configurationKey = null)
+        where T : ParameterResource
     {
-        var resource = new ParameterResource(name, callback, secret);
-        resource.IsConnectionString = connectionString;
-        resource.Default = parameterDefault;
-
-        configurationKey ??= connectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}";
+        var name = resource.Name;
+        configurationKey ??= resource.IsConnectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}";
 
         var state = new CustomResourceSnapshot()
         {
@@ -166,14 +170,14 @@ public static class ParameterResourceBuilderExtensions
             // hide parameters by default
             State = KnownResourceStates.Hidden,
             Properties = [
-                new("parameter.secret", secret.ToString()),
-                new(CustomResourceKnownProperties.Source, configurationKey) { IsSensitive = secret }
+                new("parameter.secret", resource.Secret.ToString()),
+                new(CustomResourceKnownProperties.Source, configurationKey) { IsSensitive = resource.Secret }
             ]
         };
 
         try
         {
-            state = state with { Properties = [.. state.Properties, new("Value", resource.Value) { IsSensitive = secret }] };
+            state = state with { Properties = [.. state.Properties, new("Value", resource.Value) { IsSensitive = resource.Secret }] };
         }
         catch (DistributedApplicationException ex)
         {
@@ -219,15 +223,13 @@ public static class ParameterResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
 
-        var parameterBuilder = builder.AddParameter(name, _ =>
-        {
-            return builder.Configuration.GetConnectionString(name) ?? throw new DistributedApplicationException($"Connection string parameter resource could not be used because connection string '{name}' is missing.");
-        },
-        secret: true,
-        connectionString: true);
-
-        var surrogate = new ResourceWithConnectionStringSurrogate(parameterBuilder.Resource, environmentVariableName);
-        return builder.CreateResourceBuilder(surrogate);
+        return builder.AddParameter(
+                new ResourceWithConnectionStringSurrogate(
+                    name,
+                    _ => builder.Configuration.GetConnectionString(name) ??
+                        throw new DistributedApplicationException($"Connection string parameter resource could not be used because connection string '{name}' is missing."),
+                    environmentVariableName)
+                );
     }
 
     /// <summary>

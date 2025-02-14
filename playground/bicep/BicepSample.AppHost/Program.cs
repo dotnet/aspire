@@ -41,8 +41,8 @@ var pg = builder.AddAzurePostgresFlexibleServer("postgres2")
                 .WithPasswordAuthentication(administratorLogin, administratorLoginPassword)
                 .AddDatabase("db2");
 
-var cosmosDb = builder.AddAzureCosmosDB("cosmos")
-                      .WithDatabase("db3");
+var cosmosDb = builder.AddAzureCosmosDB("cosmos");
+cosmosDb.AddCosmosDatabase("db3");
 
 var logAnalytics = builder.AddAzureLogAnalyticsWorkspace("lawkspc");
 var appInsights = builder.AddAzureApplicationInsights("ai", logAnalytics);
@@ -53,10 +53,16 @@ builder.AddAzureApplicationInsights("aiwithoutlaw");
 // Redis takes forever to spin up...
 var redis = builder.AddAzureRedis("redis");
 
-var serviceBus = builder.AddAzureServiceBus("sb")
-                        .WithQueue("queue1")
-                        .WithTopic("topic1", topic => topic.Subscriptions.AddRange([new("subscription1"), new("subscription2")]))
-                        .WithTopic("topic2", topic => topic.Subscriptions.Add(new("subscription1")));
+var serviceBus = builder.AddAzureServiceBus("sb");
+
+serviceBus.AddServiceBusQueue("queue1");
+
+var topic1 = serviceBus.AddServiceBusTopic("topic1");
+topic1.AddServiceBusSubscription("subscription1");
+topic1.AddServiceBusSubscription("subscription2");
+serviceBus.AddServiceBusTopic("topic2")
+    .AddServiceBusSubscription("topic2sub", "subscription1");
+
 var signalr = builder.AddAzureSignalR("signalr");
 var webpubsub = builder.AddAzureWebPubSub("wps");
 builder.AddProject<Projects.BicepSample_ApiService>("api")

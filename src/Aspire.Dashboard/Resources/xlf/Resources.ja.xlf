@@ -27,6 +27,11 @@
         <target state="translated">トレース</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceCollapseAllChildren">
+        <source>Collapse child resources</source>
+        <target state="translated">子リソースを折りたたむ</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceCommandFailed">
         <source>{0} "{1}" failed</source>
         <target state="translated">{0} "{1}" が失敗しました</target>
@@ -62,9 +67,14 @@
         <target state="translated">コンソール ログの表示</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceExpandAllChildren">
+        <source>Expand child resources</source>
+        <target state="translated">子リソースの展開</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceFilterOptionEmpty">
         <source>(Unset)</source>
-        <target state="new">(Unset)</target>
+        <target state="translated">(設定解除)</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesActionsColumnHeader">
@@ -169,17 +179,17 @@
       </trans-unit>
       <trans-unit id="ResourcesFiltered">
         <source>Has filters</source>
-        <target state="new">Has filters</target>
+        <target state="translated">フィルターあり</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
         <source>No filters</source>
-        <target state="new">No filters</target>
+        <target state="translated">フィルターなし</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesResourceStatesHeader">
         <source>State</source>
-        <target state="new">State</target>
+        <target state="translated">状態</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">

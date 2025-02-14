@@ -9,7 +9,8 @@
     "Web API",
     "API",
     "Service",
-    "Test"
+    "Test",
+    "MSTest"
   ],
   "name": ".NET Aspire Test Project (MSTest)",
   "defaultName": "Tests",
@@ -89,7 +90,7 @@
       "description": "The version of .NET Aspire to use.",
       "displayName": ".NET Aspire version",
       "datatype": "choice",
-      "isEnabled": "(Framework == net8.0 || hostIdentifier == dotnetcli || hostIdentifier == \"dotnetcli-preview\")",
+      "isEnabled": "Framework == net8.0",
       "choices": [
         {
           "choice": "9.1",

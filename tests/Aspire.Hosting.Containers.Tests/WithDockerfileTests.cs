@@ -83,6 +83,85 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
+    [Theory]
+    [InlineData("testcontainer")]
+    [InlineData("TestContainer")]
+    [InlineData("test-Container")]
+    [InlineData("TEST-234-CONTAINER")]
+    public async Task AddDockerfileUsesLowercaseResourceNameAsImageName(string resourceName)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
+
+        var dockerFile = builder.AddDockerfile(resourceName, tempContextPath, tempDockerfilePath);
+
+        Assert.True(dockerFile.Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation));
+        Assert.Equal(resourceName.ToLowerInvariant(), containerImageAnnotation.Image);
+    }
+
+    [Theory]
+    [InlineData("testcontainer")]
+    [InlineData("TestContainer")]
+    [InlineData("test-Container")]
+    [InlineData("TEST-234-CONTAINER")]
+    public async Task WithDockerfileUsesLowercaseResourceNameAsImageName(string resourceName)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
+
+        var dockerFile = builder.AddContainer(resourceName, "someimagename")
+            .WithDockerfile(tempContextPath, tempDockerfilePath);
+
+        Assert.True(dockerFile.Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation));
+        Assert.Equal(resourceName.ToLowerInvariant(), containerImageAnnotation.Image);
+    }
+
+    [Fact]
+    public async Task WithDockerfileUsesGeneratesDifferentHashForImageTagOnEachCall()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
+
+        var dockerFile = builder.AddContainer("testcontainer", "someimagename")
+            .WithDockerfile(tempContextPath, tempDockerfilePath);
+        Assert.True(dockerFile.Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation1));
+        var tag1 = containerImageAnnotation1.Tag;
+
+        dockerFile.WithDockerfile(tempContextPath, tempDockerfilePath);
+        Assert.True(dockerFile.Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation2));
+        var tag2 = containerImageAnnotation2.Tag;
+
+        Assert.NotEqual(tag1, tag2);
+    }
+
+    [Fact]
+    public async Task WithDockerfileGeneratedImageTagCanBeOverridden()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
+
+        var dockerFile = builder.AddContainer("testcontainer", "someimagename")
+            .WithDockerfile(tempContextPath, tempDockerfilePath);
+
+        Assert.True(dockerFile.Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation1));
+        var generatedTag = containerImageAnnotation1.Tag;
+
+        dockerFile.WithImageTag("latest");
+        Assert.True(dockerFile.Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation2));
+        var overriddenTag = containerImageAnnotation2.Tag;
+
+        Assert.NotEqual(generatedTag, overriddenTag);
+        Assert.Equal("latest", overriddenTag);
+    }
+
     [Fact]
     [RequiresDocker]
     public async Task WithDockerfileLaunchesContainerSuccessfully()
@@ -110,7 +189,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
         var containers = await kubernetes.ListAsync<Container>();
 
-        var container = Assert.Single<Container>(containers);
+        var container = Assert.Single(containers);
         Assert.Equal(tempContextPath, container!.Spec!.Build!.Context);
         Assert.Equal(tempDockerfilePath, container!.Spec!.Build!.Dockerfile);
 
@@ -671,8 +750,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
     private static async Task WaitForResourceAsync(DistributedApplication app, string resourceName, string resourceState, TimeSpan? timeout = null)
     {
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(resourceName, resourceState).WaitAsync(timeout ?? TimeSpan.FromMinutes(3));
+        await app.ResourceNotifications.WaitForResourceAsync(resourceName, resourceState).WaitAsync(timeout ?? TimeSpan.FromMinutes(3));
     }
 
     private const string DefaultMessage = "aspire!";

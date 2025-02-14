@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -185,13 +187,141 @@ public static class ResourceExtensions
     public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
             DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
-        var environmentVariables = new Dictionary<string, string>();
+        var env = new Dictionary<string, string>();
+        var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation));
+        await resource.ProcessEnvironmentVariableValuesAsync(
+            executionContext,
+            (key, unprocessed, value, ex) =>
+            {
+                if (value is string s)
+                {
+                    env[key] = s;
+                }
+            },
+            NullLogger.Instance).ConfigureAwait(false);
 
+        return env;
+    }
+
+    /// <summary>
+    /// Get the arguments from the given resource.
+    /// </summary>
+    /// <remarks>
+    /// This method is useful when you want to make sure the arguments are added properly to resources, mostly in test situations.
+    /// This method has asynchronous behavior when <paramref name = "applicationOperation" /> is <see cref="DistributedApplicationOperation.Run"/>
+    /// and arguments were provided from <see cref="IValueProvider"/> otherwise it will be synchronous.
+    /// </remarks>
+    /// <param name="resource">The resource to get the arguments from.</param>
+    /// <param name="applicationOperation">The context in which the AppHost is being executed.</param>
+    /// <returns>The arguments retrieved from the resource.</returns>
+    /// <example>
+    /// Using <see cref="GetArgumentValuesAsync(IResourceWithArgs, DistributedApplicationOperation)"/> inside
+    /// a unit test to validate argument values.
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder();
+    /// var container = builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
+    ///  .WithArgs("--discovery.type", "single-node")
+    ///  .WithArgs("--xpack.security.enabled", "true");
+    ///
+    /// var args = await container.Resource.GetArgumentsAsync();
+    ///
+    /// Assert.Collection(args,
+    ///     arg =>
+    ///         {
+    ///             Assert.Equal("--discovery.type", arg);
+    ///         },
+    ///         arg =>
+    ///         {
+    ///             Assert.Equal("--xpack.security.enabled", arg);
+    ///         });
+    /// </code>
+    /// </example>
+    public static async ValueTask<string[]> GetArgumentValuesAsync(this IResourceWithArgs resource,
+        DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
+    {
+        var args = new List<string>();
+
+        var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation));
+        await resource.ProcessArgumentValuesAsync(
+            executionContext,
+            (unprocessed, value, ex, _) =>
+            {
+                if (value is string s)
+                {
+                    args.Add(s);
+                }
+
+            },
+            NullLogger.Instance).ConfigureAwait(false);
+
+        return [.. args];
+    }
+
+    internal static async ValueTask ProcessArgumentValuesAsync(
+        this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        // (unprocessed, processed, exception, isSensitive)
+        Action<object?, string?, Exception?, bool> processValue,
+        ILogger logger,
+        string? containerHostName = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
+        {
+            var args = new List<object>();
+            var context = new CommandLineArgsCallbackContext(args, cancellationToken)
+            {
+                Logger = logger,
+                ExecutionContext = executionContext
+            };
+
+            foreach (var callback in callbacks)
+            {
+                await callback.Callback(context).ConfigureAwait(false);
+            }
+
+            foreach (var a in args)
+            {
+                try
+                {
+                    var resolvedValue = (executionContext.Operation, a) switch
+                    {
+                        (_, string s) => new(s, false),
+                        (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key: null, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
+                        (DistributedApplicationOperation.Run, DistributedApplicationResourceBuilder<ParameterResource> parameterResourceBuilder) => await GetValue(key: null, parameterResourceBuilder.Resource, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
+                        (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => new(provider.ValueExpression, false),
+                        (_, { } o) => new(o.ToString(), false),
+                        (_, null) => new(null, false),
+                    };
+
+                    if (resolvedValue?.Value != null)
+                    {
+                        processValue(a, resolvedValue.Value, null, resolvedValue.IsSensitive);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    processValue(a, a.ToString(), ex, false);
+                }
+            }
+        }
+    }
+
+    internal static async ValueTask ProcessEnvironmentVariableValuesAsync(
+        this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        Action<string, object?, string?, Exception?> processValue,
+        ILogger logger,
+        string? containerHostName = null,
+        CancellationToken cancellationToken = default)
+    {
         if (resource.TryGetEnvironmentVariables(out var callbacks))
         {
             var config = new Dictionary<string, object>();
-            var executionContext = new DistributedApplicationExecutionContext(applicationOperation);
-            var context = new EnvironmentCallbackContext(executionContext, config);
+            var context = new EnvironmentCallbackContext(executionContext, config, cancellationToken)
+            {
+                Logger = logger
+            };
 
             foreach (var callback in callbacks)
             {
@@ -200,23 +330,111 @@ public static class ResourceExtensions
 
             foreach (var (key, expr) in config)
             {
-                var value = (applicationOperation, expr) switch
+                try
                 {
-                    (_, string s) => s,
-                    (DistributedApplicationOperation.Run, IValueProvider provider) => await provider.GetValueAsync().ConfigureAwait(false),
-                    (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => provider.ValueExpression,
-                    (_, null) => null,
-                    _ => throw new InvalidOperationException($"Unsupported expression type: {expr.GetType()}")
-                };
+                    var resolvedValue = (executionContext.Operation, expr) switch
+                    {
+                        (_, string s) => new(s, false),
+                        (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
+                        (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => new(provider.ValueExpression, false),
+                        (_, { } o) => new(o.ToString(), false),
+                        (_, null) => new(null, false),
+                    };
 
-                if (value is not null)
+                    if (resolvedValue?.Value is not null)
+                    {
+                        processValue(key, expr, resolvedValue.Value, null);
+                    }
+                }
+                catch (Exception ex)
                 {
-                    environmentVariables[key] = value;
+                    processValue(key, expr, expr?.ToString(), ex);
+                }
+            }
+        }
+    }
+
+    internal static async ValueTask ProcessContainerRuntimeArgValues(
+        this IResource resource,
+        Action<string?, Exception?> processValue,
+        ILogger logger,
+        string? containerHostName = null,
+        CancellationToken cancellationToken = default)
+    {
+        // Apply optional extra arguments to the container run command.
+        if (resource.TryGetAnnotationsOfType<ContainerRuntimeArgsCallbackAnnotation>(out var runArgsCallback))
+        {
+            var args = new List<object>();
+
+            var containerRunArgsContext = new ContainerRuntimeArgsCallbackContext(args, cancellationToken);
+
+            foreach (var callback in runArgsCallback)
+            {
+                await callback.Callback(containerRunArgsContext).ConfigureAwait(false);
+            }
+
+            foreach (var arg in args)
+            {
+                try
+                {
+                    var value = arg switch
+                    {
+                        string s => s,
+                        IValueProvider valueProvider => (await GetValue(key: null, valueProvider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false))?.Value,
+                        { } obj => obj.ToString(),
+                        null => null
+                    };
+
+                    if (value is not null)
+                    {
+                        processValue(value, null);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    processValue(arg.ToString(), ex);
+                }
+            }
+        }
+    }
+
+    private static async Task<ResolvedValue?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, bool isContainer, string? containerHostName, CancellationToken cancellationToken)
+    {
+        containerHostName ??= "host.docker.internal";
+
+        var task = ExpressionResolver.ResolveAsync(isContainer, valueProvider, containerHostName, cancellationToken);
+
+        if (!task.IsCompleted)
+        {
+            if (valueProvider is IResource resource)
+            {
+                if (key is null)
+                {
+                    logger.LogInformation("Waiting for value from resource '{ResourceName}'", resource.Name);
+                }
+                else
+                {
+                    logger.LogInformation("Waiting for value for environment variable value '{Name}' from resource '{ResourceName}'", key, resource.Name);
+                }
+            }
+            else if (valueProvider is ConnectionStringReference { Resource: var cs })
+            {
+                logger.LogInformation("Waiting for value for connection string from resource '{ResourceName}'", cs.Name);
+            }
+            else
+            {
+                if (key is null)
+                {
+                    logger.LogInformation("Waiting for value from {ValueProvider}.", valueProvider.ToString());
+                }
+                else
+                {
+                    logger.LogInformation("Waiting for value for environment variable value '{Name}' from {ValueProvider}.", key, valueProvider.ToString());
                 }
             }
         }
 
-        return environmentVariables;
+        return await task.ConfigureAwait(false);
     }
 
     /// <summary>
