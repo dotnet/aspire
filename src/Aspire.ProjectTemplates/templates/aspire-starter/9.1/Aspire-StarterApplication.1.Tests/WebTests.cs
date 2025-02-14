@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace Aspire_StarterApplication._1.Tests;
 
 #if (TestFramework == "MSTest")
@@ -22,7 +24,7 @@ public class WebTests
         {
             logging.SetMinimumLevel(LogLevel.Debug);
             // Override the logging filters from the app's configuration
-            logging.AddFilter(builder.Environment.ApplicationName, LogLevel.Debug);
+            logging.AddFilter(appHost.Environment.ApplicationName, LogLevel.Debug);
             logging.AddFilter("Aspire.", LogLevel.Debug);
 #if (TestFramework == "xUnit.net")
             // To output logs to the xUnit.net ITestOutputHelper, consider adding a package from https://www.nuget.org/packages?q=xunit+logging

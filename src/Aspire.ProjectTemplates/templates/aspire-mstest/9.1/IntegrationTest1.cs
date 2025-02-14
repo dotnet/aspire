@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace Aspire.Tests._1;
 
 [TestClass]
@@ -23,7 +25,7 @@ public class IntegrationTest1
     //     {
     //         logging.SetMinimumLevel(LogLevel.Debug);
     //         // Override the logging filters from the app's configuration
-    //         logging.AddFilter(builder.Environment.ApplicationName, LogLevel.Debug);
+    //         logging.AddFilter(appHost.Environment.ApplicationName, LogLevel.Debug);
     //         logging.AddFilter("Aspire.", LogLevel.Debug);
     //     });
     //     appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
