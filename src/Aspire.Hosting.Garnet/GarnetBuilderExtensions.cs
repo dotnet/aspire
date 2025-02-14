@@ -280,7 +280,7 @@ public static class GarnetBuilderExtensions
                 {
                     var persistenceAnnotation = annotations.Single();
 
-                    var interval = (persistenceAnnotation.Interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture);
+                    var interval = (persistenceAnnotation.Interval ?? TimeSpan.FromSeconds(60)).TotalMilliseconds.ToString(CultureInfo.InvariantCulture);
 
                     args.Add("--checkpointdir");
                     args.Add("/data/checkpoints");
