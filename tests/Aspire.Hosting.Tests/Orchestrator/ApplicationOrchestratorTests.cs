@@ -68,10 +68,10 @@ public class ApplicationOrchestratorTests
         var builder = DistributedApplication.CreateBuilder();
 
         var parent = builder.AddContainer("parent", "image");
-        var child = builder.AddContainer("child", "image").WithParentRelationship(parent.Resource);
-        var child2 = builder.AddContainer("child2", "image").WithParentRelationship(parent.Resource);
+        var child = builder.AddContainer("child", "image").WithParentRelationship(parent);
+        var child2 = builder.AddContainer("child2", "image").WithParentRelationship(parent);
 
-        var nestedChild = builder.AddContainer("nested-child", "image").WithParentRelationship(child.Resource);
+        var nestedChild = builder.AddContainer("nested-child", "image").WithParentRelationship(child);
 
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -137,8 +137,8 @@ public class ApplicationOrchestratorTests
 
         var child = builder.AddContainer("child", "image");
 
-        child.WithParentRelationship(firstParent.Resource);
-        child.WithParentRelationship(secondParent.Resource);
+        child.WithParentRelationship(firstParent);
+        child.WithParentRelationship(secondParent);
 
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -191,7 +191,7 @@ public class ApplicationOrchestratorTests
         var builder = DistributedApplication.CreateBuilder();
 
         var projectA = builder.AddProject<ProjectA>("projecta");
-        var projectB = builder.AddProject<ProjectB>("projectb").WithParentRelationship(projectA.Resource);
+        var projectB = builder.AddProject<ProjectB>("projectb").WithParentRelationship(projectA);
 
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -241,9 +241,9 @@ public class ApplicationOrchestratorTests
         var container2 = builder.AddContainer("container2", "image2");
         var container3 = builder.AddContainer("container3", "image3");
 
-        container1.WithParentRelationship(container2.Resource);
-        container2.WithParentRelationship(container3.Resource);
-        container3.WithParentRelationship(container1.Resource);
+        container1.WithParentRelationship(container2);
+        container2.WithParentRelationship(container3);
+        container3.WithParentRelationship(container1);
 
         using var app = builder.Build();
 
