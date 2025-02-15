@@ -32,7 +32,7 @@ public class AspireStoreTests
     {
         var builder = TestDistributedApplicationBuilder.Create();
         builder.Configuration[AspireStoreExtensions.AspireStorePathKeyName] = Path.GetTempPath();
-        var store = builder.CreateStore();
+        var store = AspireStoreExtensions.CreateStore(builder);
 
         var path = store.BasePath;
 
@@ -55,7 +55,7 @@ public class AspireStoreTests
     {
         var builder = TestDistributedApplicationBuilder.Create();
         builder.Configuration[AspireStoreExtensions.AspireStorePathKeyName] = Path.GetTempPath();
-        var store = builder.CreateStore();
+        var store = AspireStoreExtensions.CreateStore(builder);
 
         var filename = "testfile2.txt";
         var content = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("Test content"));
@@ -128,7 +128,7 @@ public class AspireStoreTests
     {
         var builder = TestDistributedApplicationBuilder.Create();
         builder.Configuration[AspireStoreExtensions.AspireStorePathKeyName] = Path.GetTempPath();
-        var store = builder.CreateStore();
+        var store = AspireStoreExtensions.CreateStore(builder);
         return store;
     }
 }
