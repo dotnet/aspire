@@ -221,6 +221,13 @@ jobs:
           name: binlog-${{ matrix.name }}
           path: "**/*.binlog"
 
+      - name: Upload Functions bin log artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: binlog-funcs-${{ matrix.name }}
+          path: ${{ github.workspace }}/inner-dotnetrun.binlog
+
       - name: Upload test results artifact
         if: always()
         uses: actions/upload-artifact@v4

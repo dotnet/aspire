@@ -124,7 +124,7 @@ public static class AzureFunctionsProjectResourceExtensions
                 var http = resource.GetEndpoint("http");
                 context.Args.Add("--port");
                 context.Args.Add(http.Property(EndpointProperty.TargetPort));
-                context.Args.Add($"/bl:{Environment.GetEnvironmentVariable("GH_WORKSPACE")}/testresults/inner-dotnetrun.binlog");
+                context.Args.Add($"/bl:{Environment.GetEnvironmentVariable("GH_WORKSPACE")}/inner-dotnetrun.binlog");
             })
             .WithOtlpExporter()
             .WithFunctionsHttpEndpoint();
