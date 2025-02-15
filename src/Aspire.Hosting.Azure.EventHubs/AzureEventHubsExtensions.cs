@@ -317,7 +317,7 @@ public static class AzureEventHubsExtensions
                     jsonObject.WriteTo(writer);
                 }
 
-                var aspireStore = builder.ApplicationBuilder.CreateStore();
+                var aspireStore = AspireStoreExtensions.CreateStore(builder.ApplicationBuilder);
 
                 // Deterministic file path for the configuration file based on its content
                 var configJsonPath = aspireStore.GetFileNameWithContent($"{builder.Resource.Name}-Config.json", tempConfigFile);
