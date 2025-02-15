@@ -51,15 +51,20 @@ internal sealed class AspireStore : IAspireStore
         {
             var buffer = ArrayPool<byte>.Shared.Rent(4096);
 
-            int bytesRead;
-            while ((bytesRead = contentStream.Read(buffer, 0, buffer.Length)) > 0)
+            try
             {
-                var span = buffer.AsSpan(0, bytesRead);
-                fileStream.Write(span);
-                hash.Append(span);
+                int bytesRead;
+                while ((bytesRead = contentStream.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    var span = buffer.AsSpan(0, bytesRead);
+                    fileStream.Write(span);
+                    hash.Append(span);
+                }
             }
-
-            ArrayPool<byte>.Shared.Return(buffer);
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
 
         var name = Path.GetFileNameWithoutExtension(filenameTemplate);
