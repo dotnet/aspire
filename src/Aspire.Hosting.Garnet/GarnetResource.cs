@@ -24,9 +24,8 @@ public class GarnetResource(string name) : ContainerResource(ThrowIfNull(name)),
     /// <summary>
     /// Gets the connection string expression for the Garnet server.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => 
-        ReferenceExpression.Create(
-            $"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
 
     private static string ThrowIfNull([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
         => argument ?? throw new ArgumentNullException(paramName);

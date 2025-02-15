@@ -48,6 +48,11 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// </summary>
     internal string GetExpression(EndpointProperty property = EndpointProperty.Url)
     {
+        if (property == EndpointProperty.HostAndPort)
+        {
+            return $"{{{Resource.Name}.bindings.{EndpointName}.host}}:{{{Resource.Name}.bindings.{EndpointName}.port}}";
+        }
+
         var prop = property switch
         {
             EndpointProperty.Url => "url",
@@ -177,6 +182,7 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
         EndpointProperty.Port => new(Endpoint.Port.ToString(CultureInfo.InvariantCulture)),
         EndpointProperty.Scheme => new(Endpoint.Scheme),
         EndpointProperty.TargetPort => new(ComputeTargetPort()),
+        EndpointProperty.HostAndPort => new($"{Endpoint.Host}:{Endpoint.Port.ToString(CultureInfo.InvariantCulture)}"),
         _ => throw new InvalidOperationException($"The property '{Property}' is not supported for the endpoint '{Endpoint.EndpointName}'.")
     };
 
@@ -227,4 +233,9 @@ public enum EndpointProperty
     /// The target port of the endpoint.
     /// </summary>
     TargetPort,
+
+    /// <summary>
+    /// The host and port of the endpoint in the format `{Host}:{Port}`.
+    /// </summary>
+    HostAndPort
 }

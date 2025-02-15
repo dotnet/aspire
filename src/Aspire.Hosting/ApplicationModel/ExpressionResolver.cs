@@ -44,11 +44,11 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
             {
                 hostAndPortPresence.HasPort = true;
             }
-            else if (property == EndpointProperty.Url)
+            else if (property is EndpointProperty.Url or EndpointProperty.HostAndPort)
             {
                 hostAndPortPresence.HasHost = hostAndPortPresence.HasPort = true;
             }
-
+            
             return string.Empty;
         }
 
@@ -71,6 +71,9 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
             (EndpointProperty.Host or EndpointProperty.IPV4Host, false, _) => containerHostName,
             (EndpointProperty.Url, _, _) => string.Format(CultureInfo.InvariantCulture, "{0}://{1}:{2}",
                                             endpointReference.Scheme,
+                                            await EvalEndpointAsync(endpointReference, EndpointProperty.Host).ConfigureAwait(false),
+                                            await EvalEndpointAsync(endpointReference, EndpointProperty.Port).ConfigureAwait(false)),
+            (EndpointProperty.HostAndPort, _, _) => string.Format(CultureInfo.InvariantCulture, "{0}:{1}",
                                             await EvalEndpointAsync(endpointReference, EndpointProperty.Host).ConfigureAwait(false),
                                             await EvalEndpointAsync(endpointReference, EndpointProperty.Port).ConfigureAwait(false)),
             _ => await endpointReference.Property(property).GetValueAsync(cancellationToken).ConfigureAwait(false)
