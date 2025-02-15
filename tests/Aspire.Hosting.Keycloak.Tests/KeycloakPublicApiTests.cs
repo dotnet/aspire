@@ -40,7 +40,7 @@ public class KeycloakPublicApiTests
     }
 
     [Fact]
-    public void AddKeycloakContainerShouldThrowWhenBuilderIsNull()
+    public void AddKeycloakShouldThrowWhenBuilderIsNull()
     {
         IDistributedApplicationBuilder builder = null!;
         const string name = "keycloak";
@@ -54,7 +54,7 @@ public class KeycloakPublicApiTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void AddKeycloakContainerShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    public void AddKeycloakShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var builder = TestDistributedApplicationBuilder.Create();
         var name = isNull ? null! : string.Empty;
