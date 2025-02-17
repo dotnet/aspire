@@ -91,8 +91,8 @@
     <PackageVersion Include="KubernetesClient" Version="15.0.1" />
     <PackageVersion Include="JsonPatch.Net" Version="3.2.3" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.0.1" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.11.3" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.11.3" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.11.4" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.11.4" />
     <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1" />
     <PackageVersion Include="MongoDB.Driver" Version="3.1.0" />
     <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="2.0.0" />
