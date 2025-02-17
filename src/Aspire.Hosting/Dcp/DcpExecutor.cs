@@ -831,7 +831,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                     {
                         projectArgs.AddRange([
                             "run",
-                            "--no-build",
+                            // "--no-build",
                             "--project",
                             projectMetadata.ProjectPath,
                         ]);
