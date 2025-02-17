@@ -51,7 +51,6 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
             
             return string.Empty;
         }
-        
         // We need to use the root resource, e.g. AzureStorageResource instead of AzureBlobResource
         // Otherwise, we get the wrong values for IsContainer and Name
         var target = endpointReference.Resource.GetRootResource();
