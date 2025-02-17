@@ -151,11 +151,11 @@
     <PackageVersion Include="GitHubActionsTestLogger" Version="2.4.1" />
     <!-- playground apps dependencies -->
     <PackageVersion Include="Dapr.AspNetCore" Version="1.14.0" />
-    <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Orleans.Client" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Orleans.Server" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="9.1.2" />
+    <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="9.1.2" />
+    <PackageVersion Include="Microsoft.Orleans.Client" Version="9.1.2" />
+    <PackageVersion Include="Microsoft.Orleans.Server" Version="9.1.2" />
+    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="9.1.2" />
     <!-- playground apps dependencies for AzureFunctionsEndToEnd -->
     <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="2.0.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.0.1" />
