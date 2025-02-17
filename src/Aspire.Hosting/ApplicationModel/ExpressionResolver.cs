@@ -48,7 +48,6 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
             {
                 hostAndPortPresence.HasHost = hostAndPortPresence.HasPort = true;
             }
-            
             return string.Empty;
         }
         // We need to use the root resource, e.g. AzureStorageResource instead of AzureBlobResource
