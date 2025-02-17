@@ -48,22 +48,18 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// </summary>
     internal string GetExpression(EndpointProperty property = EndpointProperty.Url)
     {
-        if (property == EndpointProperty.HostAndPort)
+        return property switch
         {
-            return $"{{{Resource.Name}.bindings.{EndpointName}.host}}:{{{Resource.Name}.bindings.{EndpointName}.port}}";
-        }
-
-        var prop = property switch
-        {
-            EndpointProperty.Url => "url",
-            EndpointProperty.Host or EndpointProperty.IPV4Host => "host",
-            EndpointProperty.Port => "port",
-            EndpointProperty.Scheme => "scheme",
-            EndpointProperty.TargetPort => "targetPort",
+            EndpointProperty.Url => Binding("url"),
+            EndpointProperty.Host or EndpointProperty.IPV4Host => Binding("host"),
+            EndpointProperty.Port => Binding("port"),
+            EndpointProperty.Scheme => Binding("scheme"),
+            EndpointProperty.TargetPort => Binding("targetPort"),
+            EndpointProperty.HostAndPort => $"{Binding("host")}:{Binding("port")}",
             _ => throw new InvalidOperationException($"The property '{property}' is not supported for the endpoint '{EndpointName}'.")
         };
 
-        return $"{{{Resource.Name}.bindings.{EndpointName}.{prop}}}";
+        string Binding(string prop) => $"{{{Resource.Name}.bindings.{EndpointName}.{prop}}}";
     }
 
     /// <summary>
