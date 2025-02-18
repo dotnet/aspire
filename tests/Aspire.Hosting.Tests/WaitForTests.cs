@@ -196,6 +196,52 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         await startTask;
     }
 
+   [Fact]
+   public async Task WhenWaitBehaviorIsStopOnDependencyFailureWaitForResourceHealthyAsyncShouldThrowWhenResourceFailsToStart()
+   {
+      using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+
+      var failToStart = builder.AddExecutable("failToStart", "does-not-exist", ".");
+      var dependency = builder.AddContainer("redis", "redis");
+
+      dependency.WaitFor(failToStart, WaitBehavior.StopOnDependencyFailure);
+
+      using var app = builder.Build();
+      await app.StartAsync();
+
+      var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () => {
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(
+            dependency.Resource.Name,
+            WaitBehavior.StopOnDependencyFailure
+            ).WaitAsync(TimeSpan.FromSeconds(15));
+      });
+
+      Assert.Equal("Stopped waiting for resource 'redis' to become healthy because it failed to start.", ex.Message);
+   }
+
+   [Fact]
+   public async Task WhenWaitBehaviorIsWaitOnDependencyFailureWaitForResourceHealthyAsyncShouldThrowWhenResourceFailsToStart()
+   {
+      using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+
+      var failToStart = builder.AddExecutable("failToStart", "does-not-exist", ".");
+      var dependency = builder.AddContainer("redis", "redis");
+
+      dependency.WaitFor(failToStart, WaitBehavior.StopOnDependencyFailure);
+
+      using var app = builder.Build();
+      await app.StartAsync();
+
+      var ex = await Assert.ThrowsAsync<TimeoutException>(async () => {
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(
+            dependency.Resource.Name,
+            WaitBehavior.WaitOnDependencyFailure
+            ).WaitAsync(TimeSpan.FromSeconds(15));
+      });
+
+      Assert.Equal("The operation has timed out.", ex.Message);
+   }
+
     [Theory]
     [InlineData(nameof(KnownResourceStates.Exited))]
     [InlineData(nameof(KnownResourceStates.FailedToStart))]
