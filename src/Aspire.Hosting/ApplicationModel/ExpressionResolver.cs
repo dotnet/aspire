@@ -151,6 +151,15 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
         return new ResolvedValue(value, false);
     }
 
+    async Task<ResolvedValue> ResolveConnectionStringReferenceAsync(ConnectionStringReference cs)
+    {
+        // GetValueAsync will throw if the connection string is not optional and does not exist.
+        // Invoke GetValueAsync to make sure the value isn't resolved, since we are manually resolving the expression.
+        await ((IValueProvider)cs).GetValueAsync().ConfigureAwait(false);
+
+        return await ResolveInternalAsync(cs.Resource.ConnectionStringExpression).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// Resolve an expression. When it is being used from inside a container, endpoints may be evaluated (either in a container-to-container or container-to-exe communication).
     /// </summary>
@@ -158,7 +167,7 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
     {
         return value switch
         {
-            ConnectionStringReference cs => await ResolveInternalAsync(cs.Resource.ConnectionStringExpression).ConfigureAwait(false),
+            ConnectionStringReference cs => await ResolveConnectionStringReferenceAsync(cs).ConfigureAwait(false),
             IResourceWithConnectionString cs and not ResourceWithConnectionStringSurrogate => await ResolveInternalAsync(cs.ConnectionStringExpression).ConfigureAwait(false),
             ReferenceExpression ex => await EvalExpressionAsync(ex).ConfigureAwait(false),
             EndpointReference endpointReference when sourceIsContainer => new ResolvedValue(await EvalEndpointAsync(endpointReference, EndpointProperty.Url).ConfigureAwait(false), false),
