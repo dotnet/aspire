@@ -98,7 +98,19 @@ public static class ContainerAppExtensions
         };
 
         var existingCustomDomain = app.Configuration.Ingress.CustomDomains
-            .FirstOrDefault(cd => cd.Value?.Name.Value == containerAppCustomDomain.Name.Value);
+            .FirstOrDefault(cd => {
+                // This is a cautionary tale to anyone who reads this code as to the dangers
+                // of using implicit conversions in C#. BicepValue<T> uses some implicit conversions
+                // which means we need to explicitly cast to IBicepValue so that we can get at the
+                // source construct behind the Bicep value on the "name" field for a custom domain
+                // in the Bicep. If the constructs are the same ProvisioningParameter then we have a
+                // match - otherwise we are possibly dealing with a second domain. This deals with the
+                // edge case of where someone might call ConfigureCustomDomain multiple times on the
+                // same domain - unlikely but possible if someone has built some libraries.                
+                var itemDomainNameBicepValue = cd.Value?.Name as IBicepValue;
+                var candidateDomainNameBicepValue = containerAppCustomDomain.Name as IBicepValue;
+                return itemDomainNameBicepValue?.Source?.Construct == candidateDomainNameBicepValue.Source?.Construct;
+            });
 
         if (existingCustomDomain is not null)
         {

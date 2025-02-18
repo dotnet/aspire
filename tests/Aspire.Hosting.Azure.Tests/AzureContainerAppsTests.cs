@@ -1221,8 +1221,9 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
             "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
             "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
-            "expectedCertificateName": "{expectedCertificateName.value}",
-            "customDomain": "{customDomain.value}"
+            "initialCertificateName": "{initialCertificateName.value}",
+            "customDomain": "{customDomain.value}",
+            "expectedCertificateName": "{expectedCertificateName.value}"
           }
         }
         """;
@@ -1240,9 +1241,11 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
 
         param outputs_azure_container_apps_environment_id string
 
-        param expectedCertificateName string
+        param initialCertificateName string
 
         param customDomain string
+
+        param expectedCertificateName string
 
         resource api 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'api'
