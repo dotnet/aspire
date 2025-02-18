@@ -154,16 +154,14 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
     /// </summary>
     async ValueTask<ResolvedValue> ResolveInternalAsync(object? value)
     {
-        return (value, sourceIsContainer) switch
+        return value switch
         {
-            (ConnectionStringReference cs, true) => await ResolveInternalAsync(cs.Resource.ConnectionStringExpression).ConfigureAwait(false),
-            (IResourceWithConnectionString cs, true) => await ResolveInternalAsync(cs.ConnectionStringExpression).ConfigureAwait(false),
-            (ReferenceExpression ex, false) => await EvalExpressionAsync(ex).ConfigureAwait(false),
-            (ReferenceExpression ex, true) => await EvalExpressionAsync(ex).ConfigureAwait(false),
-            (EndpointReference endpointReference, true) => new(await EvalEndpointAsync(endpointReference, EndpointProperty.Url).ConfigureAwait(false), false),
-            (EndpointReferenceExpression ep, true) => new(await EvalEndpointAsync(ep.Endpoint, ep.Property).ConfigureAwait(false), false),
-            (IValueProvider vp, false) => await EvalValueProvider(vp).ConfigureAwait(false),
-            (IValueProvider vp, true) => await EvalValueProvider(vp).ConfigureAwait(false),
+            ConnectionStringReference cs => await ResolveInternalAsync(cs.Resource.ConnectionStringExpression).ConfigureAwait(false),
+            IResourceWithConnectionString cs => await ResolveInternalAsync(cs.ConnectionStringExpression).ConfigureAwait(false),
+            ReferenceExpression ex => await EvalExpressionAsync(ex).ConfigureAwait(false),
+            EndpointReference endpointReference => new(await EvalEndpointAsync(endpointReference, EndpointProperty.Url).ConfigureAwait(false), false),
+            EndpointReferenceExpression ep => new(await EvalEndpointAsync(ep.Endpoint, ep.Property).ConfigureAwait(false), false),
+            IValueProvider vp => await EvalValueProvider(vp).ConfigureAwait(false),
             _ => throw new NotImplementedException()
         };
     }
