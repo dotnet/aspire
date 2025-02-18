@@ -241,7 +241,7 @@ public class ResourceNotificationService : IDisposable
     /// Waits for a resource to become healthy.
     /// </summary>
     /// <param name="resourceName">The name of the resource.</param>
-    /// <param name="waitBehavior">The cancellation token.</param>
+    /// <param name="waitBehavior">The behavior to use when waiting for the resource to become healthy.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task.</returns>
     /// <remarks>
