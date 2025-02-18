@@ -14,10 +14,12 @@ namespace Microsoft.Extensions.Hosting;
 
 internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
     AzureComponent<TSettings, TClient, TClientOptions>
-    where TClientOptions: class
+    where TClientOptions : class
     where TClient : class
     where TSettings : AzureMessagingEventHubsSettings, new()
 {
+    private EventHubProducerClient? _healthCheckClient;
+
     // each EventHub client class is in a different namespace, so the base AzureComponent.ActivitySourceNames logic doesn't work
     protected override string[] ActivitySourceNames => ["Azure.Messaging.EventHubs.*"];
 
@@ -26,15 +28,26 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
         // HealthChecks.Azure.Messaging.EventHubs currently only supports EventHubProducerClient.
         // https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks/issues/2258 tracks supporting other client types.
 
-        var producerClientOptions = new EventHubProducerClientOptions
+        // Reuse the client if it's an EventHubProducerClient
+        if (client is EventHubProducerClient producerClient)
         {
-            Identifier = $"AspireEventHubHealthCheck-{settings.EventHubName}",
-        };
-        var producerClient = !string.IsNullOrEmpty(settings.ConnectionString) ?
-            new EventHubProducerClient(settings.ConnectionString, producerClientOptions) :
-            new EventHubProducerClient(settings.FullyQualifiedNamespace, settings.EventHubName, settings.Credential ?? new DefaultAzureCredential(), producerClientOptions);
+            _healthCheckClient = producerClient;
+        }
 
-        return new AzureEventHubHealthCheck(producerClient);
+        // Create a custom EventHubProducerClient otherwise
+        if (_healthCheckClient == null)
+        {
+            var producerClientOptions = new EventHubProducerClientOptions
+            {
+                Identifier = $"AspireEventHubHealthCheck-{settings.EventHubName}",
+            };
+
+            _healthCheckClient = !string.IsNullOrEmpty(settings.ConnectionString) ?
+                new EventHubProducerClient(settings.ConnectionString, producerClientOptions) :
+                new EventHubProducerClient(settings.FullyQualifiedNamespace, settings.EventHubName, settings.Credential ?? new DefaultAzureCredential(), producerClientOptions);
+        }
+
+        return new AzureEventHubHealthCheck(_healthCheckClient);
     }
 
     protected override bool GetHealthCheckEnabled(TSettings settings)

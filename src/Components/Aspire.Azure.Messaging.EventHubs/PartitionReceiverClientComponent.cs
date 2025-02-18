@@ -69,7 +69,7 @@ internal sealed class PartitionReceiverClientComponent()
                 settings.EventPosition,
                 settings.ConnectionString,
                 settings.EventHubName,
-                options);            
+                options);
 
         }, requiresCredential: false);
     }
