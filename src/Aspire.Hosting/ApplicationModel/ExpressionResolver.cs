@@ -94,7 +94,10 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
             }
         }
 
-        return new(string.Format(CultureInfo.InvariantCulture, expr.Format, args), isSensitive);
+        // Identically to ReferenceExpression.GetValueAsync, we return null if the format is empty
+        var value = expr.Format.Length == 0 ? null : string.Format(CultureInfo.InvariantCulture, expr.Format, args);
+
+        return new ResolvedValue(value, isSensitive);
     }
 
     async Task<ResolvedValue> EvalValueProvider(IValueProvider vp)
