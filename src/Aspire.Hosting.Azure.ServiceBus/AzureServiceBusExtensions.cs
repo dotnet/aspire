@@ -104,10 +104,10 @@ public static class AzureServiceBusExtensions
     }
 
     /// <summary>
-    /// Adds an Azure Service Bus Queue resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// Adds an Azure Service Bus Queue resource to the application model.
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
-    /// <param name="name">The name of the queue.</param>
+    /// <param name="name">The name of the queue resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [Obsolete($"This method is obsolete because it has the wrong return type and will be removed in a future version. Use {nameof(AddServiceBusQueue)} instead to add an Azure Service Bus Queue.")]
     public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name)
@@ -155,10 +155,10 @@ public static class AzureServiceBusExtensions
     }
 
     /// <summary>
-    /// Adds an Azure Service Bus Topic resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// Adds an Azure Service Bus Topic resource to the application model.
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
-    /// <param name="name">The name of the topic.</param>
+    /// <param name="name">The name of the topic resource.</param>
     [Obsolete($"This method is obsolete because it has the wrong return type and will be removed in a future version. Use {nameof(AddServiceBusTopic)} instead to add an Azure Service Bus Topic.")]
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name)
     {
@@ -168,10 +168,10 @@ public static class AzureServiceBusExtensions
     }
 
     /// <summary>
-    /// Adds an Azure Service Bus Topic resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// Adds an Azure Service Bus Topic resource to the application model.
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
-    /// <param name="name">The name of the topic.</param>
+    /// <param name="name">The name of the topic resource.</param>
     /// <param name="subscriptions">The name of the subscriptions.</param>
     [Obsolete($"This method is obsolete because it has the wrong return type and will be removed in a future version. Use {nameof(AddServiceBusTopic)} and {nameof(AddServiceBusSubscription)} instead to add an Azure Service Bus Topic and Subscriptions.")]
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string[] subscriptions)
@@ -190,7 +190,7 @@ public static class AzureServiceBusExtensions
     /// Adds an Azure Service Bus Topic resource to the application model.
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
-    /// <param name="name">The name of the topic.</param>
+    /// <param name="name">The name of the topic resource.</param>
     /// <param name="topicName">The name of the Service Bus Topic. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusTopicResource> AddServiceBusTopic(this IResourceBuilder<AzureServiceBusResource> builder, [ResourceName] string name, string? topicName = null)
@@ -224,7 +224,7 @@ public static class AzureServiceBusExtensions
     }
 
     /// <summary>
-    /// Adds an Azure Service Bus Subscription resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// Adds an Azure Service Bus Subscription resource to the application model.
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="topicName">The name of the topic resource.</param>
@@ -252,7 +252,7 @@ public static class AzureServiceBusExtensions
     /// Adds an Azure Service Bus Subscription resource to the application model.
     /// </summary>
     /// <param name="builder">The Azure Service Bus Topic resource builder.</param>
-    /// <param name="name">The name of the subscription.</param>
+    /// <param name="name">The name of the subscription resource.</param>
     /// <param name="subscriptionName">The name of the Service Bus Subscription. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusSubscriptionResource> AddServiceBusSubscription(this IResourceBuilder<AzureServiceBusTopicResource> builder, [ResourceName] string name, string? subscriptionName = null)
@@ -347,7 +347,7 @@ public static class AzureServiceBusExtensions
                 {
                     context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = passwordParameter;
                 })
-                .WithParentRelationship(builder.Resource);
+                .WithParentRelationship(builder);
 
         builder.WithAnnotation(new EnvironmentCallbackAnnotation((EnvironmentCallbackContext context) =>
         {
