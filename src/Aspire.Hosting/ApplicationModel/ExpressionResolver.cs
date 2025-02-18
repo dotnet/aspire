@@ -149,8 +149,7 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
     }
 
     /// <summary>
-    /// Resolve an expression when it is being used from inside a container.
-    /// So it's either a container-to-container or container-to-exe communication.
+    /// Resolve an expression. When it is being used from inside a container, endpoints may be evaluated (either in a container-to-container or container-to-exe communication).
     /// </summary>
     async ValueTask<ResolvedValue> ResolveInternalAsync(object? value)
     {
