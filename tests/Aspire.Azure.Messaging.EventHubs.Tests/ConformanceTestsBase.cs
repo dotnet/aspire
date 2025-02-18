@@ -1,10 +1,16 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
 using Aspire.Components.ConformanceTests;
+using HealthChecks.Azure.Messaging.EventHubs;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using Xunit;
 
 namespace Aspire.Azure.Messaging.EventHubs.Tests;
 
@@ -60,4 +66,32 @@ public abstract class ConformanceTestsBase<TService, TOptions> : ConformanceTest
      {
          RuntimeConfigurationOptions = { { "Azure.Experimental.EnableActivitySource", true } }
      };
+
+    [ConditionalFact]
+    public void HealthChecksClientsAreReused()
+    {
+        SkipIfHealthChecksAreNotSupported();
+
+        // DisableRetries so the test doesn't take so long retrying when the server isn't available.
+        using IHost host = CreateHostWithComponent(configureComponent: DisableRetries);
+
+        HealthCheckServiceOptions healthCheckServiceOptions = host.Services.GetRequiredService<IOptions<HealthCheckServiceOptions>>().Value;
+
+        var registration = healthCheckServiceOptions.Registrations.First();
+
+        var healthCheck1 = registration.Factory(host.Services) as AzureEventHubHealthCheck;
+        var healthCheck2 = registration.Factory(host.Services) as AzureEventHubHealthCheck;
+
+        Assert.NotNull(healthCheck1);
+        Assert.NotNull(healthCheck2);
+
+        var clientAccessor = typeof(AzureEventHubHealthCheck).GetField("_client", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        Assert.NotNull(clientAccessor);
+
+        var client1 = clientAccessor?.GetValue(healthCheck1);
+        var client2 = clientAccessor?.GetValue(healthCheck2);
+
+        Assert.Same(client1, client2);
+    }
 }
