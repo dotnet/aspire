@@ -456,9 +456,6 @@ public class TestingBuilderTests(ITestOutputHelper output)
         {
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync().WaitAsync(cts.Token));
             Assert.Contains(crashArg, exception.Message);
-
-            await app.DisposeAsync().AsTask().WaitAsync(cts.Token);
-            return;
         }
         else
         {
