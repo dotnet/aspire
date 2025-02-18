@@ -26,7 +26,7 @@
             chatMessages.Add(new (ChatRole.User, "Write the next sentence in the story."));
         }
 
-        var response = await aiClient.CompleteAsync(chatMessages);
+        var response = await aiClient.GetResponseAsync(chatMessages);
         chatMessages.Add(response.Message);
     }
 
