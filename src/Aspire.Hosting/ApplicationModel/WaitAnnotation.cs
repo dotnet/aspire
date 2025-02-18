@@ -60,12 +60,12 @@ public enum WaitType
 public enum WaitBehavior
 {
     /// <summary>
-    /// If the dependency fails, ignore the failure and continue waiting.
+    /// If the resource is unavailable, continue waiting.
     /// </summary>
-    WaitOnDependencyFailure,
+    WaitOnResourceUnavailable,
 
     /// <summary>
-    /// If the dependency fails, stop waiting and fail the wait.
+    /// If the resource s unavailable, stop waiting.
     /// </summary>
-    StopOnDependencyFailure
+    StopOnResourceUnavailable
 }
