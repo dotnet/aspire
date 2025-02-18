@@ -159,8 +159,8 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
             ConnectionStringReference cs => await ResolveInternalAsync(cs.Resource.ConnectionStringExpression).ConfigureAwait(false),
             IResourceWithConnectionString cs => await ResolveInternalAsync(cs.ConnectionStringExpression).ConfigureAwait(false),
             ReferenceExpression ex => await EvalExpressionAsync(ex).ConfigureAwait(false),
-            EndpointReference endpointReference => new(await EvalEndpointAsync(endpointReference, EndpointProperty.Url).ConfigureAwait(false), false),
-            EndpointReferenceExpression ep => new(await EvalEndpointAsync(ep.Endpoint, ep.Property).ConfigureAwait(false), false),
+            EndpointReference endpointReference when sourceIsContainer => new ResolvedValue(await EvalEndpointAsync(endpointReference, EndpointProperty.Url).ConfigureAwait(false), false),
+            EndpointReferenceExpression ep when sourceIsContainer => new ResolvedValue(await EvalEndpointAsync(ep.Endpoint, ep.Property).ConfigureAwait(false), false),
             IValueProvider vp => await EvalValueProvider(vp).ConfigureAwait(false),
             _ => throw new NotImplementedException()
         };
