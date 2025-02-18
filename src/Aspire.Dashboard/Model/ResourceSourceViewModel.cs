@@ -50,7 +50,9 @@ public class ResourceSourceViewModel(string value, List<LaunchArgument>? content
         else if (resource.TryGetExecutableArguments(out var executableArguments) && !resource.IsProject())
         {
             var arguments = executableArguments.IsDefaultOrEmpty ? [] : executableArguments.Select(arg => new LaunchArgument(arg, true)).ToList();
-            commandLineInfo = new CommandLineInfo(Arguments: arguments, ArgumentsString: string.Join(' ', executableArguments), TooltipString: string.Join(' ', executableArguments));
+            var argumentsString = string.Join(" ", executableArguments);
+
+            commandLineInfo = new CommandLineInfo(Arguments: arguments, ArgumentsString: argumentsString, TooltipString: argumentsString);
         }
         else
         {
