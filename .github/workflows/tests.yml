@@ -64,7 +64,7 @@ jobs:
     uses: ./.github/workflows/run-tests.yml
     with:
       testProject: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
-      testName: Workload tests
+      testName: Workload
       testSessionTimeoutMs: 1200000
       extraArgs: "-p:VSTestTestCaseFilter=FullyQualifiedName=${{ matrix.class_names }}"
     #steps:
@@ -72,9 +72,6 @@ jobs:
       #- run: echo "outputs.template_matrix: ${{ needs.setup_for_template_tests.outputs.template_matrix }}"
 
   test:
-    #runs-on: ubuntu-latest
-    #timeout-minutes: 60
-    #name: ${{ matrix.name }}
     strategy:
       fail-fast: false
       matrix:
@@ -91,3 +88,4 @@ jobs:
       testProject: ${{ matrix.project }}
       testName: ${{ matrix.name }}
       testSessionTimeoutMs: ${{ matrix.testSessionTimeoutMs }}
+      extraArgs: ${{ matrix.extraArgs }}
