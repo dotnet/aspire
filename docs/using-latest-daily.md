@@ -21,6 +21,10 @@ The latest builds are pushed to a special feed, which you need to add:
 dotnet nuget add source --name dotnet9 https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json
 ```
 
+> [!TIP]
+> Release branches are a little different. Currently you need to also do `dotnet nuget add source --name dotnet9-transport https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9-transport/nuget/v3/index.json`
+```
+
 If you use [Package Source Mapping](https://learn.microsoft.com/en-us/nuget/consume-packages/package-source-mapping), you'll also need to add the following mappings to your NuGet.config
 
 ```xml
@@ -42,7 +46,7 @@ dotnet new install Aspire.ProjectTemplates::*-* --force
 ```
 
 > [!TIP]
-> If you want to use the latest build from the `release/9.0-rc1` branch, change the above to be `dotnet new install Aspire.ProjectTemplates::9.0.0-rc.1.* --force`
+> Release branches are a little different. For example, for the latest build from `release/X.X` branch change the above to be `Aspire.ProjectTemplates::X.X.*-*`. For example, if you want to use the latest build from the `release/9.2` branch, change the above to be `dotnet new install Aspire.ProjectTemplates::9.2.*-* --force`
 
 <!-- break between blocks -->
 
