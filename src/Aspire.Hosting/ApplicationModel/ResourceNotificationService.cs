@@ -231,8 +231,42 @@ public class ResourceNotificationService : IDisposable
     /// </remarks>
     public async Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, CancellationToken cancellationToken = default)
     {
+        return await WaitForResourceHealthyAsync(
+            resourceName,
+            WaitBehavior.WaitOnDependencyFailure, // Retain default behavior.
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Waits for a resource to become healthy.
+    /// </summary>
+    /// <param name="resourceName">The name of the resource.</param>
+    /// <param name="waitBehavior">The behavior to use when waiting for the resource to become healthy.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task.</returns>
+    /// <remarks>
+    /// This method returns a task that will complete with the resource is healthy. A resource
+    /// without <see cref="HealthCheckAnnotation"/> annotations will be considered healthy. This overload
+    /// will throw a <see cref="Aspire.Hosting.DistributedApplicationException"/> if the resource fails to start.
+    /// </remarks>
+    public async Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, WaitBehavior waitBehavior, CancellationToken cancellationToken = default)
+    {
+        var waitCondition = waitBehavior switch
+        {
+            WaitBehavior.WaitOnDependencyFailure => (Func<ResourceEvent, bool>)(re => re.Snapshot.HealthStatus == HealthStatus.Healthy),
+            WaitBehavior.StopOnDependencyFailure => (Func<ResourceEvent, bool>)(re => re.Snapshot.HealthStatus == HealthStatus.Healthy || re.Snapshot.State?.Text == KnownResourceStates.FailedToStart),
+            _ => throw new DistributedApplicationException($"Unexpected wait behavior: {waitBehavior}")
+        };
+
         _logger.LogDebug("Waiting for resource '{Name}' to enter the '{State}' state.", resourceName, HealthStatus.Healthy);
-        var resourceEvent = await WaitForResourceCoreAsync(resourceName, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var resourceEvent = await WaitForResourceCoreAsync(resourceName, waitCondition, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        if (resourceEvent.Snapshot.HealthStatus != HealthStatus.Healthy)
+        {
+            _logger.LogError("Stopped waiting for resource '{ResourceName}' to become healthy because it failed to start.", resourceName);
+            throw new DistributedApplicationException($"Stopped waiting for resource '{resourceName}' to become healthy because it failed to start.");
+        }
+
         _logger.LogDebug("Finished waiting for resource '{Name}'.", resourceName);
 
         return resourceEvent;

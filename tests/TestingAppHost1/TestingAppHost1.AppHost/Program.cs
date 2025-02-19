@@ -10,7 +10,11 @@ var builder = DistributedApplication.CreateBuilder(args);
 builder.Configuration["ConnectionStrings:cs"] = "testconnection";
 
 builder.AddConnectionString("cs");
-builder.AddRedis("redis1");
+if (args.Contains("--add-redis"))
+{
+    builder.AddRedis("redis1");
+}
+
 var webApp = builder.AddProject<Projects.TestingAppHost1_MyWebApp>("mywebapp1")
     .WithEnvironment("APP_HOST_ARG", builder.Configuration["APP_HOST_ARG"])
     .WithEnvironment("LAUNCH_PROFILE_VAR_FROM_APP_HOST", builder.Configuration["LAUNCH_PROFILE_VAR_FROM_APP_HOST"]);
@@ -22,7 +26,6 @@ if (builder.Configuration.GetValue("USE_HTTPS", false))
 
 builder.AddProject<Projects.TestingAppHost1_MyWorker>("myworker1")
     .WithEndpoint(name: "myendpoint1", env: "myendpoint1_port");
-builder.AddPostgres("postgres1");
 
 if (args.Contains("--add-unknown-container"))
 {
