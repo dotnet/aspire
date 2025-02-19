@@ -219,6 +219,9 @@ jobs:
           - project: tests/Microsoft.Extensions.ServiceDiscovery.Yarp.Tests/Microsoft.Extensions.ServiceDiscovery.Yarp.Tests.csproj
             name: Extensions.ServiceDiscovery.Yarp
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - uses: ./.github/workflows/run-tests.yml
         with:
           testProject: ${{ matrix.project }}
