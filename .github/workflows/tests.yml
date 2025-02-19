@@ -58,7 +58,7 @@ jobs:
 
   template_tests:
     needs: setup_for_template_tests
-    runs-on: ubuntu-latest
+    #runs-on: ubuntu-latest
     strategy:
       matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.template_matrix) }}
     uses: ./.github/workflows/run-tests.yml
