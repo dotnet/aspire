@@ -65,7 +65,7 @@ public class NatsServerResource(string name) : ContainerResource(ThrowIfNull(nam
             builder.Append($"{UserNameReference}:{PasswordParameter}@");
         }
 
-        builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+        builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
 
         return builder.Build();
     }

@@ -24,6 +24,8 @@ public class ExpressionResolverTests
     [InlineData("OnlyHost", true, true, "Host=localhost;")] // host not replaced since no port
     [InlineData("OnlyPort", true, false, "Port=12345;")]
     [InlineData("OnlyPort", true, true, "Port=12345;")] // port not replaced since no host
+    [InlineData("HostAndPort", true, false, "HostPort=ContainerHostName:12345")]
+    [InlineData("HostAndPort", true, true, "HostPort=testresource:10000")] // host not replaced since no port
     [InlineData("PortBeforeHost", true, false, "Port=12345;Host=ContainerHostName;")]
     [InlineData("PortBeforeHost", true, true, "Port=10000;Host=testresource;")]
     [InlineData("FullAndPartial", true, false, "Test1=http://ContainerHostName:12345/;Test2=https://localhost:12346/;")]
@@ -135,6 +137,7 @@ sealed class TestExpressionResolverResource : ContainerResource, IResourceWithEn
             { "Url2", ReferenceExpression.Create($"Url={Endpoint1};") },
             { "OnlyHost", ReferenceExpression.Create($"Host={Endpoint1.Property(EndpointProperty.Host)};") },
             { "OnlyPort", ReferenceExpression.Create($"Port={Endpoint1.Property(EndpointProperty.Port)};") },
+            { "HostAndPort", ReferenceExpression.Create($"HostPort={Endpoint1.Property(EndpointProperty.HostAndPort)}") },
             { "PortBeforeHost", ReferenceExpression.Create($"Port={Endpoint1.Property(EndpointProperty.Port)};Host={Endpoint1.Property(EndpointProperty.Host)};") },
             { "FullAndPartial", ReferenceExpression.Create($"Test1={Endpoint1.Property(EndpointProperty.Scheme)}://{Endpoint1.Property(EndpointProperty.IPV4Host)}:{Endpoint1.Property(EndpointProperty.Port)}/;Test2={Endpoint2.Property(EndpointProperty.Scheme)}://localhost:{Endpoint2.Property(EndpointProperty.Port)}/;") }
         };
