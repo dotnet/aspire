@@ -15,6 +15,16 @@ jobs:
     outputs:
       workload_matrix: ${{ steps.dataStep.outputs.workload_matrix }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.x
+            9.x
+
       - name: Build with packages
         env:
           CI: false
