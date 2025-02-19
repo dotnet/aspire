@@ -61,8 +61,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.template_matrix) }}
-    steps:
-      - run: echo "Test classname ${{ matrix.class_names }}"
+    uses: ./.github/workflows/run-tests.yml
+    with:
+      testProject: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
+      testName: Workload tests
+      testSessionTimeoutMs: 1200000
+      extraArgs: "-p:VSTestTestCaseFilter=FullyQualifiedName=${{ matrix.class_names }}"
+    #steps:
+      #- run: echo "Test classname ${{ matrix.class_names }}"
       #- run: echo "outputs.template_matrix: ${{ needs.setup_for_template_tests.outputs.template_matrix }}"
 
   test:

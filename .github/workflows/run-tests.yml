@@ -13,6 +13,9 @@ on:
       testSessionTimeoutMs:
         required: false
         type: string
+      extraArgs:
+        required: false
+        type: string
 
 jobs:
 
@@ -68,6 +71,7 @@ jobs:
             --results-directory testresults \
             --no-restore \
             --no-build \
+            ${{ matrix.extraArgs }} \
             -- \
             RunConfiguration.CollectSourceInformation=true \
             RunConfiguration.TestSessionTimeout=${{ matrix.testSessionTimeoutMs || 600000 }}
