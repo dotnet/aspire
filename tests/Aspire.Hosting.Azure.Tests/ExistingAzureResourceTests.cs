@@ -1197,12 +1197,6 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
             resource redis 'Microsoft.Cache/redis@2024-03-01' existing = {
               name: existingResourceName
-              properties: {
-                disableAccessKeyAuthentication: true
-                redisConfiguration: {
-                  'aad-enabled': 'true'
-                }
-              }
             }
 
             resource redis_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
@@ -1257,9 +1251,6 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
             resource redis 'Microsoft.Cache/redis@2024-03-01' existing = {
               name: 'existingResourceName'
-              properties: {
-                disableAccessKeyAuthentication: false
-              }
             }
 
             resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
@@ -1415,7 +1406,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
-        var expectedManifest = $$"""
+        var expectedManifest = """
             {
               "type": "azure.bicep.v1",
               "connectionString": "{cosmos.outputs.connectionString}",
@@ -1432,7 +1423,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = $$"""
+        var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
@@ -1511,7 +1502,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
-        var expectedManifest = $$"""
+        var expectedManifest = """
             {
               "type": "azure.bicep.v1",
               "connectionString": "{cosmos.secretOutputs.connectionString}",
@@ -1527,7 +1518,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, ManifestNode.ToString());
 
-        var expectedBicep = $$"""
+        var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
@@ -1537,9 +1528,6 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
             resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' existing = {
               name: existingResourceName
-              properties: {
-                disableLocalAuth: false
-              }
             }
 
             resource mydb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
