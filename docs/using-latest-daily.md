@@ -23,7 +23,6 @@ dotnet nuget add source --name dotnet9 https://pkgs.dev.azure.com/dnceng/public/
 
 > [!TIP]
 > Release branches are a little different. Currently you need to also do `dotnet nuget add source --name dotnet9-transport https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9-transport/nuget/v3/index.json`
-```
 
 If you use [Package Source Mapping](https://learn.microsoft.com/en-us/nuget/consume-packages/package-source-mapping), you'll also need to add the following mappings to your NuGet.config
 
