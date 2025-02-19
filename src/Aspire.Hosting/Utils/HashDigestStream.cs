@@ -27,18 +27,16 @@ sealed class HashDigestStream : Stream
         _writeStream.Write(buffer, offset, count);
     }
 
-    public override void Write(ReadOnlySpan<byte> buffer)
-    {
-        _hashAlgorithm.Append(buffer);
-        _writeStream.Write(buffer);
-    }
-
     public override void Flush()
     {
         _writeStream.Flush();
     }
 
     internal int GetCurrentUncompressedHash(Span<byte> buffer) => _hashAlgorithm.GetCurrentHash(buffer);
+
+    // This should not be used by Stream.CopyTo(Stream)
+    public override void Write(ReadOnlySpan<byte> buffer)
+        => throw new NotImplementedException();
 
     // This class is never used with async writes, but if it ever is, implement these overrides
     public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
