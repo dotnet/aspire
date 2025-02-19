@@ -65,8 +65,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
             ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
             ReferenceExpression.Create($"{ConnectionStringOutput}");
 
-    /// <inheritdoc />
-    public void ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
+    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
     {
         if (IsEmulator || UseAccessKeyAuthentication)
         {

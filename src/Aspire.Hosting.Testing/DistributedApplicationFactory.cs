@@ -606,8 +606,9 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
 
         public async Task StopAsync(CancellationToken cancellationToken = default)
         {
-            using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, appFactory._disposingCts.Token);
-            await innerHost.StopAsync(linkedToken.Token).ConfigureAwait(false);
+            // The cancellation token is passed as-is here to give the host a chance to stop gracefully.
+            // Internally, in the host itself, the value of HostOptions.ShutdownTimeout limits how long the host has to stop gracefully.
+            await innerHost.StopAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 }

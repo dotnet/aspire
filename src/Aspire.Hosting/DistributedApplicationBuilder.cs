@@ -206,7 +206,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         {
             // Default to stopping on dependency failure if the dashboard is disabled. As there's no way to see or easily recover
             // from a failure in that case.
-            o.DefaultWaitBehavior = options.DisableDashboard ? WaitBehavior.StopOnDependencyFailure : WaitBehavior.WaitOnDependencyFailure;
+            o.DefaultWaitBehavior = options.DisableDashboard ? WaitBehavior.StopOnResourceUnavailable : WaitBehavior.WaitOnResourceUnavailable;
         });
 
         ConfigureHealthChecks();
