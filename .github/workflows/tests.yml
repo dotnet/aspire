@@ -223,13 +223,3 @@ jobs:
       testProject: ${{ matrix.project }}
       testName: ${{ matrix.name }}
       testSessionTimeoutMs: ${{ matrix.testSessionTimeoutMs }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: check file
-        run: |
-          ls -a
-          ls -al .github/workflows
-          cat ./.github/workflows/run-tests.yml
-
