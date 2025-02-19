@@ -32,8 +32,6 @@ internal sealed class HashDigestStream : Stream
         _writeStream.Flush();
     }
 
-    internal int GetCurrentUncompressedHash(Span<byte> buffer) => _hashAlgorithm.GetCurrentHash(buffer);
-
     // This should not be used by Stream.CopyTo(Stream)
     public override void Write(ReadOnlySpan<byte> buffer)
         => throw new NotImplementedException();
