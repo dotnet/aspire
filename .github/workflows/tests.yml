@@ -28,7 +28,8 @@ jobs:
         run: ./build.sh -restore -ci -build -projects ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj /bl
 
       - name: Enumerate test class names
-        run: echo "workload_matrix=$(jq -R '{class_names: [inputs]}' < artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list)" >> $GITHUB_OUTPUT
+        run: |
+          echo "workload_matrix=$(jq -R '{class_names: [inputs]}' < artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list)" >> $GITHUB_OUTPUT
 
   workload_tests:
     needs: setup_for_workload_tests
