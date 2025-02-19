@@ -263,7 +263,7 @@ public class ResourceNotificationService : IDisposable
 
         return resourceEvent;
 
-                // Determine if we should yield based on the wait behavior and the snapshot of the resource.
+        // Determine if we should yield based on the wait behavior and the snapshot of the resource.
         static bool ShouldYield(WaitBehavior waitBehavior, CustomResourceSnapshot snapshot) =>
             waitBehavior switch
             {

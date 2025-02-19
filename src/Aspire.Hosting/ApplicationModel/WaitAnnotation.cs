@@ -65,7 +65,7 @@ public enum WaitBehavior
     WaitOnResourceUnavailable,
 
     /// <summary>
-    /// If the resource s unavailable, stop waiting.
+    /// If the resource is unavailable, stop waiting.
     /// </summary>
     StopOnResourceUnavailable
 }
