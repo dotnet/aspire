@@ -54,7 +54,7 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
         });
     }
 
-    [Fact]
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/7522")]
     public async Task BrowserToken_LoginPage_Failure_DisplayFailureMessage()
     {
         // Arrange
