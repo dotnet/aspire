@@ -218,7 +218,7 @@ jobs:
             #name: Extensions.ServiceDiscovery.Dns
           - project: tests/Microsoft.Extensions.ServiceDiscovery.Yarp.Tests/Microsoft.Extensions.ServiceDiscovery.Yarp.Tests.csproj
             name: Extensions.ServiceDiscovery.Yarp
-    uses: dotnet/aspire/.github/workflows/run-tests.yml@aj/re-enable-tests
+    uses: .github/workflows/run-tests.yml
     with:
       testProject: ${{ matrix.project }}
       testName: ${{ matrix.name }}
