@@ -14,7 +14,7 @@ jobs:
     name: Setup for template tests
     runs-on: ubuntu-latest
     outputs:
-      template_matrix: ${{ steps.dataStep.outputs.templates_output }}
+      template_matrix: ${{ steps.enumerateNamesStep.outputs.templates_output }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -49,6 +49,7 @@ jobs:
             /bl:${{ github.workspace }}/artifacts/log/Debug/BuildWorkloadTests.binlog
 
       - name: Enumerate test class names
+        id: enumerateNamesStep
         env:
           CI: false
         run: |
@@ -58,10 +59,11 @@ jobs:
   template_tests:
     needs: setup_for_template_tests
     runs-on: ubuntu-latest
-    strategy:
-      matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.template_matrix) }}
+    #strategy:
+      #matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.template_matrix) }}
     steps:
-      - run: echo "Test classname ${{ matrix.class_names }}"
+      #- run: echo "Test classname ${{ matrix.class_names }}"
+      - run: echo "outputs.template_matrix: ${{ needs.setup_for_template_tests.outputs.template_matrix }}
 
   test:
     runs-on: ubuntu-latest
