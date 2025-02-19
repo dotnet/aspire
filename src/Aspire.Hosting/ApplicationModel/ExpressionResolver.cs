@@ -155,7 +155,7 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
     {
         // GetValueAsync will throw if the connection string is not optional and does not exist.
         // Invoke GetValueAsync to make sure the value isn't resolved, since we are manually resolving the expression.
-        await ((IValueProvider)cs).GetValueAsync().ConfigureAwait(false);
+        await ((IValueProvider)cs).GetValueAsync(cancellationToken).ConfigureAwait(false);
 
         return await ResolveInternalAsync(cs.Resource.ConnectionStringExpression).ConfigureAwait(false);
     }
