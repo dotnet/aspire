@@ -156,6 +156,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var appHostName = options.ProjectName ?? _innerBuilder.Environment.ApplicationName;
         AppHostPath = Path.Join(AppHostDirectory, appHostName);
 
+        var assemblyMetadata = AppHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
+        var aspireDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
+
         // Set configuration
         ConfigurePublishingOptions(options);
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -163,19 +166,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             // Make the app host directory available to the application via configuration
             ["AppHost:Directory"] = AppHostDirectory,
             ["AppHost:Path"] = AppHostPath,
+            [AspireStore.AspireStorePathKeyName] = aspireDir
         });
-
-        var assemblyMetadata = AppHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
-        var aspireDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
-
-        // Only set if there is a valid attribute, otherwise the configuration will come from another source (ENV for instance)
-        if (!string.IsNullOrEmpty(aspireDir))
-        {
-            _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                [AspireStore.AspireStorePathKeyName] = aspireDir
-            });
-        }
 
         _executionContextOptions = _innerBuilder.Configuration["Publishing:Publisher"] switch
         {
