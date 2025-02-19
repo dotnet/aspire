@@ -53,7 +53,7 @@ jobs:
         env:
           CI: false
         run: |
-          echo "template_matrix=$(jq -R '{class_names: [inputs]}' < artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list)" >> $GITHUB_OUTPUT
+          echo "template_matrix=$(jq -cR '{class_names: [inputs]}' < artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list)" >> $GITHUB_OUTPUT
 
   template_tests:
     needs: setup_for_template_tests
