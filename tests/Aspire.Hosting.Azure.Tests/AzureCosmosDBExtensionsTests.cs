@@ -72,7 +72,7 @@ public class AzureCosmosDBExtensionsTests
     [Fact]
     public void AddAzureCosmosDBWithDataExplorer()
     {
-#pragma warning disable ASPIRECOSMOS001 // RunAsPreviewEmulator is experimental
+#pragma warning disable ASPIRECOSMOSDB001 // RunAsPreviewEmulator is experimental
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
@@ -85,7 +85,7 @@ public class AzureCosmosDBExtensionsTests
         // WithDataExplorer doesn't work against the non-preview emulator
         var cosmos2 = builder.AddAzureCosmosDB("cosmos2");
         Assert.Throws<NotSupportedException>(() => cosmos2.RunAsEmulator(e => e.WithDataExplorer()));
-#pragma warning restore ASPIRECOSMOS001 // RunAsPreviewEmulator is experimental
+#pragma warning restore ASPIRECOSMOSDB001 // RunAsPreviewEmulator is experimental
     }
 
     [Fact]
