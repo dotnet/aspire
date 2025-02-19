@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 
 namespace Aspire.Hosting;
@@ -45,4 +46,71 @@ public static class AzureContainerAppProjectExtensions
 
         return project;
     }
+
+    /// <summary>
+    ///
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="project"></param>
+    /// <param name="configure"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> PublishAsAzureContainerAppWithKind<T>(this IResourceBuilder<T> project, Action<AzureResourceInfrastructure, ContainerAppWithKind> configure)
+        where T : ProjectResource
+    {
+        if (!project.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return project;
+        }
+
+        project.ApplicationBuilder.AddAzureContainerAppsInfrastructure();
+
+        project.WithAnnotation(new AzureContainerAppWithKindCustomizationAnnotation(configure));
+
+        return project;
+    }
+}
+
+/// <summary>
+///  Container app with kind.
+/// </summary>
+public class ContainerAppWithKind : ContainerApp
+{
+    /// <summary>
+    /// The kind of the container app.
+    /// </summary>
+    public BicepValue<string> Kind
+    {
+        get { Initialize(); return _kind!; }
+        set { Initialize(); _kind!.Assign(value); }
+    }
+    private BicepValue<string>? _kind;
+
+    /// <summary>
+    /// Creates a new instance of <see cref="ContainerAppWithKind"/>.
+    /// </summary>
+    /// <param name="bicepIdentifier"></param>
+    /// <param name="resourceVersion"></param>
+    public ContainerAppWithKind(string bicepIdentifier, string? resourceVersion = null) : base(bicepIdentifier, resourceVersion) { }
+
+    /// <summary>
+    /// Overrides provisionable properties.
+    /// </summary>
+    protected override void DefineProvisionableProperties()
+    {
+        base.DefineProvisionableProperties();
+
+        _kind = DefineProperty<string>(nameof(Kind), ["kind"]);
+    }
+}
+
+/// <summary>
+/// Represents an annotation for customizing an Azure Container App.
+/// </summary>
+/// <param name="configure"></param>
+public class AzureContainerAppWithKindCustomizationAnnotation(Action<AzureResourceInfrastructure, ContainerAppWithKind> configure) : IResourceAnnotation
+{
+    /// <summary>
+    /// Gets the configuration action for customizing the Azure Container App.
+    /// </summary>
+    public Action<AzureResourceInfrastructure, ContainerAppWithKind> Configure { get; } = configure;
 }

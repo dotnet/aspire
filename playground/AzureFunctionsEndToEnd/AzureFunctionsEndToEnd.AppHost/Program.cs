@@ -1,6 +1,21 @@
+using Aspire.Hosting.Azure;
+using Azure.Provisioning;
+using Azure.Provisioning.Storage;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
-var storage = builder.AddAzureStorage("storage").RunAsEmulator();
+var storage = builder.AddAzureStorage("storage").RunAsEmulator()
+.ConfigureInfrastructure((infrastructure) =>
+    {
+        var storageAccount = infrastructure.GetProvisionableResources().OfType<StorageAccount>().FirstOrDefault(r => r.BicepIdentifier == "storage")
+            ?? throw new InvalidOperationException($"Could not find configured storage account with name 'storage'");
+
+        // Storage Account Contributor and Storage Blob Data Owner roles are required by the Azure Functions host
+        var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+        var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+        infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageAccountContributor, principalTypeParameter, principalIdParameter));
+        infrastructure.Add(storageAccount.CreateRoleAssignment(StorageBuiltInRole.StorageBlobDataOwner, principalTypeParameter, principalIdParameter));
+    });
 var queue = storage.AddQueues("queue");
 var blob = storage.AddBlobs("blob");
 var eventHub = builder.AddAzureEventHubs("eventhubs")
@@ -25,7 +40,13 @@ var funcApp = builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_F
     .WithReference(cosmosDb).WaitFor(cosmosDb)
 #endif
     .WithReference(blob)
-    .WithReference(queue);
+    .WithReference(queue)
+    .WithExternalHttpEndpoints()
+    .WithHostStorage(storage)
+    .PublishAsAzureContainerAppWithKind((infrastructure, app) =>
+    {
+        app.Kind = "functionapp";
+    });
 
 builder.AddProject<Projects.AzureFunctionsEndToEnd_ApiService>("apiservice")
     .WithReference(eventHub).WaitFor(eventHub)
@@ -35,6 +56,7 @@ builder.AddProject<Projects.AzureFunctionsEndToEnd_ApiService>("apiservice")
 #endif
     .WithReference(queue)
     .WithReference(blob)
-    .WithReference(funcApp);
+    .WithReference(funcApp)
+    .WithExternalHttpEndpoints();
 
 builder.Build().Run();

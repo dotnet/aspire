@@ -69,8 +69,26 @@
       }
     },
     "funcapp": {
-      "type": "project.v0",
+      "type": "project.v1",
       "path": "../AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj",
+      "deployment": {
+        "type": "azure.bicep.v0",
+        "path": "funcapp.module.bicep",
+        "params": {
+          "funcstorage67c6c_outputs_blobendpoint": "{funcstorage67c6c.outputs.blobEndpoint}",
+          "funcstorage67c6c_outputs_queueendpoint": "{funcstorage67c6c.outputs.queueEndpoint}",
+          "eventhubs_outputs_eventhubsendpoint": "{eventhubs.outputs.eventHubsEndpoint}",
+          "messaging_outputs_servicebusendpoint": "{messaging.outputs.serviceBusEndpoint}",
+          "cosmosdb_outputs_connectionstring": "{cosmosdb.outputs.connectionString}",
+          "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
+          "storage_outputs_queueendpoint": "{storage.outputs.queueEndpoint}",
+          "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+          "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+          "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+          "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+          "funcapp_containerimage": "{funcapp.containerImage}"
+        }
+      },
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
@@ -122,8 +140,26 @@
       }
     },
     "apiservice": {
-      "type": "project.v0",
+      "type": "project.v1",
       "path": "../AzureFunctionsEndToEnd.ApiService/AzureFunctionsEndToEnd.ApiService.csproj",
+      "deployment": {
+        "type": "azure.bicep.v0",
+        "path": "apiservice.module.bicep",
+        "params": {
+          "apiservice_containerport": "{apiservice.containerPort}",
+          "eventhubs_outputs_eventhubsendpoint": "{eventhubs.outputs.eventHubsEndpoint}",
+          "messaging_outputs_servicebusendpoint": "{messaging.outputs.serviceBusEndpoint}",
+          "cosmosdb_outputs_connectionstring": "{cosmosdb.outputs.connectionString}",
+          "storage_outputs_queueendpoint": "{storage.outputs.queueEndpoint}",
+          "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
+          "outputs_azure_container_apps_environment_default_domain": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+          "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+          "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+          "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+          "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+          "apiservice_containerimage": "{apiservice.containerImage}"
+        }
+      },
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",

@@ -147,7 +147,7 @@ internal sealed class AzureContainerAppsInfrastructure(
                     containerImageParam = AllocateContainerImageParameter();
                 }
 
-                var containerAppResource = new ContainerApp(Infrastructure.NormalizeBicepIdentifier(resource.Name))
+                var containerAppResource = new ContainerAppWithKind(Infrastructure.NormalizeBicepIdentifier(resource.Name), "2024-10-02-preview")
                 {
                     Name = resource.Name.ToLowerInvariant()
                 };
@@ -222,6 +222,14 @@ internal sealed class AzureContainerAppsInfrastructure(
                 if (resource.TryGetAnnotationsOfType<AzureContainerAppCustomizationAnnotation>(out var annotations))
                 {
                     foreach (var a in annotations)
+                    {
+                        a.Configure(c, containerAppResource);
+                    }
+                }
+
+                if (resource.TryGetAnnotationsOfType<AzureContainerAppWithKindCustomizationAnnotation>(out var s_annotations))
+                {
+                    foreach (var a in s_annotations)
                     {
                         a.Configure(c, containerAppResource);
                     }

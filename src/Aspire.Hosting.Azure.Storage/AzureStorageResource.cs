@@ -38,6 +38,11 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     public BicepOutputReference TableEndpoint => new("tableEndpoint", this);
 
     /// <summary>
+    ///
+    /// </summary>
+    public BicepOutputReference AccountName => new("name", this);
+
+    /// <summary>
     /// Gets a value indicating whether the Azure Storage resource is running in the local emulator.
     /// </summary>
     public bool IsEmulator => this.IsContainer();
@@ -76,6 +81,7 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
         else
         {
             // Injected to support Azure Functions listener initialization.
+            target[$"{connectionName}__accountName"] = Name;
             target[$"{connectionName}__blobServiceUri"] = BlobEndpoint;
             target[$"{connectionName}__queueServiceUri"] = QueueEndpoint;
             // Injected to support Aspire client integration for Azure Storage.

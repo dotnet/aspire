@@ -7,6 +7,7 @@
     <Nullable>enable</Nullable>
     <IsAspireHost>true</IsAspireHost>
     <UserSecretsId>d824db17-effc-4f8c-aa80-f0ae6aba93eb</UserSecretsId>
+    <SkipUnstableEmulators>true</SkipUnstableEmulators>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +16,8 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.ServiceBus" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CosmosDb" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.AppContainers" />
+    <PackageReference Include="Azure.Provisioning.AppContainers" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
   </ItemGroup>
 

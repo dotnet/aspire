@@ -77,6 +77,7 @@ public static class AzureStorageExtensions
             infrastructure.Add(new ProvisioningOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.BlobUri });
             infrastructure.Add(new ProvisioningOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.QueueUri });
             infrastructure.Add(new ProvisioningOutput("tableEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.TableUri });
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = storageAccount.Name });
         };
 
         var resource = new AzureStorageResource(name, configureInfrastructure);
