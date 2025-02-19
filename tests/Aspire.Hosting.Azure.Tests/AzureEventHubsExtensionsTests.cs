@@ -611,7 +611,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         var resourceEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.HealthStatus == HealthStatus.Healthy, cts.Token);
         var ehContainerId1 = GetContainerId(resourceEvent);
 
-        // NOTE: Waiting for Running state doesn't guaranty that the container-id property is set (for this resource at least)
+        // NOTE: Waiting for Running state doesn't guarantee that the container-id property is set (for this resource at least)
 
         resourceEvent = await rns.WaitForResourceAsync("resource-storage", e => GetContainerId(e) is not null, cts.Token);
         var storageContainerId1 = GetContainerId(resourceEvent);
