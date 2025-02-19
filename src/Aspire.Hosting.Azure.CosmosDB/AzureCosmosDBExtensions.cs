@@ -324,16 +324,24 @@ public static class AzureCosmosExtensions
     private static void ConfigureCosmosDBInfrastructure(AzureResourceInfrastructure infrastructure)
     {
         var azureResource = (AzureCosmosDBResource)infrastructure.AspireResource;
+        bool disableLocalAuth = !azureResource.UseAccessKeyAuthentication;
 
-        var cosmosAccount = new CosmosDBAccount(infrastructure.AspireResource.GetBicepIdentifier())
-        {
-            Kind = CosmosDBAccountKind.GlobalDocumentDB,
-            ConsistencyPolicy = new ConsistencyPolicy()
+        var cosmosAccount = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+            (identifier, name) =>
             {
-                DefaultConsistencyLevel = DefaultConsistencyLevel.Session
+                var resource = CosmosDBAccount.FromExisting(identifier);
+                resource.Name = name;
+                return resource;
             },
-            DatabaseAccountOfferType = CosmosDBAccountOfferType.Standard,
-            Locations =
+            (infrastructure) => new CosmosDBAccount(infrastructure.AspireResource.GetBicepIdentifier())
+            {
+                Kind = CosmosDBAccountKind.GlobalDocumentDB,
+                ConsistencyPolicy = new ConsistencyPolicy()
+                {
+                    DefaultConsistencyLevel = DefaultConsistencyLevel.Session
+                },
+                DatabaseAccountOfferType = CosmosDBAccountOfferType.Standard,
+                Locations =
                 {
                     new CosmosDBAccountLocation
                     {
@@ -341,9 +349,9 @@ public static class AzureCosmosExtensions
                         FailoverPriority = 0
                     }
                 },
-            Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-        };
-        infrastructure.Add(cosmosAccount);
+                DisableLocalAuth = disableLocalAuth,
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+            });
 
         foreach (var database in azureResource.Databases)
         {
@@ -376,8 +384,6 @@ public static class AzureCosmosExtensions
 
         if (azureResource.UseAccessKeyAuthentication)
         {
-            cosmosAccount.DisableLocalAuth = false;
-
             var kvNameParam = new ProvisioningParameter(AzureBicepResource.KnownParameters.KeyVaultName, typeof(string));
             infrastructure.Add(kvNameParam);
 
@@ -398,8 +404,6 @@ public static class AzureCosmosExtensions
         }
         else
         {
-            cosmosAccount.DisableLocalAuth = true;
-
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
             infrastructure.Add(principalTypeParameter);
 
