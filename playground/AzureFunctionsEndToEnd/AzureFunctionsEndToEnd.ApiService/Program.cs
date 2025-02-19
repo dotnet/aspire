@@ -1,8 +1,8 @@
 using System.Security.Cryptography;
 using System.Text;
+#if !SKIP_UNSTABLE_EMULATORS
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
-#if !SKIP_UNSTABLE_EMULATORS
 using Azure.Messaging.ServiceBus;
 using Microsoft.Azure.Cosmos;
 #endif
@@ -16,8 +16,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.AddAzureQueueClient("queue");
 builder.AddAzureBlobClient("blob");
-builder.AddAzureEventHubProducerClient("myhub");
 #if !SKIP_UNSTABLE_EMULATORS
+builder.AddAzureEventHubProducerClient("myhub");
 builder.AddAzureServiceBusClient("messaging");
 builder.AddAzureCosmosClient("cosmosdb");
 #endif
@@ -52,6 +52,7 @@ app.MapGet("/publish/blob", async (BlobServiceClient client, CancellationToken c
     return Results.Ok("String uploaded to Azure Storage Blobs.");
 });
 
+#if !SKIP_UNSTABLE_EMULATORS
 app.MapGet("/publish/eventhubs", async (EventHubProducerClient client, CancellationToken cancellationToken, int length = 20) =>
 {
     var data = new BinaryData(Encoding.UTF8.GetBytes(RandomString(length)));
@@ -59,7 +60,6 @@ app.MapGet("/publish/eventhubs", async (EventHubProducerClient client, Cancellat
     return Results.Ok("Message sent to Azure EventHubs.");
 });
 
-#if !SKIP_UNSTABLE_EMULATORS
 app.MapGet("/publish/asb", async (ServiceBusClient client, CancellationToken cancellationToken, int length = 20) =>
 {
     var sender = client.CreateSender("myqueue");
