@@ -201,11 +201,8 @@ public static class AzureRedisExtensions
         return AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
         (identifier, name) =>
         {
-            var redisResource = (AzureRedisCacheResource)infrastructure.AspireResource;
-            var resource = new ExistingCdkRedisResource(identifier, !redisResource.UseAccessKeyAuthentication)
-            {
-                Name = name,
-            };
+            var resource = CdkRedisResource.FromExisting(identifier);
+            resource.Name = name;
             return resource;
         },
         (infrastructure) => new CdkRedisResource(infrastructure.AspireResource.GetBicepIdentifier())
@@ -249,12 +246,12 @@ public static class AzureRedisExtensions
         }
         else
         {
-            redis.RedisConfiguration = new RedisCommonConfiguration()
-            {
-                IsAadEnabled = "true"
-            };
             if (!redis.IsExistingResource)
             {
+                redis.RedisConfiguration = new RedisCommonConfiguration()
+                {
+                    IsAadEnabled = "true"
+                };
                 redis.IsAccessKeyAuthenticationDisabled = true;
             }
 
@@ -275,21 +272,6 @@ public static class AzureRedisExtensions
             {
                 Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true")
             });
-        }
-    }
-
-    /// <remarks>
-    /// The provisioning APIs will mark the IsAccessKeyAuthenticationDisabled as `ReadOnly` after the
-    /// `IsExistingResource` property is set, making it impossible to configure the
-    /// `IsAccessKeyAuthenticationDisabled` property in our usual flows. This is a workaround to
-    /// allow us to set the property on existing resources.
-    /// </remarks>
-    private sealed class ExistingCdkRedisResource : CdkRedisResource
-    {
-        public ExistingCdkRedisResource(string bicepIdentifier, bool isAccessKeyAuthenticationDisabled, string? resourceVersion = null) : base(bicepIdentifier, resourceVersion)
-        {
-            IsAccessKeyAuthenticationDisabled = isAccessKeyAuthenticationDisabled;
-            IsExistingResource = true;
         }
     }
 }
