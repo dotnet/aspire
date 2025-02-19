@@ -14,7 +14,6 @@ on:
         required: false
         type: string
 
-  cancel-in-progress: true
 jobs:
 
   test:
