@@ -165,6 +165,18 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             ["AppHost:Path"] = AppHostPath,
         });
 
+        var assemblyMetadata = AppHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
+        var aspireDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
+
+        // Only set if there is a valid attribute, otherwise the configuration will come from another source (ENV for instance)
+        if (!string.IsNullOrEmpty(aspireDir))
+        {
+            _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [AspireStore.AspireStorePathKeyName] = aspireDir
+            });
+        }
+
         _executionContextOptions = _innerBuilder.Configuration["Publishing:Publisher"] switch
         {
             "manifest" => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish),
@@ -207,6 +219,18 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             // Default to stopping on dependency failure if the dashboard is disabled. As there's no way to see or easily recover
             // from a failure in that case.
             o.DefaultWaitBehavior = options.DisableDashboard ? WaitBehavior.StopOnResourceUnavailable : WaitBehavior.WaitOnResourceUnavailable;
+        });
+        _innerBuilder.Services.AddSingleton<IAspireStore, AspireStore>(sp =>
+        {
+            var configuration = sp.GetRequiredService<IConfiguration>();
+            var aspireDir = configuration[AspireStore.AspireStorePathKeyName];
+
+            if (string.IsNullOrWhiteSpace(aspireDir))
+            {
+                throw new InvalidOperationException($"Could not determine an appropriate location for local storage. Set the {AspireStore.AspireStorePathKeyName} setting to a folder where the App Host content should be stored.");
+            }
+
+            return new AspireStore(Path.Combine(aspireDir, ".aspire"));
         });
 
         ConfigureHealthChecks();
@@ -506,4 +530,14 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         return diagnosticListener;
     }
+
+    /// <summary>
+    /// Gets the metadata value for the specified key from the assembly metadata.
+    /// </summary>
+    /// <param name="assemblyMetadata">The assembly metadata.</param>
+    /// <param name="key">The key to look for.</param>
+    /// <returns>The metadata value if found; otherwise, null.</returns>
+    private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key) =>
+        assemblyMetadata?.FirstOrDefault(a => string.Equals(a.Key, key, StringComparison.OrdinalIgnoreCase))?.Value;
+
 }

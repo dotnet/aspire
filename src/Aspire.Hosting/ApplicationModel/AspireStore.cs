@@ -1,13 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Buffers;
 using System.IO.Hashing;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.ApplicationModel;
 
 internal sealed class AspireStore : IAspireStore
 {
+    internal const string AspireStorePathKeyName = "Aspire:Store:Path";
+
     private readonly string _basePath;
 
     /// <summary>
@@ -49,22 +51,8 @@ internal sealed class AspireStore : IAspireStore
         // Write the content to the temporary file while also building a hash.
         using (var fileStream = File.OpenWrite(tempFileName))
         {
-            var buffer = ArrayPool<byte>.Shared.Rent(4096);
-
-            try
-            {
-                int bytesRead;
-                while ((bytesRead = contentStream.Read(buffer, 0, buffer.Length)) > 0)
-                {
-                    var span = buffer.AsSpan(0, bytesRead);
-                    fileStream.Write(span);
-                    hash.Append(span);
-                }
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(buffer);
-            }
+            using var digestStream = new HashDigestStream(fileStream, hash);
+            contentStream.CopyTo(digestStream);
         }
 
         var name = Path.GetFileNameWithoutExtension(filenameTemplate);
