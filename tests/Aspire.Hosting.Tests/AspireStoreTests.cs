@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -31,8 +32,9 @@ public class AspireStoreTests
     public void BasePath_ShouldUseConfiguration()
     {
         var builder = TestDistributedApplicationBuilder.Create();
-        builder.Configuration[AspireStoreExtensions.AspireStorePathKeyName] = Path.GetTempPath();
-        var store = AspireStoreExtensions.CreateStore(builder);
+        builder.Configuration[AspireStore.AspireStorePathKeyName] = Path.GetTempPath();
+        var app = builder.Build();
+        var store = app.Services.GetRequiredService<IAspireStore>();
 
         var path = store.BasePath;
 
@@ -54,8 +56,9 @@ public class AspireStoreTests
     public void GetOrCreateFileWithContent_ShouldCreateFile_WithStreamContent()
     {
         var builder = TestDistributedApplicationBuilder.Create();
-        builder.Configuration[AspireStoreExtensions.AspireStorePathKeyName] = Path.GetTempPath();
-        var store = AspireStoreExtensions.CreateStore(builder);
+        builder.Configuration[AspireStore.AspireStorePathKeyName] = Path.GetTempPath();
+        var app = builder.Build();
+        var store = app.Services.GetRequiredService<IAspireStore>();
 
         var filename = "testfile2.txt";
         var content = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("Test content"));
@@ -127,8 +130,8 @@ public class AspireStoreTests
     private static IAspireStore CreateStore()
     {
         var builder = TestDistributedApplicationBuilder.Create();
-        builder.Configuration[AspireStoreExtensions.AspireStorePathKeyName] = Path.GetTempPath();
-        var store = AspireStoreExtensions.CreateStore(builder);
-        return store;
+        builder.Configuration[AspireStore.AspireStorePathKeyName] = Path.GetTempPath();
+        var app = builder.Build();
+        return app.Services.GetRequiredService<IAspireStore>();
     }
 }
