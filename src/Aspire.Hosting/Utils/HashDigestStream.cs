@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Utils;
 /// <summary>
 /// A stream capable of computing the hash digest of raw data while also copying it.
 /// </summary>
-sealed class HashDigestStream : Stream
+internal sealed class HashDigestStream : Stream
 {
     private readonly Stream _writeStream;
     private readonly NonCryptographicHashAlgorithm _hashAlgorithm;
