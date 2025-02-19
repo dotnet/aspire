@@ -18,7 +18,7 @@ jobs:
       - name: Build with packages
         env:
           CI: false
-        run: ./build.sh -restore -build -ci -pack /bl
+        run: ls -l && ./build.sh -restore -build -ci -pack /bl
 
       - name: Install sdk for testing
         env:
