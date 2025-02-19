@@ -3,6 +3,7 @@
 
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -26,7 +27,7 @@ public class AzureFunctionsTests
     }
 
     [Fact]
-    public void AddAzureFunctionsProject_WiresUpHttpEndpointCorrectly_WhenPortArgumentIsProvided()
+    public async Task AddAzureFunctionsProject_WiresUpHttpEndpointCorrectly_WhenPortArgumentIsProvided()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.AddAzureFunctionsProject<TestProject>("funcapp");
@@ -37,21 +38,43 @@ public class AzureFunctionsTests
         Assert.Equal(7071, endpointAnnotation.Port);
         Assert.Equal(7071, endpointAnnotation.TargetPort);
         Assert.False(endpointAnnotation.IsProxied);
+
+        // Check that no `--port` is present in the generated argument
+        // list if it's already defined in the launch profile
+        using var app = builder.Build();
+        var args = await ArgumentEvaluator.GetArgumentListAsync(functionsResource);
+
+        Assert.Empty(args);
     }
 
     [Fact]
-    public void AddAzureFunctionsProject_WiresUpHttpEndpointCorrectly_WhenPortArgumentIsNotProvided()
+    public async Task AddAzureFunctionsProject_WiresUpHttpEndpointCorrectly_WhenPortArgumentIsNotProvided()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.AddAzureFunctionsProject<TestProjectWithoutPortArgument>("funcapp");
+        builder.AddAzureFunctionsProject<TestProjectWithoutPortArgument>("funcapp")
+            // Explicit set endpoint values for assertions later
+            .WithEndpoint("http", e =>
+            {
+                e.UriScheme = "http";
+                e.AllocatedEndpoint = new(e, "localhost", 1234);
+                e.TargetPort = 9876;
+            });;
 
-        // Assert that the EndpointAnnotation uses the first port defined in launch settings when
-        // there are multiple
+        // Assert that the EndpointAnnotation is configured correctly
         var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
         Assert.True(functionsResource.TryGetLastAnnotation<EndpointAnnotation>(out var endpointAnnotation));
         Assert.Null(endpointAnnotation.Port);
-        Assert.Null(endpointAnnotation.TargetPort);
+        Assert.Equal(9876, endpointAnnotation.TargetPort);
         Assert.True(endpointAnnotation.IsProxied);
+
+        // Check that `--port` is present in the args
+        using var app = builder.Build();
+        var args = await ArgumentEvaluator.GetArgumentListAsync(functionsResource);
+
+        Assert.Collection(args,
+            arg => Assert.Equal("--port", arg),
+            arg => Assert.Equal("9876", arg)
+        );
     }
 
     [Fact]

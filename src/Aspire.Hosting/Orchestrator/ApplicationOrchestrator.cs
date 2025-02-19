@@ -238,6 +238,11 @@ internal sealed class ApplicationOrchestrator
                 StopTimeStamp = stopTimeStamp,
                 Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, parentName)
             }).ConfigureAwait(false);
+
+            // the parent name needs to be an instance name, not the resource name.
+            // parent the children of the child under the first resource instance.
+            await SetChildResourceAsync(child, child.GetResolvedResourceNames()[0], state, startTimeStamp, stopTimeStamp)
+                .ConfigureAwait(false);
         }
     }
 
@@ -253,6 +258,8 @@ internal sealed class ApplicationOrchestrator
             {
                 Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, parentName)
             }).ConfigureAwait(false);
+
+            await SetExecutableChildResourceAsync(child).ConfigureAwait(false);
         }
     }
 
