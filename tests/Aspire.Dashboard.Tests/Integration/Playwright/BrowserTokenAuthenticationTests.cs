@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright;
 
-[ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
+[ActiveIssue("https://github.com/dotnet/aspire/issues/4921", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
 public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenAuthenticationTests.BrowserTokenDashboardServerFixture>
 {
     public class BrowserTokenDashboardServerFixture : DashboardServerFixture
