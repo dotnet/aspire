@@ -28,7 +28,7 @@ jobs:
       - name: Build with packages
         env:
           CI: false
-        run: ls -l && ./build.sh -restore -build -ci -pack /bl
+        run: ./build.sh -restore -build -ci -pack /bl
 
       - name: Install sdk for testing
         env:
@@ -41,7 +41,7 @@ jobs:
       - name: Build workload tests
         env:
           CI: false
-        run: ./build.sh -restore -ci -build -projects ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj /bl
+        run: ./dotnet.sh build -ci ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj /p:ArchiveTests=true /bl:${{ github.workspace }}artifacts/log/Debug/BuildWorkloadTests.binlog
 
       - name: Enumerate test class names
         env:
