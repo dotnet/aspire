@@ -2,15 +2,31 @@ name: Run Integration Tests
 
 on:
   pull_request:
-    branches: 
+    branches:
       - main
       - 'release/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      workload_matrix: ${{ steps.dataStep.outputs.workload_matrix }}
+    steps:
+      - id: dataStep
+        run: |
+          echo "workload_matrix=$(jq -R '{class_names: [inputs]}' < artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list)" >> $GITHUB_OUTPUT
+
+  workload_tests:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.setup.outputs.workload_matrix) }}
+    steps:
+      - run: echo "Test classname ${{ matrix.class_names }}"
+
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 60
