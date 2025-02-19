@@ -10,17 +10,28 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  setup:
+  setup_for_workload_tests:
     runs-on: ubuntu-latest
     outputs:
       workload_matrix: ${{ steps.dataStep.outputs.workload_matrix }}
     steps:
-      - id: dataStep
+      - name: Build with packages
+        run: ./build.sh -restore -build -ci -pack /bl
+
+      - name: Install sdk for testing
         run: |
-          echo "workload_matrix=$(jq -R '{class_names: [inputs]}' < artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list)" >> $GITHUB_OUTPUT
+          ./dotnet.sh build ${{ github.workspace }}/tests/workloads.proj \
+            /p:SkipPackageCheckForWorkloadTesting=true \
+            /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
+
+      - name: Build workload tests
+        run: ./build.sh -restore -ci -build -projects ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj /bl
+
+      - name: Enumerate test class names
+        run: echo "workload_matrix=$(jq -R '{class_names: [inputs]}' < artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list)" >> $GITHUB_OUTPUT
 
   workload_tests:
-    needs: setup
+    needs: setup_for_workload_tests
     runs-on: ubuntu-latest
     strategy:
       matrix: ${{ fromJson(needs.setup.outputs.workload_matrix) }}
