@@ -16,18 +16,26 @@ jobs:
       workload_matrix: ${{ steps.dataStep.outputs.workload_matrix }}
     steps:
       - name: Build with packages
+        env:
+          CI: false
         run: ./build.sh -restore -build -ci -pack /bl
 
       - name: Install sdk for testing
+        env:
+          CI: false
         run: |
           ./dotnet.sh build ${{ github.workspace }}/tests/workloads.proj \
             /p:SkipPackageCheckForWorkloadTesting=true \
             /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
 
       - name: Build workload tests
+        env:
+          CI: false
         run: ./build.sh -restore -ci -build -projects ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj /bl
 
       - name: Enumerate test class names
+        env:
+          CI: false
         run: |
           echo "workload_matrix=$(jq -R '{class_names: [inputs]}' < artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list)" >> $GITHUB_OUTPUT
 
@@ -53,9 +61,9 @@ jobs:
             testSessionTimeoutMs: 1200000
 
           # Workload tests project
-          - project: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
-            name: Workload
-            testSessionTimeoutMs: 1200000
+          #- project: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
+            #name: Workload
+            #testSessionTimeoutMs: 1200000
 
           # Hosting projects
           - project: tests/Aspire.Hosting.Analyzers.Tests/Aspire.Hosting.Analyzers.Tests.csproj
@@ -215,21 +223,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y azure-functions-core-tools-4
 
-      - name: Build product with nugets
-        env:
-          CI: false
-        if: matrix.name == 'Workload'
-        run: |
-          ./build.sh -restore -build -ci -pack /bl
+      #- name: Build product with nugets
+        #env:
+          #CI: false
+        #if: matrix.name == 'Workload'
+        #run: |
+          #./build.sh -restore -build -ci -pack /bl
 
-      - name: Install sdk for testing templates
-        env:
-          CI: false
-        if: matrix.name == 'Workload'
-        run: |
-          ./dotnet.sh build ${{ github.workspace }}/tests/workloads.proj \
-            /p:SkipPackageCheckForWorkloadTesting=true \
-            /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
+      #- name: Install sdk for testing templates
+        #env:
+          #CI: false
+        #if: matrix.name == 'Workload'
+        #run: |
+          #./dotnet.sh build ${{ github.workspace }}/tests/workloads.proj \
+            #/p:SkipPackageCheckForWorkloadTesting=true \
+            #/bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
 
       - name: Build test project
         env:
