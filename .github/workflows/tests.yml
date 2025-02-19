@@ -10,10 +10,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  setup_for_workload_tests:
+  setup_for_template_tests:
+    name: Setup for template tests
     runs-on: ubuntu-latest
     outputs:
-      workload_matrix: ${{ steps.dataStep.outputs.workload_matrix }}
+      template_matrix: ${{ steps.dataStep.outputs.template_matrix }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -41,19 +42,24 @@ jobs:
       - name: Build workload tests
         env:
           CI: false
-        run: ./dotnet.sh build -ci ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj /p:ArchiveTests=true /bl:${{ github.workspace }}artifacts/log/Debug/BuildWorkloadTests.binlog
+        run: |
+          ./dotnet.sh build \
+          -p:ContinuousIntegrationBuild=true \
+          ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj \
+          /p:ArchiveTests=true \
+          /bl:${{ github.workspace }}/artifacts/log/Debug/BuildWorkloadTests.binlog
 
       - name: Enumerate test class names
         env:
           CI: false
         run: |
-          echo "workload_matrix=$(jq -R '{class_names: [inputs]}' < artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list)" >> $GITHUB_OUTPUT
+          echo "template_matrix=$(jq -R '{class_names: [inputs]}' < artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list)" >> $GITHUB_OUTPUT
 
-  workload_tests:
-    needs: setup_for_workload_tests
+  template_tests:
+    needs: setup_for_template_tests
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{ fromJson(needs.setup.outputs.workload_matrix) }}
+      matrix: ${{ fromJson(needs.setup.outputs.template_matrix) }}
     steps:
       - run: echo "Test classname ${{ matrix.class_names }}"
 
