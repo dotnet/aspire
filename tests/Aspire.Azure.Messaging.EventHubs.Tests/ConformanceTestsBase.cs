@@ -70,8 +70,6 @@ public abstract class ConformanceTestsBase<TService, TOptions> : ConformanceTest
     [ConditionalFact]
     public void HealthChecksClientsAreReused()
     {
-        SkipIfHealthChecksAreNotSupported();
-
         // DisableRetries so the test doesn't take so long retrying when the server isn't available.
         using IHost host = CreateHostWithComponent(configureComponent: DisableRetries);
 
