@@ -241,13 +241,12 @@ public class ResourceNotificationService : IDisposable
     /// Waits for a resource to become healthy.
     /// </summary>
     /// <param name="resourceName">The name of the resource.</param>
-    /// <param name="waitBehavior">The behavior to use when waiting for the resource to become healthy.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="waitBehavior">The wait behavior.</param>
     /// <returns>A task.</returns>
     /// <remarks>
     /// This method returns a task that will complete with the resource is healthy. A resource
-    /// without <see cref="HealthCheckAnnotation"/> annotations will be considered healthy. This overload
-    /// will throw a <see cref="Aspire.Hosting.DistributedApplicationException"/> if the resource fails to start.
+    /// without <see cref="HealthCheckAnnotation"/> annotations will be considered healthy.
     /// </remarks>
     public async Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, WaitBehavior waitBehavior, CancellationToken cancellationToken = default)
     {
