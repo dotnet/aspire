@@ -329,10 +329,8 @@ public static class AzureCosmosExtensions
         var cosmosAccount = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
             (identifier, name) =>
             {
-                var resource = new ExistingCosmosDBAccount(identifier, disableLocalAuth)
-                {
-                    Name = name,
-                };
+                var resource = CosmosDBAccount.FromExisting(identifier);
+                resource.Name = name;
                 return resource;
             },
             (infrastructure) => new CosmosDBAccount(infrastructure.AspireResource.GetBicepIdentifier())
@@ -431,28 +429,6 @@ public static class AzureCosmosExtensions
                 Value = cosmosAccount.DocumentEndpoint
             });
         }
-    }
-}
-
-/// <remarks>
-/// The provisioning APIs will mark the DisableLocalAuth as `ReadOnly` after the
-/// `IsExistingResource` property is set, making it impossible to configure the
-/// `DisableLocalAuth` property in our usual flows. This is a workaround to
-/// allow us to set the property on existing resources.
-/// </remarks>
-internal sealed class ExistingCosmosDBAccount : CosmosDBAccount
-{
-    public ExistingCosmosDBAccount(string bicepIdentifier, bool disableLocalAuth, string? resourceVersion = null) : base(bicepIdentifier, resourceVersion)
-    {
-        // only explicitly set DisableLocalAuth if WithAccessKeyAuthentication was called.
-        // We don't want to disable local auth on an existing resource if it is already enabled
-        // as that might break other uses of the resource.
-        if (disableLocalAuth is false)
-        {
-            DisableLocalAuth = false;
-        }
-
-        IsExistingResource = true;
     }
 }
 
