@@ -82,10 +82,10 @@ jobs:
             #testSessionTimeoutMs: 1200000
 
           # Hosting projects
-          #- project: tests/Aspire.Hosting.Analyzers.Tests/Aspire.Hosting.Analyzers.Tests.csproj
-            #name: Hosting.Analyzers
-          #- project: tests/Aspire.Hosting.Azure.Tests/Aspire.Hosting.Azure.Tests.csproj
-            #name: Hosting.Azure
+          - project: tests/Aspire.Hosting.Analyzers.Tests/Aspire.Hosting.Analyzers.Tests.csproj
+            name: Hosting.Analyzers
+          - project: tests/Aspire.Hosting.Azure.Tests/Aspire.Hosting.Azure.Tests.csproj
+            name: Hosting.Azure
           #- project: tests/Aspire.Hosting.Containers.Tests/Aspire.Hosting.Containers.Tests.csproj
             #name: Hosting.Containers
           #- project: tests/Aspire.Hosting.Elasticsearch.Tests/Aspire.Hosting.Elasticsearch.Tests.csproj
