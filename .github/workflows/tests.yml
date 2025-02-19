@@ -63,7 +63,7 @@ jobs:
       #matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.template_matrix) }}
     steps:
       #- run: echo "Test classname ${{ matrix.class_names }}"
-      - run: echo "outputs.template_matrix: ${{ needs.setup_for_template_tests.outputs.template_matrix }}
+      - run: echo "outputs.template_matrix: ${{ needs.setup_for_template_tests.outputs.template_matrix }}"
 
   test:
     runs-on: ubuntu-latest
