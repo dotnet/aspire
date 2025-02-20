@@ -92,7 +92,7 @@ jobs:
             --logger "trx" \
             --logger "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true" \
             --blame \
-            --blame-hang-timeout ${{ inputs.testHangTimeout || 7m }} \
+            --blame-hang-timeout ${{ inputs.testHangTimeout || "7m" }} \
             --blame-crash \
             --results-directory testresults \
             --no-restore \
