@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Aspire.Azure.AI.OpenAI.Tests;
 
-public class AzureAIOpenAIPublicApiTests
+public class AIOpenAIPublicApiTests
 {
     [Fact]
     public void CtorAspireAzureOpenAIClientBuilderShouldThrowWhenBuilderIsNull()

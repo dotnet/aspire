@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Aspire.Azure.Data.Tables.Tests;
 
-public class AspireAzureDataTablesPublicApiTests
+public class DataTablesPublicApiTests
 {
     [Fact]
     public void AddAzureTableClientShouldThrowWhenBuilderIsNull()
