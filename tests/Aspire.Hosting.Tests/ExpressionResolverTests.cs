@@ -10,6 +10,49 @@ namespace Aspire.Hosting.Tests;
 public class ExpressionResolverTests
 {
     [Theory]
+    [MemberData(nameof(ResolveInternalAsync_ResolvesCorrectly_MemberData))]
+    public async Task ResolveInternalAsync_ResolvesCorrectly(ExpressionResolverTestData testData, Type? exceptionType, (string Value, bool IsSensitive)? expectedValue)
+    {
+        if (exceptionType is not null)
+        {
+            await Assert.ThrowsAsync(exceptionType, ResolveAsync);
+        }
+        else
+        {
+            var resolvedValue = await ExpressionResolver.ResolveAsync(testData.SourceIsContainer, testData.ValueProvider, string.Empty, CancellationToken.None);
+
+            Assert.Equal(expectedValue?.Value, resolvedValue.Value);
+            Assert.Equal(expectedValue?.IsSensitive, resolvedValue.IsSensitive);
+        }
+
+        async Task<ResolvedValue> ResolveAsync() => await ExpressionResolver.ResolveAsync(testData.SourceIsContainer, testData.ValueProvider, string.Empty, CancellationToken.None);
+    }
+
+    public static TheoryData<ExpressionResolverTestData, Type?, (string? Value, bool IsSensitive)?> ResolveInternalAsync_ResolvesCorrectly_MemberData()
+    {
+        var data = new TheoryData<ExpressionResolverTestData, Type?, (string? Value, bool IsSensitive)?>();
+
+        // doesn't differ by sourceIsContainer
+        data.Add(new ExpressionResolverTestData(false, new ConnectionStringReference(new TestExpressionResolverResource("Empty"), false)), typeof(DistributedApplicationException), null);
+        data.Add(new ExpressionResolverTestData(false, new ConnectionStringReference(new TestExpressionResolverResource("Empty"), true)), null, (null, false));
+        data.Add(new ExpressionResolverTestData(true, new ConnectionStringReference(new TestExpressionResolverResource("String"), true)), null, ("String", false));
+        data.Add(new ExpressionResolverTestData(true, new ConnectionStringReference(new TestExpressionResolverResource("SecretParameter"), false)), null, ("SecretParameter", true));
+
+        // IResourceWithConnectionString resolves differently for ResourceWithConnectionStringSurrogate (as a secret parameter)
+        data.Add(new ExpressionResolverTestData(false, new ResourceWithConnectionStringSurrogate("SurrogateResource", _ => "SurrogateResource", null)), null, ("SurrogateResource", true));
+        data.Add(new ExpressionResolverTestData(false, new TestExpressionResolverResource("String")), null, ("String", false));
+
+        data.Add(new ExpressionResolverTestData(false, new ParameterResource("SecretParameter", _ => "SecretParameter", secret: true)), null, ("SecretParameter", true));
+        data.Add(new ExpressionResolverTestData(false, new ParameterResource("NonSecretParameter", _ => "NonSecretParameter", secret: false)), null, ("NonSecretParameter", false));
+
+        // ExpressionResolverGeneratesCorrectEndpointStrings separately tests EndpointReference and EndpointReferenceExpression
+
+        return data;
+    }
+
+    public record ExpressionResolverTestData(bool SourceIsContainer, IValueProvider ValueProvider);
+
+    [Theory]
     [InlineData("TwoFullEndpoints", false, false, "Test1=http://127.0.0.1:12345/;Test2=https://localhost:12346/;")]
     [InlineData("TwoFullEndpoints", false, true, "Test1=http://127.0.0.1:12345/;Test2=https://localhost:12346/;")]
     [InlineData("TwoFullEndpoints", true, false, "Test1=http://ContainerHostName:12345/;Test2=https://ContainerHostName:12346/;")]
@@ -30,7 +73,7 @@ public class ExpressionResolverTests
     [InlineData("PortBeforeHost", true, true, "Port=10000;Host=testresource;")]
     [InlineData("FullAndPartial", true, false, "Test1=http://ContainerHostName:12345/;Test2=https://localhost:12346/;")]
     [InlineData("FullAndPartial", true, true, "Test1=http://testresource:10000/;Test2=https://localhost:12346/;")] // Second port not replaced since host is hard coded
-    public async Task ExpressionResolverGeneratesCorrectStrings(string exprName, bool sourceIsContainer, bool targetIsContainer, string expectedConnectionString)
+    public async Task ExpressionResolverGeneratesCorrectEndpointStrings(string exprName, bool sourceIsContainer, bool targetIsContainer, string expectedConnectionString)
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -120,6 +163,14 @@ public class ExpressionResolverTests
     }
 }
 
+sealed class TestValueProviderResource(string name) : Resource(name), IValueProvider
+{
+    public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
+    {
+        return new ValueTask<string?>(base.Name);
+    }
+}
+
 sealed class TestExpressionResolverResource : ContainerResource, IResourceWithEndpoints, IResourceWithConnectionString
 {
     readonly string _exprName;
@@ -139,7 +190,11 @@ sealed class TestExpressionResolverResource : ContainerResource, IResourceWithEn
             { "OnlyPort", ReferenceExpression.Create($"Port={Endpoint1.Property(EndpointProperty.Port)};") },
             { "HostAndPort", ReferenceExpression.Create($"HostPort={Endpoint1.Property(EndpointProperty.HostAndPort)}") },
             { "PortBeforeHost", ReferenceExpression.Create($"Port={Endpoint1.Property(EndpointProperty.Port)};Host={Endpoint1.Property(EndpointProperty.Host)};") },
-            { "FullAndPartial", ReferenceExpression.Create($"Test1={Endpoint1.Property(EndpointProperty.Scheme)}://{Endpoint1.Property(EndpointProperty.IPV4Host)}:{Endpoint1.Property(EndpointProperty.Port)}/;Test2={Endpoint2.Property(EndpointProperty.Scheme)}://localhost:{Endpoint2.Property(EndpointProperty.Port)}/;") }
+            { "FullAndPartial", ReferenceExpression.Create($"Test1={Endpoint1.Property(EndpointProperty.Scheme)}://{Endpoint1.Property(EndpointProperty.IPV4Host)}:{Endpoint1.Property(EndpointProperty.Port)}/;Test2={Endpoint2.Property(EndpointProperty.Scheme)}://localhost:{Endpoint2.Property(EndpointProperty.Port)}/;") },
+            { "Empty", ReferenceExpression.Create($"") },
+            { "String", ReferenceExpression.Create($"String") },
+            { "SecretParameter", ReferenceExpression.Create("SecretParameter", [new ParameterResource("SecretParameter", _ => "SecretParameter", secret: true)], []) },
+            { "NonSecretParameter", ReferenceExpression.Create("NonSecretParameter", [new ParameterResource("NonSecretParameter", _ => "NonSecretParameter", secret: false)], []) }
         };
     }
 
