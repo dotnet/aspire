@@ -12,6 +12,7 @@
   ],
   "name": ".NET Aspire Service Defaults",
   "defaultName": "ServiceDefaults",
+  "generatorVersions": "[1.0.0.0-*)",
   "description": "A project template for creating a .NET Aspire service defaults project.",
   "shortName": "aspire-servicedefaults",
   "sourceName": "Aspire.ServiceDefaults1",
