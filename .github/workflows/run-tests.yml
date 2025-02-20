@@ -15,6 +15,7 @@ on:
       testHangTimeout:
         required: false
         type: string
+        default: "7m"
       extraArgs:
         required: false
         type: string
@@ -92,7 +93,7 @@ jobs:
             --logger "trx" \
             --logger "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true" \
             --blame \
-            --blame-hang-timeout ${{ inputs.testHangTimeout || "7m" }} \
+            --blame-hang-timeout inputs.testHangTimeout \
             --blame-crash \
             --results-directory testresults \
             --no-restore \
