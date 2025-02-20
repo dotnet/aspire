@@ -1124,6 +1124,15 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
               name: existingResourceName
             }
 
+            resource sqlServer_admin 'Microsoft.Sql/servers/administrators@2021-11-01' = {
+              name: 'ActiveDirectory'
+              properties: {
+                login: principalName
+                sid: principalId
+              }
+              parent: sqlServer
+            }
+
             resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
               name: 'AllowAllAzureIps'
               properties: {
@@ -1181,6 +1190,15 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
             resource sqlServer 'Microsoft.Sql/servers@2021-11-01' existing = {
               name: existingResourceName
+            }
+
+            resource sqlServer_admin 'Microsoft.Sql/servers/administrators@2021-11-01' = {
+              name: 'ActiveDirectory'
+              properties: {
+                login: principalName
+                sid: principalId
+              }
+              parent: sqlServer
             }
 
             resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {

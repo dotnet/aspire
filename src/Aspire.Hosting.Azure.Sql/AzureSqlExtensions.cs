@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Sql;
 
 namespace Aspire.Hosting;
@@ -226,6 +227,20 @@ public static class AzureSqlExtensions
             };
         });
 
+        // If the resource is an existing resource, we model the administrator access
+        // for the managed identity as an "edge" between the parent SqlServer resource
+        // and a custom SqlServerAzureADAdministrator resource.
+        if (sqlServer.IsExistingResource)
+        {
+            var admin = new SqlServerAzureADAdministratorWorkaround($"{sqlServer.BicepIdentifier}_admin")
+            {
+                ParentOverride = sqlServer,
+                LoginOverride = principalNameParameter,
+                SidOverride = principalIdParameter
+            };
+            infrastructure.Add(admin);
+        }
+
         infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllAzureIps")
         {
             Parent = sqlServer,
@@ -240,6 +255,7 @@ public static class AzureSqlExtensions
             // the principalType.
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
             infrastructure.Add(principalTypeParameter);
+            // Avoid mutating properties on existing resources.
             if (!sqlServer.IsExistingResource)
             {
                 sqlServer.Administrators.PrincipalType = principalTypeParameter;
@@ -267,5 +283,80 @@ public static class AzureSqlExtensions
         }
 
         infrastructure.Add(new ProvisioningOutput("sqlServerFqdn", typeof(string)) { Value = sqlServer.FullyQualifiedDomainName });
+    }
+
+    /// <remarks>
+    /// Workaround for immutable properties on SqlServerAzureADAdministrator.
+    /// </remarks>
+    private sealed class SqlServerAzureADAdministratorWorkaround(string bicepIdentifier) : SqlServerAzureADAdministrator(bicepIdentifier)
+    {
+        private BicepValue<string>? _name;
+        private BicepValue<string>? _login;
+        private BicepValue<Guid>? _sid;
+        private ResourceReference<SqlServer>? _parent;
+
+        /// <summary>
+        /// Login name of the server administrator.
+        /// </summary>
+        public BicepValue<string> LoginOverride
+        {
+            get
+            {
+                Initialize();
+                return _login!;
+            }
+            set
+            {
+                Initialize();
+                _login!.Assign(value);
+            }
+        }
+
+        /// <summary>
+        /// SID (object ID) of the server administrator.
+        /// </summary>
+        public BicepValue<Guid> SidOverride
+        {
+            get
+            {
+                Initialize();
+                return _sid!;
+            }
+            set
+            {
+                Initialize();
+                _sid!.Assign(value);
+            }
+        }
+
+        /// <summary>
+        /// Parent resource of the server administrator.
+        /// </summary>
+        public SqlServer? ParentOverride
+        {
+            get
+            {
+                Initialize();
+                return _parent!.Value;
+            }
+            set
+            {
+                Initialize();
+                _parent!.Value = value;
+            }
+        }
+
+        private static BicepValue<string> GetNameDefaultValue()
+        {
+            return new StringLiteralExpression("ActiveDirectory");
+        }
+
+        protected override void DefineProvisionableProperties()
+        {
+            _name = DefineProperty("Name", ["name"], defaultValue: GetNameDefaultValue());
+            _login = DefineProperty<string>("Login", ["properties", "login"]);
+            _sid = DefineProperty<Guid>("Sid", ["properties", "sid"]);
+            _parent = DefineResource<SqlServer>("Parent", ["parent"], isOutput: false, isRequired: true);
+        }
     }
 }
