@@ -966,31 +966,43 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         }
         var spec = exe.Spec;
 
+        spec.Args = null;
+
         // An executable can be restarted so args must be reset to an empty state.
         // After resetting, first apply any dotnet project related args, e.g. configuration, and then add args from the model resource.
-        spec.Args = [];
-        if (er.DcpResource.TryGetAnnotationAsObjectList<string>(CustomResource.ResourceProjectArgsAnnotation, out var projectArgs))
+        if (er.DcpResource.TryGetAnnotationAsObjectList<string>(CustomResource.ResourceProjectArgsAnnotation, out var projectArgs) && projectArgs.Count > 0)
         {
+            spec.Args ??= [];
             spec.Args.AddRange(projectArgs);
         }
+
+        (var args, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
 
         var launchArgs = new List<(string Value, bool IsSensitive, bool AnnotationOnly)>();
 
         // If the executable is a project then include any command line args from the launch profile.
         if (er.ModelResource is ProjectResource project)
         {
-            // When the .NET project is launched from an IDE the launch profile args are automatically added.
-            // We still want to display the args in the dashboard so only add them to the custom arg annotations.
-            var annotationOnly = spec.ExecutionType == ExecutionType.IDE;
+            if (spec.ExecutionType == ExecutionType.Process || (spec.ExecutionType == ExecutionType.IDE && args.Count == 0))
+            {
+                // When the .NET project is launched from an IDE the launch profile args are automatically added.
+                // We still want to display the args in the dashboard so only add them to the custom arg annotations.
+                var annotationOnly = spec.ExecutionType == ExecutionType.IDE;
 
-            var launchProfileArgs = GetLaunchProfileArgs(project.GetEffectiveLaunchProfile()?.LaunchProfile);
-            launchArgs.AddRange(launchProfileArgs.Select(a => (a, isSensitive: false, annotationOnly)));
+                var launchProfileArgs = GetLaunchProfileArgs(project.GetEffectiveLaunchProfile()?.LaunchProfile);
+                launchArgs.AddRange(launchProfileArgs.Select(a => (a, isSensitive: false, annotationOnly)));
+            }
         }
 
-        (var args, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
         launchArgs.AddRange(args.Select(a => (a.Value, a.IsSensitive, annotationOnly: false)));
 
-        spec.Args.AddRange(launchArgs.Where(a => !a.AnnotationOnly).Select(a => a.Value));
+        var executableArgs = launchArgs.Where(a => !a.AnnotationOnly).Select(a => a.Value).ToList();
+        if (executableArgs.Count > 0)
+        {
+            spec.Args ??= [];
+            spec.Args.AddRange(executableArgs);
+        }
+
         er.DcpResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, launchArgs.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
 
         (spec.Env, var failedToApplyConfiguration) = await BuildEnvVarsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
