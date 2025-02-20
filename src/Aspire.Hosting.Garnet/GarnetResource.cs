@@ -22,6 +22,5 @@ public class GarnetResource(string name) : ContainerResource(name), IResourceWit
     /// Gets the connection string expression for the Garnet server.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create(
-            $"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+        ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
 }

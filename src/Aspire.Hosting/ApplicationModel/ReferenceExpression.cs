@@ -55,6 +55,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     /// <returns></returns>
     public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken)
     {
+        // NOTE: any logical changes to this method should also be made to ExpressionResolver.EvalExpressionAsync
         if (Format.Length == 0)
         {
             return null;

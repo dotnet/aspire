@@ -62,7 +62,7 @@ public static class AzureCosmosExtensions
     /// <remarks>
     /// This version of the package defaults to the <inheritdoc cref="CosmosDBEmulatorContainerImageTags.TagVNextPreview"/> tag of the <inheritdoc cref="CosmosDBEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="CosmosDBEmulatorContainerImageTags.Image"/> container image.
     /// </remarks>
-    [Experimental("ASPIRECOSMOS001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    [Experimental("ASPIRECOSMOSDB001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureCosmosDBResource> RunAsPreviewEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, Action<IResourceBuilder<AzureCosmosDBEmulatorResource>>? configureContainer = null)
         => builder.RunAsEmulator(configureContainer, useVNextPreview: true);
 
@@ -275,7 +275,7 @@ public static class AzureCosmosExtensions
     /// <remarks>
     /// The Data Explorer is only available with <see cref="RunAsPreviewEmulator"/>.
     /// </remarks>
-    [Experimental("ASPIRECOSMOS001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    [Experimental("ASPIRECOSMOSDB001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureCosmosDBEmulatorResource> WithDataExplorer(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, int? port = null)
     {
         if (!builder.Resource.InnerResource.IsPreviewEmulator)
@@ -324,16 +324,24 @@ public static class AzureCosmosExtensions
     private static void ConfigureCosmosDBInfrastructure(AzureResourceInfrastructure infrastructure)
     {
         var azureResource = (AzureCosmosDBResource)infrastructure.AspireResource;
+        bool disableLocalAuth = !azureResource.UseAccessKeyAuthentication;
 
-        var cosmosAccount = new CosmosDBAccount(infrastructure.AspireResource.GetBicepIdentifier())
-        {
-            Kind = CosmosDBAccountKind.GlobalDocumentDB,
-            ConsistencyPolicy = new ConsistencyPolicy()
+        var cosmosAccount = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+            (identifier, name) =>
             {
-                DefaultConsistencyLevel = DefaultConsistencyLevel.Session
+                var resource = CosmosDBAccount.FromExisting(identifier);
+                resource.Name = name;
+                return resource;
             },
-            DatabaseAccountOfferType = CosmosDBAccountOfferType.Standard,
-            Locations =
+            (infrastructure) => new CosmosDBAccount(infrastructure.AspireResource.GetBicepIdentifier())
+            {
+                Kind = CosmosDBAccountKind.GlobalDocumentDB,
+                ConsistencyPolicy = new ConsistencyPolicy()
+                {
+                    DefaultConsistencyLevel = DefaultConsistencyLevel.Session
+                },
+                DatabaseAccountOfferType = CosmosDBAccountOfferType.Standard,
+                Locations =
                 {
                     new CosmosDBAccountLocation
                     {
@@ -341,9 +349,9 @@ public static class AzureCosmosExtensions
                         FailoverPriority = 0
                     }
                 },
-            Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-        };
-        infrastructure.Add(cosmosAccount);
+                DisableLocalAuth = disableLocalAuth,
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+            });
 
         foreach (var database in azureResource.Databases)
         {
@@ -376,8 +384,6 @@ public static class AzureCosmosExtensions
 
         if (azureResource.UseAccessKeyAuthentication)
         {
-            cosmosAccount.DisableLocalAuth = false;
-
             var kvNameParam = new ProvisioningParameter(AzureBicepResource.KnownParameters.KeyVaultName, typeof(string));
             infrastructure.Add(kvNameParam);
 
@@ -398,8 +404,6 @@ public static class AzureCosmosExtensions
         }
         else
         {
-            cosmosAccount.DisableLocalAuth = true;
-
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
             infrastructure.Add(principalTypeParameter);
 

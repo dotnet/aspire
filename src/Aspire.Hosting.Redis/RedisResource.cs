@@ -19,8 +19,7 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
     private ReferenceExpression ConnectionString =>
-        ReferenceExpression.Create(
-            $"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+        ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
 
     /// <summary>
     /// Gets the connection string expression for the Redis server.
