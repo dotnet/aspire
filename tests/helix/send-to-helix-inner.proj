@@ -24,7 +24,6 @@
 
     <_CreateDotNetDevCertsDirectory>$(ArtifactsObjDir)create-dotnet-devcert</_CreateDotNetDevCertsDirectory>
     <_SupportDataStagingDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'support-data'))</_SupportDataStagingDir>
-    <_DockerCliPath Condition="'$(DockerCliToolDir)' != ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'docker-cli', 'docker'))</_DockerCliPath>
 
     <_AzureFunctionsCliUrl Condition="'$(OS)' == 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.6280/Azure.Functions.Cli.min.win-x64_net8.4.0.6280.zip</_AzureFunctionsCliUrl>
     <_AzureFunctionsCliUrl Condition="'$(OS)' != 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.6280/Azure.Functions.Cli.linux-x64_net8.4.0.6280.zip</_AzureFunctionsCliUrl>
@@ -156,8 +155,8 @@
     <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_DIAGNOSTICS_LOG_LEVEL=debug" />
     <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_DIAGNOSTICS_LOG_FOLDER=$(_HelixLogsPath)" />
     <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_PRESERVE_EXECUTABLE_LOGS=1" />
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT' and '$(_DockerCliPath)' != ''" Include="set PATH=$(_DockerCliPath)%3B%PATH%" />
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT' and '$(_DockerCliPath)' != ''" Include="export PATH=$(_DockerCliPath):$PATH" />
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT' and '$(DockerCliToolDir)' != ''" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\docker-cli%3B%PATH%" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT' and '$(DockerCliToolDir)' != ''" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/docker-cli:$PATH" />
 
     <HelixPostCommand Include="$(_WaitForDcpCommand)" />
   </ItemGroup>
