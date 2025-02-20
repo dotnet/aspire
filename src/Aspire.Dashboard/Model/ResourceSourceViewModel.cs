@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net;
 using Aspire.Dashboard.Utils;
 
 namespace Aspire.Dashboard.Model;
@@ -39,7 +38,7 @@ public class ResourceSourceViewModel(string value, List<LaunchArgument>? content
                         ArgumentsString: argumentsString,
                         TooltipString: string.Join(" ", arguments.Select(arg => arg.IsShown
                             ? arg.Value
-                            : WebUtility.HtmlDecode(DashboardUIHelpers.GetMaskingText(6).Value))));
+                            : DashboardUIHelpers.GetMaskingText(6).Text)));
                 }
                 else
                 {

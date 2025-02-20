@@ -43,16 +43,25 @@ internal static class DashboardUIHelpers
         return (resizeLabels, sortLabels);
     }
 
-    private static readonly ConcurrentDictionary<int, string> s_cachedMasking = new();
+    private static readonly ConcurrentDictionary<int, TextMask> s_cachedMasking = new();
 
-    public static MarkupString GetMaskingText(int length)
+    public static TextMask GetMaskingText(int length)
     {
-        return new MarkupString(s_cachedMasking.GetOrAdd(length, static i =>
+        return s_cachedMasking.GetOrAdd(length, static i =>
         {
-            const string maskingChar = "&#x25cf;";
-            return new StringBuilder(maskingChar.Length * i)
-              .Insert(0, maskingChar, i)
-              .ToString();
-        }));
+            const string markupMaskingChar = "&#x25cf;";
+            const string textMaskingChar = "●";
+
+            return new TextMask(
+                new MarkupString(Repeat(markupMaskingChar, i)),
+                Repeat(textMaskingChar, i)
+            );
+
+            static string Repeat(string s, int n) => new StringBuilder(s.Length * n)
+                .Insert(0, s, n)
+                .ToString();
+        });
     }
 }
+
+internal record TextMask(MarkupString MarkupString, string Text);
