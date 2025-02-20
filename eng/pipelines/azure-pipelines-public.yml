@@ -135,6 +135,7 @@ stages:
                 repoTestResultsPath: $(Build.Arcade.TestResultsPath)
                 isWindows: true
                 runHelixTests: ${{ contains(testVariant, 'helix') }}
+                runPipelineTests: ${{ contains(testVariant, '_pipeline') }}
 
       # Linux jobs
       - ${{ each testVariant in split( variables.testVariants, ',' ) }}:
