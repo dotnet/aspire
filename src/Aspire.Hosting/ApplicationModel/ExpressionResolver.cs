@@ -94,7 +94,10 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
             }
         }
 
-        return new(string.Format(CultureInfo.InvariantCulture, expr.Format, args), isSensitive);
+        // Identically to ReferenceExpression.GetValueAsync, we return null if the format is empty
+        var value = expr.Format.Length == 0 ? null : string.Format(CultureInfo.InvariantCulture, expr.Format, args);
+
+        return new ResolvedValue(value, isSensitive);
     }
 
     async Task<ResolvedValue> EvalValueProvider(IValueProvider vp)
@@ -148,22 +151,29 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
         return new ResolvedValue(value, false);
     }
 
+    async Task<ResolvedValue> ResolveConnectionStringReferenceAsync(ConnectionStringReference cs)
+    {
+        // We are substituting our own logic for ConnectionStringReference's GetValueAsync.
+        // However, ConnectionStringReference#GetValueAsync will throw if the connection string is not optional but is not present.
+        // To avoid duplicating that logic, we can defer to ConnectionStringReference#GetValueAsync, which will throw if needed.
+        await ((IValueProvider)cs).GetValueAsync(cancellationToken).ConfigureAwait(false);
+
+        return await ResolveInternalAsync(cs.Resource.ConnectionStringExpression).ConfigureAwait(false);
+    }
+
     /// <summary>
-    /// Resolve an expression when it is being used from inside a container.
-    /// So it's either a container-to-container or container-to-exe communication.
+    /// Resolve an expression. When it is being used from inside a container, endpoints may be evaluated (either in a container-to-container or container-to-exe communication).
     /// </summary>
     async ValueTask<ResolvedValue> ResolveInternalAsync(object? value)
     {
-        return (value, sourceIsContainer) switch
+        return value switch
         {
-            (ConnectionStringReference cs, true) => await ResolveInternalAsync(cs.Resource.ConnectionStringExpression).ConfigureAwait(false),
-            (IResourceWithConnectionString cs, true) => await ResolveInternalAsync(cs.ConnectionStringExpression).ConfigureAwait(false),
-            (ReferenceExpression ex, false) => await EvalExpressionAsync(ex).ConfigureAwait(false),
-            (ReferenceExpression ex, true) => await EvalExpressionAsync(ex).ConfigureAwait(false),
-            (EndpointReference endpointReference, true) => new(await EvalEndpointAsync(endpointReference, EndpointProperty.Url).ConfigureAwait(false), false),
-            (EndpointReferenceExpression ep, true) => new(await EvalEndpointAsync(ep.Endpoint, ep.Property).ConfigureAwait(false), false),
-            (IValueProvider vp, false) => await EvalValueProvider(vp).ConfigureAwait(false),
-            (IValueProvider vp, true) => await EvalValueProvider(vp).ConfigureAwait(false),
+            ConnectionStringReference cs => await ResolveConnectionStringReferenceAsync(cs).ConfigureAwait(false),
+            IResourceWithConnectionString cs and not ResourceWithConnectionStringSurrogate => await ResolveInternalAsync(cs.ConnectionStringExpression).ConfigureAwait(false),
+            ReferenceExpression ex => await EvalExpressionAsync(ex).ConfigureAwait(false),
+            EndpointReference endpointReference when sourceIsContainer => new ResolvedValue(await EvalEndpointAsync(endpointReference, EndpointProperty.Url).ConfigureAwait(false), false),
+            EndpointReferenceExpression ep when sourceIsContainer => new ResolvedValue(await EvalEndpointAsync(ep.Endpoint, ep.Property).ConfigureAwait(false), false),
+            IValueProvider vp => await EvalValueProvider(vp).ConfigureAwait(false),
             _ => throw new NotImplementedException()
         };
     }
