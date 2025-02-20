@@ -80,6 +80,7 @@ jobs:
       #testName: ${{ replace(matrix.class_names, 'Aspire.Workload.Tests.', '') }}
       testName: ${{ matrix.class_names }}
       testSessionTimeoutMs: 1200000
+      testHangTimeout: 12m
       extraArgs: "-p:VSTestTestCaseFilter=FullyQualifiedName~${{ matrix.class_names }}"
       isWorkloadTests: true
 
