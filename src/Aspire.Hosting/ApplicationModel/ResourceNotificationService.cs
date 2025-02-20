@@ -233,7 +233,7 @@ public class ResourceNotificationService : IDisposable
     {
         return await WaitForResourceHealthyAsync(
             resourceName,
-            WaitBehavior.WaitOnResourceUnavailable, // Retain default behavior.
+            DefaultWaitBehavior,
             cancellationToken).ConfigureAwait(false);
     }
 
