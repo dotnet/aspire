@@ -81,6 +81,7 @@ public class ResourceSourceViewModelTests
                 valueToVisualize: "path/to/project arg2",
                 tooltip: "path/to/project arg2"));
 
+        var maskingText = DashboardUIHelpers.GetMaskingText(6).Text;
         // Project with app arguments, as well as a secret (format argument)
         data.Add(new TestData(
                 ResourceType: "Project",
@@ -93,9 +94,9 @@ public class ResourceSourceViewModelTests
                 SourceProperty: null),
             new ResourceSourceViewModel(
                 value: "project",
-                contentAfterValue: [new LaunchArgument("arg2", true), new LaunchArgument("--key", true), new LaunchArgument("secret", false)],
+                contentAfterValue: [new LaunchArgument("arg2", true), new LaunchArgument("--key", true), new LaunchArgument("secret", false), new LaunchArgument("secret2", false), new LaunchArgument("notsecret", true)],
                 valueToVisualize: "path/to/project arg2 --key secret",
-                tooltip: $"path/to/project arg2 --key {DashboardUIHelpers.GetMaskingText(6).Text}"));
+                tooltip: $"path/to/project arg2 --key {maskingText} {maskingText} notsecret"));
 
         // Project without executable arguments
         data.Add(new TestData(
