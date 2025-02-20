@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Collections;
+using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Net.Sockets;
 using System.Text;
@@ -278,6 +279,11 @@ internal sealed class DcpHost
             tab = line.IndexOf((byte)'\t');
             var category = line[..tab];
             line = line[(tab + 1)..];
+
+            // Trim trailing carraige return.
+            Debug.Assert(line[^1] == '\r', "Expected line to end with a carraige return.");
+            line = line[0..^1];
+
             var message = line;
 
             var logLevel = LogLevel.Information;
