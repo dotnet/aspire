@@ -60,6 +60,10 @@ jobs:
           name: workload-artifacts
           path: artifacts/bin
 
+      - name: Fix up permissions for dotnet
+        if: ${{ inputs.testName == 'Workload' }}
+        run: chmod +x artifacts/bin/dotnet-*/dotnet
+
       - name: Build test project
         env:
           CI: false
