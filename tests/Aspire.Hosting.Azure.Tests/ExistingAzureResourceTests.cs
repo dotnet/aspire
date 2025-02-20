@@ -778,12 +778,6 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
             resource postgresSql 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' existing = {
               name: existingResourceName
-              properties: {
-                authConfig: {
-                  activeDirectoryAuth: 'Enabled'
-                  passwordAuth: 'Disabled'
-                }
-              }
             }
 
             resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
@@ -809,6 +803,84 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
             }
 
             output connectionString string = 'Host=${postgresSql.properties.fullyQualifiedDomainName};Username=${principalName}'
+            """;
+
+        output.WriteLine(BicepText);
+        Assert.Equal(expectedBicep, BicepText);
+    }
+
+    [Fact]
+    public async Task SupportsExistingPostgresSqlWithResourceGroupWithPasswordAuth()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var existingResourceName = builder.AddParameter("existingResourceName");
+        var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
+        var existingUserName = builder.AddParameter("existingUserName");
+        var existingPassword = builder.AddParameter("existingPassword");
+
+        var postgresSql = builder.AddAzurePostgresFlexibleServer("postgresSql")
+            .PublishAsExisting(existingResourceName, existingResourceGroupName)
+            .WithPasswordAuthentication(existingUserName, existingPassword);
+
+        var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(postgresSql.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v1",
+              "connectionString": "{postgresSql.secretOutputs.connectionString}",
+              "path": "postgresSql.module.bicep",
+              "params": {
+                "administratorLogin": "{existingUserName.value}",
+                "administratorLoginPassword": "{existingPassword.value}",
+                "existingResourceName": "{existingResourceName.value}",
+                "keyVaultName": ""
+              },
+              "scope": {
+                "resourceGroup": "{existingResourceGroupName.value}"
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, ManifestNode.ToString());
+
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param existingResourceName string
+
+            param administratorLogin string
+
+            @secure()
+            param administratorLoginPassword string
+
+            param keyVaultName string
+
+            resource postgresSql 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' existing = {
+              name: existingResourceName
+            }
+
+            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
+              name: 'AllowAllAzureIps'
+              properties: {
+                endIpAddress: '0.0.0.0'
+                startIpAddress: '0.0.0.0'
+              }
+              parent: postgresSql
+            }
+
+            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+              name: keyVaultName
+            }
+
+            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+              name: 'connectionString'
+              properties: {
+                value: 'Host=${postgresSql.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
+              }
+              parent: keyVault
+            }
             """;
 
         output.WriteLine(BicepText);
