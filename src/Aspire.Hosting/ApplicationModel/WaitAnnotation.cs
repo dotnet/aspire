@@ -60,12 +60,12 @@ public enum WaitType
 public enum WaitBehavior
 {
     /// <summary>
-    /// If the resource is unavailable, continue waiting.
+    /// Wait indefinately.
     /// </summary>
-    WaitOnResourceUnavailable,
+    Wait,
 
     /// <summary>
-    /// If the resource is unavailable, stop waiting.
+    /// Throw if the resource enters a terminal state.
     /// </summary>
-    StopOnResourceUnavailable
+    Throw
 }
