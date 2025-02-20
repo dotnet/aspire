@@ -221,6 +221,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
    }
 
    [Fact]
+   [RequiresDocker]
    public async Task WhenWaitBehaviorIsWaitOnResourceUnavailableWaitForResourceHealthyAsyncShouldThrowWhenResourceFailsToStart()
    {
       using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
