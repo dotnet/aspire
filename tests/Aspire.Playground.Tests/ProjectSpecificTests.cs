@@ -30,7 +30,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     }
 
     [Fact]
-    //[ActiveIssue("https://github.com/dotnet/aspire/issues/6867")]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/6867")]
     public async Task KafkaTest()
     {
         var appHost = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.KafkaBasic_AppHost), _testOutput);
@@ -57,7 +57,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     [Fact]
     [RequiresDocker]
     [RequiresTools(["func"])]
-    //[ActiveIssue("https://github.com/dotnet/aspire/issues/7437")]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/7437")]
     public async Task AzureFunctionsTest()
     {
         var appHost = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.AzureFunctionsEndToEnd_AppHost), _testOutput);

@@ -72,7 +72,6 @@ public class BuildEnvironment
         UsesCustomDotNet = !useSystemDotNet;
         RepoRoot = TestUtils.FindRepoRoot();
 
-        Console.WriteLine($"TEMPLATE_TESTS_ON_GITHUB_ACTIONS: '{Environment.GetEnvironmentVariable("TEMPLATE_TESTS_ON_GITHUB_ACTIONS")}'");
         string sdkForWorkloadPath;
         if (RepoRoot is not null)
         {
