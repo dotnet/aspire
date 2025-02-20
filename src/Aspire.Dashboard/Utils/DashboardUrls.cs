@@ -13,9 +13,11 @@ internal static class DashboardUrls
     public const string StructuredLogsBasePath = "structuredlogs";
     public const string TracesBasePath = "traces";
 
+    public static string BasePath { get; private set; } = "/";
+
     public static string ResourcesUrl(string? resource = null)
     {
-        var url = "/";
+        var url = BasePath;
         if (resource != null)
         {
             url = QueryHelpers.AddQueryString(url, "resource", resource);
@@ -26,10 +28,10 @@ internal static class DashboardUrls
 
     public static string ConsoleLogsUrl(string? resource = null)
     {
-        var url = $"/{ConsoleLogBasePath}";
+        var url = $"{BasePath}{ConsoleLogBasePath}";
         if (resource != null)
         {
-            url += $"/resource/{Uri.EscapeDataString(resource)}";
+            url += $"{BasePath}resource/{Uri.EscapeDataString(resource)}";
         }
 
         return url;
@@ -37,10 +39,10 @@ internal static class DashboardUrls
 
     public static string MetricsUrl(string? resource = null, string? meter = null, string? instrument = null, int? duration = null, string? view = null)
     {
-        var url = $"/{MetricsBasePath}";
+        var url = $"{BasePath}{MetricsBasePath}";
         if (resource != null)
         {
-            url += $"/resource/{Uri.EscapeDataString(resource)}";
+            url += $"{BasePath}resource/{Uri.EscapeDataString(resource)}";
         }
         if (meter is not null)
         {
@@ -65,10 +67,10 @@ internal static class DashboardUrls
 
     public static string StructuredLogsUrl(string? resource = null, string? logLevel = null, string? filters = null, string? traceId = null, string? spanId = null)
     {
-        var url = $"/{StructuredLogsBasePath}";
+        var url = $"{BasePath}{StructuredLogsBasePath}";
         if (resource != null)
         {
-            url += $"/resource/{Uri.EscapeDataString(resource)}";
+            url += $"{BasePath}resource/{Uri.EscapeDataString(resource)}";
         }
         if (logLevel != null)
         {
@@ -95,10 +97,10 @@ internal static class DashboardUrls
 
     public static string TracesUrl(string? resource = null, string? filters = null)
     {
-        var url = $"/{TracesBasePath}";
+        var url = $"{BasePath}{TracesBasePath}";
         if (resource != null)
         {
-            url += $"/resource/{Uri.EscapeDataString(resource)}";
+            url += $"{BasePath}resource/{Uri.EscapeDataString(resource)}";
         }
         if (filters != null)
         {
@@ -113,7 +115,7 @@ internal static class DashboardUrls
 
     public static string TraceDetailUrl(string traceId, string? spanId = null)
     {
-        var url = $"/{TracesBasePath}/detail/{Uri.EscapeDataString(traceId)}";
+        var url = $"{BasePath}{TracesBasePath}/detail/{Uri.EscapeDataString(traceId)}";
         if (spanId != null)
         {
             url = QueryHelpers.AddQueryString(url, "spanId", spanId);
@@ -124,7 +126,7 @@ internal static class DashboardUrls
 
     public static string LoginUrl(string? returnUrl = null, string? token = null)
     {
-        var url = "/login";
+        var url = $"{BasePath}login";
         if (returnUrl != null)
         {
             url = QueryHelpers.AddQueryString(url, "returnUrl", returnUrl);
@@ -139,10 +141,12 @@ internal static class DashboardUrls
 
     public static string SetLanguageUrl(string language, string redirectUrl)
     {
-        var url = "/api/set-language";
+        var url = $"{BasePath}api/set-language";
         url = QueryHelpers.AddQueryString(url, "language", language);
         url = QueryHelpers.AddQueryString(url, "redirectUrl", redirectUrl);
 
         return url;
     }
+
+    internal static void SetBasePath(string pathBase) => BasePath = pathBase;
 }

@@ -144,6 +144,21 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
             }
         }
 
+        // Validate the Path base and make sure it starts and ends with a forward slash.
+
+        if (options.PathBase != null)
+        {
+            if (!options.PathBase.StartsWith("/", StringComparison.Ordinal))
+            {
+                errorMessages.Add($"{nameof(DashboardOptions.PathBase)} must start with a forward slash.");
+            }
+
+            if (!options.PathBase.EndsWith("/", StringComparison.Ordinal))
+            {
+                errorMessages.Add($"{nameof(DashboardOptions.PathBase)} must end with a forward slash.");
+            }
+        }
+
         return errorMessages.Count > 0
             ? ValidateOptionsResult.Fail(errorMessages)
             : ValidateOptionsResult.Success;

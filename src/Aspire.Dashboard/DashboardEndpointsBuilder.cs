@@ -3,7 +3,7 @@
 
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Utils;
+using Aspire.Dashboard.Utils; 
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Localization;
@@ -18,28 +18,28 @@ public static class DashboardEndpointsBuilder
     {
         if (dashboardOptions.Frontend.AuthMode == FrontendAuthMode.BrowserToken)
         {
-            endpoints.MapPost("/api/validatetoken", async (string token, HttpContext httpContext, IOptionsMonitor<DashboardOptions> dashboardOptions) =>
+            endpoints.MapPost($"{DashboardUrls.BasePath}api/validatetoken", async (string token, HttpContext httpContext, IOptionsMonitor<DashboardOptions> dashboardOptions) =>
             {
                 return await ValidateTokenMiddleware.TryAuthenticateAsync(token, httpContext, dashboardOptions).ConfigureAwait(false);
             });
 
 #if DEBUG
             // Available in local debug for testing.
-            endpoints.MapGet("/api/signout", async (HttpContext httpContext) =>
+            endpoints.MapGet($"{DashboardUrls.BasePath}api/signout", async (HttpContext httpContext) =>
             {
                 await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(
                     httpContext,
                     CookieAuthenticationDefaults.AuthenticationScheme).ConfigureAwait(false);
-                httpContext.Response.Redirect("/");
+                httpContext.Response.Redirect($"{DashboardUrls.BasePath}");
             });
 #endif
         }
         else if (dashboardOptions.Frontend.AuthMode == FrontendAuthMode.OpenIdConnect)
         {
-            endpoints.MapPost("/authentication/logout", () => TypedResults.SignOut(authenticationSchemes: [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]));
+            endpoints.MapPost($"{DashboardUrls.BasePath}authentication/logout", () => TypedResults.SignOut(authenticationSchemes: [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]));
         }
 
-        endpoints.MapGet("/api/set-language", async (string? language, string? redirectUrl, [FromHeader(Name = "Accept-Language")] string? acceptLanguage, HttpContext httpContext) =>
+        endpoints.MapGet($"{DashboardUrls.BasePath}api/set-language", async (string? language, string? redirectUrl, [FromHeader(Name = "Accept-Language")] string? acceptLanguage, HttpContext httpContext) =>
         {
             if (string.IsNullOrEmpty(redirectUrl))
             {
