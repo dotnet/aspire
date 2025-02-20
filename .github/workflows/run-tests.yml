@@ -18,7 +18,7 @@ on:
         type: string
       isWorkloadTests:
         required: false
-        type: bool
+        type: boolean
 
 jobs:
 
