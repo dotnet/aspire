@@ -20,7 +20,7 @@ public static class ContainerAppExtensions
     /// </summary>
     /// <param name="app">The container app resource to configure for custom domain usage.</param>
     /// <param name="customDomain">A resource builder for a parameter resource capturing the name of the custom domain.</param>
-    /// <param name="certificateName">A resource builder for a parameter resource capturing the name of the certficate configured in the Azure Portal.</param>
+    /// <param name="certificateName">A resource builder for a parameter resource capturing the name of the certificate configured in the Azure Portal.</param>
     /// <exception cref="ArgumentException">Throws if the container app resource is not parented to a <see cref="AzureResourceInfrastructure"/>.</exception>
     /// <remarks>
     /// <para>The <see cref="ConfigureCustomDomain(ContainerApp, IResourceBuilder{ParameterResource}, IResourceBuilder{ParameterResource})"/> extension method
@@ -32,7 +32,7 @@ public static class ContainerAppExtensions
     /// two arguments which are parameter resource builders. The first is a parameter that represents the custom domain and the second is a parameter that
     /// represents the name of the managed certificate provisioned via the Azure Portal</para>
     /// <para>When deploying with custom domains configured for the first time leave the <paramref name="certificateName"/> parameter empty (when prompted
-    /// by the Azure Developer CLI). Once the applicatio is deployed acucessfully access to the Azure Portal to bind the custom domain to a managed SSL
+    /// by the Azure Developer CLI). Once the application is deployed successfully access to the Azure Portal to bind the custom domain to a managed SSL
     /// certificate. Once the certificate is successfully provisioned, subsequent deployments of the application can use this certificate name when the
     /// <paramref name="certificateName"/> is prompted.</para>
     /// <para>For deployments triggered locally by the Azure Developer CLI the <c>config.json</c> file in the <c>.azure/{environment name}</c> path
@@ -90,14 +90,33 @@ public static class ContainerAppExtensions
             new NullLiteralExpression()
             );
 
-        app.Configuration.Ingress.CustomDomains = new BicepList<ContainerAppCustomDomain>()
-           {
-                new ContainerAppCustomDomain()
-                {
-                    BindingType = bindingTypeConditional,
-                    Name = customDomainParameter,
-                    CertificateId = certificateOrEmpty
-                }
-           };
+        var containerAppCustomDomain = new ContainerAppCustomDomain()
+        {
+            BindingType = bindingTypeConditional,
+            Name = customDomainParameter,
+            CertificateId = certificateOrEmpty
+        };
+
+        var existingCustomDomain = app.Configuration.Ingress.CustomDomains
+            .FirstOrDefault(cd => {
+                // This is a cautionary tale to anyone who reads this code as to the dangers
+                // of using implicit conversions in C#. BicepValue<T> uses some implicit conversions
+                // which means we need to explicitly cast to IBicepValue so that we can get at the
+                // source construct behind the Bicep value on the "name" field for a custom domain
+                // in the Bicep. If the constructs are the same ProvisioningParameter then we have a
+                // match - otherwise we are possibly dealing with a second domain. This deals with the
+                // edge case of where someone might call ConfigureCustomDomain multiple times on the
+                // same domain - unlikely but possible if someone has built some libraries.                
+                var itemDomainNameBicepValue = cd.Value?.Name as IBicepValue;
+                var candidateDomainNameBicepValue = containerAppCustomDomain.Name as IBicepValue;
+                return itemDomainNameBicepValue?.Source?.Construct == candidateDomainNameBicepValue.Source?.Construct;
+            });
+
+        if (existingCustomDomain is not null)
+        {
+            app.Configuration.Ingress.CustomDomains.Remove(existingCustomDomain);
+        }
+
+        app.Configuration.Ingress.CustomDomains.Add(containerAppCustomDomain);
     }
 }
