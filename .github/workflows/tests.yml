@@ -214,10 +214,6 @@ jobs:
           - project: tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj
             name: Dashboard
 
-          # Playground project
-          - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
-            name: Playground
-
           # Schema generator project
           - project: tests/ConfigurationSchemaGenerator.Tests/ConfigurationSchemaGenerator.Tests.csproj
             name: ConfigurationSchemaGenerator
