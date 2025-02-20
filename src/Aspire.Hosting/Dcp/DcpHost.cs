@@ -280,8 +280,8 @@ internal sealed class DcpHost
             var category = line[..tab];
             line = line[(tab + 1)..];
 
-            // Trim trailing carraige return.
-            Debug.Assert(line[^1] == '\r', "Expected line to end with a carraige return.");
+            // Trim trailing carriage return.
+            Debug.Assert(line[^1] == '\r', "Expected line to end with a carriage return.");
             line = line[0..^1];
 
             var message = line;
