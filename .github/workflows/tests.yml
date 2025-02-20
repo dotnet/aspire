@@ -75,7 +75,8 @@ jobs:
     uses: ./.github/workflows/run-tests.yml
     with:
       testProject: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
-      testName: ${{ replace(matrix.class_names, 'Aspire.Workload.Tests.', '') }}
+      #testName: ${{ replace(matrix.class_names, 'Aspire.Workload.Tests.', '') }}
+      testName: ${{ matrix.class_names }}
       testSessionTimeoutMs: 1200000
       extraArgs: "-p:VSTestTestCaseFilter=FullyQualifiedName~${{ matrix.class_names }}"
       isWorkloadTests: true
