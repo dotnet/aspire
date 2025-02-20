@@ -47,23 +47,30 @@ public abstract class StarterTemplateProjectNamesTests : WorkloadTestsBase
 }
 
 // Individual class for each test framework so the tests can run in separate helix jobs
+public class None_StarterTemplateProjectNamesTests : StarterTemplateProjectNamesTests
+{
+    public None_StarterTemplateProjectNamesTests(ITestOutputHelper testOutput) : base("none", testOutput)
+    {
+    }
+}
+
 public class MSTest_StarterTemplateProjectNamesTests : StarterTemplateProjectNamesTests
 {
-    public MSTest_StarterTemplateProjectNamesTests(ITestOutputHelper testOutput) : base("aspire-mstest", testOutput)
+    public MSTest_StarterTemplateProjectNamesTests(ITestOutputHelper testOutput) : base("mstest", testOutput)
     {
     }
 }
 
 public class Xunit_StarterTemplateProjectNamesTests : StarterTemplateProjectNamesTests
 {
-    public Xunit_StarterTemplateProjectNamesTests(ITestOutputHelper testOutput) : base("aspire-xunit", testOutput)
+    public Xunit_StarterTemplateProjectNamesTests(ITestOutputHelper testOutput) : base("xunit.net", testOutput)
     {
     }
 }
 
 public class Nunit_StarterTemplateProjectNamesTests : StarterTemplateProjectNamesTests
 {
-    public Nunit_StarterTemplateProjectNamesTests(ITestOutputHelper testOutput) : base("aspire-nunit", testOutput)
+    public Nunit_StarterTemplateProjectNamesTests(ITestOutputHelper testOutput) : base("nunit", testOutput)
     {
     }
 }
