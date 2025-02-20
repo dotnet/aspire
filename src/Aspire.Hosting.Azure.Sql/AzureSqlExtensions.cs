@@ -251,13 +251,13 @@ public static class AzureSqlExtensions
 
         if (distributedApplicationBuilder.ExecutionContext.IsRunMode)
         {
-            // When in run mode we inject the users identity and we need to specify
-            // the principalType.
-            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-            infrastructure.Add(principalTypeParameter);
             // Avoid mutating properties on existing resources.
             if (!sqlServer.IsExistingResource)
             {
+                // When in run mode we inject the users identity and we need to specify
+                // the principalType.
+                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+                infrastructure.Add(principalTypeParameter);
                 sqlServer.Administrators.PrincipalType = principalTypeParameter;
             }
 
@@ -286,8 +286,8 @@ public static class AzureSqlExtensions
     }
 
     /// <remarks>
-    /// Workaround for immutable properties on SqlServerAzureADAdministrator.
-    /// See https://github.com/Azure/azure-sdk-for-net/issues/48364.
+    /// Workaround for issue using SqlServerAzureADAdministrator.
+    /// See https://github.com/Azure/azure-sdk-for-net/issues/48364 for more information.
     /// </remarks>
     private sealed class SqlServerAzureADAdministratorWorkaround(string bicepIdentifier) : SqlServerAzureADAdministrator(bicepIdentifier)
     {
