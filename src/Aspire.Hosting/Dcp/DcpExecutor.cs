@@ -986,6 +986,9 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         // If the executable is a project then include any command line args from the launch profile.
         if (er.ModelResource is ProjectResource project)
         {
+            // Args in the launch profile is used when:
+            // 1. The project is run as an executable. Launch profile args are combined with app host supplied args.
+            // 2. The project is run by the IDE and no app host args are specified.
             if (spec.ExecutionType == ExecutionType.Process || (spec.ExecutionType == ExecutionType.IDE && args.Count == 0))
             {
                 // When the .NET project is launched from an IDE the launch profile args are automatically added.
