@@ -57,18 +57,15 @@ jobs:
 
       - name: Archive built nugets
         uses: actions/upload-artifact@v4
-        with: |
+        with:
           name: built-nugets
-          path:
-            artifacts/packages
+          path: artifacts/packages
 
       - name: Archive artifacts for template tests
         uses: actions/upload-artifact@v4
-        with: |
+        with:
           name: workload-artifacts
-          path:
-            artifacts/bin/dotnet-*
-            artifacts/bin/Aspire.Workload.Tests
+          path: artifacts/bin/dotnet-*
 
   template_tests:
     needs: setup_for_template_tests
