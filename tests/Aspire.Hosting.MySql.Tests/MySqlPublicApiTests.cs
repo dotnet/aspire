@@ -10,10 +10,10 @@ namespace Aspire.Hosting.MySql.Tests;
 public class MySqlPublicApiTests
 {
     [Fact]
-    public void AddMySqlContainerShouldThrowWhenBuilderIsNull()
+    public void AddMySqlShouldThrowWhenBuilderIsNull()
     {
         IDistributedApplicationBuilder builder = null!;
-        string name = "MySql";
+        const string name = "MySql";
 
         var action = () => builder.AddMySql(name);
 
@@ -21,16 +21,74 @@ public class MySqlPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddMySqlContainerShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddMySqlShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        var builder = DistributedApplication.CreateBuilder([]);
-        string name = null!;
+        var builder = TestDistributedApplicationBuilder.Create();
+        var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddMySql(name);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Fact]
+    public void AddDatabaseShouldThrowWhenBuilderIsNull()
+    {
+        IResourceBuilder<MySqlServerResource> builder = null!;
+        const string name = "db";
+
+        var action = () => builder.AddDatabase(name);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddDatabaseShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    {
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddMySql("MySql");
+        var name = isNull ? null! : string.Empty;
+
+        var action = () => builder.AddDatabase(name);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Fact]
+    public void WithPhpMyAdminShouldThrowWhenBuilderIsNull()
+    {
+        IResourceBuilder<MySqlServerResource> builder = null!;
+
+        var action = () => builder.WithPhpMyAdmin();
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithHostPortShouldThrowWhenBuilderIsNull(bool includePort)
+    {
+        IResourceBuilder<PhpMyAdminContainerResource> builder = null!;
+        int? port = includePort ? null : 6033;
+
+        var action = () => builder.WithHostPort(port);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
@@ -48,7 +106,7 @@ public class MySqlPublicApiTests
     public void WithDataBindMountShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<MySqlServerResource> builder = null!;
-        string source = "/MySql/data";
+        const string source = "/MySql/data";
 
         var action = () => builder.WithDataBindMount(source);
 
@@ -56,16 +114,20 @@ public class MySqlPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void WithDataBindMountShouldThrowWhenSourceIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithDataBindMountShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
     {
-        var builder = TestDistributedApplicationBuilder.Create();
-        var mySql = builder.AddMySql("MySql");
-        string source = null!;
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddMySql("MySql");
+        var source = isNull ? null! : string.Empty;
 
-        var action = () => mySql.WithDataBindMount(source);
+        var action = () => builder.WithDataBindMount(source);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+           ? Assert.Throws<ArgumentNullException>(action)
+           : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(source), exception.ParamName);
     }
 
@@ -73,7 +135,7 @@ public class MySqlPublicApiTests
     public void WithInitBindMountShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<MySqlServerResource> builder = null!;
-        string source = "/MySql/init.sql";
+        const string source = "/MySql/init.sql";
 
         var action = () => builder.WithInitBindMount(source);
 
@@ -81,76 +143,94 @@ public class MySqlPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void WithInitBindMountShouldThrowWhenSourceIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithInitBindMountShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
     {
-        var builder = TestDistributedApplicationBuilder.Create();
-        var mySql = builder.AddMySql("MySql");
-        string source = null!;
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddMySql("MySql");
+        var source = isNull ? null! : string.Empty;
 
-        var action = () => mySql.WithInitBindMount(source);
+        var action = () => builder.WithInitBindMount(source);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+           ? Assert.Throws<ArgumentNullException>(action)
+           : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(source), exception.ParamName);
     }
 
-    [Fact]
-    public void AddDatabaseShouldThrowWhenBuilderIsNull()
-    {
-        IResourceBuilder<MySqlServerResource> builder = null!;
-        var name = "db";
-
-        var action = () => builder.AddDatabase(name);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddDatabaseShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorMySqlDatabaseResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var builder = TestDistributedApplicationBuilder.Create();
-        var mySql = builder.AddMySql("MySql");
-        string name = null!;
+        var name = isNull ? null! : string.Empty;
+        const string databaseName = "db";
+        const string passwordName = "password";
+        var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, passwordName, special: false);
+        const string parentName = "parent";
+        var parent = new MySqlServerResource(parentName, password);
 
-        var action = () => mySql.AddDatabase(name);
+        var action = () => new MySqlDatabaseResource(name, databaseName, parent);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+           ? Assert.Throws<ArgumentNullException>(action)
+           : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
-    [Fact]
-    public void WithPhpMyAdminShouldThrowWhenBuilderIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorMySqlDatabaseResourceShouldThrowWhenDatabaseNameIsNullOrEmpty(bool isNull)
     {
-        IResourceBuilder<MySqlServerResource> builder = null!;
+        var builder = TestDistributedApplicationBuilder.Create();
+        const string name = "MySql";
+        var databaseName = isNull ? null! : string.Empty;
+        const string passwordName = "password";
+        var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, passwordName, special: false);
+        const string parentName = "parent";
+        var parent = new MySqlServerResource(parentName, password);
 
-        var action = () => builder.WithPhpMyAdmin();
+        var action = () => new MySqlDatabaseResource(name, databaseName, parent);
+
+        var exception = isNull
+           ? Assert.Throws<ArgumentNullException>(action)
+           : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(databaseName), exception.ParamName);
+    }
+
+    [Fact]
+    public void CtorMySqlDatabaseResourceShouldThrowWhenParentIsNull()
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        const string name = "MySql";
+        const string databaseName = "db";
+        MySqlServerResource parent = null!;
+
+        var action = () => new MySqlDatabaseResource(name, databaseName, parent);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-    [Fact]
-    public void WithHostPortShouldThrowWhenBuilderIsNull()
-    {
-        IResourceBuilder<PhpMyAdminContainerResource> builder = null!;
-
-        var action = () => builder.WithHostPort(6033);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
+        Assert.Equal(nameof(parent), exception.ParamName);
     }
 
-    [Fact]
-    public void CtorMySqlServerResourceShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorMySqlServerResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
-        string name = null!;
-
-        var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(distributedApplicationBuilder, "password", special: false);
+        var builder = TestDistributedApplicationBuilder.Create();
+        var name = isNull ? null! : string.Empty;
+        const string passwordName = "password";
+        var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, passwordName, special: false);
 
         var action = () => new MySqlServerResource(name, password);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+           ? Assert.Throws<ArgumentNullException>(action)
+           : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
@@ -164,5 +244,20 @@ public class MySqlPublicApiTests
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(password), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorPhpMyAdminContainerResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    {
+        var name = isNull ? null! : string.Empty;
+
+        var action = () => new PhpMyAdminContainerResource(name);
+
+        var exception = isNull
+           ? Assert.Throws<ArgumentNullException>(action)
+           : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
     }
 }
