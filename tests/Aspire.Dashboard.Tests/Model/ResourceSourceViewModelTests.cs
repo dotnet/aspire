@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Aspire.Tests.Shared.DashboardModel;
@@ -96,7 +95,7 @@ public class ResourceSourceViewModelTests
                 value: "project",
                 contentAfterValue: [new LaunchArgument("arg2", true), new LaunchArgument("--key", true), new LaunchArgument("secret", false)],
                 valueToVisualize: "path/to/project arg2 --key secret",
-                tooltip: $"path/to/project arg2 --key {WebUtility.HtmlDecode(DashboardUIHelpers.GetMaskingText(6).Value)}"));
+                tooltip: $"path/to/project arg2 --key {DashboardUIHelpers.GetMaskingText(6).Text}"));
 
         // Project without executable arguments
         data.Add(new TestData(
