@@ -155,6 +155,8 @@
     <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_DIAGNOSTICS_LOG_LEVEL=debug" />
     <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_DIAGNOSTICS_LOG_FOLDER=$(_HelixLogsPath)" />
     <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_PRESERVE_EXECUTABLE_LOGS=1" />
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT' and '$(DockerCliToolDir)' != ''" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\docker-cli%3B%PATH%" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT' and '$(DockerCliToolDir)' != ''" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/docker-cli:$PATH" />
 
     <HelixPostCommand Include="$(_WaitForDcpCommand)" />
   </ItemGroup>
@@ -214,6 +216,7 @@
       <HelixCorrelationPayload Include="$(_DotNetCoverageToolDir)" Destination="dotnet-coverage" />
       <HelixCorrelationPayload Include="$(_SupportDataStagingDir)" Destination="support-data" />
       <HelixCorrelationPayload Condition="'$(NeedsCreateDotNetDevScripts)' == 'true'" Include="$(_CreateDotNetDevCertsDirectory)" Destination="create-dotnet-devcert" />
+      <HelixCorrelationPayload Condition="'$(DockerCliToolDir)' != ''" Include="$(DockerCliToolDir)" Destination="docker-cli" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(NeedsWorkload)' == 'true'">
