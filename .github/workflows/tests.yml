@@ -65,7 +65,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: workload-artifacts
-          path: artifacts/bin/dotnet-*
+          path: |
+            artifacts/bin/dotnet-*
+            artifacts/bin/playwright-deps
 
   template_tests:
     name: Workload tests
