@@ -1114,8 +1114,6 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
             param existingResourceName string
 
-            param principalType string
-
             resource sqlServer 'Microsoft.Sql/servers@2021-11-01' existing = {
               name: existingResourceName
             }
