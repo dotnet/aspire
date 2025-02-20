@@ -60,7 +60,7 @@ public enum WaitType
 public enum WaitBehavior
 {
     /// <summary>
-    /// Wait indefinately.
+    /// Wait indefinitely.
     /// </summary>
     Wait,
 
