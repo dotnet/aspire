@@ -68,13 +68,14 @@ jobs:
           path: artifacts/bin/dotnet-*
 
   template_tests:
+    name: Workload tests
     needs: setup_for_template_tests
     strategy:
       matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.template_matrix) }}
     uses: ./.github/workflows/run-tests.yml
     with:
       testProject: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
-      testName: ${{ matrix.class_names }}
+      testName: ${{ replace(matrix.class_names, 'Aspire.Workload.Tests.', '') }}
       testSessionTimeoutMs: 1200000
       extraArgs: "-p:VSTestTestCaseFilter=FullyQualifiedName~${{ matrix.class_names }}"
       isWorkloadTests: true
