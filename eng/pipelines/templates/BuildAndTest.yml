@@ -22,6 +22,9 @@ parameters:
   - name: runPipelineTests
     type: boolean
     default: false
+  - name: dockerCliVersion
+    type: string
+    default: '28.0.0'
 
 steps:
   # Internal pipeline: Build with pack+sign
@@ -50,7 +53,7 @@ steps:
 
     - task: DockerInstaller@0
       inputs:
-        dockerVersion: '28.0.0'
+        dockerVersion: ${{ parameters.dockerCliVersion }}
       displayName: Install Docker CLI
 
   # Non-helix tests are run only on the public pipeline
@@ -131,6 +134,8 @@ steps:
             HelixTargetQueues: Ubuntu.2204.Amd64.Open
           ${{ if eq(variables['System.TeamProject'], 'internal') }}:
             HelixTargetQueues: Ubuntu.2204.Amd64
+          ${{ if ne(parameters.dockerCliVersion, '') }}:
+            DockerCliPath: /opt/hostedtoolcache/docker-stable/${{ parameters.dockerCliVersion }}/x64/
 
         IsWindows: ${{ parameters.isWindows }}
         ${{ if eq(variables['System.TeamProject'], 'public') }}:
