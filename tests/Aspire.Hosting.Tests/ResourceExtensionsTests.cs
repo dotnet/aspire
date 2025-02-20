@@ -259,6 +259,27 @@ public class ResourceExtensionsTests
             });
     }
 
+    [Fact]
+    public async Task GetArgumentValuesAsync_ReturnsCorrectValuesForSpecialCases()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var surrogate = new ResourceWithConnectionStringSurrogate("ResourceWithConnectionStringSurrogate", _ => "ConnectionString", null);
+        var secretParameter = new ParameterResource("SecretParameter", _ => "SecretParameter", true);
+        var nonSecretParameter = new ParameterResource("NonSecretParameter", _ => "NonSecretParameter");
+
+        builder.AddResource(surrogate);
+        builder.AddResource(secretParameter);
+        builder.AddResource(nonSecretParameter);
+
+        var container = builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
+            .WithArgs(surrogate)
+            .WithArgs(secretParameter)
+            .WithArgs(nonSecretParameter);
+        var args = await container.Resource.GetArgumentValuesAsync().DefaultTimeout();
+
+        Assert.Equal<IEnumerable<string>>(["ConnectionString", "SecretParameter", "NonSecretParameter"], args);
+    }
+
     private sealed class ParentResource(string name) : Resource(name)
     {
 
