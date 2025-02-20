@@ -1,5 +1,3 @@
-eventResponderTasks
-
 id: eventResponderTask.GithubActionPROpened
 name: Close and re-open PRs opened via Github Action
 description: Closes and re-open PRs opened via Github Action
