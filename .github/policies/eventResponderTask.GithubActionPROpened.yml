@@ -15,6 +15,9 @@ configuration:
       - isActivitySender:
           user: github-actions[bot]
           issueAuthor: False
+      - not:
+          hasLabel:
+            label: 'Re-opened Github-Action PR'
       then:
       - addLabel:
           label: 'Closed Github-Action PR'
@@ -29,5 +32,7 @@ configuration:
       then:
       - removeLabel:
           label: 'Closed Github-Action PR'
+      - addLabel:
+          label: 'Re-opened Github-Action PR'
       - reopenIssue
       description: Reopen closed Github-Action PRs
