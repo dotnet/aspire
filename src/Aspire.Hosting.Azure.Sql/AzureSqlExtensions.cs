@@ -205,14 +205,6 @@ public static class AzureSqlExtensions
         {
             var resource = SqlServer.FromExisting(identifier);
             resource.Name = name;
-            resource.Administrators = new ServerExternalAdministrator()
-            {
-                AdministratorType = SqlAdministratorType.ActiveDirectory,
-                IsAzureADOnlyAuthenticationEnabled = true,
-                Sid = principalIdParameter,
-                Login = principalNameParameter,
-                TenantId = BicepFunction.GetSubscription().TenantId
-            };
             return resource;
         },
         (infrastructure) =>
@@ -248,7 +240,10 @@ public static class AzureSqlExtensions
             // the principalType.
             var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
             infrastructure.Add(principalTypeParameter);
-            sqlServer.Administrators.PrincipalType = principalTypeParameter;
+            if (!sqlServer.IsExistingResource)
+            {
+                sqlServer.Administrators.PrincipalType = principalTypeParameter;
+            }
 
             infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps")
             {
