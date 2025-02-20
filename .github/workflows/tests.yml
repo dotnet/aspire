@@ -76,7 +76,7 @@ jobs:
       testProject: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
       testName: ${{ matrix.class_names }}
       testSessionTimeoutMs: 1200000
-      extraArgs: "-p:VSTestTestCaseFilter=FullyQualifiedName=${{ matrix.class_names }}"
+      extraArgs: "-p:VSTestTestCaseFilter=FullyQualifiedName~${{ matrix.class_names }}"
       isWorkloadTests: true
 
   test:
