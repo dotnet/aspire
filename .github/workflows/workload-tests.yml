@@ -113,6 +113,12 @@ jobs:
           chmod +x artifacts/bin/dotnet-*/dotnet && \
           chmod -R +x artifacts/bin/playwright-deps
 
+      - name: Build test project
+        env:
+          CI: false
+        run: |
+          ./build.sh -restore -ci -build -projects ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj /bl
+
       - name: Run tests
         id: run-tests
         env:
