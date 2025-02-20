@@ -3,15 +3,17 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var deploymentAndModelName = "gpt-4o";
-var openai = builder.AddAzureOpenAI("openai").AddDeployment(
-    new(deploymentAndModelName, deploymentAndModelName, "2024-05-13")
-    );
+// var deploymentAndModelName = "gpt-4o";
+// var openai = builder.AddAzureOpenAI("openai").AddDeployment(
+//     new(deploymentAndModelName, deploymentAndModelName, "2024-05-13")
+//     );
+
+var openai = builder.AddGitHubModel("openai");
 
 builder.AddProject<Projects.OpenAIEndToEnd_WebStory>("webstory")
        .WithExternalHttpEndpoints()
        .WithReference(openai)
-       .WithEnvironment("OpenAI__DeploymentName", deploymentAndModelName);
+       .WithEnvironment("OpenAI__DeploymentName", "gpt-4o-mini");
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
@@ -24,3 +26,19 @@ builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard
 #endif
 
 builder.Build().Run();
+
+public static class GitHubModelExtensions
+{
+    public static IResourceBuilder<GitHubModelResource> AddGitHubModel(this IDistributedApplicationBuilder builder, string name)
+    {
+        var resource = new GitHubModelResource(name);
+        var resourceBuilder = builder.AddResource(resource);
+        return resourceBuilder;
+    }
+}
+
+public class GitHubModelResource(string name) : Resource(name), IResourceWithConnectionString
+{
+    public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"Endpoint=https://models.inference.ai.azure.com;Key={Environment.GetEnvironmentVariable("GITHUB_TOKEN")}");
+}
+
