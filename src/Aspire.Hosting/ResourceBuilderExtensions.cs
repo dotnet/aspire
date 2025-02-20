@@ -738,7 +738,7 @@ public static class ResourceBuilderExtensions
     /// var messaging = builder.AddRabbitMQ("messaging");
     /// builder.AddProject&lt;Projects.MyApp&gt;("myapp")
     ///        .WithReference(messaging)
-    ///        .WaitFor(messaging, WaitBehavior.StopOnDependencyFailure);
+    ///        .WaitFor(messaging, WaitBehavior.StopOnResourceUnavailable);
     /// </code>
     /// </example>
     public static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, WaitBehavior waitBehavior) where T : IResourceWithWaitSupport
