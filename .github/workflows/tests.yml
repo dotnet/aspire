@@ -68,6 +68,7 @@ jobs:
           path: |
             artifacts/bin/dotnet-*
             artifacts/bin/playwright-deps
+          retention-days: 3
 
   template_tests:
     name: Workload tests
