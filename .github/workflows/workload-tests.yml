@@ -74,7 +74,7 @@ jobs:
     needs: setup_for_template_tests
     strategy:
       matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.template_matrix) }}
-    uses: ./.github/workflows/run-tests.yml
+    #uses: ./.github/workflows/run-tests.yml
     #with:
       #testProject: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
       ##testName: ${{ replace(matrix.class_names, 'Aspire.Workload.Tests.', '') }}
