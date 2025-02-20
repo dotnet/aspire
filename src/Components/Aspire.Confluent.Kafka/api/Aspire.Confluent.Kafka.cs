@@ -17,6 +17,8 @@ namespace Aspire.Confluent.Kafka
         public bool DisableHealthChecks { get { throw null; } set { } }
 
         public bool DisableMetrics { get { throw null; } set { } }
+
+        public bool DisableTracing { get { throw null; } set { } }
     }
 
     public sealed partial class KafkaProducerSettings
@@ -28,6 +30,8 @@ namespace Aspire.Confluent.Kafka
         public bool DisableHealthChecks { get { throw null; } set { } }
 
         public bool DisableMetrics { get { throw null; } set { } }
+
+        public bool DisableTracing { get { throw null; } set { } }
     }
 }
 

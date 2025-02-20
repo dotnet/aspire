@@ -10,9 +10,9 @@ namespace Aspire.Hosting
 {
     public static partial class PythonAppResourceBuilderExtensions
     {
-        public static ApplicationModel.IResourceBuilder<Python.PythonAppResource> AddPythonApp(this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath, string virtualEnvironmentPath, params string[] scriptArgs) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Python.PythonAppResource> AddPythonApp(this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath, string virtualEnvironmentPath, params string[] scriptArgs) { throw null; }
 
-        public static ApplicationModel.IResourceBuilder<Python.PythonAppResource> AddPythonApp(this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath, params string[] scriptArgs) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Python.PythonAppResource> AddPythonApp(this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath, params string[] scriptArgs) { throw null; }
     }
 
     [System.Obsolete("PythonProjectResource is deprecated. Please use PythonAppResource instead.")]
@@ -30,7 +30,7 @@ namespace Aspire.Hosting.Python
 {
     public partial class PythonAppResource : ApplicationModel.ExecutableResource, IResourceWithServiceDiscovery, ApplicationModel.IResourceWithEndpoints, ApplicationModel.IResource
     {
-        public PythonAppResource(string name, string executablePath, string projectDirectory) : base(default!, default!, default!) { }
+        public PythonAppResource(string name, string executablePath, string appDirectory) : base(default!, default!, default!) { }
     }
 
     [System.Obsolete("PythonProjectResource is deprecated. Please use PythonAppResource instead.")]

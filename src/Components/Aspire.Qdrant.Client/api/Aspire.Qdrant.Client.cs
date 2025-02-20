@@ -10,7 +10,11 @@ namespace Aspire.Qdrant.Client
 {
     public sealed partial class QdrantClientSettings
     {
+        public bool DisableHealthChecks { get { throw null; } set { } }
+
         public System.Uri? Endpoint { get { throw null; } set { } }
+
+        public System.TimeSpan? HealthCheckTimeout { get { throw null; } set { } }
 
         public string? Key { get { throw null; } set { } }
     }

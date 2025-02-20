@@ -8,6 +8,13 @@
 //------------------------------------------------------------------------------
 namespace Aspire.Azure.AI.OpenAI
 {
+    public partial class AspireAzureOpenAIClientBuilder : Aspire.OpenAI.AspireOpenAIClientBuilder
+    {
+        public AspireAzureOpenAIClientBuilder(Microsoft.Extensions.Hosting.IHostApplicationBuilder hostBuilder, string connectionName, string? serviceKey, bool disableTracing) : base(default!, default!, default, default) { }
+
+        public override string ConfigurationSectionName { get { throw null; } }
+    }
+
     public sealed partial class AzureOpenAISettings
     {
         public global::Azure.Core.TokenCredential? Credential { get { throw null; } set { } }
@@ -26,9 +33,9 @@ namespace Microsoft.Extensions.Hosting
 {
     public static partial class AspireAzureOpenAIExtensions
     {
-        public static void AddAzureOpenAIClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Azure.AI.OpenAI.AzureOpenAISettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.AI.OpenAI.AzureOpenAIClient, global::Azure.AI.OpenAI.AzureOpenAIClientOptions>>? configureClientBuilder = null) { }
+        public static Aspire.Azure.AI.OpenAI.AspireAzureOpenAIClientBuilder AddAzureOpenAIClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Azure.AI.OpenAI.AzureOpenAISettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.AI.OpenAI.AzureOpenAIClient, global::Azure.AI.OpenAI.AzureOpenAIClientOptions>>? configureClientBuilder = null) { throw null; }
 
-        public static void AddKeyedAzureOpenAIClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.Azure.AI.OpenAI.AzureOpenAISettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.AI.OpenAI.AzureOpenAIClient, global::Azure.AI.OpenAI.AzureOpenAIClientOptions>>? configureClientBuilder = null) { }
+        public static Aspire.Azure.AI.OpenAI.AspireAzureOpenAIClientBuilder AddKeyedAzureOpenAIClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.Azure.AI.OpenAI.AzureOpenAISettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.AI.OpenAI.AzureOpenAIClient, global::Azure.AI.OpenAI.AzureOpenAIClientOptions>>? configureClientBuilder = null) { throw null; }
     }
 
     public static partial class AspireConfigurableOpenAIExtensions

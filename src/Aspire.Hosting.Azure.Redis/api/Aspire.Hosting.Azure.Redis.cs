@@ -33,6 +33,9 @@ namespace Aspire.Hosting.Azure
         public override ApplicationModel.ResourceAnnotationCollection Annotations { get { throw null; } }
 
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
+
+        [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "ConnectionStringSecretOutput")]
+        public bool UseAccessKeyAuthentication { get { throw null; } }
     }
 
     [System.Obsolete("This class is obsolete and will be removed in a future version. Use AddAzureRedis instead to add an Azure Cache for Redis resource.")]

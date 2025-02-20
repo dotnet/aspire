@@ -50,6 +50,9 @@ namespace Aspire.Hosting.Azure
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
         public System.Collections.Generic.IReadOnlyDictionary<string, string> Databases { get { throw null; } }
+
+        [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "ConnectionStringSecretOutput")]
+        public bool UsePasswordAuthentication { get { throw null; } }
     }
 
     [System.Obsolete("This class is obsolete and will be removed in a future version. Use AddAzurePostgresFlexibleServer instead to add an Azure Postgres Flexible Server resource.")]
