@@ -1044,6 +1044,17 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
                 ctr.Spec.Persistent = true;
             }
 
+            if (container.TryGetContainerPullPolicy(out var pullPolicy))
+            {
+                ctr.Spec.PullPolicy = pullPolicy switch
+                {
+                    PullPolicy.Always => ContainerPullPolicy.Always,
+                    PullPolicy.Missing => ContainerPullPolicy.Missing,
+                    PullPolicy.Never => ContainerPullPolicy.Never,
+                    _ => throw new InvalidOperationException($"Unknown pull policy '{Enum.GetName(typeof(PullPolicy), pullPolicy)}' for container '{container.Name}'")
+                };
+            }
+
             ctr.Annotate(CustomResource.ResourceNameAnnotation, container.Name);
             ctr.Annotate(CustomResource.OtelServiceNameAnnotation, container.Name);
             ctr.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, containerObjectInstance.Suffix);
