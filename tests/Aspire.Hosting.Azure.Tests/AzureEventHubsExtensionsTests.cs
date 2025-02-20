@@ -15,6 +15,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 using Xunit.Abstractions;
+using static Aspire.Dashboard.Model.KnownProperties;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -582,5 +583,74 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
             k => Assert.Equal("cg1__fullyQualifiedNamespace", k));
         Assert.Equal("cg1", target["Aspire__Azure__Messaging__EventHubs__EventHubBufferedProducerClient__cg1__ConsumerGroup"]);
         Assert.Equal("hub1", target["Aspire__Azure__Messaging__EventHubs__EventHubBufferedProducerClient__cg1__EventHubName"]);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AzureEventHubs_WithPersistentLifetime_ReusesContainers()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+        using var builder1 = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        // We don't need to clean on StopAsync(), we just check that the new instances are not new ones
+        builder1.Configuration["DcpPublisher:WaitForResourceCleanup"] = "false";
+
+        var resource = builder1.AddAzureEventHubs("resource")
+                      .RunAsEmulator(x => x.WithLifetime(ContainerLifetime.Persistent));
+
+        resource.AddHub("hub");
+
+        using var app = builder1.Build();
+
+        await app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+
+        var resourceEvent = await rns.WaitForResourceAsync("resource", e => e.Snapshot.HealthStatus == HealthStatus.Healthy, cts.Token);
+        var ehContainerId1 = GetContainerId(resourceEvent);
+
+        // NOTE: Waiting for Running state doesn't guarantee that the container-id property is set (for this resource at least)
+
+        resourceEvent = await rns.WaitForResourceAsync("resource-storage", e => GetContainerId(e) is not null, cts.Token);
+        var storageContainerId1 = GetContainerId(resourceEvent);
+
+        await app.StopAsync(cts.Token).WaitAsync(TimeSpan.FromMinutes(1));
+
+        using var builder2 = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder2.Configuration["DcpPublisher:WaitForResourceCleanup"] = "false";
+
+        var resource2 = builder2.AddAzureEventHubs("resource")
+                      .RunAsEmulator(x => x.WithLifetime(ContainerLifetime.Persistent));
+
+        resource2.AddHub("hub");
+
+        using var app2 = builder2.Build();
+
+        await app2.StartAsync(cts.Token);
+
+        var rns2 = app2.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns2.WaitForResourceHealthyAsync("resource", cts.Token);
+
+        resourceEvent = await rns2.WaitForResourceAsync("resource", e => e.Snapshot.HealthStatus == HealthStatus.Healthy, cts.Token);
+        var ehContainerId2 = GetContainerId(resourceEvent);
+
+        resourceEvent = await rns2.WaitForResourceAsync("resource-storage", e => GetContainerId(e) is not null, cts.Token);
+        var storageContainerId2 = GetContainerId(resourceEvent);
+
+        Assert.NotNull(ehContainerId1);
+        Assert.NotNull(storageContainerId1);
+
+        Assert.Equal(ehContainerId1, ehContainerId2);
+        Assert.Equal(storageContainerId1, storageContainerId2);
+
+        await app2.StopAsync(cts.Token);
+
+        static string? GetContainerId(ResourceEvent resourceEvent)
+        {
+            return resourceEvent.Snapshot.Properties.FirstOrDefault(x => x.Name == Container.Id)?.Value?.ToString();
+        }
     }
 }
