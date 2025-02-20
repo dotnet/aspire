@@ -267,14 +267,10 @@ public class ResourceExtensionsTests
         var secretParameter = new ParameterResource("SecretParameter", _ => "SecretParameter", true);
         var nonSecretParameter = new ParameterResource("NonSecretParameter", _ => "NonSecretParameter");
 
-        builder.AddResource(surrogate);
-        builder.AddResource(secretParameter);
-        builder.AddResource(nonSecretParameter);
-
         var container = builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
-            .WithArgs(surrogate)
-            .WithArgs(secretParameter)
-            .WithArgs(nonSecretParameter);
+            .WithArgs(builder.AddResource(surrogate))
+            .WithArgs(builder.AddResource(secretParameter))
+            .WithArgs(builder.AddResource(nonSecretParameter));
         var args = await container.Resource.GetArgumentValuesAsync().DefaultTimeout();
 
         Assert.Equal<IEnumerable<string>>(["ConnectionString", "SecretParameter", "NonSecretParameter"], args);
