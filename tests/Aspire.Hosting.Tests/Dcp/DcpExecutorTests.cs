@@ -106,9 +106,11 @@ public class DcpExecutorTests
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task CreateExecutable_LaunchProfileHasCommandLineArgs_AnnotationsAdded(bool isIDE)
+    [InlineData(ExecutionType.IDE, false, null, new string[] { "--", "--test1", "--test2" })]
+    [InlineData(ExecutionType.IDE, true, new string[] { "--withargs-test" }, new string[] { "--withargs-test" })]
+    [InlineData(ExecutionType.Process, false, new string[] { "--", "--test1", "--test2" }, new string[] { "--", "--test1", "--test2" })]
+    [InlineData(ExecutionType.Process, true, new string[] { "--", "--test1", "--test2", "--withargs-test" }, new string[] { "--", "--test1", "--test2", "--withargs-test" })]
+    public async Task CreateExecutable_LaunchProfileHasCommandLineArgs_AnnotationsAdded(string executionType, bool addAppHostArgs, string[]? expectedArgs, string[]? expectedAnnotations)
     {
         var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
         {
@@ -116,7 +118,7 @@ public class DcpExecutorTests
         });
 
         IConfiguration? configuration = null;
-        if (isIDE)
+        if (executionType == ExecutionType.IDE)
         {
             var configurationBuilder = new ConfigurationBuilder();
             configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
@@ -127,11 +129,15 @@ public class DcpExecutorTests
             configuration = configurationBuilder.Build();
         }
 
-        var resource = builder.AddProject<Projects.ServiceA>("ServiceA")
-            .WithArgs(c =>
-            {
-                c.Args.Add("--withargs-test");
-            }).Resource;
+        var resourceBuilder = builder.AddProject<Projects.ServiceA>("ServiceA");
+        if (addAppHostArgs)
+        {
+            resourceBuilder
+                .WithArgs(c =>
+                {
+                    c.Args.Add("--withargs-test");
+                });
+        }
 
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
@@ -148,30 +154,12 @@ public class DcpExecutorTests
 
         var exe = Assert.Single(executables);
 
-        if (isIDE)
-        {
-            var callArg = Assert.Single(exe.Spec.Args!);
-            Assert.Equal("--withargs-test", callArg);
-        }
-        else
-        {
-            // ignore dotnet specific args for .NET project
-            var callArgs = exe.Spec.Args![^4..];
-
-            Assert.Collection(callArgs,
-                a => Assert.Equal("--", a),
-                a => Assert.Equal("--test1", a),
-                a => Assert.Equal("--test2", a),
-                a => Assert.Equal("--withargs-test", a));
-        }
+        // Ignore dotnet specific args for .NET project in process execution.
+        var callArgs = executionType == ExecutionType.IDE ? exe.Spec.Args : exe.Spec.Args![^(expectedArgs?.Length ?? 0)..];
+        Assert.Equal(expectedArgs, callArgs);
 
         Assert.True(exe.TryGetAnnotationAsObjectList<AppLaunchArgumentAnnotation>(CustomResource.ResourceAppArgsAnnotation, out var argAnnotations));
-
-        Assert.Collection(argAnnotations,
-            a => Assert.Equal("--", a.Argument),
-            a => Assert.Equal("--test1", a.Argument),
-            a => Assert.Equal("--test2", a.Argument),
-            a => Assert.Equal("--withargs-test", a.Argument));
+        Assert.Equal(expectedAnnotations, argAnnotations.Select(a => a.Argument));
     }
 
     [Fact]
