@@ -56,7 +56,7 @@ jobs:
           echo "templates_output=$(jq -cR '{class_names: [inputs]}' < artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list)" >> $GITHUB_OUTPUT
 
       - name: Archive artifacts for template tests
-        uses: actions/upload-artifacts@v4
+        uses: actions/upload-artifact@v4
         with:
           name: workload-artifacts
           path:
