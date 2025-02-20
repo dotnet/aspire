@@ -119,9 +119,3 @@ jobs:
         with:
           name: testresults-${{ inputs.testName }}
           path: testresults/**
-
-      - name: Upload built nugets
-        uses: actions/upload-artifact@v4
-        with:
-          name: built-nugets
-          path: "artifacts/packages/**/*.nupkg"
