@@ -16,6 +16,9 @@ on:
       extraArgs:
         required: false
         type: string
+      isWorkloadTests:
+        required: false
+        type: bool
 
 jobs:
 
@@ -47,21 +50,21 @@ jobs:
           sudo apt-get install -y azure-functions-core-tools-4
 
       - name: Download built nugets
-        if: ${{ inputs.testName == 'Workload' }}
+        if: ${{ inputs.isWorkloadTests }}
         uses: actions/download-artifact@v4
         with:
           name: built-nugets
           path: artifacts/packages
 
       - name: Download artifacts for template tests
-        if: ${{ inputs.testName == 'Workload' }}
+        if: ${{ inputs.isWorkloadTests }}
         uses: actions/download-artifact@v4
         with:
           name: workload-artifacts
           path: artifacts/bin
 
       - name: Fix up permissions for dotnet
-        if: ${{ inputs.testName == 'Workload' }}
+        if: ${{ inputs.isWorkloadTests }}
         run: chmod +x artifacts/bin/dotnet-*/dotnet
 
       - name: Build test project
