@@ -10,28 +10,37 @@ namespace Aspire.Hosting
 {
     public static partial class IDistributedApplicationBuilderExtensions
     {
+        [System.Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", false)]
         public static IDistributedApplicationBuilder AddDapr(this IDistributedApplicationBuilder builder, System.Action<Dapr.DaprOptions>? configure = null) { throw null; }
 
+        [System.Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", false)]
         public static ApplicationModel.IResourceBuilder<Dapr.IDaprComponentResource> AddDaprComponent(this IDistributedApplicationBuilder builder, string name, string type, Dapr.DaprComponentOptions? options = null) { throw null; }
 
+        [System.Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", false)]
         public static ApplicationModel.IResourceBuilder<Dapr.IDaprComponentResource> AddDaprPubSub(this IDistributedApplicationBuilder builder, string name, Dapr.DaprComponentOptions? options = null) { throw null; }
 
+        [System.Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", false)]
         public static ApplicationModel.IResourceBuilder<Dapr.IDaprComponentResource> AddDaprStateStore(this IDistributedApplicationBuilder builder, string name, Dapr.DaprComponentOptions? options = null) { throw null; }
     }
 
     public static partial class IDistributedApplicationResourceBuilderExtensions
     {
+        [System.Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", false)]
         public static ApplicationModel.IResourceBuilder<T> WithDaprSidecar<T>(this ApplicationModel.IResourceBuilder<T> builder, Dapr.DaprSidecarOptions? options = null)
             where T : ApplicationModel.IResource { throw null; }
 
+        [System.Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", false)]
         public static ApplicationModel.IResourceBuilder<T> WithDaprSidecar<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Action<ApplicationModel.IResourceBuilder<Dapr.IDaprSidecarResource>> configureSidecar)
             where T : ApplicationModel.IResource { throw null; }
 
+        [System.Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", false)]
         public static ApplicationModel.IResourceBuilder<T> WithDaprSidecar<T>(this ApplicationModel.IResourceBuilder<T> builder, string appId)
             where T : ApplicationModel.IResource { throw null; }
 
+        [System.Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", false)]
         public static ApplicationModel.IResourceBuilder<Dapr.IDaprSidecarResource> WithOptions(this ApplicationModel.IResourceBuilder<Dapr.IDaprSidecarResource> builder, Dapr.DaprSidecarOptions options) { throw null; }
 
+        [System.Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", false)]
         public static ApplicationModel.IResourceBuilder<TDestination> WithReference<TDestination>(this ApplicationModel.IResourceBuilder<TDestination> builder, ApplicationModel.IResourceBuilder<Dapr.IDaprComponentResource> component)
             where TDestination : ApplicationModel.IResource { throw null; }
     }
@@ -39,15 +48,18 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Dapr
 {
+    [System.Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", false)]
     public sealed partial record DaprComponentOptions()
     {
         public string? LocalPath { get { throw null; } init { } }
     }
 
+    [System.Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", false)]
     public sealed partial record DaprComponentReferenceAnnotation(IDaprComponentResource Component) : ApplicationModel.IResourceAnnotation
     {
     }
 
+    [System.Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", false)]
     public sealed partial class DaprComponentResource : ApplicationModel.Resource, IDaprComponentResource, ApplicationModel.IResource, ApplicationModel.IResourceWithWaitSupport
     {
         public DaprComponentResource(string name, string type) : base(default!) { }
@@ -57,6 +69,7 @@ namespace Aspire.Hosting.Dapr
         public string Type { get { throw null; } }
     }
 
+    [System.Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", false)]
     public sealed partial record DaprOptions()
     {
         public string? DaprPath { get { throw null; } set { } }
@@ -64,10 +77,12 @@ namespace Aspire.Hosting.Dapr
         public bool? EnableTelemetry { get { throw null; } set { } }
     }
 
+    [System.Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", false)]
     public sealed partial record DaprSidecarAnnotation(IDaprSidecarResource Sidecar) : ApplicationModel.IResourceAnnotation
     {
     }
 
+    [System.Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", false)]
     public sealed partial record DaprSidecarOptions()
     {
         public string? AppChannelAddress { get { throw null; } init { } }
@@ -126,13 +141,17 @@ namespace Aspire.Hosting.Dapr
 
         public string? RuntimePath { get { throw null; } init { } }
 
+        public string? SchedulerHostAddress { get { throw null; } init { } }
+
         public string? UnixDomainSocket { get { throw null; } init { } }
     }
 
+    [System.Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", false)]
     public sealed partial record DaprSidecarOptionsAnnotation(DaprSidecarOptions Options) : ApplicationModel.IResourceAnnotation
     {
     }
 
+    [System.Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", false)]
     public partial interface IDaprComponentResource : ApplicationModel.IResource, ApplicationModel.IResourceWithWaitSupport
     {
         DaprComponentOptions? Options { get; }
@@ -140,6 +159,7 @@ namespace Aspire.Hosting.Dapr
         string Type { get; }
     }
 
+    [System.Obsolete("The Dapr integration has been migrated to the Community Toolkit. Please use the CommunityToolkit.Aspire.Hosting.Dapr integration.", false)]
     public partial interface IDaprSidecarResource : ApplicationModel.IResource
     {
     }

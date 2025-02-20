@@ -14,7 +14,11 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> WithDataBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> builder, string source, bool isReadOnly = false) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<Redis.RedisInsightResource> WithDataBindMount(this ApplicationModel.IResourceBuilder<Redis.RedisInsightResource> builder, string source) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> WithDataVolume(this ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> builder, string? name = null, bool isReadOnly = false) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Redis.RedisInsightResource> WithDataVolume(this ApplicationModel.IResourceBuilder<Redis.RedisInsightResource> builder, string? name = null) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Redis.RedisCommanderResource> WithHostPort(this ApplicationModel.IResourceBuilder<Redis.RedisCommanderResource> builder, int? port) { throw null; }
 

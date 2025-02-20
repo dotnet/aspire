@@ -55,6 +55,8 @@ namespace Aspire.Azure.Messaging.EventHubs
 
         public global::Azure.Core.TokenCredential? Credential { get { throw null; } set { } }
 
+        public bool DisableHealthChecks { get { throw null; } set { } }
+
         public bool DisableTracing { get { throw null; } set { } }
 
         public string? EventHubName { get { throw null; } set { } }

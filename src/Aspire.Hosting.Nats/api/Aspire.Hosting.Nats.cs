@@ -10,7 +10,9 @@ namespace Aspire.Hosting
 {
     public static partial class NatsBuilderExtensions
     {
-        public static ApplicationModel.IResourceBuilder<ApplicationModel.NatsServerResource> AddNats(this IDistributedApplicationBuilder builder, string name, int? port = null) { throw null; }
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.NatsServerResource> AddNats(this IDistributedApplicationBuilder builder, string name, int? port = null, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? userName = null, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? password = null) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.NatsServerResource> AddNats(this IDistributedApplicationBuilder builder, string name, int? port) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.NatsServerResource> WithDataBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.NatsServerResource> builder, string source, bool isReadOnly = false) { throw null; }
 
@@ -27,10 +29,16 @@ namespace Aspire.Hosting.ApplicationModel
 {
     public partial class NatsServerResource : ContainerResource, IResourceWithConnectionString, IResource, IManifestExpressionProvider, IValueProvider, IValueWithReferences
     {
+        public NatsServerResource(string name, ParameterResource? userName, ParameterResource? password) : base(default!, default) { }
+
         public NatsServerResource(string name) : base(default!, default) { }
 
         public ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
+        public ParameterResource? PasswordParameter { get { throw null; } set { } }
+
         public EndpointReference PrimaryEndpoint { get { throw null; } }
+
+        public ParameterResource? UserNameParameter { get { throw null; } set { } }
     }
 }

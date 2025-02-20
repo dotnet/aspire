@@ -14,6 +14,12 @@ namespace Aspire.Hosting
             where T : ApplicationModel.ContainerResource { throw null; }
     }
 
+    public static partial class AzureContainerAppExecutableExtensions
+    {
+        public static ApplicationModel.IResourceBuilder<T> PublishAsAzureContainerApp<T>(this ApplicationModel.IResourceBuilder<T> executable, System.Action<Azure.AzureResourceInfrastructure, global::Azure.Provisioning.AppContainers.ContainerApp> configure)
+            where T : ApplicationModel.ExecutableResource { throw null; }
+    }
+
     public static partial class AzureContainerAppExtensions
     {
         public static IDistributedApplicationBuilder AddAzureContainerAppsInfrastructure(this IDistributedApplicationBuilder builder) { throw null; }
