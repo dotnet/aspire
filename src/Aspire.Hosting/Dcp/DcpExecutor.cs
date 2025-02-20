@@ -966,6 +966,9 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         }
         var spec = exe.Spec;
 
+        // Don't create an args collection unless needed. A null args collection means a project run by the will use args
+        // provided by the launch profile.
+        // https://github.com/dotnet/aspire/blob/main/docs/specs/IDE-execution.md#launch-profile-processing-project-launch-configuration
         spec.Args = null;
 
         // An executable can be restarted so args must be reset to an empty state.
