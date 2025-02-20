@@ -93,10 +93,10 @@ jobs:
             --results-directory testresults \
             --no-restore \
             --no-build \
-            ${{ matrix.extraArgs }} \
+            ${{ inputs.extraArgs }} \
             -- \
             RunConfiguration.CollectSourceInformation=true \
-            RunConfiguration.TestSessionTimeout=${{ matrix.testSessionTimeoutMs || 600000 }}
+            RunConfiguration.TestSessionTimeout=${{ inputs.testSessionTimeoutMs || 600000 }}
 
       - name: Dump docker info
         if: always()
