@@ -2,15 +2,19 @@ name: Run Integration Tests
 
 on:
   pull_request:
-    branches:
+    branches: 
       - main
       - 'release/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
   test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    name: ${{ matrix.name }}
     strategy:
       fail-fast: false
       matrix:
@@ -142,7 +146,7 @@ jobs:
           # Playground project
           - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
             name: Playground
-
+          
           # Schema generator project
           - project: tests/ConfigurationSchemaGenerator.Tests/ConfigurationSchemaGenerator.Tests.csproj
             name: ConfigurationSchemaGenerator
@@ -154,9 +158,73 @@ jobs:
             name: Extensions.ServiceDiscovery.Dns
           - project: tests/Microsoft.Extensions.ServiceDiscovery.Yarp.Tests/Microsoft.Extensions.ServiceDiscovery.Yarp.Tests.csproj
             name: Extensions.ServiceDiscovery.Yarp
-    uses: ./.github/workflows/run-tests.yml
-    with:
-      testProject: ${{ matrix.project }}
-      testName: ${{ matrix.name }}
-      testSessionTimeoutMs: ${{ matrix.testSessionTimeoutMs }}
-      extraArgs: ${{ matrix.extraArgs }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.x
+            9.x
+
+      - name: Trust HTTPS development certificate
+        run: dotnet dev-certs https --trust
+
+      - name: Verify Docker is running
+        run: docker info
+
+      - name: Install Azure Functions Core Tools
+        if: matrix.name == 'Playground' || matrix.name == 'Azure'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y azure-functions-core-tools-4
+
+      - name: Build test project
+        env:
+          CI: false
+        run: |
+          ./build.sh -restore -ci -build -projects ${{ github.workspace }}/${{ matrix.project }} /bl
+
+      - name: Run tests
+        id: run-tests
+        env:
+          CI: false
+          DCP_DIAGNOSTICS_LOG_LEVEL: debug
+          DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
+        run: |
+          ./dotnet.sh test ${{ github.workspace }}/${{ matrix.project }} \
+            /p:ContinuousIntegrationBuild=true \
+            -s eng/testing/.runsettings \
+            --logger "console;verbosity=normal" \
+            --logger "trx" \
+            --logger "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true" \
+            --blame \
+            --blame-hang-timeout 7m \
+            --blame-crash \
+            --results-directory testresults \
+            --no-restore \
+            --no-build -- RunConfiguration.CollectSourceInformation=true
+
+      - name: Dump docker info
+        if: always()
+        run: |
+          docker container ls --all
+          docker container ls --all --format json
+          docker volume ls
+          docker network ls
+
+      - name: Upload bin log artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: binlog-${{ matrix.name }}
+          path: "**/*.binlog"
+
+      - name: Upload test results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testresults-${{ matrix.name }}
+          path: testresults/**

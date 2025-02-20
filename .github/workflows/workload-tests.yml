@@ -76,11 +76,107 @@ jobs:
     strategy:
       matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.template_matrix) }}
     uses: ./.github/workflows/run-tests.yml
-    with:
-      testProject: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
-      #testName: ${{ replace(matrix.class_names, 'Aspire.Workload.Tests.', '') }}
-      testName: ${{ matrix.class_names }}
-      testSessionTimeoutMs: 1200000
-      testHangTimeout: 12m
-      extraArgs: "-p:VSTestTestCaseFilter=FullyQualifiedName~${{ matrix.class_names }}"
-      isWorkloadTests: true
+    #with:
+      #testProject: tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj
+      ##testName: ${{ replace(matrix.class_names, 'Aspire.Workload.Tests.', '') }}
+      #testName: ${{ matrix.class_names }}
+      #testSessionTimeoutMs: 1200000
+      #testHangTimeout: 12m
+      #extraArgs: "-p:VSTestTestCaseFilter=FullyQualifiedName~${{ matrix.class_names }}"
+      #isWorkloadTests: true
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    name: ${{ matrix.class_names }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.x
+            9.x
+
+      - name: Trust HTTPS development certificate
+        run: dotnet dev-certs https --trust
+
+      - name: Verify Docker is running
+        run: docker info
+
+      - name: Install Azure Functions Core Tools
+        if: matrix.class_names == 'Playground' || matrix.class_names == 'Azure'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y azure-functions-core-tools-4
+
+      - name: Download built nugets
+        uses: actions/download-artifact@v4
+        with:
+          name: built-nugets
+          path: artifacts/packages
+
+      - name: Download artifacts for template tests
+        uses: actions/download-artifact@v4
+        with:
+          name: workload-artifacts
+          path: artifacts/bin
+
+      - name: Fix up permissions
+        run: |
+          chmod +x artifacts/bin/dotnet-*/dotnet && \
+          chmod -R +x artifacts/bin/playwright-deps
+
+      - name: Build test project
+        env:
+          CI: false
+        run: |
+          ./build.sh -restore -ci -build -projects ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj /bl
+
+      - name: Run tests
+        id: run-tests
+        env:
+          CI: false
+          TEMPLATE_TESTS_ON_GITHUB_ACTIONS: ${{ matrix.class_names == 'Workload' }}
+          DCP_DIAGNOSTICS_LOG_LEVEL: debug
+          DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
+        run: |
+          ./dotnet.sh test ${{ github.workspace }}/tests/Aspire.Workload.Tests/Aspire.Workload.Tests.csproj \
+            /p:ContinuousIntegrationBuild=true \
+            -s eng/testing/.runsettings \
+            --logger "console;verbosity=normal" \
+            --logger "trx" \
+            --logger "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true" \
+            --blame \
+            --blame-hang-timeout 12m \
+            --blame-crash \
+            --results-directory testresults \
+            --no-restore \
+            --no-build \
+            -p:VSTestTestCaseFilter=FullyQualifiedName~${{ matrix.class_names }} \
+            -- \
+            RunConfiguration.CollectSourceInformation=true \
+            RunConfiguration.TestSessionTimeout=1200000
+
+      - name: Dump docker info
+        if: always()
+        run: |
+          docker container ls --all
+          docker container ls --all --format json
+          docker volume ls
+          docker network ls
+
+      - name: Upload bin log artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: binlog-${{ matrix.class_names }}
+          path: "**/*.binlog"
+
+      - name: Upload test results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testresults-${{ matrix.class_names }}
+          path: testresults/**
