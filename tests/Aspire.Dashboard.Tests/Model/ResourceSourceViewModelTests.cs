@@ -87,15 +87,15 @@ public class ResourceSourceViewModelTests
                 ResourceType: "Project",
                 ExecutablePath: "path/to/executable",
                 ExecutableArguments: ["arg1", "arg2"],
-                AppArgs: ["arg2", "--key", "secret"],
-                AppArgsSensitivity: [false, false, true],
+                AppArgs: ["arg2", "--key", "secret", "secret2", "notsecret"],
+                AppArgsSensitivity: [false, false, true, true, false],
                 ProjectPath: "path/to/project",
                 ContainerImage: null,
                 SourceProperty: null),
             new ResourceSourceViewModel(
                 value: "project",
                 contentAfterValue: [new LaunchArgument("arg2", true), new LaunchArgument("--key", true), new LaunchArgument("secret", false), new LaunchArgument("secret2", false), new LaunchArgument("notsecret", true)],
-                valueToVisualize: "path/to/project arg2 --key secret",
+                valueToVisualize: "path/to/project arg2 --key secret secret2 notsecret",
                 tooltip: $"path/to/project arg2 --key {maskingText} {maskingText} notsecret"));
 
         // Project without executable arguments
