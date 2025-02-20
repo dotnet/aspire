@@ -63,9 +63,11 @@ jobs:
           name: workload-artifacts
           path: artifacts/bin
 
-      - name: Fix up permissions for dotnet
+      - name: Fix up permissions
         if: ${{ inputs.isWorkloadTests }}
-        run: chmod +x artifacts/bin/dotnet-*/dotnet
+        run: |
+          chmod +x artifacts/bin/dotnet-*/dotnet && \
+          chmod -R +x artifacts/bin/playwright-deps
 
       - name: Build test project
         env:
