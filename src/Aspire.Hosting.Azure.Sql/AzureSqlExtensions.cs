@@ -287,6 +287,7 @@ public static class AzureSqlExtensions
 
     /// <remarks>
     /// Workaround for immutable properties on SqlServerAzureADAdministrator.
+    /// See https://github.com/Azure/azure-sdk-for-net/issues/48364.
     /// </remarks>
     private sealed class SqlServerAzureADAdministratorWorkaround(string bicepIdentifier) : SqlServerAzureADAdministrator(bicepIdentifier)
     {
