@@ -57,6 +57,9 @@ public static class ValkeyBuilderExtensions
         string name,
         int? port = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         var valkey = new ValkeyResource(name);
 
         string? connectionString = null;
@@ -105,7 +108,10 @@ public static class ValkeyBuilderExtensions
     public static IResourceBuilder<ValkeyResource> WithDataVolume(this IResourceBuilder<ValkeyResource> builder,
         string? name = null, bool isReadOnly = false)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), ValkeyContainerDataDirectory,
+
             isReadOnly);
         if (!isReadOnly)
         {
@@ -138,6 +144,9 @@ public static class ValkeyBuilderExtensions
     public static IResourceBuilder<ValkeyResource> WithDataBindMount(this IResourceBuilder<ValkeyResource> builder,
         string source, bool isReadOnly = false)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+
         builder.WithBindMount(source, ValkeyContainerDataDirectory, isReadOnly);
         if (!isReadOnly)
         {
@@ -167,11 +176,16 @@ public static class ValkeyBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<ValkeyResource> WithPersistence(this IResourceBuilder<ValkeyResource> builder,
         TimeSpan? interval = null, long keysChangedThreshold = 1)
-        => builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
         {
             context.Args.Add("--save");
-            context.Args.Add((interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
+            context.Args.Add(
+                (interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
             context.Args.Add(keysChangedThreshold.ToString(CultureInfo.InvariantCulture));
             return Task.CompletedTask;
         }), ResourceAnnotationMutationBehavior.Replace);
+    }
 }
