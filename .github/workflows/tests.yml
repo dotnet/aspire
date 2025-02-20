@@ -53,12 +53,19 @@ jobs:
         env:
           CI: false
         run: |
-          echo "templates_output=$(jq -cR '{class_names: [inputs]}' < artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list)"
           echo "templates_output=$(jq -cR '{class_names: [inputs]}' < artifacts/helix/workload-tests/Aspire.Workload.Tests.tests.list)" >> $GITHUB_OUTPUT
+
+      - name: Archive artifacts for template tests
+        uses: actions/upload-artifacts@v4
+        with:
+          name: workload-artifacts
+          path:
+            artifacts/packages
+            artifacts/bin/dotnet-*
+            artifacts/bin/Aspire.Workload.Tests
 
   template_tests:
     needs: setup_for_template_tests
-    #runs-on: ubuntu-latest
     strategy:
       matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.template_matrix) }}
     uses: ./.github/workflows/run-tests.yml
@@ -67,9 +74,6 @@ jobs:
       testName: Workload
       testSessionTimeoutMs: 1200000
       extraArgs: "-p:VSTestTestCaseFilter=FullyQualifiedName=${{ matrix.class_names }}"
-    #steps:
-      #- run: echo "Test classname ${{ matrix.class_names }}"
-      #- run: echo "outputs.template_matrix: ${{ needs.setup_for_template_tests.outputs.template_matrix }}"
 
   test:
     strategy:
