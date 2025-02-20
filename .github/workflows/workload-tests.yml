@@ -71,7 +71,6 @@ jobs:
           retention-days: 3
 
   template_tests:
-    name: Workload tests
     needs: setup_for_template_tests
     strategy:
       matrix: ${{ fromJson(needs.setup_for_template_tests.outputs.template_matrix) }}
