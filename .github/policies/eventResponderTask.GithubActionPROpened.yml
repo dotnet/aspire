@@ -1,3 +1,7 @@
+# Github will not trigger Github Actions on PRs that were themselves created by a github action.
+# We use github actions to run tests on PRs, and to backport PRs from one branch to another - 
+# This action closes & re-opens PRs created via the Github-Action bot, so that our tests will run on those PRs.
+
 id: eventResponderTask.GithubActionPROpened
 name: Close and re-open PRs opened via Github Action
 description: Closes and re-open PRs opened via Github Action
