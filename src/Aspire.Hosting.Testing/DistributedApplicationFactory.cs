@@ -162,7 +162,6 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         };
         applicationOptions.Args = hostBuilderOptions.Args;
 
-        hostBuilderOptions.EnvironmentName = Environments.Development;
         hostBuilderOptions.ApplicationName = entryPointAssembly.GetName().Name ?? string.Empty;
         applicationOptions.AssemblyName = entryPointAssembly.GetName().Name ?? string.Empty;
         applicationOptions.DisableDashboard = true;
@@ -264,6 +263,18 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
                 foreach (var (key, value) in envVars)
                 {
                     SetDefault(key, value);
+
+                    // See https://github.com/dotnet/runtime/blob/8edaf7460777e791b6279b395a68a77533db2d20/src/libraries/Microsoft.Extensions.Hosting/src/HostApplicationBuilder.cs#L96
+                    if (key.StartsWith("DOTNET_"))
+                    {
+                        SetDefault(key["DOTNET_".Length..], value);
+                    }
+
+                    // See https://github.com/dotnet/aspnetcore/blob/4ce2db7b8d85c07cad2c59242edc19af6a91b0d7/src/DefaultBuilder/src/WebApplicationBuilder.cs#L38
+                    if (key.StartsWith("ASPNETCORE_"))
+                    {
+                        SetDefault(key["ASPNETCORE_".Length..], value);
+                    }
                 }
             }
         }
