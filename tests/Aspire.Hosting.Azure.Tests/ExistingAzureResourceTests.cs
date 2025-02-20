@@ -1096,8 +1096,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
               "params": {
                 "existingResourceName": "{existingResourceName.value}",
                 "principalId": "",
-                "principalName": "",
-                "principalType": ""
+                "principalName": ""
               }
             }
             """;
