@@ -289,6 +289,7 @@ public static class ResourceExtensions
                         (_, string s) => new(s, false),
                         (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key: null, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
                         (DistributedApplicationOperation.Run, DistributedApplicationResourceBuilder<ParameterResource> parameterResourceBuilder) => await GetValue(key: null, parameterResourceBuilder.Resource, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
+                        (DistributedApplicationOperation.Run, DistributedApplicationResourceBuilder<ResourceWithConnectionStringSurrogate> connectionStringSurrogateBuilder) => await GetValue(key: null, connectionStringSurrogateBuilder.Resource, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
                         (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => new(provider.ValueExpression, false),
                         (_, { } o) => new(o.ToString(), false),
                         (_, null) => new(null, false),
