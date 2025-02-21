@@ -226,8 +226,16 @@ public class ResourceNotificationService : IDisposable
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task.</returns>
     /// <remarks>
+    /// <para>
     /// This method returns a task that will complete with the resource is healthy. A resource
-    /// without <see cref="HealthCheckAnnotation"/> annotations will be considered healthy.
+    /// without <see cref="HealthCheckAnnotation"/> annotations will be considered healthy once
+    /// it reaches a <see cref="KnownResourceStates.Running"/> state.
+    /// </para>
+    /// <para>
+    /// If the resource enters a terminal state such as <see cref="KnownResourceStates.FailedToStart"/> then
+    /// this method will continue to wait to enable scenarios where a resource could be restarted and recover. To
+    /// control this behavior use <see cref="WaitForResourceHealthyAsync(string, WaitBehavior, CancellationToken)"/>.
+    /// </para>
     /// </remarks>
     public async Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, CancellationToken cancellationToken = default)
     {
@@ -245,8 +253,22 @@ public class ResourceNotificationService : IDisposable
     /// <param name="waitBehavior">The wait behavior.</param>
     /// <returns>A task.</returns>
     /// <remarks>
+    /// <para>
     /// This method returns a task that will complete with the resource is healthy. A resource
-    /// without <see cref="HealthCheckAnnotation"/> annotations will be considered healthy.
+    /// without <see cref="HealthCheckAnnotation"/> annotations will be considered healthy. The
+    /// <see cref="WaitBehavior"/> controls how the wait operation behaves when the resource
+    /// enters a terminal state such as <see cref="KnownResourceStates.FailedToStart"/>.
+    /// </para>
+    /// <para>
+    /// When <see cref="WaitBehavior.WaitOnResourceUnavailable"/> is specified the wait operation
+    /// then the method will continue to wait until the resource becomes healthy. This is the default
+    /// behavior with the <see cref="WaitForResourceHealthyAsync(string, CancellationToken)"/> overload.
+    /// </para>
+    /// <para>
+    /// When <see cref="WaitBehavior.StopOnResourceUnavailable"/> is specified the wait operation
+    /// will throw a <see cref="DistributedApplicationException"/>  if the resource enters a
+    /// terminal state.
+    /// </para>
     /// </remarks>
     public async Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, WaitBehavior waitBehavior, CancellationToken cancellationToken = default)
     {
