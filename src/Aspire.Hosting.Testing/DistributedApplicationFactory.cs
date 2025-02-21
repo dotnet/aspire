@@ -271,7 +271,7 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
                     }
 
                     // See https://github.com/dotnet/aspnetcore/blob/4ce2db7b8d85c07cad2c59242edc19af6a91b0d7/src/DefaultBuilder/src/WebApplicationBuilder.cs#L38
-                    if (key.StartsWith("ASPNETCORE_"))
+                    if (key.StartsWith("ASPNETCORE_", StringComparison.OrdinalIgnoreCase))
                     {
                         SetDefault(key["ASPNETCORE_".Length..], value);
                     }
