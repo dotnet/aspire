@@ -126,6 +126,12 @@
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/azure-func-cli:$PATH" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(OS)' != 'Windows_NT' and '$(DockerCliToolDir)' != ''">
+    <!-- Update it to the latest cli. This path is set from the eng/pipelines/templates/BuildAndTest.yml -->
+    <HelixPreCommand Include="export PATH=$HELIX_CORRELATION_PAYLOAD/docker-cli:$PATH" />
+    <HelixPreCommand Include="which docker" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(HasDocker)' == 'true'">
     <HelixPreCommand Include="docker info" />
     <HelixPreCommand Include="docker container ls --all" />
@@ -155,8 +161,6 @@
     <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_DIAGNOSTICS_LOG_LEVEL=debug" />
     <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_DIAGNOSTICS_LOG_FOLDER=$(_HelixLogsPath)" />
     <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_PRESERVE_EXECUTABLE_LOGS=1" />
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT' and '$(DockerCliToolDir)' != ''" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\docker-cli%3B%PATH%" />
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT' and '$(DockerCliToolDir)' != ''" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/docker-cli:$PATH" />
 
     <HelixPostCommand Include="$(_WaitForDcpCommand)" />
   </ItemGroup>

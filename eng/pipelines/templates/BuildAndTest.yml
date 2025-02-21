@@ -134,7 +134,7 @@ steps:
             HelixTargetQueues: Ubuntu.2204.Amd64.Open
           ${{ if eq(variables['System.TeamProject'], 'internal') }}:
             HelixTargetQueues: Ubuntu.2204.Amd64
-          ${{ if ne(parameters.dockerCliVersion, '') }}:
+          ${{ if and(ne(parameters.isWindows, 'true'), ne(parameters.dockerCliVersion, '')) }}:
             DockerCliPath: /opt/hostedtoolcache/docker-stable/${{ parameters.dockerCliVersion }}/x64/
 
         IsWindows: ${{ parameters.isWindows }}
