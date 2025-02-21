@@ -57,7 +57,7 @@ public class AddNodeAppTests
                 "start"
               ],
               "env": {
-                "NODE_ENV": "development",
+                "NODE_ENV": "{{builder.Environment.EnvironmentName.ToLowerInvariant()}}",
                 "PORT": "{npmapp.bindings.http.targetPort}"
               },
               "bindings": {
