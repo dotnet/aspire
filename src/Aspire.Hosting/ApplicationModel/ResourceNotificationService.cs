@@ -256,7 +256,7 @@ public class ResourceNotificationService : IDisposable
     /// <remarks>
     /// <para>
     /// This method returns a task that will complete with the resource is healthy. A resource
-    /// without <see cref="HealthCheckAnnotation"/> annotations will be considered healthy. The
+    /// without <see cref="HealthCheckAnnotation"/> annotations will be considered healthy once it reaches a <see cref="KnownResourceStates.Running"/> state. The
     /// <see cref="WaitBehavior"/> controls how the wait operation behaves when the resource
     /// enters an unavailable state such as <see cref="KnownResourceStates.FailedToStart"/>.
     /// </para>
