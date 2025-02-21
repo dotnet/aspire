@@ -4,17 +4,17 @@
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Azure.Search.Documents.Tests;
+namespace Aspire.Microsoft.Data.SqlClient.Tests;
 
-public class SearchDocumentsPublicApiTests
+public class MicrosoftDataSqlClientPublicApiTests
 {
     [Fact]
-    public void AddAzureSearchClientShouldThrowWhenBuilderIsNull()
+    public void AddSqlServerClientShouldThrowWhenBuilderIsNull()
     {
         IHostApplicationBuilder builder = null!;
-        const string connectionName = "search";
+        const string connectionName = "sqlconnection";
 
-        var action = () => builder.AddAzureSearchClient(connectionName);
+        var action = () => builder.AddSqlServerClient(connectionName);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -23,12 +23,12 @@ public class SearchDocumentsPublicApiTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void AddAzureSearchClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
+    public void AddSqlServerClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddAzureSearchClient(connectionName);
+        var action = () => builder.AddSqlServerClient(connectionName);
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -37,12 +37,12 @@ public class SearchDocumentsPublicApiTests
     }
 
     [Fact]
-    public void AddKeyedAzureSearchClientShouldThrowWhenBuilderIsNull()
+    public void AddKeyedSqlServerClientShouldThrowWhenBuilderIsNull()
     {
         IHostApplicationBuilder builder = null!;
-        const string name = "search";
+        const string name = "sqlconnection";
 
-        var action = () => builder.AddKeyedAzureSearchClient(name);
+        var action = () => builder.AddKeyedSqlServerClient(name);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -51,12 +51,12 @@ public class SearchDocumentsPublicApiTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void AddKeyedAzureSearchClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    public void AddKeyedSqlServerClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddKeyedAzureSearchClient(name);
+        var action = () => builder.AddKeyedSqlServerClient(name);
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)

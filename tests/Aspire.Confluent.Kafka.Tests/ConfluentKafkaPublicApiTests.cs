@@ -26,7 +26,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKafkaConsumerShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKafkaConsumer<string, string>(connectionName);
@@ -54,7 +54,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKafkaConsumerWithConfigureSettingsShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKafkaConsumer<string, string>(connectionName, default(Action<KafkaConsumerSettings>?));
@@ -82,7 +82,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKafkaConsumerWithConfigureBuilderShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKafkaConsumer<string, string>(connectionName, default(Action<ConsumerBuilder<string, string>>?));
@@ -110,7 +110,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKafkaConsumerWithConsumerBuilderShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKafkaConsumer<string, string>(connectionName, default(Action<IServiceProvider, ConsumerBuilder<string, string>>?));
@@ -141,7 +141,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKafkaConsumerWithConfigureSettingsAndConfigureBuilderShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKafkaConsumer<string, string>(
@@ -175,7 +175,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKafkaConsumerWithConfigureSettingsAndConsumerBuilderShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKafkaConsumer<string, string>(
@@ -206,7 +206,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKeyedKafkaConsumerShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedKafkaConsumer<string, string>(name);
@@ -234,7 +234,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKeyedKafkaConsumerWithConfigureSettingsShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedKafkaConsumer<string, string>(name, default(Action<KafkaConsumerSettings>?));
@@ -262,7 +262,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKeyedKafkaConsumerWithConfigureBuilderShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedKafkaConsumer<string, string>(name, default(Action<ConsumerBuilder<string, string>>?));
@@ -290,7 +290,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKeyedKafkaConsumerWithConsumerBuilderShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedKafkaConsumer<string, string>(name, default(Action<IServiceProvider, ConsumerBuilder<string, string>>?));
@@ -321,7 +321,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKeyedKafkaConsumerWithConfigureSettingsAndConfigureBuilderShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedKafkaConsumer<string, string>(
@@ -355,7 +355,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKeyedKafkaConsumerWithConfigureSettingsAndConsumerBuilderShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedKafkaConsumer<string, string>(
@@ -386,7 +386,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKafkaProducerShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKafkaProducer<string, string>(connectionName);
@@ -414,7 +414,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKafkaProducerWithConfigureSettingsShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKafkaProducer<string, string>(connectionName, default(Action<KafkaProducerSettings>?));
@@ -442,7 +442,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKafkaProducerWithConfigureBuilderShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKafkaProducer<string, string>(connectionName, default(Action<ProducerBuilder<string, string>>?));
@@ -470,7 +470,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKafkaProducerWithProducerBuilderShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKafkaProducer<string, string>(connectionName, default(Action<IServiceProvider, ProducerBuilder<string, string>>?));
@@ -501,7 +501,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKafkaProducerWithConfigureSettingsAndConfigureBuilderShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKafkaProducer<string, string>(
@@ -535,7 +535,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKafkaProducerWithConfigureSettingsAndProducerBuilderShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKafkaProducer<string, string>(
@@ -566,7 +566,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKeyedKafkaProducerShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedKafkaProducer<string, string>(name);
@@ -594,7 +594,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKeyedKafkaProducerWithConfigureSettingsShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedKafkaProducer<string, string>(name, default(Action<KafkaProducerSettings>?));
@@ -622,7 +622,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKeyedKafkaProducerWithConfigureBuilderShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedKafkaProducer<string, string>(name, default(Action<ProducerBuilder<string, string>>?));
@@ -650,7 +650,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKeyedKafkaProducerWithProducerBuilderShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedKafkaProducer<string, string>(
@@ -683,7 +683,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKeyedKafkaProducerWithConfigureSettingsAndConfigureBuilderShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedKafkaProducer<string, string>(
@@ -717,7 +717,7 @@ public class ConfluentKafkaPublicApiTests
     [InlineData(false)]
     public void AddKeyedKafkaProducerWithConfigureSettingsAndProducerBuilderShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedKafkaProducer<string, string>(

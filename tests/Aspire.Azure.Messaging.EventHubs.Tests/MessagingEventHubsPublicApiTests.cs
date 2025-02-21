@@ -25,7 +25,7 @@ public class MessagingEventHubsPublicApiTests
     [InlineData(false)]
     public void AddAzureEventProcessorClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddAzureEventProcessorClient(connectionName);
@@ -53,7 +53,7 @@ public class MessagingEventHubsPublicApiTests
     [InlineData(false)]
     public void AddKeyedAzureEventProcessorClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedAzureEventProcessorClient(name);
@@ -81,7 +81,7 @@ public class MessagingEventHubsPublicApiTests
     [InlineData(false)]
     public void AddAzurePartitionReceiverClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddAzurePartitionReceiverClient(connectionName);
@@ -109,7 +109,7 @@ public class MessagingEventHubsPublicApiTests
     [InlineData(false)]
     public void AddKeyedAzurePartitionReceiverClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedAzurePartitionReceiverClient(name);
@@ -137,7 +137,7 @@ public class MessagingEventHubsPublicApiTests
     [InlineData(false)]
     public void AddAzureEventHubProducerClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddAzureEventHubProducerClient(connectionName);
@@ -165,7 +165,7 @@ public class MessagingEventHubsPublicApiTests
     [InlineData(false)]
     public void AddKeyedAzureEventHubProducerClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedAzureEventHubProducerClient(name);
@@ -193,7 +193,7 @@ public class MessagingEventHubsPublicApiTests
     [InlineData(false)]
     public void AddAzureEventHubBufferedProducerClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddAzureEventHubBufferedProducerClient(connectionName);
@@ -221,7 +221,7 @@ public class MessagingEventHubsPublicApiTests
     [InlineData(false)]
     public void AddKeyedAzureEventHubBufferedProducerClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedAzureEventHubBufferedProducerClient(name);
@@ -249,7 +249,7 @@ public class MessagingEventHubsPublicApiTests
     [InlineData(false)]
     public void AddAzureEventHubConsumerClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddAzureEventHubConsumerClient(connectionName);
@@ -277,7 +277,7 @@ public class MessagingEventHubsPublicApiTests
     [InlineData(false)]
     public void AddKeyedAzureEventHubConsumerClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedAzureEventHubConsumerClient(name);

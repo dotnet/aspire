@@ -25,7 +25,7 @@ public class MessagingServiceBusPublicApiTests
     [InlineData(false)]
     public void AddAzureServiceBusClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddAzureServiceBusClient(connectionName);
@@ -53,7 +53,7 @@ public class MessagingServiceBusPublicApiTests
     [InlineData(false)]
     public void AddKeyedAzureServiceBusClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedAzureServiceBusClient(name);

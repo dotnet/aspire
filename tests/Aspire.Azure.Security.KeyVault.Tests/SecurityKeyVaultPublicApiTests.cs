@@ -26,7 +26,7 @@ public class SecurityKeyVaultPublicApiTests
     [InlineData(false)]
     public void AddAzureKeyVaultClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddAzureKeyVaultClient(connectionName);
@@ -54,7 +54,7 @@ public class SecurityKeyVaultPublicApiTests
     [InlineData(false)]
     public void AddKeyedAzureKeyVaultClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedAzureKeyVaultClient(name);
@@ -82,7 +82,7 @@ public class SecurityKeyVaultPublicApiTests
     [InlineData(false)]
     public void AddAzureKeyVaultSecretsShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IConfigurationManager configurationManager = new ConfigurationManager();
+        var configurationManager = new ConfigurationManager();
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => configurationManager.AddAzureKeyVaultSecrets(connectionName);

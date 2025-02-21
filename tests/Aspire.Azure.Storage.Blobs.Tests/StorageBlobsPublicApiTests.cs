@@ -25,7 +25,7 @@ public class StorageBlobsPublicApiTests
     [InlineData(false)]
     public void AddAzureBlobClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddAzureBlobClient(connectionName);
@@ -53,7 +53,7 @@ public class StorageBlobsPublicApiTests
     [InlineData(false)]
     public void AddKeyedAzureBlobClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedAzureBlobClient(name);

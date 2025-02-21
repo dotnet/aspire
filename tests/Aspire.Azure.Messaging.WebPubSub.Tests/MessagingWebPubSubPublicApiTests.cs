@@ -25,7 +25,7 @@ public class MessagingWebPubSubPublicApiTests
     [InlineData(false)]
     public void AddAzureWebPubSubServiceClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddAzureWebPubSubServiceClient(connectionName);
@@ -54,7 +54,7 @@ public class MessagingWebPubSubPublicApiTests
     [InlineData(false)]
     public void AddKeyedAzureWebPubSubServiceClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
         const string serviceKey = "wps";
 
@@ -71,7 +71,7 @@ public class MessagingWebPubSubPublicApiTests
     [InlineData(false)]
     public void AddKeyedAzureWebPubSubServiceClientShouldThrowWhenServiceKeyIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         const string connectionName = "wps";
         var serviceKey = isNull ? null! : string.Empty;
 

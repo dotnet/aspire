@@ -25,7 +25,7 @@ public class MicrosoftAzureCosmosPublicApiTests
     [InlineData(false)]
     public void AddAzureCosmosClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddAzureCosmosClient(connectionName);
@@ -53,7 +53,7 @@ public class MicrosoftAzureCosmosPublicApiTests
     [InlineData(false)]
     public void AddKeyedAzureCosmosClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedAzureCosmosClient(name);
