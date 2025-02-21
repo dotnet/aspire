@@ -43,6 +43,8 @@ public static class AspireAzureEFCoreCosmosExtensions
         Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+        ArgumentException.ThrowIfNullOrEmpty(databaseName);
 
         builder.EnsureDbContextNotRegistered<TContext>();
 
@@ -122,7 +124,8 @@ public static class AspireAzureEFCoreCosmosExtensions
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="DbContext"/> is not registered in DI.</exception>
     public static void EnrichCosmosDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
             this IHostApplicationBuilder builder,
-            Action<EntityFrameworkCoreCosmosSettings>? configureSettings = null) where TContext : DbContext
+            Action<EntityFrameworkCoreCosmosSettings>? configureSettings = null)
+        where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
 
