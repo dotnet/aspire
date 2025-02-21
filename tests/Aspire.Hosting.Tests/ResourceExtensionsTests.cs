@@ -263,17 +263,29 @@ public class ResourceExtensionsTests
     public async Task GetArgumentValuesAsync_ReturnsCorrectValuesForSpecialCases()
     {
         var builder = DistributedApplication.CreateBuilder();
-        var surrogate = new ResourceWithConnectionStringSurrogate("ResourceWithConnectionStringSurrogate", _ => "ConnectionString", null);
-        var secretParameter = new ParameterResource("SecretParameter", _ => "SecretParameter", true);
-        var nonSecretParameter = new ParameterResource("NonSecretParameter", _ => "NonSecretParameter");
+        var surrogate = builder.AddResource(new ResourceWithConnectionStringSurrogate("ResourceWithConnectionStringSurrogate", _ => "ConnectionString", null));
+        var secretParameter = builder.AddResource(new ParameterResource("SecretParameter", _ => "SecretParameter", true));
+        var nonSecretParameter = builder.AddResource(new ParameterResource("NonSecretParameter", _ => "NonSecretParameter"));
 
-        var container = builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
-            .WithArgs(builder.AddResource(surrogate))
-            .WithArgs(builder.AddResource(secretParameter))
-            .WithArgs(builder.AddResource(nonSecretParameter));
-        var args = await container.Resource.GetArgumentValuesAsync().DefaultTimeout();
+        var containerArgs = await builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
+            .WithArgs(surrogate)
+            .WithArgs(secretParameter)
+            .WithArgs(nonSecretParameter)
+            .Resource.GetArgumentValuesAsync().DefaultTimeout();
 
-        Assert.Equal<IEnumerable<string>>(["ConnectionString", "SecretParameter", "NonSecretParameter"], args);
+        Assert.Equal<IEnumerable<string>>(["ConnectionString", "SecretParameter", "NonSecretParameter"], containerArgs);
+
+        // Executables can also have arguments passed in AddExecutable
+        var executableArgs = await builder.AddExecutable(
+                "ping",
+                "ping",
+                string.Empty,
+                surrogate,
+                secretParameter,
+                nonSecretParameter)
+            .Resource.GetArgumentValuesAsync().DefaultTimeout();
+
+        Assert.Equal<IEnumerable<string>>(["ConnectionString", "SecretParameter", "NonSecretParameter"], executableArgs);
     }
 
     private sealed class ParentResource(string name) : Resource(name)
