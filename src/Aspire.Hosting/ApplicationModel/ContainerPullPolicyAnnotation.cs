@@ -11,6 +11,10 @@ namespace Aspire.Hosting.ApplicationModel;
 public enum PullPolicy
 {
     /// <summary>
+    /// Default image pull policy behavior. Currently this will be the same as the default behavior for your container runtime.
+    /// </summary>
+    Default = 0,
+    /// <summary>
     /// Always pull the image when creating the container.
     /// </summary>
     Always,
@@ -18,10 +22,6 @@ public enum PullPolicy
     /// Pull the image only if it does not already exist.
     /// </summary>
     Missing,
-    /// <summary>
-    /// Never pull the image.
-    /// </summary>
-    Never
 }
 
 /// <summary>

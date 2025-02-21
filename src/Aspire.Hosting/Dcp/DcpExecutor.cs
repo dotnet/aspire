@@ -1048,9 +1048,9 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
             {
                 ctr.Spec.PullPolicy = pullPolicy switch
                 {
+                    PullPolicy.Default => null,
                     PullPolicy.Always => ContainerPullPolicy.Always,
                     PullPolicy.Missing => ContainerPullPolicy.Missing,
-                    PullPolicy.Never => ContainerPullPolicy.Never,
                     _ => throw new InvalidOperationException($"Unknown pull policy '{Enum.GetName(typeof(PullPolicy), pullPolicy)}' for container '{container.Name}'")
                 };
             }
