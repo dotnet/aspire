@@ -966,31 +966,31 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         }
         var spec = exe.Spec;
 
+        // Don't create an args collection unless needed. A null args collection means a project run by the will use args provided by the launch profile.
+        // https://github.com/dotnet/aspire/blob/main/docs/specs/IDE-execution.md#launch-profile-processing-project-launch-configuration
+        spec.Args = null;
+
         // An executable can be restarted so args must be reset to an empty state.
         // After resetting, first apply any dotnet project related args, e.g. configuration, and then add args from the model resource.
-        spec.Args = [];
-        if (er.DcpResource.TryGetAnnotationAsObjectList<string>(CustomResource.ResourceProjectArgsAnnotation, out var projectArgs))
+        if (er.DcpResource.TryGetAnnotationAsObjectList<string>(CustomResource.ResourceProjectArgsAnnotation, out var projectArgs) && projectArgs.Count > 0)
         {
+            spec.Args ??= [];
             spec.Args.AddRange(projectArgs);
         }
 
-        var launchArgs = new List<(string Value, bool IsSensitive, bool AnnotationOnly)>();
+        // Get args from app host model resource.
+        (var appHostArgs, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
 
-        // If the executable is a project then include any command line args from the launch profile.
-        if (er.ModelResource is ProjectResource project)
+        var launchArgs = BuildLaunchArgs(er, spec, appHostArgs);
+
+        var executableArgs = launchArgs.Where(a => !a.AnnotationOnly).Select(a => a.Value).ToList();
+        if (executableArgs.Count > 0)
         {
-            // When the .NET project is launched from an IDE the launch profile args are automatically added.
-            // We still want to display the args in the dashboard so only add them to the custom arg annotations.
-            var annotationOnly = spec.ExecutionType == ExecutionType.IDE;
-
-            var launchProfileArgs = GetLaunchProfileArgs(project.GetEffectiveLaunchProfile()?.LaunchProfile);
-            launchArgs.AddRange(launchProfileArgs.Select(a => (a, isSensitive: false, annotationOnly)));
+            spec.Args ??= [];
+            spec.Args.AddRange(executableArgs);
         }
 
-        (var args, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
-        launchArgs.AddRange(args.Select(a => (a.Value, a.IsSensitive, annotationOnly: false)));
-
-        spec.Args.AddRange(launchArgs.Where(a => !a.AnnotationOnly).Select(a => a.Value));
+        // Arg annotations are what is displayed in the dashboard.
         er.DcpResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, launchArgs.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
 
         (spec.Env, var failedToApplyConfiguration) = await BuildEnvVarsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
@@ -1001,6 +1001,37 @@ internal sealed class DcpExecutor : IDcpExecutor, IAsyncDisposable
         }
 
         await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static List<(string Value, bool IsSensitive, bool AnnotationOnly)> BuildLaunchArgs(AppResource er, ExecutableSpec spec, List<(string Value, bool IsSensitive)> appHostArgs)
+    {
+        // Launch args is the final list of args that are displayed in the UI and possibly added to the executable spec.
+        // They're built from app host resource model args and any args in the effective launch profile.
+        // Follows behavior in the IDE execution spec when in IDE execution mode:
+        // https://github.com/dotnet/aspire/blob/main/docs/specs/IDE-execution.md#launch-profile-processing-project-launch-configuration
+        var launchArgs = new List<(string Value, bool IsSensitive, bool AnnotationOnly)>();
+
+        // If the executable is a project then include any command line args from the launch profile.
+        if (er.ModelResource is ProjectResource project)
+        {
+            // Args in the launch profile is used when:
+            // 1. The project is run as an executable. Launch profile args are combined with app host supplied args.
+            // 2. The project is run by the IDE and no app host args are specified.
+            if (spec.ExecutionType == ExecutionType.Process || (spec.ExecutionType == ExecutionType.IDE && appHostArgs.Count == 0))
+            {
+                // When the .NET project is launched from an IDE the launch profile args are automatically added.
+                // We still want to display the args in the dashboard so only add them to the custom arg annotations.
+                var annotationOnly = spec.ExecutionType == ExecutionType.IDE;
+
+                var launchProfileArgs = GetLaunchProfileArgs(project.GetEffectiveLaunchProfile()?.LaunchProfile);
+                launchArgs.AddRange(launchProfileArgs.Select(a => (a, isSensitive: false, annotationOnly)));
+            }
+        }
+
+        // In the situation where args are combined (process execution) the app host args are added after the launch profile args.
+        launchArgs.AddRange(appHostArgs.Select(a => (a.Value, a.IsSensitive, annotationOnly: false)));
+
+        return launchArgs;
     }
 
     private static List<string> GetLaunchProfileArgs(LaunchProfile? launchProfile)
