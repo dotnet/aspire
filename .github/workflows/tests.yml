@@ -228,3 +228,17 @@ jobs:
         with:
           name: testresults-${{ matrix.name }}
           path: testresults/**
+
+  results: # This job does is used for the branch protection. It ensures all the above tests passed
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    name: Final Results
+    needs: [test]
+    steps:
+      - run: |
+          result="${{ needs.test.result }}"
+          if [[ $result == "success" ]]; then
+            exit 0
+          else
+            exit 1
+          fi
