@@ -232,7 +232,7 @@ public class ResourceNotificationService : IDisposable
     /// it reaches a <see cref="KnownResourceStates.Running"/> state.
     /// </para>
     /// <para>
-    /// If the resource enters a terminal state such as <see cref="KnownResourceStates.FailedToStart"/> then
+    /// If the resource enters an unavailable state such as <see cref="KnownResourceStates.FailedToStart"/> then
     /// this method will continue to wait to enable scenarios where a resource could be restarted and recover. To
     /// control this behavior use <see cref="WaitForResourceHealthyAsync(string, WaitBehavior, CancellationToken)"/>.
     /// </para>
