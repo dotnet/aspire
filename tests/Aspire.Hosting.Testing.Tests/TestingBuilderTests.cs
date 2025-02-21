@@ -107,6 +107,20 @@ public class TestingBuilderTests(ITestOutputHelper output)
         }
     }
 
+    [Fact]
+    public async Task CanSetEnvironment()
+    {
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>(["--environment=Testing"]);
+        Assert.Equal("Testing", builder.Environment.EnvironmentName);
+    }
+
+    [Fact]
+    public async Task EnvironmentDefaultsToDevelopment()
+    {
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>();
+        Assert.Equal(Environments.Development, builder.Environment.EnvironmentName);
+    }
+
     [Theory]
     [RequiresDocker]
     [InlineData(false)]
