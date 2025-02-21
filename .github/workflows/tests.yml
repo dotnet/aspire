@@ -229,7 +229,7 @@ jobs:
           name: testresults-${{ matrix.name }}
           path: testresults/**
 
-  results: # This job does is used for the branch protection. It ensures all the above tests passed
+  results: # This job is used for branch protection. It ensures all the above tests passed
     if: ${{ always() }}
     runs-on: ubuntu-latest
     name: Final Results
