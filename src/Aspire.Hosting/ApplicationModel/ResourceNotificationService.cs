@@ -266,8 +266,8 @@ public class ResourceNotificationService : IDisposable
     /// </para>
     /// <para>
     /// When <see cref="WaitBehavior.StopOnResourceUnavailable"/> is specified the wait operation
-    /// will throw a <see cref="DistributedApplicationException"/>  if the resource enters a
-    /// terminal state.
+    /// will throw a <see cref="DistributedApplicationException"/> if the resource enters an
+    /// unavailable state.
     /// </para>
     /// </remarks>
     public async Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, WaitBehavior waitBehavior, CancellationToken cancellationToken = default)
