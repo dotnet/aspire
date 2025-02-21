@@ -27,7 +27,7 @@ public class AddNodeAppTests
                 "..\\foo\\app.js"
               ],
               "env": {
-                "NODE_ENV": "development",
+                "NODE_ENV": "{{builder.Environment.EnvironmentName.ToLowerInvariant()}}",
                 "PORT": "{nodeapp.bindings.http.targetPort}"
               },
               "bindings": {
