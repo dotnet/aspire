@@ -265,7 +265,7 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
                     SetDefault(key, value);
 
                     // See https://github.com/dotnet/runtime/blob/8edaf7460777e791b6279b395a68a77533db2d20/src/libraries/Microsoft.Extensions.Hosting/src/HostApplicationBuilder.cs#L96
-                    if (key.StartsWith("DOTNET_"))
+                    if (key.StartsWith("DOTNET_", StringComparison.OrdinalIgnoreCase))
                     {
                         SetDefault(key["DOTNET_".Length..], value);
                     }
