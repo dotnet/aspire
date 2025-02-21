@@ -734,8 +734,7 @@ public static class ResourceBuilderExtensions
     /// operation will continue to wait until the resource becomes healthy. This is the default
     /// behavior with the <see cref="WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/> overload.</para>
     /// <para>When <see cref="WaitBehavior.StopOnResourceUnavailable"/> is specified, the wait operation
-    /// will throw a <see cref="DistributedApplicationException"/> if the resource enters an unhealthy
-    /// terminal state.</para>
+    /// will throw a <see cref="DistributedApplicationException"/> if the resource enters an unavailable state.</para>
     /// </remarks>
     /// <example>
     /// Start message queue before starting the worker service.
