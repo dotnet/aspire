@@ -25,7 +25,7 @@ public class StorageQueuesPublicApiTests
     [InlineData(false)]
     public void AddAzureQueueClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = new HostApplicationBuilder();
+        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddAzureQueueClient(connectionName);
@@ -53,7 +53,7 @@ public class StorageQueuesPublicApiTests
     [InlineData(false)]
     public void AddKeyedAzureQueueClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = new HostApplicationBuilder();
+        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedAzureQueueClient(name);

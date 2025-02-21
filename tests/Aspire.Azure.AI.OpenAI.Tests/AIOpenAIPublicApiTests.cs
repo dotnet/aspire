@@ -27,7 +27,7 @@ public class AIOpenAIPublicApiTests
     [InlineData(false)]
     public void CtorAspireAzureOpenAIClientBuilderShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder hostBuilder = new HostApplicationBuilder();
+        IHostApplicationBuilder hostBuilder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
         const string? serviceKey = null;
         const bool disableTracing = false;
@@ -57,7 +57,7 @@ public class AIOpenAIPublicApiTests
     [InlineData(false)]
     public void AddAzureOpenAIClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = new HostApplicationBuilder();
+        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddAzureOpenAIClient(connectionName);
@@ -85,7 +85,7 @@ public class AIOpenAIPublicApiTests
     [InlineData(false)]
     public void AddKeyedAzureOpenAIClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = new HostApplicationBuilder();
+        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedAzureOpenAIClient(name);
@@ -113,7 +113,7 @@ public class AIOpenAIPublicApiTests
     [InlineData(false)]
     public void AddOpenAIClientFromConfigurationShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = new HostApplicationBuilder();
+        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddOpenAIClientFromConfiguration(connectionName);
@@ -141,7 +141,7 @@ public class AIOpenAIPublicApiTests
     [InlineData(false)]
     public void AddKeyedOpenAIClientFromConfigurationShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = new HostApplicationBuilder();
+        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedOpenAIClientFromConfiguration(name);

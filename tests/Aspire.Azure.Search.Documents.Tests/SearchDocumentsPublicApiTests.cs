@@ -25,7 +25,7 @@ public class SearchDocumentsPublicApiTests
     [InlineData(false)]
     public void AddAzureSearchClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = new HostApplicationBuilder();
+        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddAzureSearchClient(connectionName);
@@ -53,7 +53,7 @@ public class SearchDocumentsPublicApiTests
     [InlineData(false)]
     public void AddKeyedAzureSearchClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IHostApplicationBuilder builder = new HostApplicationBuilder();
+        IHostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedAzureSearchClient(name);

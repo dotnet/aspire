@@ -25,7 +25,7 @@ public class DataTablesPublicApiTests
     [InlineData(false)]
     public void AddAzureTableClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
-        var builder = new HostApplicationBuilder();
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
         var action = () => builder.AddAzureTableClient(connectionName);
@@ -53,7 +53,7 @@ public class DataTablesPublicApiTests
     [InlineData(false)]
     public void AddKeyedAzureTableClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        var builder = new HostApplicationBuilder();
+        var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedAzureTableClient(name);
