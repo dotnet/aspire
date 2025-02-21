@@ -234,7 +234,8 @@ public class ResourceNotificationService : IDisposable
     /// <para>
     /// If the resource enters an unavailable state such as <see cref="KnownResourceStates.FailedToStart"/> then
     /// this method will continue to wait to enable scenarios where a resource could be restarted and recover. To
-    /// control this behavior use <see cref="WaitForResourceHealthyAsync(string, WaitBehavior, CancellationToken)"/>.
+    /// control this behavior use <see cref="WaitForResourceHealthyAsync(string, WaitBehavior, CancellationToken)"/>
+    /// or configure the default behavior with <see cref="ResourceNotificationServiceOptions.DefaultWaitBehavior"/>.
     /// </para>
     /// </remarks>
     public async Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, CancellationToken cancellationToken = default)
