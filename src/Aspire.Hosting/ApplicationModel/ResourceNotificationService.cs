@@ -256,14 +256,14 @@ public class ResourceNotificationService : IDisposable
     /// <remarks>
     /// <para>
     /// This method returns a task that will complete with the resource is healthy. A resource
-    /// without <see cref="HealthCheckAnnotation"/> annotations will be considered healthy once it reaches a <see cref="KnownResourceStates.Running"/> state. The
+    /// without <see cref="HealthCheckAnnotation"/> annotations will be considered healthy once
+    /// it reaches a <see cref="KnownResourceStates.Running"/> state. The
     /// <see cref="WaitBehavior"/> controls how the wait operation behaves when the resource
     /// enters an unavailable state such as <see cref="KnownResourceStates.FailedToStart"/>.
     /// </para>
     /// <para>
     /// When <see cref="WaitBehavior.WaitOnResourceUnavailable"/> is specified the wait operation
-    /// will continue to wait until the resource reaches a <see cref="KnownResourceStates.Running"/> state. This is the default
-    /// behavior with the <see cref="WaitForResourceHealthyAsync(string, CancellationToken)"/> overload.
+    /// will continue to wait until the resource reaches a <see cref="KnownResourceStates.Running"/> state.
     /// </para>
     /// <para>
     /// When <see cref="WaitBehavior.StopOnResourceUnavailable"/> is specified the wait operation
