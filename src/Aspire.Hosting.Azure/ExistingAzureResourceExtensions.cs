@@ -74,7 +74,7 @@ public static class ExistingAzureResourceExtensions
     /// <param name="nameParameter">The name of the existing resource.</param>
     /// <param name="resourceGroupParameter">The name of the existing resource group, or <see langword="null"/> to use the current resource group.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
-    public static IResourceBuilder<T> PublishAsExisting<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource>? resourceGroupParameter = null)
+    public static IResourceBuilder<T> PublishAsExisting<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource>? resourceGroupParameter)
         where T : IAzureResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -95,7 +95,7 @@ public static class ExistingAzureResourceExtensions
     /// <param name="name">The name of the existing resource.</param>
     /// <param name="resourceGroup">The name of the existing resource group, or <see langword="null"/> to use the current resource group.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
-    public static IResourceBuilder<T> PublishAsExisting<T>(this IResourceBuilder<T> builder, string name, string? resourceGroup = null)
+    public static IResourceBuilder<T> PublishAsExisting<T>(this IResourceBuilder<T> builder, string name, string? resourceGroup)
         where T : IAzureResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -116,7 +116,7 @@ public static class ExistingAzureResourceExtensions
     /// <param name="nameParameter">The name of the existing resource.</param>
     /// <param name="resourceGroupParameter">The name of the existing resource group, or <see langword="null"/> to use the current resource group.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
-    public static IResourceBuilder<T> AsExisting<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource>? resourceGroupParameter = null)
+    public static IResourceBuilder<T> AsExisting<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource>? resourceGroupParameter)
         where T : IAzureResource
     {
         ArgumentNullException.ThrowIfNull(builder);

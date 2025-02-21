@@ -150,7 +150,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .PublishAsExisting(existingResourceName);
+            .PublishAsExisting(existingResourceName, resourceGroupParameter: default);
         serviceBus.AddServiceBusQueue("queue");
 
         var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
