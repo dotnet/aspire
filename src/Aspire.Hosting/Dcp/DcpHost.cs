@@ -3,7 +3,6 @@
 
 using System.Buffers;
 using System.Collections;
-using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Net.Sockets;
 using System.Text;
@@ -281,8 +280,10 @@ internal sealed class DcpHost
             line = line[(tab + 1)..];
 
             // Trim trailing carriage return.
-            Debug.Assert(line[^1] == '\r', "Expected line to end with a carriage return.");
-            line = line[0..^1];
+            if (line[^1] == '\r')
+            {
+                line = line[0..^1];
+            }
 
             var message = line;
 
