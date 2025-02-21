@@ -262,7 +262,7 @@ public class ResourceNotificationService : IDisposable
     /// </para>
     /// <para>
     /// When <see cref="WaitBehavior.WaitOnResourceUnavailable"/> is specified the wait operation
-    /// then the method will continue to wait until the resource reaches a <see cref="KnownResourceStates.Running"/> state. This is the default
+    /// will continue to wait until the resource reaches a <see cref="KnownResourceStates.Running"/> state. This is the default
     /// behavior with the <see cref="WaitForResourceHealthyAsync(string, CancellationToken)"/> overload.
     /// </para>
     /// <para>
