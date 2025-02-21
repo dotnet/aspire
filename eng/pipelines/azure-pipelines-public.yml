@@ -215,4 +215,4 @@ stages:
           - template: /eng/pipelines/templates/VerifyCoverageReport.yml
             parameters:
               # matches what is used in the conditions for the build/test jobs
-              testVariants: ',_helix_tests'
+              testVariants: '_pipeline_tests,_helix_tests'
