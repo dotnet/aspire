@@ -15,7 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     name: ${{ matrix.name }}
-    outputs:
     strategy:
       fail-fast: false
       matrix:
