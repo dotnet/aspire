@@ -76,11 +76,19 @@ jobs:
             --no-build -- RunConfiguration.CollectSourceInformation=true
 
       - name: (tmp)Save exit code from the tests
+        if: ${{ success() }}
         run: |
-          echo "conclusion: ${{ steps.run-tests.conclusion }}" > result-${{ matrix.name }}.txt
+          echo "success" > result-${{ matrix.name }}.txt
+          cat result-${{ matrix.name }}.txt
+
+      - name: (tmp)Save exit code from the tests
+        if: ${{ !success() }}
+        run: |
+          echo "not-success" > result-${{ matrix.name }}.txt
           cat result-${{ matrix.name }}.txt
 
       - name: Save exit code from the tests
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ matrix.name }}
