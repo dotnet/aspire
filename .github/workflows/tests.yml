@@ -105,7 +105,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ matrix.name }}
+          name: test-job-result-${{ matrix.name }}
           path: result-*.txt
 
       - name: Dump docker info
@@ -138,10 +138,10 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: testresults-*
+          name: test-job-result-*
           merge-multiple: true
-          path: testresults
+          path: test-job-result
 
       - run: |
-          ls -al testresults/
-          find testresults -name '*.txt' -exec cat {}\;
+          ls -al test-job-result/
+          find test-job-result -name '*.txt' -exec cat {}\;
