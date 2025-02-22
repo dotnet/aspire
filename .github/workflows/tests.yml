@@ -27,53 +27,67 @@ jobs:
           - project: tests/Aspire.Hosting.Containers.Tests/Aspire.osting.Containers.Tests.csproj
             name: Hosting.Containers
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      #- name: Checkout code
+        #uses: actions/checkout@v4
 
-      - name: Set up .NET Core
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: |
-            8.x
-            9.x
+      #- name: Set up .NET Core
+        #uses: actions/setup-dotnet@v4
+        #with:
+          #dotnet-version: |
+            #8.x
+            #9.x
 
-      - name: Trust HTTPS development certificate
-        run: dotnet dev-certs https --trust
+      #- name: Trust HTTPS development certificate
+        #run: dotnet dev-certs https --trust
 
-      - name: Verify Docker is running
-        run: docker info
+      #- name: Verify Docker is running
+        #run: docker info
 
-      - name: Install Azure Functions Core Tools
-        if: matrix.name == 'Playground' || matrix.name == 'Azure'
+      #- name: Install Azure Functions Core Tools
+        #if: matrix.name == 'Playground' || matrix.name == 'Azure'
+        #run: |
+          #sudo apt-get update
+          #sudo apt-get install -y azure-functions-core-tools-4
+
+      #- name: Build test project
+        #env:
+          #CI: false
+        #run: |
+          #./build.sh -restore -ci -build -projects ${{ github.workspace }}/${{ matrix.project }} /bl
+
+      #- name: Run tests
+        #id: run-tests
+        #env:
+          #CI: false
+          #DCP_DIAGNOSTICS_LOG_LEVEL: debug
+          #DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
+        #run: |
+          #./dotnet.sh test ${{ github.workspace }}/${{ matrix.project }} \
+            #/p:ContinuousIntegrationBuild=true \
+            #-s eng/testing/.runsettings \
+            #--logger "console;verbosity=normal" \
+            #--logger "trx" \
+            #--logger "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true" \
+            #--blame \
+            #--blame-hang-timeout 7m \
+            #--blame-crash \
+            #--results-directory testresults \
+            #--no-restore \
+            #--no-build -- RunConfiguration.CollectSourceInformation=true
+
+      - name: first
+        if: ${{ matrix.name == 'Hosting.Containers' }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y azure-functions-core-tools-4
+          echo fail
+          exit 1
 
-      - name: Build test project
-        env:
-          CI: false
+      - name: first
+        if: ${{ matrix.name != 'Hosting.Containers' }}
         run: |
-          ./build.sh -restore -ci -build -projects ${{ github.workspace }}/${{ matrix.project }} /bl
+          echo success
 
-      - name: Run tests
-        id: run-tests
-        env:
-          CI: false
-          DCP_DIAGNOSTICS_LOG_LEVEL: debug
-          DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
-        run: |
-          ./dotnet.sh test ${{ github.workspace }}/${{ matrix.project }} \
-            /p:ContinuousIntegrationBuild=true \
-            -s eng/testing/.runsettings \
-            --logger "console;verbosity=normal" \
-            --logger "trx" \
-            --logger "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true" \
-            --blame \
-            --blame-hang-timeout 7m \
-            --blame-crash \
-            --results-directory testresults \
-            --no-restore \
-            --no-build -- RunConfiguration.CollectSourceInformation=true
+      - name: second
+        run: echo hello
 
       - name: (tmp)Save exit code from the tests
         if: ${{ success() }}
@@ -122,7 +136,7 @@ jobs:
     name: Final Results
     needs: [test]
     steps:
-      - uses: actions/download-artifacts@v4
+      - uses: actions/download-artifact@v4
         with:
           name: testresults-*
           merge-multiple: true
