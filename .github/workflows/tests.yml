@@ -2,7 +2,7 @@ name: Run Integration Tests
 
 on:
   pull_request:
-    branches: 
+    branches:
       - main
       - 'release/**'
 
@@ -146,7 +146,7 @@ jobs:
           # Playground project
           - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
             name: Playground
-          
+
           # Schema generator project
           - project: tests/ConfigurationSchemaGenerator.Tests/ConfigurationSchemaGenerator.Tests.csproj
             name: ConfigurationSchemaGenerator
@@ -207,6 +207,23 @@ jobs:
             --no-restore \
             --no-build -- RunConfiguration.CollectSourceInformation=true
 
+      # Save the result of the previous steps - success or failure
+      # in the form of a file result-success/result-failure -{name}.rst
+      - name: Store result - success
+        if: ${{ success() }}
+        run: touch result-success-${{ matrix.name }}.rst
+      - name: Store result - failure
+        if: ${{ !success() }}
+        run: touch result-failed-${{ matrix.name }}.rst
+
+      # Upload that result file to artifact named test-job-result-{name}
+      - name: Upload test result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-job-result-${{ matrix.name }}
+          path: result-*.rst
+
       - name: Dump docker info
         if: always()
         run: |
@@ -228,3 +245,22 @@ jobs:
         with:
           name: testresults-${{ matrix.name }}
           path: testresults/**
+
+  results: # This job is used for branch protection. It ensures all the above tests passed
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    name: Final Results
+    needs: [test]
+    steps:
+      # get all the test-job-result* artifacts into a single directory
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: test-job-result-*
+          merge-multiple: true
+          path: test-job-result
+
+      # return success if zero result-failed-* files are found
+      - name: Compute result
+        run: |
+          ls -al test-job-result/
+          [ 0 -eq $(find test-job-result -name 'result-failed-*' | wc -l) ]
