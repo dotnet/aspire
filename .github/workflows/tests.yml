@@ -140,4 +140,4 @@ jobs:
 
       - run: |
           ls -al test-job-result/
-          ls test-job-result/result-failed-*; [ $? -ne 0 ]
+          [ 0 -eq $(find test-job-result -name 'result-failed-*' | wc -l) ]
