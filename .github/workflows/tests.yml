@@ -144,7 +144,7 @@ jobs:
             name: Dashboard
 
           # Playground project
-          - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.cspr
+          - project: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
             name: Playground
 
           # Schema generator project
