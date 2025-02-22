@@ -76,7 +76,7 @@ jobs:
             #--no-build -- RunConfiguration.CollectSourceInformation=true
 
       - name: first
-        if: ${{ matrix.name == '-asdHosting.Containers' }}
+        if: ${{ matrix.name == 'Hosting.Containers' }}
         run: |
           echo fail
           exit 1
@@ -138,6 +138,7 @@ jobs:
           merge-multiple: true
           path: test-job-result
 
-      - run: |
+      - name: Compute result
+        run: |
           ls -al test-job-result/
           [ 0 -eq $(find test-job-result -name 'result-failed-*' | wc -l) ]
