@@ -9,27 +9,67 @@ namespace Aspire.Confluent.Kafka.Tests;
 
 public class ConfluentKafkaPublicApiTests
 {
-    [Fact]
-    public void AddKafkaConsumerShouldThrowWhenBuilderIsNull()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    public void AddKafkaConsumerShouldThrowWhenBuilderIsNull(int overrideIndex)
     {
         IHostApplicationBuilder builder = null!;
         const string connectionName = "Kafka:Consumer";
+        Action<KafkaConsumerSettings>? configureSettings = null;
+        Action<ConsumerBuilder<string, string>>? configureBuilder = null;
+        Action<IServiceProvider, ConsumerBuilder<string, string>>? configureBuilderWithServiceProvider = null;
 
-        var action = () => builder.AddKafkaConsumer<string, string>(connectionName);
+        Action action = overrideIndex switch
+        {
+            0 => () => builder.AddKafkaConsumer<string, string>(connectionName),
+            1 => () => builder.AddKafkaConsumer<string, string>(connectionName, configureSettings),
+            2 => () => builder.AddKafkaConsumer(connectionName, configureBuilder),
+            3 => () => builder.AddKafkaConsumer(connectionName, configureBuilderWithServiceProvider),
+            4 => () => builder.AddKafkaConsumer(connectionName, configureSettings, configureBuilder),
+            5 => () => builder.AddKafkaConsumer(connectionName, configureSettings, configureBuilderWithServiceProvider),
+            _ => throw new InvalidOperationException()
+        };
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKafkaConsumerShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    [InlineData(2, false)]
+    [InlineData(2, true)]
+    [InlineData(3, false)]
+    [InlineData(3, true)]
+    [InlineData(4, false)]
+    [InlineData(4, true)]
+    [InlineData(5, false)]
+    [InlineData(5, true)]
+    public void AddKafkaConsumerShouldThrowWhenConnectionNameIsNullOrEmpty(int overrideIndex, bool isNull)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
+        Action<KafkaConsumerSettings>? configureSettings = null;
+        Action<ConsumerBuilder<string, string>>? configureBuilder = null;
+        Action<IServiceProvider, ConsumerBuilder<string, string>>? configureBuilderWithServiceProvider = null;
 
-        var action = () => builder.AddKafkaConsumer<string, string>(connectionName);
+        Action action = overrideIndex switch
+        {
+            0 => () => builder.AddKafkaConsumer<string, string>(connectionName),
+            1 => () => builder.AddKafkaConsumer<string, string>(connectionName, configureSettings),
+            2 => () => builder.AddKafkaConsumer(connectionName, configureBuilder),
+            3 => () => builder.AddKafkaConsumer(connectionName, configureBuilderWithServiceProvider),
+            4 => () => builder.AddKafkaConsumer(connectionName, configureSettings, configureBuilder),
+            5 => () => builder.AddKafkaConsumer(connectionName, configureSettings, configureBuilderWithServiceProvider),
+            _ => throw new InvalidOperationException()
+        };
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -37,27 +77,135 @@ public class ConfluentKafkaPublicApiTests
         Assert.Equal(nameof(connectionName), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKafkaConsumerWithConfigureSettingsShouldThrowWhenBuilderIsNull()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    public void AddKeyedKafkaConsumerShouldThrowWhenBuilderIsNull(int overrideIndex)
+    {
+        IHostApplicationBuilder builder = null!;
+        const string name = "Kafka:Consumer";
+        Action<KafkaConsumerSettings>? configureSettings = null;
+        Action<ConsumerBuilder<string, string>>? configureBuilder = null;
+        Action<IServiceProvider, ConsumerBuilder<string, string>>? configureBuilderWithServiceProvider = null;
+
+        Action action = overrideIndex switch
+        {
+            0 => () => builder.AddKeyedKafkaConsumer<string, string>(name),
+            1 => () => builder.AddKeyedKafkaConsumer<string, string>(name, configureSettings),
+            2 => () => builder.AddKeyedKafkaConsumer(name, configureBuilder),
+            3 => () => builder.AddKeyedKafkaConsumer(name, configureBuilderWithServiceProvider),
+            4 => () => builder.AddKeyedKafkaConsumer(name, configureSettings, configureBuilder),
+            5 => () => builder.AddKeyedKafkaConsumer(name, configureSettings, configureBuilderWithServiceProvider),
+            _ => throw new InvalidOperationException()
+        };
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    [InlineData(2, false)]
+    [InlineData(2, true)]
+    [InlineData(3, false)]
+    [InlineData(3, true)]
+    [InlineData(4, false)]
+    [InlineData(4, true)]
+    [InlineData(5, false)]
+    [InlineData(5, true)]
+    public void AddKeyedKafkaConsumerShouldThrowWhenConnectionNameIsNullOrEmpty(int overrideIndex, bool isNull)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var name = isNull ? null! : string.Empty;
+        Action<KafkaConsumerSettings>? configureSettings = null;
+        Action<ConsumerBuilder<string, string>>? configureBuilder = null;
+        Action<IServiceProvider, ConsumerBuilder<string, string>>? configureBuilderWithServiceProvider = null;
+
+        Action action = overrideIndex switch
+        {
+            0 => () => builder.AddKeyedKafkaConsumer<string, string>(name),
+            1 => () => builder.AddKeyedKafkaConsumer<string, string>(name, configureSettings),
+            2 => () => builder.AddKeyedKafkaConsumer(name, configureBuilder),
+            3 => () => builder.AddKeyedKafkaConsumer(name, configureBuilderWithServiceProvider),
+            4 => () => builder.AddKeyedKafkaConsumer(name, configureSettings, configureBuilder),
+            5 => () => builder.AddKeyedKafkaConsumer(name, configureSettings, configureBuilderWithServiceProvider),
+            _ => throw new InvalidOperationException()
+        };
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    public void AddKafkaProducerShouldThrowWhenBuilderIsNull(int overrideIndex)
     {
         IHostApplicationBuilder builder = null!;
         const string connectionName = "Kafka:Consumer";
+        Action<KafkaProducerSettings>? configureSettings = null;
+        Action<ProducerBuilder<string, string>>? configureBuilder = null;
+        Action<IServiceProvider, ProducerBuilder<string, string>>? configureBuilderWithServiceProvider = null;
 
-        var action = () => builder.AddKafkaConsumer<string, string>(connectionName, default(Action<KafkaConsumerSettings>?));
+        Action action = overrideIndex switch
+        {
+            0 => () => builder.AddKafkaProducer<string, string>(connectionName),
+            1 => () => builder.AddKafkaProducer<string, string>(connectionName, configureSettings),
+            2 => () => builder.AddKafkaProducer(connectionName, configureBuilder),
+            3 => () => builder.AddKafkaProducer(connectionName, configureBuilderWithServiceProvider),
+            4 => () => builder.AddKafkaProducer(connectionName, configureSettings, configureBuilder),
+            5 => () => builder.AddKafkaProducer(connectionName, configureSettings, configureBuilderWithServiceProvider),
+            _ => throw new InvalidOperationException()
+        };
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKafkaConsumerWithConfigureSettingsShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    [InlineData(2, false)]
+    [InlineData(2, true)]
+    [InlineData(3, false)]
+    [InlineData(3, true)]
+    [InlineData(4, false)]
+    [InlineData(4, true)]
+    [InlineData(5, false)]
+    [InlineData(5, true)]
+    public void AddKafkaProducerShouldThrowWhenConnectionNameIsNullOrEmpty(int overrideIndex, bool isNull)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
+        Action<KafkaProducerSettings>? configureSettings = null;
+        Action<ProducerBuilder<string, string>>? configureBuilder = null;
+        Action<IServiceProvider, ProducerBuilder<string, string>>? configureBuilderWithServiceProvider = null;
 
-        var action = () => builder.AddKafkaConsumer<string, string>(connectionName, default(Action<KafkaConsumerSettings>?));
+        Action action = overrideIndex switch
+        {
+            0 => () => builder.AddKafkaProducer<string, string>(connectionName),
+            1 => () => builder.AddKafkaProducer<string, string>(connectionName, configureSettings),
+            2 => () => builder.AddKafkaProducer(connectionName, configureBuilder),
+            3 => () => builder.AddKafkaProducer(connectionName, configureBuilderWithServiceProvider),
+            4 => () => builder.AddKafkaProducer(connectionName, configureSettings, configureBuilder),
+            5 => () => builder.AddKafkaProducer(connectionName, configureSettings, configureBuilderWithServiceProvider),
+            _ => throw new InvalidOperationException()
+        };
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -65,665 +213,67 @@ public class ConfluentKafkaPublicApiTests
         Assert.Equal(nameof(connectionName), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKafkaConsumerWithConfigureBuilderShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string connectionName = "Kafka:Consumer";
-
-        var action = () => builder.AddKafkaConsumer<string, string>(connectionName, default(Action<ConsumerBuilder<string, string>>?));
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKafkaConsumerWithConfigureBuilderShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var connectionName = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKafkaConsumer<string, string>(connectionName, default(Action<ConsumerBuilder<string, string>>?));
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(connectionName), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKafkaConsumerWithConsumerBuilderShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string connectionName = "Kafka:Consumer";
-
-        var action = () => builder.AddKafkaConsumer<string, string>(connectionName, default(Action<IServiceProvider, ConsumerBuilder<string, string>>?));
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKafkaConsumerWithConsumerBuilderShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var connectionName = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKafkaConsumer<string, string>(connectionName, default(Action<IServiceProvider, ConsumerBuilder<string, string>>?));
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(connectionName), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKafkaConsumerWithConfigureSettingsAndConfigureBuilderShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string connectionName = "Kafka:Consumer";
-
-        var action = () => builder.AddKafkaConsumer<string, string>(
-            connectionName,
-            default(Action<KafkaConsumerSettings>?),
-            default(Action<ConsumerBuilder<string, string>>?));
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKafkaConsumerWithConfigureSettingsAndConfigureBuilderShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var connectionName = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKafkaConsumer<string, string>(
-            connectionName,
-            default(Action<KafkaConsumerSettings>?),
-            default(Action<ConsumerBuilder<string, string>>?));
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(connectionName), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKafkaConsumerWithConfigureSettingsAndConsumerBuilderShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string connectionName = "Kafka:Consumer";
-
-        var action = () => builder.AddKafkaConsumer<string, string>(
-            connectionName,
-            default(Action<KafkaConsumerSettings>?),
-            default(Action<IServiceProvider, ConsumerBuilder<string, string>>?));
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKafkaConsumerWithConfigureSettingsAndConsumerBuilderShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var connectionName = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKafkaConsumer<string, string>(
-            connectionName,
-            default(Action<KafkaConsumerSettings>?),
-            default(Action<IServiceProvider, ConsumerBuilder<string, string>>?));
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(connectionName), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKeyedKafkaConsumerShouldThrowWhenBuilderIsNull()
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    public void AddKeyedKafkaProducerConsumerShouldThrowWhenBuilderIsNull(int overrideIndex)
     {
         IHostApplicationBuilder builder = null!;
         const string name = "Kafka:Consumer";
+        Action<KafkaProducerSettings>? configureSettings = null;
+        Action<ProducerBuilder<string, string>>? configureBuilder = null;
+        Action<IServiceProvider, ProducerBuilder<string, string>>? configureBuilderWithServiceProvider = null;
 
-        var action = () => builder.AddKafkaConsumer<string, string>(name);
+        Action action = overrideIndex switch
+        {
+            0 => () => builder.AddKeyedKafkaProducer<string, string>(name),
+            1 => () => builder.AddKeyedKafkaProducer<string, string>(name, configureSettings),
+            2 => () => builder.AddKeyedKafkaProducer(name, configureBuilder),
+            3 => () => builder.AddKeyedKafkaProducer(name, configureBuilderWithServiceProvider),
+            4 => () => builder.AddKeyedKafkaProducer(name, configureSettings, configureBuilder),
+            5 => () => builder.AddKeyedKafkaProducer(name, configureSettings, configureBuilderWithServiceProvider),
+            _ => throw new InvalidOperationException()
+        };
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKeyedKafkaConsumerShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    [InlineData(2, false)]
+    [InlineData(2, true)]
+    [InlineData(3, false)]
+    [InlineData(3, true)]
+    [InlineData(4, false)]
+    [InlineData(4, true)]
+    [InlineData(5, false)]
+    [InlineData(5, true)]
+    public void AddKeyedKafkaProducerShouldThrowWhenConnectionNameIsNullOrEmpty(int overrideIndex, bool isNull)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKeyedKafkaConsumer<string, string>(name);
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKeyedKafkaConsumerWithConfigureSettingsShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string name = "Kafka:Consumer";
-
-        var action = () => builder.AddKafkaConsumer<string, string>(name, default(Action<KafkaConsumerSettings>?));
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKeyedKafkaConsumerWithConfigureSettingsShouldThrowWhenNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var name = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKeyedKafkaConsumer<string, string>(name, default(Action<KafkaConsumerSettings>?));
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKeyedKafkaConsumerWithConfigureBuilderShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string name = "Kafka:Consumer";
-
-        var action = () => builder.AddKafkaConsumer<string, string>(name, default(Action<ConsumerBuilder<string, string>>?));
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKeyedKafkaConsumerWithConfigureBuilderShouldThrowWhenNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var name = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKeyedKafkaConsumer<string, string>(name, default(Action<ConsumerBuilder<string, string>>?));
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKeyedKafkaConsumerWithConsumerBuilderShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string name = "Kafka:Consumer";
-
-        var action = () => builder.AddKafkaConsumer<string, string>(name, default(Action<IServiceProvider, ConsumerBuilder<string, string>>?));
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKeyedKafkaConsumerWithConsumerBuilderShouldThrowWhenNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var name = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKeyedKafkaConsumer<string, string>(name, default(Action<IServiceProvider, ConsumerBuilder<string, string>>?));
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKeyedKafkaConsumerWithConfigureSettingsAndConfigureBuilderShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string name = "Kafka:Consumer";
-
-        var action = () => builder.AddKafkaConsumer<string, string>(
-            name,
-            default(Action<KafkaConsumerSettings>?),
-            default(Action<ConsumerBuilder<string, string>>?));
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKeyedKafkaConsumerWithConfigureSettingsAndConfigureBuilderShouldThrowWhenNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var name = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKeyedKafkaConsumer<string, string>(
-            name,
-            default(Action<KafkaConsumerSettings>?),
-            default(Action<ConsumerBuilder<string, string>>?));
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKeyedKafkaConsumerWithConfigureSettingsAndConsumerBuilderShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string name = "Kafka:Consumer";
-
-        var action = () => builder.AddKafkaConsumer<string, string>(
-            name,
-            default(Action<KafkaConsumerSettings>?),
-            default(Action<IServiceProvider, ConsumerBuilder<string, string>>?));
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKeyedKafkaConsumerWithConfigureSettingsAndConsumerBuilderShouldThrowWhenNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var name = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKeyedKafkaConsumer<string, string>(
-            name,
-            default(Action<KafkaConsumerSettings>?),
-            default(Action<IServiceProvider, ConsumerBuilder<string, string>>?));
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKafkaProducerShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string connectionName = "Kafka:Producer";
-
-        var action = () => builder.AddKafkaProducer<string, string>(connectionName);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKafkaProducerShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var connectionName = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKafkaProducer<string, string>(connectionName);
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(connectionName), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKafkaProducerWithConfigureSettingsShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string connectionName = "Kafka:Producer";
-
-        var action = () => builder.AddKafkaProducer<string, string>(connectionName, default(Action<KafkaProducerSettings>?));
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKafkaProducerWithConfigureSettingsShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var connectionName = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKafkaProducer<string, string>(connectionName, default(Action<KafkaProducerSettings>?));
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(connectionName), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKafkaProducerWithConfigureBuilderShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string connectionName = "Kafka:Producer";
-
-        var action = () => builder.AddKafkaProducer<string, string>(connectionName, default(Action<ProducerBuilder<string, string>>?));
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKafkaProducerWithConfigureBuilderShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var connectionName = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKafkaProducer<string, string>(connectionName, default(Action<ProducerBuilder<string, string>>?));
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(connectionName), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKafkaProducerWithProducerBuilderShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string connectionName = "Kafka:Producer";
-
-        var action = () => builder.AddKafkaProducer<string, string>(connectionName, default(Action<IServiceProvider, ProducerBuilder<string, string>>?));
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKafkaProducerWithProducerBuilderShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var connectionName = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKafkaProducer<string, string>(connectionName, default(Action<IServiceProvider, ProducerBuilder<string, string>>?));
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(connectionName), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKafkaProducerWithConfigureSettingsAndConfigureBuilderShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string connectionName = "Kafka:Producer";
-
-        var action = () => builder.AddKafkaProducer<string, string>(
-            connectionName,
-            default(Action<KafkaProducerSettings>?),
-            default(Action<ProducerBuilder<string, string>>?));
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKafkaProducerWithConfigureSettingsAndConfigureBuilderShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var connectionName = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKafkaProducer<string, string>(
-            connectionName,
-            default(Action<KafkaProducerSettings>?),
-            default(Action<ProducerBuilder<string, string>>?));
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(connectionName), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKafkaProducerWithConfigureSettingsAndProducerBuilderShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string connectionName = "Kafka:Producer";
-
-        var action = () => builder.AddKafkaProducer<string, string>(
-            connectionName,
-            default(Action<KafkaProducerSettings>?),
-            default(Action<IServiceProvider, ProducerBuilder<string, string>>?));
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKafkaProducerWithConfigureSettingsAndProducerBuilderShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var connectionName = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKafkaProducer<string, string>(
-            connectionName,
-            default(Action<KafkaProducerSettings>?),
-            default(Action<IServiceProvider, ProducerBuilder<string, string>>?));
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(connectionName), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKeyedKafkaProducerShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string name = "Kafka:Producer";
-
-        var action = () => builder.AddKafkaProducer<string, string>(name);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKeyedKafkaProducerShouldThrowWhenNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var name = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKeyedKafkaProducer<string, string>(name);
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKeyedKafkaProducerWithConfigureSettingsShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string name = "Kafka:Producer";
-
-        var action = () => builder.AddKafkaProducer<string, string>(name, default(Action<KafkaProducerSettings>?));
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKeyedKafkaProducerWithConfigureSettingsShouldThrowWhenNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var name = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKeyedKafkaProducer<string, string>(name, default(Action<KafkaProducerSettings>?));
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKeyedKafkaProducerWithConfigureBuilderShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string name = "Kafka:Producer";
-
-        var action = () => builder.AddKafkaProducer<string, string>(name, default(Action<ProducerBuilder<string, string>>?));
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKeyedKafkaProducerWithConfigureBuilderShouldThrowWhenNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var name = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKeyedKafkaProducer<string, string>(name, default(Action<ProducerBuilder<string, string>>?));
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKeyedKafkaProducerWithProducerBuilderShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string name = "Kafka:Producer";
-
-        var action = () => builder.AddKafkaProducer<string, string>(name, default(Action<IServiceProvider, ProducerBuilder<string, string>>?));
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKeyedKafkaProducerWithProducerBuilderShouldThrowWhenNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var name = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKeyedKafkaProducer<string, string>(
-            name,
-            default(Action<IServiceProvider, ProducerBuilder<string, string>>?));
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKeyedKafkaProducerWithConfigureSettingsAndConfigureBuilderShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string name = "Kafka:Producer";
-
-        var action = () => builder.AddKafkaProducer<string, string>(
-            name,
-            default(Action<KafkaProducerSettings>?),
-            default(Action<ProducerBuilder<string, string>>?));
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKeyedKafkaProducerWithConfigureSettingsAndConfigureBuilderShouldThrowWhenNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var name = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKeyedKafkaProducer<string, string>(
-            name,
-            default(Action<KafkaProducerSettings>?),
-            default(Action<ProducerBuilder<string, string>>?));
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKeyedKafkaProducerWithConfigureSettingsAndProducerBuilderShouldThrowWhenBuilderIsNull()
-    {
-        IHostApplicationBuilder builder = null!;
-        const string name = "Kafka:Producer";
-
-        var action = () => builder.AddKafkaProducer<string, string>(
-            name,
-            default(Action<KafkaProducerSettings>?),
-            default(Action<IServiceProvider, ProducerBuilder<string, string>>?));
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddKeyedKafkaProducerWithConfigureSettingsAndProducerBuilderShouldThrowWhenNameIsNullOrEmpty(bool isNull)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        var name = isNull ? null! : string.Empty;
-
-        var action = () => builder.AddKeyedKafkaProducer<string, string>(
-            name,
-            default(Action<KafkaProducerSettings>?),
-            default(Action<IServiceProvider, ProducerBuilder<string, string>>?));
+        Action<KafkaProducerSettings>? configureSettings = null;
+        Action<ProducerBuilder<string, string>>? configureBuilder = null;
+        Action<IServiceProvider, ProducerBuilder<string, string>>? configureBuilderWithServiceProvider = null;
+
+        Action action = overrideIndex switch
+        {
+            0 => () => builder.AddKeyedKafkaProducer<string, string>(name),
+            1 => () => builder.AddKeyedKafkaProducer<string, string>(name, configureSettings),
+            2 => () => builder.AddKeyedKafkaProducer(name, configureBuilder),
+            3 => () => builder.AddKeyedKafkaProducer(name, configureBuilderWithServiceProvider),
+            4 => () => builder.AddKeyedKafkaProducer(name, configureSettings, configureBuilder),
+            5 => () => builder.AddKeyedKafkaProducer(name, configureSettings, configureBuilderWithServiceProvider),
+            _ => throw new InvalidOperationException()
+        };
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
