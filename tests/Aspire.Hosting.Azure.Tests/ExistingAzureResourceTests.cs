@@ -17,7 +17,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .RunAsExisting(existingResourceName);
+            .RunAsExisting(existingResourceName, resourceGroupParameter: default);
         serviceBus.AddServiceBusQueue("queue");
 
         var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
@@ -79,7 +79,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .RunAsExisting(existingResourceName);
+            .RunAsExisting(existingResourceName, resourceGroupParameter: default);
         serviceBus.AddServiceBusQueue("queue");
 
         var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
@@ -150,7 +150,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .PublishAsExisting(existingResourceName);
+            .PublishAsExisting(existingResourceName, resourceGroupParameter: default);
         serviceBus.AddServiceBusQueue("queue");
 
         var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
@@ -1156,7 +1156,7 @@ public class ExistingAzureResourceTests(ITestOutputHelper output)
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var sqlServer = builder.AddAzureSqlServer("sqlServer")
-            .RunAsExisting(existingResourceName);
+            .RunAsExisting(existingResourceName, resourceGroupParameter: default);
 
         var (ManifestNode, BicepText) = await ManifestUtils.GetManifestWithBicep(sqlServer.Resource);
 
