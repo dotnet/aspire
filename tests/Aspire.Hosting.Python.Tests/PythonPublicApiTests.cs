@@ -39,7 +39,7 @@ public class PythonPublicApiTests
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
             : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(executablePath), exception.ParamName);
+        Assert.Equal("command", exception.ParamName);
     }
 
     [Theory]
@@ -56,7 +56,7 @@ public class PythonPublicApiTests
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
             : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(appDirectory), exception.ParamName);
+        Assert.Equal("workingDirectory", exception.ParamName);
     }
 
     [Fact]
@@ -376,7 +376,7 @@ public class PythonPublicApiTests
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
             : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(executablePath), exception.ParamName);
+        Assert.Equal("command", exception.ParamName);
     }
 
     [Theory]
@@ -394,7 +394,7 @@ public class PythonPublicApiTests
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
             : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(projectDirectory), exception.ParamName);
+        Assert.Equal("workingDirectory", exception.ParamName);
     }
 
     [Fact]
