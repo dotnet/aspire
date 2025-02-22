@@ -76,7 +76,7 @@ jobs:
             #--no-build -- RunConfiguration.CollectSourceInformation=true
 
       - name: first
-        if: ${{ matrix.name == 'Hosting.Containers' }}
+        if: ${{ matrix.name == '-asdHosting.Containers' }}
         run: |
           echo fail
           exit 1
