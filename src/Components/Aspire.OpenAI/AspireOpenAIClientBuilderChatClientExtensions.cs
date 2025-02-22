@@ -23,6 +23,8 @@ public static class AspireOpenAIClientBuilderChatClientExtensions
         this AspireOpenAIClientBuilder builder,
         string? deploymentName = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.HostBuilder.Services.AddChatClient(
             services => CreateInnerChatClient(services, builder, deploymentName));
     }
@@ -39,6 +41,9 @@ public static class AspireOpenAIClientBuilderChatClientExtensions
         string serviceKey,
         string? deploymentName = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(serviceKey);
+
         return builder.HostBuilder.Services.AddKeyedChatClient(
             serviceKey,
             services => CreateInnerChatClient(services, builder, deploymentName));
