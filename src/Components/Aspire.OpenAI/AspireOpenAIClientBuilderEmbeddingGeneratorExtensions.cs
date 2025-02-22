@@ -23,6 +23,8 @@ public static class AspireOpenAIClientBuilderEmbeddingGeneratorExtensions
         this AspireOpenAIClientBuilder builder,
         string? deploymentName = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.HostBuilder.Services.AddEmbeddingGenerator(
             services => CreateInnerEmbeddingGenerator(services, builder, deploymentName));
     }
@@ -39,6 +41,9 @@ public static class AspireOpenAIClientBuilderEmbeddingGeneratorExtensions
         string serviceKey,
         string? deploymentName = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(serviceKey);
+
         return builder.HostBuilder.Services.AddKeyedEmbeddingGenerator(
             serviceKey,
             services => CreateInnerEmbeddingGenerator(services, builder, deploymentName));
