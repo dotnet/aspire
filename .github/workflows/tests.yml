@@ -77,7 +77,7 @@ jobs:
 
       - name: (tmp)Save exit code from the tests
         run: |
-          echo "success: ${{ success() }}" > result-${{ matrix.name }}.txt
+          echo "conclusion: ${{ steps.run-tests.conclusion }" > result-${{ matrix.name }}.txt
           cat result-${{ matrix.name }}.txt
 
       - name: Save exit code from the tests
