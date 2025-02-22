@@ -89,24 +89,20 @@ jobs:
       - name: second
         run: echo hello
 
-      - name: (tmp)Save exit code from the tests
+      - name: Store result - success
         if: ${{ success() }}
-        run: |
-          echo "success" > result-${{ matrix.name }}.txt
-          cat result-${{ matrix.name }}.txt
+        run: touch result-success-${{ matrix.name }}.rst
 
-      - name: (tmp)Save exit code from the tests
+      - name: Store result - failure
         if: ${{ !success() }}
-        run: |
-          echo "not-success" > result-${{ matrix.name }}.txt
-          cat result-${{ matrix.name }}.txt
+        run: touch result-failed-${{ matrix.name }}.rst
 
       - name: Save exit code from the tests
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-job-result-${{ matrix.name }}
-          path: result-*.txt
+          path: result-*.rst
 
       - name: Dump docker info
         if: always()
@@ -144,4 +140,4 @@ jobs:
 
       - run: |
           ls -al test-job-result/
-          find test-job-result -name '*.txt' -exec cat {}\;
+          ls test-job-result/result-failed-*; [ $? -ne 0 ]
