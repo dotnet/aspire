@@ -126,6 +126,12 @@
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/azure-func-cli:$PATH" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(OS)' != 'Windows_NT' and '$(DockerCliToolDir)' != ''">
+    <!-- Update it to the latest cli. This path is set from the eng/pipelines/templates/BuildAndTest.yml -->
+    <HelixPreCommand Include="export PATH=$HELIX_CORRELATION_PAYLOAD/docker-cli:$PATH" />
+    <HelixPreCommand Include="which docker" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(HasDocker)' == 'true'">
     <HelixPreCommand Include="docker info" />
     <HelixPreCommand Include="docker container ls --all" />
@@ -214,6 +220,7 @@
       <HelixCorrelationPayload Include="$(_DotNetCoverageToolDir)" Destination="dotnet-coverage" />
       <HelixCorrelationPayload Include="$(_SupportDataStagingDir)" Destination="support-data" />
       <HelixCorrelationPayload Condition="'$(NeedsCreateDotNetDevScripts)' == 'true'" Include="$(_CreateDotNetDevCertsDirectory)" Destination="create-dotnet-devcert" />
+      <HelixCorrelationPayload Condition="'$(DockerCliToolDir)' != ''" Include="$(DockerCliToolDir)" Destination="docker-cli" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(NeedsWorkload)' == 'true'">
