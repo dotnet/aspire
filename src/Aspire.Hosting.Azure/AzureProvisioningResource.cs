@@ -13,12 +13,13 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name">The name of the resource in the Aspire application model.</param>
 /// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
-public class AzureProvisioningResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) : AzureBicepResource(name, templateFile: $"{name}.module.bicep")
+public class AzureProvisioningResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
+    : AzureBicepResource(name, templateFile: $"{name}.module.bicep")
 {
     /// <summary>
     /// Callback for configuring the Azure resources.
     /// </summary>
-    public Action<AzureResourceInfrastructure> ConfigureInfrastructure { get; internal set; } = configureInfrastructure;
+    public Action<AzureResourceInfrastructure> ConfigureInfrastructure { get; internal set; } = configureInfrastructure ?? throw new ArgumentNullException(nameof(configureInfrastructure));
 
     /// <summary>
     /// Gets or sets the <see cref="global::Azure.Provisioning.ProvisioningBuildOptions"/> which contains common settings and

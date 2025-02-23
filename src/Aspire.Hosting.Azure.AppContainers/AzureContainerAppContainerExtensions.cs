@@ -31,8 +31,12 @@ public static class AzureContainerAppContainerExtensions
     /// });
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> PublishAsAzureContainerApp<T>(this IResourceBuilder<T> container, Action<AzureResourceInfrastructure, ContainerApp> configure) where T : ContainerResource
+    public static IResourceBuilder<T> PublishAsAzureContainerApp<T>(this IResourceBuilder<T> container, Action<AzureResourceInfrastructure, ContainerApp> configure)
+        where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNull(container);
+        ArgumentNullException.ThrowIfNull(configure);
+
         if (!container.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return container;
