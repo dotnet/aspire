@@ -57,6 +57,10 @@ public static class ContainerAppExtensions
     [Experimental("ASPIREACADOMAINS001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static void ConfigureCustomDomain(this ContainerApp app, IResourceBuilder<ParameterResource> customDomain, IResourceBuilder<ParameterResource> certificateName)
     {
+        ArgumentNullException.ThrowIfNull(app);
+        ArgumentNullException.ThrowIfNull(customDomain);
+        ArgumentNullException.ThrowIfNull(certificateName);
+
         if (app.ParentInfrastructure is not AzureResourceInfrastructure module)
         {
             throw new ArgumentException("Cannot configure custom domain when resource is not parented by ResourceModuleConstruct.", nameof(app));

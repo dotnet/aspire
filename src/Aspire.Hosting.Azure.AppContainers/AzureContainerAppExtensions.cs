@@ -17,6 +17,8 @@ public static class AzureContainerAppExtensions
     /// <param name="builder">The distributed application builder.</param>
     public static IDistributedApplicationBuilder AddAzureContainerAppsInfrastructure(this IDistributedApplicationBuilder builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.Services.TryAddLifecycleHook<AzureContainerAppsInfrastructure>();
 
         return builder;
