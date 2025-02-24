@@ -26,7 +26,7 @@
     <PackageVersion Include="Azure.Storage.Queues" Version="12.21.0" />
     <PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.12" />
     <PackageVersion Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="8.0.0" />
-    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.46.1" />
+    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.47.1" />
     <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.30.2" />
     <PackageVersion Include="Microsoft.Azure.SignalR.Management" Version="1.30.2" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.10.0" />
